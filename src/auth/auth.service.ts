@@ -6,6 +6,7 @@ import { LocalAuthUserDto } from './dto/local-auth-user.dto';
 import { UserReponseDto } from 'src/user/dto/user-response.dto';
 import { VerifyOtpDto } from 'src/sms/dto/sms.dto';
 import { ResetForgottenPasswordDto, ResetPasswordDto } from './dto/password.dto';
+import { RolesEnum } from 'src/common/enums/roles.enum';
 
 @Injectable()
 export class AuthService {
@@ -15,21 +16,43 @@ export class AuthService {
   ) {}
 
   async signUp(registerUserDto: RegisterUserDto) {
-    if (registerUserDto?.phone) {
+    // Validate confirm password matches password
+    if (registerUserDto.password !== registerUserDto.confirm_password) {
+      throw new BadRequestException('Password and confirm password do not match');
+    }
+
+    // Validate at least one of email or phone is provided
+    if (!registerUserDto.email && !registerUserDto.phone) {
+      throw new BadRequestException('Either email or phone must be provided');
+    }
+
+    // Set default role if not provided
+    if (!registerUserDto.role) {
+      registerUserDto.role = RolesEnum.STUDENT;
+    }
+
+    // If phone is provided, send OTP
+    if (registerUserDto.phone) {
       const smsResult = await this.smsService.sendOtp(registerUserDto.phone);
       if (!smsResult.success) {
-        throw new Error(`Failed to send OTP: ${smsResult.message}`);
+        throw new BadRequestException(`Failed to send OTP: ${smsResult.message}`);
       }
     }
 
-    await this.userService.create(registerUserDto);
+    // Create user (set is_verified based on whether phone verification is needed)
+    const isVerified = !registerUserDto.phone; // If only email, mark as verified
+    await this.userService.create({ ...registerUserDto, is_verified: isVerified });
 
     return {
       success: true,
-      message: 'Registration successful. Please verify your phone number with the OTP sent.',
+      message: registerUserDto.phone 
+        ? 'Registration successful. Please verify your phone number with the OTP sent.'
+        : 'Registration successful. You can now login.',
       data: {
         phone: registerUserDto.phone,
-        otpSent: true,
+        email: registerUserDto.email,
+        otpSent: !!registerUserDto.phone,
+        requiresPhoneVerification: !!registerUserDto.phone,
       },
     };
   }

@@ -6,6 +6,8 @@ import { AuthModule } from "./auth/auth.module";
 import { UserModule } from "./user/user.module";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { ExamModule } from './exams/exam.module';
+import { ClassModule } from './classes/class.module';
+import { SubscriptionModule } from './subscriptions/subscription.module';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { ExamModule } from './exams/exam.module';
     AuthModule,
     UserModule,
     ExamModule,
+    ClassModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

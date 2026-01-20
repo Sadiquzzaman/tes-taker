@@ -1,14 +1,23 @@
 import {
-  BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  ParseUUIDPipe,
+  Patch,
   Post,
   UseGuards,
 } from "@nestjs/common";
-import { CreateExamDto } from "./dto/create-exam.dto";
-import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { CreateObjectiveExamDto, CreateSubjectiveExamDto } from "./dto/create-exam.dto";
+import { UpdateExcludedStudentsDto } from "./dto/update-exam.dto";
+import { 
+  ApiBearerAuth, 
+  ApiOperation, 
+  ApiParam, 
+  ApiResponse, 
+  ApiTags 
+} from "@nestjs/swagger";
 import { AuthGuard } from "@nestjs/passport";
 import { RolesGuard } from "src/common/guard/roles.guard";
 import { Roles } from "src/common/decorators/roles.decorator";
@@ -25,39 +34,134 @@ import { ExamService } from "./exam.service";
 export class ExamController {
   constructor(private readonly examService: ExamService) {}
 
+  @Post("objective")
   @ApiBearerAuth("jwt")
   @UseGuards(AuthGuard("jwt"), RolesGuard)
-  @Roles(RolesEnum.TEACHER)
-  @Post()
-  async create(
-    @Body() dto: CreateExamDto,
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({
+    summary: "Create an objective exam",
+    description: "Create an objective exam with multiple choice questions. Supports negative marking, class assignment, and excluded students.",
+  })
+  @ApiResponse({ status: 201, description: "Exam created successfully" })
+  @ApiResponse({ status: 400, description: "Validation error" })
+  @ApiResponse({ status: 401, description: "Unauthorized" })
+  @ApiResponse({ status: 403, description: "Forbidden - Only teachers can create exams" })
+  async createObjectiveExam(
+    @Body() dto: CreateObjectiveExamDto,
     @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
-    try {
-      const payload = await this.examService.create(dto, jwtPayload);
-      return { message: "Exam created successfully", payload };
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    const payload = await this.examService.createObjectiveExam(dto, jwtPayload);
+    return { message: "Objective exam created successfully", payload };
+  }
+
+  @Post("subjective")
+  @ApiBearerAuth("jwt")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({
+    summary: "Create a subjective exam",
+    description: "Create a subjective exam with written-answer questions. Supports word limits, marks per question, and sample answers.",
+  })
+  @ApiResponse({ status: 201, description: "Exam created successfully" })
+  @ApiResponse({ status: 400, description: "Validation error" })
+  @ApiResponse({ status: 401, description: "Unauthorized" })
+  @ApiResponse({ status: 403, description: "Forbidden - Only teachers can create exams" })
+  async createSubjectiveExam(
+    @Body() dto: CreateSubjectiveExamDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.examService.createSubjectiveExam(dto, jwtPayload);
+    return { message: "Subjective exam created successfully", payload };
   }
 
   @Get()
-  async findAll() {
-    try {
-      const payload = await this.examService.findAll();
-      return { message: "All exams list", payload };
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+  @ApiBearerAuth("jwt")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({
+    summary: "Get all exams",
+    description: "Get all exams created by the logged-in teacher",
+  })
+  @ApiResponse({ status: 200, description: "List of exams" })
+  async findAll(@UserPayload() jwtPayload: JwtPayloadInterface) {
+    const payload = await this.examService.findAll(jwtPayload);
+    return { message: "Exams retrieved successfully", payload };
+  }
+
+  @Get("class/:classId")
+  @ApiBearerAuth("jwt")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({
+    summary: "Get exams by class",
+    description: "Get all exams assigned to a specific class",
+  })
+  @ApiParam({ name: "classId", description: "Class UUID" })
+  @ApiResponse({ status: 200, description: "List of exams for the class" })
+  async findByClass(
+    @Param("classId", ParseUUIDPipe) classId: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.examService.findByClass(classId, jwtPayload);
+    return { message: "Exams retrieved successfully", payload };
   }
 
   @Get(":id")
-  async findOne(@Param("id") id: string) {
-    try {
-      const payload = await this.examService.findOne(id);
-      return { message: "Exam details", payload };
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+  @ApiBearerAuth("jwt")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.STUDENT)
+  @ApiOperation({
+    summary: "Get exam by ID",
+    description: "Get detailed information about a specific exam",
+  })
+  @ApiParam({ name: "id", description: "Exam UUID" })
+  @ApiResponse({ status: 200, description: "Exam details" })
+  @ApiResponse({ status: 404, description: "Exam not found" })
+  async findOne(
+    @Param("id", ParseUUIDPipe) id: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.examService.findOne(id, jwtPayload);
+    return { message: "Exam details retrieved successfully", payload };
+  }
+
+  @Patch(":id/excluded-students")
+  @ApiBearerAuth("jwt")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({
+    summary: "Update excluded students",
+    description: "Update the list of students excluded from an exam",
+  })
+  @ApiParam({ name: "id", description: "Exam UUID" })
+  @ApiResponse({ status: 200, description: "Excluded students updated" })
+  @ApiResponse({ status: 404, description: "Exam not found" })
+  async updateExcludedStudents(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: UpdateExcludedStudentsDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.examService.updateExcludedStudents(id, dto.student_ids, jwtPayload);
+    return { message: "Excluded students updated successfully", payload };
+  }
+
+  @Delete(":id")
+  @ApiBearerAuth("jwt")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({
+    summary: "Delete an exam",
+    description: "Permanently delete an exam and all its questions",
+  })
+  @ApiParam({ name: "id", description: "Exam UUID" })
+  @ApiResponse({ status: 200, description: "Exam deleted successfully" })
+  @ApiResponse({ status: 404, description: "Exam not found" })
+  @ApiResponse({ status: 403, description: "Permission denied" })
+  async delete(
+    @Param("id", ParseUUIDPipe) id: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    await this.examService.delete(id, jwtPayload);
+    return { message: "Exam deleted successfully" };
   }
 }
