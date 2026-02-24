@@ -1,10 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LocalAuthUserDto } from 'src/auth/dto/local-auth-user.dto';
 import { RegisterUserDto } from 'src/auth/dto/register-user.dto';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
-import { CryptoUtil } from 'src/common/utils/crypto.util';
 import { UserFilterUtil } from 'src/common/utils/user-filter.util';
 import { Repository } from 'typeorm';
 import { UserReponseDto } from './dto/user-response.dto';
@@ -16,21 +14,24 @@ export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
-    private readonly crypto: CryptoUtil,
     private readonly userFilterUtil: UserFilterUtil,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
 
   async create(registerUserDto: RegisterUserDto | any): Promise<UserEntity> {
-    const isEmailDuplicate = await this.userRepository.findOne({
-      where: { email: registerUserDto.email },
-    });
+    // Check for duplicate email if provided
+    if (registerUserDto.email) {
+      const isEmailDuplicate = await this.userRepository.findOne({
+        where: { email: registerUserDto.email },
+      });
 
-    if (isEmailDuplicate) {
-      throw new BadRequestException('Email already exist!');
+      if (isEmailDuplicate) {
+        throw new BadRequestException('Email already exists!');
+      }
     }
 
+    // Check for duplicate phone
     const isPhoneDuplicate = await this.userRepository.findOne({
       where: { phone: registerUserDto.phone },
     });
@@ -39,13 +40,9 @@ export class UserService {
       throw new BadRequestException('Phone number already exists!');
     }
 
-    registerUserDto.password = await this.crypto.hashPassword(
-      registerUserDto.password,
-    );
-
     const verificationToken = this.generateVerificationToken();
-
     const refreshToken = (Math.random() * 0xfffff * 1000000).toString(16);
+    
     const userEntity = {
       ...registerUserDto,
       verification_token: verificationToken,
@@ -56,7 +53,6 @@ export class UserService {
     };
 
     const user = await this.userRepository.save(userEntity);
-    delete user.password;
     return user;
   }
 
@@ -84,51 +80,21 @@ export class UserService {
     return user;
   }
 
-  async validateUserEmailPass(
-    localUser: LocalAuthUserDto,
-    options?: {
-      bypassPhoneNumberVerification?: boolean;
-    }
-  ): Promise<UserReponseDto> {
-    // Check if user is trying to login with email or phone
-    let user: UserEntity | null;
-    
-    if (localUser.email && localUser.email.includes('@')) {
-      // Login with email
-      user = await this.userRepository.findOne({
-        where: { email: localUser.email },
-      });
-    } else if (localUser.phone) {
-      // Login with phone
-      user = await this.userRepository.findOne({
-        where: { phone: localUser.phone },
-      });
-    } else {
-      throw new UnauthorizedException('Invalid login credentials');
-    }
+  async findByEmail(email: string): Promise<UserEntity | null> {
+    return await this.userRepository.findOne({
+      where: { email },
+    });
+  }
 
-    if (!user) {
-      throw new UnauthorizedException();
-    }
-
-    if (
-      !(await this.crypto.comparePassword(localUser.password, user.password))
-    ) {
-      throw new UnauthorizedException('Login credentials not accepted');
-    }
-
-    // Check if user is verified
-    if (!user.is_verified && !options?.bypassPhoneNumberVerification) {
-      throw new UnauthorizedException('Please verify your phone number before logging in');
-    }
-
-
-    //generate token
+  async generateTokenForUser(user: UserEntity): Promise<UserReponseDto> {
+    // Generate JWT token
     const access_token = this.generateJwtToken(user);
 
+    // Update refresh token
     const refreshToken = (Math.random() * 0xfffff * 1000000).toString(16);
     user.refresh_token = refreshToken;
     await user.save();
+
     return { ...user, access_token };
   }
 
@@ -169,29 +135,4 @@ export class UserService {
     
     return await this.userRepository.save(user);
   }
-  
-  async updatePasswordByPhone(phone: string, newPassword: string) {
-    const user = await this.findByPhone(phone);
-    if (!user) throw new BadRequestException('User not found');
-  
-    user.password = await this.crypto.hashPassword(newPassword);
-    await this.userRepository.save(user);
-  
-    return this.userFilterUtil.filterSensitiveFields(user);
-  }
-  
-  async updatePasswordByOldPassword(userId: string, oldPassword: string, newPassword: string) {
-    const user = await this.findById(userId);
-  
-    const isMatch = await this.crypto.comparePassword(oldPassword, user.password);
-    if (!isMatch) {
-      throw new BadRequestException('Old password is incorrect');
-    }
-  
-    user.password = await this.crypto.hashPassword(newPassword);
-    await this.userRepository.save(user);
-  
-    return this.userFilterUtil.filterSensitiveFields(user);
-  }
-  
 }

@@ -25,19 +25,12 @@ export class UserEntity extends CustomBaseEntity {
 
   @Column({
     type: "varchar",
-    name: "password",
-    length: 100,
-  })
-  @Exclude()
-  password: string;
-
-  @Column({
-    type: "varchar",
     name: "phone",
     length: 15,
-    nullable: true,
+    nullable: false,
   })
   @Index({ unique: true })
+  @IsNotEmpty()
   phone: string;
 
   @Column({
@@ -63,12 +56,4 @@ export class UserEntity extends CustomBaseEntity {
   @Index({ unique: true })
   refresh_token: string;
 
-  @Column({
-    type: "varchar",
-    name: "reset_password_token",
-    length: 1000,
-    nullable: true,
-  })
-  @Index({ unique: true })
-  reset_password_token: string;
 }
