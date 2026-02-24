@@ -141,8 +141,9 @@ export class AuthService {
         throw new NotFoundException('No user found with this phone number');
       }
       phoneNumber = phone;
-    } else if (email) {
-      user = await this.userService.findByEmail(email);
+    } else {
+      // email is guaranteed to be present here due to validation above
+      user = await this.userService.findByEmail(email!);
       if (!user) {
         throw new NotFoundException('No user found with this email address');
       }
