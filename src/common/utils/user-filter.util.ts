@@ -7,8 +7,7 @@ export class UserFilterUtil {
     const filteredUser = {
       id: user.id,
       is_active: user.is_active,
-      first_name: user.first_name,
-      last_name: user.last_name,
+      full_name: user.full_name,
       email: user.email,
       phone: user.phone,
       is_verified: user.is_verified,

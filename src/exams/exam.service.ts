@@ -74,7 +74,7 @@ export class ExamService {
       class_id: dto.class_id,
       excluded_students: excludedStudents,
       created_by: jwtPayload.id,
-      created_user_name: `${jwtPayload.first_name} ${jwtPayload.last_name}`,
+      created_user_name: jwtPayload.full_name,
       created_at: new Date(),
     });
 
@@ -93,7 +93,7 @@ export class ExamService {
         explanation: q.explanation,
         exam: savedExam,
         created_by: jwtPayload.id,
-        created_user_name: `${jwtPayload.first_name} ${jwtPayload.last_name}`,
+        created_user_name: jwtPayload.full_name,
         created_at: new Date(),
       })
     );
@@ -148,7 +148,7 @@ export class ExamService {
       class_id: dto.class_id,
       excluded_students: excludedStudents,
       created_by: jwtPayload.id,
-      created_user_name: `${jwtPayload.first_name} ${jwtPayload.last_name}`,
+      created_user_name: jwtPayload.full_name,
       created_at: new Date(),
     });
 
@@ -164,7 +164,7 @@ export class ExamService {
         sample_answer: q.sample_answer,
         exam: savedExam,
         created_by: jwtPayload.id,
-        created_user_name: `${jwtPayload.first_name} ${jwtPayload.last_name}`,
+        created_user_name: jwtPayload.full_name,
         created_at: new Date(),
       })
     );

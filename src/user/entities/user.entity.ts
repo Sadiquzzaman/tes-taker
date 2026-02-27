@@ -10,18 +10,22 @@ import {
 
 @Entity("users")
 export class UserEntity extends CustomBaseEntity {
-  @Column({ name: "first_name", type: "varchar", length: "50" })
+  @Column({ name: "full_name", type: "varchar", length: "100" })
   @IsNotEmpty()
-  first_name: string;
-
-  @Column({ name: "last_name", type: "varchar", length: "50" })
-  @IsNotEmpty()
-  last_name: string;
+  full_name: string;
 
   @Column({ type: "varchar", length: 100, nullable: true })
   @Index({ unique: true })
   @IsEmail()
   email: string;
+
+  @Column({
+    type: "varchar",
+    name: "password",
+    length: 100,
+  })
+  @Exclude()
+  password: string;
 
   @Column({
     type: "varchar",
@@ -35,8 +39,15 @@ export class UserEntity extends CustomBaseEntity {
 
   @Column({
     type: "boolean",
+    name: "is_otp_verified",
+    default: false,
+  })
+  is_otp_verified: boolean;
+
+  @Column({
+    type: "boolean",
     name: "is_verified",
-    default: true,
+    default: false,
   })
   is_verified: boolean;
 

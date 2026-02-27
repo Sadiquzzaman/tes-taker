@@ -18,24 +18,14 @@ import { RolesEnum } from 'src/common/enums/roles.enum';
 
 export class RegisterUserDto {
   @ApiProperty({ 
-    description: 'User first name',
-    example: 'Sadiquzzaman',
-    maxLength: 65
+    description: 'User full name',
+    example: 'Sadiquzzaman Shovon',
+    maxLength: 100
   })
-  @IsNotEmpty({ message: 'First name must be non empty' })
-  @IsString({ message: 'First name must be a string' })
-  @MaxLength(65, { message: 'First name is maximum 65 characters supported' })
-  first_name: string;
-
-  @ApiProperty({ 
-    description: 'User last name',
-    example: 'Shovon',
-    maxLength: 65
-  })
-  @IsNotEmpty({ message: 'Last name must be non empty' })
-  @IsString({ message: 'Last name must be a string' })
-  @MaxLength(65, { message: 'Last name is maximum 65 characters supported' })
-  last_name: string;
+  @IsNotEmpty({ message: 'Full name must be non empty' })
+  @IsString({ message: 'Full name must be a string' })
+  @MaxLength(100, { message: 'Full name is maximum 100 characters supported' })
+  full_name: string;
 
   @ApiPropertyOptional({ 
     description: 'User email address (optional). Phone number is required for registration.',
@@ -58,6 +48,27 @@ export class RegisterUserDto {
   @Matches(/^01[3-9]\d{8}$/, { message: 'Phone number must be a valid Bangladeshi mobile number' })
   @MaxLength(15, { message: 'Maximum 15 characters supported' })
   phone: string;
+
+  @ApiProperty({ 
+    description: 'User password (minimum 8 characters)',
+    example: 'StrongPass123',
+    minLength: 8,
+    maxLength: 100
+  })
+  @Exclude({ toPlainOnly: true })
+  @IsNotEmpty({ message: 'Password must be non empty' })
+  @IsString({ message: 'Password must be a string' })
+  @MinLength(8, { message: 'Password must be at least 8 characters' })
+  @MaxLength(100, { message: 'Maximum 100 characters supported' })
+  password: string;
+
+  @ApiProperty({ 
+    description: 'Confirm password (must match password)',
+    example: 'StrongPass123'
+  })
+  @IsNotEmpty({ message: 'Confirm password must be non empty' })
+  @IsString({ message: 'Confirm password must be a string' })
+  confirm_password: string;
 
   @ApiPropertyOptional({ 
     description: 'User role (defaults to STUDENT if not provided)',

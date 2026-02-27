@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { RegisterUserDto } from './dto/register-user.dto';
+import { LoginDto } from './dto/login.dto';
 import { UserService } from 'src/user/user.service';
 import { SmsService } from 'src/sms/sms.service';
 import { UserReponseDto } from 'src/user/dto/user-response.dto';
 import { VerifyOtpDto } from 'src/sms/dto/sms.dto';
-import { RequestLoginOtpDto, VerifyLoginOtpDto } from './dto/login-otp.dto';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 
 @Injectable()
@@ -15,6 +15,11 @@ export class AuthService {
   ) {}
 
   async signUp(registerUserDto: RegisterUserDto) {
+    // Validate confirm password matches password
+    if (registerUserDto.password !== registerUserDto.confirm_password) {
+      throw new BadRequestException('Password and confirm password do not match');
+    }
+
     // Phone is required for registration
     if (!registerUserDto.phone) {
       throw new BadRequestException('Phone number is required for registration');
@@ -25,6 +30,26 @@ export class AuthService {
       registerUserDto.role = RolesEnum.STUDENT;
     }
 
+    // Check if user with this phone already exists
+    const existingUser = await this.userService.findByPhone(registerUserDto.phone);
+    
+    if (existingUser) {
+      if (existingUser.is_otp_verified) {
+        throw new BadRequestException('Phone number already registered and verified');
+      } else {
+        // Delete unverified user to allow re-registration
+        await this.userService.deleteUnverifiedUser(registerUserDto.phone);
+      }
+    }
+
+    // Check for duplicate email if provided (only if verified)
+    if (registerUserDto.email) {
+      const existingEmailUser = await this.userService.findByEmail(registerUserDto.email);
+      if (existingEmailUser && existingEmailUser.is_otp_verified) {
+        throw new BadRequestException('Email already exists and verified');
+      }
+    }
+
     // Send OTP using centralized SMS service
     const smsResult = await this.smsService.sendOtp(registerUserDto.phone);
     if (!smsResult.success) {
@@ -32,7 +57,11 @@ export class AuthService {
     }
 
     // Create user (unverified until OTP is verified)
-    await this.userService.create({ ...registerUserDto, is_verified: false });
+    await this.userService.create({ 
+      ...registerUserDto, 
+      is_otp_verified: false,
+      is_verified: false 
+    });
 
     return {
       success: true,
@@ -54,6 +83,11 @@ export class AuthService {
       throw new NotFoundException('No user found with this phone number');
     }
 
+    // Check if already verified
+    if (user.is_otp_verified) {
+      throw new BadRequestException('Phone number already verified');
+    }
+
     // Verify OTP using centralized SMS service
     const verifyResult = await this.smsService.verifyOtp(phone, verifyOtpDto.otp);
     if (!verifyResult.success) {
@@ -72,99 +106,7 @@ export class AuthService {
     };
   }
 
-  async requestLoginOtp(requestLoginOtpDto: RequestLoginOtpDto) {
-    const { phone, email } = requestLoginOtpDto;
-
-    if (!phone && !email) {
-      throw new BadRequestException('Either phone or email must be provided');
-    }
-
-    // Find user by phone or email
-    let user;
-    if (phone) {
-      user = await this.userService.findByPhone(phone);
-      if (!user) {
-        throw new NotFoundException('No user found with this phone number');
-      }
-      // Send OTP using centralized SMS service
-      const smsResult = await this.smsService.sendOtp(phone);
-      if (!smsResult.success) {
-        throw new BadRequestException(`Failed to send OTP: ${smsResult.message}`);
-      }
-      return {
-        success: true,
-        message: 'OTP sent successfully to your phone number',
-        data: {
-          phone,
-          otpSent: true,
-        },
-      };
-    } else if (email) {
-      user = await this.userService.findByEmail(email);
-      if (!user) {
-        throw new NotFoundException('No user found with this email address');
-      }
-      if (!user.phone) {
-        throw new BadRequestException('User does not have a phone number. Please contact support.');
-      }
-      // Send OTP using centralized SMS service
-      const smsResult = await this.smsService.sendOtp(user.phone);
-      if (!smsResult.success) {
-        throw new BadRequestException(`Failed to send OTP: ${smsResult.message}`);
-      }
-      return {
-        success: true,
-        message: 'OTP sent successfully to your registered phone number',
-        data: {
-          email,
-          phone: user.phone,
-          otpSent: true,
-        },
-      };
-    }
-  }
-
-  async verifyLoginOtp(verifyLoginOtpDto: VerifyLoginOtpDto): Promise<UserReponseDto> {
-    const { phone, email, otp } = verifyLoginOtpDto;
-
-    if (!phone && !email) {
-      throw new BadRequestException('Either phone or email must be provided');
-    }
-
-    // Find user by phone or email
-    let user;
-    let phoneNumber: string;
-
-    if (phone) {
-      user = await this.userService.findByPhone(phone);
-      if (!user) {
-        throw new NotFoundException('No user found with this phone number');
-      }
-      phoneNumber = phone;
-    } else {
-      // email is guaranteed to be present here due to validation above
-      user = await this.userService.findByEmail(email!);
-      if (!user) {
-        throw new NotFoundException('No user found with this email address');
-      }
-      if (!user.phone) {
-        throw new BadRequestException('User does not have a phone number. Please contact support.');
-      }
-      phoneNumber = user.phone;
-    }
-
-    // Check if user is verified
-    if (!user.is_verified) {
-      throw new BadRequestException('Please verify your phone number before logging in');
-    }
-
-    // Verify OTP using centralized SMS service
-    const verifyResult = await this.smsService.verifyOtp(phoneNumber, otp);
-    if (!verifyResult.success) {
-      throw new BadRequestException(verifyResult.message);
-    }
-
-    // Generate JWT token and return user data
-    return await this.userService.generateTokenForUser(user);
+  async login(loginDto: LoginDto): Promise<UserReponseDto> {
+    return await this.userService.validateUserEmailPass(loginDto);
   }
 }

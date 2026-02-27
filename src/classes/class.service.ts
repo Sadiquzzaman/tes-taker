@@ -27,7 +27,7 @@ export class ClassService {
       description: dto.description,
       teacher_id: jwtPayload.id,
       created_by: jwtPayload.id,
-      created_user_name: `${jwtPayload.first_name} ${jwtPayload.last_name}`,
+      created_user_name: jwtPayload.full_name,
       created_at: new Date(),
     });
 
@@ -94,7 +94,7 @@ export class ClassService {
     if (dto.description !== undefined) classEntity.description = dto.description;
 
     classEntity.updated_by = jwtPayload.id;
-    classEntity.updated_user_name = `${jwtPayload.first_name} ${jwtPayload.last_name}`;
+    classEntity.updated_user_name = jwtPayload.full_name;
     classEntity.updated_at = new Date();
 
     await this.classRepo.save(classEntity);
@@ -183,12 +183,11 @@ export class ClassService {
 
     const students = await this.userRepo.find({
       where: [
-        { first_name: ILike(searchPattern), role: RolesEnum.STUDENT },
-        { last_name: ILike(searchPattern), role: RolesEnum.STUDENT },
+        { full_name: ILike(searchPattern), role: RolesEnum.STUDENT },
         { email: ILike(searchPattern), role: RolesEnum.STUDENT },
         { phone: ILike(searchPattern), role: RolesEnum.STUDENT },
       ],
-      select: ['id', 'first_name', 'last_name', 'email', 'phone'],
+      select: ['id', 'full_name', 'email', 'phone'],
       take: 20,
     });
 

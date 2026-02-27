@@ -5,11 +5,8 @@ export class UserReponseDto {
   @ApiProperty({ description: 'User unique identifier', example: 'uuid-string' })
   id: string;
 
-  @ApiProperty({ description: 'User first name', example: 'John' })
-  first_name: string;
-
-  @ApiProperty({ description: 'User last name', example: 'Doe' })
-  last_name: string;
+  @ApiProperty({ description: 'User full name', example: 'John Doe' })
+  full_name: string;
 
   @ApiProperty({ description: 'User email address', example: 'user@example.com', required: false, nullable: true })
   email: string | null;

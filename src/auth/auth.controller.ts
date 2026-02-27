@@ -2,11 +2,11 @@ import { Controller, Post, Body, UseGuards, Get, HttpCode, HttpStatus } from '@n
 import { AuthService } from './auth.service';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiBody } from '@nestjs/swagger';
 import { RegisterUserDto } from './dto/register-user.dto';
+import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { JwtPayloadInterface } from './interfaces/jwt-payload.interface';
 import { VerifyOtpDto } from 'src/sms/dto/sms.dto';
-import { RequestLoginOtpDto, VerifyLoginOtpDto } from './dto/login-otp.dto';
 
 @ApiTags('Authentication')
 @Controller({
@@ -20,26 +20,28 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register a new user',
-    description: 'Register a new user with phone number (required) and optional email. An OTP will be sent to the provided phone number for verification. The user must verify the OTP before they can login.',
+    description: 'Register a new user with phone number (required), password, and optional email. An OTP will be sent to the provided phone number for verification. The user must verify the OTP before they can login. If a user previously registered but did not verify OTP, they can register again with the same phone number.',
   })
   @ApiBody({
     type: RegisterUserDto,
-    description: 'User registration data. Phone number is required, email is optional.',
+    description: 'User registration data. Phone number and password are required, email is optional.',
     examples: {
       withPhoneOnly: {
         value: {
-          first_name: 'John',
-          last_name: 'Doe',
+          full_name: 'John Doe',
           phone: '01734911480',
+          password: 'StrongPass123',
+          confirm_password: 'StrongPass123',
           role: 'STUDENT'
         }
       },
       withPhoneAndEmail: {
         value: {
-          first_name: 'Jane',
-          last_name: 'Smith',
+          full_name: 'Jane Smith',
           phone: '01712345678',
           email: 'jane@example.com',
+          password: 'StrongPass123',
+          confirm_password: 'StrongPass123',
           role: 'TEACHER'
         }
       }
@@ -66,11 +68,11 @@ export class AuthController {
   })
   @ApiResponse({ 
     status: 400, 
-    description: 'Validation error, duplicate email/phone, or failed to send OTP',
+    description: 'Validation error, password mismatch, duplicate verified email/phone, or failed to send OTP',
     schema: {
       example: {
         statusCode: 400,
-        message: 'Phone number already exists!',
+        message: 'Phone number already registered and verified',
         error: 'Bad Request'
       }
     }
@@ -142,92 +144,26 @@ export class AuthController {
     return { message: 'Phone verified successfully', payload };
   }
 
-  @Post('login/request-otp')
+  @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Request OTP for login',
-    description: 'Request an OTP to be sent for login. Provide either phone number or email address. If email is provided, OTP will be sent to the registered phone number associated with that email. OTP expires in 5 minutes.',
+    summary: 'Login with password',
+    description: 'Login using phone number or email address with password. Returns a JWT access token on successful authentication. The token expires in 30 minutes. User must have verified their phone number with OTP before logging in.',
   })
   @ApiBody({
-    type: RequestLoginOtpDto,
-    description: 'Phone number or email address for login',
+    type: LoginDto,
+    description: 'Phone number or email, and password',
     examples: {
       loginWithPhone: {
         value: {
-          phone: '01734911480'
+          phone: '01734911480',
+          password: 'StrongPass123'
         }
       },
       loginWithEmail: {
         value: {
-          email: 'user@example.com'
-        }
-      }
-    }
-  })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'OTP sent successfully to the phone number',
-    schema: {
-      example: {
-        message: 'OTP sent successfully',
-        payload: {
-          success: true,
-          message: 'OTP sent successfully to your phone number',
-          data: {
-            phone: '01734911480',
-            otpSent: true
-          }
-        }
-      }
-    }
-  })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Failed to send OTP, rate limit exceeded, or user has no phone number',
-    schema: {
-      example: {
-        statusCode: 400,
-        message: 'Failed to send OTP: Rate limit exceeded',
-        error: 'Bad Request'
-      }
-    }
-  })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'User not found with the provided phone number or email',
-    schema: {
-      example: {
-        statusCode: 404,
-        message: 'No user found with this phone number',
-        error: 'Not Found'
-      }
-    }
-  })
-  async requestLoginOtp(@Body() requestLoginOtpDto: RequestLoginOtpDto) {
-    const payload = await this.authService.requestLoginOtp(requestLoginOtpDto);
-    return { message: 'OTP sent successfully', payload };
-  }
-
-  @Post('login/verify-otp')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Verify OTP and login',
-    description: 'Verify the OTP received via SMS and complete the login process. On successful verification, returns a JWT access token that should be used for authenticated requests. The token expires in 30 minutes.',
-  })
-  @ApiBody({
-    type: VerifyLoginOtpDto,
-    description: 'Phone number or email, and OTP code',
-    examples: {
-      verifyLoginOtp: {
-        value: {
-          phone: '01734911480',
-          otp: '123456'
-        }
-      },
-      verifyLoginOtpWithEmail: {
-        value: {
           email: 'user@example.com',
-          otp: '123456'
+          password: 'StrongPass123'
         }
       }
     }
@@ -240,8 +176,7 @@ export class AuthController {
         message: 'Login successful!',
         payload: {
           id: 'user-uuid',
-          first_name: 'John',
-          last_name: 'Doe',
+          full_name: 'John Doe',
           email: 'user@example.com',
           phone: '01734911480',
           role: 'STUDENT',
@@ -252,29 +187,18 @@ export class AuthController {
     }
   })
   @ApiResponse({ 
-    status: 400, 
-    description: 'Invalid OTP, expired OTP, or user not verified',
+    status: 401, 
+    description: 'Invalid credentials or user not verified',
     schema: {
       example: {
-        statusCode: 400,
-        message: 'Invalid OTP. Please try again.',
-        error: 'Bad Request'
+        statusCode: 401,
+        message: 'Invalid login credentials',
+        error: 'Unauthorized'
       }
     }
   })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'User not found with the provided phone number or email',
-    schema: {
-      example: {
-        statusCode: 404,
-        message: 'No user found with this phone number',
-        error: 'Not Found'
-      }
-    }
-  })
-  async verifyLoginOtp(@Body() verifyLoginOtpDto: VerifyLoginOtpDto) {
-    const payload = await this.authService.verifyLoginOtp(verifyLoginOtpDto);
+  async login(@Body() loginDto: LoginDto) {
+    const payload = await this.authService.login(loginDto);
     return { message: 'Login successful!', payload };
   }
 
@@ -294,8 +218,7 @@ export class AuthController {
         payload: {
           id: 'user-uuid',
           email: 'user@example.com',
-          first_name: 'John',
-          last_name: 'Doe',
+          full_name: 'John Doe',
           role: 'STUDENT',
           phone: '01734911480',
           iat: 1234567890,

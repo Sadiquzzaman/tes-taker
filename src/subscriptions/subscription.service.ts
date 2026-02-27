@@ -186,7 +186,7 @@ export class SubscriptionService implements OnModuleInit {
     if (dto.price_yearly !== undefined) plan.price_yearly = dto.price_yearly;
 
     plan.updated_by = jwtPayload.id;
-    plan.updated_user_name = `${jwtPayload.first_name} ${jwtPayload.last_name}`;
+    plan.updated_user_name = jwtPayload.full_name;
     plan.updated_at = new Date();
 
     return this.planRepo.save(plan);
@@ -210,7 +210,7 @@ export class SubscriptionService implements OnModuleInit {
     });
 
     plan.updated_by = jwtPayload.id;
-    plan.updated_user_name = `${jwtPayload.first_name} ${jwtPayload.last_name}`;
+    plan.updated_user_name = jwtPayload.full_name;
     plan.updated_at = new Date();
 
     return this.planRepo.save(plan);
@@ -318,7 +318,7 @@ export class SubscriptionService implements OnModuleInit {
       total_exams_used: existingSubscription?.total_exams_used || 0,
       last_monthly_reset: new Date(),
       created_by: jwtPayload.id,
-      created_user_name: `${jwtPayload.first_name} ${jwtPayload.last_name}`,
+      created_user_name: jwtPayload.full_name,
       created_at: new Date(),
     };
 
@@ -347,7 +347,7 @@ export class SubscriptionService implements OnModuleInit {
         payment_method: dto.payment_method,
         transaction_id: dto.transaction_id,
         created_by: jwtPayload.id,
-        created_user_name: `${jwtPayload.first_name} ${jwtPayload.last_name}`,
+        created_user_name: jwtPayload.full_name,
         created_at: new Date(),
       });
 
@@ -431,7 +431,7 @@ export class SubscriptionService implements OnModuleInit {
       total_exams_used: existingSubscription?.total_exams_used || 0,
       last_monthly_reset: new Date(),
       created_by: jwtPayload.id,
-      created_user_name: `${jwtPayload.first_name} ${jwtPayload.last_name}`,
+      created_user_name: jwtPayload.full_name,
       created_at: new Date(),
     };
 
@@ -461,7 +461,7 @@ export class SubscriptionService implements OnModuleInit {
         payment_date: new Date(),
         notes: dto.notes,
         created_by: jwtPayload.id,
-        created_user_name: `${jwtPayload.first_name} ${jwtPayload.last_name}`,
+        created_user_name: jwtPayload.full_name,
         created_at: new Date(),
       });
 
