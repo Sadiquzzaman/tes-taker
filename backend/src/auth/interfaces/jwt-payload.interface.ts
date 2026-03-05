@@ -5,4 +5,6 @@ export interface JwtPayloadInterface {
   full_name: string;
   role: string;
   phone: string;
+  first_name: string;
+  last_name: string;
 }

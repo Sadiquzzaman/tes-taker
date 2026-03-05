@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@theme inline {
+}
+
+body {
+  font-family: "Instrument Sans";
+}
+
+button,
+a {
+  cursor: pointer;
+}
