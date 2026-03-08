@@ -1,0 +1,1 @@
+type ClassTab = Tab[];
