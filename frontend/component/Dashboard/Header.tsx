@@ -3,7 +3,7 @@ import React from "react";
 import HeaderProfile from "./HeaderProfile";
 import { toggleSidebar } from "@/app/api/actions/toggleSidebar";
 
-const Header = async ({ activeRoute }: { activeRoute: string }) => {
+const Header = async ({ activeRoute, subText = "" }: { activeRoute: string; subText?: string }) => {
   return (
     <header className="w-full h-[72px] bg-white border-b border-gray-200 flex items-center px-4 sm:px-8 z-20">
       <form action={toggleSidebar} className="w-full flex-1 ">
@@ -13,7 +13,12 @@ const Header = async ({ activeRoute }: { activeRoute: string }) => {
             .map((item) => (
               <React.Fragment key={item.route}>
                 {item.image}
-                <span className="font-medium text-[16px] text-[#232A25] leading-[20px]">{item.label}</span>
+                <span
+                  className={`${subText ? "font-[400] text-[#747775]" : "font-[500] text-[#232A25]"} text-[16px] leading-[20px]`}
+                >
+                  {item.label}
+                </span>
+                {subText && <span className="font-[500] text-[16px] text-[#232A25] leading-[20px]">/ {subText}</span>}
               </React.Fragment>
             ))}
         </button>
