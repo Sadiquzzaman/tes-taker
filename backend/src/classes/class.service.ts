@@ -333,14 +333,17 @@ export class ClassService {
             );
 
             // Send email invitation
-            await this.emailService.sendInvitationEmail(
-              trimmedContact.toLowerCase(),
-              invitationLink,
-              classEntity.class_name,
-              jwtPayload.full_name,
-            );
-
-            invited++;
+            try {
+              await this.emailService.sendInvitationEmail(
+                trimmedContact.toLowerCase(),
+                invitationLink,
+                classEntity.class_name,
+                jwtPayload.full_name,
+              );
+              invited++;
+            } catch (error) {
+              errors.push(`Failed to send email to ${trimmedContact}: ${error.message}`);
+            }
           }
         } else if (isPhone) {
           // Check if already invited
@@ -407,10 +410,17 @@ export class ClassService {
             );
 
             // Send SMS invitation
-            const smsMessage = `You've been invited to join ${classEntity.class_name} on TestTaker. Register here: ${invitationLink}`;
-            await this.smsService.sendSms(trimmedContact, smsMessage);
-
-            invited++;
+            try {
+              const smsMessage = `You've been invited to join ${classEntity.class_name} on TestTaker. Register here: ${invitationLink}`;
+              const smsSent = await this.smsService.sendSms(trimmedContact, smsMessage);
+              if (smsSent) {
+                invited++;
+              } else {
+                errors.push(`Failed to send SMS to ${trimmedContact}`);
+              }
+            } catch (error) {
+              errors.push(`Failed to send SMS to ${trimmedContact}: ${error.message}`);
+            }
           }
         }
       } catch (error) {
