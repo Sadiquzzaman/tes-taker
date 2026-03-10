@@ -13,9 +13,9 @@ export class EmailService {
       secure: false, // true for 465, false for other ports
       auth: {
         user: this.configService.get<string>('EMAIL_USER'),
-        password: this.configService.get<string>('EMAIL_PASSWORD'),
+        pass: this.configService.get<string>('EMAIL_PASSWORD'),
       },
-    });
+    } as nodemailer.TransportOptions);
   }
 
   async sendInvitationEmail(

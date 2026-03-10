@@ -15,6 +15,7 @@ import {
   ExamSubmissionStatusEnum 
 } from './entities/student-exam-answer.entity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
+import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities/class-student.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { SmsService } from 'src/sms/sms.service';
@@ -44,6 +45,9 @@ export class StudentExamService {
     @InjectRepository(ClassEntity)
     private readonly classRepo: Repository<ClassEntity>,
 
+    @InjectRepository(ClassStudentEntity)
+    private readonly classStudentRepo: Repository<ClassStudentEntity>,
+
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
 
@@ -60,7 +64,7 @@ export class StudentExamService {
   async sendExamNotificationToStudents(examId: string): Promise<{ sent: number; failed: number }> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
-      relations: ['class', 'class.students', 'excluded_students'],
+      relations: ['class', 'class.classStudents', 'class.classStudents.student', 'excluded_students'],
     });
 
     if (!exam) {
@@ -71,8 +75,11 @@ export class StudentExamService {
       return { sent: 0, failed: 0 };
     }
 
-    // Get all students in the class
-    const classStudents = exam.class.students || [];
+    // Get all joined students in the class
+    const classStudentEntities = (exam.class.classStudents || []).filter(
+      cs => cs.status === ClassStudentStatusEnum.JOINED && cs.student_id !== null
+    );
+    const classStudents = classStudentEntities.map(cs => cs.student).filter(s => s !== null) as UserEntity[];
     
     // Get excluded student IDs
     const excludedIds = (exam.excluded_students || []).map(s => s.id);
@@ -256,7 +263,7 @@ export class StudentExamService {
   ): Promise<{ canAccess: boolean; reason?: string; exam?: ExamEntity }> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
-      relations: ['class', 'class.students', 'excluded_students', 'questions'],
+      relations: ['class', 'class.classStudents', 'class.classStudents.student', 'excluded_students', 'questions'],
     });
 
     if (!exam) {
@@ -268,8 +275,10 @@ export class StudentExamService {
       return { canAccess: false, reason: 'Exam is not assigned to any class' };
     }
 
-    // Check if student is in the class
-    const isInClass = exam.class.students?.some(s => s.id === studentId);
+    // Check if student is in the class (with JOINED status)
+    const isInClass = exam.class.classStudents?.some(
+      cs => cs.student_id === studentId && cs.status === ClassStudentStatusEnum.JOINED
+    );
     if (!isInClass) {
       return { canAccess: false, reason: 'You are not enrolled in this class' };
     }

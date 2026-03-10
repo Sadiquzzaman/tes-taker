@@ -6,6 +6,7 @@ import { ExamService } from './exam.service';
 import { ExamEntity } from './entities/exam.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
+import { ClassStudentEntity } from 'src/classes/entities/class-student.entity';
 import { StudentExamSubmissionEntity, StudentExamAnswerEntity } from './entities/student-exam-answer.entity';
 import { StudentExamController } from './student-exam.controller';
 import { StudentExamService } from './student-exam.service';
@@ -18,6 +19,7 @@ import { SmsModule } from 'src/sms/sms.module';
       ExamEntity,
       UserEntity,
       ClassEntity,
+      ClassStudentEntity,
       StudentExamSubmissionEntity,
       StudentExamAnswerEntity,
     ]),

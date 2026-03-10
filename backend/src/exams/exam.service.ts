@@ -7,6 +7,7 @@ import { CreateObjectiveExamDto, CreateSubjectiveExamDto } from "./dto/create-ex
 import { JwtPayloadInterface } from "src/auth/interfaces/jwt-payload.interface";
 import { UserEntity } from "src/user/entities/user.entity";
 import { ClassEntity } from "src/classes/entities/class.entity";
+import { ClassStudentEntity, ClassStudentStatusEnum } from "src/classes/entities/class-student.entity";
 import { RolesEnum } from "src/common/enums/roles.enum";
 import { SmsService } from "src/sms/sms.service";
 
@@ -24,6 +25,9 @@ export class ExamService {
 
     @InjectRepository(ClassEntity)
     private readonly classRepo: Repository<ClassEntity>,
+
+    @InjectRepository(ClassStudentEntity)
+    private readonly classStudentRepo: Repository<ClassStudentEntity>,
 
     private readonly smsService: SmsService,
   ) {}
@@ -187,15 +191,18 @@ export class ExamService {
   private async sendExamNotifications(examId: string): Promise<{ sent: number; failed: number }> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
-      relations: ['class', 'class.students', 'excluded_students'],
+      relations: ['class', 'class.classStudents', 'class.classStudents.student', 'excluded_students'],
     });
 
     if (!exam || !exam.class) {
       return { sent: 0, failed: 0 };
     }
 
-    // Get all students in the class
-    const classStudents = exam.class.students || [];
+    // Get all joined students in the class
+    const classStudentEntities = (exam.class.classStudents || []).filter(
+      cs => cs.status === ClassStudentStatusEnum.JOINED && cs.student_id !== null
+    );
+    const classStudents = classStudentEntities.map(cs => cs.student).filter(s => s !== null) as UserEntity[];
     
     // Get excluded student IDs
     const excludedIds = (exam.excluded_students || []).map(s => s.id);
