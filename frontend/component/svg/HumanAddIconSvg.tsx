@@ -1,24 +1,30 @@
-const HumanAddIconSVG = () => {
+const HumanAddIconSVG = ({ width = 14 }: { width?: number }) => {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width={width} height={width} viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M1.60425 11.8565C1.6042 11.0257 1.8439 10.2125 2.29456 9.5146C2.74523 8.81668 3.38772 8.26363 4.14493 7.92182C4.90214 7.58002 5.7419 7.46398 6.56343 7.58764C7.38496 7.7113 8.15335 8.06939 8.77639 8.61896"
-        stroke="white"
+        stroke="currentColor"
         strokeWidth="1.2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
         d="M3.2229 4.84147C3.2229 5.19577 3.29268 5.54659 3.42827 5.87392C3.56385 6.20125 3.76258 6.49866 4.0131 6.74919C4.26363 6.99971 4.56104 7.19844 4.88837 7.33402C5.2157 7.4696 5.56652 7.53939 5.92082 7.53939C6.27511 7.53939 6.62594 7.4696 6.95327 7.33402C7.28059 7.19844 7.57801 6.99971 7.82853 6.74919C8.07906 6.49866 8.27778 6.20125 8.41337 5.87392C8.54895 5.54659 8.61873 5.19577 8.61873 4.84147C8.61873 4.48718 8.54895 4.13635 8.41337 3.80902C8.27778 3.4817 8.07906 3.18428 7.82853 2.93376C7.57801 2.68323 7.28059 2.4845 6.95327 2.34892C6.62594 2.21334 6.27511 2.14355 5.92082 2.14355C5.56652 2.14355 5.2157 2.21334 4.88837 2.34892C4.56104 2.4845 4.26363 2.68323 4.0131 2.93376C3.76258 3.18428 3.56385 3.4817 3.42827 3.80902C3.29268 4.13635 3.2229 4.48718 3.2229 4.84147Z"
-        stroke="white"
+        stroke="currentColor"
         strokeWidth="1.2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M10.7771 9.1582V12.3957" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M10.7771 9.1582V12.3957"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <path
         d="M12.3959 10.7769H9.15845"
-        stroke="white"
+        stroke="currentColor"
         strokeWidth="1.2"
         strokeLinecap="round"
         strokeLinejoin="round"
