@@ -38,7 +38,7 @@ const ClassesNameSection = () => {
           </Link>
         </div>
       </div>
-      <div className="flex justify-between items-center w-full h-10 mb-2">
+      <div className="flex flex-col sm:flex-row justify-start sm:justify-between items-start sm:items-center w-full min-h-10 mb-2">
         <div className="flex w-fit rounded-md bg-gray-100 p-0.5">
           {classTabList.map((tab) => (
             <button
@@ -52,7 +52,7 @@ const ClassesNameSection = () => {
             </button>
           ))}
         </div>
-        <div className="flex gap-2 sm:gap-4 ml-2 h-10">
+        <div className="flex gap-2 sm:gap-4 mt-4 sm:mt-0 ml-0 sm:ml-2 h-10">
           <NormalInput
             parentClassName="w-[300px] h-10"
             inputClassName="text-[12px] leading-[16px] font-[500] placeholder:text-[#989eaf]"
