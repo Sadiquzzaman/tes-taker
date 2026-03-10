@@ -43,7 +43,7 @@ const CreateClassForm = () => {
         description: "Please enter a valid email address.",
         type: "error",
       });
-    } else if (phoneRegex.test(trimmed) && trimmed.length === 11) {
+    } else if (phoneRegex.test(trimmed) && trimmed.length !== 11) {
       triggerToast({
         title: "Invalid phone number",
         description: "Phone number must be 11 digits.",
