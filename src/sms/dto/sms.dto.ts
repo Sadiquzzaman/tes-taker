@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
 
 export class SendOtpDto {
@@ -27,6 +27,14 @@ export class VerifyOtpDto {
   @IsNotEmpty({ message: 'OTP is required' })
   @IsString({ message: 'OTP must be a string' })
   otp: string;
+
+  @ApiPropertyOptional({ 
+    description: 'Class UUID (if registering via class invitation link: frontendurl/register:classUuid)',
+    example: 'class-uuid'
+  })
+  @IsOptional()
+  @IsString({ message: 'Class UUID must be a string' })
+  classInvitationToken?: string;
 }
 
 export class ResetSmsCacheDto {

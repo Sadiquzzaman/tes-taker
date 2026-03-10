@@ -86,7 +86,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Verify registration OTP',
-    description: 'Verify the OTP sent during registration. This endpoint completes the registration process by verifying the phone number. After successful verification, the user can login.',
+    description: 'Verify the OTP sent during registration. This endpoint completes the registration process by verifying the phone number. After successful verification, the user can login. If classInvitationToken is provided, the user will be automatically added to the class.',
   })
   @ApiBody({
     type: VerifyOtpDto,
@@ -96,6 +96,13 @@ export class AuthController {
         value: {
           phone: '01734911480',
           otp: '123456'
+        }
+      },
+      verifyOtpWithClass: {
+        value: {
+          phone: '01734911480',
+          otp: '123456',
+          classInvitationToken: 'invitation-token-uuid'
         }
       }
     }
@@ -140,7 +147,10 @@ export class AuthController {
     }
   })
   async verifyRegistrationOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-    const payload = await this.authService.verifyPhoneForRegistration(verifyOtpDto);
+    const payload = await this.authService.verifyPhoneForRegistration(
+      verifyOtpDto,
+      verifyOtpDto.classInvitationToken,
+    );
     return { message: 'Phone verified successfully', payload };
   }
 

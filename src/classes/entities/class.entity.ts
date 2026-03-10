@@ -1,8 +1,9 @@
-import { Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, JoinColumn, Index } from 'typeorm';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { IsNotEmpty, MaxLength } from 'class-validator';
 import { UserEntity } from 'src/user/entities/user.entity';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ClassStudentEntity } from './class-student.entity';
 
 @Entity('classes')
 export class ClassEntity extends CustomBaseEntity {
@@ -24,11 +25,15 @@ export class ClassEntity extends CustomBaseEntity {
   @JoinColumn({ name: 'teacher_id' })
   teacher: UserEntity;
 
-  @ManyToMany(() => UserEntity)
-  @JoinTable({
-    name: 'class_students',
-    joinColumn: { name: 'class_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'student_id', referencedColumnName: 'id' },
-  })
-  students: UserEntity[];
+  @ApiPropertyOptional({ description: 'Share token for public class joining' })
+  @Column({ name: 'share_token', type: 'varchar', length: 100, nullable: true, unique: true })
+  @Index()
+  share_token: string | null;
+
+  @OneToMany(() => ClassStudentEntity, (classStudent) => classStudent.class, { cascade: true })
+  classStudents: ClassStudentEntity[];
+
+  // Computed properties (not stored in DB, computed in service)
+  total_test_taken?: number;
+  last_test_taken_date?: Date | null;
 }

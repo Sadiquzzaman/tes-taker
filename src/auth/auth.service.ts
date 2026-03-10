@@ -3,6 +3,7 @@ import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { UserService } from 'src/user/user.service';
 import { SmsService } from 'src/sms/sms.service';
+import { ClassService } from 'src/classes/class.service';
 import { UserReponseDto } from 'src/user/dto/user-response.dto';
 import { VerifyOtpDto } from 'src/sms/dto/sms.dto';
 import { RolesEnum } from 'src/common/enums/roles.enum';
@@ -12,6 +13,7 @@ export class AuthService {
   constructor(
     private readonly userService: UserService,
     private readonly smsService: SmsService,
+    private readonly classService: ClassService,
   ) {}
 
   async signUp(registerUserDto: RegisterUserDto) {
@@ -75,7 +77,7 @@ export class AuthService {
     };
   }
 
-  async verifyPhoneForRegistration(verifyOtpDto: VerifyOtpDto) {
+  async verifyPhoneForRegistration(verifyOtpDto: VerifyOtpDto, classInvitationToken?: string) {
     const phone = verifyOtpDto.phone;
 
     const user = await this.userService.findByPhone(phone);
@@ -96,12 +98,28 @@ export class AuthService {
 
     await this.userService.verifyUserByPhone(phone);
 
+    // Handle class invitation if provided (classInvitationToken is actually classId)
+    if (classInvitationToken) {
+      try {
+        await this.classService.handleClassInvitation(
+          classInvitationToken,
+          user.id,
+          phone,
+          user.email,
+        );
+      } catch (error) {
+        // Log error but don't fail registration
+        console.error('Failed to handle class invitation:', error);
+      }
+    }
+
     return {
       success: true,
       message: 'Phone verified successfully. You can now login.',
       data: {
         phone,
         phoneVerified: true,
+        classJoined: !!classInvitationToken,
       },
     };
   }

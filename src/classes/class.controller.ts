@@ -27,6 +27,7 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { ClassService } from './class.service';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto, AddStudentsToClassDto, RemoveStudentsFromClassDto } from './dto/update-class.dto';
+import { AddStudentsBulkDto } from './dto/add-students-bulk.dto';
 
 @ApiTags('Classes')
 @Controller({
@@ -195,7 +196,7 @@ export class ClassController {
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({ 
     summary: 'Get all students in a class',
-    description: 'Returns list of all students enrolled in the specified class'
+    description: 'Returns list of all students enrolled in the specified class with their status'
   })
   @ApiParam({ name: 'id', description: 'Class UUID' })
   @ApiResponse({ status: 200, description: 'List of students in the class' })
@@ -206,5 +207,87 @@ export class ClassController {
   ) {
     const payload = await this.classService.getClassStudents(id, jwtPayload);
     return { message: 'Students retrieved successfully', payload };
+  }
+
+  @Post(':id/students/bulk')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({ 
+    summary: 'Add students to class by phone or email (bulk)',
+    description: 'Add multiple students to a class by providing their phone numbers or email addresses. Existing students are added directly. Non-onboarded students receive invitation links via SMS or email.'
+  })
+  @ApiParam({ name: 'id', description: 'Class UUID' })
+  @ApiResponse({ status: 200, description: 'Students processed successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 404, description: 'Class not found' })
+  async addStudentsBulk(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AddStudentsBulkDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.classService.addStudentsByPhoneOrEmail(id, dto.contacts, jwtPayload);
+    return { message: 'Students processed successfully', payload };
+  }
+
+  @Post(':id/students/:studentId/approve')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({ 
+    summary: 'Approve a pending student',
+    description: 'Approve a student who is waiting for teacher approval to join the class'
+  })
+  @ApiParam({ name: 'id', description: 'Class UUID' })
+  @ApiParam({ name: 'studentId', description: 'Student UUID' })
+  @ApiResponse({ status: 200, description: 'Student approved successfully' })
+  @ApiResponse({ status: 400, description: 'Student is not in pending status' })
+  @ApiResponse({ status: 404, description: 'Class or student not found' })
+  async approveStudent(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.classService.approveStudent(classId, studentId, jwtPayload);
+    return { message: 'Student approved successfully', payload };
+  }
+
+  @Post(':id/share')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({ 
+    summary: 'Generate share link for class',
+    description: 'Generate a shareable link that allows onboarded students to join the class. Only verified students can join via this link.'
+  })
+  @ApiParam({ name: 'id', description: 'Class UUID' })
+  @ApiResponse({ status: 200, description: 'Share link generated successfully' })
+  @ApiResponse({ status: 404, description: 'Class not found' })
+  async generateShareLink(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const shareLink = await this.classService.generateShareLink(id, jwtPayload);
+    return { message: 'Share link generated successfully', payload: { shareLink } };
+  }
+
+  @Post('join/:shareToken')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.STUDENT)
+  @ApiOperation({ 
+    summary: 'Join class via share link',
+    description: 'Join a class using a share token. Student must be authenticated and verified. Status will be PENDING until teacher approves.'
+  })
+  @ApiParam({ name: 'shareToken', description: 'Share token from class share link' })
+  @ApiResponse({ status: 200, description: 'Successfully joined class (pending approval)' })
+  @ApiResponse({ status: 400, description: 'Invalid token or student not verified' })
+  @ApiResponse({ status: 404, description: 'Invalid share link' })
+  async joinClassByShareToken(
+    @Param('shareToken') shareToken: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.classService.joinClassByShareToken(shareToken, jwtPayload.id);
+    return { message: 'Successfully joined class. Waiting for teacher approval.', payload };
   }
 }

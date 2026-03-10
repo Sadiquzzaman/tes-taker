@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UserModule } from 'src/user/user.module';
 import { SmsModule } from 'src/sms/sms.module';
+import { ClassModule } from 'src/classes/class.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -12,6 +13,7 @@ import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
   imports: [
     UserModule,
     SmsModule,
+    ClassModule,
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
