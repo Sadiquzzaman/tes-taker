@@ -1,22 +1,6 @@
-version: "3.9"
+version: '3.8'
 
 services:
-  test-taker-frontend:
-    container_name: tasktaker-frontend
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    networks:
-      - tasktaker-network
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-    command: npm run dev
-
   postgres:
     image: postgres:16-alpine
     container_name: tasktaker-postgres
@@ -25,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres123}
       POSTGRES_DB: ${DATABASE_DB:-tasktaker}
     ports:
-      - "5432:5432"
+      - "${DATABASE_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -40,7 +24,7 @@ services:
     image: redis:7-alpine
     container_name: tasktaker-redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -54,20 +38,36 @@ services:
 
   app:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     container_name: tasktaker-app
     ports:
-      - "4000:3000"
+      - "${APP_PORT:-3000}:3000"
     environment:
+      # Database
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-postgres123}
+      DATABASE_DB: ${DATABASE_DB:-tasktaker}
+      DATABASE_SYNCRONIZE: ${DATABASE_SYNCRONIZE:-true}
+      DATABASE_LOGGING: ${DATABASE_LOGGING:-false}
+      # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      # App
+      APP_PORT: ${APP_PORT:-3000}
+      # SMS
+      BULKSMS_API_KEY: ${BULKSMS_API_KEY:-}
+      BULKSMS_SENDER_ID: ${BULKSMS_SENDER_ID:-}
     volumes:
-      - ./backend:/app
+      - .:/app
       - /app/node_modules
-      # - /app/dist
+      - /app/dist
     networks:
       - tasktaker-network
     depends_on:
@@ -77,30 +77,6 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  adminer:
-    image: adminer
-    container_name: tasktaker-adminer
-    restart: unless-stopped
-    ports:
-      - "8078:8080"
-    environment:
-      - ADMINER_DEFAULT_SERVER=postgres
-    networks:
-      - tasktaker-network
-    depends_on:
-      - postgres
-
-  redis-insight:
-    image: redislabs/redisinsight:latest
-    container_name: tasktaker-redis-insight
-    restart: unless-stopped
-    ports:
-      - "5530:5540"
-    networks:
-      - tasktaker-network
-    depends_on:
-      - redis
-
 volumes:
   postgres_data:
   redis_data:
@@ -108,4 +84,3 @@ volumes:
 networks:
   tasktaker-network:
     driver: bridge
-
