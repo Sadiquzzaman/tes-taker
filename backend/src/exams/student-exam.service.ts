@@ -143,7 +143,7 @@ export class StudentExamService {
     // Get all classes the student is enrolled in
     const classes = await this.classRepo
       .createQueryBuilder('class')
-      .innerJoin('class.students', 'student', 'student.id = :studentId', { studentId })
+      .innerJoin('class.classStudents', 'classStudent', 'classStudent.student_id = :studentId AND classStudent.status = :status', { studentId, status: ClassStudentStatusEnum.JOINED })
       .select(['class.id'])
       .getMany();
 
