@@ -1,3 +1,10 @@
+interface ApiResponse<T> {
+  statusCode: number;
+  message: string;
+  payload: T;
+  error: boolean;
+}
+
 interface ApiError {
   statusCode: number;
   error: boolean;
