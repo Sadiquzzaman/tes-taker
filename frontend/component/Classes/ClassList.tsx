@@ -53,16 +53,19 @@ const ClassList = () => {
                 <div className="w-[45%]">
                   <p className="font-[400] text-[12px] leading-[12px] tracking-[-0.02em] text-[#747775]">Student</p>
                   <p className="mt-2 ml-1 font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25]">
-                    {classItem.students.length}
+                    {classItem.classStudents.length}
                   </p>
                 </div>
                 <div className="w-[45%]">
                   <p className="font-[400] text-[12px] leading-[12px] tracking-[-0.02em] text-[#747775]">Tests taken</p>
-                  <p className="mt-2 ml-1 font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25]">0</p>
+                  <p className="mt-2 ml-1 font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25]">
+                    {classItem.total_test_taken}
+                  </p>
                 </div>
               </div>
               <p className="font-[400] text-[12px] leading-[12px] tracking-[-0.02em] text-[#747775]">
-                Last quiz taken on - Mar 12, 10:30 AM
+                Last quiz taken on -{" "}
+                {classItem.last_test_taken_date ? new Date(classItem.last_test_taken_date).toLocaleString() : "N/A"}
               </p>
             </div>
             <div className="w-full h-[64px] flex items-center justify-between items-center p-4 border-t border-[#EFF0F3]">
