@@ -23,13 +23,13 @@ export class UpdateClassDto {
 
 export class AddStudentsToClassDto {
   @ApiPropertyOptional({
-    description: 'Array of student IDs to add to the class',
-    example: ['uuid-1', 'uuid-2'],
+    description: 'Array of student emails and phone numbers to add to the class',
+    example: ['01712345678', 'student@example.com', '01798765432'],
     type: [String],
   })
-  @IsArray({ message: 'Student IDs must be an array' })
-  @IsUUID('4', { each: true, message: 'Each student ID must be a valid UUID' })
-  student_ids: string[];
+  @IsArray({ message: 'Student contacts must be an array' })
+  @IsString({ each: true, message: 'Each contact must be a string (email or phone number)' })
+  students: string[];
 }
 
 export class RemoveStudentsFromClassDto {

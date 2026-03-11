@@ -159,19 +159,24 @@ export class ClassController {
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({ 
     summary: 'Add students to a class',
-    description: 'Add multiple students to an existing class. Duplicate students are automatically filtered.'
+    description: 'Add multiple students to an existing class by providing their phone numbers or email addresses. Existing students are added directly. Non-onboarded students receive invitation links via SMS or email.'
   })
   @ApiParam({ name: 'id', description: 'Class UUID' })
-  @ApiResponse({ status: 200, description: 'Students added successfully' })
-  @ApiResponse({ status: 400, description: 'Validation error or students not found' })
+  @ApiResponse({ status: 200, description: 'Students processed successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 404, description: 'Class not found' })
   async addStudents(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AddStudentsToClassDto,
     @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
-    const payload = await this.classService.addStudentsToClass(id, dto.student_ids, jwtPayload);
-    return { message: 'Students added successfully', payload };
+    const studentResults = await this.classService.addStudentsByPhoneOrEmail(id, dto.students, jwtPayload);
+    const classEntity = await this.classService.findOne(id, jwtPayload);
+    return { 
+      message: 'Students processed successfully', 
+      payload: classEntity,
+      studentResults 
+    };
   }
 
   @Delete(':id/students')
