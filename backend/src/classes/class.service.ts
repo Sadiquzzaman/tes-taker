@@ -36,7 +36,18 @@ export class ClassService {
   /**
    * Create a new class
    */
-  async create(dto: CreateClassDto, jwtPayload: JwtPayloadInterface): Promise<ClassEntity> {
+  async create(
+    dto: CreateClassDto,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<{
+    class: ClassEntity;
+    studentResults?: {
+      added: number;
+      invited: number;
+      pending: number;
+      errors: string[];
+    };
+  }> {
     const classEntity = this.classRepo.create({
       class_name: dto.class_name,
       description: dto.description,
@@ -49,11 +60,17 @@ export class ClassService {
     const savedClass = await this.classRepo.save(classEntity);
 
     // Add students if provided (using emails and phone numbers)
+    let studentResults;
     if (dto.students && dto.students.length > 0) {
-      await this.addStudentsByPhoneOrEmail(savedClass.id, dto.students, jwtPayload);
+      studentResults = await this.addStudentsByPhoneOrEmail(savedClass.id, dto.students, jwtPayload);
     }
 
-    return this.findOne(savedClass.id, jwtPayload);
+    const classWithDetails = await this.findOne(savedClass.id, jwtPayload);
+
+    return {
+      class: classWithDetails,
+      studentResults,
+    };
   }
 
   /**
@@ -281,7 +298,34 @@ export class ClassService {
 
           if (student) {
             if (student.role !== RolesEnum.STUDENT) {
-              errors.push(`${trimmedContact} is not a student`);
+              // User exists but is not a student - still send invitation
+              // This handles cases where phone/email belongs to a teacher or admin
+              const invitationToken = randomUUID();
+              const invitationLink = `${frontendUrl}/register:${classId}`;
+
+              await this.classStudentRepo.save(
+                this.classStudentRepo.create({
+                  class_id: classId,
+                  student_id: null,
+                  status: ClassStudentStatusEnum.INVITED,
+                  invited_email: trimmedContact.toLowerCase(),
+                  invitation_token: invitationToken,
+                  invited_at: new Date(),
+                })
+              );
+
+              // Send email invitation
+              try {
+                await this.emailService.sendInvitationEmail(
+                  trimmedContact.toLowerCase(),
+                  invitationLink,
+                  classEntity.class_name,
+                  jwtPayload.full_name,
+                );
+                invited++;
+              } catch (error) {
+                errors.push(`Failed to send email to ${trimmedContact}: ${error.message}`);
+              }
               continue;
             }
 
@@ -358,7 +402,34 @@ export class ClassService {
 
           if (student) {
             if (student.role !== RolesEnum.STUDENT) {
-              errors.push(`${trimmedContact} is not a student`);
+              // User exists but is not a student - still send invitation
+              // This handles cases where phone/email belongs to a teacher or admin
+              const invitationToken = randomUUID();
+              const invitationLink = `${frontendUrl}/register:${classId}`;
+
+              await this.classStudentRepo.save(
+                this.classStudentRepo.create({
+                  class_id: classId,
+                  student_id: null,
+                  status: ClassStudentStatusEnum.INVITED,
+                  invited_phone: trimmedContact,
+                  invitation_token: invitationToken,
+                  invited_at: new Date(),
+                })
+              );
+
+              // Send SMS invitation
+              try {
+                const smsMessage = `You've been invited to join ${classEntity.class_name} on TestTaker. Register here: ${invitationLink}`;
+                const smsSent = await this.smsService.sendSms(trimmedContact, smsMessage);
+                if (smsSent) {
+                  invited++;
+                } else {
+                  errors.push(`Failed to send SMS to ${trimmedContact}`);
+                }
+              } catch (error) {
+                errors.push(`Failed to send SMS to ${trimmedContact}: ${error.message}`);
+              }
               continue;
             }
 

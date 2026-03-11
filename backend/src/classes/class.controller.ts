@@ -53,8 +53,12 @@ export class ClassController {
     @Body() dto: CreateClassDto,
     @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
-    const payload = await this.classService.create(dto, jwtPayload);
-    return { message: 'Class created successfully', payload };
+    const result = await this.classService.create(dto, jwtPayload);
+    return {
+      message: 'Class created successfully',
+      payload: result.class,
+      studentResults: result.studentResults,
+    };
   }
 
   @Get()
