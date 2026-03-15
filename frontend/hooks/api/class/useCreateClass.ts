@@ -4,6 +4,8 @@ import { AxiosError, AxiosResponse } from "axios";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useApiError } from "../useApiError";
+import { useDispatch } from "react-redux";
+import { setNewClassCreated } from "@/lib/features/classSlice";
 
 type T = ApiResponse<CreateClassResponse>;
 type R = AxiosResponse<T>;
@@ -15,6 +17,7 @@ const useCreateClass = () => {
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
   const { push } = useRouter();
+  const dispatch = useDispatch();
 
   const mutate = async (createClassPayload: CreateClassPayload) => {
     setLoading(true);
@@ -28,6 +31,7 @@ const useCreateClass = () => {
             description: response.data.message || "Your class created successfully.",
             type: "success",
           });
+          dispatch(setNewClassCreated(response.data.payload));
           push("/classes");
         }
       })

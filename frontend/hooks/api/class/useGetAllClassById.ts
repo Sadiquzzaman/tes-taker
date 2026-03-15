@@ -14,6 +14,8 @@ const useGetAllClassById = ({ id }: { id: string }) => {
   const router = useRouter();
   const { triggerToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [apiComplete, setApiComplete] = useState(false);
+
   const [classData, setClassData] = useState<CreateClassResponse | null>(null);
 
   const fetch = async () => {
@@ -45,6 +47,7 @@ const useGetAllClassById = ({ id }: { id: string }) => {
       })
       .finally(() => {
         setLoading(false);
+        setApiComplete(true);
       });
   };
 
@@ -52,7 +55,7 @@ const useGetAllClassById = ({ id }: { id: string }) => {
     fetch();
   }, []);
 
-  return { loading, classData, fetch } as const;
+  return { loading, classData, fetch, apiComplete } as const;
 };
 
 export default useGetAllClassById;
