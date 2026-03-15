@@ -81,7 +81,7 @@ const AddStudentModal = ({
         <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setOpenAddStudentModal(false)} />
       )}
       <div
-        className={`absolute top-2 right-2 h-[calc(100vh-16px)] w-[calc(100vw-16px)] sm:w-[584px] z-50
+        className={`absolute top-2 right-${openAddStudentModal ? 2 : 0} h-[calc(100vh-16px)] w-[calc(100vw-16px)] sm:w-[584px] z-50
         transform transition-transform duration-1000
         ${openAddStudentModal ? "translate-x-0" : "translate-x-full"}`}
       >
