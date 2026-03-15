@@ -9,6 +9,7 @@ import Link from "next/link";
 import LeftArrowIconSVG from "../svg/LeftArrowIconSVG";
 import ClassStudent from "./ClassStudent";
 import ClassTests from "./ClassTests";
+import ShareClassModal from "./ShareClassModal";
 
 export const classTabList = [
   { name: "Student", value: "student" },
@@ -18,8 +19,9 @@ export const classTabList = [
 const ClassDetailsComponent = ({ classId }: { classId: string }) => {
   const router = useRouter();
   if (!classId) router.push("/classes");
-  const { loading, classData, fetch } = useGetAllClassById({ id: classId });
+  const { loading, classData, fetch, apiComplete } = useGetAllClassById({ id: classId });
   const [activeTab, setActiveTab] = useState(classTabList[0]);
+  const [openShareClassModal, setOpenShareClassModal] = useState(false);
 
   if (loading)
     return (
@@ -38,6 +40,17 @@ const ClassDetailsComponent = ({ classId }: { classId: string }) => {
       </div>
     );
 
+  if (!apiComplete) return null;
+
+  if (classData === null) {
+    return (
+      <div className="w-full min-h-[calc(100vh-162px)] flex items-center justify-center">
+        <div className="text-center">
+          <p className="font-[600] text-[24px] leading-[32px] tracking-[-0.04em] text-[#232A25]">Class not found</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <>
       <div className="sm:mt-2 mb-2 sm:mb-4 flex flex-col gap-2 sm:gap-4 min-h-[40px]">
@@ -51,7 +64,10 @@ const ClassDetailsComponent = ({ classId }: { classId: string }) => {
           </Link>
 
           <div className="flex justify-end items-center gap-2 h-[40px]">
-            <button className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] sm:h-[40px] bg-[#232A25] rounded-xl font-[500] text-white font-medium text-[12px] sm:text-[14px]">
+            <button
+              className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] sm:h-[40px] bg-[#232A25] rounded-xl font-[500] text-white font-medium text-[12px] sm:text-[14px]"
+              onClick={() => setOpenShareClassModal(true)}
+            >
               <ShareIconSVG width={16} />
 
               <span className="capitalize mb-[2px]">Share Class</span>
@@ -83,6 +99,7 @@ const ClassDetailsComponent = ({ classId }: { classId: string }) => {
           {activeTab.value === "tests" && <ClassTests />}
         </div>
       </div>
+      <ShareClassModal open={openShareClassModal} setOpen={setOpenShareClassModal} classData={classData} />
     </>
   );
 };
