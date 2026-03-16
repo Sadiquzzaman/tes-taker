@@ -7,19 +7,13 @@ import HumanAddIconSVG from "../svg/HumanAddIconSvg";
 import Link from "next/link";
 import ButtonLoader from "../Loader/ButtonLoadder";
 import RightArrowIconSVG from "../svg/RightArrowIconSVG";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { setOpenAddStudentModal } from "@/lib/features/classSlice";
 
-const AddStudentModal = ({
-  openAddStudentModal,
-  setOpenAddStudentModal,
-  classId,
-  fetchClassDetails,
-}: {
-  openAddStudentModal: boolean;
-  setOpenAddStudentModal: (open: boolean) => void;
-  classId: string;
-  fetchClassDetails: () => void;
-}) => {
-  const [addStudent, { loading }] = useAddStudentInClass({ classId });
+const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void }) => {
+  const dispatch = useAppDispatch();
+  const { openAddStudentModal } = useAppSelector((state) => state.class);
+  const [addStudent, { loading }] = useAddStudentInClass({ classId: openAddStudentModal?.id || "" });
   const [value, setValue] = useState("");
   const [students, setStudents] = useState<string[]>([]);
   const { triggerToast } = useToast();
@@ -59,6 +53,10 @@ const AddStudentModal = ({
     setStudents((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleClose = () => {
+    dispatch(setOpenAddStudentModal(null));
+  };
+
   const handleAddStudent = () => {
     if (students.length === 0) {
       triggerToast({
@@ -69,7 +67,7 @@ const AddStudentModal = ({
     } else {
       addStudent({ students }).then((res) => {
         if (res?.statusCode === 201) {
-          setOpenAddStudentModal(false);
+          handleClose();
           fetchClassDetails();
         }
       });
@@ -77,9 +75,7 @@ const AddStudentModal = ({
   };
   return (
     <>
-      {openAddStudentModal && (
-        <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setOpenAddStudentModal(false)} />
-      )}
+      {openAddStudentModal && <div className="fixed inset-0 bg-black/30 z-40" onClick={handleClose} />}
       <div
         className={`absolute top-2 right-${openAddStudentModal ? 2 : 0} h-[calc(100vh-16px)] w-[calc(100vw-16px)] sm:w-[584px] z-50
         transform transition-transform duration-1000
@@ -88,7 +84,7 @@ const AddStudentModal = ({
         <div className="w-full h-full bg-white rounded-xl p-4 sm:p-8 z-30 overflow-auto">
           <div className="pb-4 flex justify-between items-center">
             <p className="font-[600] text-[24px] leading-[24px] tracking-[-0.04em] text-[#232A25]">Add Student</p>
-            <button className="text-[#747775]" onClick={() => setOpenAddStudentModal(false)}>
+            <button className="text-[#747775]" onClick={handleClose}>
               <CrossIconSVG width={24} />
             </button>
           </div>

@@ -8,12 +8,16 @@ interface ClassSliceState {
   };
   searchInput: string;
   newClassCreated: CreateClassResponse | null;
+  openAddStudentModal: Class | null;
+  openShareClassModal: Class | null;
 }
 
 const initialState: ClassSliceState = {
   activeTab: classTabList[1],
   searchInput: "",
   newClassCreated: null,
+  openAddStudentModal: null,
+  openShareClassModal: null,
 };
 
 export const classSlice = createSlice({
@@ -29,9 +33,16 @@ export const classSlice = createSlice({
     setNewClassCreated: (state, action) => {
       state.newClassCreated = action.payload;
     },
+    setOpenAddStudentModal: (state, action) => {
+      state.openAddStudentModal = action.payload;
+    },
+    setOpenShareClassModal: (state, action) => {
+      state.openShareClassModal = action.payload;
+    },
   },
 });
 
-export const { setActiveTab, setSearchInput, setNewClassCreated } = classSlice.actions;
+export const { setActiveTab, setSearchInput, setNewClassCreated, setOpenAddStudentModal, setOpenShareClassModal } =
+  classSlice.actions;
 
 export default classSlice.reducer;

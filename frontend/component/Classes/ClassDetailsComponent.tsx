@@ -10,6 +10,8 @@ import LeftArrowIconSVG from "../svg/LeftArrowIconSVG";
 import ClassStudent from "./ClassStudent";
 import ClassTests from "./ClassTests";
 import ShareClassModal from "./ShareClassModal";
+import { useAppDispatch } from "@/lib/hooks";
+import { setOpenShareClassModal } from "@/lib/features/classSlice";
 
 export const classTabList = [
   { name: "Student", value: "student" },
@@ -17,11 +19,11 @@ export const classTabList = [
 ];
 
 const ClassDetailsComponent = ({ classId }: { classId: string }) => {
+  const dispatch = useAppDispatch();
   const router = useRouter();
   if (!classId) router.push("/classes");
   const { loading, classData, fetch, apiComplete } = useGetAllClassById({ id: classId });
   const [activeTab, setActiveTab] = useState(classTabList[0]);
-  const [openShareClassModal, setOpenShareClassModal] = useState(false);
 
   if (loading)
     return (
@@ -66,7 +68,7 @@ const ClassDetailsComponent = ({ classId }: { classId: string }) => {
           <div className="flex justify-end items-center gap-2 h-[40px]">
             <button
               className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] sm:h-[40px] bg-[#232A25] rounded-xl font-[500] text-white font-medium text-[12px] sm:text-[14px]"
-              onClick={() => setOpenShareClassModal(true)}
+              onClick={() => dispatch(setOpenShareClassModal(classData))}
             >
               <ShareIconSVG width={16} />
 
@@ -99,7 +101,7 @@ const ClassDetailsComponent = ({ classId }: { classId: string }) => {
           {activeTab.value === "tests" && <ClassTests />}
         </div>
       </div>
-      <ShareClassModal open={openShareClassModal} setOpen={setOpenShareClassModal} classData={classData} />
+      <ShareClassModal />
     </>
   );
 };

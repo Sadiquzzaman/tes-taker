@@ -8,26 +8,29 @@ import TelegramImage from "@/public/assets/image/share_modal/telegram2.png";
 import LinkedInImage from "@/public/assets/image/share_modal/Linkedin.png";
 import { useToast } from "../Toast/ToastContext";
 import { useEffect, useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { setOpenShareClassModal } from "@/lib/features/classSlice";
 
-const ShareClassModal = ({
-  open,
-  setOpen,
-  classData,
-}: {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  classData: CreateClassResponse;
-}) => {
+const ShareClassModal = () => {
+  const { openShareClassModal: classData } = useAppSelector((state) => state.class);
+  const open = Boolean(classData);
+
+  const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
   const [classLink, setClassLink] = useState("");
+
   useEffect(() => {
-    if (typeof window !== "undefined" && classData.id) {
+    if (typeof window !== "undefined" && classData?.id) {
       const href = window.location.href;
       const baseUrl = href.split("/classes")[0];
       const link = `${baseUrl}/classes/details/${classData.id}`;
       setClassLink(link);
     }
   }, [classData]);
+
+  const handleClose = () => {
+    dispatch(setOpenShareClassModal(null));
+  };
 
   const shareWhatsApp = () => {
     const message = `Join my class: ${classLink}`;
@@ -75,7 +78,7 @@ const ShareClassModal = ({
       className={`fixed inset-0 z-50 flex items-center justify-center ${open ? "pointer-events-auto" : "pointer-events-none"}`}
     >
       <div
-        onClick={() => setOpen(false)}
+        onClick={handleClose}
         className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0"}`}
       />
       <div
@@ -87,12 +90,12 @@ const ShareClassModal = ({
         <div className="p-4 sm:p-8">
           <div className="pb-4 flex justify-between items-center">
             <p className="font-[400] text-[20px] leading-[20px] tracking-[-0.02em] text-[#747775]">Share class</p>
-            <button className="text-[#747775]" onClick={() => setOpen(false)}>
+            <button className="text-[#747775]" onClick={handleClose}>
               <CrossIconSVG width={24} />
             </button>
           </div>
           <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
-            Share ‘{classData.class_name}’
+            Share ‘{classData?.class_name}’
           </p>
           <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
             Anyone with the link will be able send a joining request in this class.{" "}
@@ -138,7 +141,7 @@ const ShareClassModal = ({
         </div>
         <div className="p-4 sm:p-8 border-t border-[#E5E5E5] flex justify-end items-center">
           <button
-            onClick={() => setOpen(false)}
+            onClick={handleClose}
             className="bg-[#49734F] text-white rounded-lg w-[90px] h-[40px] flex justify-center items-center text-[14px] leading-[16px] tracking-[-0.02em] font-[500]"
           >
             Continue

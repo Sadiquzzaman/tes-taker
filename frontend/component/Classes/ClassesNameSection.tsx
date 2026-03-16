@@ -1,6 +1,6 @@
 "use client";
 
-import { setActiveTab, setNewClassCreated, setSearchInput } from "@/lib/features/classSlice";
+import { setActiveTab, setSearchInput } from "@/lib/features/classSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { classTabList } from "@/utils/classTabList";
 import React, { useEffect, useState } from "react";
@@ -10,7 +10,7 @@ import Link from "next/link";
 import ShareClassModal from "./ShareClassModal";
 
 const ClassesNameSection = () => {
-  const { activeTab, searchInput, newClassCreated } = useAppSelector((state) => state.class);
+  const { activeTab, searchInput } = useAppSelector((state) => state.class);
   const dispatch = useAppDispatch();
 
   return (
@@ -68,13 +68,8 @@ const ClassesNameSection = () => {
           </div>
         </div>
       </div>
-      {newClassCreated && (
-        <ShareClassModal
-          open={newClassCreated !== null}
-          setOpen={() => dispatch(setNewClassCreated(null))}
-          classData={newClassCreated}
-        />
-      )}
+
+      <ShareClassModal />
     </div>
   );
 };

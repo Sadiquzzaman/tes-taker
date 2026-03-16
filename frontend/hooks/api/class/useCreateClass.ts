@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useApiError } from "../useApiError";
 import { useDispatch } from "react-redux";
-import { setNewClassCreated } from "@/lib/features/classSlice";
+import { setOpenShareClassModal } from "@/lib/features/classSlice";
 
 type T = ApiResponse<CreateClassResponse>;
 type R = AxiosResponse<T>;
@@ -31,7 +31,7 @@ const useCreateClass = () => {
             description: response.data.message || "Your class created successfully.",
             type: "success",
           });
-          dispatch(setNewClassCreated(response.data.payload));
+          dispatch(setOpenShareClassModal(response.data.payload));
           push("/classes");
         }
       })

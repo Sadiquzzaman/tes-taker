@@ -9,14 +9,17 @@ import CrossIconSVG from "../svg/CrossIconSVG";
 import EyeIconSVG from "../svg/EyeIconSVG";
 import ThreeDotIconSVG from "../svg/ThreeDotIconSVG";
 import AddStudentModal from "./AddStudentModal";
+import { setOpenAddStudentModal } from "@/lib/features/classSlice";
+import { useAppDispatch } from "@/lib/hooks";
 
 const ClassStudent = ({ student, classId, fetch }: { student: ClassStudent[]; classId: string; fetch: () => void }) => {
+  const dispatch = useAppDispatch();
   const [searchStudentInput, setSearchStudentInput] = useState("");
   const [filteredStudent, setFilteredStudent] = useState<{ pending: ClassStudent[]; active: ClassStudent[] }>({
     pending: [],
     active: [],
   });
-  const [openAddStudentModal, setOpenAddStudentModal] = useState(false);
+
   useEffect(() => {
     if (student.length > 0 && searchStudentInput.trim() === "") {
       setFilteredStudent({
@@ -68,7 +71,7 @@ const ClassStudent = ({ student, classId, fetch }: { student: ClassStudent[]; cl
             <SortIconSVG />
           </div>
           <button
-            onClick={() => setOpenAddStudentModal(true)}
+            onClick={() => dispatch(setOpenAddStudentModal({ id: classId }))}
             className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] bg-[#49734F] rounded-[8px] font-[500] text-white font-medium text-[12px] sm:text-[14px]"
           >
             <HumanAddIconSVG width={16} />
@@ -171,12 +174,7 @@ const ClassStudent = ({ student, classId, fetch }: { student: ClassStudent[]; cl
         </table>
       )}
 
-      <AddStudentModal
-        openAddStudentModal={openAddStudentModal}
-        setOpenAddStudentModal={setOpenAddStudentModal}
-        classId={classId}
-        fetchClassDetails={fetch}
-      />
+      <AddStudentModal fetchClassDetails={fetch} />
     </div>
   );
 };
