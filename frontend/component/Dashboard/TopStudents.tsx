@@ -1,5 +1,6 @@
 "use client";
 
+import NormalInput from "@/Ui/NormalInput";
 import React, { useRef, useState, useEffect } from "react";
 
 const sampleClassList = [
@@ -127,33 +128,7 @@ const TopStudents = () => {
         </div>
       </div>
       <div className="my-4 flex justify-between items-center">
-        <div className="w-full h-7 flex items-center gap-2 px-2 py-[6px] border border-[#C6CFCF] rounded-md">
-          <input
-            type="text"
-            placeholder="Search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="
-              w-full
-              bg-transparent
-              text-[12px]
-              leading-[16px]
-              font-[500]
-              text-[#232A25]
-              placeholder:text-[#989eaf]
-              placeholder:font-[400]
-              align-middle
-              focus:outline-none
-            "
-          />
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#989eaf" className="w-4 h-4 flex-shrink-0">
-            <path
-              fillRule="evenodd"
-              d="M10.5 3.75a6.75 6.75 0 1 0 0 13.5 6.75 6.75 0 0 0 0-13.5ZM2.25 10.5a8.25 8.25 0 1 1 14.59 5.28l4.69 4.69a.75.75 0 1 1-1.06 1.06l-4.69-4.69A8.25 8.25 0 0 1 2.25 10.5Z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </div>
+        <NormalInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search Student" />
         <div
           className="whitespace-nowrap ml-1 min-w-7 h-7 bg-[#EFF0F3] rounded-md flex items-center justify-center cursor-pointer"
           onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}

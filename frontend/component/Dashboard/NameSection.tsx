@@ -9,7 +9,7 @@ const NameSection = () => {
     const userData = localStorage.getItem("user");
     if (userData) {
       const user: User = JSON.parse(userData);
-      if (user.first_name) setFullName(`${user.first_name} ${user.last_name}`);
+      if (user.full_name) setFullName(user.full_name);
     }
   }, []);
   return (
