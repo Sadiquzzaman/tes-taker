@@ -11,6 +11,7 @@ import { setOpenAddStudentModal, setSearchInput, setOpenShareClassModal } from "
 import Link from "next/link";
 import ShareClassModal from "./ShareClassModal";
 import AddStudentModal from "./AddStudentModal";
+import { RotatingLines } from "react-loader-spinner";
 
 const ImageList = [
   "/assets/image/classImage/class_default.png",
@@ -18,9 +19,9 @@ const ImageList = [
   "/assets/image/classImage/class_default_3.png",
   "/assets/image/classImage/class_default_4.png",
   "/assets/image/classImage/class_default_5.png",
-]
+];
 const ClassList = () => {
-  const { fetch, loading, classList } = useGetAllClass();
+  const { fetch, loading, classList, apiComplete } = useGetAllClass();
   const { searchInput } = useAppSelector((state) => state.class);
   const dispatch = useAppDispatch();
 
@@ -42,7 +43,7 @@ const ClassList = () => {
   }, [classList, loading]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-4">
       {filterdClassList.map((classItem, index) => {
         return (
           <div key={classItem.id} className="h-[328px] bg-white rounded-[8px]">
