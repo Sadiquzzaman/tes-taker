@@ -1,5 +1,5 @@
 import useAddStudentInClass from "@/hooks/api/class/useAddStudentInClass";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "../Toast/ToastContext";
 import CrossIconSVG from "../svg/CrossIconSVG";
 import TagInput from "@/Ui/TagInput";
@@ -17,6 +17,18 @@ const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void 
   const [value, setValue] = useState("");
   const [students, setStudents] = useState<string[]>([]);
   const { triggerToast } = useToast();
+  // Lock scroll when modal is open
+  useEffect(() => {
+    if (openAddStudentModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [openAddStudentModal]);
+
   const addTag = () => {
     const trimmed = value.trim();
 
@@ -75,13 +87,19 @@ const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void 
   };
   return (
     <>
-      {openAddStudentModal && <div className="fixed inset-0 bg-black/30 z-40" onClick={handleClose} />}
       <div
-        className={`absolute top-2 right-${openAddStudentModal ? 2 : 0} h-[calc(100vh-16px)] w-[calc(100vw-16px)] sm:w-[584px] z-50
-        transform transition-transform duration-1000
-        ${openAddStudentModal ? "translate-x-0" : "translate-x-full"}`}
+        className={`fixed inset-0 z-40 bg-black/30 transition-opacity duration-300 ${openAddStudentModal ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) handleClose();
+        }}
+        aria-hidden="true"
       >
-        <div className="w-full h-full bg-white rounded-xl p-4 sm:p-8 z-30 overflow-auto">
+        <div
+          className={`absolute top-2 right-2 h-[calc(100vh-8px)] w-[calc(100vw-8px)] sm:w-[584px] z-50 bg-white rounded-xl p-4 sm:p-8 shadow-lg overflow-auto transition-transform duration-500 ${openAddStudentModal ? "translate-x-0" : "translate-x-full pointer-events-none"}`}
+          style={{ maxHeight: "calc(100vh - 16px)" }}
+          aria-modal="true"
+          role="dialog"
+        >
           <div className="pb-4 flex justify-between items-center">
             <p className="font-[600] text-[24px] leading-[24px] tracking-[-0.04em] text-[#232A25]">Add Student</p>
             <button className="text-[#747775]" onClick={handleClose}>
@@ -91,7 +109,7 @@ const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void 
           <div className="h-[200px] rounded-lg bg-[#EFF0F3] my-4 flex justify-center items-center">
             <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">GIF Tutorial</p>
           </div>
-          <div className="w-ful flex flex-col gap-4 pt-4">
+          <div className="w-full flex flex-col gap-4 pt-4">
             <p className={`font-[500] text-[16px] leading-[16px] tracking-[-0.02em] text-[#0F1A12]`}>
               Enter student email or phone
             </p>
