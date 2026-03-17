@@ -12,6 +12,7 @@ import ClassTests from "./ClassTests";
 import ShareClassModal from "./ShareClassModal";
 import { useAppDispatch } from "@/lib/hooks";
 import { setOpenShareClassModal } from "@/lib/features/classSlice";
+import useGetAllTests from "@/hooks/api/tests/useGetAllTests";
 
 export const classTabList = [
   { name: "Student", value: "student" },
@@ -23,6 +24,7 @@ const ClassDetailsComponent = ({ classId }: { classId: string }) => {
   const router = useRouter();
   if (!classId) router.push("/classes");
   const { loading, classData, fetch, apiComplete } = useGetAllClassById({ id: classId });
+  const { testList } = useGetAllTests({ classId });
   const [activeTab, setActiveTab] = useState(classTabList[0]);
 
   if (loading)
@@ -98,7 +100,7 @@ const ClassDetailsComponent = ({ classId }: { classId: string }) => {
           {activeTab.value === "student" && (
             <ClassStudent classId={classId} student={classData?.classStudents || []} fetch={fetch} />
           )}
-          {activeTab.value === "tests" && <ClassTests />}
+          {activeTab.value === "tests" && <ClassTests testList={testList} />}
         </div>
       </div>
       <ShareClassModal />

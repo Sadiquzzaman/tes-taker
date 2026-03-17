@@ -9,7 +9,7 @@ const classTestTabList = [
   { name: "Completed", value: "completed" },
 ];
 
-const ClassTests = () => {
+const ClassTests = ({ testList }: { testList: Test[] }) => {
   const [activeTestTab, setActiveTestTab] = useState(classTestTabList[0]);
   return (
     <div className="p-2 sm:p-4 bg-white rounded-[8px] h-full">
@@ -39,9 +39,9 @@ const ClassTests = () => {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-4">
-        <TestCard />
-        <TestCard />
-        <TestCard />
+        {testList.map((test) => (
+          <TestCard key={test.id} testData={test} />
+        ))}
       </div>
     </div>
   );
