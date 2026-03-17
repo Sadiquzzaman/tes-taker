@@ -89,14 +89,24 @@ const ShareClassModal = () => {
       >
         <div className="p-4 sm:p-8">
           <div className="pb-4 flex justify-between items-center">
-            <p className="font-[400] text-[20px] leading-[20px] tracking-[-0.02em] text-[#747775]">Share class</p>
+            <p className="font-[400] text-[20px] leading-[20px] tracking-[-0.02em] text-[#747775]">
+              {classData?.type === "new" ? "Successfully created" : "Share class"}
+            </p>
             <button className="text-[#747775]" onClick={handleClose}>
               <CrossIconSVG width={24} />
             </button>
           </div>
-          <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
-            Share ‘{classData?.class_name}’
-          </p>
+          {classData?.type === "new" ? (
+            <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
+              ‘{classData?.class_name}’ created successfully with{" "}
+              <span className="text-[#49734F]">{classData?.classStudents.length} active invitation</span>
+            </p>
+          ) : (
+            <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
+              Share ‘{classData?.class_name}’
+            </p>
+          )}
+
           <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
             Anyone with the link will be able send a joining request in this class.{" "}
           </p>
