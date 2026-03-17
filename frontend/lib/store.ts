@@ -1,10 +1,12 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { classSlice } from "./features/classSlice";
+import { testSlice } from "./features/testSlice";
 
 export const makeStore = () => {
   return configureStore({
     reducer: {
       class: classSlice.reducer,
+      test: testSlice.reducer,
     },
   });
 };
