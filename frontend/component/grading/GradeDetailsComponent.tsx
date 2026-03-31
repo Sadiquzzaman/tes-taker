@@ -228,34 +228,40 @@ const GradeDetailsComponent = ({ classId }: { classId: string }) => {
                 disabled={currentPage === 1}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M10 12L6 8L10 4" stroke="#232A25" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M10 12L6 8L10 4"
+                    stroke="#232A25"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </button>
               {/* Page Numbers */}
               {Array.from({ length: totalPages }).map((_, i) => {
                 // Show first, last, current, and neighbors, with ellipsis
-                if (
-                  i === 0 ||
-                  i === totalPages - 1 ||
-                  Math.abs(i + 1 - currentPage) <= 1
-                ) {
+                if (i === 0 || i === totalPages - 1 || Math.abs(i + 1 - currentPage) <= 1) {
                   return (
                     <button
                       key={i}
-                      className={`flex flex-row justify-center items-center px-2 py-2 w-8 h-8 border rounded-[6px] font-[400] text-[14px] leading-4 text-center tracking-[-0.02em] ${currentPage === i + 1
-                        ? 'border-[#232A25] text-[#232A25] bg-white'
-                        : 'border-[#E5E5E5] text-[#747775] bg-white'}`}
+                      className={`flex flex-row justify-center items-center px-2 py-2 w-8 h-8 border rounded-[6px] font-[400] text-[14px] leading-4 text-center tracking-[-0.02em] ${
+                        currentPage === i + 1
+                          ? "border-[#232A25] text-[#232A25] bg-white"
+                          : "border-[#E5E5E5] text-[#747775] bg-white"
+                      }`}
                       onClick={() => handlePageChange(i + 1)}
                     >
                       {i + 1}
                     </button>
                   );
-                } else if (
-                  (i === 1 && currentPage > 3) ||
-                  (i === totalPages - 2 && currentPage < totalPages - 2)
-                ) {
+                } else if ((i === 1 && currentPage > 3) || (i === totalPages - 2 && currentPage < totalPages - 2)) {
                   return (
-                    <span key={i} className="flex flex-row justify-center items-center px-2 py-2 w-8 h-8 bg-white rounded-[6px] font-[400] text-[14px] leading-4 text-center tracking-[-0.02em] text-[#747775]">...</span>
+                    <span
+                      key={i}
+                      className="flex flex-row justify-center items-center px-2 py-2 w-8 h-8 bg-white rounded-[6px] font-[400] text-[14px] leading-4 text-center tracking-[-0.02em] text-[#747775]"
+                    >
+                      ...
+                    </span>
                   );
                 }
                 return null;
@@ -267,7 +273,13 @@ const GradeDetailsComponent = ({ classId }: { classId: string }) => {
                 disabled={currentPage === totalPages}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6 4L10 8L6 12" stroke="#232A25" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M6 4L10 8L6 12"
+                    stroke="#232A25"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </button>
             </div>
