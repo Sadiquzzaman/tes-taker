@@ -10,6 +10,7 @@ type E = AxiosError<ApiError>;
 const useGetAllClass = () => {
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
+  const [apiComplete, setApiComplete] = useState(false);
   const [classList, setClassList] = useState<Class[]>([]);
 
   const fetch = async () => {
@@ -27,6 +28,7 @@ const useGetAllClass = () => {
       })
       .finally(() => {
         setLoading(false);
+        setApiComplete(true);
       });
   };
 
@@ -34,7 +36,7 @@ const useGetAllClass = () => {
     fetch();
   }, []);
 
-  return { loading, classList, fetch } as const;
+  return { loading, classList, fetch, apiComplete } as const;
 };
 
 export default useGetAllClass;

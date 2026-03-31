@@ -6,7 +6,12 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // always allow Next.js internal files
-  if (pathname.startsWith("/_next") || pathname.startsWith("/favicon.ico")) {
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/assets") ||
+    pathname.startsWith("/favicon.ico") ||
+    pathname.match(/\.(jpg|jpeg|png|svg|webp|gif)$/)
+  ) {
     return NextResponse.next();
   }
 
@@ -25,5 +30,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/|favicon.ico|api/).*)"],
+  matcher: ["/((?!_next/|favicon.ico|api/|assets/).*)"],
 };

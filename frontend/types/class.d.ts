@@ -47,6 +47,7 @@ interface Class {
   classStudents: ClassStudent[];
   total_test_taken: number;
   last_test_taken_date: string | null;
+  type?: "new" | "existing";
 }
 
 interface ClassStudent {

@@ -31,7 +31,7 @@ const useCreateClass = () => {
             description: response.data.message || "Your class created successfully.",
             type: "success",
           });
-          dispatch(setOpenShareClassModal(response.data.payload));
+          dispatch(setOpenShareClassModal({ ...response.data.payload, type: "new" }));
           push("/classes");
         }
       })
