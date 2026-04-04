@@ -8,6 +8,12 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
+
+/** Public class card when GET class details is called without a token */
+export type ClassPublicSummary = {
+  class_name: string;
+  description: string | null;
+};
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { EmailService } from 'src/email/email.service';
 import { SmsService } from 'src/sms/sms.service';
@@ -92,16 +98,41 @@ export class ClassService {
   }
 
   /**
-   * Find a class by ID
+   * Find a class by ID (public: name and description only).
    */
-  async findOne(id: string, jwtPayload: JwtPayloadInterface): Promise<ClassEntity> {
+  async findOne(id: string): Promise<ClassPublicSummary>;
+  /**
+   * Find a class by ID with auth: full details for the owning teacher or admin roles.
+   */
+  async findOne(id: string, jwtPayload: JwtPayloadInterface): Promise<ClassEntity>;
+  async findOne(
+    id: string,
+    jwtPayload?: JwtPayloadInterface,
+  ): Promise<ClassEntity | ClassPublicSummary> {
     const classEntity = await this.classRepo.findOne({
       where: { id },
-      relations: ['classStudents', 'classStudents.student', 'teacher'],
+      relations: jwtPayload
+        ? ['classStudents', 'classStudents.student', 'teacher']
+        : [],
     });
 
     if (!classEntity) {
       throw new NotFoundException('Class not found');
+    }
+
+    if (!jwtPayload) {
+      return {
+        class_name: classEntity.class_name,
+        description: classEntity.description ?? null,
+      };
+    }
+
+    if (
+      jwtPayload.role !== RolesEnum.TEACHER &&
+      jwtPayload.role !== RolesEnum.ADMIN &&
+      jwtPayload.role !== RolesEnum.SUPER_ADMIN
+    ) {
+      throw new ForbiddenException('You do not have permission to access this class');
     }
 
     // Check if teacher owns the class or is admin
@@ -113,7 +144,7 @@ export class ClassService {
       throw new ForbiddenException('You do not have permission to access this class');
     }
 
-    // Add test statistics
+    // Add test statistics (tests created for class + submission stats)
     await this.addTestStatistics(classEntity);
 
     return classEntity;
@@ -123,11 +154,13 @@ export class ClassService {
    * Add test statistics to class entity
    */
   private async addTestStatistics(classEntity: ClassEntity): Promise<void> {
-    // Get all exams for this class
+    // Get all exams (tests) for this class
     const exams = await this.examRepo.find({
       where: { class_id: classEntity.id },
       select: ['id'],
     });
+
+    classEntity.test_count = exams.length;
 
     if (exams.length === 0) {
       classEntity.total_test_taken = 0;

@@ -19,6 +19,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from 'src/common/guard/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesEnum } from 'src/common/enums/roles.enum';
@@ -97,20 +98,23 @@ export class ClassController {
 
   @Get(':id')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
-  @ApiOperation({ 
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({
     summary: 'Get a specific class by ID',
-    description: 'Returns class details with list of students'
+    description:
+      'With a valid Bearer token (teacher/admin): full class details including students and test stats. Without a token: only class name and description.',
   })
   @ApiParam({ name: 'id', description: 'Class UUID' })
-  @ApiResponse({ status: 200, description: 'Class details' })
+  @ApiResponse({ status: 200, description: 'Class details or public summary' })
+  @ApiResponse({ status: 403, description: 'Forbidden when authenticated but not allowed to view this class' })
   @ApiResponse({ status: 404, description: 'Class not found' })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
+    @UserPayload() jwtPayload?: JwtPayloadInterface,
   ) {
-    const payload = await this.classService.findOne(id, jwtPayload);
+    const payload = jwtPayload
+      ? await this.classService.findOne(id, jwtPayload)
+      : await this.classService.findOne(id);
     return { message: 'Class retrieved successfully', payload };
   }
 
