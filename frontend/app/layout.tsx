@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/component/Toast/ToastContext";
+import StoreProvider from "./StoreProvider";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -28,7 +29,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        <StoreProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </StoreProvider>
       </body>
     </html>
   );

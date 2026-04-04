@@ -9,7 +9,7 @@ const useLogin = () => {
   const [loading, setLoading] = useState(false);
   const { push } = useRouter();
 
-  const mutate = async (loginInfo: { phone: string, password: string }) => {
+  const mutate = async (loginInfo: { phone: string; password: string }) => {
     setLoading(true);
 
     return axiosReq
@@ -40,8 +40,8 @@ const useLogin = () => {
       })
       .catch((error) => {
         setLoading(false);
-        console.log({error})
-        if(error?.response?.data?.message?.message?.length) {
+        console.log({ error });
+        if (error?.response?.data?.message?.message?.length) {
           const messages = error.response.data.message.message;
           messages.forEach((msg: string) => {
             triggerToast({

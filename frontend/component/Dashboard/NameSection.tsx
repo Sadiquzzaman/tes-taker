@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
 const NameSection = () => {
@@ -9,7 +10,7 @@ const NameSection = () => {
     const userData = localStorage.getItem("user");
     if (userData) {
       const user: User = JSON.parse(userData);
-      if (user.first_name) setFullName(`${user.first_name} ${user.last_name}`);
+      if (user.full_name) setFullName(user.full_name);
     }
   }, []);
   return (
@@ -21,7 +22,7 @@ const NameSection = () => {
         </p>
       </div>
 
-      <div className="flex justify-end items-center gap-2 h-[40px]">
+      <Link href="/tests/create" className="flex justify-end items-center gap-2 h-[40px]">
         <button className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] sm:h-[40px] bg-[#232A25] rounded-xl font-[500] text-white font-medium text-[12px] sm:text-[14px]">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -36,7 +37,7 @@ const NameSection = () => {
 
           <span className="capitalize mb-[2px]">Create Test</span>
         </button>
-      </div>
+      </Link>
     </div>
   );
 };
