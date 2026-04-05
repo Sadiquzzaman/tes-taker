@@ -44,6 +44,8 @@ type DragState = {
   id: string;
   draggedOriginalIndex: number;
   dropLineIndex: number;
+  height: number;
+  left: number;
   pointerOffsetX: number;
   pointerOffsetY: number;
   pointerX: number;
@@ -94,6 +96,7 @@ type QuestionCardProps = {
   pendingFocusOptionId: string | null;
   isDragging: boolean;
   isDragOverlay?: boolean;
+  cardStyle?: React.CSSProperties;
   overlayStyle?: React.CSSProperties;
   onDragHandlePointerDown: (
     sectionId: string,

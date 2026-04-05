@@ -343,7 +343,7 @@ export const createTestSlice = createSlice({
       const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
 
       if (question) {
-        question.points = Math.max(1, action.payload.points || 1);
+        question.points = Math.max(0, action.payload.points || 0);
       }
     },
     moveQuestion: (state, action: PayloadAction<{ sectionId: string; questionId: string; targetIndex: number }>) => {

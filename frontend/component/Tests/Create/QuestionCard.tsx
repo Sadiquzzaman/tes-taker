@@ -41,6 +41,7 @@ const QuestionCard = memo(
     pendingFocusOptionId,
     isDragging,
     isDragOverlay = false,
+    cardStyle,
     overlayStyle,
     onDragHandlePointerDown,
   }: QuestionCardProps) => {
@@ -49,6 +50,10 @@ const QuestionCard = memo(
     const optionInputRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
     const addOptionButtonRef = useRef<HTMLButtonElement>(null);
     const questionInputRef = useRef<HTMLTextAreaElement>(null);
+
+    const activateCard = useCallback(() => {
+      dispatch(setActiveQuestionId(question.id));
+    }, [dispatch, question.id]);
 
     const scrollElementIntoView = useCallback(
       (element: HTMLElement | null, behavior: ScrollBehavior = "smooth") => {
@@ -143,14 +148,19 @@ const QuestionCard = memo(
           cardRef.current = node;
           setCardRef(node);
         }}
-        style={overlayStyle}
-        className={`w-full rounded-[8px] border p-5 transition-[opacity,transform,box-shadow] duration-200 ${
-          isActive ? "border-transparent bg-[#FDF3E5]" : "border-[#E5E5E5] bg-white"
-        } ${isDragging ? "opacity-0" : "opacity-100"} ${
-          isDragOverlay ? "fixed z-50 pointer-events-none shadow-[0px_24px_60px_rgba(15,26,18,0.18)]" : ""
-        }`}
+        style={isDragOverlay ? overlayStyle : cardStyle}
+        onPointerDownCapture={isDragOverlay ? undefined : activateCard}
+        onFocusCapture={isDragOverlay ? undefined : activateCard}
+        className={`flex items-center gap-2 w-full  ${
+          isDragOverlay ? "bg-[#FDF3E5] fixed z-50 pointer-events-none shadow-[0px_24px_60px_rgba(15,26,18,0.18)]" : ""
+        } ${isDragging ? "opacity-0" : "opacity-100"}`}
       >
-        <div className="flex flex-col gap-6">
+        <div
+          className={`w-full flex flex-col gap-6 rounded-[8px] border p-5 
+            transition-[opacity,transform,box-shadow] duration-200 
+            ${isActive ? "border-transparent bg-[#FDF3E5]" : "border-[#E5E5E5] bg-white"}
+          `}
+        >
           <div className="flex items-start justify-between gap-8">
             <div className="flex items-start gap-2 w-full">
               <span className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
@@ -170,21 +180,13 @@ const QuestionCard = memo(
                 }
                 onFocus={(event) => {
                   resizeTextarea(event.currentTarget);
-                  dispatch(setActiveQuestionId(question.id));
+                  activateCard();
                 }}
                 placeholder="Write your question here.."
                 rows={1}
                 className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12] outline-none placeholder:text-[#747775]"
               />
             </div>
-            <button
-              type="button"
-              onPointerDown={(event) => onDragHandlePointerDown(sectionId, question.id, event)}
-              className="flex-shrink-0 cursor-grab touch-none text-[#747775] transition-colors hover:text-[#232A25] active:cursor-grabbing"
-              aria-label="Drag to reorder"
-            >
-              <DragHandleIcon />
-            </button>
           </div>
 
           {sectionType === "objective" && (
@@ -195,7 +197,7 @@ const QuestionCard = memo(
                 return (
                   <div
                     key={option.id}
-                    className="group relative flex items-center gap-2 rounded-[2px] px-0 py-1 pr-[120px]"
+                    className="group relative flex items-center gap-2 rounded-[2px] px-0 py-1 pr-[120px] hover:bg-[#ED86001A]"
                   >
                     <input
                       type="radio"
@@ -229,7 +231,7 @@ const QuestionCard = memo(
                           }),
                         );
                       }}
-                      onFocus={() => dispatch(setActiveQuestionId(question.id))}
+                      onFocus={activateCard}
                       placeholder="Option"
                       rows={1}
                       className="flex-1 resize-none overflow-hidden bg-transparent text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25] outline-none"
@@ -245,9 +247,9 @@ const QuestionCard = memo(
                           }),
                         )
                       }
-                      className="absolute right-0 top-1/2 -translate-y-1/2 text-[14px] leading-4 tracking-[-0.02em] text-[#D24B44] underline opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 text-[14px] leading-4 tracking-[-0.02em] text-[#D24B44] underline opacity-0 transition-opacity duration-150 group-hover:opacity-100 mr-2"
                     >
-                      Remove option
+                      <TrashIcon />
                     </button>
                   </div>
                 );
@@ -257,7 +259,7 @@ const QuestionCard = memo(
                 ref={addOptionButtonRef}
                 type="button"
                 onClick={handleAddOptionWithScroll}
-                className="flex w-fit items-center gap-2 py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)]"
+                className="flex w-full items-center gap-2 py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)] hover:bg-[#ED86001A]"
               >
                 <span className="h-4 w-4 rounded-full border border-[rgba(116,119,117,0.5)]" />
                 <span>Click to add a new option</span>
@@ -274,21 +276,87 @@ const QuestionCard = memo(
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">Points</p>
-              <input
-                type="number"
-                min={1}
-                value={question.points}
-                onChange={(e) =>
-                  dispatch(
-                    updateQuestionPoints({
-                      sectionId,
-                      questionId: question.id,
-                      points: Number(e.target.value),
-                    }),
-                  )
-                }
-                className="h-8 w-16 rounded-[2px] border border-[#E5E5E5] bg-white px-2 text-[14px] leading-4 tracking-[-0.02em] text-[#232A25] outline-none"
-              />
+              <div className="flex justify-between items-center bg-white border border-[#E5E5E5]">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  // min={1}
+                  value={question.points || ""}
+                  onKeyDown={(e) => {
+                    console.log("Points input keydown", e.key);
+                    if (e.key === "ArrowUp" || e.key === "+" || (e.shiftKey && e.key === "=")) {
+                      e.preventDefault();
+
+                      dispatch(
+                        updateQuestionPoints({
+                          sectionId,
+                          questionId: question.id,
+                          points: question.points + 1,
+                        }),
+                      );
+                    } else if (
+                      (e.key === "ArrowDown" || e.key === "-" || (e.shiftKey && e.key === "_")) &&
+                      question.points > 0
+                    ) {
+                      e.preventDefault();
+
+                      dispatch(
+                        updateQuestionPoints({
+                          sectionId,
+                          questionId: question.id,
+                          points: question.points - 1,
+                        }),
+                      );
+                    }
+                  }}
+                  onChange={(e) => {
+                    console.log("Points input change", e.target.value);
+                    console.log("Parsed points", +e.target.value);
+                    dispatch(
+                      updateQuestionPoints({
+                        sectionId,
+                        questionId: question.id,
+                        points: +e.target.value,
+                      }),
+                    );
+                  }}
+                  className="h-8 w-12 rounded-[2px] bg-white px-2 text-[14px] leading-4 tracking-[-0.02em] text-[#232A25] outline-none"
+                />
+                <div className="flex-col">
+                  <button
+                    onClick={() =>
+                      dispatch(
+                        updateQuestionPoints({
+                          sectionId,
+                          questionId: question.id,
+                          points: question.points + 1,
+                        }),
+                      )
+                    }
+                    className="h-4 w-4 border-l border-b-[.5px] border-[#E5E5E5] flex justify-center items-center"
+                  >
+                    <svg width="7" height="4" viewBox="0 0 7 4" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3.33333 -0.000325203L6.66667 3.33301H0L3.33333 -0.000325203Z" fill="#747775" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() =>
+                      dispatch(
+                        updateQuestionPoints({
+                          sectionId,
+                          questionId: question.id,
+                          points: question.points - 1,
+                        }),
+                      )
+                    }
+                    className="h-4 w-4 border-l border-t-[.5px] border-[#E5E5E5] flex justify-center items-center"
+                  >
+                    <svg width="7" height="4" viewBox="0 0 7 4" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3.33333 3.33333L6.66667 0H0L3.33333 3.33333Z" fill="#747775" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -321,6 +389,14 @@ const QuestionCard = memo(
             </div>
           </div>
         </div>
+        <button
+          type="button"
+          onPointerDown={(event) => onDragHandlePointerDown(sectionId, question.id, event)}
+          className="flex-shrink-0 cursor-grab touch-none text-[#747775] transition-colors hover:text-[#232A25] active:cursor-grabbing"
+          aria-label="Drag to reorder"
+        >
+          <DragHandleIcon />
+        </button>
       </div>
     );
   },

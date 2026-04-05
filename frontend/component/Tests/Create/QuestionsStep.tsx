@@ -4,6 +4,33 @@ import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import QuestionCard from "./QuestionCard";
 
+const QUESTION_CARD_GAP = 16;
+
+const getDropLineIndexFromTargetIndex = (targetIndex: number, draggedOriginalIndex: number) =>
+  targetIndex > draggedOriginalIndex ? targetIndex + 1 : targetIndex;
+
+const getQuestionCardOffset = (questionIndex: number, dragState: DragState | null) => {
+  if (!dragState || questionIndex === dragState.draggedOriginalIndex) {
+    return 0;
+  }
+
+  const travelDistance = dragState.height + QUESTION_CARD_GAP;
+
+  if (dragState.dropLineIndex > dragState.draggedOriginalIndex + 1) {
+    return questionIndex > dragState.draggedOriginalIndex && questionIndex < dragState.dropLineIndex
+      ? -travelDistance
+      : 0;
+  }
+
+  if (dragState.dropLineIndex < dragState.draggedOriginalIndex) {
+    return questionIndex >= dragState.dropLineIndex && questionIndex < dragState.draggedOriginalIndex
+      ? travelDistance
+      : 0;
+  }
+
+  return 0;
+};
+
 const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const dispatch = useAppDispatch();
   const { questionSections, activeQuestionId, pendingFocusQuestion, pendingFocusOption, dragState } = useAppSelector(
@@ -95,21 +122,29 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         return;
       }
 
-      let dropLineIndex = section.questions.length;
+      const sectionContainer = sectionContainerRefs.current[currentDragState.sectionId];
+      const sectionRect = sectionContainer?.getBoundingClientRect();
+      const clampedPointerY = sectionRect
+        ? Math.min(Math.max(event.clientY, sectionRect.top), sectionRect.bottom)
+        : event.clientY;
+      const otherQuestions = section.questions.filter((question) => question.id !== currentDragState.id);
+      let targetIndex = otherQuestions.length;
 
-      for (let index = 0; index < section.questions.length; index += 1) {
-        const element = itemRefs.current[section.questions[index].id];
+      for (let index = 0; index < otherQuestions.length; index += 1) {
+        const element = itemRefs.current[otherQuestions[index].id];
 
         if (!element) {
           continue;
         }
 
         const rect = element.getBoundingClientRect();
-        if (event.clientY < rect.top + rect.height / 2) {
-          dropLineIndex = index;
+        if (clampedPointerY < rect.top + rect.height / 2) {
+          targetIndex = index;
           break;
         }
       }
+
+      const dropLineIndex = getDropLineIndexFromTargetIndex(targetIndex, currentDragState.draggedOriginalIndex);
 
       dispatch(
         updateDragging({
@@ -172,6 +207,8 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
           id: questionId,
           draggedOriginalIndex,
           dropLineIndex: draggedOriginalIndex,
+          height: rect.height,
+          left: rect.left,
           pointerOffsetX: event.clientX - rect.left,
           pointerOffsetY: event.clientY - rect.top,
           pointerX: event.clientX,
@@ -259,6 +296,15 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
                       : null
                   }
                   isDragging={dragState?.id === question.id}
+                  cardStyle={
+                    dragState?.sectionId === section.id
+                      ? {
+                          transform: `translateY(${getQuestionCardOffset(questionIndex, dragState)}px)`,
+                          transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease",
+                          willChange: "transform",
+                        }
+                      : undefined
+                  }
                   onDragHandlePointerDown={handleDragHandlePointerDown}
                 />
               ))}
@@ -293,29 +339,40 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         );
       })}
 
-      {dragState && draggedQuestion ? (
-        <QuestionCard
-          scrollContainerRef={scrollContainerRef}
-          sectionId={dragState.sectionId}
-          sectionType={draggedSection?.type ?? "objective"}
-          question={draggedQuestion}
-          questionNumber={
-            (draggedSection?.questions.findIndex((question) => question.id === draggedQuestion.id) ?? 0) + 1
-          }
-          isActive
-          shouldAutoFocus={false}
-          pendingFocusOptionId={null}
-          isDragging={false}
-          isDragOverlay
-          overlayStyle={{
-            top: dragState.pointerY - dragState.pointerOffsetY,
-            left: dragState.pointerX - dragState.pointerOffsetX,
-            width: dragState.width,
-          }}
-          setCardRef={() => {}}
-          onDragHandlePointerDown={(_sectionId, _questionId, _event) => {}}
-        />
-      ) : null}
+      {dragState && draggedQuestion
+        ? (() => {
+            const sectionContainer = sectionContainerRefs.current[dragState.sectionId];
+            const sectionRect = sectionContainer?.getBoundingClientRect();
+            const unclampedTop = dragState.pointerY - dragState.pointerOffsetY;
+            const top = sectionRect
+              ? Math.min(Math.max(unclampedTop, sectionRect.top), sectionRect.bottom - dragState.height)
+              : unclampedTop;
+
+            return (
+              <QuestionCard
+                scrollContainerRef={scrollContainerRef}
+                sectionId={dragState.sectionId}
+                sectionType={draggedSection?.type ?? "objective"}
+                question={draggedQuestion}
+                questionNumber={
+                  (draggedSection?.questions.findIndex((question) => question.id === draggedQuestion.id) ?? 0) + 1
+                }
+                isActive
+                shouldAutoFocus={false}
+                pendingFocusOptionId={null}
+                isDragging={false}
+                isDragOverlay
+                overlayStyle={{
+                  top,
+                  left: dragState.left,
+                  width: dragState.width,
+                }}
+                setCardRef={() => {}}
+                onDragHandlePointerDown={(_sectionId, _questionId, _event) => {}}
+              />
+            );
+          })()
+        : null}
     </div>
   );
 });
