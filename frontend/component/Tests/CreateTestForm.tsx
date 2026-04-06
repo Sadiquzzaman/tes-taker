@@ -10,6 +10,7 @@ import CloseIconSVG from "../svg/CloseIconSvg";
 import BasicInfoStep from "./Create/BasicInfoStep";
 import QuestionsStep from "./Create/QuestionsStep";
 import { useToast } from "../Toast/ToastContext";
+import BlackTickIconSVG from "../svg/BlackTickIconSVG";
 
 const CreateTestForm = () => {
   const dispatch = useAppDispatch();
@@ -88,23 +89,29 @@ const CreateTestForm = () => {
             </div>
 
             <div className="flex flex-col gap-4">
-              {createTestSteps.map((step) => {
+              {createTestSteps.map((step, index) => {
                 const isActive = step === currentStep;
+                const isCompleted = index < createTestSteps.indexOf(currentStep);
 
                 return (
                   <label key={step} className="flex items-center gap-2">
-                    <span
-                      className={`relative h-4 w-4 rounded-full border ${
-                        isActive ? "border-[#49734F] bg-white" : "border-[#747775] bg-transparent"
-                      }`}
-                    >
-                      {isActive ? (
-                        <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#49734F]" />
-                      ) : null}
-                    </span>
+                    {isCompleted ? (
+                      <BlackTickIconSVG />
+                    ) : (
+                      <span
+                        className={`relative h-4 w-4 rounded-full border ${
+                          isActive ? "border-[#49734F] bg-white" : "border-[#747775] bg-transparent"
+                        }`}
+                      >
+                        {isActive ? (
+                          <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#49734F]" />
+                        ) : null}
+                      </span>
+                    )}
+
                     <span
                       className={`text-[16px] font-[500] leading-4 tracking-[-0.02em] ${
-                        isActive ? "text-[#49734F]" : "text-[#747775]"
+                        isActive ? "text-[#49734F]" : isCompleted ? "text-[#232A25]" : "text-[#747775]"
                       }`}
                     >
                       {step}

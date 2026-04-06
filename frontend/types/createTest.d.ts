@@ -19,11 +19,13 @@ type BasicInfoErrors = {
 type QuestionOption = {
   id: string;
   text: string;
+  image: string | null;
 };
 
 type QuestionItem = {
   id: string;
   text: string;
+  image: string | null;
   options?: QuestionOption[];
   correctOptionId?: string | null;
   points: number;

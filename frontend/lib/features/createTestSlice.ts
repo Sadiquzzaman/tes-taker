@@ -19,9 +19,10 @@ const getSectionTemplates = (examType: string): Array<{ type: QuestionSectionTyp
   return [{ type: "objective", headerText: "Objective Questions" }];
 };
 
-const createOption = (text = ""): QuestionOption => ({
+const createOption = (text = "", image: string | null = null): QuestionOption => ({
   id: createId(),
   text,
+  image,
 });
 
 const createQuestion = (sectionType: QuestionSectionType): QuestionItem => {
@@ -29,6 +30,7 @@ const createQuestion = (sectionType: QuestionSectionType): QuestionItem => {
     return {
       id: createId(),
       text: "",
+      image: null,
       points: 2,
       showValidation: false,
     };
@@ -37,6 +39,7 @@ const createQuestion = (sectionType: QuestionSectionType): QuestionItem => {
   return {
     id: createId(),
     text: "",
+    image: null,
     options: [],
     correctOptionId: null,
     points: 2,
@@ -153,6 +156,26 @@ export const createTestSlice = createSlice({
         return;
       }
 
+      if (section.type === "objective") {
+        const invalidQuestion = section.questions.find((q) => !q.correctOptionId);
+
+        if (invalidQuestion) {
+          section.questions.forEach((q) => {
+            if (!q.correctOptionId) {
+              q.showValidation = true;
+            }
+          });
+
+          state.activeQuestionId = invalidQuestion.id;
+          state.pendingFocusQuestion = {
+            sectionId: section.id,
+            questionId: invalidQuestion.id,
+          };
+          state.pendingFocusOption = null;
+          return;
+        }
+      }
+
       const nextQuestion = createQuestion(section.type);
 
       section.questions.push(nextQuestion);
@@ -199,6 +222,26 @@ export const createTestSlice = createSlice({
 
       if (!target) {
         return;
+      }
+
+      if (section.type === "objective") {
+        const invalidQuestion = section.questions.find((q) => !q.correctOptionId);
+
+        if (invalidQuestion) {
+          section.questions.forEach((q) => {
+            if (!q.correctOptionId) {
+              q.showValidation = true;
+            }
+          });
+
+          state.activeQuestionId = invalidQuestion.id;
+          state.pendingFocusQuestion = {
+            sectionId: section.id,
+            questionId: invalidQuestion.id,
+          };
+          state.pendingFocusOption = null;
+          return;
+        }
       }
 
       const optionIdMap = new Map<string, string>();
@@ -259,6 +302,17 @@ export const createTestSlice = createSlice({
         question.text = action.payload.text;
       }
     },
+    updateQuestionImage: (
+      state,
+      action: PayloadAction<{ sectionId: string; questionId: string; image: string | null }>,
+    ) => {
+      const section = findSectionById(state.questionSections, action.payload.sectionId);
+      const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
+
+      if (question) {
+        question.image = action.payload.image;
+      }
+    },
     updateOptionText: (
       state,
       action: PayloadAction<{ sectionId: string; questionId: string; optionId: string; text: string }>,
@@ -269,6 +323,18 @@ export const createTestSlice = createSlice({
 
       if (option) {
         option.text = action.payload.text;
+      }
+    },
+    updateOptionImage: (
+      state,
+      action: PayloadAction<{ sectionId: string; questionId: string; optionId: string; image: string | null }>,
+    ) => {
+      const section = findSectionById(state.questionSections, action.payload.sectionId);
+      const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
+      const option = question?.options?.find((entry) => entry.id === action.payload.optionId);
+
+      if (option) {
+        option.image = action.payload.image;
       }
     },
     selectCorrectOption: (
@@ -315,7 +381,7 @@ export const createTestSlice = createSlice({
         state.pendingFocusOption = null;
       }
     },
-    addOption: (state, action: PayloadAction<{ sectionId: string; questionId: string }>) => {
+    addOption: (state, action: PayloadAction<{ sectionId: string; questionId: string; image?: string | null }>) => {
       const section = findSectionById(state.questionSections, action.payload.sectionId);
 
       if (!section || section.type !== "objective") {
@@ -328,7 +394,7 @@ export const createTestSlice = createSlice({
         return;
       }
 
-      const nextOption = createOption();
+      const nextOption = createOption(action.payload.image ? " " : "", action.payload.image ?? null);
       question.options = question.options ?? [];
       question.options.push(nextOption);
       state.activeQuestionId = question.id;
@@ -424,8 +490,10 @@ export const {
   setFormField,
   shuffleOptions,
   startDragging,
+  updateOptionImage,
   updateDragging,
   updateOptionText,
+  updateQuestionImage,
   updateQuestionPoints,
   updateQuestionText,
 } = createTestSlice.actions;
