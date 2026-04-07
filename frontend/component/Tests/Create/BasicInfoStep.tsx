@@ -12,11 +12,10 @@ const subjects = [
 ];
 
 const examTypes = [
-  { label: "Mock Test", value: "mock" },
   { label: "Multiple choice (MCQ)", value: "mcq" },
   { label: "Essay writing", value: "essay" },
-  { label: "Fill in the blanks", value: "fill" },
   { label: "Hybrid - A combination of different questions", value: "hybrid" },
+  { label: "Model Test - Multiple subjects", value: "model" },
 ];
 
 const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
@@ -58,15 +57,17 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
         />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Subject</label>
-        <DropDownComponent
-          placeholder="Select subject"
-          value={formState.subject}
-          handleChange={(value) => updateField("subject", value)}
-          list={subjects}
-        />
-      </div>
+      {formState.examType !== "model" && (
+        <div className="flex flex-col gap-2">
+          <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Subject</label>
+          <DropDownComponent
+            placeholder="Select subject"
+            value={formState.subject}
+            handleChange={(value) => updateField("subject", value)}
+            list={subjects}
+          />
+        </div>
+      )}
 
       <div className="flex w-full flex-col gap-2">
         <p className="text-[15px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Duration</p>

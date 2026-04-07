@@ -37,7 +37,7 @@ const CreateTestForm = () => {
         return;
       }
 
-      if (!formState.subject) {
+      if (formState.examType !== "model" && !formState.subject) {
         triggerToast({
           description: "Please select a subject",
           type: "error",

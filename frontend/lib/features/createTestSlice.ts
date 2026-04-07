@@ -9,7 +9,7 @@ const getSectionTemplates = (examType: string): Array<{ type: QuestionSectionTyp
     return [{ type: "essay", headerText: "Essay Questions" }];
   }
 
-  if (examType === "mock") {
+  if (examType === "hybrid") {
     return [
       { type: "objective", headerText: "Objective Questions" },
       { type: "essay", headerText: "Essay Questions" },
