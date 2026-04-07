@@ -1,7 +1,15 @@
 import PlusIcon from "@/component/svg/PlusIcon";
-import { addQuestion, finishDragging, startDragging, updateDragging } from "@/lib/features/createTestSlice";
+import {
+  addQuestion,
+  addSubject,
+  finishDragging,
+  setActiveSubjectId,
+  startDragging,
+  updateDragging,
+} from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { createTestSubjectOptions } from "@/utils/createTestOptions";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QuestionCard from "./QuestionCard";
 
 const QUESTION_CARD_GAP = 16;
@@ -33,16 +41,46 @@ const getQuestionCardOffset = (questionIndex: number, dragState: DragState | nul
 
 const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const dispatch = useAppDispatch();
-  const { questionSections, activeQuestionId, pendingFocusQuestion, pendingFocusOption, dragState } = useAppSelector(
-    (state) => state.createTest,
-  );
+  const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
+  const {
+    formState,
+    subjects,
+    activeSubjectId,
+    activeQuestionId,
+    pendingFocusQuestion,
+    pendingFocusOption,
+    dragState,
+  } = createTestState;
+  const [isAddSubjectMenuOpen, setIsAddSubjectMenuOpen] = useState(false);
   const sectionContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dragStateRef = useRef<DragState | null>(null);
+  const subjectScrollRef = useRef<HTMLDivElement>(null);
+  const subjectButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const isSubjectScrollDragging = useRef(false);
+  const subjectScrollStartX = useRef(0);
+  const subjectScrollStartLeft = useRef(0);
+
+  const activeSubject = useMemo(
+    () => subjects.find((subject) => subject.id === activeSubjectId) ?? subjects[0] ?? null,
+    [activeSubjectId, subjects],
+  );
+
+  const questionSections = activeSubject?.questionSections ?? [];
+
+  const remainingSubjectOptions = useMemo(
+    () => createTestSubjectOptions.filter((option) => !subjects.some((subject) => subject.value === option.value)),
+    [subjects],
+  );
+
+  const draggedSubject = useMemo(
+    () => subjects.find((subject) => subject.id === dragState?.subjectId) ?? null,
+    [dragState?.subjectId, subjects],
+  );
 
   const draggedSection = useMemo(
-    () => questionSections.find((section) => section.id === dragState?.sectionId) ?? null,
-    [dragState?.sectionId, questionSections],
+    () => draggedSubject?.questionSections.find((section) => section.id === dragState?.sectionId) ?? null,
+    [dragState?.sectionId, draggedSubject],
   );
 
   const draggedQuestion = useMemo(
@@ -97,6 +135,47 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     });
   }, [pendingFocusQuestion, scrollElementIntoView]);
 
+  useEffect(() => {
+    if (formState.examType !== "model") {
+      setIsAddSubjectMenuOpen(false);
+    }
+  }, [formState.examType]);
+
+  useEffect(() => {
+    const scrollContainer = subjectScrollRef.current;
+    if (!activeSubjectId || !scrollContainer) return;
+    const activeButton = subjectButtonRefs.current[activeSubjectId];
+    if (!activeButton) return;
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const buttonRect = activeButton.getBoundingClientRect();
+    const buttonScrollLeft = scrollContainer.scrollLeft + buttonRect.left - containerRect.left;
+    const scrollTarget = buttonScrollLeft - scrollContainer.clientWidth / 2 + buttonRect.width / 2;
+    scrollContainer.scrollTo({ left: scrollTarget, behavior: "smooth" });
+  }, [activeSubjectId]);
+
+  const handleSubjectScrollMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const el = subjectScrollRef.current;
+    if (!el) return;
+    isSubjectScrollDragging.current = true;
+    subjectScrollStartX.current = e.clientX;
+    subjectScrollStartLeft.current = el.scrollLeft;
+    el.style.cursor = "grabbing";
+    el.style.userSelect = "none";
+  }, []);
+
+  const handleSubjectScrollMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isSubjectScrollDragging.current || !subjectScrollRef.current) return;
+    const dx = e.clientX - subjectScrollStartX.current;
+    subjectScrollRef.current.scrollLeft = subjectScrollStartLeft.current - dx;
+  }, []);
+
+  const handleSubjectScrollMouseUp = useCallback(() => {
+    if (!subjectScrollRef.current) return;
+    isSubjectScrollDragging.current = false;
+    subjectScrollRef.current.style.cursor = "";
+    subjectScrollRef.current.style.userSelect = "";
+  }, []);
+
   const handleStopDragging = useCallback(() => {
     if (!dragStateRef.current) {
       return;
@@ -116,7 +195,8 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         return;
       }
 
-      const section = questionSections.find((entry) => entry.id === currentDragState.sectionId);
+      const dragSubject = subjects.find((subject) => subject.id === currentDragState.subjectId);
+      const section = dragSubject?.questionSections.find((entry) => entry.id === currentDragState.sectionId);
 
       if (!section) {
         return;
@@ -166,7 +246,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         }
       }
     },
-    [dispatch, questionSections, scrollContainerRef],
+    [dispatch, scrollContainerRef, subjects],
   );
 
   useEffect(() => {
@@ -184,7 +264,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   }, [dragState, handlePointerMove, handleStopDragging]);
 
   const handleDragHandlePointerDown = useCallback(
-    (sectionId: string, questionId: string, event: React.PointerEvent<HTMLButtonElement>) => {
+    (subjectId: string, sectionId: string, questionId: string, event: React.PointerEvent<HTMLButtonElement>) => {
       const questionElement = itemRefs.current[questionId];
 
       if (!questionElement) {
@@ -194,7 +274,8 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
       event.preventDefault();
 
       const rect = questionElement.getBoundingClientRect();
-      const section = questionSections.find((entry) => entry.id === sectionId);
+      const dragSubject = subjects.find((subject) => subject.id === subjectId);
+      const section = dragSubject?.questionSections.find((entry) => entry.id === sectionId);
       const draggedOriginalIndex = section?.questions.findIndex((question) => question.id === questionId) ?? -1;
 
       if (draggedOriginalIndex === -1) {
@@ -203,6 +284,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
 
       dispatch(
         startDragging({
+          subjectId,
           sectionId,
           id: questionId,
           draggedOriginalIndex,
@@ -220,16 +302,95 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
       document.body.style.userSelect = "none";
       document.body.style.cursor = "grabbing";
     },
-    [dispatch, questionSections],
+    [dispatch, subjects],
+  );
+
+  const handleAddSubject = useCallback(
+    (subjectOption: { label: string; value: string }) => {
+      dispatch(addSubject(subjectOption));
+      setIsAddSubjectMenuOpen(false);
+    },
+    [dispatch],
   );
 
   return (
     <div className="flex min-h-[532px] w-full flex-1 flex-col gap-10">
+      {formState.examType === "model" && (
+        <section className="flex flex-col gap-4">
+          <div className="flex w-fit max-w-full items-center gap-2 bg-[#EFF0F3] h-10 p-1 rounded-[6px]">
+            <div
+              ref={subjectScrollRef}
+              className="flex gap-2 items-center overflow-x-auto min-w-0 h-full scrollbar-hide cursor-grab"
+              onMouseDown={handleSubjectScrollMouseDown}
+              onMouseMove={handleSubjectScrollMouseMove}
+              onMouseUp={handleSubjectScrollMouseUp}
+              onMouseLeave={handleSubjectScrollMouseUp}
+            >
+              {subjects.map((subject) => {
+                const isActiveSubject = subject.id === activeSubject.id;
+
+                return (
+                  <button
+                    key={subject.id}
+                    ref={(node) => {
+                      subjectButtonRefs.current[subject.id] = node;
+                    }}
+                    type="button"
+                    onClick={() => dispatch(setActiveSubjectId(subject.id))}
+                    className={`rounded-[4px] h-full flex-shrink-0 flex items-center justify-center px-3 text-[14px] font-[400] leading-[16px] tracking-[-0.02em] whitespace-nowrap 
+                      ${isActiveSubject ? "text-white bg-[#49734F]" : "bg-white text-[#232A25]"}`}
+                  >
+                    {subject.name}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="relative flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsAddSubjectMenuOpen((current) => !current)}
+                disabled={remainingSubjectOptions.length === 0}
+                className="text-[#232A25] flex items-center justify-center px-1 text-[14px] font-[400] leading-[16px] tracking-[-0.02em] whitespace-nowrap disabled:opacity-50"
+              >
+                <PlusIcon />
+                <span className="ml-1">Add Subject</span>
+              </button>
+              {isAddSubjectMenuOpen && remainingSubjectOptions.length > 0 && (
+                <div
+                  className={`absolute ${activeSubject ? "right-0" : "left-0"} top-full z-20 mt-2 min-w-[220px] rounded-[12px] border border-[#E5E5E5] bg-white p-2 shadow-[0px_16px_40px_rgba(15,26,18,0.12)]`}
+                >
+                  {remainingSubjectOptions.map((subjectOption) => (
+                    <button
+                      key={subjectOption.value}
+                      type="button"
+                      onClick={() => handleAddSubject(subjectOption)}
+                      className="flex w-full items-center rounded-[8px] px-3 py-2 text-left text-[14px] font-[500] leading-[16px] text-[#232A25] transition-colors hover:bg-[#49734F0D]"
+                    >
+                      {subjectOption.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {!activeSubject && (
+            <div className="w-full rounded-[12px] border border-dashed border-[#DADCE0] bg-[#FAFBFA] px-5 py-10 text-center">
+              <p className="text-[16px] font-[500] leading-[24px] tracking-[-0.02em] text-[#232A25]">
+                {formState.examType === "model"
+                  ? "Add a subject to start creating questions."
+                  : "Select a subject in Basic Info to start creating questions."}
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
       {questionSections.map((section) => {
         let dropIndicatorTop: number | null = null;
         const sectionContainer = sectionContainerRefs.current[section.id];
 
-        if (dragState?.sectionId === section.id && sectionContainer) {
+        if (dragState?.subjectId === activeSubject.id && dragState.sectionId === section.id && sectionContainer) {
           const { dropLineIndex, draggedOriginalIndex } = dragState;
 
           if (dropLineIndex !== draggedOriginalIndex && dropLineIndex !== draggedOriginalIndex + 1) {
@@ -270,7 +431,11 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
             <div className="w-full border-b border-[#E5E5E5]" />
 
             <div
-              className={`relative flex flex-col gap-4 ${dragState?.sectionId === section.id ? "pointer-events-none" : ""}`}
+              className={`relative flex flex-col gap-4 ${
+                dragState?.subjectId === activeSubject.id && dragState.sectionId === section.id
+                  ? "pointer-events-none"
+                  : ""
+              }`}
               ref={(node) => {
                 sectionContainerRefs.current[section.id] = node;
               }}
@@ -279,6 +444,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
                 <QuestionCard
                   key={question.id}
                   scrollContainerRef={scrollContainerRef}
+                  subjectId={activeSubject.id}
                   sectionId={section.id}
                   sectionType={section.type}
                   setCardRef={(node) => {
@@ -288,16 +454,20 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
                   questionNumber={questionIndex + 1}
                   isActive={activeQuestionId === question.id}
                   shouldAutoFocus={
-                    pendingFocusQuestion?.sectionId === section.id && pendingFocusQuestion.questionId === question.id
+                    pendingFocusQuestion?.subjectId === activeSubject.id &&
+                    pendingFocusQuestion.sectionId === section.id &&
+                    pendingFocusQuestion.questionId === question.id
                   }
                   pendingFocusOptionId={
-                    pendingFocusOption?.sectionId === section.id && pendingFocusOption.questionId === question.id
+                    pendingFocusOption?.subjectId === activeSubject.id &&
+                    pendingFocusOption.sectionId === section.id &&
+                    pendingFocusOption.questionId === question.id
                       ? pendingFocusOption.optionId
                       : null
                   }
                   isDragging={dragState?.id === question.id}
                   cardStyle={
-                    dragState?.sectionId === section.id
+                    dragState?.subjectId === activeSubject.id && dragState.sectionId === section.id
                       ? {
                           transform: `translateY(${getQuestionCardOffset(questionIndex, dragState)}px)`,
                           transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease",
@@ -328,7 +498,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
 
               <button
                 type="button"
-                onClick={() => dispatch(addQuestion(section.id))}
+                onClick={() => dispatch(addQuestion({ subjectId: activeSubject.id, sectionId: section.id }))}
                 className="flex h-8 items-center justify-center gap-2 rounded-[8px] border border-[#E5E5E5] bg-white px-4 text-[14px] leading-[16px] text-[#232A25]"
               >
                 <PlusIcon />
@@ -339,7 +509,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         );
       })}
 
-      {dragState && draggedQuestion
+      {dragState && draggedQuestion && draggedSubject && draggedSection
         ? (() => {
             const sectionContainer = sectionContainerRefs.current[dragState.sectionId];
             const sectionRect = sectionContainer?.getBoundingClientRect();
@@ -351,11 +521,12 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
             return (
               <QuestionCard
                 scrollContainerRef={scrollContainerRef}
+                subjectId={draggedSubject.id}
                 sectionId={dragState.sectionId}
-                sectionType={draggedSection?.type ?? "objective"}
+                sectionType={draggedSection.type}
                 question={draggedQuestion}
                 questionNumber={
-                  (draggedSection?.questions.findIndex((question) => question.id === draggedQuestion.id) ?? 0) + 1
+                  (draggedSection.questions.findIndex((question) => question.id === draggedQuestion.id) ?? 0) + 1
                 }
                 isActive
                 shouldAutoFocus={false}
@@ -368,7 +539,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
                   width: dragState.width,
                 }}
                 setCardRef={() => {}}
-                onDragHandlePointerDown={(_sectionId, _questionId, _event) => {}}
+                onDragHandlePointerDown={(_subjectId, _sectionId, _questionId, _event) => {}}
               />
             );
           })()

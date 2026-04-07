@@ -1,29 +1,37 @@
-import { setFormField } from "@/lib/features/createTestSlice";
-import { useAppDispatch } from "@/lib/hooks";
+import { setFormField, setSingleSubject } from "@/lib/features/createTestSlice";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import DropDownComponent from "@/Ui/DropDownComponent";
+import { createTestExamTypeOptions, createTestSubjectOptions } from "@/utils/createTestOptions";
 import NormalInput from "@/Ui/NormalInput";
-import { memo, useCallback } from "react";
-
-const subjects = [
-  { label: "Mathematics", value: "math" },
-  { label: "Science", value: "science" },
-  { label: "English", value: "english" },
-  { label: "History", value: "history" },
-];
-
-const examTypes = [
-  { label: "Multiple choice (MCQ)", value: "mcq" },
-  { label: "Essay writing", value: "essay" },
-  { label: "Hybrid - A combination of different questions", value: "hybrid" },
-  { label: "Model Test - Multiple subjects", value: "model" },
-];
+import { memo, useCallback, useMemo } from "react";
 
 const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
   const dispatch = useAppDispatch();
+  const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
+  const { subjects, activeSubjectId } = createTestState;
+
+  const selectedSubjectValue = useMemo(() => {
+    const activeSubject = subjects.find((subject) => subject.id === activeSubjectId) ?? subjects[0] ?? null;
+
+    return activeSubject?.value ?? "";
+  }, [activeSubjectId, subjects]);
 
   const updateField = useCallback(
     (field: keyof FormState, value: FormState[keyof FormState]) => {
       dispatch(setFormField({ field, value }));
+    },
+    [dispatch],
+  );
+
+  const handleSubjectChange = useCallback(
+    (value: string) => {
+      const selectedSubject = createTestSubjectOptions.find((subject) => subject.value === value);
+
+      if (!selectedSubject) {
+        return;
+      }
+
+      dispatch(setSingleSubject(selectedSubject));
     },
     [dispatch],
   );
@@ -41,7 +49,7 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
           placeholder="Select type"
           value={formState.examType}
           handleChange={(value) => updateField("examType", value)}
-          list={examTypes}
+          list={createTestExamTypeOptions}
         />
       </div>
 
@@ -62,9 +70,9 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
           <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Subject</label>
           <DropDownComponent
             placeholder="Select subject"
-            value={formState.subject}
-            handleChange={(value) => updateField("subject", value)}
-            list={subjects}
+            value={selectedSubjectValue}
+            handleChange={handleSubjectChange}
+            list={createTestSubjectOptions}
           />
         </div>
       )}

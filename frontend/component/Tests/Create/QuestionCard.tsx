@@ -55,6 +55,7 @@ const readImageFileAsDataUrl = (file: File) =>
 const QuestionCard = memo(
   ({
     scrollContainerRef,
+    subjectId,
     sectionId,
     sectionType,
     setCardRef,
@@ -117,7 +118,7 @@ const QuestionCard = memo(
 
         try {
           const image = await readImageFileAsDataUrl(file);
-          dispatch(updateQuestionImage({ sectionId, questionId: question.id, image }));
+          dispatch(updateQuestionImage({ subjectId, sectionId, questionId: question.id, image }));
           activateCard();
         } catch {
           triggerToast({
@@ -126,7 +127,7 @@ const QuestionCard = memo(
           });
         }
       },
-      [activateCard, dispatch, question.id, sectionId, triggerToast, validateImageFile],
+      [activateCard, dispatch, question.id, sectionId, subjectId, triggerToast, validateImageFile],
     );
 
     const handleOptionImageChange = useCallback(
@@ -140,7 +141,7 @@ const QuestionCard = memo(
 
         try {
           const image = await readImageFileAsDataUrl(file);
-          dispatch(updateOptionImage({ sectionId, questionId: question.id, optionId, image }));
+          dispatch(updateOptionImage({ subjectId, sectionId, questionId: question.id, optionId, image }));
           activateCard();
         } catch {
           triggerToast({
@@ -149,7 +150,7 @@ const QuestionCard = memo(
           });
         }
       },
-      [activateCard, dispatch, question.id, sectionId, triggerToast, validateImageFile],
+      [activateCard, dispatch, question.id, sectionId, subjectId, triggerToast, validateImageFile],
     );
 
     const scrollElementIntoView = useCallback(
@@ -194,7 +195,7 @@ const QuestionCard = memo(
 
         try {
           const image = await readImageFileAsDataUrl(file);
-          dispatch(addOption({ sectionId, questionId: question.id, image }));
+          dispatch(addOption({ subjectId, sectionId, questionId: question.id, image }));
           activateCard();
           if (addOptionButtonRef.current && scrollContainerRef.current) {
             const buttonRect = addOptionButtonRef.current.getBoundingClientRect();
@@ -215,11 +216,11 @@ const QuestionCard = memo(
           });
         }
       },
-      [activateCard, dispatch, question.id, scrollContainerRef, sectionId, triggerToast, validateImageFile],
+      [activateCard, dispatch, question.id, scrollContainerRef, sectionId, subjectId, triggerToast, validateImageFile],
     );
 
     const handleAddOptionWithScroll = useCallback(() => {
-      dispatch(addOption({ sectionId, questionId: question.id }));
+      dispatch(addOption({ subjectId, sectionId, questionId: question.id }));
 
       if (addOptionButtonRef.current && scrollContainerRef.current) {
         const buttonRect = addOptionButtonRef.current.getBoundingClientRect();
@@ -235,7 +236,7 @@ const QuestionCard = memo(
           }, 0);
         }
       }
-    }, [dispatch, question.id, scrollContainerRef, sectionId]);
+    }, [dispatch, question.id, scrollContainerRef, sectionId, subjectId]);
 
     useEffect(() => {
       if (!pendingFocusOptionId) {
@@ -306,6 +307,7 @@ const QuestionCard = memo(
                     onChange={(e) =>
                       dispatch(
                         updateQuestionText({
+                          subjectId,
                           sectionId,
                           questionId: question.id,
                           text: e.target.value,
@@ -346,7 +348,9 @@ const QuestionCard = memo(
                             type="button"
                             title="Remove question image"
                             onClick={() =>
-                              dispatch(updateQuestionImage({ sectionId, questionId: question.id, image: null }))
+                              dispatch(
+                                updateQuestionImage({ subjectId, sectionId, questionId: question.id, image: null }),
+                              )
                             }
                             className="flex h-9 w-9 items-center justify-center rounded-[8px] text-[#D24B44] transition-colors duration-150"
                             aria-label="Remove question image"
@@ -401,6 +405,7 @@ const QuestionCard = memo(
                       onChange={() =>
                         dispatch(
                           selectCorrectOption({
+                            subjectId,
                             sectionId,
                             questionId: question.id,
                             optionId: option.id,
@@ -421,6 +426,7 @@ const QuestionCard = memo(
                             resizeTextarea(e.currentTarget);
                             dispatch(
                               updateOptionText({
+                                subjectId,
                                 sectionId,
                                 questionId: question.id,
                                 optionId: option.id,
@@ -461,6 +467,7 @@ const QuestionCard = memo(
                               onClick={() =>
                                 dispatch(
                                   updateOptionImage({
+                                    subjectId,
                                     sectionId,
                                     questionId: question.id,
                                     optionId: option.id,
@@ -495,6 +502,7 @@ const QuestionCard = memo(
                           onClick={() =>
                             dispatch(
                               removeOption({
+                                subjectId,
                                 sectionId,
                                 questionId: question.id,
                                 optionId: option.id,
@@ -554,15 +562,14 @@ const QuestionCard = memo(
                 <input
                   type="text"
                   inputMode="numeric"
-                  // min={1}
                   value={question.points || ""}
                   onKeyDown={(e) => {
-                    console.log("Points input keydown", e.key);
                     if (e.key === "ArrowUp" || e.key === "+" || (e.shiftKey && e.key === "=")) {
                       e.preventDefault();
 
                       dispatch(
                         updateQuestionPoints({
+                          subjectId,
                           sectionId,
                           questionId: question.id,
                           points: question.points + 1,
@@ -576,6 +583,7 @@ const QuestionCard = memo(
 
                       dispatch(
                         updateQuestionPoints({
+                          subjectId,
                           sectionId,
                           questionId: question.id,
                           points: question.points - 1,
@@ -584,10 +592,9 @@ const QuestionCard = memo(
                     }
                   }}
                   onChange={(e) => {
-                    console.log("Points input change", e.target.value);
-                    console.log("Parsed points", +e.target.value);
                     dispatch(
                       updateQuestionPoints({
+                        subjectId,
                         sectionId,
                         questionId: question.id,
                         points: +e.target.value,
@@ -601,6 +608,7 @@ const QuestionCard = memo(
                     onClick={() =>
                       dispatch(
                         updateQuestionPoints({
+                          subjectId,
                           sectionId,
                           questionId: question.id,
                           points: question.points + 1,
@@ -617,6 +625,7 @@ const QuestionCard = memo(
                     onClick={() =>
                       dispatch(
                         updateQuestionPoints({
+                          subjectId,
                           sectionId,
                           questionId: question.id,
                           points: question.points - 1,
@@ -637,7 +646,7 @@ const QuestionCard = memo(
               {sectionType === "objective" && (
                 <button
                   type="button"
-                  onClick={() => dispatch(shuffleOptions({ sectionId, questionId: question.id }))}
+                  onClick={() => dispatch(shuffleOptions({ subjectId, sectionId, questionId: question.id }))}
                   className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#232A25] transition-colors duration-150 hover:bg-[#49734F] hover:text-[#FFFFFF]"
                   aria-label="Shuffle options"
                 >
@@ -646,7 +655,7 @@ const QuestionCard = memo(
               )}
               <button
                 type="button"
-                onClick={() => dispatch(duplicateQuestion({ sectionId, questionId: question.id }))}
+                onClick={() => dispatch(duplicateQuestion({ subjectId, sectionId, questionId: question.id }))}
                 className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#232A25] transition-colors duration-150 hover:bg-[#49734F] hover:text-[#FFFFFF]"
                 aria-label="Duplicate question"
               >
@@ -654,7 +663,7 @@ const QuestionCard = memo(
               </button>
               <button
                 type="button"
-                onClick={() => dispatch(deleteQuestion({ sectionId, questionId: question.id }))}
+                onClick={() => dispatch(deleteQuestion({ subjectId, sectionId, questionId: question.id }))}
                 className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#D24B44] transition-colors duration-150 hover:bg-[#D24B44] hover:text-[#FFFFFF]"
                 aria-label="Delete question"
               >
@@ -665,7 +674,7 @@ const QuestionCard = memo(
         </div>
         <button
           type="button"
-          onPointerDown={(event) => onDragHandlePointerDown(sectionId, question.id, event)}
+          onPointerDown={(event) => onDragHandlePointerDown(subjectId, sectionId, question.id, event)}
           className="flex-shrink-0 cursor-grab touch-none text-[#747775] transition-colors hover:text-[#232A25] active:cursor-grabbing"
           aria-label="Drag to reorder"
         >

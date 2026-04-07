@@ -15,7 +15,8 @@ import BlackTickIconSVG from "../svg/BlackTickIconSVG";
 const CreateTestForm = () => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
-  const { currentStep, formState } = useAppSelector((state) => state.createTest);
+  const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
+  const { currentStep, formState, subjects } = createTestState;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const progressWidth = `${(createTestSteps.indexOf(currentStep) / (createTestSteps.length - 1)) * 100}%`;
 
@@ -37,7 +38,7 @@ const CreateTestForm = () => {
         return;
       }
 
-      if (formState.examType !== "model" && !formState.subject) {
+      if (formState.examType !== "model" && subjects.length === 0) {
         triggerToast({
           description: "Please select a subject",
           type: "error",

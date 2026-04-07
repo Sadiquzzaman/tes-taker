@@ -1,7 +1,6 @@
 type FormState = {
   examType: string;
   testName: string;
-  subject: string;
   duration: string;
   passingScore: string;
   allowNegativeMarking: boolean;
@@ -11,7 +10,6 @@ type FormState = {
 type BasicInfoErrors = {
   examType?: string;
   testName?: string;
-  subject?: string;
   duration?: string;
   negativeMarking?: string;
 };
@@ -41,7 +39,15 @@ type QuestionSectionItem = {
   questions: QuestionItem[];
 };
 
+type SubjectItem = {
+  id: string;
+  name: string;
+  value: string;
+  questionSections: QuestionSectionItem[];
+};
+
 type DragState = {
+  subjectId: string;
   sectionId: string;
   id: string;
   draggedOriginalIndex: number;
@@ -62,11 +68,13 @@ type BasicInfoStepProps = {
 type CreateTestStep = "Basic info" | "Questions" | "Review" | "Publish";
 
 type PendingFocusQuestion = {
+  subjectId: string;
   sectionId: string;
   questionId: string;
 };
 
 type PendingFocusOption = {
+  subjectId: string;
   sectionId: string;
   questionId: string;
   optionId: string;
@@ -75,7 +83,8 @@ type PendingFocusOption = {
 type CreateTestState = {
   currentStep: CreateTestStep;
   formState: FormState;
-  questionSections: QuestionSectionItem[];
+  subjects: SubjectItem[];
+  activeSubjectId: string | null;
   activeQuestionId: string | null;
   pendingFocusQuestion: PendingFocusQuestion | null;
   pendingFocusOption: PendingFocusOption | null;
@@ -88,6 +97,7 @@ type QuestionsStepProps = {
 
 type QuestionCardProps = {
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+  subjectId: string;
   sectionId: string;
   sectionType: QuestionSectionType;
   setCardRef: (node: HTMLDivElement | null) => void;
@@ -101,6 +111,7 @@ type QuestionCardProps = {
   cardStyle?: React.CSSProperties;
   overlayStyle?: React.CSSProperties;
   onDragHandlePointerDown: (
+    subjectId: string,
     sectionId: string,
     questionId: string,
     event: React.PointerEvent<HTMLButtonElement>,

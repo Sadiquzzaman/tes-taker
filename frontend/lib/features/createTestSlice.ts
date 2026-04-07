@@ -9,7 +9,7 @@ const getSectionTemplates = (examType: string): Array<{ type: QuestionSectionTyp
     return [{ type: "essay", headerText: "Essay Questions" }];
   }
 
-  if (examType === "hybrid") {
+  if (examType === "hybrid" || examType === "model") {
     return [
       { type: "objective", headerText: "Objective Questions" },
       { type: "essay", headerText: "Essay Questions" },
@@ -74,6 +74,17 @@ const createQuestionSections = (
   });
 };
 
+const createSubject = (
+  examType: string,
+  subjectOption: Pick<SubjectItem, "name" | "value">,
+  existingSections: QuestionSectionItem[] = [],
+): SubjectItem => ({
+  id: createId(),
+  name: subjectOption.name,
+  value: subjectOption.value,
+  questionSections: createQuestionSections(examType, existingSections),
+});
+
 const moveQuestionInList = (questions: QuestionItem[], questionId: string, targetIndex: number) => {
   const currentIndex = questions.findIndex((question) => question.id === questionId);
 
@@ -99,13 +110,13 @@ const createInitialState = (): CreateTestState => ({
   formState: {
     examType: "",
     testName: "",
-    subject: "",
     duration: "",
     passingScore: "",
     allowNegativeMarking: false,
     negativeMarking: "",
   },
-  questionSections: [],
+  subjects: [],
+  activeSubjectId: null,
   activeQuestionId: null,
   pendingFocusQuestion: null,
   pendingFocusOption: null,
@@ -114,8 +125,41 @@ const createInitialState = (): CreateTestState => ({
 
 const initialState: CreateTestState = createInitialState();
 
+const findSubjectById = (subjects: SubjectItem[], subjectId: string) =>
+  subjects.find((subject) => subject.id === subjectId) ?? null;
+
 const findSectionById = (sections: QuestionSectionItem[], sectionId: string) =>
   sections.find((section) => section.id === sectionId) ?? null;
+
+const findSubjectSection = (subjects: SubjectItem[], subjectId: string, sectionId: string) => {
+  const subject = findSubjectById(subjects, subjectId);
+  const section = subject ? findSectionById(subject.questionSections, sectionId) : null;
+
+  return { subject, section };
+};
+
+const resetTransientState = (state: CreateTestState) => {
+  state.activeQuestionId = null;
+  state.pendingFocusQuestion = null;
+  state.pendingFocusOption = null;
+  state.dragState = null;
+};
+
+const syncSubjectsForExamType = (subjects: SubjectItem[], examType: string, activeSubjectId: string | null) => {
+  const syncedSubjects = subjects.map((subject) => ({
+    ...subject,
+    questionSections: createQuestionSections(examType, subject.questionSections),
+  }));
+
+  if (examType === "model") {
+    return syncedSubjects;
+  }
+
+  const preferredSubject =
+    syncedSubjects.find((subject) => subject.id === activeSubjectId) ?? syncedSubjects[0] ?? null;
+
+  return preferredSubject ? [preferredSubject] : [];
+};
 
 export const createTestSlice = createSlice({
   name: "createTestSlice",
@@ -142,32 +186,73 @@ export const createTestSlice = createSlice({
       if (action.payload.field === "examType") {
         const nextExamType = String(action.payload.value);
 
-        state.questionSections = createQuestionSections(nextExamType, state.questionSections);
-        state.activeQuestionId = null;
-        state.pendingFocusQuestion = null;
-        state.pendingFocusOption = null;
-        state.dragState = null;
+        state.subjects = syncSubjectsForExamType(state.subjects, nextExamType, state.activeSubjectId);
+        state.activeSubjectId = state.subjects[0]?.id ?? null;
+        resetTransientState(state);
       }
     },
-    addQuestion: (state, action: PayloadAction<string>) => {
-      const section = findSectionById(state.questionSections, action.payload);
+    setSingleSubject: (state, action: PayloadAction<{ label: string; value: string }>) => {
+      const existingSubject = state.subjects.find((subject) => subject.value === action.payload.value) ?? null;
+      const nextSubject = existingSubject
+        ? {
+            ...existingSubject,
+            name: action.payload.label,
+            value: action.payload.value,
+            questionSections: createQuestionSections(state.formState.examType, existingSubject.questionSections),
+          }
+        : createSubject(state.formState.examType, { name: action.payload.label, value: action.payload.value });
 
-      if (!section) {
+      state.subjects = [nextSubject];
+      state.activeSubjectId = nextSubject.id;
+      resetTransientState(state);
+    },
+    addSubject: (state, action: PayloadAction<{ label: string; value: string }>) => {
+      const existingSubject = state.subjects.find((subject) => subject.value === action.payload.value);
+
+      if (existingSubject) {
+        state.activeSubjectId = existingSubject.id;
+        resetTransientState(state);
+        return;
+      }
+
+      const nextSubject = createSubject(state.formState.examType, {
+        name: action.payload.label,
+        value: action.payload.value,
+      });
+
+      state.subjects.push(nextSubject);
+      state.activeSubjectId = nextSubject.id;
+      resetTransientState(state);
+    },
+    setActiveSubjectId: (state, action: PayloadAction<string | null>) => {
+      state.activeSubjectId = action.payload;
+      resetTransientState(state);
+    },
+    addQuestion: (state, action: PayloadAction<{ subjectId: string; sectionId: string }>) => {
+      const { section, subject } = findSubjectSection(
+        state.subjects,
+        action.payload.subjectId,
+        action.payload.sectionId,
+      );
+
+      if (!section || !subject) {
         return;
       }
 
       if (section.type === "objective") {
-        const invalidQuestion = section.questions.find((q) => !q.correctOptionId);
+        const invalidQuestion = section.questions.find((question) => !question.correctOptionId);
 
         if (invalidQuestion) {
-          section.questions.forEach((q) => {
-            if (!q.correctOptionId) {
-              q.showValidation = true;
+          section.questions.forEach((question) => {
+            if (!question.correctOptionId) {
+              question.showValidation = true;
             }
           });
 
+          state.activeSubjectId = subject.id;
           state.activeQuestionId = invalidQuestion.id;
           state.pendingFocusQuestion = {
+            subjectId: subject.id,
             sectionId: section.id,
             questionId: invalidQuestion.id,
           };
@@ -179,15 +264,17 @@ export const createTestSlice = createSlice({
       const nextQuestion = createQuestion(section.type);
 
       section.questions.push(nextQuestion);
+      state.activeSubjectId = subject.id;
       state.activeQuestionId = nextQuestion.id;
       state.pendingFocusQuestion = {
+        subjectId: subject.id,
         sectionId: section.id,
         questionId: nextQuestion.id,
       };
       state.pendingFocusOption = null;
     },
-    deleteQuestion: (state, action: PayloadAction<{ sectionId: string; questionId: string }>) => {
-      const section = findSectionById(state.questionSections, action.payload.sectionId);
+    deleteQuestion: (state, action: PayloadAction<{ subjectId: string; sectionId: string; questionId: string }>) => {
+      const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
 
       if (!section) {
         return;
@@ -199,22 +286,32 @@ export const createTestSlice = createSlice({
         state.activeQuestionId = section.questions[section.questions.length - 1]?.id ?? null;
       }
 
-      if (state.pendingFocusQuestion?.questionId === action.payload.questionId) {
+      if (
+        state.pendingFocusQuestion?.subjectId === action.payload.subjectId &&
+        state.pendingFocusQuestion.questionId === action.payload.questionId
+      ) {
         state.pendingFocusQuestion = null;
       }
 
-      if (state.pendingFocusOption?.questionId === action.payload.questionId) {
+      if (
+        state.pendingFocusOption?.subjectId === action.payload.subjectId &&
+        state.pendingFocusOption.questionId === action.payload.questionId
+      ) {
         state.pendingFocusOption = null;
       }
 
-      if (state.dragState?.id === action.payload.questionId) {
+      if (state.dragState?.id === action.payload.questionId && state.dragState.subjectId === action.payload.subjectId) {
         state.dragState = null;
       }
     },
-    duplicateQuestion: (state, action: PayloadAction<{ sectionId: string; questionId: string }>) => {
-      const section = findSectionById(state.questionSections, action.payload.sectionId);
+    duplicateQuestion: (state, action: PayloadAction<{ subjectId: string; sectionId: string; questionId: string }>) => {
+      const { section, subject } = findSubjectSection(
+        state.subjects,
+        action.payload.subjectId,
+        action.payload.sectionId,
+      );
 
-      if (!section) {
+      if (!section || !subject) {
         return;
       }
 
@@ -225,17 +322,19 @@ export const createTestSlice = createSlice({
       }
 
       if (section.type === "objective") {
-        const invalidQuestion = section.questions.find((q) => !q.correctOptionId);
+        const invalidQuestion = section.questions.find((question) => !question.correctOptionId);
 
         if (invalidQuestion) {
-          section.questions.forEach((q) => {
-            if (!q.correctOptionId) {
-              q.showValidation = true;
+          section.questions.forEach((question) => {
+            if (!question.correctOptionId) {
+              question.showValidation = true;
             }
           });
 
+          state.activeSubjectId = subject.id;
           state.activeQuestionId = invalidQuestion.id;
           state.pendingFocusQuestion = {
+            subjectId: subject.id,
             sectionId: section.id,
             questionId: invalidQuestion.id,
           };
@@ -269,15 +368,17 @@ export const createTestSlice = createSlice({
 
       const index = section.questions.findIndex((question) => question.id === action.payload.questionId);
       section.questions.splice(index + 1, 0, duplicatedQuestion);
+      state.activeSubjectId = subject.id;
       state.activeQuestionId = duplicatedQuestion.id;
       state.pendingFocusQuestion = {
+        subjectId: subject.id,
         sectionId: section.id,
         questionId: duplicatedQuestion.id,
       };
       state.pendingFocusOption = null;
     },
-    shuffleOptions: (state, action: PayloadAction<{ sectionId: string; questionId: string }>) => {
-      const section = findSectionById(state.questionSections, action.payload.sectionId);
+    shuffleOptions: (state, action: PayloadAction<{ subjectId: string; sectionId: string; questionId: string }>) => {
+      const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
 
       if (!section || section.type !== "objective") {
         return;
@@ -294,8 +395,11 @@ export const createTestSlice = createSlice({
         [question.options[index], question.options[swapIndex]] = [question.options[swapIndex], question.options[index]];
       }
     },
-    updateQuestionText: (state, action: PayloadAction<{ sectionId: string; questionId: string; text: string }>) => {
-      const section = findSectionById(state.questionSections, action.payload.sectionId);
+    updateQuestionText: (
+      state,
+      action: PayloadAction<{ subjectId: string; sectionId: string; questionId: string; text: string }>,
+    ) => {
+      const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
       const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
 
       if (question) {
@@ -304,9 +408,9 @@ export const createTestSlice = createSlice({
     },
     updateQuestionImage: (
       state,
-      action: PayloadAction<{ sectionId: string; questionId: string; image: string | null }>,
+      action: PayloadAction<{ subjectId: string; sectionId: string; questionId: string; image: string | null }>,
     ) => {
-      const section = findSectionById(state.questionSections, action.payload.sectionId);
+      const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
       const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
 
       if (question) {
@@ -315,9 +419,15 @@ export const createTestSlice = createSlice({
     },
     updateOptionText: (
       state,
-      action: PayloadAction<{ sectionId: string; questionId: string; optionId: string; text: string }>,
+      action: PayloadAction<{
+        subjectId: string;
+        sectionId: string;
+        questionId: string;
+        optionId: string;
+        text: string;
+      }>,
     ) => {
-      const section = findSectionById(state.questionSections, action.payload.sectionId);
+      const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
       const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
       const option = question?.options?.find((entry) => entry.id === action.payload.optionId);
 
@@ -327,9 +437,15 @@ export const createTestSlice = createSlice({
     },
     updateOptionImage: (
       state,
-      action: PayloadAction<{ sectionId: string; questionId: string; optionId: string; image: string | null }>,
+      action: PayloadAction<{
+        subjectId: string;
+        sectionId: string;
+        questionId: string;
+        optionId: string;
+        image: string | null;
+      }>,
     ) => {
-      const section = findSectionById(state.questionSections, action.payload.sectionId);
+      const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
       const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
       const option = question?.options?.find((entry) => entry.id === action.payload.optionId);
 
@@ -339,9 +455,9 @@ export const createTestSlice = createSlice({
     },
     selectCorrectOption: (
       state,
-      action: PayloadAction<{ sectionId: string; questionId: string; optionId: string }>,
+      action: PayloadAction<{ subjectId: string; sectionId: string; questionId: string; optionId: string }>,
     ) => {
-      const section = findSectionById(state.questionSections, action.payload.sectionId);
+      const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
 
       if (!section || section.type !== "objective") {
         return;
@@ -354,8 +470,11 @@ export const createTestSlice = createSlice({
         question.showValidation = false;
       }
     },
-    removeOption: (state, action: PayloadAction<{ sectionId: string; questionId: string; optionId: string }>) => {
-      const section = findSectionById(state.questionSections, action.payload.sectionId);
+    removeOption: (
+      state,
+      action: PayloadAction<{ subjectId: string; sectionId: string; questionId: string; optionId: string }>,
+    ) => {
+      const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
 
       if (!section || section.type !== "objective") {
         return;
@@ -374,17 +493,25 @@ export const createTestSlice = createSlice({
       }
 
       if (
+        state.pendingFocusOption?.subjectId === action.payload.subjectId &&
         state.pendingFocusOption?.sectionId === action.payload.sectionId &&
-        state.pendingFocusOption?.questionId === action.payload.questionId &&
+        state.pendingFocusOption.questionId === action.payload.questionId &&
         state.pendingFocusOption.optionId === action.payload.optionId
       ) {
         state.pendingFocusOption = null;
       }
     },
-    addOption: (state, action: PayloadAction<{ sectionId: string; questionId: string; image?: string | null }>) => {
-      const section = findSectionById(state.questionSections, action.payload.sectionId);
+    addOption: (
+      state,
+      action: PayloadAction<{ subjectId: string; sectionId: string; questionId: string; image?: string | null }>,
+    ) => {
+      const { section, subject } = findSubjectSection(
+        state.subjects,
+        action.payload.subjectId,
+        action.payload.sectionId,
+      );
 
-      if (!section || section.type !== "objective") {
+      if (!section || !subject || section.type !== "objective") {
         return;
       }
 
@@ -397,23 +524,31 @@ export const createTestSlice = createSlice({
       const nextOption = createOption(action.payload.image ? " " : "", action.payload.image ?? null);
       question.options = question.options ?? [];
       question.options.push(nextOption);
+      state.activeSubjectId = subject.id;
       state.activeQuestionId = question.id;
       state.pendingFocusOption = {
+        subjectId: subject.id,
         sectionId: section.id,
         questionId: question.id,
         optionId: nextOption.id,
       };
     },
-    updateQuestionPoints: (state, action: PayloadAction<{ sectionId: string; questionId: string; points: number }>) => {
-      const section = findSectionById(state.questionSections, action.payload.sectionId);
+    updateQuestionPoints: (
+      state,
+      action: PayloadAction<{ subjectId: string; sectionId: string; questionId: string; points: number }>,
+    ) => {
+      const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
       const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
 
       if (question) {
         question.points = Math.max(0, action.payload.points || 0);
       }
     },
-    moveQuestion: (state, action: PayloadAction<{ sectionId: string; questionId: string; targetIndex: number }>) => {
-      const section = findSectionById(state.questionSections, action.payload.sectionId);
+    moveQuestion: (
+      state,
+      action: PayloadAction<{ subjectId: string; sectionId: string; questionId: string; targetIndex: number }>,
+    ) => {
+      const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
 
       if (section) {
         section.questions = moveQuestionInList(
@@ -434,6 +569,7 @@ export const createTestSlice = createSlice({
     },
     startDragging: (state, action: PayloadAction<DragState>) => {
       state.dragState = action.payload;
+      state.activeSubjectId = action.payload.subjectId;
       state.activeQuestionId = action.payload.id;
     },
     updateDragging: (state, action: PayloadAction<Pick<DragState, "pointerX" | "pointerY" | "dropLineIndex">>) => {
@@ -450,8 +586,8 @@ export const createTestSlice = createSlice({
         return;
       }
 
-      const { id, draggedOriginalIndex, dropLineIndex } = state.dragState;
-      const section = findSectionById(state.questionSections, state.dragState.sectionId);
+      const { id, subjectId, sectionId, draggedOriginalIndex, dropLineIndex } = state.dragState;
+      const { section } = findSubjectSection(state.subjects, subjectId, sectionId);
 
       if (!section) {
         state.dragState = null;
@@ -475,6 +611,7 @@ export const {
   resetForm,
   addOption,
   addQuestion,
+  addSubject,
   cancelDragging,
   clearPendingFocusOption,
   clearPendingFocusQuestionId,
@@ -487,7 +624,9 @@ export const {
   removeOption,
   selectCorrectOption,
   setActiveQuestionId,
+  setActiveSubjectId,
   setFormField,
+  setSingleSubject,
   shuffleOptions,
   startDragging,
   updateOptionImage,
