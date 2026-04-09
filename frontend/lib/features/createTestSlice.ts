@@ -106,7 +106,7 @@ const moveQuestionInList = (questions: QuestionItem[], questionId: string, targe
 };
 
 const createInitialState = (): CreateTestState => ({
-  currentStep: createTestSteps[0],
+  currentStep: createTestSteps[3],
   formState: {
     examType: "",
     testName: "",
@@ -121,6 +121,16 @@ const createInitialState = (): CreateTestState => ({
   pendingFocusQuestion: null,
   pendingFocusOption: null,
   dragState: null,
+  publishState: {
+    publishTiming: "immediately",
+    scheduleDate: new Date().toLocaleString().slice(0, 10),
+    scheduleTime: new Date().toLocaleString().slice(11, 16),
+    endingDate: new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000).toLocaleString().slice(0, 10),
+    endingTime: new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000).toLocaleString().slice(11, 16),
+    testAudience: "anyone",
+    selectedClassId: "",
+    specificStudents: [],
+  },
 });
 
 const initialState: CreateTestState = createInitialState();
@@ -604,6 +614,30 @@ export const createTestSlice = createSlice({
     cancelDragging: (state) => {
       state.dragState = null;
     },
+    setPublishTiming: (state, action: PayloadAction<PublishTiming>) => {
+      state.publishState.publishTiming = action.payload;
+    },
+    setPublishField: (
+      state,
+      action: PayloadAction<{
+        field: keyof Omit<PublishState, "publishTiming" | "testAudience" | "specificStudents">;
+        value: string;
+      }>,
+    ) => {
+      (state.publishState[action.payload.field] as string) = action.payload.value;
+    },
+    setTestAudience: (state, action: PayloadAction<TestAudience>) => {
+      state.publishState.testAudience = action.payload;
+    },
+    addSpecificStudent: (state, action: PayloadAction<string>) => {
+      const trimmed = action.payload.trim();
+      if (trimmed && !state.publishState.specificStudents.includes(trimmed)) {
+        state.publishState.specificStudents.push(trimmed);
+      }
+    },
+    removeSpecificStudent: (state, action: PayloadAction<number>) => {
+      state.publishState.specificStudents.splice(action.payload, 1);
+    },
   },
 });
 
@@ -635,6 +669,11 @@ export const {
   updateQuestionImage,
   updateQuestionPoints,
   updateQuestionText,
+  setPublishTiming,
+  setPublishField,
+  setTestAudience,
+  addSpecificStudent,
+  removeSpecificStudent,
 } = createTestSlice.actions;
 
 export default createTestSlice.reducer;

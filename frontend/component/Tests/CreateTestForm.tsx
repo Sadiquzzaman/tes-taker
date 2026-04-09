@@ -11,6 +11,9 @@ import BasicInfoStep from "./Create/BasicInfoStep";
 import QuestionsStep from "./Create/QuestionsStep";
 import { useToast } from "../Toast/ToastContext";
 import BlackTickIconSVG from "../svg/BlackTickIconSVG";
+import ReviewStep from "./Create/ReviewStep";
+import PublishStep from "./Create/PublishStep";
+import RightArrowIconSVG from "../svg/RightArrowIconSVG";
 
 const CreateTestForm = () => {
   const dispatch = useAppDispatch();
@@ -127,6 +130,8 @@ const CreateTestForm = () => {
         <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto pr-8">
           {currentStep === "Basic info" && <BasicInfoStep formState={formState} />}
           {currentStep === "Questions" && <QuestionsStep scrollContainerRef={scrollContainerRef} />}
+          {currentStep === "Review" && <ReviewStep />}
+          {currentStep === "Publish" && <PublishStep />}
         </div>
       </div>
       <div className="mt-auto flex items-center justify-between pt-4 pr-8">
@@ -151,8 +156,8 @@ const CreateTestForm = () => {
             onClick={handleNextStep}
             className="flex h-9 items-center justify-center gap-1 rounded-[8px] bg-[#49734F] px-4 text-[14px] font-[500] leading-4 tracking-[-0.02em] text-white"
           >
-            <div className="mb-[2px]">Next</div>
-            <MusicNextIconSVG />
+            <div className="mb-[2px]">{currentStep === "Publish" ? "Final CTA" : "Next"}</div>
+            {currentStep === "Publish" ? <RightArrowIconSVG /> : <MusicNextIconSVG />}
           </button>
         </div>
       </div>

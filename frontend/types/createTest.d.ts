@@ -80,6 +80,21 @@ type PendingFocusOption = {
   optionId: string;
 };
 
+type PublishTiming = "immediately" | "schedule";
+
+type TestAudience = "anyone" | "selected_class" | "specific_students";
+
+type PublishState = {
+  publishTiming: PublishTiming;
+  scheduleDate: string;
+  scheduleTime: string;
+  endingDate: string;
+  endingTime: string;
+  testAudience: TestAudience;
+  selectedClassId: string;
+  specificStudents: string[];
+};
+
 type CreateTestState = {
   currentStep: CreateTestStep;
   formState: FormState;
@@ -89,6 +104,7 @@ type CreateTestState = {
   pendingFocusQuestion: PendingFocusQuestion | null;
   pendingFocusOption: PendingFocusOption | null;
   dragState: DragState | null;
+  publishState: PublishState;
 };
 
 type QuestionsStepProps = {
