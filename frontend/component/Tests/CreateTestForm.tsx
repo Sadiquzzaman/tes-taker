@@ -2,7 +2,14 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import { createTestSteps, goToNextStep, goToPreviousStep } from "@/lib/features/createTestSlice";
+import { useRouter } from "next/navigation";
+import {
+  createTestSteps,
+  goToNextStep,
+  goToPreviousStep,
+  resetForm,
+  setQuestionValidationState,
+} from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import MusicPreviousIconSVG from "../svg/MusicPreviousIconSVG";
 import MusicNextIconSVG from "../svg/MusicNextIconSVG";
@@ -14,12 +21,15 @@ import BlackTickIconSVG from "../svg/BlackTickIconSVG";
 import ReviewStep from "./Create/ReviewStep";
 import PublishStep from "./Create/PublishStep";
 import RightArrowIconSVG from "../svg/RightArrowIconSVG";
+import { setNewTestCreated } from "@/lib/features/testSlice";
+import { collectQuestionValidationFailures } from "../../utils/createTestValidation";
 
 const CreateTestForm = () => {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const { triggerToast } = useToast();
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
-  const { currentStep, formState, subjects } = createTestState;
+  const { currentStep, formState, subjects, publishState } = createTestState;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const progressWidth = `${(createTestSteps.indexOf(currentStep) / (createTestSteps.length - 1)) * 100}%`;
 
@@ -64,6 +74,86 @@ const CreateTestForm = () => {
         });
         return;
       }
+    } else if (currentStep === "Questions") {
+      if (subjects.length === 0) {
+        triggerToast({
+          description: "Please add at least one subject before continuing",
+          type: "error",
+        });
+        return;
+      }
+
+      const totalQuestions = subjects.reduce(
+        (count, subject) =>
+          count +
+          subject.questionSections.reduce((sectionCount, section) => sectionCount + section.questions.length, 0),
+        0,
+      );
+
+      if (totalQuestions === 0) {
+        triggerToast({
+          description: "Please add at least one question before continuing",
+          type: "error",
+        });
+        return;
+      }
+
+      const validationFailures = collectQuestionValidationFailures(subjects);
+
+      dispatch(
+        setQuestionValidationState(
+          validationFailures.map(({ subjectId, sectionId, questionId }) => ({
+            subjectId,
+            sectionId,
+            questionId,
+          })),
+        ),
+      );
+
+      if (validationFailures.length > 0) {
+        triggerToast({
+          description: "Please fix the highlighted question errors before continuing",
+          type: "error",
+        });
+        return;
+      }
+    } else if (currentStep === "Publish") {
+      if (publishState.publishTiming === "schedule") {
+        if (!publishState.scheduleAt || !publishState.endingAt) {
+          triggerToast({
+            description: "Please select the full schedule and ending date/time",
+            type: "error",
+          });
+          return;
+        }
+      }
+
+      if (publishState.testAudience === "selected_class" && !publishState.selectedClassId) {
+        triggerToast({
+          description: "Please select at least one class",
+          type: "error",
+        });
+        return;
+      }
+
+      const createdTestId = `${Date.now()}`;
+      const shareLink =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/tests?createdTest=${createdTestId}`
+          : `/tests?createdTest=${createdTestId}`;
+
+      dispatch(
+        setNewTestCreated({
+          id: createdTestId,
+          testName: formState.testName.trim(),
+          shareLink,
+          type: "new",
+          test: { formState, subjects, publishState },
+        }),
+      );
+      dispatch(resetForm());
+      router.push("/tests");
+      return;
     }
 
     dispatch(goToNextStep());
@@ -156,7 +246,7 @@ const CreateTestForm = () => {
             onClick={handleNextStep}
             className="flex h-9 items-center justify-center gap-1 rounded-[8px] bg-[#49734F] px-4 text-[14px] font-[500] leading-4 tracking-[-0.02em] text-white"
           >
-            <div className="mb-[2px]">{currentStep === "Publish" ? "Final CTA" : "Next"}</div>
+            <div className="mb-[2px]">{currentStep === "Publish" ? "Publish Test" : "Next"}</div>
             {currentStep === "Publish" ? <RightArrowIconSVG /> : <MusicNextIconSVG />}
           </button>
         </div>

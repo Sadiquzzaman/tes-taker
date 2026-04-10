@@ -6,6 +6,7 @@ import NormalInput from "@/Ui/NormalInput";
 import { setActiveTab, setNewTestCreated, setSearchInput } from "@/lib/features/testSlice";
 import { testsTabList } from "@/utils/testsTabList";
 import FilterIconSVG from "../svg/FilterIconSVG";
+import ShareTestModal from "./ShareTestModal";
 
 const TestsNameSection = () => {
   const { activeTab, searchInput, newTestCreated } = useAppSelector((state) => state.test);
@@ -67,13 +68,13 @@ const TestsNameSection = () => {
           </div>
         </div>
       </div>
-      {/* {newTestCreated && (
+      {newTestCreated && (
         <ShareTestModal
           open={newTestCreated !== null}
           setOpen={() => dispatch(setNewTestCreated(null))}
           testData={newTestCreated}
         />
-      )} */}
+      )}
     </div>
   );
 };

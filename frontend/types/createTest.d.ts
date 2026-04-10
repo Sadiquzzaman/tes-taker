@@ -86,10 +86,8 @@ type TestAudience = "anyone" | "selected_class" | "specific_students";
 
 type PublishState = {
   publishTiming: PublishTiming;
-  scheduleDate: string;
-  scheduleTime: string;
-  endingDate: string;
-  endingTime: string;
+  scheduleAt: string;
+  endingAt: string;
   testAudience: TestAudience;
   selectedClassId: string;
   specificStudents: string[];

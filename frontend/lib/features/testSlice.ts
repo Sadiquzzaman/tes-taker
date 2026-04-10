@@ -7,7 +7,7 @@ interface TestSliceState {
     value: string;
   };
   searchInput: string;
-  newTestCreated: CreateClassResponse | null;
+  newTestCreated: NewTestShareData | null;
 }
 
 const initialState: TestSliceState = {

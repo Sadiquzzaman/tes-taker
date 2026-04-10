@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import dayjs from "dayjs";
 
 export const createTestSteps: CreateTestStep[] = ["Basic info", "Questions", "Review", "Publish"];
 
@@ -106,7 +107,7 @@ const moveQuestionInList = (questions: QuestionItem[], questionId: string, targe
 };
 
 const createInitialState = (): CreateTestState => ({
-  currentStep: createTestSteps[3],
+  currentStep: createTestSteps[0],
   formState: {
     examType: "",
     testName: "",
@@ -123,10 +124,8 @@ const createInitialState = (): CreateTestState => ({
   dragState: null,
   publishState: {
     publishTiming: "immediately",
-    scheduleDate: new Date().toLocaleString().slice(0, 10),
-    scheduleTime: new Date().toLocaleString().slice(11, 16),
-    endingDate: new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000).toLocaleString().slice(0, 10),
-    endingTime: new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000).toLocaleString().slice(11, 16),
+    scheduleAt: dayjs().add(3, "hour").toISOString(),
+    endingAt: dayjs().add(3, "day").toISOString(),
     testAudience: "anyone",
     selectedClassId: "",
     specificStudents: [],
@@ -554,6 +553,41 @@ export const createTestSlice = createSlice({
         question.points = Math.max(0, action.payload.points || 0);
       }
     },
+    setQuestionValidationState: (
+      state,
+      action: PayloadAction<
+        Array<{
+          subjectId: string;
+          sectionId: string;
+          questionId: string;
+        }>
+      >,
+    ) => {
+      const invalidQuestions = new Set(
+        action.payload.map((item) => `${item.subjectId}:${item.sectionId}:${item.questionId}`),
+      );
+
+      state.subjects.forEach((subject) => {
+        subject.questionSections.forEach((section) => {
+          section.questions.forEach((question) => {
+            question.showValidation = invalidQuestions.has(`${subject.id}:${section.id}:${question.id}`);
+          });
+        });
+      });
+
+      const firstInvalidQuestion = action.payload[0];
+
+      if (firstInvalidQuestion) {
+        state.activeSubjectId = firstInvalidQuestion.subjectId;
+        state.activeQuestionId = firstInvalidQuestion.questionId;
+        state.pendingFocusQuestion = {
+          subjectId: firstInvalidQuestion.subjectId,
+          sectionId: firstInvalidQuestion.sectionId,
+          questionId: firstInvalidQuestion.questionId,
+        };
+        state.pendingFocusOption = null;
+      }
+    },
     moveQuestion: (
       state,
       action: PayloadAction<{ subjectId: string; sectionId: string; questionId: string; targetIndex: number }>,
@@ -660,6 +694,7 @@ export const {
   setActiveQuestionId,
   setActiveSubjectId,
   setFormField,
+  setQuestionValidationState,
   setSingleSubject,
   shuffleOptions,
   startDragging,

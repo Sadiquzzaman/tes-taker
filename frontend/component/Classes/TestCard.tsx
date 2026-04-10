@@ -1,6 +1,8 @@
+import { useAppDispatch } from "@/lib/hooks";
 import CalenderIconSVG from "../svg/CalenderIconSVG";
 import HumanAddIconSVG from "../svg/HumanAddIconSvg";
 import ShareIconSVG from "../svg/ShareIconSVG";
+import { setNewTestCreated } from "@/lib/features/testSlice";
 
 const formatOptions: Intl.DateTimeFormatOptions = {
   month: "short",
@@ -19,6 +21,8 @@ const TestCard = ({
   from?: string;
   testData: Test;
 }) => {
+  const dispatch = useAppDispatch();
+
   const testStatus = "MarkingPending" as "Ongoing" | "Completed" | "MarkingPending";
   const statusColors = {
     Ongoing: "rgba(0,233,33,0.15)",
@@ -102,7 +106,7 @@ const TestCard = ({
               <button
                 title="Share Tests"
                 className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]"
-                // onClick={() => dispatch(setOpenShareClassModal(classItem))}
+                onClick={() => dispatch(setNewTestCreated(testData2))}
               >
                 <ShareIconSVG width={16} />
               </button>
@@ -138,3 +142,59 @@ const TestCard = ({
 };
 
 export default TestCard;
+
+const testData2 = {
+  id: "1775818174304",
+  testName: "dsfsdf",
+  shareLink: "http://localhost:3000/tests?createdTest=1775818174304",
+  type: "new",
+  test: {
+    formState: {
+      examType: "mcq",
+      testName: "dsfsdf",
+      duration: "90",
+      passingScore: "",
+      allowNegativeMarking: true,
+      negativeMarking: "25",
+    },
+    subjects: [
+      {
+        id: "1775818150802-h3j4g0m",
+        name: "English",
+        value: "english",
+        questionSections: [
+          {
+            id: "1775818150802-6aocw3c",
+            type: "objective",
+            headerText: "Objective Questions",
+            questions: [
+              {
+                id: "1775818150802-11cknah",
+                text: "sfsf",
+                image: null,
+                options: [
+                  {
+                    id: "1775818160962-wlhwx4k",
+                    text: "sdfsf",
+                    image: null,
+                  },
+                ],
+                correctOptionId: "1775818160962-wlhwx4k",
+                points: 2,
+                showValidation: false,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    publishState: {
+      publishTiming: "schedule",
+      scheduleAt: "2026-04-10T12:48:47.480Z",
+      endingAt: "2026-04-13T09:48:47.480Z",
+      testAudience: "anyone",
+      selectedClassId: "",
+      specificStudents: [],
+    },
+  },
+};

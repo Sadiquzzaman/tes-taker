@@ -28,29 +28,32 @@ const PublishSchedule = () => {
   const dispatch = useAppDispatch();
   const publishState = useAppSelector((state) => (state.createTest as CreateTestState).publishState);
 
-  const updateDateField = useCallback(
-    (field: "scheduleDate" | "endingDate", value: Dayjs | null) => {
-      dispatch(
-        setPublishField({
-          field,
-          value: value ? value.format("YYYY-MM-DD") : "",
-        }),
-      );
-    },
-    [dispatch],
-  );
+  const mergeToISO = (existingISO: string, newValue: Dayjs | null, type: "date" | "time") => {
+    if (!newValue) return "";
 
-  const updateTimeField = useCallback(
-    (field: "scheduleTime" | "endingTime", value: Dayjs | null) => {
-      dispatch(
-        setPublishField({
-          field,
-          value: value ? value.format("HH:mm") : "",
-        }),
-      );
-    },
-    [dispatch],
-  );
+    const base = existingISO ? dayjs(existingISO) : dayjs();
+
+    if (type === "date") {
+      return base.year(newValue.year()).month(newValue.month()).date(newValue.date()).toISOString();
+    }
+
+    if (type === "time") {
+      return base.hour(newValue.hour()).minute(newValue.minute()).second(0).toISOString();
+    }
+
+    return base.toISOString();
+  };
+
+  const updateDateTime = (value: Dayjs | null, type: "date" | "time", field: "scheduleAt" | "endingAt") => {
+    const updated = mergeToISO(publishState[field], value, type);
+
+    dispatch(
+      setPublishField({
+        field,
+        value: updated,
+      }),
+    );
+  };
 
   const [openPicker, setOpenPicker] = useState<null | "scheduleDate" | "scheduleTime" | "endingDate" | "endingTime">(
     null,
@@ -98,22 +101,22 @@ const PublishSchedule = () => {
         </p>
         <div className="flex gap-3">
           <DatePicker
-            value={getDateValue(publishState.scheduleDate)}
+            value={publishState.scheduleAt ? dayjs(publishState.scheduleAt) : null}
             format="MMM DD, YYYY"
             // open={openPicker === "scheduleDate"}
             // onOpen={() => setOpenPicker("scheduleDate")}
             // onClose={() => setOpenPicker(null)}
-            onChange={(value) => updateDateField("scheduleDate", value)}
+            onChange={(value) => updateDateTime(value, "date", "scheduleAt")}
             slots={{ openPickerIcon: CalendarIcon }}
             slotProps={pickerSx("scheduleDate")}
           />
           <TimePicker
-            value={getTimeValue(publishState.scheduleTime)}
+            value={publishState.scheduleAt ? dayjs(publishState.scheduleAt) : null}
             format="hh:mm A"
             // open={openPicker === "scheduleTime"}
             // onOpen={() => setOpenPicker("scheduleTime")}
             // onClose={() => setOpenPicker(null)}
-            onChange={(value) => updateTimeField("scheduleTime", value)}
+            onChange={(value) => updateDateTime(value, "time", "scheduleAt")}
             slots={{ openPickerIcon: ClockIcon }}
             slotProps={pickerSx("scheduleTime")}
           />
@@ -124,22 +127,22 @@ const PublishSchedule = () => {
         <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Test ending by</p>
         <div className="flex gap-3">
           <DatePicker
-            value={getDateValue(publishState.endingDate)}
+            value={publishState.endingAt ? dayjs(publishState.endingAt) : null}
             format="MMM DD, YYYY"
             // open={openPicker === "endingDate"}
             // onOpen={() => setOpenPicker("endingDate")}
             // onClose={() => setOpenPicker(null)}
-            onChange={(value) => updateDateField("endingDate", value)}
+            onChange={(value) => updateDateTime(value, "date", "endingAt")}
             slots={{ openPickerIcon: CalendarIcon }}
             slotProps={pickerSx("endingDate")}
           />
           <TimePicker
-            value={getTimeValue(publishState.endingTime)}
+            value={publishState.endingAt ? dayjs(publishState.endingAt) : null}
             format="hh:mm A"
             // open={openPicker === "endingTime"}
             // onOpen={() => setOpenPicker("endingTime")}
             // onClose={() => setOpenPicker(null)}
-            onChange={(value) => updateTimeField("endingTime", value)}
+            onChange={(value) => updateDateTime(value, "time", "endingAt")}
             slots={{ openPickerIcon: ClockIcon }}
             slotProps={pickerSx("endingTime")}
           />

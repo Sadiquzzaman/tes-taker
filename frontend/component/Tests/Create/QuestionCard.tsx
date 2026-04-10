@@ -22,6 +22,7 @@ import {
   updateQuestionText,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
+import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 import { memo, useCallback, useEffect, useRef } from "react";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -79,6 +80,7 @@ const QuestionCard = memo(
     const addOptionImageInputRef = useRef<HTMLInputElement>(null);
     const questionInputRef = useRef<HTMLTextAreaElement>(null);
     const questionImageInputRef = useRef<HTMLInputElement>(null);
+    const validationErrors = getQuestionValidationErrors(question, sectionType);
 
     const activateCard = useCallback(() => {
       dispatch(setActiveQuestionId(question.id));
@@ -549,10 +551,14 @@ const QuestionCard = memo(
             </div>
           )}
 
-          {question.showValidation && (
-            <p className="text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#D24B44]">
-              Select the correct answer before adding a new question.
-            </p>
+          {question.showValidation && validationErrors.length > 0 && (
+            <div className="flex flex-col gap-1 rounded-[8px] border border-[#F3C7C4] bg-[#FFF4F3] px-4 py-3">
+              {validationErrors.map((error) => (
+                <p key={error} className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#D24B44]">
+                  {error}
+                </p>
+              ))}
+            </div>
           )}
 
           <div className="flex items-center justify-between gap-4">
