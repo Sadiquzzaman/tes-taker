@@ -1,7 +1,6 @@
 type FormState = {
   examType: string;
   testName: string;
-  subject: string;
   duration: string;
   passingScore: string;
   allowNegativeMarking: boolean;
@@ -11,7 +10,6 @@ type FormState = {
 type BasicInfoErrors = {
   examType?: string;
   testName?: string;
-  subject?: string;
   duration?: string;
   negativeMarking?: string;
 };
@@ -19,11 +17,13 @@ type BasicInfoErrors = {
 type QuestionOption = {
   id: string;
   text: string;
+  image: string | null;
 };
 
 type QuestionItem = {
   id: string;
   text: string;
+  image: string | null;
   options?: QuestionOption[];
   correctOptionId?: string | null;
   points: number;
@@ -39,11 +39,21 @@ type QuestionSectionItem = {
   questions: QuestionItem[];
 };
 
+type SubjectItem = {
+  id: string;
+  name: string;
+  value: string;
+  questionSections: QuestionSectionItem[];
+};
+
 type DragState = {
+  subjectId: string;
   sectionId: string;
   id: string;
   draggedOriginalIndex: number;
   dropLineIndex: number;
+  height: number;
+  left: number;
   pointerOffsetX: number;
   pointerOffsetY: number;
   pointerX: number;
@@ -58,24 +68,41 @@ type BasicInfoStepProps = {
 type CreateTestStep = "Basic info" | "Questions" | "Review" | "Publish";
 
 type PendingFocusQuestion = {
+  subjectId: string;
   sectionId: string;
   questionId: string;
 };
 
 type PendingFocusOption = {
+  subjectId: string;
   sectionId: string;
   questionId: string;
   optionId: string;
 };
 
+type PublishTiming = "immediately" | "schedule";
+
+type TestAudience = "anyone" | "selected_class" | "specific_students";
+
+type PublishState = {
+  publishTiming: PublishTiming;
+  scheduleAt: string;
+  endingAt: string;
+  testAudience: TestAudience;
+  selectedClassId: string;
+  specificStudents: string[];
+};
+
 type CreateTestState = {
   currentStep: CreateTestStep;
   formState: FormState;
-  questionSections: QuestionSectionItem[];
+  subjects: SubjectItem[];
+  activeSubjectId: string | null;
   activeQuestionId: string | null;
   pendingFocusQuestion: PendingFocusQuestion | null;
   pendingFocusOption: PendingFocusOption | null;
   dragState: DragState | null;
+  publishState: PublishState;
 };
 
 type QuestionsStepProps = {
@@ -84,6 +111,7 @@ type QuestionsStepProps = {
 
 type QuestionCardProps = {
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+  subjectId: string;
   sectionId: string;
   sectionType: QuestionSectionType;
   setCardRef: (node: HTMLDivElement | null) => void;
@@ -94,8 +122,10 @@ type QuestionCardProps = {
   pendingFocusOptionId: string | null;
   isDragging: boolean;
   isDragOverlay?: boolean;
+  cardStyle?: React.CSSProperties;
   overlayStyle?: React.CSSProperties;
   onDragHandlePointerDown: (
+    subjectId: string,
     sectionId: string,
     questionId: string,
     event: React.PointerEvent<HTMLButtonElement>,

@@ -40,3 +40,11 @@ interface Question {
   marks_per_question: number;
   sample_answer: string;
 }
+
+type NewTestShareData = {
+  id: string;
+  testName: string;
+  shareLink: string;
+  type?: "new" | "existing";
+  test: CreateTestState;
+};
