@@ -8,6 +8,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { ExamModule } from './exams/exam.module';
 import { ClassModule } from './classes/class.module';
 import { SubscriptionModule } from './subscriptions/subscription.module';
+import { SubjectModule } from './subjects/subject.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { SubscriptionModule } from './subscriptions/subscription.module';
     ExamModule,
     ClassModule,
     SubscriptionModule,
+    SubjectModule,
   ],
   controllers: [AppController],
   providers: [AppService],
