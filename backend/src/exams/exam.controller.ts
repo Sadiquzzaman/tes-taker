@@ -11,12 +11,13 @@ import {
 } from "@nestjs/common";
 import { CreateObjectiveExamDto, CreateSubjectiveExamDto } from "./dto/create-exam.dto";
 import { UpdateExcludedStudentsDto } from "./dto/update-exam.dto";
-import { 
-  ApiBearerAuth, 
-  ApiOperation, 
-  ApiParam, 
-  ApiResponse, 
-  ApiTags 
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
 } from "@nestjs/swagger";
 import { AuthGuard } from "@nestjs/passport";
 import { RolesGuard } from "src/common/guard/roles.guard";
@@ -25,6 +26,7 @@ import { RolesEnum } from "src/common/enums/roles.enum";
 import { JwtPayloadInterface } from "src/auth/interfaces/jwt-payload.interface";
 import { UserPayload } from "src/common/decorators/user-payload.decorator";
 import { ExamService } from "./exam.service";
+import { CreateExamWizardDto } from "./dto/create-exam-wizard.dto";
 
 @ApiTags("Exams")
 @Controller({
@@ -34,13 +36,38 @@ import { ExamService } from "./exam.service";
 export class ExamController {
   constructor(private readonly examService: ExamService) {}
 
+  @Post()
+  @ApiBearerAuth("jwt")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({
+    summary: "Create exam (unified wizard)",
+    description:
+      "Single endpoint for mcq, essay, hybrid, and model tests. Subject blocks must use real subject UUIDs from GET /v1/subjects. When testAudience is `anyone`, response includes invite_token for shareable access.",
+  })
+  @ApiBody({ type: CreateExamWizardDto })
+  @ApiResponse({ status: 201, description: "Exam created with sections and questions" })
+  @ApiResponse({ status: 400, description: "Validation error" })
+  @ApiResponse({ status: 401, description: "Unauthorized" })
+  @ApiResponse({ status: 403, description: "Forbidden" })
+  @ApiResponse({ status: 404, description: "Subject or class not found" })
+  async createExam(
+    @Body() dto: CreateExamWizardDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.examService.createFromWizard(dto, jwtPayload);
+    return { message: "Exam created successfully", payload };
+  }
+
   @Post("objective")
   @ApiBearerAuth("jwt")
   @UseGuards(AuthGuard("jwt"), RolesGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
-    summary: "Create an objective exam",
-    description: "Create an objective exam with multiple choice questions. Supports negative marking, class assignment, and excluded students.",
+    deprecated: true,
+    summary: "Create an objective exam (deprecated)",
+    description:
+      "Deprecated: use POST /v1/exams. Create an objective exam with multiple choice questions. Supports negative marking, class assignment, and excluded students.",
   })
   @ApiResponse({ status: 201, description: "Exam created successfully" })
   @ApiResponse({ status: 400, description: "Validation error" })
@@ -59,8 +86,10 @@ export class ExamController {
   @UseGuards(AuthGuard("jwt"), RolesGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
-    summary: "Create a subjective exam",
-    description: "Create a subjective exam with written-answer questions. Supports word limits, marks per question, and sample answers.",
+    deprecated: true,
+    summary: "Create a subjective exam (deprecated)",
+    description:
+      "Deprecated: use POST /v1/exams. Create a subjective exam with written-answer questions. Supports word limits, marks per question, and sample answers.",
   })
   @ApiResponse({ status: 201, description: "Exam created successfully" })
   @ApiResponse({ status: 400, description: "Validation error" })

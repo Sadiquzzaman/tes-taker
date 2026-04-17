@@ -1,14 +1,18 @@
-import { 
-  Injectable, 
-  BadRequestException, 
-  NotFoundException, 
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
   ForbiddenException,
-  UnauthorizedException 
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, MoreThan, LessThan, Not, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
-import { ExamEntity, ExamTypeEnum } from './entities/exam.entity';
-import { ExamQuestionEntity, QuestionTypeEnum, CorrectAnswerEnum } from './entities/exam-question.entity';
+import { ExamEntity } from './entities/exam.entity';
+import { TestAudienceEnum } from './enums/exam-wizard.enums';
+import {
+  ExamQuestionEntity,
+  QuestionTypeEnum,
+  CorrectAnswerEnum,
+} from './entities/exam-question.entity';
 import { 
   StudentExamSubmissionEntity, 
   StudentExamAnswerEntity,
@@ -17,7 +21,6 @@ import {
 import { ClassEntity } from 'src/classes/entities/class.entity';
 import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities/class-student.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
-import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { SmsService } from 'src/sms/sms.service';
 import { 
   StartExamDto, 
@@ -53,6 +56,20 @@ export class StudentExamService {
 
     private readonly smsService: SmsService,
   ) {}
+
+  /** Flatten questions: wizard exams use sections; legacy uses exam.questions only */
+  private getOrderedQuestions(exam: ExamEntity): ExamQuestionEntity[] {
+    if (exam.questionSections?.length) {
+      const sections = [...exam.questionSections].sort((a, b) => a.sort_order - b.sort_order);
+      const out: ExamQuestionEntity[] = [];
+      for (const s of sections) {
+        const qs = [...(s.questions || [])].sort((a, b) => a.sort_order - b.sort_order);
+        out.push(...qs);
+      }
+      return out;
+    }
+    return [...(exam.questions || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  }
 
   // ========================
   // NOTIFICATION SERVICE
@@ -109,7 +126,8 @@ export class StudentExamService {
     for (const student of assignedStudents) {
       if (student.phone) {
         try {
-          const message = `You have an upcoming exam on ${exam.subject} scheduled for ${formattedDate}. Please prepare accordingly. - Testaker`;
+          const title = exam.test_name || exam.subject || 'Your exam';
+          const message = `You have an upcoming exam "${title}" scheduled for ${formattedDate}. Please prepare accordingly. - Testaker`;
           const result = await this.smsService.sendSms(student.phone, message);
           if (result) {
             sent++;
@@ -140,58 +158,74 @@ export class StudentExamService {
     sortOrder: 'ASC' | 'DESC' = 'ASC',
     includePast: boolean = false,
   ): Promise<any[]> {
-    // Get all classes the student is enrolled in
+    const now = new Date();
+    const byId = new Map<string, ExamEntity>();
+
     const classes = await this.classRepo
       .createQueryBuilder('class')
-      .innerJoin('class.classStudents', 'classStudent', 'classStudent.student_id = :studentId AND classStudent.status = :status', { studentId, status: ClassStudentStatusEnum.JOINED })
+      .innerJoin(
+        'class.classStudents',
+        'classStudent',
+        'classStudent.student_id = :studentId AND classStudent.status = :status',
+        { studentId, status: ClassStudentStatusEnum.JOINED },
+      )
       .select(['class.id'])
       .getMany();
 
-    if (classes.length === 0) {
-      return [];
+    const classIds = classes.map((c) => c.id);
+    if (classIds.length > 0) {
+      let examQuery = this.examRepo
+        .createQueryBuilder('exam')
+        .leftJoinAndSelect('exam.class', 'class')
+        .leftJoin('exam.excluded_students', 'excluded')
+        .where('exam.class_id IN (:...classIds)', { classIds })
+        .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId });
+
+      if (!includePast) {
+        examQuery = examQuery.andWhere('exam.exam_end_time > :now', { now });
+      }
+      examQuery = examQuery.orderBy('exam.exam_start_time', sortOrder);
+      const classExams = await examQuery.getMany();
+      classExams.forEach((e) => byId.set(e.id, e));
     }
 
-    const classIds = classes.map(c => c.id);
-    const now = new Date();
-
-    // Build query for exams
-    let examQuery = this.examRepo
+    let targetQuery = this.examRepo
       .createQueryBuilder('exam')
-      .leftJoinAndSelect('exam.class', 'class')
-      .leftJoin('exam.excluded_students', 'excluded')
-      .where('exam.class_id IN (:...classIds)', { classIds })
-      .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId });
-
-    // Filter by time
+      .innerJoin('exam.target_students', 'st', 'st.id = :studentId', { studentId })
+      .leftJoinAndSelect('exam.class', 'class');
     if (!includePast) {
-      examQuery = examQuery.andWhere('exam.exam_end_time > :now', { now });
+      targetQuery = targetQuery.where('exam.exam_end_time > :now', { now });
     }
+    targetQuery = targetQuery.orderBy('exam.exam_start_time', sortOrder);
+    const targetExams = await targetQuery.getMany();
+    targetExams.forEach((e) => byId.set(e.id, e));
 
-    // Add sorting
-    examQuery = examQuery.orderBy('exam.exam_start_time', sortOrder);
+    const exams = Array.from(byId.values()).sort(
+      (a, b) =>
+        (sortOrder === 'ASC' ? 1 : -1) *
+        (new Date(a.exam_start_time).getTime() - new Date(b.exam_start_time).getTime()),
+    );
 
-    const exams = await examQuery.getMany();
+    const examIds = exams.map((e) => e.id);
+    const submissions =
+      examIds.length === 0
+        ? []
+        : await this.submissionRepo.find({
+            where: { student_id: studentId, exam_id: In(examIds) },
+          });
 
-    // Get submission status for each exam
-    const examIds = exams.map(e => e.id);
-    const submissions = await this.submissionRepo.find({
-      where: {
-        student_id: studentId,
-        exam_id: In(examIds.length > 0 ? examIds : ['none']),
-      },
-    });
+    const submissionMap = new Map(submissions.map((s) => [s.exam_id, s]));
 
-    const submissionMap = new Map(submissions.map(s => [s.exam_id, s]));
-
-    // Format response
-    return exams.map(exam => {
+    return exams.map((exam) => {
       const submission = submissionMap.get(exam.id);
       const examStartTime = new Date(exam.exam_start_time);
       const examEndTime = new Date(exam.exam_end_time);
-      
+
       let examStatus: string;
-      if (submission?.status === ExamSubmissionStatusEnum.SUBMITTED || 
-          submission?.status === ExamSubmissionStatusEnum.AUTO_SUBMITTED) {
+      if (
+        submission?.status === ExamSubmissionStatusEnum.SUBMITTED ||
+        submission?.status === ExamSubmissionStatusEnum.AUTO_SUBMITTED
+      ) {
         examStatus = 'COMPLETED';
       } else if (now < examStartTime) {
         examStatus = 'UPCOMING';
@@ -207,8 +241,9 @@ export class StudentExamService {
 
       return {
         id: exam.id,
-        subject: exam.subject,
+        subject: exam.test_name || exam.subject,
         exam_type: exam.exam_type,
+        exam_kind: exam.exam_kind,
         exam_start_time: exam.exam_start_time,
         exam_end_time: exam.exam_end_time,
         class_name: exam.class?.class_name,
@@ -216,8 +251,10 @@ export class StudentExamService {
         submission_status: submission?.status || null,
         score: submission?.total_score || null,
         can_start: examStatus === 'AVAILABLE' && !submission,
-        can_continue: examStatus === 'IN_PROGRESS' || 
-                     (examStatus === 'AVAILABLE' && submission?.status === ExamSubmissionStatusEnum.IN_PROGRESS),
+        can_continue:
+          examStatus === 'IN_PROGRESS' ||
+          (examStatus === 'AVAILABLE' &&
+            submission?.status === ExamSubmissionStatusEnum.IN_PROGRESS),
       };
     });
   }
@@ -235,9 +272,9 @@ export class StudentExamService {
       order: { submitted_at: 'DESC' },
     });
 
-    return submissions.map(sub => ({
+    return submissions.map((sub) => ({
       id: sub.exam_id,
-      subject: sub.exam.subject,
+      subject: sub.exam.test_name || sub.exam.subject,
       exam_type: sub.exam.exam_type,
       class_name: sub.exam.class?.class_name,
       submitted_at: sub.submitted_at,
@@ -256,61 +293,88 @@ export class StudentExamService {
 
   /**
    * Validate if student can access an exam
+   * @param inviteToken Required when exam.test_audience is `anyone` (must match exam.invite_token)
    */
   async validateExamAccess(
     examId: string,
     studentId: string,
+    inviteToken?: string,
   ): Promise<{ canAccess: boolean; reason?: string; exam?: ExamEntity }> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
-      relations: ['class', 'class.classStudents', 'class.classStudents.student', 'excluded_students', 'questions'],
+      relations: [
+        'class',
+        'class.classStudents',
+        'class.classStudents.student',
+        'excluded_students',
+        'questions',
+        'questionSections',
+        'questionSections.questions',
+        'questionSections.subject',
+        'target_students',
+      ],
     });
 
     if (!exam) {
       return { canAccess: false, reason: 'Exam not found' };
     }
 
-    // Check if exam has a class
-    if (!exam.class) {
-      return { canAccess: false, reason: 'Exam is not assigned to any class' };
+    const audience = exam.test_audience;
+
+    if (audience === TestAudienceEnum.ANYONE) {
+      if (!exam.invite_token || !inviteToken || inviteToken !== exam.invite_token) {
+        return { canAccess: false, reason: 'Valid invite token is required for this exam' };
+      }
+    } else if (audience === TestAudienceEnum.SPECIFIC_STUDENTS) {
+      const allowed = exam.target_students?.some((s) => s.id === studentId);
+      if (!allowed) {
+        return { canAccess: false, reason: 'You are not on the list for this exam' };
+      }
+    } else {
+      if (!exam.class) {
+        return { canAccess: false, reason: 'Exam is not assigned to any class' };
+      }
+      const isInClass = exam.class.classStudents?.some(
+        (cs) => cs.student_id === studentId && cs.status === ClassStudentStatusEnum.JOINED,
+      );
+      if (!isInClass) {
+        return { canAccess: false, reason: 'You are not enrolled in this class' };
+      }
+      const isExcluded = exam.excluded_students?.some((s) => s.id === studentId);
+      if (isExcluded) {
+        return { canAccess: false, reason: 'You have been excluded from this exam' };
+      }
     }
 
-    // Check if student is in the class (with JOINED status)
-    const isInClass = exam.class.classStudents?.some(
-      cs => cs.student_id === studentId && cs.status === ClassStudentStatusEnum.JOINED
-    );
-    if (!isInClass) {
-      return { canAccess: false, reason: 'You are not enrolled in this class' };
-    }
-
-    // Check if student is excluded
-    const isExcluded = exam.excluded_students?.some(s => s.id === studentId);
-    if (isExcluded) {
-      return { canAccess: false, reason: 'You have been excluded from this exam' };
-    }
-
-    // Check timing
     const now = new Date();
     const startTime = new Date(exam.exam_start_time);
     const endTime = new Date(exam.exam_end_time);
 
     if (now < startTime) {
-      return { 
-        canAccess: false, 
-        reason: `Exam has not started yet. It starts at ${startTime.toLocaleString()}` 
+      return {
+        canAccess: false,
+        reason: `Exam has not started yet. It starts at ${startTime.toLocaleString()}`,
       };
     }
 
     if (now > endTime) {
-      return { canAccess: false, reason: 'Exam has already ended' };
+      const inProgress = await this.submissionRepo.findOne({
+        where: {
+          exam_id: examId,
+          student_id: studentId,
+          status: ExamSubmissionStatusEnum.IN_PROGRESS,
+        },
+      });
+      if (!inProgress) {
+        return { canAccess: false, reason: 'Exam has already ended' };
+      }
     }
 
-    // Check if already submitted
     const existingSubmission = await this.submissionRepo.findOne({
-      where: { 
-        exam_id: examId, 
+      where: {
+        exam_id: examId,
         student_id: studentId,
-        status: In([ExamSubmissionStatusEnum.SUBMITTED, ExamSubmissionStatusEnum.AUTO_SUBMITTED])
+        status: In([ExamSubmissionStatusEnum.SUBMITTED, ExamSubmissionStatusEnum.AUTO_SUBMITTED]),
       },
     });
 
@@ -318,12 +382,11 @@ export class StudentExamService {
       return { canAccess: false, reason: 'You have already submitted this exam' };
     }
 
-    // Check if disqualified
     const disqualifiedSubmission = await this.submissionRepo.findOne({
-      where: { 
-        exam_id: examId, 
+      where: {
+        exam_id: examId,
         student_id: studentId,
-        status: ExamSubmissionStatusEnum.DISQUALIFIED
+        status: ExamSubmissionStatusEnum.DISQUALIFIED,
       },
     });
 
@@ -340,56 +403,56 @@ export class StudentExamService {
   async getExamForStudent(
     examId: string,
     studentId: string,
-  ): Promise<any> {
-    const validation = await this.validateExamAccess(examId, studentId);
-    
+    inviteToken?: string,
+  ): Promise<Record<string, unknown>> {
+    const validation = await this.validateExamAccess(examId, studentId, inviteToken);
+
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
     }
 
     const exam = validation.exam!;
 
-    // Get existing submission if any
     const submission = await this.submissionRepo.findOne({
       where: { exam_id: examId, student_id: studentId },
     });
 
-    // Get existing answers if in progress
-    let savedAnswers: any[] = [];
+    let savedAnswers: { question_id: string; selected_answer?: CorrectAnswerEnum; text_answer?: string }[] = [];
     if (submission) {
       const answers = await this.answerRepo.find({
         where: { submission_id: submission.id },
       });
-      savedAnswers = answers.map(a => ({
+      savedAnswers = answers.map((a) => ({
         question_id: a.question_id,
         selected_answer: a.selected_answer,
         text_answer: a.text_answer,
       }));
     }
 
-    // Format questions (hide correct answers)
-    const questions = exam.questions.map(q => {
+    const ordered = this.getOrderedQuestions(exam);
+    const questions = ordered.map((q) => {
       if (q.question_type === QuestionTypeEnum.OBJECTIVE) {
         return {
           id: q.id,
           question_type: q.question_type,
           question: q.question,
+          image_url: q.image_url,
+          points: q.points ?? 1,
           option1: q.option1,
           option2: q.option2,
           option3: q.option3,
           option4: q.option4,
-          // Don't expose correct_answer
-        };
-      } else {
-        return {
-          id: q.id,
-          question_type: q.question_type,
-          question: q.question,
-          expected_word_limit: q.expected_word_limit,
-          marks_per_question: q.marks_per_question,
-          // Don't expose sample_answer during exam
         };
       }
+      return {
+        id: q.id,
+        question_type: q.question_type,
+        question: q.question,
+        image_url: q.image_url,
+        points: q.points ?? q.marks_per_question,
+        expected_word_limit: q.expected_word_limit,
+        marks_per_question: q.marks_per_question,
+      };
     });
 
     const now = new Date();
@@ -398,8 +461,10 @@ export class StudentExamService {
 
     return {
       id: exam.id,
-      subject: exam.subject,
+      test_name: exam.test_name,
+      subject: exam.test_name || exam.subject,
       exam_type: exam.exam_type,
+      exam_kind: exam.exam_kind,
       exam_start_time: exam.exam_start_time,
       exam_end_time: exam.exam_end_time,
       is_negative_marking: exam.is_negative_marking,
@@ -424,8 +489,9 @@ export class StudentExamService {
     studentId: string,
     dto: StartExamDto,
     ipAddress?: string,
+    inviteToken?: string,
   ): Promise<StudentExamSubmissionEntity> {
-    const validation = await this.validateExamAccess(examId, studentId);
+    const validation = await this.validateExamAccess(examId, studentId, inviteToken);
     
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
@@ -433,26 +499,25 @@ export class StudentExamService {
 
     const exam = validation.exam!;
 
-    // Check for existing submission
     let submission = await this.submissionRepo.findOne({
       where: { exam_id: examId, student_id: studentId },
     });
 
     if (submission) {
       if (submission.status === ExamSubmissionStatusEnum.IN_PROGRESS) {
-        // Return existing in-progress submission
         return submission;
       }
       throw new BadRequestException('You have already started or completed this exam');
     }
 
-    // Create new submission
+    const totalQs = this.getOrderedQuestions(exam).length;
+
     submission = this.submissionRepo.create({
       student_id: studentId,
       exam_id: examId,
       status: ExamSubmissionStatusEnum.IN_PROGRESS,
       started_at: new Date(),
-      total_questions: exam.questions.length,
+      total_questions: totalQs,
       ip_address: ipAddress,
       user_agent: dto.user_agent,
       created_by: studentId,
@@ -469,9 +534,9 @@ export class StudentExamService {
     examId: string,
     studentId: string,
     dto: SaveAnswerDto,
+    inviteToken?: string,
   ): Promise<StudentExamAnswerEntity> {
-    // Validate access
-    const validation = await this.validateExamAccess(examId, studentId);
+    const validation = await this.validateExamAccess(examId, studentId, inviteToken);
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
     }
@@ -544,11 +609,16 @@ export class StudentExamService {
     studentId: string,
     dto: SubmitExamDto,
     autoSubmit: boolean = false,
-  ): Promise<any> {
-    // Validate exam exists and student has access
+    inviteToken?: string,
+  ): Promise<Record<string, unknown>> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
-      relations: ['questions'],
+      relations: [
+        'questions',
+        'questionSections',
+        'questionSections.questions',
+        'questionSections.subject',
+      ],
     });
 
     if (!exam) {
@@ -576,12 +646,10 @@ export class StudentExamService {
       throw new BadRequestException('You have been disqualified from this exam');
     }
 
-    // Save all answers
     for (const answerDto of dto.answers) {
-      await this.saveAnswer(examId, studentId, answerDto);
+      await this.saveAnswer(examId, studentId, answerDto, inviteToken);
     }
 
-    // Update violation counts
     if (dto.browser_switch_count !== undefined) {
       submission.browser_switch_count = dto.browser_switch_count;
     }
@@ -589,11 +657,13 @@ export class StudentExamService {
       submission.tab_switch_count = dto.tab_switch_count;
     }
 
-    // Calculate score for objective exams
-    if (exam.exam_type === ExamTypeEnum.OBJECTIVE) {
+    const ordered = this.getOrderedQuestions(exam);
+    const hasObjective = ordered.some((q) => q.question_type === QuestionTypeEnum.OBJECTIVE);
+    const hasSubjective = ordered.some((q) => q.question_type === QuestionTypeEnum.SUBJECTIVE);
+    if (hasObjective) {
       await this.calculateObjectiveScore(submission.id, exam);
-    } else {
-      // For subjective, calculate max score but actual score needs teacher evaluation
+    }
+    if (hasSubjective) {
       await this.calculateSubjectiveMaxScore(submission.id, exam);
     }
 
@@ -630,10 +700,23 @@ export class StudentExamService {
   /**
    * Calculate score for objective exam
    */
-  private async calculateObjectiveScore(
-    submissionId: string,
-    exam: ExamEntity,
-  ): Promise<void> {
+  private expectedCorrectAnswer(q: ExamQuestionEntity): CorrectAnswerEnum | undefined {
+    if (q.correct_answer) {
+      return q.correct_answer;
+    }
+    if (q.correct_option_index === null || q.correct_option_index === undefined) {
+      return undefined;
+    }
+    const arr = [
+      CorrectAnswerEnum.OPTION_1,
+      CorrectAnswerEnum.OPTION_2,
+      CorrectAnswerEnum.OPTION_3,
+      CorrectAnswerEnum.OPTION_4,
+    ];
+    return arr[q.correct_option_index];
+  }
+
+  private async calculateObjectiveScore(submissionId: string, exam: ExamEntity): Promise<void> {
     const submission = await this.submissionRepo.findOne({
       where: { id: submissionId },
     });
@@ -645,58 +728,66 @@ export class StudentExamService {
       relations: ['question'],
     });
 
-    const questionMap = new Map(exam.questions.map(q => [q.id, q]));
-    
+    const ordered = this.getOrderedQuestions(exam);
+    const questionMap = new Map(ordered.map((q) => [q.id, q]));
+
     let correctCount = 0;
     let wrongCount = 0;
     let totalScore = 0;
-    const markPerQuestion = 1; // Default 1 mark per question
+    let maxObjective = 0;
 
     for (const answer of answers) {
       const question = questionMap.get(answer.question_id);
       if (!question || question.question_type !== QuestionTypeEnum.OBJECTIVE) continue;
 
-      if (answer.selected_answer === question.correct_answer) {
+      const pts = question.points ?? 1;
+      maxObjective += pts;
+      const expected = this.expectedCorrectAnswer(question);
+
+      if (expected && answer.selected_answer === expected) {
         answer.is_correct = true;
-        answer.marks_obtained = markPerQuestion;
+        answer.marks_obtained = pts;
         correctCount++;
-        totalScore += markPerQuestion;
+        totalScore += pts;
       } else if (answer.selected_answer) {
         answer.is_correct = false;
-        answer.marks_obtained = exam.is_negative_marking 
-          ? -(exam.negative_mark_value || 0) 
-          : 0;
+        const penalty = exam.is_negative_marking ? exam.negative_mark_value || 0 : 0;
+        answer.marks_obtained = exam.is_negative_marking ? -penalty : 0;
         wrongCount++;
-        if (exam.is_negative_marking && exam.negative_mark_value) {
-          totalScore -= exam.negative_mark_value;
+        if (exam.is_negative_marking && penalty) {
+          totalScore -= Math.min(penalty, pts);
         }
       }
 
       await this.answerRepo.save(answer);
     }
 
-    const unanswered = exam.questions.filter(
-      q => q.question_type === QuestionTypeEnum.OBJECTIVE
-    ).length - answers.filter(a => a.selected_answer).length;
+    const objectiveQs = ordered.filter((q) => q.question_type === QuestionTypeEnum.OBJECTIVE);
+    const answeredObjectiveIds = new Set(
+      answers
+        .filter(
+          (a) =>
+            !!a.selected_answer &&
+            questionMap.get(a.question_id)?.question_type === QuestionTypeEnum.OBJECTIVE,
+        )
+        .map((a) => a.question_id),
+    );
+    const unanswered = objectiveQs.length - answeredObjectiveIds.size;
 
     submission.correct_answers = correctCount;
     submission.wrong_answers = wrongCount;
-    submission.unanswered = unanswered;
-    submission.total_score = Math.max(0, totalScore); // Don't go negative
-    submission.max_score = exam.questions.filter(
-      q => q.question_type === QuestionTypeEnum.OBJECTIVE
-    ).length * markPerQuestion;
+    submission.unanswered = Math.max(0, unanswered);
+    submission.total_score = Math.max(0, totalScore);
+    const prevMax = Number(submission.max_score || 0);
+    submission.max_score = prevMax + maxObjective;
 
     await this.submissionRepo.save(submission);
   }
 
   /**
-   * Calculate max score for subjective exam
+   * Calculate max score for subjective questions (per-question points)
    */
-  private async calculateSubjectiveMaxScore(
-    submissionId: string,
-    exam: ExamEntity,
-  ): Promise<void> {
+  private async calculateSubjectiveMaxScore(submissionId: string, exam: ExamEntity): Promise<void> {
     const submission = await this.submissionRepo.findOne({
       where: { id: submissionId },
     });
@@ -707,16 +798,20 @@ export class StudentExamService {
       where: { submission_id: submissionId },
     });
 
-    const maxScore = exam.questions
-      .filter(q => q.question_type === QuestionTypeEnum.SUBJECTIVE)
-      .reduce((sum, q) => sum + (q.marks_per_question || 0), 0);
+    const ordered = this.getOrderedQuestions(exam);
+    const subjectiveQs = ordered.filter((q) => q.question_type === QuestionTypeEnum.SUBJECTIVE);
+    const maxScore = subjectiveQs.reduce(
+      (sum, q) => sum + (q.points ?? q.marks_per_question ?? 0),
+      0,
+    );
 
-    const answeredCount = answers.filter(a => a.text_answer && a.text_answer.trim().length > 0).length;
-    const unanswered = exam.questions.length - answeredCount;
+    const answeredCount = answers.filter((a) => a.text_answer && a.text_answer.trim().length > 0).length;
+    const unanswered = subjectiveQs.length - answeredCount;
 
-    submission.max_score = maxScore;
-    submission.unanswered = unanswered;
-    submission.total_questions = exam.questions.length;
+    const prevMax = Number(submission.max_score || 0);
+    submission.max_score = prevMax + maxScore;
+    submission.unanswered = (submission.unanswered || 0) + Math.max(0, unanswered);
+    submission.total_questions = ordered.length;
 
     await this.submissionRepo.save(submission);
   }
@@ -728,7 +823,13 @@ export class StudentExamService {
     examId: string,
     studentId: string,
     dto: ReportViolationDto,
+    inviteToken?: string,
   ): Promise<void> {
+    const validation = await this.validateExamAccess(examId, studentId, inviteToken);
+    if (!validation.canAccess) {
+      throw new ForbiddenException(validation.reason);
+    }
+
     const submission = await this.submissionRepo.findOne({
       where: { 
         exam_id: examId, 
