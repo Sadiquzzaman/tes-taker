@@ -16,6 +16,7 @@ import useGetAllTests from "@/hooks/api/tests/useGetAllTests";
 import ParticipantIconSVG from "../svg/ParticipantIconSVG";
 import SortIconSVG from "../svg/SortIconSVG";
 import NormalInput from "@/Ui/NormalInput";
+import GradingModel from "./GradingModel";
 
 export const classTabList = [
   { name: "Student", value: "student" },
@@ -39,6 +40,7 @@ const GradeDetailsComponent = ({ classId }: { classId: string }) => {
   // const { loading, classData, fetch, apiComplete } = useGetAllClassById({ id: classId });
   // const { testList } = useGetAllTests({ classId });
   const [activeTab, setActiveTab] = useState(classTabList[0]);
+  const [openModal, setOpenModal] = useState<string>("");
 
   // if (loading)
   //   return (
@@ -208,7 +210,7 @@ const GradeDetailsComponent = ({ classId }: { classId: string }) => {
                   <td className="p-2 whitespace-nowrap text-center">
                     <button
                       style={{ background: statusTextColors[student.status] }}
-                      // onClick={() => handleApproveStudent(item.student_id)}
+                      onClick={() => setOpenModal(student.status === "Graded" ? "result" : "edit")}
                       className="px-4 py-2 mx-auto flex justify-center items-center text-[#ffffff] rounded-[8px]"
                     >
                       {statusButtonText[student.status]}
@@ -285,6 +287,7 @@ const GradeDetailsComponent = ({ classId }: { classId: string }) => {
             </div>
           </div>
         </div>
+        <GradingModel openModal={openModal} setOpenModal={setOpenModal} />
       </div>
     </>
   );
