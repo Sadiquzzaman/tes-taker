@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, ApiExtraModels } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
   Min,
   ValidateNested,
@@ -27,27 +28,13 @@ export class WizardOptionDto {
   @IsNotEmpty()
   @MaxLength(2000)
   text: string;
-
-  @ApiPropertyOptional({ description: 'Reserved for future image support' })
-  @IsOptional()
-  @IsString()
-  image?: string | null;
 }
 
 export class WizardMcqQuestionDto {
-  @ApiProperty({ description: 'Client question id' })
-  @IsString()
-  @IsNotEmpty()
-  id: string;
-
   @ApiProperty({ description: 'Question stem' })
   @IsString()
   @IsNotEmpty()
   text: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  image?: string | null;
 
   @ApiProperty({ type: [WizardOptionDto], minItems: 4, maxItems: 4 })
   @IsArray()
@@ -72,16 +59,7 @@ export class WizardEssayQuestionDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  id: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
   text: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  image?: string | null;
 
   @ApiProperty({ minimum: 0 })
   @IsNumber()
@@ -91,11 +69,6 @@ export class WizardEssayQuestionDto {
 }
 
 export class WizardQuestionSectionDto {
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  id: string;
-
   @ApiProperty({ enum: ['objective', 'essay'] })
   @IsIn(['objective', 'essay'])
   type: 'objective' | 'essay';
@@ -108,27 +81,20 @@ export class WizardQuestionSectionDto {
   @ApiProperty({
     description:
       'When type is objective: items shaped as WizardMcqQuestionDto. When essay: WizardEssayQuestionDto. Validated in service.',
-    type: 'array',
+    isArray: true,
+    type: WizardMcqQuestionDto,
   })
   @IsArray()
   @ArrayMinSize(1)
-  questions: Record<string, unknown>[];
+  @ValidateNested({ each: true })
+  @Type(() => WizardMcqQuestionDto)
+  questions: (WizardMcqQuestionDto | WizardEssayQuestionDto)[];
 }
 
 export class WizardSubjectBlockDto {
   @ApiProperty({ description: 'Subject UUID from GET /v1/subjects' })
   @IsUUID('4')
   id: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  value?: string;
 
   @ApiProperty({ type: [WizardQuestionSectionDto] })
   @IsArray()
@@ -165,13 +131,18 @@ export class WizardFormStateDto {
   @IsBoolean()
   allowNegativeMarking: boolean;
 
-  @ApiPropertyOptional({ description: 'Penalty per wrong MCQ (flat). Example 0.25' })
+  @ApiPropertyOptional({
+    description:
+      'When allowNegativeMarking is true: percentage 1–100. Each wrong MCQ deducts (negativeMarking/100) × that question’s points from the objective total.',
+    example: 25,
+  })
   @IsOptional()
   @Transform(({ value }) =>
     value === '' || value === undefined ? undefined : Number(value),
   )
   @IsNumber()
   @Min(0)
+  @Max(100)
   negativeMarking?: number;
 }
 
@@ -209,6 +180,7 @@ export class WizardPublishStateDto {
   specificStudents?: string[];
 }
 
+@ApiExtraModels(WizardMcqQuestionDto, WizardEssayQuestionDto)
 export class CreateExamWizardDto {
   @ApiProperty({ type: WizardFormStateDto })
   @ValidateNested()

@@ -65,9 +65,17 @@ export class ExamService {
     }
 
     if (formState.allowNegativeMarking) {
-      const v = formState.negativeMarking;
-      if (v === undefined || v === null || Number(v) <= 0) {
-        throw new BadRequestException('Negative marking value is required when enabled');
+      const v = Number(formState.negativeMarking);
+      if (
+        formState.negativeMarking === undefined ||
+        formState.negativeMarking === null ||
+        Number.isNaN(v) ||
+        v <= 0 ||
+        v > 100
+      ) {
+        throw new BadRequestException(
+          'Negative marking must be a percentage between 1 and 100 when enabled',
+        );
       }
     }
 
@@ -134,6 +142,16 @@ export class ExamService {
       ? Number(formState.negativeMarking)
       : undefined;
 
+    let examSubjectLabel = formState.testName.trim();
+    if (primarySubjectId) {
+      try {
+        const sub = await this.subjectService.findOne(primarySubjectId);
+        examSubjectLabel = sub.name;
+      } catch {
+        // Subject missing despite assertSubjectsExist — keep test title
+      }
+    }
+
     return this.dataSource.transaction(async (manager) => {
       const examRepo = manager.getRepository(ExamEntity);
       const sectionRepo = manager.getRepository(ExamQuestionSectionEntity);
@@ -153,7 +171,7 @@ export class ExamService {
         exam_end_time: publishState.endingAt,
         is_negative_marking: formState.allowNegativeMarking,
         negative_mark_value: negativeVal ?? null,
-        subject: subjects[0]?.name ?? formState.testName,
+        subject: examSubjectLabel,
         class_id:
           publishState.testAudience === TestAudienceEnum.SELECTED_CLASS
             ? publishState.selectedClassId!
@@ -201,7 +219,7 @@ export class ExamService {
                 sort_order: qOrder++,
                 question_type: QuestionTypeEnum.OBJECTIVE,
                 question: q.text,
-                image_url: typeof q.image === 'string' ? q.image : null,
+                image_url: null,
                 points: q.points,
                 correct_option_index: idx,
                 correct_answer: CORRECT_ENUM_BY_INDEX[idx],
@@ -228,7 +246,7 @@ export class ExamService {
                 sort_order: qOrder++,
                 question_type: QuestionTypeEnum.SUBJECTIVE,
                 question: q.text,
-                image_url: typeof q.image === 'string' ? q.image : null,
+                image_url: null,
                 points: q.points,
                 marks_per_question: q.points,
                 created_by: jwtPayload.id,
