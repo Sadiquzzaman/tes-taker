@@ -751,10 +751,16 @@ export class StudentExamService {
         totalScore += pts;
       } else if (answer.selected_answer) {
         answer.is_correct = false;
-        const penalty = exam.is_negative_marking ? exam.negative_mark_value || 0 : 0;
+        const nm = exam.negative_mark_value ?? 0;
+        const usePercentPenalty = exam.exam_kind != null;
+        const penalty = exam.is_negative_marking
+          ? usePercentPenalty
+            ? (nm / 100) * pts
+            : nm
+          : 0;
         answer.marks_obtained = exam.is_negative_marking ? -penalty : 0;
         wrongCount++;
-        if (exam.is_negative_marking && penalty) {
+        if (exam.is_negative_marking && penalty > 0) {
           totalScore -= Math.min(penalty, pts);
         }
       }
