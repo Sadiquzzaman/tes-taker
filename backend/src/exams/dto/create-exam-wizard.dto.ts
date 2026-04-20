@@ -28,13 +28,26 @@ export class WizardOptionDto {
   @IsNotEmpty()
   @MaxLength(2000)
   text: string;
+
+  @ApiPropertyOptional({ description: 'Reserved for future image support; ignored for now' })
+  @IsOptional()
+  image?: unknown | null;
 }
 
 export class WizardMcqQuestionDto {
+  @ApiPropertyOptional({ description: 'Optional client-side identifier' })
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @ApiProperty({ description: 'Question stem' })
   @IsString()
   @IsNotEmpty()
   text: string;
+
+  @ApiPropertyOptional({ description: 'Reserved for future image support; ignored for now' })
+  @IsOptional()
+  image?: unknown | null;
 
   @ApiProperty({ type: [WizardOptionDto], minItems: 4, maxItems: 4 })
   @IsArray()
@@ -53,25 +66,44 @@ export class WizardMcqQuestionDto {
   @Min(0)
   @Type(() => Number)
   points: number;
+
+  @ApiPropertyOptional({ description: 'Client-only validation flag; ignored by backend' })
+  @IsOptional()
+  @IsBoolean()
+  showValidation?: boolean;
 }
 
 export class WizardEssayQuestionDto {
+  @ApiPropertyOptional({ description: 'Optional client-side identifier' })
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
   text: string;
+
+  @ApiPropertyOptional({ description: 'Reserved for future image support; ignored for now' })
+  @IsOptional()
+  image?: unknown | null;
 
   @ApiProperty({ minimum: 0 })
   @IsNumber()
   @Min(0)
   @Type(() => Number)
   points: number;
+
+  @ApiPropertyOptional({ description: 'Client-only validation flag; ignored by backend' })
+  @IsOptional()
+  @IsBoolean()
+  showValidation?: boolean;
 }
 
 export class WizardQuestionSectionDto {
-  @ApiProperty({ enum: ['objective', 'essay'] })
-  @IsIn(['objective', 'essay'])
-  type: 'objective' | 'essay';
+  @ApiProperty({ enum: ['objective', 'essay', 'mixed'] })
+  @IsIn(['objective', 'essay', 'mixed'])
+  type: 'objective' | 'essay' | 'mixed';
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -80,15 +112,12 @@ export class WizardQuestionSectionDto {
 
   @ApiProperty({
     description:
-      'When type is objective: items shaped as WizardMcqQuestionDto. When essay: WizardEssayQuestionDto. Validated in service.',
-    isArray: true,
-    type: WizardMcqQuestionDto,
+      'MCQ items include options + correctOptionId. Essay items include text + points only. Hybrid/model requests may mix both shapes in the same array.',
+    type: 'array',
   })
   @IsArray()
   @ArrayMinSize(1)
-  @ValidateNested({ each: true })
-  @Type(() => WizardMcqQuestionDto)
-  questions: (WizardMcqQuestionDto | WizardEssayQuestionDto)[];
+  questions: Record<string, unknown>[];
 }
 
 export class WizardSubjectBlockDto {
@@ -172,9 +201,23 @@ export class WizardPublishStateDto {
 
   @ApiPropertyOptional({
     type: [String],
-    description: 'Student user UUIDs when testAudience is specific_students',
+    description:
+      'Student user UUIDs when testAudience is specific_students. Each array item may contain one UUID or a comma-separated list of UUIDs.',
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+
+    const rawItems = Array.isArray(value) ? value : [value];
+    const normalized = rawItems
+      .flatMap((item) => (typeof item === 'string' ? item.split(',') : []))
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+
+    return [...new Set(normalized)];
+  })
   @IsArray()
   @IsUUID('4', { each: true })
   specificStudents?: string[];

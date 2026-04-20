@@ -23,7 +23,7 @@ export class ExamQuestionSectionEntity extends CustomBaseEntity {
   @JoinColumn({ name: 'subject_id' })
   subject: SubjectEntity;
 
-  @ApiProperty({ description: 'Section question style', enum: ['objective', 'essay'] })
+  @ApiProperty({ description: 'Section question style', enum: ['objective', 'essay', 'mixed'] })
   @Column({ name: 'section_type', type: 'varchar', length: 20 })
   section_type: string;
 
