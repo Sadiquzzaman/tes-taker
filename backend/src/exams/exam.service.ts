@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, DeepPartial, Repository, In } from 'typeorm';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { ExamEntity, ExamTypeEnum } from './entities/exam.entity';
 import { ExamQuestionEntity, QuestionTypeEnum, CorrectAnswerEnum } from './entities/exam-question.entity';
 import { ExamQuestionSectionEntity } from './entities/exam-question-section.entity';
@@ -715,7 +715,7 @@ export class ExamService {
     if (question.question_type === QuestionTypeEnum.OBJECTIVE) {
       const options = [question.option1, question.option2, question.option3, question.option4].map(
         (text, index) => ({
-          id: `${question.id}-option-${index + 1}`,
+          id: this.buildResponseOptionId(question.id, index),
           text: text ?? '',
           image: null,
         }),
@@ -755,6 +755,19 @@ export class ExamService {
     }
 
     return CORRECT_ENUM_BY_INDEX.indexOf(answer);
+  }
+
+  private buildResponseOptionId(questionId: string, index: number): string {
+    const hex = createHash('sha256')
+      .update(`${questionId}:${index}`)
+      .digest('hex')
+      .slice(0, 32)
+      .split('');
+
+    hex[12] = '5';
+    hex[16] = ['8', '9', 'a', 'b'][parseInt(hex[16], 16) % 4];
+
+    return `${hex.slice(0, 8).join('')}-${hex.slice(8, 12).join('')}-${hex.slice(12, 16).join('')}-${hex.slice(16, 20).join('')}-${hex.slice(20, 32).join('')}`;
   }
 
   async updateExcludedStudents(
