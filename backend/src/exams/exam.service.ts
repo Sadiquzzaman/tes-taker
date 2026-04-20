@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, DeepPartial, Repository, In } from 'typeorm';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { ExamEntity, ExamTypeEnum } from './entities/exam.entity';
 import { ExamQuestionEntity, QuestionTypeEnum, CorrectAnswerEnum } from './entities/exam-question.entity';
 import { ExamQuestionSectionEntity } from './entities/exam-question-section.entity';
@@ -29,6 +29,15 @@ const CORRECT_ENUM_BY_INDEX: CorrectAnswerEnum[] = [
 ];
 
 type WizardSectionType = 'objective' | 'essay' | 'mixed';
+type ExamQuestionResponse = {
+  id: string;
+  text: string;
+  image: null;
+  points: number | null;
+  showValidation: false;
+  options?: Array<{ id: string; text: string; image: null }>;
+  correctOptionId?: string | null;
+};
 
 @Injectable()
 export class ExamService {
@@ -59,7 +68,7 @@ export class ExamService {
   async createFromWizard(
     dto: CreateExamWizardDto,
     jwtPayload: JwtPayloadInterface,
-  ): Promise<ExamEntity> {
+  ): Promise<any> {
     const { formState, subjects, publishState } = dto;
 
     if (publishState.scheduleAt >= publishState.endingAt) {
@@ -291,7 +300,7 @@ export class ExamService {
         });
       }
 
-      return reloaded;
+      return this.formatExamResponse(reloaded);
     });
   }
 
@@ -394,7 +403,7 @@ export class ExamService {
   async createObjectiveExam(
     dto: CreateObjectiveExamDto,
     jwtPayload: JwtPayloadInterface,
-  ): Promise<ExamEntity | null> {
+  ): Promise<any> {
     if (dto.is_negative_marking && (!dto.negative_mark_value || dto.negative_mark_value <= 0)) {
       throw new BadRequestException(
         'Negative mark value is required if negative marking is enabled and must be greater than 0',
@@ -471,7 +480,7 @@ export class ExamService {
   async createSubjectiveExam(
     dto: CreateSubjectiveExamDto,
     jwtPayload: JwtPayloadInterface,
-  ): Promise<ExamEntity | null> {
+  ): Promise<any> {
     if (dto.exam_start_time >= dto.exam_end_time) {
       throw new BadRequestException('Exam start time must be before end time');
     }
@@ -605,8 +614,8 @@ export class ExamService {
     return { sent, failed };
   }
 
-  async findAll(jwtPayload: JwtPayloadInterface): Promise<ExamEntity[]> {
-    return this.examRepo.find({
+  async findAll(jwtPayload: JwtPayloadInterface): Promise<any[]> {
+    const exams = await this.examRepo.find({
       where: { created_by: jwtPayload.id },
       relations: [
         'questions',
@@ -619,10 +628,11 @@ export class ExamService {
       ],
       order: { created_at: 'DESC' },
     });
+    return exams.map((exam) => this.formatExamResponse(exam));
   }
 
-  async findAllAdmin(): Promise<ExamEntity[]> {
-    return this.examRepo.find({
+  async findAllAdmin(): Promise<any[]> {
+    const exams = await this.examRepo.find({
       relations: [
         'questions',
         'questionSections',
@@ -634,10 +644,11 @@ export class ExamService {
       ],
       order: { created_at: 'DESC' },
     });
+    return exams.map((exam) => this.formatExamResponse(exam));
   }
 
-  async findByClass(classId: string, jwtPayload: JwtPayloadInterface): Promise<ExamEntity[]> {
-    return this.examRepo.find({
+  async findByClass(classId: string, jwtPayload: JwtPayloadInterface): Promise<any[]> {
+    const exams = await this.examRepo.find({
       where: { class_id: classId },
       relations: [
         'questions',
@@ -649,9 +660,23 @@ export class ExamService {
       ],
       order: { created_at: 'DESC' },
     });
+    return exams.map((exam) => this.formatExamResponse(exam));
   }
 
-  async findOne(id: string, jwtPayload: JwtPayloadInterface): Promise<ExamEntity> {
+  async findOne(id: string, jwtPayload: JwtPayloadInterface): Promise<any> {
+    const exam = await this.findOneEntity(id);
+
+    if (
+      jwtPayload.role === RolesEnum.TEACHER &&
+      exam.created_by !== jwtPayload.id
+    ) {
+      throw new ForbiddenException('You do not have permission to view this exam');
+    }
+
+    return this.formatExamResponse(exam);
+  }
+
+  private async findOneEntity(id: string): Promise<ExamEntity> {
     const exam = await this.examRepo.findOne({
       where: { id },
       relations: [
@@ -673,12 +698,84 @@ export class ExamService {
     return exam;
   }
 
+  private formatExamResponse(exam: ExamEntity) {
+    return {
+      ...exam,
+      questions: (exam.questions || []).map((question) => this.formatQuestionResponse(question)),
+      questionSections: (exam.questionSections || []).map((section) => ({
+        ...section,
+        type: section.section_type,
+        headerText: section.header_text,
+        questions: (section.questions || []).map((question) => this.formatQuestionResponse(question)),
+      })),
+    };
+  }
+
+  private formatQuestionResponse(question: ExamQuestionEntity): ExamQuestionResponse {
+    if (question.question_type === QuestionTypeEnum.OBJECTIVE) {
+      const options = [question.option1, question.option2, question.option3, question.option4].map(
+        (text, index) => ({
+          id: this.buildResponseOptionId(question.id, index),
+          text: text ?? '',
+          image: null,
+        }),
+      );
+      const correctIndex =
+        question.correct_option_index ??
+        this.getCorrectOptionIndexFromAnswer(question.correct_answer);
+
+      return {
+        id: question.id,
+        text: question.question,
+        image: null,
+        options,
+        correctOptionId:
+          correctIndex !== null && correctIndex >= 0 && correctIndex < options.length
+            ? options[correctIndex].id
+            : null,
+        points: question.points ?? 1,
+        showValidation: false,
+      };
+    }
+
+    return {
+      id: question.id,
+      text: question.question,
+      image: null,
+      points: question.points ?? question.marks_per_question ?? null,
+      showValidation: false,
+    };
+  }
+
+  private getCorrectOptionIndexFromAnswer(
+    answer?: CorrectAnswerEnum,
+  ): number | null {
+    if (!answer) {
+      return null;
+    }
+
+    return CORRECT_ENUM_BY_INDEX.indexOf(answer);
+  }
+
+  private buildResponseOptionId(questionId: string, index: number): string {
+    const hex = createHash('sha256')
+      .update(`${questionId}:${index}`)
+      .digest('hex')
+      .slice(0, 32)
+      .split('');
+
+    hex[12] = '5';
+    hex[16] = ['8', '9', 'a', 'b'][parseInt(hex[16], 16) % 4];
+
+    return `${hex.slice(0, 8).join('')}-${hex.slice(8, 12).join('')}-${hex.slice(12, 16).join('')}-${hex.slice(16, 20).join('')}-${hex.slice(20, 32).join('')}`;
+  }
+
   async updateExcludedStudents(
     examId: string,
     studentIds: string[],
     jwtPayload: JwtPayloadInterface,
-  ): Promise<ExamEntity> {
-    const exam = await this.findOne(examId, jwtPayload);
+  ): Promise<any> {
+    const exam = await this.findOneEntity(examId);
 
     if (
       exam.created_by !== jwtPayload.id &&
@@ -699,7 +796,7 @@ export class ExamService {
   }
 
   async delete(id: string, jwtPayload: JwtPayloadInterface): Promise<void> {
-    const exam = await this.findOne(id, jwtPayload);
+    const exam = await this.findOneEntity(id);
 
     if (
       exam.created_by !== jwtPayload.id &&
