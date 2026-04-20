@@ -28,6 +28,8 @@ const CORRECT_ENUM_BY_INDEX: CorrectAnswerEnum[] = [
   CorrectAnswerEnum.OPTION_4,
 ];
 
+type WizardSectionType = 'objective' | 'essay' | 'mixed';
+
 @Injectable()
 export class ExamService {
   constructor(
@@ -191,10 +193,11 @@ export class ExamService {
       let sectionOrder = 0;
       for (const subj of subjects) {
         for (const sec of subj.questionSections) {
+          const sectionType = this.resolveWizardSectionType(sec.questions);
           const sectionPayload: DeepPartial<ExamQuestionSectionEntity> = {
             exam_id: savedExam.id,
             subject_id: subj.id,
-            section_type: sec.type,
+            section_type: sectionType,
             header_text: sec.headerText ?? null,
             sort_order: sectionOrder++,
             created_by: jwtPayload.id,
@@ -205,10 +208,12 @@ export class ExamService {
           const savedSec = await sectionRepo.save(section);
 
           let qOrder = 0;
-          if (sec.type === 'objective') {
-            for (const raw of sec.questions) {
+          for (const raw of sec.questions) {
+            const questionKind = this.inferWizardQuestionKind(raw);
+            if (questionKind === 'objective') {
               const q = raw as unknown as WizardMcqQuestionDto;
               this.assertMcqQuestion(q);
+              const points = this.normalizeQuestionPoints(q.points);
               const idx = q.options.findIndex((o) => o.id === q.correctOptionId);
               if (idx < 0 || idx > 3) {
                 throw new BadRequestException('Each MCQ must reference a valid correctOptionId');
@@ -220,7 +225,7 @@ export class ExamService {
                 question_type: QuestionTypeEnum.OBJECTIVE,
                 question: q.text,
                 image_url: null,
-                points: q.points,
+                points,
                 correct_option_index: idx,
                 correct_answer: CORRECT_ENUM_BY_INDEX[idx],
                 option1: q.options[0].text,
@@ -233,13 +238,10 @@ export class ExamService {
               };
               const row = questionRepo.create(objectivePayload);
               await questionRepo.save(row);
-            }
-          } else {
-            for (const raw of sec.questions) {
+            } else {
               const q = raw as unknown as WizardEssayQuestionDto;
-              if (!q.text || q.points === undefined) {
-                throw new BadRequestException('Each essay question needs text and points');
-              }
+              this.assertEssayQuestion(q);
+              const points = this.normalizeQuestionPoints(q.points);
               const essayPayload: DeepPartial<ExamQuestionEntity> = {
                 section_id: savedSec.id,
                 exam: { id: savedExam.id } as ExamEntity,
@@ -247,8 +249,8 @@ export class ExamService {
                 question_type: QuestionTypeEnum.SUBJECTIVE,
                 question: q.text,
                 image_url: null,
-                points: q.points,
-                marks_per_question: q.points,
+                points,
+                marks_per_question: points,
                 created_by: jwtPayload.id,
                 created_user_name: jwtPayload.full_name,
                 created_at: new Date(),
@@ -294,28 +296,23 @@ export class ExamService {
   }
 
   private validateSectionsForExamType(kind: ExamKindEnum, subjects: CreateExamWizardDto['subjects']): void {
-    let objectiveSections = 0;
-    let essaySections = 0;
-    for (const s of subjects) {
-      for (const sec of s.questionSections) {
-        if (sec.type === 'objective') objectiveSections++;
-        else essaySections++;
-      }
-    }
+    const { hasObjective, hasSubjective } = this.countQuestionTypes(subjects);
 
     if (kind === ExamKindEnum.MCQ) {
-      if (objectiveSections < 1 || essaySections > 0) {
-        throw new BadRequestException('MCQ exams must contain only objective sections');
+      if (!hasObjective || hasSubjective) {
+        throw new BadRequestException('MCQ exams must contain only MCQ questions');
       }
     }
     if (kind === ExamKindEnum.ESSAY) {
-      if (essaySections < 1 || objectiveSections > 0) {
-        throw new BadRequestException('Essay exams must contain only essay sections');
+      if (!hasSubjective || hasObjective) {
+        throw new BadRequestException('Essay exams must contain only essay questions');
       }
     }
-    if (kind === ExamKindEnum.HYBRID) {
-      if (objectiveSections < 1 || essaySections < 1) {
-        throw new BadRequestException('Hybrid exams must include at least one objective and one essay section');
+    if (kind === ExamKindEnum.HYBRID || kind === ExamKindEnum.MODEL) {
+      if (!hasObjective || !hasSubjective) {
+        throw new BadRequestException(
+          `${kind === ExamKindEnum.HYBRID ? 'Hybrid' : 'Model'} exams must include both MCQ and essay questions`,
+        );
       }
     }
   }
@@ -328,20 +325,67 @@ export class ExamService {
     let hasSubjective = false;
     for (const s of subjects) {
       for (const sec of s.questionSections) {
-        if (sec.type === 'objective') hasObjective = true;
-        else hasSubjective = true;
+        for (const raw of sec.questions) {
+          if (this.inferWizardQuestionKind(raw) === 'objective') {
+            hasObjective = true;
+          } else {
+            hasSubjective = true;
+          }
+        }
       }
     }
     return { hasObjective, hasSubjective };
+  }
+
+  private inferWizardQuestionKind(raw: unknown): Exclude<WizardSectionType, 'mixed'> {
+    const q = (raw ?? {}) as Record<string, unknown>;
+    return Array.isArray(q.options) || typeof q.correctOptionId === 'string'
+      ? 'objective'
+      : 'essay';
+  }
+
+  private resolveWizardSectionType(rawQuestions: Record<string, unknown>[]): WizardSectionType {
+    let hasObjective = false;
+    let hasEssay = false;
+
+    for (const raw of rawQuestions) {
+      if (this.inferWizardQuestionKind(raw) === 'objective') {
+        hasObjective = true;
+      } else {
+        hasEssay = true;
+      }
+    }
+
+    if (hasObjective && hasEssay) {
+      return 'mixed';
+    }
+
+    return hasObjective ? 'objective' : 'essay';
+  }
+
+  private normalizeQuestionPoints(points: unknown): number {
+    const normalized = Number(points);
+    if (!Number.isFinite(normalized) || normalized < 0) {
+      throw new BadRequestException('Each question must include a valid non-negative points value');
+    }
+    return normalized;
   }
 
   private assertMcqQuestion(q: WizardMcqQuestionDto): void {
     if (!q.options || q.options.length !== 4) {
       throw new BadRequestException('Each MCQ must have exactly four options');
     }
-    if (!q.text || q.points === undefined) {
+    if (!q.text || q.points === undefined || !q.correctOptionId) {
       throw new BadRequestException('Each MCQ needs text, options, points, and correctOptionId');
     }
+    this.normalizeQuestionPoints(q.points);
+  }
+
+  private assertEssayQuestion(q: WizardEssayQuestionDto): void {
+    if (!q.text || q.points === undefined) {
+      throw new BadRequestException('Each essay question needs text and points');
+    }
+    this.normalizeQuestionPoints(q.points);
   }
 
   /**
