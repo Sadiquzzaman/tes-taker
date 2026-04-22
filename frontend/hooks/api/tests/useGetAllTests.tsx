@@ -3,7 +3,7 @@ import { AxiosError, AxiosResponse } from "axios";
 import { useEffect, useState } from "react";
 import { useApiError } from "../useApiError";
 
-type T = ApiResponse<Test[]>;
+type T = ApiResponse<ITest[]>;
 type R = AxiosResponse<T>;
 type E = AxiosError<ApiError>;
 
@@ -14,7 +14,7 @@ const useGetAllTests = ({ classId = "" }: { classId?: string }) => {
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
   const [apiComplete, setApiComplete] = useState(false);
-  const [testList, setTestList] = useState<Test[]>([]);
+  const [testList, setTestList] = useState<ITest[]>([]);
 
   const fetch = async () => {
     setLoading(true);

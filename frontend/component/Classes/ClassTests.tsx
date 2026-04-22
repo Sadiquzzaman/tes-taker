@@ -9,7 +9,7 @@ const classTestTabList = [
   { name: "Completed", value: "completed" },
 ];
 
-const ClassTests = ({ testList }: { testList: Test[] }) => {
+const ClassTests = ({ testList }: { testList: ITest[] }) => {
   const [activeTestTab, setActiveTestTab] = useState(classTestTabList[0]);
   return (
     <div className="p-2 sm:p-4 bg-white rounded-[8px] h-full">

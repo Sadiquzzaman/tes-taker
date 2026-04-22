@@ -18,18 +18,13 @@ type ShareTestModalProps = {
 
 const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
   const { triggerToast } = useToast();
-  const [testLink, setTestLink] = useState(testData.shareLink);
+  const [testLink, setTestLink] = useState("");
 
   useEffect(() => {
-    if (testData.shareLink) {
-      setTestLink(testData.shareLink);
-      return;
+    if (typeof window !== "undefined" && testData.test.id) {
+      setTestLink(`${window.location.origin}/tests?createdTest=${testData.test.id}`);
     }
-
-    if (typeof window !== "undefined" && testData.id) {
-      setTestLink(`${window.location.origin}/tests?createdTest=${testData.id}`);
-    }
-  }, [testData.id, testData.shareLink]);
+  }, [testData.test.id]);
 
   const handleClose = () => {
     setOpen();
@@ -42,7 +37,7 @@ const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
     window.open(url, "_blank");
   };
   const shareGmail = () => {
-    const subject = `Share test: ${testData.testName}`;
+    const subject = `Share test: ${testData.test.test_name}`;
     const body = `Access this test using the link below:\n${testLink}`;
 
     window.open(
@@ -94,7 +89,7 @@ const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
           <div className="pb-4 flex justify-between items-center">
             <p className="font-[400] text-[20px] leading-[20px] tracking-[-0.02em] text-[#747775]">
               {testData.type === "new"
-                ? testData.test.publishState.publishTiming === "schedule"
+                ? testData.test.publish_timing === "later"
                   ? "Test is scheduled"
                   : "Test successfully created"
                 : "Share test"}
@@ -103,39 +98,39 @@ const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
               <CrossIconSVG width={24} />
             </button>
           </div>
-          {testData.test.publishState.publishTiming === "schedule" && (
+          {testData.test.publish_timing === "later" && (
             <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
-              {`Scheduled for ${dayjs(testData.test.publishState.scheduleAt).format("MMM DD, hh:mm A")}`}
+              {`Scheduled for ${dayjs(testData.test.exam_start_time).format("MMM DD, hh:mm A")}`}
             </p>
           )}
-          {testData.test.publishState.publishTiming !== "schedule" && testData.type === "new" && (
+          {testData.test.publish_timing !== "later" && testData.type === "new" && (
             <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
-              {`‘${testData.testName}’ created successfully.`}
+              {`‘${testData.test.test_name}’ created successfully.`}
             </p>
           )}
-          {testData.test.publishState.publishTiming !== "schedule" && testData.type !== "new" && (
+          {testData.test.publish_timing !== "later" && testData.type !== "new" && (
             <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
-              {`Share ‘${testData.testName}’`}
+              {`Share ‘${testData.test.test_name}’`}
             </p>
           )}
 
-          {testData.test.publishState.testAudience === "anyone" && (
+          {testData.test.test_audience === "anyone" && (
             <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
               Anyone with the link will be able to participate
             </p>
           )}
 
-          {testData.test.publishState.testAudience === "selected_class" && (
+          {testData.test.test_audience === "selected_class" && (
             <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
-              Test shared with Class <span className="font-[700]">{testData.test.publishState.selectedClassId}</span>{" "}
-              students. Only these students will be able to join the test.
+              Test shared with Class <span className="font-[700]">{testData.test.class.class_name}</span> students. Only
+              these students will be able to join the test.
             </p>
           )}
 
-          {testData.test.publishState.testAudience === "specific_students" && (
+          {testData.test.test_audience === "selected_class" && testData.test.excluded_students.length > 0 && (
             <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
-              Test shared with <span className="font-[700]">{testData.test.publishState.specificStudents.length}</span>{" "}
-              specific students. Only these students will be able to join the test.
+              Total <span className="font-[700]">{testData.test.excluded_students.length}</span> students are excluded
+              from this test.
             </p>
           )}
 

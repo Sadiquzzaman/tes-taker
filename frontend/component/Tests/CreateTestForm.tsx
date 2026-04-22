@@ -22,12 +22,14 @@ import ReviewStep from "./Create/ReviewStep";
 import PublishStep from "./Create/PublishStep";
 import RightArrowIconSVG from "../svg/RightArrowIconSVG";
 import { setNewTestCreated } from "@/lib/features/testSlice";
-import { collectQuestionValidationFailures } from "../../utils/createTestValidation";
+import { collectQuestionValidationFailures, getSubjectQuestionCount } from "../../utils/createTestValidation";
+import useCreateTest from "@/hooks/api/tests/useCreateTest";
 
 const CreateTestForm = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { triggerToast } = useToast();
+  const [mutate, { loading }] = useCreateTest();
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
   const { currentStep, formState, subjects, publishState } = createTestState;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -83,16 +85,11 @@ const CreateTestForm = () => {
         return;
       }
 
-      const totalQuestions = subjects.reduce(
-        (count, subject) =>
-          count +
-          subject.questionSections.reduce((sectionCount, section) => sectionCount + section.questions.length, 0),
-        0,
-      );
+      const subjectWithoutQuestions = subjects.find((subject) => getSubjectQuestionCount(subject) === 0);
 
-      if (totalQuestions === 0) {
+      if (subjectWithoutQuestions) {
         triggerToast({
-          description: "Please add at least one question before continuing",
+          description: `Please add at least one question for ${subjectWithoutQuestions.name} before continuing`,
           type: "error",
         });
         return;
@@ -118,7 +115,7 @@ const CreateTestForm = () => {
         return;
       }
     } else if (currentStep === "Publish") {
-      if (publishState.publishTiming === "schedule") {
+      if (publishState.publishTiming === "later") {
         if (!publishState.scheduleAt || !publishState.endingAt) {
           triggerToast({
             description: "Please select the full schedule and ending date/time",
@@ -142,17 +139,11 @@ const CreateTestForm = () => {
           ? `${window.location.origin}/tests?createdTest=${createdTestId}`
           : `/tests?createdTest=${createdTestId}`;
 
-      dispatch(
-        setNewTestCreated({
-          id: createdTestId,
-          testName: formState.testName.trim(),
-          shareLink,
-          type: "new",
-          test: { formState, subjects, publishState },
-        }),
-      );
-      dispatch(resetForm());
-      router.push("/tests");
+      const validateSubject = subjects.map((subject) => ({
+        ...subject,
+        questionSections: subject.questionSections.filter((section) => section.questions.length),
+      }));
+      mutate({ formState, subjects: validateSubject, publishState });
       return;
     }
 
