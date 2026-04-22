@@ -38,6 +38,18 @@ type ExamQuestionResponse = {
   options?: Array<{ id: string; text: string; image: null }>;
   correctOptionId?: string | null;
 };
+type ExamSectionResponse = {
+  id: string;
+  type: string;
+  headerText: string | null;
+  questions: ExamQuestionResponse[];
+};
+type ExamSubjectResponse = {
+  id: string | null;
+  name: string | null;
+  code: string | null;
+  questionSections: ExamSectionResponse[];
+};
 
 @Injectable()
 export class ExamService {
@@ -621,6 +633,7 @@ export class ExamService {
         'questions',
         'questionSections',
         'questionSections.questions',
+        'questionSections.subject',
         'class',
         'excluded_students',
         'target_students',
@@ -637,6 +650,7 @@ export class ExamService {
         'questions',
         'questionSections',
         'questionSections.questions',
+        'questionSections.subject',
         'class',
         'excluded_students',
         'target_students',
@@ -654,6 +668,7 @@ export class ExamService {
         'questions',
         'questionSections',
         'questionSections.questions',
+        'questionSections.subject',
         'excluded_students',
         'target_students',
         'primary_subject',
@@ -699,16 +714,67 @@ export class ExamService {
   }
 
   private formatExamResponse(exam: ExamEntity) {
+    const {
+      questions: _questions,
+      questionSections: _questionSections,
+      exam_kind: _examKind,
+      primary_subject_id: _primarySubjectId,
+      primary_subject: _primarySubject,
+      ...rest
+    } = exam;
+
     return {
-      ...exam,
-      questions: (exam.questions || []).map((question) => this.formatQuestionResponse(question)),
-      questionSections: (exam.questionSections || []).map((section) => ({
-        ...section,
+      ...rest,
+      exam_type: this.resolveResponseExamType(exam),
+      subjects: this.buildSubjectResponses(exam),
+    };
+  }
+
+  private buildSubjectResponses(exam: ExamEntity): ExamSubjectResponse[] {
+    const sections = exam.questionSections || [];
+    if (sections.length === 0) {
+      return exam.primary_subject || exam.subject
+        ? [
+            {
+              id: exam.primary_subject?.id ?? null,
+              name: exam.primary_subject?.name ?? exam.subject ?? null,
+              code: exam.primary_subject?.code ?? null,
+              questionSections: [],
+            },
+          ]
+        : [];
+    }
+
+    const grouped = new Map<string, ExamSubjectResponse>();
+    for (const section of sections) {
+      const subject = section.subject ?? null;
+      const key = subject?.id ?? `legacy:${exam.id}`;
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          id: subject?.id ?? exam.primary_subject?.id ?? null,
+          name: subject?.name ?? exam.primary_subject?.name ?? exam.subject ?? null,
+          code: subject?.code ?? exam.primary_subject?.code ?? null,
+          questionSections: [],
+        });
+      }
+
+      grouped.get(key)!.questionSections.push({
+        id: section.id,
         type: section.section_type,
         headerText: section.header_text,
         questions: (section.questions || []).map((question) => this.formatQuestionResponse(question)),
-      })),
-    };
+      });
+    }
+
+    return Array.from(grouped.values());
+  }
+
+  private resolveResponseExamType(exam: ExamEntity): string {
+    if (exam.exam_kind) {
+      return exam.exam_kind;
+    }
+
+    return exam.exam_type === ExamTypeEnum.SUBJECTIVE ? ExamKindEnum.ESSAY : ExamKindEnum.MCQ;
   }
 
   private formatQuestionResponse(question: ExamQuestionEntity): ExamQuestionResponse {
