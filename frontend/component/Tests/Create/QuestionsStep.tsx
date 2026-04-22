@@ -10,11 +10,9 @@ import {
   updateDragging,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import AddQuestionSubjectModal from "./AddQuestionSubjectModal";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import QuestionCard from "./QuestionCard";
-import CrossIconSVG from "@/component/svg/CrossIconSVG";
-import RemoveSubjectConfirmationModal from "./RemoveSubjectConfirmationModal";
+import QuestionSubjectTabs from "./QuestionSubjectTabs";
 
 const QUESTION_CARD_GAP = 16;
 
@@ -57,16 +55,9 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     dragState,
   } = createTestState;
   useGetAllSubject();
-  const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
-  const [subjectPendingRemoval, setSubjectPendingRemoval] = useState<Pick<SubjectItem, "id" | "name"> | null>(null);
   const sectionContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dragStateRef = useRef<DragState | null>(null);
-  const subjectScrollRef = useRef<HTMLDivElement>(null);
-  const subjectButtonRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const isSubjectScrollDragging = useRef(false);
-  const subjectScrollStartX = useRef(0);
-  const subjectScrollStartLeft = useRef(0);
 
   const activeSubject = useMemo(
     () => subjects.find((subject) => subject.id === activeSubjectId) ?? subjects[0] ?? null,
@@ -148,48 +139,6 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
       });
     });
   }, [pendingFocusQuestion, scrollElementIntoView]);
-
-  useEffect(() => {
-    if (formState.examType !== "model") {
-      setIsAddSubjectModalOpen(false);
-      setSubjectPendingRemoval(null);
-    }
-  }, [formState.examType]);
-
-  useEffect(() => {
-    const scrollContainer = subjectScrollRef.current;
-    if (!activeSubjectId || !scrollContainer) return;
-    const activeButton = subjectButtonRefs.current[activeSubjectId];
-    if (!activeButton) return;
-    const containerRect = scrollContainer.getBoundingClientRect();
-    const buttonRect = activeButton.getBoundingClientRect();
-    const buttonScrollLeft = scrollContainer.scrollLeft + buttonRect.left - containerRect.left;
-    const scrollTarget = buttonScrollLeft - scrollContainer.clientWidth / 2 + buttonRect.width / 2;
-    scrollContainer.scrollTo({ left: scrollTarget, behavior: "smooth" });
-  }, [activeSubjectId]);
-
-  const handleSubjectScrollMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const el = subjectScrollRef.current;
-    if (!el) return;
-    isSubjectScrollDragging.current = true;
-    subjectScrollStartX.current = e.clientX;
-    subjectScrollStartLeft.current = el.scrollLeft;
-    el.style.cursor = "grabbing";
-    el.style.userSelect = "none";
-  }, []);
-
-  const handleSubjectScrollMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isSubjectScrollDragging.current || !subjectScrollRef.current) return;
-    const dx = e.clientX - subjectScrollStartX.current;
-    subjectScrollRef.current.scrollLeft = subjectScrollStartLeft.current - dx;
-  }, []);
-
-  const handleSubjectScrollMouseUp = useCallback(() => {
-    if (!subjectScrollRef.current) return;
-    isSubjectScrollDragging.current = false;
-    subjectScrollRef.current.style.cursor = "";
-    subjectScrollRef.current.style.userSelect = "";
-  }, []);
 
   const handleStopDragging = useCallback(() => {
     if (!dragStateRef.current) {
@@ -323,84 +272,36 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const handleAddSubject = useCallback(
     (subjectOption: { label: string; value: string; id: string }) => {
       dispatch(addSubject(subjectOption));
-      setIsAddSubjectModalOpen(false);
     },
     [dispatch],
   );
 
-  const handleOpenRemoveSubjectModal = useCallback((subject: Pick<SubjectItem, "id" | "name">) => {
-    setSubjectPendingRemoval(subject);
-  }, []);
+  const handleSelectSubject = useCallback(
+    (subjectId: string) => {
+      dispatch(setActiveSubjectId(subjectId));
+    },
+    [dispatch],
+  );
 
-  const handleCloseRemoveSubjectModal = useCallback(() => {
-    setSubjectPendingRemoval(null);
-  }, []);
-
-  const handleConfirmRemoveSubject = useCallback(() => {
-    if (!subjectPendingRemoval) {
-      return;
-    }
-
-    dispatch(removeSubject(subjectPendingRemoval.id));
-    setSubjectPendingRemoval(null);
-  }, [dispatch, subjectPendingRemoval]);
+  const handleRemoveSubject = useCallback(
+    (subjectId: string) => {
+      dispatch(removeSubject(subjectId));
+    },
+    [dispatch],
+  );
 
   return (
     <div className="flex min-h-[532px] w-full flex-1 flex-col gap-10">
       {formState.examType === "model" && (
         <section className="flex flex-col gap-4">
-          <div className="flex w-fit max-w-full items-center gap-2 bg-[#EFF0F3] h-10 p-1 rounded-[6px]">
-            <div
-              ref={subjectScrollRef}
-              className="flex gap-2 items-center overflow-x-auto min-w-0 h-full scrollbar-hide cursor-grab"
-              onMouseDown={handleSubjectScrollMouseDown}
-              onMouseMove={handleSubjectScrollMouseMove}
-              onMouseUp={handleSubjectScrollMouseUp}
-              onMouseLeave={handleSubjectScrollMouseUp}
-            >
-              {subjects.map((subject) => {
-                const isActiveSubject = subject.id === activeSubject.id;
-
-                return (
-                  <div
-                    key={subject.id}
-                    ref={(node) => {
-                      subjectButtonRefs.current[subject.id] = node;
-                    }}
-                    onClick={() => dispatch(setActiveSubjectId(subject.id))}
-                    className={`rounded-[4px] h-full flex-shrink-0 flex items-center justify-center px-3 text-[14px] font-[400] leading-[16px] tracking-[-0.02em] whitespace-nowrap 
-                      ${isActiveSubject ? "text-white bg-[#49734F]" : "bg-white text-[#232A25]"}`}
-                  >
-                    {subject.name}
-                    <button
-                      type="button"
-                      className={`ml-2 flex h-4 w-4 items-center justify-center rounded-full border ${
-                        isActiveSubject ? "border-white/40 text-white" : "border-[#D0D5DD] text-[#747775]"
-                      }`}
-                      onMouseDown={(event) => {
-                        event.stopPropagation();
-                      }}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleOpenRemoveSubjectModal({ id: subject.id, name: subject.name });
-                      }}
-                      aria-label={`Remove ${subject.name} subject`}
-                    >
-                      <CrossIconSVG />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsAddSubjectModalOpen(true)}
-              className="text-[#232A25] flex flex-shrink-0 items-center justify-center px-1 text-[14px] font-[400] leading-[16px] tracking-[-0.02em] whitespace-nowrap"
-            >
-              <PlusIcon />
-              <span className="ml-1">Add Subject</span>
-            </button>
-          </div>
+          <QuestionSubjectTabs
+            subjects={subjects}
+            activeSubjectId={activeSubject?.id ?? null}
+            availableSubjectOptions={availableSubjectOptions}
+            onSelectSubject={handleSelectSubject}
+            onAddSubject={handleAddSubject}
+            onRemoveSubject={handleRemoveSubject}
+          />
 
           {!activeSubject && (
             <div className="w-full rounded-[12px] border border-dashed border-[#DADCE0] bg-[#FAFBFA] px-5 py-10 text-center">
@@ -572,20 +473,6 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
             );
           })()
         : null}
-
-      <AddQuestionSubjectModal
-        open={isAddSubjectModalOpen}
-        onClose={() => setIsAddSubjectModalOpen(false)}
-        onSelect={handleAddSubject}
-        subjectOptions={availableSubjectOptions}
-      />
-
-      <RemoveSubjectConfirmationModal
-        open={Boolean(subjectPendingRemoval)}
-        subjectName={subjectPendingRemoval?.name ?? ""}
-        onClose={handleCloseRemoveSubjectModal}
-        onConfirm={handleConfirmRemoveSubject}
-      />
     </div>
   );
 });

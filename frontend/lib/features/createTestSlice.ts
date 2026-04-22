@@ -223,7 +223,6 @@ export const createTestSlice = createSlice({
       }
     },
     setSingleSubject: (state, action: PayloadAction<{ label: string; value: string; id: string }>) => {
-      console.log("setSingleSubject", action.payload);
       const existingSubject = state.subjects.find((subject) => subject.value === action.payload.value) ?? null;
       const nextSubject = existingSubject
         ? {
@@ -238,7 +237,6 @@ export const createTestSlice = createSlice({
             id: action.payload.id,
           });
 
-      console.log("nextSubject", nextSubject);
       state.subjects = [nextSubject];
       state.activeSubjectId = nextSubject.id;
       resetTransientState(state);

@@ -1,7 +1,7 @@
-import PlusIcon from "@/component/svg/PlusIcon";
 import NormalInput from "@/Ui/NormalInput";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import AddSubjectModal from "./AddSubjectModal";
+import CreateModal from "./CreateModal";
 
 type AddQuestionSubjectModalProps = {
   open: boolean;
@@ -13,21 +13,6 @@ type AddQuestionSubjectModalProps = {
 const AddQuestionSubjectModal = ({ open, onClose, onSelect, subjectOptions }: AddQuestionSubjectModalProps) => {
   const [searchText, setSearchText] = useState("");
   const [isCreateSubjectModalOpen, setIsCreateSubjectModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (!open) {
-      setSearchText("");
-      setIsCreateSubjectModalOpen(false);
-      document.body.style.overflow = "";
-      return;
-    }
-
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
 
   const filteredSubjectOptions = useMemo(() => {
     const normalizedSearch = searchText.trim().toLowerCase();
@@ -50,21 +35,15 @@ const AddQuestionSubjectModal = ({ open, onClose, onSelect, subjectOptions }: Ad
     onClose();
   };
 
-  return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center px-4 ${open ? "pointer-events-auto" : "pointer-events-none"}`}
-    >
-      <div
-        onClick={onClose}
-        className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0"}`}
-      />
+  const handleClose = () => {
+    setSearchText("");
+    setIsCreateSubjectModalOpen(false);
+    onClose();
+  };
 
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-hidden={!open}
-        className={`relative z-10 w-full max-w-[420px] rounded-[20px] bg-white p-5 shadow-[0_20px_60px_rgba(35,42,37,0.16)] transition-all duration-300 sm:p-6 ${open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
-      >
+  return (
+    <>
+      <CreateModal open={open} onClose={handleClose} maxWidthClassName="max-w-[420px]" panelClassName="p-5 sm:p-6">
         <div className="flex flex-col gap-1">
           <p className="text-[20px] font-[600] leading-[24px] tracking-[-0.03em] text-[#232A25]">Add Subject</p>
           <p className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]">
@@ -84,15 +63,6 @@ const AddQuestionSubjectModal = ({ open, onClose, onSelect, subjectOptions }: Ad
                 afterIcon={null}
               />
             </div>
-            {/* <button
-              type="button"
-              onClick={() => setIsCreateSubjectModalOpen(true)}
-              className="flex h-11 w-11 items-center justify-center rounded-[8px] border border-[#E5E5E5] transition-colors duration-200 hover:bg-[#F8F8F8]"
-              title="Add new subject"
-              aria-label="Add new subject"
-            >
-              <PlusIcon />
-            </button> */}
           </div>
         </div>
 
@@ -114,14 +84,14 @@ const AddQuestionSubjectModal = ({ open, onClose, onSelect, subjectOptions }: Ad
             </div>
           )}
         </div>
-      </div>
+      </CreateModal>
 
       <AddSubjectModal
         open={isCreateSubjectModalOpen}
         onClose={() => setIsCreateSubjectModalOpen(false)}
         onCreated={handleCreateSubject}
       />
-    </div>
+    </>
   );
 };
 

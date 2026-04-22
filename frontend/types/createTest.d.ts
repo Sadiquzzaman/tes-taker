@@ -93,6 +93,15 @@ type PublishState = {
   excluded_students: string[];
 };
 
+type PublishStateForPayload = {
+  publishTiming: PublishTiming;
+  scheduleAt: string;
+  endingAt: string;
+  testAudience: TestAudience;
+  selectedClassId?: string;
+  excluded_students?: string[];
+};
+
 type CreateTestState = {
   currentStep: CreateTestStep;
   formState: FormState;
@@ -135,7 +144,7 @@ type QuestionCardProps = {
 interface CreateTestPayload {
   formState: FormState;
   subjects: SubjectItem[];
-  publishState: PublishState;
+  publishState: PublishStateForPayload;
 }
 
 interface Subject {

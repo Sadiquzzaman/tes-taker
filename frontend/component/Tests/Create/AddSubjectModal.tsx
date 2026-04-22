@@ -2,7 +2,8 @@ import NormalInput from "@/Ui/NormalInput";
 import { setSingleSubject } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import useCreateSubject from "@/hooks/api/subject/userCreateSubject";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import CreateModal from "./CreateModal";
 
 type CreatedSubjectOption = {
   id: string;
@@ -25,18 +26,6 @@ const AddSubjectModal = ({ open, onClose, onCreated }: AddSubjectModalProps) => 
   const dispatch = useAppDispatch();
   const [formState, setFormState] = useState(initialFormState);
   const [createSubject, { loading }] = useCreateSubject();
-
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
 
   const handleClose = () => {
     setFormState(initialFormState);
@@ -63,20 +52,7 @@ const AddSubjectModal = ({ open, onClose, onCreated }: AddSubjectModalProps) => 
   };
 
   return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center px-4 ${open ? "pointer-events-auto" : "pointer-events-none"}`}
-    >
-      <div
-        onClick={handleClose}
-        className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0"}`}
-      />
-
-      <div
-        className={`relative z-10 w-full max-w-[520px] rounded-[20px] bg-white p-6 shadow-[0_20px_60px_rgba(35,42,37,0.16)] transition-all duration-300 sm:p-8 ${open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
-        role="dialog"
-        aria-modal="true"
-        aria-hidden={!open}
-      >
+    <CreateModal open={open} onClose={handleClose} maxWidthClassName="max-w-[520px]" panelClassName="p-6 sm:p-8">
         <div className="flex flex-col gap-2">
           <p className="text-[20px] font-[600] leading-[24px] tracking-[-0.03em] text-[#232A25]">Add New Subject</p>
           <p className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]">
@@ -132,8 +108,7 @@ const AddSubjectModal = ({ open, onClose, onCreated }: AddSubjectModalProps) => 
             {loading ? "Submitting..." : "Submit"}
           </button>
         </div>
-      </div>
-    </div>
+    </CreateModal>
   );
 };
 

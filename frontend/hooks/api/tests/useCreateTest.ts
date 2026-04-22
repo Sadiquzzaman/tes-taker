@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useApiError } from "../useApiError";
 import { useDispatch } from "react-redux";
-import { setOpenShareClassModal } from "@/lib/features/classSlice";
 import { setNewTestCreated } from "@/lib/features/testSlice";
 import { resetForm } from "@/lib/features/createTestSlice";
 
@@ -27,8 +26,6 @@ const useCreateTest = () => {
     return axiosReq
       .post<T, R, D>(`${process.env.NEXT_PUBLIC_BASE_URL}/exams`, createTestPayload)
       .then(async (response) => {
-        console.log({ response });
-        console.log({ data: response.data });
         if (response.status === 201) {
           triggerToast({
             title: "Success",

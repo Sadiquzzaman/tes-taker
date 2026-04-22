@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import CreateModal from "./CreateModal";
 
 type RemoveSubjectConfirmationModalProps = {
   open: boolean;
@@ -13,33 +13,8 @@ const RemoveSubjectConfirmationModal = ({
   onClose,
   onConfirm,
 }: RemoveSubjectConfirmationModalProps) => {
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
-
   return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center px-4 ${open ? "pointer-events-auto" : "pointer-events-none"}`}
-    >
-      <div
-        onClick={onClose}
-        className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0"}`}
-      />
-
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-hidden={!open}
-        className={`relative z-10 w-full max-w-[440px] rounded-[20px] bg-white p-6 shadow-[0_20px_60px_rgba(35,42,37,0.16)] transition-all duration-300 sm:p-7 ${open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
-      >
+    <CreateModal open={open} onClose={onClose} maxWidthClassName="max-w-[440px]" panelClassName="p-6 sm:p-7">
         <div className="flex flex-col gap-2">
           <p className="text-[20px] font-[600] leading-[24px] tracking-[-0.03em] text-[#232A25]">
             Subject Confirmation
@@ -66,8 +41,7 @@ const RemoveSubjectConfirmationModal = ({
             Confirm
           </button>
         </div>
-      </div>
-    </div>
+    </CreateModal>
   );
 };
 
