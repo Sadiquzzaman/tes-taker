@@ -1,9 +1,11 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import dayjs from "dayjs";
+import { v4 as uuidv4 } from "uuid";
+import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 
 export const createTestSteps: CreateTestStep[] = ["Basic info", "Questions", "Review", "Publish"];
 
-const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+const createId = () => uuidv4();
 
 const getSectionTemplates = (examType: string): Array<{ type: QuestionSectionType; headerText: string }> => {
   if (examType === "essay") {
@@ -77,10 +79,10 @@ const createQuestionSections = (
 
 const createSubject = (
   examType: string,
-  subjectOption: Pick<SubjectItem, "name" | "value">,
+  subjectOption: Pick<SubjectItem, "name" | "value" | "id">,
   existingSections: QuestionSectionItem[] = [],
 ): SubjectItem => ({
-  id: createId(),
+  id: subjectOption.id,
   name: subjectOption.name,
   value: subjectOption.value,
   questionSections: createQuestionSections(examType, existingSections),
@@ -128,7 +130,7 @@ const createInitialState = (): CreateTestState => ({
     endingAt: dayjs().add(3, "day").toISOString(),
     testAudience: "anyone",
     selectedClassId: "",
-    specificStudents: [],
+    excluded_students: [],
   },
 });
 
@@ -152,6 +154,26 @@ const resetTransientState = (state: CreateTestState) => {
   state.pendingFocusQuestion = null;
   state.pendingFocusOption = null;
   state.dragState = null;
+};
+
+const setInvalidQuestionFocus = (state: CreateTestState, subjectId: string, sectionId: string, questionId: string) => {
+  state.activeSubjectId = subjectId;
+  state.activeQuestionId = questionId;
+  state.pendingFocusQuestion = {
+    subjectId,
+    sectionId,
+    questionId,
+  };
+  state.pendingFocusOption = null;
+};
+
+const getFirstInvalidQuestion = (section: QuestionSectionItem) =>
+  section.questions.find((question) => getQuestionValidationErrors(question, section.type).length > 0) ?? null;
+
+const showSectionValidationErrors = (section: QuestionSectionItem) => {
+  section.questions.forEach((question) => {
+    question.showValidation = getQuestionValidationErrors(question, section.type).length > 0;
+  });
 };
 
 const syncSubjectsForExamType = (subjects: SubjectItem[], examType: string, activeSubjectId: string | null) => {
@@ -200,7 +222,7 @@ export const createTestSlice = createSlice({
         resetTransientState(state);
       }
     },
-    setSingleSubject: (state, action: PayloadAction<{ label: string; value: string }>) => {
+    setSingleSubject: (state, action: PayloadAction<{ label: string; value: string; id: string }>) => {
       const existingSubject = state.subjects.find((subject) => subject.value === action.payload.value) ?? null;
       const nextSubject = existingSubject
         ? {
@@ -209,13 +231,17 @@ export const createTestSlice = createSlice({
             value: action.payload.value,
             questionSections: createQuestionSections(state.formState.examType, existingSubject.questionSections),
           }
-        : createSubject(state.formState.examType, { name: action.payload.label, value: action.payload.value });
+        : createSubject(state.formState.examType, {
+            name: action.payload.label,
+            value: action.payload.value,
+            id: action.payload.id,
+          });
 
       state.subjects = [nextSubject];
       state.activeSubjectId = nextSubject.id;
       resetTransientState(state);
     },
-    addSubject: (state, action: PayloadAction<{ label: string; value: string }>) => {
+    addSubject: (state, action: PayloadAction<{ label: string; value: string; id: string }>) => {
       const existingSubject = state.subjects.find((subject) => subject.value === action.payload.value);
 
       if (existingSubject) {
@@ -227,11 +253,49 @@ export const createTestSlice = createSlice({
       const nextSubject = createSubject(state.formState.examType, {
         name: action.payload.label,
         value: action.payload.value,
+        id: action.payload.id,
       });
 
       state.subjects.push(nextSubject);
       state.activeSubjectId = nextSubject.id;
       resetTransientState(state);
+    },
+    removeSubject: (state, action: PayloadAction<string>) => {
+      const removedSubjectIndex = state.subjects.findIndex((subject) => subject.id === action.payload);
+
+      if (removedSubjectIndex === -1) {
+        return;
+      }
+
+      const removedSubject = state.subjects[removedSubjectIndex];
+      const removedQuestionIds = new Set(
+        removedSubject.questionSections.flatMap((section) => section.questions.map((question) => question.id)),
+      );
+
+      state.subjects.splice(removedSubjectIndex, 1);
+
+      if (state.activeSubjectId === action.payload) {
+        const nextActiveSubject =
+          state.subjects[removedSubjectIndex] ?? state.subjects[removedSubjectIndex - 1] ?? state.subjects[0] ?? null;
+
+        state.activeSubjectId = nextActiveSubject?.id ?? null;
+      }
+
+      if (state.activeQuestionId && removedQuestionIds.has(state.activeQuestionId)) {
+        state.activeQuestionId = null;
+      }
+
+      if (state.pendingFocusQuestion?.subjectId === action.payload) {
+        state.pendingFocusQuestion = null;
+      }
+
+      if (state.pendingFocusOption?.subjectId === action.payload) {
+        state.pendingFocusOption = null;
+      }
+
+      if (state.dragState?.subjectId === action.payload) {
+        state.dragState = null;
+      }
     },
     setActiveSubjectId: (state, action: PayloadAction<string | null>) => {
       state.activeSubjectId = action.payload;
@@ -248,26 +312,12 @@ export const createTestSlice = createSlice({
         return;
       }
 
-      if (section.type === "objective") {
-        const invalidQuestion = section.questions.find((question) => !question.correctOptionId);
+      const invalidQuestion = getFirstInvalidQuestion(section);
 
-        if (invalidQuestion) {
-          section.questions.forEach((question) => {
-            if (!question.correctOptionId) {
-              question.showValidation = true;
-            }
-          });
-
-          state.activeSubjectId = subject.id;
-          state.activeQuestionId = invalidQuestion.id;
-          state.pendingFocusQuestion = {
-            subjectId: subject.id,
-            sectionId: section.id,
-            questionId: invalidQuestion.id,
-          };
-          state.pendingFocusOption = null;
-          return;
-        }
+      if (invalidQuestion) {
+        showSectionValidationErrors(section);
+        setInvalidQuestionFocus(state, subject.id, section.id, invalidQuestion.id);
+        return;
       }
 
       const nextQuestion = createQuestion(section.type);
@@ -330,26 +380,12 @@ export const createTestSlice = createSlice({
         return;
       }
 
-      if (section.type === "objective") {
-        const invalidQuestion = section.questions.find((question) => !question.correctOptionId);
+      const invalidQuestion = getFirstInvalidQuestion(section);
 
-        if (invalidQuestion) {
-          section.questions.forEach((question) => {
-            if (!question.correctOptionId) {
-              question.showValidation = true;
-            }
-          });
-
-          state.activeSubjectId = subject.id;
-          state.activeQuestionId = invalidQuestion.id;
-          state.pendingFocusQuestion = {
-            subjectId: subject.id,
-            sectionId: section.id,
-            questionId: invalidQuestion.id,
-          };
-          state.pendingFocusOption = null;
-          return;
-        }
+      if (invalidQuestion) {
+        showSectionValidationErrors(section);
+        setInvalidQuestionFocus(state, subject.id, section.id, invalidQuestion.id);
+        return;
       }
 
       const optionIdMap = new Map<string, string>();
@@ -530,8 +566,13 @@ export const createTestSlice = createSlice({
         return;
       }
 
-      const nextOption = createOption(action.payload.image ? " " : "", action.payload.image ?? null);
       question.options = question.options ?? [];
+
+      if (question.options.length >= 4) {
+        return;
+      }
+
+      const nextOption = createOption(action.payload.image ? " " : "", action.payload.image ?? null);
       question.options.push(nextOption);
       state.activeSubjectId = subject.id;
       state.activeQuestionId = question.id;
@@ -654,7 +695,7 @@ export const createTestSlice = createSlice({
     setPublishField: (
       state,
       action: PayloadAction<{
-        field: keyof Omit<PublishState, "publishTiming" | "testAudience" | "specificStudents">;
+        field: keyof Omit<PublishState, "publishTiming" | "testAudience" | "excluded_students">;
         value: string;
       }>,
     ) => {
@@ -663,14 +704,14 @@ export const createTestSlice = createSlice({
     setTestAudience: (state, action: PayloadAction<TestAudience>) => {
       state.publishState.testAudience = action.payload;
     },
-    addSpecificStudent: (state, action: PayloadAction<string>) => {
+    addExcludedStudent: (state, action: PayloadAction<string>) => {
       const trimmed = action.payload.trim();
-      if (trimmed && !state.publishState.specificStudents.includes(trimmed)) {
-        state.publishState.specificStudents.push(trimmed);
+      if (trimmed && !state.publishState.excluded_students.includes(trimmed)) {
+        state.publishState.excluded_students.push(trimmed);
       }
     },
-    removeSpecificStudent: (state, action: PayloadAction<number>) => {
-      state.publishState.specificStudents.splice(action.payload, 1);
+    removeExcludedStudent: (state, action: PayloadAction<number>) => {
+      state.publishState.excluded_students.splice(action.payload, 1);
     },
   },
 });
@@ -680,6 +721,7 @@ export const {
   addOption,
   addQuestion,
   addSubject,
+  removeSubject,
   cancelDragging,
   clearPendingFocusOption,
   clearPendingFocusQuestionId,
@@ -707,8 +749,8 @@ export const {
   setPublishTiming,
   setPublishField,
   setTestAudience,
-  addSpecificStudent,
-  removeSpecificStudent,
+  addExcludedStudent,
+  removeExcludedStudent,
 } = createTestSlice.actions;
 
 export default createTestSlice.reducer;

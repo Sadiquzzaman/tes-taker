@@ -584,6 +584,6 @@ const template = {
     endingAt: "2026-04-15T19:16:52.627Z",
     testAudience: "anyone",
     selectedClassId: "",
-    specificStudents: [],
+    excluded_students: [],
   },
 };

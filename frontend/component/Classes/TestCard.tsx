@@ -19,7 +19,7 @@ const TestCard = ({
 }: {
   cardBackground?: string;
   from?: string;
-  testData: Test;
+  testData: ITest;
 }) => {
   const dispatch = useAppDispatch();
 
@@ -41,7 +41,7 @@ const TestCard = ({
     >
       <div className="w-full flex justify-between items-center">
         <h2 className="text-[18px] font-[500] leading-[100%] tracking-[-0.02em] text-[#49734F]">
-          Algebra Midterm Assessment
+          {testData.test_name}
         </h2>
         <span
           style={{ background: statusColors[testStatus] }}
@@ -59,12 +59,14 @@ const TestCard = ({
             </p>
           </div>
         )}
-        <div className="w-1/2 lg:flex-1">
-          <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Subject</p>
-          <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
-            {testData?.subject}
-          </p>
-        </div>
+        {testData.exam_type !== "model" && (
+          <div className="w-1/2 lg:flex-1">
+            <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Subject</p>
+            <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
+              {testData?.subjects?.[0]?.name}
+            </p>
+          </div>
+        )}
         <div className="w-1/2 lg:flex-1">
           <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Participants</p>
           <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">28</p>
@@ -106,7 +108,7 @@ const TestCard = ({
               <button
                 title="Share Tests"
                 className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]"
-                onClick={() => dispatch(setNewTestCreated(testData2))}
+                onClick={() => dispatch(setNewTestCreated({ type: "existing", test: testData }))}
               >
                 <ShareIconSVG width={16} />
               </button>
@@ -142,59 +144,3 @@ const TestCard = ({
 };
 
 export default TestCard;
-
-const testData2 = {
-  id: "1775818174304",
-  testName: "dsfsdf",
-  shareLink: "http://localhost:3000/tests?createdTest=1775818174304",
-  type: "new",
-  test: {
-    formState: {
-      examType: "mcq",
-      testName: "dsfsdf",
-      duration: "90",
-      passingScore: "",
-      allowNegativeMarking: true,
-      negativeMarking: "25",
-    },
-    subjects: [
-      {
-        id: "1775818150802-h3j4g0m",
-        name: "English",
-        value: "english",
-        questionSections: [
-          {
-            id: "1775818150802-6aocw3c",
-            type: "objective",
-            headerText: "Objective Questions",
-            questions: [
-              {
-                id: "1775818150802-11cknah",
-                text: "sfsf",
-                image: null,
-                options: [
-                  {
-                    id: "1775818160962-wlhwx4k",
-                    text: "sdfsf",
-                    image: null,
-                  },
-                ],
-                correctOptionId: "1775818160962-wlhwx4k",
-                points: 2,
-                showValidation: false,
-              },
-            ],
-          },
-        ],
-      },
-    ],
-    publishState: {
-      publishTiming: "schedule",
-      scheduleAt: "2026-04-10T12:48:47.480Z",
-      endingAt: "2026-04-13T09:48:47.480Z",
-      testAudience: "anyone",
-      selectedClassId: "",
-      specificStudents: [],
-    },
-  },
-};

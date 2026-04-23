@@ -1,16 +1,18 @@
 import PlusIcon from "@/component/svg/PlusIcon";
+import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
 import {
   addQuestion,
   addSubject,
   finishDragging,
+  removeSubject,
   setActiveSubjectId,
   startDragging,
   updateDragging,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { createTestSubjectOptions } from "@/utils/createTestOptions";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import QuestionCard from "./QuestionCard";
+import QuestionSubjectTabs from "./QuestionSubjectTabs";
 
 const QUESTION_CARD_GAP = 16;
 
@@ -42,6 +44,7 @@ const getQuestionCardOffset = (questionIndex: number, dragState: DragState | nul
 const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const dispatch = useAppDispatch();
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
+  const subjectCatalog = useAppSelector((state) => state.subject.subjects);
   const {
     formState,
     subjects,
@@ -51,15 +54,10 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     pendingFocusOption,
     dragState,
   } = createTestState;
-  const [isAddSubjectMenuOpen, setIsAddSubjectMenuOpen] = useState(false);
+  useGetAllSubject();
   const sectionContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dragStateRef = useRef<DragState | null>(null);
-  const subjectScrollRef = useRef<HTMLDivElement>(null);
-  const subjectButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const isSubjectScrollDragging = useRef(false);
-  const subjectScrollStartX = useRef(0);
-  const subjectScrollStartLeft = useRef(0);
 
   const activeSubject = useMemo(
     () => subjects.find((subject) => subject.id === activeSubjectId) ?? subjects[0] ?? null,
@@ -68,9 +66,16 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
 
   const questionSections = activeSubject?.questionSections ?? [];
 
-  const remainingSubjectOptions = useMemo(
-    () => createTestSubjectOptions.filter((option) => !subjects.some((subject) => subject.value === option.value)),
-    [subjects],
+  const availableSubjectOptions = useMemo(
+    () =>
+      subjectCatalog
+        .map((subject) => ({
+          id: subject.id,
+          label: subject.name,
+          value: subject.value,
+        }))
+        .filter((option) => !subjects.some((subject) => subject.id === option.id)),
+    [subjectCatalog, subjects],
   );
 
   const draggedSubject = useMemo(
@@ -134,47 +139,6 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
       });
     });
   }, [pendingFocusQuestion, scrollElementIntoView]);
-
-  useEffect(() => {
-    if (formState.examType !== "model") {
-      setIsAddSubjectMenuOpen(false);
-    }
-  }, [formState.examType]);
-
-  useEffect(() => {
-    const scrollContainer = subjectScrollRef.current;
-    if (!activeSubjectId || !scrollContainer) return;
-    const activeButton = subjectButtonRefs.current[activeSubjectId];
-    if (!activeButton) return;
-    const containerRect = scrollContainer.getBoundingClientRect();
-    const buttonRect = activeButton.getBoundingClientRect();
-    const buttonScrollLeft = scrollContainer.scrollLeft + buttonRect.left - containerRect.left;
-    const scrollTarget = buttonScrollLeft - scrollContainer.clientWidth / 2 + buttonRect.width / 2;
-    scrollContainer.scrollTo({ left: scrollTarget, behavior: "smooth" });
-  }, [activeSubjectId]);
-
-  const handleSubjectScrollMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const el = subjectScrollRef.current;
-    if (!el) return;
-    isSubjectScrollDragging.current = true;
-    subjectScrollStartX.current = e.clientX;
-    subjectScrollStartLeft.current = el.scrollLeft;
-    el.style.cursor = "grabbing";
-    el.style.userSelect = "none";
-  }, []);
-
-  const handleSubjectScrollMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isSubjectScrollDragging.current || !subjectScrollRef.current) return;
-    const dx = e.clientX - subjectScrollStartX.current;
-    subjectScrollRef.current.scrollLeft = subjectScrollStartLeft.current - dx;
-  }, []);
-
-  const handleSubjectScrollMouseUp = useCallback(() => {
-    if (!subjectScrollRef.current) return;
-    isSubjectScrollDragging.current = false;
-    subjectScrollRef.current.style.cursor = "";
-    subjectScrollRef.current.style.userSelect = "";
-  }, []);
 
   const handleStopDragging = useCallback(() => {
     if (!dragStateRef.current) {
@@ -306,9 +270,22 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   );
 
   const handleAddSubject = useCallback(
-    (subjectOption: { label: string; value: string }) => {
+    (subjectOption: { label: string; value: string; id: string }) => {
       dispatch(addSubject(subjectOption));
-      setIsAddSubjectMenuOpen(false);
+    },
+    [dispatch],
+  );
+
+  const handleSelectSubject = useCallback(
+    (subjectId: string) => {
+      dispatch(setActiveSubjectId(subjectId));
+    },
+    [dispatch],
+  );
+
+  const handleRemoveSubject = useCallback(
+    (subjectId: string) => {
+      dispatch(removeSubject(subjectId));
     },
     [dispatch],
   );
@@ -317,62 +294,14 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     <div className="flex min-h-[532px] w-full flex-1 flex-col gap-10">
       {formState.examType === "model" && (
         <section className="flex flex-col gap-4">
-          <div className="flex w-fit max-w-full items-center gap-2 bg-[#EFF0F3] h-10 p-1 rounded-[6px]">
-            <div
-              ref={subjectScrollRef}
-              className="flex gap-2 items-center overflow-x-auto min-w-0 h-full scrollbar-hide cursor-grab"
-              onMouseDown={handleSubjectScrollMouseDown}
-              onMouseMove={handleSubjectScrollMouseMove}
-              onMouseUp={handleSubjectScrollMouseUp}
-              onMouseLeave={handleSubjectScrollMouseUp}
-            >
-              {subjects.map((subject) => {
-                const isActiveSubject = subject.id === activeSubject.id;
-
-                return (
-                  <button
-                    key={subject.id}
-                    ref={(node) => {
-                      subjectButtonRefs.current[subject.id] = node;
-                    }}
-                    type="button"
-                    onClick={() => dispatch(setActiveSubjectId(subject.id))}
-                    className={`rounded-[4px] h-full flex-shrink-0 flex items-center justify-center px-3 text-[14px] font-[400] leading-[16px] tracking-[-0.02em] whitespace-nowrap 
-                      ${isActiveSubject ? "text-white bg-[#49734F]" : "bg-white text-[#232A25]"}`}
-                  >
-                    {subject.name}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="relative flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsAddSubjectMenuOpen((current) => !current)}
-                disabled={remainingSubjectOptions.length === 0}
-                className="text-[#232A25] flex items-center justify-center px-1 text-[14px] font-[400] leading-[16px] tracking-[-0.02em] whitespace-nowrap disabled:opacity-50"
-              >
-                <PlusIcon />
-                <span className="ml-1">Add Subject</span>
-              </button>
-              {isAddSubjectMenuOpen && remainingSubjectOptions.length > 0 && (
-                <div
-                  className={`absolute ${activeSubject ? "right-0" : "left-0"} top-full z-20 mt-2 min-w-[220px] rounded-[12px] border border-[#E5E5E5] bg-white p-2 shadow-[0px_16px_40px_rgba(15,26,18,0.12)]`}
-                >
-                  {remainingSubjectOptions.map((subjectOption) => (
-                    <button
-                      key={subjectOption.value}
-                      type="button"
-                      onClick={() => handleAddSubject(subjectOption)}
-                      className="flex w-full items-center rounded-[8px] px-3 py-2 text-left text-[14px] font-[500] leading-[16px] text-[#232A25] transition-colors hover:bg-[#49734F0D]"
-                    >
-                      {subjectOption.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <QuestionSubjectTabs
+            subjects={subjects}
+            activeSubjectId={activeSubject?.id ?? null}
+            availableSubjectOptions={availableSubjectOptions}
+            onSelectSubject={handleSelectSubject}
+            onAddSubject={handleAddSubject}
+            onRemoveSubject={handleRemoveSubject}
+          />
 
           {!activeSubject && (
             <div className="w-full rounded-[12px] border border-dashed border-[#DADCE0] bg-[#FAFBFA] px-5 py-10 text-center">

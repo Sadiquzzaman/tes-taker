@@ -19,5 +19,5 @@ export const createTestExamTypeOptions = [
 export const testAudienceOptions = [
   { label: "Anyone with the link", value: "anyone" },
   { label: "Group or class", value: "selected_class" },
-  { label: "Specific students", value: "specific_students" },
+  // { label: "Specific students", value: "specific_students" },
 ];

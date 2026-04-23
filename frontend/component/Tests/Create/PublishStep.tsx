@@ -6,8 +6,8 @@ import {
   setPublishTiming,
   setPublishField,
   setTestAudience,
-  addSpecificStudent,
-  removeSpecificStudent,
+  addExcludedStudent,
+  removeExcludedStudent,
 } from "@/lib/features/createTestSlice";
 import DropDownComponent from "@/Ui/DropDownComponent";
 import TagInput from "@/Ui/TagInput";
@@ -69,14 +69,14 @@ const PublishStep = () => {
         type: "error",
       });
     } else {
-      dispatch(addSpecificStudent(trimmed));
+      dispatch(addExcludedStudent(trimmed));
       setStudentInput("");
     }
   }, [studentInput, dispatch]);
 
   const handleRemoveStudent = useCallback(
     (index: number) => {
-      dispatch(removeSpecificStudent(index));
+      dispatch(removeExcludedStudent(index));
     },
     [dispatch],
   );
@@ -129,11 +129,11 @@ const PublishStep = () => {
             {renderPublishOptionButton(
               "Schedule for later",
               "This test will be available on selected date & time",
-              "schedule",
+              "later",
             )}
           </div>
 
-          {publishState.publishTiming === "schedule" && <PublishSchedule />}
+          {publishState.publishTiming === "later" && <PublishSchedule />}
         </div>
 
         <div className="flex flex-col gap-4">
@@ -162,46 +162,49 @@ const PublishStep = () => {
                 list={classOptions}
               />
               {publishState.selectedClassId && (
-                <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
-                  Students in this class will be able to join the test.
-                </p>
-              )}
-            </div>
-          )}
+                <>
+                  <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
+                    Students in this class will be able to join the test.
+                  </p>
 
-          {publishState.testAudience === "specific_students" && (
-            <div className="flex flex-col gap-2">
-              <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
-                Student email or phone <span className="font-[400] text-[#747775]">(Optional)</span>
-              </p>
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <TagInput
-                    value={studentInput}
-                    onChange={(e) => setStudentInput(e.target.value)}
-                    tags={publishState.specificStudents}
-                    addTag={handleAddStudent}
-                    removeTag={handleRemoveStudent}
-                    placeholder="Invite by single/bulk email or phone. You can always add students later."
-                    afterIcon={null}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAddStudent}
-                  className="flex h-[44px] items-center gap-[6px] rounded-[8px] bg-[#232A25] px-3 text-[14px] font-[500] leading-4 tracking-[-0.02em] text-white"
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="5.5" cy="4" r="2.5" stroke="white" strokeWidth="1.2" />
-                    <path d="M1 12C1 9.79086 3.01472 8 5.5 8" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-                    <path d="M10 9V13M8 11H12" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-                  </svg>
-                  Add
-                </button>
-              </div>
-              <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
-                Invite by single/bulk email or phone. You can always add students later.
-              </p>
+                  <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+                    Exclude Student email or phone <span className="font-[400] text-[#747775]">(Optional)</span>
+                  </p>
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <TagInput
+                        value={studentInput}
+                        onChange={(e) => setStudentInput(e.target.value)}
+                        tags={publishState.excluded_students}
+                        addTag={handleAddStudent}
+                        removeTag={handleRemoveStudent}
+                        placeholder="Exclude by single/bulk email or phone."
+                        afterIcon={null}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddStudent}
+                      className="flex h-[44px] items-center gap-[6px] rounded-[8px] bg-[#232A25] px-3 text-[14px] font-[500] leading-4 tracking-[-0.02em] text-white"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="5.5" cy="4" r="2.5" stroke="white" strokeWidth="1.2" />
+                        <path
+                          d="M1 12C1 9.79086 3.01472 8 5.5 8"
+                          stroke="white"
+                          strokeWidth="1.2"
+                          strokeLinecap="round"
+                        />
+                        <path d="M10 9V13M8 11H12" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+                      </svg>
+                      Add
+                    </button>
+                  </div>
+                  <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
+                    Exclude by single/bulk email or phone.
+                  </p>
+                </>
+              )}
             </div>
           )}
 

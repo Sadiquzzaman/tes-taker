@@ -81,6 +81,8 @@ const QuestionCard = memo(
     const questionInputRef = useRef<HTMLTextAreaElement>(null);
     const questionImageInputRef = useRef<HTMLInputElement>(null);
     const validationErrors = getQuestionValidationErrors(question, sectionType);
+    const optionCount = question.options?.length ?? 0;
+    const canAddMoreOptions = sectionType === "objective" && optionCount < 4;
 
     const activateCard = useCallback(() => {
       dispatch(setActiveQuestionId(question.id));
@@ -526,10 +528,11 @@ const QuestionCard = memo(
                   ref={addOptionButtonRef}
                   type="button"
                   onClick={handleAddOptionWithScroll}
+                  disabled={!canAddMoreOptions}
                   className="flex w-full items-center gap-2 py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)]"
                 >
                   <span className="h-4 w-4 rounded-full border border-[rgba(116,119,117,0.5)]" />
-                  <span>Click to add a new option</span>
+                  <span>{canAddMoreOptions ? "Click to add a new option" : "Maximum 4 options added"}</span>
                 </button>
                 <input
                   ref={addOptionImageInputRef}
@@ -542,7 +545,8 @@ const QuestionCard = memo(
                   type="button"
                   title="Add new option with image"
                   onClick={() => addOptionImageInputRef.current?.click()}
-                  className="flex shrink-0 items-center justify-center rounded-[8px] text-[#747775] transition-colors duration-150 hover:text-[#49734F]"
+                  disabled={!canAddMoreOptions}
+                  className="flex shrink-0 items-center justify-center rounded-[8px] text-[#747775] transition-colors duration-150 hover:text-[#49734F] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-[#747775]"
                   aria-label="Add new option with image"
                 >
                   <UploadImageIconSVG />

@@ -21,8 +21,8 @@ export const getQuestionValidationErrors = (question: QuestionItem, sectionType:
   if (sectionType === "objective") {
     const options = question.options ?? [];
 
-    if (options.length === 0) {
-      errors.push("Add at least one option.");
+    if (options.length !== 4) {
+      errors.push("Objective questions must have exactly 4 options.");
     }
 
     options.forEach((option, index) => {
@@ -61,3 +61,6 @@ export const collectQuestionValidationFailures = (subjects: SubjectItem[]): Ques
 
   return failures;
 };
+
+export const getSubjectQuestionCount = (subject: SubjectItem): number =>
+  subject.questionSections.reduce((count, section) => count + section.questions.length, 0);

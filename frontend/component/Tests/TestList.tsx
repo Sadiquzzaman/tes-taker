@@ -1,40 +1,44 @@
 "use client";
 
-import useGetAllClass from "@/hooks/api/class/useGetAllClass";
-import Image from "next/image";
-import HumanAddIconSVG from "../svg/HumanAddIconSvg";
-import ShareIconSVG from "../svg/ShareIconSVG";
-import ThreeDotIconSVG from "../svg/ThreeDotIconSVG";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { useEffect, useState } from "react";
-import { setSearchInput } from "@/lib/features/classSlice";
-import Link from "next/link";
+import { useEffect, useMemo } from "react";
+import { setSearchInput } from "@/lib/features/testSlice";
 import TestCard from "../Classes/TestCard";
 import useGetAllTests from "@/hooks/api/tests/useGetAllTests";
 import { RotatingLines } from "react-loader-spinner";
 
+const matchesStartsWith = (value: string, searchValue: string) => {
+  const normalizedValue = value.trim().toLowerCase();
+
+  if (!searchValue) {
+    return true;
+  }
+
+  return (
+    normalizedValue.startsWith(searchValue) || normalizedValue.split(/\s+/).some((word) => word.startsWith(searchValue))
+  );
+};
+
 const TestList = () => {
-  const { fetch, loading, testList, apiComplete } = useGetAllTests({});
+  const { loading, testList, apiComplete } = useGetAllTests({});
   const { searchInput } = useAppSelector((state) => state.test);
   const dispatch = useAppDispatch();
+  const normalizedSearchInput = searchInput.trim().toLowerCase();
 
-  const [filterdTestList, setFilterdTestList] = useState<Test[]>([]);
-
-  useEffect(() => {
-    if (testList.length > 0) {
-      const filtered = testList.filter(
+  const filteredTestList = useMemo(
+    () =>
+      testList.filter(
         (testItem) =>
-          testItem.subject.toLowerCase().includes(searchInput.toLowerCase()) ||
-          testItem.class.class_name.toLowerCase().includes(searchInput.toLowerCase()),
-        // test name should added
-      );
-      setFilterdTestList(filtered);
-    }
-  }, [searchInput, testList]);
+          testItem.subjects.some((subject) => matchesStartsWith(subject.name, normalizedSearchInput)) ||
+          matchesStartsWith(testItem.class.class_name, normalizedSearchInput) ||
+          matchesStartsWith(testItem.test_name, normalizedSearchInput),
+      ),
+    [normalizedSearchInput, testList],
+  );
 
   useEffect(() => {
     dispatch(setSearchInput(""));
-  }, [testList, loading]);
+  }, [dispatch]);
 
   if (loading)
     return (
@@ -55,7 +59,7 @@ const TestList = () => {
 
   if (!apiComplete) return null;
 
-  if (filterdTestList.length === 0) {
+  if (filteredTestList.length === 0) {
     return (
       <div className="w-full min-h-[calc(100vh-162px)] flex items-center justify-center">
         <div className="text-center">
@@ -67,8 +71,8 @@ const TestList = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-4">
-      {filterdTestList.length > 0 &&
-        filterdTestList.map((test) => (
+      {filteredTestList.length > 0 &&
+        filteredTestList.map((test) => (
           <TestCard key={test.id} cardBackground="white" from="testList" testData={test} />
         ))}
     </div>

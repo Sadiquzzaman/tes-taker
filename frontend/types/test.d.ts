@@ -1,13 +1,25 @@
-interface Test {
+type NewTestShareData = {
+  type?: "new" | "existing";
+  test: ITest;
+};
+
+interface ITest {
   id: string;
   is_active: number;
   created_by: string;
   created_user_name: string;
-  updated_by: string;
-  updated_user_name: string;
+  updated_by: any;
+  updated_user_name: any;
   created_at: string;
-  updated_at: string;
+  updated_at: any;
   exam_type: string;
+  test_name: string;
+  subjects: SubjectItem[];
+  duration_minutes: number;
+  passing_score: number;
+  publish_timing: string;
+  test_audience: TestAudience;
+  invite_token: any;
   exam_start_time: string;
   exam_end_time: string;
   is_negative_marking: boolean;
@@ -16,35 +28,7 @@ interface Test {
   class_id: string;
   class: Class;
   excluded_students: any[];
-  questions: Question[];
+  target_students: any[];
+  questionSections: QuestionSectionItem[];
+  questions: QuestionItem[];
 }
-
-interface Question {
-  id: string;
-  is_active: number;
-  created_by: string;
-  created_user_name: string;
-  updated_by: string;
-  updated_user_name: string;
-  created_at: string;
-  updated_at: string;
-  question_type: string;
-  question: string;
-  option1: any;
-  option2: any;
-  option3: any;
-  option4: any;
-  correct_answer: any;
-  explanation: any;
-  expected_word_limit: number;
-  marks_per_question: number;
-  sample_answer: string;
-}
-
-type NewTestShareData = {
-  id: string;
-  testName: string;
-  shareLink: string;
-  type?: "new" | "existing";
-  test: CreateTestState;
-};

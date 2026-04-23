@@ -2,7 +2,6 @@ import { useAppSelector } from "@/lib/hooks";
 
 const ReviewStep = () => {
   const { formState, subjects } = useAppSelector((state) => state.createTest);
-  console.log(formState, subjects);
   const totalQuestions = subjects.reduce((total, subject) => {
     return (
       total +

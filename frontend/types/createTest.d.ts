@@ -80,7 +80,7 @@ type PendingFocusOption = {
   optionId: string;
 };
 
-type PublishTiming = "immediately" | "schedule";
+type PublishTiming = "immediately" | "later";
 
 type TestAudience = "anyone" | "selected_class" | "specific_students";
 
@@ -90,7 +90,16 @@ type PublishState = {
   endingAt: string;
   testAudience: TestAudience;
   selectedClassId: string;
-  specificStudents: string[];
+  excluded_students: string[];
+};
+
+type PublishStateForPayload = {
+  publishTiming: PublishTiming;
+  scheduleAt: string;
+  endingAt: string;
+  testAudience: TestAudience;
+  selectedClassId?: string;
+  excluded_students?: string[];
 };
 
 type CreateTestState = {
@@ -131,3 +140,22 @@ type QuestionCardProps = {
     event: React.PointerEvent<HTMLButtonElement>,
   ) => void;
 };
+
+interface CreateTestPayload {
+  formState: FormState;
+  subjects: SubjectItem[];
+  publishState: PublishStateForPayload;
+}
+
+interface Subject {
+  id: string;
+  is_active: number;
+  created_by: string;
+  created_user_name: string;
+  updated_by: any;
+  updated_user_name: any;
+  created_at: string;
+  updated_at: any;
+  name: string;
+  code: string;
+}
