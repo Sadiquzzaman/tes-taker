@@ -91,9 +91,9 @@ export class StudentExamController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.STUDENT)
   @ApiOperation({
-    summary: 'Validate exam access',
+    summary: 'Validate exam access (legacy alias)',
     description:
-      'Check if student can access the exam. For audience `anyone`, pass invite_token from the teacher share link.',
+      'Same as GET :examId/eligibility. Checks audience rules (anyone + invite token, class membership + excluded_students, or specific students). Does not enforce the exam schedule window.',
   })
   @ApiParam({ name: 'examId', description: 'Exam UUID' })
   @ApiQuery({
@@ -112,12 +112,48 @@ export class StudentExamController {
       jwtPayload.id,
       inviteToken,
     );
-    return { 
-      message: payload.canAccess ? 'Access granted' : 'Access denied', 
+    return {
+      message: payload.canAccess ? 'Access granted' : 'Access denied',
       payload: {
         can_access: payload.canAccess,
         reason: payload.reason,
-      }
+      },
+    };
+  }
+
+  @Get(':examId/eligibility')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.STUDENT)
+  @ApiOperation({
+    summary: 'Check exam eligibility',
+    description:
+      'Returns whether the logged-in student may take this exam based on publish rules. For `anyone`, pass invite_token. For `selected_class`, student must be joined in the class and not listed in excluded_students. Schedule is checked when starting or opening the exam for taking.',
+  })
+  @ApiParam({ name: 'examId', description: 'Exam UUID' })
+  @ApiQuery({
+    name: 'invite_token',
+    required: false,
+    description: 'Required when exam.test_audience is `anyone`',
+  })
+  @ApiResponse({ status: 200, description: 'Eligibility result' })
+  async checkExamEligibility(
+    @Param('examId', ParseUUIDPipe) examId: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+    @Query('invite_token') inviteToken?: string,
+  ) {
+    const payload = await this.studentExamService.validateExamAccess(
+      examId,
+      jwtPayload.id,
+      inviteToken,
+    );
+    return {
+      message: payload.canAccess ? 'Eligible' : 'Not eligible',
+      payload: {
+        eligible: payload.canAccess,
+        can_access: payload.canAccess,
+        reason: payload.reason,
+      },
     };
   }
 

@@ -20,6 +20,7 @@ import {
   ApiTags,
 } from "@nestjs/swagger";
 import { AuthGuard } from "@nestjs/passport";
+import { OptionalJwtAuthGuard } from "src/auth/guards/optional-jwt-auth.guard";
 import { RolesGuard } from "src/common/guard/roles.guard";
 import { Roles } from "src/common/decorators/roles.decorator";
 import { RolesEnum } from "src/common/enums/roles.enum";
@@ -137,19 +138,23 @@ export class ExamController {
 
   @Get(":id")
   @ApiBearerAuth("jwt")
-  @UseGuards(AuthGuard("jwt"), RolesGuard)
-  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.STUDENT)
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({
     summary: "Get exam by ID",
-    description: "Get detailed information about a specific exam",
+    description:
+      "Without a token, or as a student: returns test_name and created_user_name only. With a teacher/admin token: full exam details when permitted.",
   })
   @ApiParam({ name: "id", description: "Exam UUID" })
   @ApiResponse({ status: 200, description: "Exam details" })
   @ApiResponse({ status: 404, description: "Exam not found" })
   async findOne(
     @Param("id", ParseUUIDPipe) id: string,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
+    @UserPayload() jwtPayload?: JwtPayloadInterface,
   ) {
+    if (!jwtPayload || jwtPayload.role === RolesEnum.STUDENT) {
+      const payload = await this.examService.findOnePublicSummary(id);
+      return { message: "Exam summary retrieved successfully", payload };
+    }
     const payload = await this.examService.findOne(id, jwtPayload);
     return { message: "Exam details retrieved successfully", payload };
   }

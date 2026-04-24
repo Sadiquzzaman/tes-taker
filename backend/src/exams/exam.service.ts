@@ -691,6 +691,25 @@ export class ExamService {
     return this.formatExamResponse(exam);
   }
 
+  /**
+   * Minimal exam card for unauthenticated clients or students hitting GET /v1/exams/:id.
+   */
+  async findOnePublicSummary(
+    id: string,
+  ): Promise<{ test_name: string | null; created_user_name: string | null }> {
+    const exam = await this.examRepo.findOne({
+      where: { id },
+      select: ['id', 'test_name', 'created_user_name'],
+    });
+    if (!exam) {
+      throw new NotFoundException('Exam not found');
+    }
+    return {
+      test_name: exam.test_name,
+      created_user_name: exam.created_user_name ?? null,
+    };
+  }
+
   private async findOneEntity(id: string): Promise<ExamEntity> {
     const exam = await this.examRepo.findOne({
       where: { id },
