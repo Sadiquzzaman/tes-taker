@@ -13,6 +13,7 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 export type ClassPublicSummary = {
   class_name: string;
   description: string | null;
+  created_user_name: string | null;
 };
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { EmailService } from 'src/email/email.service';
@@ -124,6 +125,7 @@ export class ClassService {
       return {
         class_name: classEntity.class_name,
         description: classEntity.description ?? null,
+        created_user_name: classEntity.created_user_name ?? null,
       };
     }
 

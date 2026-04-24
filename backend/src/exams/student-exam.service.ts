@@ -97,12 +97,10 @@ export class StudentExamService {
       cs => cs.status === ClassStudentStatusEnum.JOINED && cs.student_id !== null
     );
     const classStudents = classStudentEntities.map(cs => cs.student).filter(s => s !== null) as UserEntity[];
-    
-    // Get excluded student IDs
-    const excludedIds = (exam.excluded_students || []).map(s => s.id);
-    
-    // Filter out excluded students
-    const assignedStudents = classStudents.filter(s => !excludedIds.includes(s.id));
+
+    const excludedIds = (exam.excluded_students || []).map((s) => s.id);
+
+    const assignedStudents = classStudents.filter((s) => !excludedIds.includes(s.id));
 
     if (assignedStudents.length === 0) {
       return { sent: 0, failed: 0 };
@@ -292,7 +290,8 @@ export class StudentExamService {
   // ========================
 
   /**
-   * Validate if student can access an exam
+   * Eligibility for taking an exam (audience rules, exclusions, submission state).
+   * Schedule window is enforced separately when loading questions, saving answers, and starting the exam.
    * @param inviteToken Required when exam.test_audience is `anyone` (must match exam.invite_token)
    */
   async validateExamAccess(
@@ -346,30 +345,6 @@ export class StudentExamService {
       }
     }
 
-    const now = new Date();
-    const startTime = new Date(exam.exam_start_time);
-    const endTime = new Date(exam.exam_end_time);
-
-    if (now < startTime) {
-      return {
-        canAccess: false,
-        reason: `Exam has not started yet. It starts at ${startTime.toLocaleString()}`,
-      };
-    }
-
-    if (now > endTime) {
-      const inProgress = await this.submissionRepo.findOne({
-        where: {
-          exam_id: examId,
-          student_id: studentId,
-          status: ExamSubmissionStatusEnum.IN_PROGRESS,
-        },
-      });
-      if (!inProgress) {
-        return { canAccess: false, reason: 'Exam has already ended' };
-      }
-    }
-
     const existingSubmission = await this.submissionRepo.findOne({
       where: {
         exam_id: examId,
@@ -412,6 +387,7 @@ export class StudentExamService {
     }
 
     const exam = validation.exam!;
+    await this.assertExamOpenForTaking(exam, studentId);
 
     const submission = await this.submissionRepo.findOne({
       where: { exam_id: examId, student_id: studentId },
@@ -499,6 +475,14 @@ export class StudentExamService {
 
     const exam = validation.exam!;
 
+    const now = new Date();
+    if (now < new Date(exam.exam_start_time)) {
+      throw new BadRequestException('Exam has not started yet');
+    }
+    if (now > new Date(exam.exam_end_time)) {
+      throw new BadRequestException('Exam has ended');
+    }
+
     let submission = await this.submissionRepo.findOne({
       where: { exam_id: examId, student_id: studentId },
     });
@@ -540,6 +524,8 @@ export class StudentExamService {
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
     }
+
+    await this.assertExamOpenForTaking(validation.exam!, studentId);
 
     // Get submission
     const submission = await this.submissionRepo.findOne({
@@ -644,6 +630,10 @@ export class StudentExamService {
 
     if (submission.status === ExamSubmissionStatusEnum.DISQUALIFIED) {
       throw new BadRequestException('You have been disqualified from this exam');
+    }
+
+    if (submission.status === ExamSubmissionStatusEnum.IN_PROGRESS) {
+      await this.assertExamOpenForTaking(exam, studentId);
     }
 
     for (const answerDto of dto.answers) {
@@ -836,6 +826,8 @@ export class StudentExamService {
       throw new ForbiddenException(validation.reason);
     }
 
+    await this.assertExamOpenForTaking(validation.exam!, studentId);
+
     const submission = await this.submissionRepo.findOne({
       where: { 
         exam_id: examId, 
@@ -858,6 +850,29 @@ export class StudentExamService {
     }
 
     await this.submissionRepo.save(submission);
+  }
+
+  private async assertExamOpenForTaking(exam: ExamEntity, studentId: string): Promise<void> {
+    const now = new Date();
+    const start = new Date(exam.exam_start_time);
+    const end = new Date(exam.exam_end_time);
+
+    if (now < start) {
+      throw new ForbiddenException('Exam has not started yet');
+    }
+
+    if (now > end) {
+      const inProgress = await this.submissionRepo.findOne({
+        where: {
+          exam_id: exam.id,
+          student_id: studentId,
+          status: ExamSubmissionStatusEnum.IN_PROGRESS,
+        },
+      });
+      if (!inProgress) {
+        throw new ForbiddenException('Exam has ended');
+      }
+    }
   }
 
   /**

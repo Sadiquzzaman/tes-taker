@@ -102,7 +102,7 @@ export class ClassController {
   @ApiOperation({
     summary: 'Get a specific class by ID',
     description:
-      'With a valid Bearer token (teacher/admin): full class details including students and test stats. Without a token: only class name and description.',
+      'With a valid Bearer token (teacher/admin): full class details including students and test stats. Without a token: class name, description, and created user name.',
   })
   @ApiParam({ name: 'id', description: 'Class UUID' })
   @ApiResponse({ status: 200, description: 'Class details or public summary' })
