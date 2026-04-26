@@ -56,7 +56,7 @@ const PublishStep = () => {
         description: "Please enter a valid email address or phone number.",
         type: "error",
       });
-    } else if (trimmed.includes("@") && emailRegex.test(trimmed)) {
+    } else if (trimmed.includes("@") && !emailRegex.test(trimmed)) {
       triggerToast({
         title: "Invalid email",
         description: "Please enter a valid email address.",
