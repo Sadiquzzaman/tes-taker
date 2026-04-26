@@ -9,7 +9,7 @@ const useLogin = () => {
   const [loading, setLoading] = useState(false);
   const { push } = useRouter();
 
-  const mutate = async (loginInfo: { phone: string; password: string }) => {
+  const mutate = async (loginInfo: LoginPayload) => {
     setLoading(true);
 
     return axiosReq

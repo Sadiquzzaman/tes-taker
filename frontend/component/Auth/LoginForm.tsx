@@ -9,34 +9,43 @@ import ButtonLoader from "../Loader/ButtonLoadder";
 
 const LoginForm = () => {
   const [loginInfo, setLoginInfo] = useState<LoginInfo>({
-    phone: "",
+    identifier: "",
     password: "",
   });
   const [loginUser, { loading }] = useLogin();
   const [formError, setFormError] = useState({
-    phone: "",
+    identifier: "",
     password: "",
   });
+
   const handleLoginSendCode = () => {
-    const value = loginInfo.phone.trim();
+    const value = loginInfo.identifier.trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const bdPhoneRegex = /^01[3-9]\d{8}$/;
+    const isEmail = value.includes("@");
+    const isPhone = /^\d+$/.test(value);
 
     if (!value) {
-      setFormError({ ...formError, phone: "Please enter email or phone number" });
-    } else if (!value.includes("@") && !/^\d+$/.test(value)) {
-      setFormError({ ...formError, phone: "Enter a valid email or phone number" });
-    } else if (value.includes("@") && !emailRegex.test(value)) {
-      setFormError({ ...formError, phone: "Invalid email address" });
-    } else if (/^\d+$/.test(value) && !bdPhoneRegex.test(value)) {
-      setFormError({ ...formError, phone: "Invalid Bangladeshi phone number (11 digits required)" });
+      setFormError({ ...formError, identifier: "Please enter email or phone number" });
+    } else if (isPhone && value.length !== 11) {
+      setFormError({ ...formError, identifier: "Phone number must be 11 digits" });
+    } else if (isPhone && !bdPhoneRegex.test(value)) {
+      setFormError({ ...formError, identifier: "Invalid Bangladeshi phone number" });
+    } else if (isEmail && !emailRegex.test(value)) {
+      setFormError({ ...formError, identifier: "Invalid email address" });
+    } else if (!isEmail && !isPhone) {
+      setFormError({ ...formError, identifier: "Enter a valid email or phone number" });
     } else if (!loginInfo.password) {
       setFormError({ ...formError, password: "Please enter a password" });
     } else if (loginInfo.password.length < 8) {
       setFormError({ ...formError, password: "Password must be at least 8 characters." });
     } else {
-      setFormError({ ...formError, password: "", phone: "" });
-      loginUser({ phone: value, password: loginInfo.password });
+      setFormError({ ...formError, password: "", identifier: "" });
+      loginUser(
+        isEmail
+          ? { email: value, password: loginInfo.password }
+          : { phone: value, password: loginInfo.password },
+      );
     }
   };
 
@@ -54,12 +63,12 @@ const LoginForm = () => {
         </div>
         <div className="flex flex-col gap-4">
           <AuthInput
-            value={loginInfo.phone}
+            value={loginInfo.identifier}
             onChange={(e) => {
-              setFormError({ ...formError, phone: "" });
-              setLoginInfo({ ...loginInfo, phone: e.target.value });
+              setFormError({ ...formError, identifier: "" });
+              setLoginInfo({ ...loginInfo, identifier: e.target.value });
             }}
-            formError={formError.phone}
+            formError={formError.identifier}
             placeholder="Enter email or phone"
             label="Email or phone"
           />

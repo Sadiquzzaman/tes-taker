@@ -14,9 +14,19 @@ interface SignUpInfo {
 }
 
 interface LoginInfo {
-  phone: string;
+  identifier: string;
   password: string;
 }
+
+type LoginPayload =
+  | {
+      phone: string;
+      password: string;
+    }
+  | {
+      email: string;
+      password: string;
+    };
 
 type SignUpPageView = "signup" | "otp";
 
