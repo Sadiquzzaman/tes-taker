@@ -11,6 +11,7 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 
 /** Public class card when GET class details is called without a token */
 export type ClassPublicSummary = {
+  id: string;
   class_name: string;
   description: string | null;
   created_user_name: string | null;
@@ -123,6 +124,7 @@ export class ClassService {
 
     if (!jwtPayload) {
       return {
+        id: classEntity.id,
         class_name: classEntity.class_name,
         description: classEntity.description ?? null,
         created_user_name: classEntity.created_user_name ?? null,
@@ -573,43 +575,23 @@ export class ClassService {
     classId: string,
     jwtPayload: JwtPayloadInterface,
   ): Promise<string> {
-    const classEntity = await this.findOne(classId, jwtPayload);
+    await this.findOne(classId, jwtPayload);
     const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
-
-    // Generate or reuse share token
-    if (!classEntity.share_token) {
-      classEntity.share_token = randomUUID();
-      await this.classRepo.save(classEntity);
-    }
-
-    return `${frontendUrl}/classes/join/${classEntity.share_token}`;
+    return `${frontendUrl}/classes/${classId}/join`;
   }
 
   /**
-   * Join class by share token
+   * Join class by class id (authenticated student).
+   * If the student was pre-invited (INVITED row matching email/phone), they become JOINED.
+   * Otherwise they are added as PENDING until the teacher approves.
    */
-  async joinClassByShareToken(
-    shareToken: string,
-    studentId: string,
-  ): Promise<ClassStudentEntity> {
-    const classEntity = await this.classRepo.findOne({
-      where: { share_token: shareToken },
-    });
+  async joinClassByClassId(classId: string, studentId: string): Promise<ClassStudentEntity> {
+    const classEntity = await this.classRepo.findOne({ where: { id: classId } });
 
     if (!classEntity) {
-      throw new NotFoundException('Invalid share link');
+      throw new NotFoundException('Class not found');
     }
 
-    // Check if student is already in class
-    const existing = await this.classStudentRepo.findOne({
-      where: { class_id: classEntity.id, student_id: studentId },
-    });
-
-    if (existing) {
-      throw new BadRequestException('You are already in this class');
-    }
-
-    // Verify student is onboarded
     const student = await this.userRepo.findOne({
       where: { id: studentId },
     });
@@ -622,9 +604,45 @@ export class ClassService {
       throw new BadRequestException('Only students can join classes');
     }
 
-    // Add student with PENDING status (teacher needs to approve)
+    const existingMembership = await this.classStudentRepo.findOne({
+      where: { class_id: classId, student_id: studentId },
+    });
+
+    if (existingMembership) {
+      if (existingMembership.status === ClassStudentStatusEnum.JOINED) {
+        throw new BadRequestException('You are already in this class');
+      }
+      if (existingMembership.status === ClassStudentStatusEnum.PENDING) {
+        throw new BadRequestException('You already have a pending join request for this class');
+      }
+      throw new BadRequestException('You are already associated with this class');
+    }
+
+    const email = student.email?.toLowerCase() ?? null;
+    const phone = student.phone;
+    const invitedOr = [
+      { class_id: classId, invited_phone: phone, status: ClassStudentStatusEnum.INVITED },
+      ...(email
+        ? [{ class_id: classId, invited_email: email, status: ClassStudentStatusEnum.INVITED as const }]
+        : []),
+    ];
+
+    const invitedRow = await this.classStudentRepo.findOne({
+      where: invitedOr,
+    });
+
+    if (invitedRow) {
+      invitedRow.student_id = studentId;
+      invitedRow.status = ClassStudentStatusEnum.JOINED;
+      invitedRow.joined_at = new Date();
+      invitedRow.invitation_token = null;
+      invitedRow.approved_at = new Date();
+      invitedRow.approved_by = classEntity.teacher_id;
+      return await this.classStudentRepo.save(invitedRow);
+    }
+
     const classStudent = this.classStudentRepo.create({
-      class_id: classEntity.id,
+      class_id: classId,
       student_id: studentId,
       status: ClassStudentStatusEnum.PENDING,
       joined_at: new Date(),
@@ -661,11 +679,15 @@ export class ClassService {
       return;
     }
 
-    // Update class student record
+    const cls = await this.classRepo.findOne({ where: { id: classId } });
+
+    // Update class student record — invited students join directly as JOINED
     classStudent.student_id = studentId;
-    classStudent.status = ClassStudentStatusEnum.PENDING;
+    classStudent.status = ClassStudentStatusEnum.JOINED;
     classStudent.joined_at = new Date();
-    classStudent.invitation_token = null; // Clear token after use
+    classStudent.invitation_token = null;
+    classStudent.approved_at = new Date();
+    classStudent.approved_by = cls?.teacher_id ?? null;
 
     await this.classStudentRepo.save(classStudent);
   }

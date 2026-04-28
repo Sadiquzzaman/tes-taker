@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, OneToMany, JoinColumn, Index } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { IsNotEmpty, MaxLength } from 'class-validator';
 import { UserEntity } from 'src/user/entities/user.entity';
@@ -24,11 +24,6 @@ export class ClassEntity extends CustomBaseEntity {
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'teacher_id' })
   teacher: UserEntity;
-
-  @ApiPropertyOptional({ description: 'Share token for public class joining' })
-  @Column({ name: 'share_token', type: 'varchar', length: 100, nullable: true, unique: true })
-  @Index()
-  share_token: string | null;
 
   @OneToMany(() => ClassStudentEntity, (classStudent) => classStudent.class, { cascade: true })
   classStudents: ClassStudentEntity[];

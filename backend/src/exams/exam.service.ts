@@ -150,9 +150,6 @@ export class ExamService {
       }
     }
 
-    const inviteToken =
-      publishState.testAudience === TestAudienceEnum.ANYONE ? randomUUID() : null;
-
     const { hasObjective, hasSubjective } = this.countQuestionTypes(subjects);
     const examType =
       hasObjective && !hasSubjective
@@ -189,7 +186,6 @@ export class ExamService {
         passing_score: formState.passingScore,
         publish_timing: publishState.publishTiming,
         test_audience: publishState.testAudience,
-        invite_token: inviteToken,
         exam_start_time: publishState.scheduleAt,
         exam_end_time: publishState.endingAt,
         is_negative_marking: formState.allowNegativeMarking,
@@ -696,7 +692,7 @@ export class ExamService {
    */
   async findOnePublicSummary(
     id: string,
-  ): Promise<{ test_name: string | null; created_user_name: string | null }> {
+  ): Promise<{ id: string; test_name: string | null; created_user_name: string | null }> {
     const exam = await this.examRepo.findOne({
       where: { id },
       select: ['id', 'test_name', 'created_user_name'],
@@ -705,6 +701,7 @@ export class ExamService {
       throw new NotFoundException('Exam not found');
     }
     return {
+      id: exam.id,
       test_name: exam.test_name,
       created_user_name: exam.created_user_name ?? null,
     };
