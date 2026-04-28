@@ -292,12 +292,11 @@ export class StudentExamService {
   /**
    * Eligibility for taking an exam (audience rules, exclusions, submission state).
    * Schedule window is enforced separately when loading questions, saving answers, and starting the exam.
-   * @param inviteToken Required when exam.test_audience is `anyone` (must match exam.invite_token)
+   * For `anyone` audience, any authenticated student who knows the exam id may take the exam.
    */
   async validateExamAccess(
     examId: string,
     studentId: string,
-    inviteToken?: string,
   ): Promise<{ canAccess: boolean; reason?: string; exam?: ExamEntity }> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
@@ -320,16 +319,12 @@ export class StudentExamService {
 
     const audience = exam.test_audience;
 
-    if (audience === TestAudienceEnum.ANYONE) {
-      if (!exam.invite_token || !inviteToken || inviteToken !== exam.invite_token) {
-        return { canAccess: false, reason: 'Valid invite token is required for this exam' };
-      }
-    } else if (audience === TestAudienceEnum.SPECIFIC_STUDENTS) {
+    if (audience === TestAudienceEnum.SPECIFIC_STUDENTS) {
       const allowed = exam.target_students?.some((s) => s.id === studentId);
       if (!allowed) {
         return { canAccess: false, reason: 'You are not on the list for this exam' };
       }
-    } else {
+    } else if (audience !== TestAudienceEnum.ANYONE) {
       if (!exam.class) {
         return { canAccess: false, reason: 'Exam is not assigned to any class' };
       }
@@ -378,9 +373,8 @@ export class StudentExamService {
   async getExamForStudent(
     examId: string,
     studentId: string,
-    inviteToken?: string,
   ): Promise<Record<string, unknown>> {
-    const validation = await this.validateExamAccess(examId, studentId, inviteToken);
+    const validation = await this.validateExamAccess(examId, studentId);
 
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
@@ -465,9 +459,8 @@ export class StudentExamService {
     studentId: string,
     dto: StartExamDto,
     ipAddress?: string,
-    inviteToken?: string,
   ): Promise<StudentExamSubmissionEntity> {
-    const validation = await this.validateExamAccess(examId, studentId, inviteToken);
+    const validation = await this.validateExamAccess(examId, studentId);
     
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
@@ -518,9 +511,8 @@ export class StudentExamService {
     examId: string,
     studentId: string,
     dto: SaveAnswerDto,
-    inviteToken?: string,
   ): Promise<StudentExamAnswerEntity> {
-    const validation = await this.validateExamAccess(examId, studentId, inviteToken);
+    const validation = await this.validateExamAccess(examId, studentId);
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
     }
@@ -595,7 +587,6 @@ export class StudentExamService {
     studentId: string,
     dto: SubmitExamDto,
     autoSubmit: boolean = false,
-    inviteToken?: string,
   ): Promise<Record<string, unknown>> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
@@ -637,7 +628,7 @@ export class StudentExamService {
     }
 
     for (const answerDto of dto.answers) {
-      await this.saveAnswer(examId, studentId, answerDto, inviteToken);
+      await this.saveAnswer(examId, studentId, answerDto);
     }
 
     if (dto.browser_switch_count !== undefined) {
@@ -819,9 +810,8 @@ export class StudentExamService {
     examId: string,
     studentId: string,
     dto: ReportViolationDto,
-    inviteToken?: string,
   ): Promise<void> {
-    const validation = await this.validateExamAccess(examId, studentId, inviteToken);
+    const validation = await this.validateExamAccess(examId, studentId);
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
     }

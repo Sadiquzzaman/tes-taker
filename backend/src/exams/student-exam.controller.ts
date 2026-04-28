@@ -93,24 +93,17 @@ export class StudentExamController {
   @ApiOperation({
     summary: 'Validate exam access (legacy alias)',
     description:
-      'Same as GET :examId/eligibility. Checks audience rules (anyone + invite token, class membership + excluded_students, or specific students). Does not enforce the exam schedule window.',
+      'Same as GET :examId/eligibility. Checks audience rules (any authenticated student for `anyone`, class membership + excluded_students, or specific students). Does not enforce the exam schedule window.',
   })
   @ApiParam({ name: 'examId', description: 'Exam UUID' })
-  @ApiQuery({
-    name: 'invite_token',
-    required: false,
-    description: 'Required when exam.test_audience is `anyone`',
-  })
   @ApiResponse({ status: 200, description: 'Validation result' })
   async validateAccess(
     @Param('examId', ParseUUIDPipe) examId: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
-    @Query('invite_token') inviteToken?: string,
   ) {
     const payload = await this.studentExamService.validateExamAccess(
       examId,
       jwtPayload.id,
-      inviteToken,
     );
     return {
       message: payload.canAccess ? 'Access granted' : 'Access denied',
@@ -128,24 +121,17 @@ export class StudentExamController {
   @ApiOperation({
     summary: 'Check exam eligibility',
     description:
-      'Returns whether the logged-in student may take this exam based on publish rules. For `anyone`, pass invite_token. For `selected_class`, student must be joined in the class and not listed in excluded_students. Schedule is checked when starting or opening the exam for taking.',
+      'Returns whether the logged-in student may take this exam based on publish rules. For `anyone`, any authenticated student may take the exam if they know the exam id. For `selected_class`, student must be joined in the class and not listed in excluded_students. Schedule is checked when starting or opening the exam for taking.',
   })
   @ApiParam({ name: 'examId', description: 'Exam UUID' })
-  @ApiQuery({
-    name: 'invite_token',
-    required: false,
-    description: 'Required when exam.test_audience is `anyone`',
-  })
   @ApiResponse({ status: 200, description: 'Eligibility result' })
   async checkExamEligibility(
     @Param('examId', ParseUUIDPipe) examId: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
-    @Query('invite_token') inviteToken?: string,
   ) {
     const payload = await this.studentExamService.validateExamAccess(
       examId,
       jwtPayload.id,
-      inviteToken,
     );
     return {
       message: payload.canAccess ? 'Eligible' : 'Not eligible',
@@ -164,25 +150,18 @@ export class StudentExamController {
   @ApiOperation({
     summary: 'Get exam for taking',
     description:
-      'Get exam details with questions. Correct answers are hidden. For audience `anyone`, pass invite_token.',
+      'Get exam details with questions. Correct answers are hidden. Access follows test audience rules (no invite token).',
   })
   @ApiParam({ name: 'examId', description: 'Exam UUID' })
-  @ApiQuery({
-    name: 'invite_token',
-    required: false,
-    description: 'Required when exam.test_audience is `anyone`',
-  })
   @ApiResponse({ status: 200, description: 'Exam details with questions' })
   @ApiResponse({ status: 403, description: 'Access denied - not assigned or excluded' })
   async getExam(
     @Param('examId', ParseUUIDPipe) examId: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
-    @Query('invite_token') inviteToken?: string,
   ) {
     const payload = await this.studentExamService.getExamForStudent(
       examId,
       jwtPayload.id,
-      inviteToken,
     );
     return { message: 'Exam retrieved successfully', payload };
   }
@@ -198,14 +177,9 @@ export class StudentExamController {
   @ApiOperation({
     summary: 'Start an exam',
     description:
-      'Start the exam session. Creates a submission record and starts the timer. For audience `anyone`, pass invite_token.',
+      'Start the exam session. Creates a submission record and starts the timer.',
   })
   @ApiParam({ name: 'examId', description: 'Exam UUID' })
-  @ApiQuery({
-    name: 'invite_token',
-    required: false,
-    description: 'Required when exam.test_audience is `anyone`',
-  })
   @ApiResponse({ status: 201, description: 'Exam started successfully' })
   @ApiResponse({ status: 403, description: 'Access denied' })
   @ApiResponse({ status: 400, description: 'Already started or submitted' })
@@ -214,7 +188,6 @@ export class StudentExamController {
     @UserPayload() jwtPayload: JwtPayloadInterface,
     @Body() dto: StartExamDto,
     @Req() request: Request,
-    @Query('invite_token') inviteToken?: string,
   ) {
     const ipAddress = request.ip || request.socket.remoteAddress;
     const payload = await this.studentExamService.startExam(
@@ -222,7 +195,6 @@ export class StudentExamController {
       jwtPayload.id,
       dto,
       ipAddress,
-      inviteToken,
     );
     return { message: 'Exam started successfully', payload };
   }
@@ -233,14 +205,9 @@ export class StudentExamController {
   @Roles(RolesEnum.STUDENT)
   @ApiOperation({
     summary: 'Save an answer',
-    description: 'Auto-save an answer during the exam. For audience `anyone`, pass invite_token.',
+    description: 'Auto-save an answer during the exam.',
   })
   @ApiParam({ name: 'examId', description: 'Exam UUID' })
-  @ApiQuery({
-    name: 'invite_token',
-    required: false,
-    description: 'Required when exam.test_audience is `anyone`',
-  })
   @ApiResponse({ status: 201, description: 'Answer saved' })
   @ApiResponse({ status: 403, description: 'Access denied' })
   @ApiResponse({ status: 400, description: 'Invalid question or exam not started' })
@@ -248,13 +215,11 @@ export class StudentExamController {
     @Param('examId', ParseUUIDPipe) examId: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
     @Body() dto: SaveAnswerDto,
-    @Query('invite_token') inviteToken?: string,
   ) {
     const payload = await this.studentExamService.saveAnswer(
       examId,
       jwtPayload.id,
       dto,
-      inviteToken,
     );
     return { message: 'Answer saved successfully', payload: { question_id: dto.question_id } };
   }
@@ -268,11 +233,6 @@ export class StudentExamController {
     description: 'Submit the exam with all answers. Scores objective items; sets max score for essays.',
   })
   @ApiParam({ name: 'examId', description: 'Exam UUID' })
-  @ApiQuery({
-    name: 'invite_token',
-    required: false,
-    description: 'Required when exam.test_audience is `anyone`',
-  })
   @ApiResponse({ status: 201, description: 'Exam submitted successfully' })
   @ApiResponse({ status: 403, description: 'Access denied' })
   @ApiResponse({ status: 400, description: 'Already submitted or no active session' })
@@ -280,14 +240,12 @@ export class StudentExamController {
     @Param('examId', ParseUUIDPipe) examId: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
     @Body() dto: SubmitExamDto,
-    @Query('invite_token') inviteToken?: string,
   ) {
     const payload = await this.studentExamService.submitExam(
       examId,
       jwtPayload.id,
       dto,
       false,
-      inviteToken,
     );
     return payload;
   }
@@ -298,27 +256,20 @@ export class StudentExamController {
   @Roles(RolesEnum.STUDENT)
   @ApiOperation({
     summary: 'Auto-submit exam',
-    description: 'Auto-submit when time expires. For audience `anyone`, pass invite_token.',
+    description: 'Auto-submit when time expires.',
   })
   @ApiParam({ name: 'examId', description: 'Exam UUID' })
-  @ApiQuery({
-    name: 'invite_token',
-    required: false,
-    description: 'Required when exam.test_audience is `anyone`',
-  })
   @ApiResponse({ status: 201, description: 'Exam auto-submitted' })
   async autoSubmitExam(
     @Param('examId', ParseUUIDPipe) examId: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
     @Body() dto: SubmitExamDto,
-    @Query('invite_token') inviteToken?: string,
   ) {
     const payload = await this.studentExamService.submitExam(
       examId,
       jwtPayload.id,
       dto,
       true,
-      inviteToken,
     );
     return payload;
   }
@@ -329,22 +280,16 @@ export class StudentExamController {
   @Roles(RolesEnum.STUDENT)
   @ApiOperation({
     summary: 'Report violation',
-    description: 'Report exam violations like tab/browser switch. For audience `anyone`, pass invite_token.',
+    description: 'Report exam violations like tab/browser switch.',
   })
   @ApiParam({ name: 'examId', description: 'Exam UUID' })
-  @ApiQuery({
-    name: 'invite_token',
-    required: false,
-    description: 'Required when exam.test_audience is `anyone`',
-  })
   @ApiResponse({ status: 201, description: 'Violation recorded' })
   async reportViolation(
     @Param('examId', ParseUUIDPipe) examId: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
     @Body() dto: ReportViolationDto,
-    @Query('invite_token') inviteToken?: string,
   ) {
-    await this.studentExamService.reportViolation(examId, jwtPayload.id, dto, inviteToken);
+    await this.studentExamService.reportViolation(examId, jwtPayload.id, dto);
     return { message: 'Violation recorded' };
   }
 

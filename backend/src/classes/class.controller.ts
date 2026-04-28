@@ -76,6 +76,31 @@ export class ClassController {
     return { message: 'Classes retrieved successfully', payload };
   }
 
+  @Post(':id/join')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.STUDENT)
+  @ApiOperation({
+    summary: 'Join class by class id',
+    description:
+      'Authenticated verified student joins using the class UUID. If the student was invited by email/phone (INVITED), they become JOINED. If not invited, they are added as PENDING until the teacher approves.',
+  })
+  @ApiParam({ name: 'id', description: 'Class UUID' })
+  @ApiResponse({ status: 200, description: 'Joined or pending approval' })
+  @ApiResponse({ status: 400, description: 'Invalid request or duplicate join' })
+  @ApiResponse({ status: 404, description: 'Class not found' })
+  async joinClassById(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.classService.joinClassByClassId(id, jwtPayload.id);
+    const msg =
+      payload.status === 'PENDING'
+        ? 'Join request submitted. Waiting for teacher approval.'
+        : 'Successfully joined the class.';
+    return { message: msg, payload };
+  }
+
   @Get('search-students')
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -102,7 +127,7 @@ export class ClassController {
   @ApiOperation({
     summary: 'Get a specific class by ID',
     description:
-      'With a valid Bearer token (teacher/admin): full class details including students and test stats. Without a token: class name, description, and created user name.',
+      'With a valid Bearer token (teacher/admin): full class details including students and test stats. Without a token: class id, name, description, and created user name.',
   })
   @ApiParam({ name: 'id', description: 'Class UUID' })
   @ApiResponse({ status: 200, description: 'Class details or public summary' })
@@ -269,9 +294,10 @@ export class ClassController {
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
-  @ApiOperation({ 
-    summary: 'Generate share link for class',
-    description: 'Generate a shareable link that allows onboarded students to join the class. Only verified students can join via this link.'
+  @ApiOperation({
+    summary: 'Generate join link for class',
+    description:
+      'Returns a frontend URL with the class UUID (no secret token). Onboarded students use POST /classes/:id/join after signing in.',
   })
   @ApiParam({ name: 'id', description: 'Class UUID' })
   @ApiResponse({ status: 200, description: 'Share link generated successfully' })
@@ -284,23 +310,4 @@ export class ClassController {
     return { message: 'Share link generated successfully', payload: { shareLink } };
   }
 
-  @Post('join/:shareToken')
-  @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.STUDENT)
-  @ApiOperation({ 
-    summary: 'Join class via share link',
-    description: 'Join a class using a share token. Student must be authenticated and verified. Status will be PENDING until teacher approves.'
-  })
-  @ApiParam({ name: 'shareToken', description: 'Share token from class share link' })
-  @ApiResponse({ status: 200, description: 'Successfully joined class (pending approval)' })
-  @ApiResponse({ status: 400, description: 'Invalid token or student not verified' })
-  @ApiResponse({ status: 404, description: 'Invalid share link' })
-  async joinClassByShareToken(
-    @Param('shareToken') shareToken: string,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-  ) {
-    const payload = await this.classService.joinClassByShareToken(shareToken, jwtPayload.id);
-    return { message: 'Successfully joined class. Waiting for teacher approval.', payload };
-  }
 }

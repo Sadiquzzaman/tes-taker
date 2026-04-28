@@ -6,7 +6,6 @@ import {
   JoinColumn,
   ManyToMany,
   JoinTable,
-  Index,
 } from 'typeorm';
 import { ExamQuestionEntity } from './exam-question.entity';
 import { ExamQuestionSectionEntity } from './exam-question-section.entity';
@@ -62,11 +61,6 @@ export class ExamEntity extends CustomBaseEntity {
   @ApiPropertyOptional({ description: 'Who may take the exam', enum: TestAudienceEnum })
   @Column({ name: 'test_audience', type: 'varchar', length: 30, nullable: true })
   test_audience: TestAudienceEnum | null;
-
-  @ApiPropertyOptional({ description: 'Invite token when test_audience is anyone' })
-  @Column({ name: 'invite_token', type: 'varchar', length: 100, nullable: true, unique: true })
-  @Index()
-  invite_token: string | null;
 
   @ApiProperty({ description: 'Exam start time' })
   @Column({ name: 'exam_start_time', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
