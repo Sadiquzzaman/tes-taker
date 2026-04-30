@@ -692,10 +692,10 @@ export class ExamService {
    */
   async findOnePublicSummary(
     id: string,
-  ): Promise<{ id: string; test_name: string | null; created_user_name: string | null }> {
+  ): Promise<{ id: string; test_name: string | null; created_user_name: string | null; duration_minutes: number | null; test_audience: string | null }> {
     const exam = await this.examRepo.findOne({
       where: { id },
-      select: ['id', 'test_name', 'created_user_name'],
+      select: ['id', 'test_name', 'created_user_name', 'test_audience', 'duration_minutes'],
     });
     if (!exam) {
       throw new NotFoundException('Exam not found');
@@ -703,6 +703,8 @@ export class ExamService {
     return {
       id: exam.id,
       test_name: exam.test_name,
+      duration_minutes: exam.duration_minutes,
+      test_audience: exam.test_audience,
       created_user_name: exam.created_user_name ?? null,
     };
   }
