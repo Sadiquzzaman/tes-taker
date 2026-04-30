@@ -25,10 +25,10 @@ const JoinTest = () => {
   const router = useRouter();
   const [pageState, setPageState] = useState<IJoinTest>(INITIALSTATE);
 
-  const handleErrorState = (message: string) => {
+  const handleErrorState = (message: string, title: string = "Request unavailable") => {
     setPageState({
       status: "error",
-      title: "Request unavailable",
+      title,
       description: message,
     });
   };
@@ -59,8 +59,13 @@ const JoinTest = () => {
         parsedUser,
       });
 
-      if (!parsedTestJoinResponse.eligible || !parsedJoinSessionInfo.id || !parsedUser.full_name) {
+      if (!parsedTestJoinResponse || !parsedJoinSessionInfo.id || !parsedUser.full_name) {
         handleErrorState("The join information is incomplete.");
+        return;
+      }
+
+      if(!parsedTestJoinResponse.eligible) {
+        handleErrorState("You are not eligible to join this test.", "Not Eligible");
         return;
       }
 
