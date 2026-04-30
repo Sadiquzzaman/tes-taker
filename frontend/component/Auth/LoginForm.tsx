@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ContinueWithGoogle from "./continueWithGoogle";
 import useLogin from "@/hooks/api/useLogin";
 import Link from "next/link";
 import AuthInput from "@/Ui/AuthInput";
 import ButtonLoader from "../Loader/ButtonLoadder";
+import useJoinStateManage from "@/hooks/ui/useJoinStateManage";
 
 const LoginForm = () => {
+  const { joinInfo } = useJoinStateManage("login");
   const [loginInfo, setLoginInfo] = useState<LoginInfo>({
     identifier: "",
     password: "",
@@ -42,9 +44,7 @@ const LoginForm = () => {
     } else {
       setFormError({ ...formError, password: "", identifier: "" });
       loginUser(
-        isEmail
-          ? { email: value, password: loginInfo.password }
-          : { phone: value, password: loginInfo.password },
+        isEmail ? { email: value, password: loginInfo.password } : { phone: value, password: loginInfo.password },
       );
     }
   };
@@ -52,6 +52,11 @@ const LoginForm = () => {
   return (
     <>
       <div className="w-full max-w-[420px] mx-auto flex flex-col gap-8">
+        {joinInfo?.id && (
+          <h4 className="text-center text-[16px] font-semibold text-[#49734F] leading-[19px] tracking-[-0.02em] capitalize">
+            {joinInfo.headerText}
+          </h4>
+        )}
         <div className="flex flex-row justify-between items-center mb-2">
           <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
             Login
@@ -89,7 +94,7 @@ const LoginForm = () => {
             disabled={loading}
           >
             <ButtonLoader show={loading} w="w-4" h="h-4" mr="mr-2" />
-            {loading ? "Sending..." : "Send Code"}
+            {loading ? "Logging in..." : "Login"}
           </button>
         </div>
 
