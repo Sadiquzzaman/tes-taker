@@ -190,11 +190,7 @@ export const showSectionValidationErrors = (section: QuestionSectionItem) => {
   });
 };
 
-export const syncSubjectsForExamType = (
-  subjects: SubjectItem[],
-  examType: string,
-  activeSubjectId: string | null,
-) => {
+export const syncSubjectsForExamType = (subjects: SubjectItem[], examType: string, activeSubjectId: string | null) => {
   const syncedSubjects = subjects.map((subject) => ({
     ...subject,
     questionSections: createQuestionSections(examType, subject.questionSections),

@@ -23,9 +23,7 @@ const QuestionSubjectTabs = memo(
     onRemoveSubject,
   }: QuestionSubjectTabsProps) => {
     const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
-    const [subjectPendingRemoval, setSubjectPendingRemoval] = useState<Pick<SubjectItem, "id" | "name"> | null>(
-      null,
-    );
+    const [subjectPendingRemoval, setSubjectPendingRemoval] = useState<Pick<SubjectItem, "id" | "name"> | null>(null);
     const subjectScrollRef = useRef<HTMLDivElement>(null);
     const subjectButtonRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const isSubjectScrollDragging = useRef(false);

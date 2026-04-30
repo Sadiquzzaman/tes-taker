@@ -17,7 +17,10 @@ export const createTestNavigationReducers = {
       state.currentStep = createTestSteps[currentIndex - 1];
     }
   },
-  setFormField: (state: CreateTestState, action: PayloadAction<{ field: keyof FormState; value: FormState[keyof FormState] }>) => {
+  setFormField: (
+    state: CreateTestState,
+    action: PayloadAction<{ field: keyof FormState; value: FormState[keyof FormState] }>,
+  ) => {
     state.formState[action.payload.field] = action.payload.value as never;
 
     if (action.payload.field === "examType") {

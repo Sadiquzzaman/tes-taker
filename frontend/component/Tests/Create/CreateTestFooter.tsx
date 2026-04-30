@@ -41,7 +41,9 @@ const CreateTestFooter = ({ currentStep, isFirstStep, isSubmitting, onBack, onNe
           disabled={isSubmitting}
           className="flex h-9 items-center justify-center gap-1 rounded-[8px] bg-[#49734F] px-4 text-[14px] font-[500] leading-4 tracking-[-0.02em] text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <div className="mb-[2px]">{isSubmitting && isPublishStep ? "Publishing..." : isPublishStep ? "Publish Test" : "Next"}</div>
+          <div className="mb-[2px]">
+            {isSubmitting && isPublishStep ? "Publishing..." : isPublishStep ? "Publish Test" : "Next"}
+          </div>
           {isPublishStep ? <RightArrowIconSVG /> : <MusicNextIconSVG />}
         </button>
       </div>

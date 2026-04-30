@@ -1,11 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import {
-  goToNextStep,
-  goToPreviousStep,
-  setQuestionValidationState,
-} from "@/lib/features/createTestSlice";
+import { goToNextStep, goToPreviousStep, setQuestionValidationState } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/utils/createTestValidation";
 import { useToast } from "@/component/Toast/ToastContext";
@@ -18,20 +14,20 @@ const sanitizeSubjectsForSubmission = (subjects: SubjectItem[]) =>
   }));
 
 const handlePublishStateForSubmission = (publishState: PublishState) => {
-    let result:PublishStateForPayload = {
-        testAudience: publishState.testAudience,
-        publishTiming: publishState.publishTiming,
-        scheduleAt: publishState.scheduleAt,
-        endingAt: publishState.endingAt,
-    }
+  let result: PublishStateForPayload = {
+    testAudience: publishState.testAudience,
+    publishTiming: publishState.publishTiming,
+    scheduleAt: publishState.scheduleAt,
+    endingAt: publishState.endingAt,
+  };
 
-    if(publishState.testAudience === "selected_class") {
-        result.selectedClassId = publishState.selectedClassId;
-        result.excluded_students = publishState.excluded_students;
-    }
+  if (publishState.testAudience === "selected_class") {
+    result.selectedClassId = publishState.selectedClassId;
+    result.excluded_students = publishState.excluded_students;
+  }
 
-    return result;
-}
+  return result;
+};
 
 const useCreateTestFlow = (createTestState: CreateTestState) => {
   const dispatch = useAppDispatch();

@@ -142,10 +142,7 @@ export const createTestQuestionReducers = {
       [question.options[index], question.options[swapIndex]] = [question.options[swapIndex], question.options[index]];
     }
   },
-  updateQuestionText: (
-    state: CreateTestState,
-    action: PayloadAction<QuestionPayload & { text: string }>,
-  ) => {
+  updateQuestionText: (state: CreateTestState, action: PayloadAction<QuestionPayload & { text: string }>) => {
     const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
     const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
 
@@ -153,10 +150,7 @@ export const createTestQuestionReducers = {
       question.text = action.payload.text;
     }
   },
-  updateQuestionImage: (
-    state: CreateTestState,
-    action: PayloadAction<QuestionPayload & { image: string | null }>,
-  ) => {
+  updateQuestionImage: (state: CreateTestState, action: PayloadAction<QuestionPayload & { image: string | null }>) => {
     const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
     const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
 
@@ -164,10 +158,7 @@ export const createTestQuestionReducers = {
       question.image = action.payload.image;
     }
   },
-  updateOptionText: (
-    state: CreateTestState,
-    action: PayloadAction<OptionPayload & { text: string }>,
-  ) => {
+  updateOptionText: (state: CreateTestState, action: PayloadAction<OptionPayload & { text: string }>) => {
     const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
     const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
     const option = question?.options?.find((entry) => entry.id === action.payload.optionId);
@@ -176,10 +167,7 @@ export const createTestQuestionReducers = {
       option.text = action.payload.text;
     }
   },
-  updateOptionImage: (
-    state: CreateTestState,
-    action: PayloadAction<OptionPayload & { image: string | null }>,
-  ) => {
+  updateOptionImage: (state: CreateTestState, action: PayloadAction<OptionPayload & { image: string | null }>) => {
     const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
     const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
     const option = question?.options?.find((entry) => entry.id === action.payload.optionId);
@@ -230,10 +218,7 @@ export const createTestQuestionReducers = {
       state.pendingFocusOption = null;
     }
   },
-  addOption: (
-    state: CreateTestState,
-    action: PayloadAction<QuestionPayload & { image?: string | null }>,
-  ) => {
+  addOption: (state: CreateTestState, action: PayloadAction<QuestionPayload & { image?: string | null }>) => {
     const { section, subject } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
 
     if (!section || !subject || section.type !== "objective") {
@@ -256,10 +241,7 @@ export const createTestQuestionReducers = {
     question.options.push(nextOption);
     focusOption(state, subject.id, section.id, question.id, nextOption.id);
   },
-  updateQuestionPoints: (
-    state: CreateTestState,
-    action: PayloadAction<QuestionPayload & { points: number }>,
-  ) => {
+  updateQuestionPoints: (state: CreateTestState, action: PayloadAction<QuestionPayload & { points: number }>) => {
     const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
     const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
 
@@ -300,10 +282,7 @@ export const createTestQuestionReducers = {
       );
     }
   },
-  moveQuestion: (
-    state: CreateTestState,
-    action: PayloadAction<QuestionPayload & { targetIndex: number }>,
-  ) => {
+  moveQuestion: (state: CreateTestState, action: PayloadAction<QuestionPayload & { targetIndex: number }>) => {
     const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
 
     if (section) {
