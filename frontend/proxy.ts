@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 export function proxy(request: NextRequest) {
   const token = request.cookies.get("token");
   const { pathname } = request.nextUrl;
+  const isJoinRoute = pathname.startsWith("/join");
 
   // always allow Next.js internal files
   if (
@@ -22,7 +23,7 @@ export function proxy(request: NextRequest) {
 
   // allow public routes
   const publicRoutes = ["/login", "/signup"];
-  if (!token && !publicRoutes.includes(pathname)) {
+  if (!token && !publicRoutes.includes(pathname) && !isJoinRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

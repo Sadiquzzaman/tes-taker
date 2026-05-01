@@ -1,5 +1,5 @@
 import BlackTickIconSVG from "@/component/svg/BlackTickIconSVG";
-import { createTestSteps } from "@/lib/features/createTestSlice";
+import { createTestSteps } from "@/lib/features/create-test/createTestDomain";
 
 type CreateTestStepSidebarProps = {
   currentStep: CreateTestStep;

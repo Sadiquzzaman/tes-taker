@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ContinueWithGoogle from "./continueWithGoogle";
 import VeriyCode from "./VeriyCode";
 import Link from "next/link";
@@ -8,8 +8,11 @@ import AuthInput from "@/Ui/AuthInput";
 import { UserRoleEnum } from "@/utils/enum";
 import useRegister from "@/hooks/api/useRegister";
 import ButtonLoader from "../Loader/ButtonLoadder";
+import useJoinStateManage from "@/hooks/ui/useJoinStateManage";
 
 const SignUpForm = () => {
+  const { joinInfo } = useJoinStateManage("signup");
+
   const [view, setView] = useState<SignUpPageView>("signup");
   const [signUpInfo, setSignUpInfo] = useState<SignUpInfo>({
     full_name: "",
@@ -22,8 +25,26 @@ const SignUpForm = () => {
     role: UserRoleEnum.TEACHER,
   });
 
+  useEffect(() => {
+    if (joinInfo?.id)
+      setSignUpInfo((prev) => ({
+        ...prev,
+        role: UserRoleEnum.STUDENT,
+      }));
+    else
+      setSignUpInfo((prev) => ({
+        ...prev,
+        role: UserRoleEnum.TEACHER,
+      }));
+  }, [joinInfo]);
+
   return (
     <>
+      {joinInfo?.id && (
+        <h4 className="mb-8 text-center text-[16px] font-semibold text-[#49734F] leading-[19px] tracking-[-0.02em] capitalize">
+          {joinInfo.headerText}
+        </h4>
+      )}
       {view === "signup" ? (
         <SignUpInfoForm signUpInfo={signUpInfo} setSignUpInfo={setSignUpInfo} setView={setView} />
       ) : (

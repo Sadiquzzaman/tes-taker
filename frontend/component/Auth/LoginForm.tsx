@@ -1,48 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ContinueWithGoogle from "./continueWithGoogle";
 import useLogin from "@/hooks/api/useLogin";
 import Link from "next/link";
 import AuthInput from "@/Ui/AuthInput";
 import ButtonLoader from "../Loader/ButtonLoadder";
+import useJoinStateManage from "@/hooks/ui/useJoinStateManage";
 
 const LoginForm = () => {
+  const { joinInfo } = useJoinStateManage("login");
   const [loginInfo, setLoginInfo] = useState<LoginInfo>({
-    phone: "",
+    identifier: "",
     password: "",
   });
   const [loginUser, { loading }] = useLogin();
   const [formError, setFormError] = useState({
-    phone: "",
+    identifier: "",
     password: "",
   });
+
   const handleLoginSendCode = () => {
-    const value = loginInfo.phone.trim();
+    const value = loginInfo.identifier.trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const bdPhoneRegex = /^01[3-9]\d{8}$/;
+    const isEmail = value.includes("@");
+    const isPhone = /^\d+$/.test(value);
 
     if (!value) {
-      setFormError({ ...formError, phone: "Please enter email or phone number" });
-    } else if (!value.includes("@") && !/^\d+$/.test(value)) {
-      setFormError({ ...formError, phone: "Enter a valid email or phone number" });
-    } else if (value.includes("@") && !emailRegex.test(value)) {
-      setFormError({ ...formError, phone: "Invalid email address" });
-    } else if (/^\d+$/.test(value) && !bdPhoneRegex.test(value)) {
-      setFormError({ ...formError, phone: "Invalid Bangladeshi phone number (11 digits required)" });
+      setFormError({ ...formError, identifier: "Please enter email or phone number" });
+    } else if (isPhone && value.length !== 11) {
+      setFormError({ ...formError, identifier: "Phone number must be 11 digits" });
+    } else if (isPhone && !bdPhoneRegex.test(value)) {
+      setFormError({ ...formError, identifier: "Invalid Bangladeshi phone number" });
+    } else if (isEmail && !emailRegex.test(value)) {
+      setFormError({ ...formError, identifier: "Invalid email address" });
+    } else if (!isEmail && !isPhone) {
+      setFormError({ ...formError, identifier: "Enter a valid email or phone number" });
     } else if (!loginInfo.password) {
       setFormError({ ...formError, password: "Please enter a password" });
     } else if (loginInfo.password.length < 8) {
       setFormError({ ...formError, password: "Password must be at least 8 characters." });
     } else {
-      setFormError({ ...formError, password: "", phone: "" });
-      loginUser({ phone: value, password: loginInfo.password });
+      setFormError({ ...formError, password: "", identifier: "" });
+      loginUser(
+        isEmail ? { email: value, password: loginInfo.password } : { phone: value, password: loginInfo.password },
+      );
     }
   };
 
   return (
     <>
       <div className="w-full max-w-[420px] mx-auto flex flex-col gap-8">
+        {joinInfo?.id && (
+          <h4 className="text-center text-[16px] font-semibold text-[#49734F] leading-[19px] tracking-[-0.02em] capitalize">
+            {joinInfo.headerText}
+          </h4>
+        )}
         <div className="flex flex-row justify-between items-center mb-2">
           <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
             Login
@@ -54,12 +68,12 @@ const LoginForm = () => {
         </div>
         <div className="flex flex-col gap-4">
           <AuthInput
-            value={loginInfo.phone}
+            value={loginInfo.identifier}
             onChange={(e) => {
-              setFormError({ ...formError, phone: "" });
-              setLoginInfo({ ...loginInfo, phone: e.target.value });
+              setFormError({ ...formError, identifier: "" });
+              setLoginInfo({ ...loginInfo, identifier: e.target.value });
             }}
-            formError={formError.phone}
+            formError={formError.identifier}
             placeholder="Enter email or phone"
             label="Email or phone"
           />
@@ -80,7 +94,7 @@ const LoginForm = () => {
             disabled={loading}
           >
             <ButtonLoader show={loading} w="w-4" h="h-4" mr="mr-2" />
-            {loading ? "Sending..." : "Send Code"}
+            {loading ? "Logging in..." : "Login"}
           </button>
         </div>
 
