@@ -106,7 +106,7 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
                   value={selectedSubjectValue}
                   handleChange={handleSubjectChange}
                   isSearchable={true}
-                  maxVisibleOptions={10}
+                  maxOuputInDropdownList={5}
                   list={subjectOptions.map(({ label, value }) => ({ label, value }))}
                 />
               </div>
