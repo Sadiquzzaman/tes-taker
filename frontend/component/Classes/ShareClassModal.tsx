@@ -23,7 +23,7 @@ const ShareClassModal = () => {
     if (typeof window !== "undefined" && classData?.id) {
       const href = window.location.href;
       const baseUrl = href.split("/classes")[0];
-      const link = `${baseUrl}/classes/details/${classData.id}`;
+      const link = `${baseUrl}/join/class/${classData.id}`;
       setClassLink(link);
     }
   }, [classData]);

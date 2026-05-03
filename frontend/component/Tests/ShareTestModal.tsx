@@ -22,7 +22,7 @@ const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
 
   useEffect(() => {
     if (typeof window !== "undefined" && testData.test.id) {
-      setTestLink(`${window.location.origin}/tests?createdTest=${testData.test.id}`);
+      setTestLink(`${window.location.origin}/join/test/${testData.test.id}`);
     }
   }, [testData.test.id]);
 
