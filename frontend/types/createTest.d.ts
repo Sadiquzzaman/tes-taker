@@ -23,6 +23,7 @@ type QuestionOption = {
 type QuestionItem = {
   id: string;
   text: string;
+  instruction: string;
   image: string | null;
   options?: QuestionOption[];
   correctOptionId?: string | null;

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import NotmalTextFeild from "@/Ui/NotmalTextFeild";
 import CopyIconSVG from "@/component/svg/CopyIconSVG";
 import DragHandleIcon from "@/component/svg/DragHandleIcon";
 import ShuffleIcon from "@/component/svg/ShuffleIcon";
@@ -16,6 +17,7 @@ import {
   setActiveQuestionId,
   shuffleOptions,
   updateOptionImage,
+  updateQuestionInstruction,
   updateOptionText,
   updateQuestionPoints,
   updateQuestionImage,
@@ -680,6 +682,28 @@ const QuestionCard = memo(
                 <TrashIcon />
               </button>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">Instruction</p>
+            <NotmalTextFeild
+              rows={1}
+              maxRows={4}
+              value={question.instruction ?? ""}
+              onChange={(event) =>
+                dispatch(
+                  updateQuestionInstruction({
+                    subjectId,
+                    sectionId,
+                    questionId: question.id,
+                    instruction: event.target.value,
+                  }),
+                )
+              }
+              placeholder="Add instruction (optional)"
+              parentClassName="rounded-[8px] border-[#E5E5E5] bg-white px-3 py-2"
+              inputClassName="text-[14px] leading-[20px] font-[400] text-[#232A25] placeholder:text-[#747775]"
+            />
           </div>
         </div>
         <button
