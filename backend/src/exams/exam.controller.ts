@@ -142,18 +142,23 @@ export class ExamController {
   @ApiOperation({
     summary: "Get exam by ID",
     description:
-      "Without a token, or as a student: returns id, test_name, and created_user_name. With a teacher/admin token: full exam details when permitted.",
+      "No token: minimal fields plus lifecycle status. Student token: full exam without correct answers when audience rules allow (anyone, selected class with enrollment, or specific students). Teacher token: full exam with answers only if this teacher created the exam. Admin/super_admin: full details for any exam.",
   })
   @ApiParam({ name: "id", description: "Exam UUID" })
   @ApiResponse({ status: 200, description: "Exam details" })
+  @ApiResponse({ status: 403, description: "Forbidden for this role or access rules" })
   @ApiResponse({ status: 404, description: "Exam not found" })
   async findOne(
     @Param("id", ParseUUIDPipe) id: string,
     @UserPayload() jwtPayload?: JwtPayloadInterface,
   ) {
-    if (!jwtPayload || jwtPayload.role === RolesEnum.STUDENT) {
+    if (!jwtPayload) {
       const payload = await this.examService.findOnePublicSummary(id);
       return { message: "Exam summary retrieved successfully", payload };
+    }
+    if (jwtPayload.role === RolesEnum.STUDENT) {
+      const payload = await this.examService.findOneForStudent(id, jwtPayload);
+      return { message: "Exam retrieved successfully", payload };
     }
     const payload = await this.examService.findOne(id, jwtPayload);
     return { message: "Exam details retrieved successfully", payload };

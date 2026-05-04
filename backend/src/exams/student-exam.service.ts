@@ -12,6 +12,7 @@ import {
   ExamQuestionEntity,
   QuestionTypeEnum,
   CorrectAnswerEnum,
+  CORRECT_ANSWER_ENUM_BY_OPTION_INDEX,
 } from './entities/exam-question.entity';
 import { 
   StudentExamSubmissionEntity, 
@@ -408,10 +409,12 @@ export class StudentExamService {
           question: q.question,
           image_url: q.image_url,
           points: q.points ?? 1,
+          instruction: q.instruction ?? null,
           option1: q.option1,
           option2: q.option2,
           option3: q.option3,
           option4: q.option4,
+          option5: q.option5,
         };
       }
       return {
@@ -420,6 +423,7 @@ export class StudentExamService {
         question: q.question,
         image_url: q.image_url,
         points: q.points ?? q.marks_per_question,
+        instruction: q.instruction ?? null,
         expected_word_limit: q.expected_word_limit,
         marks_per_question: q.marks_per_question,
       };
@@ -685,16 +689,14 @@ export class StudentExamService {
     if (q.correct_answer) {
       return q.correct_answer;
     }
-    if (q.correct_option_index === null || q.correct_option_index === undefined) {
+    const idx = q.correct_option_index;
+    if (idx === null || idx === undefined) {
       return undefined;
     }
-    const arr = [
-      CorrectAnswerEnum.OPTION_1,
-      CorrectAnswerEnum.OPTION_2,
-      CorrectAnswerEnum.OPTION_3,
-      CorrectAnswerEnum.OPTION_4,
-    ];
-    return arr[q.correct_option_index];
+    if (idx < 0 || idx >= CORRECT_ANSWER_ENUM_BY_OPTION_INDEX.length) {
+      return undefined;
+    }
+    return CORRECT_ANSWER_ENUM_BY_OPTION_INDEX[idx];
   }
 
   private async calculateObjectiveScore(submissionId: string, exam: ExamEntity): Promise<void> {

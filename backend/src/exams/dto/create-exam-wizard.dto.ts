@@ -13,6 +13,7 @@ import {
   Min,
   ValidateNested,
   ArrayMinSize,
+  ArrayMaxSize,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ExamKindEnum, PublishTimingEnum, TestAudienceEnum } from '../enums/exam-wizard.enums';
@@ -49,9 +50,10 @@ export class WizardMcqQuestionDto {
   @IsOptional()
   image?: unknown | null;
 
-  @ApiProperty({ type: [WizardOptionDto], minItems: 4, maxItems: 4 })
+  @ApiProperty({ type: [WizardOptionDto], minItems: 2, maxItems: 5 })
   @IsArray()
-  @ArrayMinSize(4)
+  @ArrayMinSize(2)
+  @ArrayMaxSize(5)
   @ValidateNested({ each: true })
   @Type(() => WizardOptionDto)
   options: WizardOptionDto[];
@@ -66,6 +68,12 @@ export class WizardMcqQuestionDto {
   @Min(0)
   @Type(() => Number)
   points: number;
+
+  @ApiPropertyOptional({ description: 'Instructions for this question (max 500 characters)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  instruction?: string;
 
   @ApiPropertyOptional({ description: 'Client-only validation flag; ignored by backend' })
   @IsOptional()
@@ -93,6 +101,12 @@ export class WizardEssayQuestionDto {
   @Min(0)
   @Type(() => Number)
   points: number;
+
+  @ApiPropertyOptional({ description: 'Instructions for this question (max 500 characters)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  instruction?: string;
 
   @ApiPropertyOptional({ description: 'Client-only validation flag; ignored by backend' })
   @IsOptional()
