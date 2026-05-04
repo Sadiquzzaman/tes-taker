@@ -22,7 +22,7 @@ import {
   updateQuestionText,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
-import { getQuestionValidationErrors } from "@/utils/createTestValidation";
+import { getQuestionValidationErrors, OBJECTIVE_MAX_OPTIONS } from "@/utils/createTestValidation";
 import { memo, useCallback, useEffect, useRef } from "react";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -82,7 +82,7 @@ const QuestionCard = memo(
     const questionImageInputRef = useRef<HTMLInputElement>(null);
     const validationErrors = getQuestionValidationErrors(question, sectionType);
     const optionCount = question.options?.length ?? 0;
-    const canAddMoreOptions = sectionType === "objective" && optionCount < 4;
+    const canAddMoreOptions = sectionType === "objective" && optionCount < OBJECTIVE_MAX_OPTIONS;
 
     const activateCard = useCallback(() => {
       dispatch(setActiveQuestionId(question.id));
@@ -532,7 +532,7 @@ const QuestionCard = memo(
                   className="flex w-full items-center gap-2 py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)]"
                 >
                   <span className="h-4 w-4 rounded-full border border-[rgba(116,119,117,0.5)]" />
-                  <span>{canAddMoreOptions ? "Click to add a new option" : "Maximum 4 options added"}</span>
+                  <span>{canAddMoreOptions ? "Click to add a new option" : "Maximum 5 options added"}</span>
                 </button>
                 <input
                   ref={addOptionImageInputRef}

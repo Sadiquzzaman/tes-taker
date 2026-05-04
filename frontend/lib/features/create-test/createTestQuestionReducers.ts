@@ -1,4 +1,5 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
+import { OBJECTIVE_MAX_OPTIONS } from "@/utils/createTestValidation";
 import {
   createId,
   createOption,
@@ -233,7 +234,7 @@ export const createTestQuestionReducers = {
 
     question.options = question.options ?? [];
 
-    if (question.options.length >= 4) {
+    if (question.options.length >= OBJECTIVE_MAX_OPTIONS) {
       return;
     }
 

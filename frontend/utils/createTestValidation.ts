@@ -1,5 +1,8 @@
 const hasTextOrImage = (text: string, image: string | null | undefined) => Boolean(text.trim() || image);
 
+export const OBJECTIVE_MIN_OPTIONS = 2;
+export const OBJECTIVE_MAX_OPTIONS = 5;
+
 export type QuestionValidationFailure = {
   subjectId: string;
   sectionId: string;
@@ -21,8 +24,10 @@ export const getQuestionValidationErrors = (question: QuestionItem, sectionType:
   if (sectionType === "objective") {
     const options = question.options ?? [];
 
-    if (options.length !== 4) {
-      errors.push("Objective questions must have exactly 4 options.");
+    if (options.length < OBJECTIVE_MIN_OPTIONS || options.length > OBJECTIVE_MAX_OPTIONS) {
+      errors.push(
+        `Objective questions must have between ${OBJECTIVE_MIN_OPTIONS} and ${OBJECTIVE_MAX_OPTIONS} options.`,
+      );
     }
 
     options.forEach((option, index) => {
