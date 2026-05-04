@@ -8,7 +8,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, DeepPartial, Repository, In } from 'typeorm';
 import { createHash, randomUUID } from 'crypto';
 import { ExamEntity, ExamTypeEnum } from './entities/exam.entity';
-import { ExamQuestionEntity, QuestionTypeEnum, CorrectAnswerEnum } from './entities/exam-question.entity';
+import {
+  ExamQuestionEntity,
+  QuestionTypeEnum,
+  CorrectAnswerEnum,
+  CORRECT_ANSWER_ENUM_BY_OPTION_INDEX,
+} from './entities/exam-question.entity';
 import { ExamQuestionSectionEntity } from './entities/exam-question-section.entity';
 import { CreateObjectiveExamDto, CreateSubjectiveExamDto } from './dto/create-exam.dto';
 import { CreateExamWizardDto, WizardMcqQuestionDto, WizardEssayQuestionDto } from './dto/create-exam-wizard.dto';
@@ -19,14 +24,7 @@ import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { SmsService } from 'src/sms/sms.service';
 import { SubjectService } from 'src/subjects/subject.service';
-import { ExamKindEnum, TestAudienceEnum } from './enums/exam-wizard.enums';
-
-const CORRECT_ENUM_BY_INDEX: CorrectAnswerEnum[] = [
-  CorrectAnswerEnum.OPTION_1,
-  CorrectAnswerEnum.OPTION_2,
-  CorrectAnswerEnum.OPTION_3,
-  CorrectAnswerEnum.OPTION_4,
-];
+import { ExamKindEnum, ExamLifecycleStatusEnum, TestAudienceEnum } from './enums/exam-wizard.enums';
 
 type WizardSectionType = 'objective' | 'essay' | 'mixed';
 type ExamQuestionResponse = {
@@ -34,6 +32,7 @@ type ExamQuestionResponse = {
   text: string;
   image: null;
   points: number | null;
+  instruction?: string | null;
   showValidation: false;
   options?: Array<{ id: string; text: string; image: null }>;
   correctOptionId?: string | null;
@@ -232,7 +231,7 @@ export class ExamService {
               this.assertMcqQuestion(q);
               const points = this.normalizeQuestionPoints(q.points);
               const idx = q.options.findIndex((o) => o.id === q.correctOptionId);
-              if (idx < 0 || idx > 3) {
+              if (idx < 0 || idx >= q.options.length) {
                 throw new BadRequestException('Each MCQ must reference a valid correctOptionId');
               }
               const objectivePayload: DeepPartial<ExamQuestionEntity> = {
@@ -243,12 +242,14 @@ export class ExamService {
                 question: q.text,
                 image_url: null,
                 points,
+                instruction: q.instruction?.trim() ? q.instruction.trim().slice(0, 500) : null,
                 correct_option_index: idx,
-                correct_answer: CORRECT_ENUM_BY_INDEX[idx],
-                option1: q.options[0].text,
-                option2: q.options[1].text,
-                option3: q.options[2].text,
-                option4: q.options[3].text,
+                correct_answer: CORRECT_ANSWER_ENUM_BY_OPTION_INDEX[idx],
+                option1: q.options[0]?.text ?? null,
+                option2: q.options[1]?.text ?? null,
+                option3: q.options[2]?.text ?? null,
+                option4: q.options[3]?.text ?? null,
+                option5: q.options[4]?.text ?? null,
                 created_by: jwtPayload.id,
                 created_user_name: jwtPayload.full_name,
                 created_at: new Date(),
@@ -267,6 +268,7 @@ export class ExamService {
                 question: q.text,
                 image_url: null,
                 points,
+                instruction: q.instruction?.trim() ? q.instruction.trim().slice(0, 500) : null,
                 marks_per_question: points,
                 created_by: jwtPayload.id,
                 created_user_name: jwtPayload.full_name,
@@ -308,7 +310,7 @@ export class ExamService {
         });
       }
 
-      return this.formatExamResponse(reloaded);
+      return this.formatExamResponse(reloaded, { includeCorrectAnswers: true });
     });
   }
 
@@ -325,11 +327,14 @@ export class ExamService {
         throw new BadRequestException('Essay exams must contain only essay questions');
       }
     }
-    if (kind === ExamKindEnum.HYBRID || kind === ExamKindEnum.MODEL) {
+    if (kind === ExamKindEnum.HYBRID) {
+      if (!hasObjective && !hasSubjective) {
+        throw new BadRequestException('Hybrid exams must include at least one question');
+      }
+    }
+    if (kind === ExamKindEnum.MODEL) {
       if (!hasObjective || !hasSubjective) {
-        throw new BadRequestException(
-          `${kind === ExamKindEnum.HYBRID ? 'Hybrid' : 'Model'} exams must include both MCQ and essay questions`,
-        );
+        throw new BadRequestException('Model exams must include both MCQ and essay questions');
       }
     }
   }
@@ -389,8 +394,12 @@ export class ExamService {
   }
 
   private assertMcqQuestion(q: WizardMcqQuestionDto): void {
-    if (!q.options || q.options.length !== 4) {
-      throw new BadRequestException('Each MCQ must have exactly four options');
+    if (!q.options || q.options.length < 2 || q.options.length > 5) {
+      throw new BadRequestException('Each MCQ must have between 2 and 5 options');
+    }
+    const optionIds = q.options.map((o) => o.id);
+    if (new Set(optionIds).size !== optionIds.length) {
+      throw new BadRequestException('Each MCQ option id must be unique');
     }
     if (!q.text || q.points === undefined || !q.correctOptionId) {
       throw new BadRequestException('Each MCQ needs text, options, points, and correctOptionId');
@@ -637,7 +646,7 @@ export class ExamService {
       ],
       order: { created_at: 'DESC' },
     });
-    return exams.map((exam) => this.formatExamResponse(exam));
+    return exams.map((exam) => this.formatExamResponse(exam, { includeCorrectAnswers: true }));
   }
 
   async findAllAdmin(): Promise<any[]> {
@@ -654,7 +663,7 @@ export class ExamService {
       ],
       order: { created_at: 'DESC' },
     });
-    return exams.map((exam) => this.formatExamResponse(exam));
+    return exams.map((exam) => this.formatExamResponse(exam, { includeCorrectAnswers: true }));
   }
 
   async findByClass(classId: string, jwtPayload: JwtPayloadInterface): Promise<any[]> {
@@ -671,7 +680,7 @@ export class ExamService {
       ],
       order: { created_at: 'DESC' },
     });
-    return exams.map((exam) => this.formatExamResponse(exam));
+    return exams.map((exam) => this.formatExamResponse(exam, { includeCorrectAnswers: true }));
   }
 
   async findOne(id: string, jwtPayload: JwtPayloadInterface): Promise<any> {
@@ -684,7 +693,91 @@ export class ExamService {
       throw new ForbiddenException('You do not have permission to view this exam');
     }
 
-    return this.formatExamResponse(exam);
+    return this.formatExamResponse(exam, { includeCorrectAnswers: true });
+  }
+
+  /**
+   * Full exam for a student (no correct answers / correct option ids), when audience rules allow.
+   */
+  async findOneForStudent(id: string, jwtPayload: JwtPayloadInterface): Promise<any> {
+    if (jwtPayload.role !== RolesEnum.STUDENT) {
+      throw new ForbiddenException('Only students can use this access path');
+    }
+
+    const exam = await this.examRepo.findOne({
+      where: { id },
+      relations: [
+        'questions',
+        'questionSections',
+        'questionSections.questions',
+        'questionSections.subject',
+        'class',
+        'excluded_students',
+        'target_students',
+        'primary_subject',
+      ],
+    });
+
+    if (!exam) {
+      throw new NotFoundException('Exam not found');
+    }
+
+    const studentId = jwtPayload.id;
+    const excluded = exam.excluded_students?.some((s) => s.id === studentId);
+    if (excluded) {
+      throw new ForbiddenException('You have been excluded from this exam');
+    }
+
+    if (exam.test_audience === TestAudienceEnum.ANYONE) {
+      return this.formatExamResponse(exam, { includeCorrectAnswers: false });
+    }
+
+    if (exam.test_audience === TestAudienceEnum.SPECIFIC_STUDENTS) {
+      const allowed = exam.target_students?.some((s) => s.id === studentId);
+      if (!allowed) {
+        throw new ForbiddenException('You are not on the list for this exam');
+      }
+      return this.formatExamResponse(exam, { includeCorrectAnswers: false });
+    }
+
+    if (exam.test_audience === TestAudienceEnum.SELECTED_CLASS) {
+      const ok = await this.isStudentInClassForExam(exam, jwtPayload);
+      if (!ok) {
+        throw new ForbiddenException('You are not enrolled in this class for this exam');
+      }
+      return this.formatExamResponse(exam, { includeCorrectAnswers: false });
+    }
+
+    throw new ForbiddenException('You do not have access to this exam');
+  }
+
+  private async isStudentInClassForExam(
+    exam: ExamEntity,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<boolean> {
+    if (!exam.class_id) {
+      return false;
+    }
+
+    const emailNorm = jwtPayload.email?.toLowerCase()?.trim() || null;
+    const phoneNorm = jwtPayload.phone?.trim() || null;
+
+    const rows = await this.classStudentRepo.find({
+      where: { class_id: exam.class_id, status: ClassStudentStatusEnum.JOINED },
+    });
+
+    return rows.some((cs) => {
+      if (cs.student_id === jwtPayload.id) {
+        return true;
+      }
+      if (emailNorm && cs.invited_email?.toLowerCase().trim() === emailNorm) {
+        return true;
+      }
+      if (phoneNorm && cs.invited_phone?.trim() === phoneNorm) {
+        return true;
+      }
+      return false;
+    });
   }
 
   /**
@@ -692,10 +785,25 @@ export class ExamService {
    */
   async findOnePublicSummary(
     id: string,
-  ): Promise<{ id: string; test_name: string | null; created_user_name: string | null; duration_minutes: number | null; test_audience: string | null }> {
+  ): Promise<{
+    id: string;
+    test_name: string | null;
+    created_user_name: string | null;
+    duration_minutes: number | null;
+    test_audience: string | null;
+    status: ExamLifecycleStatusEnum;
+  }> {
     const exam = await this.examRepo.findOne({
       where: { id },
-      select: ['id', 'test_name', 'created_user_name', 'test_audience', 'duration_minutes'],
+      select: [
+        'id',
+        'test_name',
+        'created_user_name',
+        'test_audience',
+        'duration_minutes',
+        'exam_start_time',
+        'exam_end_time',
+      ],
     });
     if (!exam) {
       throw new NotFoundException('Exam not found');
@@ -706,7 +814,21 @@ export class ExamService {
       duration_minutes: exam.duration_minutes,
       test_audience: exam.test_audience,
       created_user_name: exam.created_user_name ?? null,
+      status: this.computeExamLifecycleStatus(exam.exam_start_time, exam.exam_end_time),
     };
+  }
+
+  private computeExamLifecycleStatus(start: Date, end: Date): ExamLifecycleStatusEnum {
+    const now = Date.now();
+    const t0 = new Date(start).getTime();
+    const t1 = new Date(end).getTime();
+    if (now < t0) {
+      return ExamLifecycleStatusEnum.PENDING;
+    }
+    if (now > t1) {
+      return ExamLifecycleStatusEnum.COMPLETED;
+    }
+    return ExamLifecycleStatusEnum.ONGOING;
   }
 
   private async findOneEntity(id: string): Promise<ExamEntity> {
@@ -731,7 +853,10 @@ export class ExamService {
     return exam;
   }
 
-  private formatExamResponse(exam: ExamEntity) {
+  private formatExamResponse(
+    exam: ExamEntity,
+    opts: { includeCorrectAnswers: boolean } = { includeCorrectAnswers: true },
+  ) {
     const {
       questions: _questions,
       questionSections: _questionSections,
@@ -744,11 +869,12 @@ export class ExamService {
     return {
       ...rest,
       exam_type: this.resolveResponseExamType(exam),
-      subjects: this.buildSubjectResponses(exam),
+      status: this.computeExamLifecycleStatus(exam.exam_start_time, exam.exam_end_time),
+      subjects: this.buildSubjectResponses(exam, opts.includeCorrectAnswers),
     };
   }
 
-  private buildSubjectResponses(exam: ExamEntity): ExamSubjectResponse[] {
+  private buildSubjectResponses(exam: ExamEntity, includeCorrectAnswers: boolean): ExamSubjectResponse[] {
     const sections = exam.questionSections || [];
     if (sections.length === 0) {
       return exam.primary_subject || exam.subject
@@ -780,7 +906,9 @@ export class ExamService {
         id: section.id,
         type: section.section_type,
         headerText: section.header_text,
-        questions: (section.questions || []).map((question) => this.formatQuestionResponse(question)),
+        questions: (section.questions || []).map((question) =>
+          this.formatQuestionResponse(question, includeCorrectAnswers),
+        ),
       });
     }
 
@@ -795,30 +923,59 @@ export class ExamService {
     return exam.exam_type === ExamTypeEnum.SUBJECTIVE ? ExamKindEnum.ESSAY : ExamKindEnum.MCQ;
   }
 
-  private formatQuestionResponse(question: ExamQuestionEntity): ExamQuestionResponse {
+  private formatQuestionResponse(
+    question: ExamQuestionEntity,
+    includeCorrectAnswers: boolean,
+  ): ExamQuestionResponse {
     if (question.question_type === QuestionTypeEnum.OBJECTIVE) {
-      const options = [question.option1, question.option2, question.option3, question.option4].map(
-        (text, index) => ({
-          id: this.buildResponseOptionId(question.id, index),
-          text: text ?? '',
-          image: null,
-        }),
-      );
-      const correctIndex =
-        question.correct_option_index ??
-        this.getCorrectOptionIndexFromAnswer(question.correct_answer);
+      const rawTexts = [
+        question.option1,
+        question.option2,
+        question.option3,
+        question.option4,
+        question.option5,
+      ] as (string | null | undefined)[];
 
-      return {
+      let lastFilled = -1;
+      for (let i = 0; i < rawTexts.length; i++) {
+        if (rawTexts[i]?.trim()) {
+          lastFilled = i;
+        }
+      }
+
+      const correctIndex =
+        question.correct_option_index ?? this.getCorrectOptionIndexFromAnswer(question.correct_answer);
+      const optionCount = Math.max(
+        lastFilled + 1,
+        correctIndex !== null && correctIndex >= 0 ? correctIndex + 1 : 0,
+      );
+
+      const options = rawTexts.slice(0, optionCount).map((text, index) => ({
+        id: this.buildResponseOptionId(question.id, index),
+        text: (text ?? '').trim(),
+        image: null,
+      }));
+
+      const base: ExamQuestionResponse = {
         id: question.id,
         text: question.question,
         image: null,
         options,
+        points: question.points ?? 1,
+        instruction: question.instruction ?? null,
+        showValidation: false,
+      };
+
+      if (!includeCorrectAnswers) {
+        return base;
+      }
+
+      return {
+        ...base,
         correctOptionId:
           correctIndex !== null && correctIndex >= 0 && correctIndex < options.length
             ? options[correctIndex].id
             : null,
-        points: question.points ?? 1,
-        showValidation: false,
       };
     }
 
@@ -827,6 +984,7 @@ export class ExamService {
       text: question.question,
       image: null,
       points: question.points ?? question.marks_per_question ?? null,
+      instruction: question.instruction ?? null,
       showValidation: false,
     };
   }
@@ -838,7 +996,7 @@ export class ExamService {
       return null;
     }
 
-    return CORRECT_ENUM_BY_INDEX.indexOf(answer);
+    return CORRECT_ANSWER_ENUM_BY_OPTION_INDEX.indexOf(answer);
   }
 
   private buildResponseOptionId(questionId: string, index: number): string {

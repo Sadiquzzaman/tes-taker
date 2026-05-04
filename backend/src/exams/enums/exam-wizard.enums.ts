@@ -16,3 +16,10 @@ export enum PublishTimingEnum {
   IMMEDIATELY = 'immediately',
   LATER = 'later',
 }
+
+/** Derived from exam_start_time / exam_end_time (not persisted) */
+export enum ExamLifecycleStatusEnum {
+  PENDING = 'pending',
+  ONGOING = 'ongoing',
+  COMPLETED = 'completed',
+}

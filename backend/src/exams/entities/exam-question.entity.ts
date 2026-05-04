@@ -10,7 +10,17 @@ export enum CorrectAnswerEnum {
   OPTION_2 = 'Option 2',
   OPTION_3 = 'Option 3',
   OPTION_4 = 'Option 4',
+  OPTION_5 = 'Option 5',
 }
+
+/** Index 0..4 maps to option1..option5 and selected_answer enum */
+export const CORRECT_ANSWER_ENUM_BY_OPTION_INDEX: CorrectAnswerEnum[] = [
+  CorrectAnswerEnum.OPTION_1,
+  CorrectAnswerEnum.OPTION_2,
+  CorrectAnswerEnum.OPTION_3,
+  CorrectAnswerEnum.OPTION_4,
+  CorrectAnswerEnum.OPTION_5,
+];
 
 export enum QuestionTypeEnum {
   OBJECTIVE = 'OBJECTIVE',
@@ -52,6 +62,10 @@ export class ExamQuestionEntity extends CustomBaseEntity {
   @Column({ name: 'points', type: 'float', nullable: true })
   points: number | null;
 
+  @ApiPropertyOptional({ description: 'Per-question instructions (max 500 chars)' })
+  @Column({ name: 'instruction', type: 'varchar', length: 500, nullable: true })
+  instruction: string | null;
+
   @ApiPropertyOptional({ description: '0-based index of correct option for objective questions' })
   @Column({ name: 'correct_option_index', type: 'int', nullable: true })
   correct_option_index: number | null;
@@ -71,6 +85,10 @@ export class ExamQuestionEntity extends CustomBaseEntity {
   @ApiPropertyOptional({ description: 'Fourth option (objective)' })
   @Column({ type: 'varchar', length: 500, nullable: true })
   option4?: string;
+
+  @ApiPropertyOptional({ description: 'Fifth option (objective, optional)' })
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  option5?: string | null;
 
   @ApiPropertyOptional({ description: 'Correct answer (objective), derived from correct_option_index', enum: CorrectAnswerEnum })
   @Column({ type: 'enum', enum: CorrectAnswerEnum, nullable: true })
