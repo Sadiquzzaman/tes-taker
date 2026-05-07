@@ -88,6 +88,12 @@ export class StudentExamSubmissionEntity extends CustomBaseEntity {
   @ApiPropertyOptional({ description: 'User agent string' })
   @Column({ name: 'user_agent', type: 'text', nullable: true })
   user_agent?: string;
+
+  @ApiPropertyOptional({
+    description: 'Stringified JSON map of questionId → answer (MCQ: option UUID; essay: text)',
+  })
+  @Column({ name: 'answersheet_json', type: 'text', nullable: true })
+  answersheet_json: string | null;
 }
 
 @Entity('student_exam_answers')

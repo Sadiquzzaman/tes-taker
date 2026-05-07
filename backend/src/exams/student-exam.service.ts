@@ -5,7 +5,16 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, MoreThan, LessThan, Not, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import {
+  DataSource,
+  Repository,
+  In,
+  MoreThan,
+  LessThan,
+  Not,
+  MoreThanOrEqual,
+  LessThanOrEqual,
+} from 'typeorm';
 import { ExamEntity } from './entities/exam.entity';
 import { TestAudienceEnum } from './enums/exam-wizard.enums';
 import {
@@ -23,12 +32,17 @@ import { ClassEntity } from 'src/classes/entities/class.entity';
 import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities/class-student.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { SmsService } from 'src/sms/sms.service';
-import { 
-  StartExamDto, 
-  SaveAnswerDto, 
-  SubmitExamDto, 
-  ReportViolationDto 
+import {
+  StartExamDto,
+  SaveAnswerDto,
+  SubmitAnswerSheetDto,
+  SubmitExamDto,
+  ReportViolationDto,
 } from './dto/student-exam.dto';
+import {
+  findObjectiveOptionIndexBySubmittedId,
+  getObjectiveOptionSlotCount,
+} from './utils/exam-option-ids.util';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 
 @Injectable()
@@ -56,7 +70,16 @@ export class StudentExamService {
     private readonly userRepo: Repository<UserEntity>,
 
     private readonly smsService: SmsService,
+
+    private readonly dataSource: DataSource,
   ) {}
+
+  private static readonly UUID_V4_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+  private isUuidV4(value: string): boolean {
+    return StudentExamService.UUID_V4_RE.test(value);
+  }
 
   /** Flatten questions: wizard exams use sections; legacy uses exam.questions only */
   private getOrderedQuestions(exam: ExamEntity): ExamQuestionEntity[] {
@@ -581,6 +604,159 @@ export class StudentExamService {
     }
 
     return this.answerRepo.save(answer);
+  }
+
+  /**
+   * Save a full answersheet object (stringified JSON on submission + normalized answer rows).
+   * Keys are question UUIDs; MCQ values are option UUIDs; essay values are text (max 10000 chars).
+   */
+  async saveAnswerSheet(
+    examId: string,
+    studentId: string,
+    dto: SubmitAnswerSheetDto,
+  ): Promise<{ submission_id: string; saved_count: number }> {
+    if (dto.studentId && dto.studentId !== studentId) {
+      throw new BadRequestException('studentId does not match the authenticated user');
+    }
+
+    const validation = await this.validateExamAccess(examId, studentId);
+    if (!validation.canAccess) {
+      throw new ForbiddenException(validation.reason);
+    }
+
+    const exam = validation.exam!;
+    await this.assertExamOpenForTaking(exam, studentId);
+
+    const answersheet = dto.answersheet;
+    if (!answersheet || typeof answersheet !== 'object' || Array.isArray(answersheet)) {
+      throw new BadRequestException('answersheet must be a non-array object');
+    }
+
+    const submission = await this.submissionRepo.findOne({
+      where: {
+        exam_id: examId,
+        student_id: studentId,
+        status: ExamSubmissionStatusEnum.IN_PROGRESS,
+      },
+    });
+
+    if (!submission) {
+      throw new BadRequestException('Please start the exam first');
+    }
+
+    const ordered = this.getOrderedQuestions(exam);
+    const questionById = new Map(ordered.map((q) => [q.id, q]));
+
+    for (const questionId of Object.keys(answersheet)) {
+      if (!this.isUuidV4(questionId)) {
+        throw new BadRequestException(`Invalid question id: ${questionId}`);
+      }
+      if (!questionById.has(questionId)) {
+        throw new BadRequestException(`Unknown question id: ${questionId}`);
+      }
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      const submissionRepo = manager.getRepository(StudentExamSubmissionEntity);
+      const answerRepo = manager.getRepository(StudentExamAnswerEntity);
+
+      const subRow = await submissionRepo.findOne({ where: { id: submission.id } });
+      if (!subRow || subRow.status !== ExamSubmissionStatusEnum.IN_PROGRESS) {
+        throw new BadRequestException('No active exam session for this submission');
+      }
+
+      subRow.answersheet_json = JSON.stringify(answersheet);
+      subRow.updated_at = new Date();
+      await submissionRepo.save(subRow);
+
+      for (const [questionId, rawValue] of Object.entries(answersheet)) {
+        const question = questionById.get(questionId)!;
+        const value = rawValue === undefined || rawValue === null ? '' : String(rawValue);
+
+        if (question.question_type === QuestionTypeEnum.OBJECTIVE) {
+          const trimmed = value.trim();
+          if (!trimmed) {
+            throw new BadRequestException(`MCQ answer required for question ${questionId}`);
+          }
+          const slotCount = getObjectiveOptionSlotCount(question);
+          const idx = findObjectiveOptionIndexBySubmittedId(questionId, trimmed, slotCount);
+          if (idx === null) {
+            throw new BadRequestException(`Invalid MCQ option selection for question ${questionId}`);
+          }
+          const selected = CORRECT_ANSWER_ENUM_BY_OPTION_INDEX[idx];
+          if (!selected) {
+            throw new BadRequestException(`Invalid MCQ option index for question ${questionId}`);
+          }
+
+          const existing = await answerRepo.findOne({
+            where: { submission_id: subRow.id, question_id: questionId },
+          });
+          if (existing) {
+            await answerRepo.update(
+              { id: existing.id },
+              {
+                selected_answer: selected,
+                text_answer: null,
+                word_count: null,
+                answered_at: new Date(),
+                updated_at: new Date(),
+              } as object,
+            );
+          } else {
+            const row = answerRepo.create({
+              submission_id: subRow.id,
+              question_id: questionId,
+              selected_answer: selected,
+              answered_at: new Date(),
+              created_by: studentId,
+              created_at: new Date(),
+            });
+            await answerRepo.save(row);
+          }
+        } else {
+          if (value.length > 10000) {
+            throw new BadRequestException(
+              `Essay answer for question ${questionId} exceeds 10000 characters`,
+            );
+          }
+          const wordCount = value.trim().length
+            ? value.trim().split(/\s+/).filter((w) => w.length > 0).length
+            : 0;
+
+          const existing = await answerRepo.findOne({
+            where: { submission_id: subRow.id, question_id: questionId },
+          });
+          if (existing) {
+            await answerRepo.update(
+              { id: existing.id },
+              {
+                text_answer: value,
+                selected_answer: null,
+                word_count: wordCount,
+                answered_at: new Date(),
+                updated_at: new Date(),
+              } as object,
+            );
+          } else {
+            const row = answerRepo.create({
+              submission_id: subRow.id,
+              question_id: questionId,
+              text_answer: value,
+              word_count: wordCount,
+              answered_at: new Date(),
+              created_by: studentId,
+              created_at: new Date(),
+            });
+            await answerRepo.save(row);
+          }
+        }
+      }
+    });
+
+    return {
+      submission_id: submission.id,
+      saved_count: Object.keys(answersheet).length,
+    };
   }
 
   /**

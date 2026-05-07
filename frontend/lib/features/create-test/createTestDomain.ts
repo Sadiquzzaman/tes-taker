@@ -7,10 +7,6 @@ export const createTestSteps: CreateTestStep[] = ["Basic info", "Questions", "Re
 export const createId = () => uuidv4();
 
 const getSectionTemplates = (examType: string): Array<{ type: QuestionSectionType; headerText: string }> => {
-  if (examType === "essay") {
-    return [{ type: "essay", headerText: "Essay Questions" }];
-  }
-
   if (examType === "hybrid" || examType === "model") {
     return [
       { type: "objective", headerText: "Objective Questions" },

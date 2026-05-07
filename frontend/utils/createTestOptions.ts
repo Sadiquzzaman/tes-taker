@@ -10,10 +10,8 @@ export const createTestSubjectOptions = [
 ];
 
 export const createTestExamTypeOptions = [
-  { label: "Multiple choice (MCQ)", value: "mcq" },
-  { label: "Essay writing", value: "essay" },
-  { label: "Hybrid - A combination of different questions", value: "hybrid" },
-  { label: "Model Test - Multiple subjects", value: "model" },
+  { label: "Hybrid — single subject (MCQ and/or essay)", value: "hybrid" },
+  { label: "Model test — multiple subjects", value: "model" },
 ];
 
 export const testAudienceOptions = [

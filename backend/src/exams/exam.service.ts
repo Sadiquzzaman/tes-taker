@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, DeepPartial, Repository, In } from 'typeorm';
-import { createHash, randomUUID } from 'crypto';
+import { buildResponseOptionId } from './utils/exam-option-ids.util';
 import { ExamEntity, ExamTypeEnum } from './entities/exam.entity';
 import {
   ExamQuestionEntity,
@@ -74,7 +74,7 @@ export class ExamService {
   ) {}
 
   /**
-   * Unified wizard create (mcq | essay | hybrid | model)
+   * Unified wizard create (hybrid | model)
    */
   async createFromWizard(
     dto: CreateExamWizardDto,
@@ -104,11 +104,7 @@ export class ExamService {
     const subjectIds = subjects.map((s) => s.id);
     await this.subjectService.assertSubjectsExist(subjectIds);
 
-    if (
-      formState.examType === ExamKindEnum.MCQ ||
-      formState.examType === ExamKindEnum.ESSAY ||
-      formState.examType === ExamKindEnum.HYBRID
-    ) {
+    if (formState.examType === ExamKindEnum.HYBRID) {
       if (subjects.length !== 1) {
         throw new BadRequestException(`${formState.examType} exams must include exactly one subject block`);
       }
@@ -317,24 +313,14 @@ export class ExamService {
   private validateSectionsForExamType(kind: ExamKindEnum, subjects: CreateExamWizardDto['subjects']): void {
     const { hasObjective, hasSubjective } = this.countQuestionTypes(subjects);
 
-    if (kind === ExamKindEnum.MCQ) {
-      if (!hasObjective || hasSubjective) {
-        throw new BadRequestException('MCQ exams must contain only MCQ questions');
-      }
-    }
-    if (kind === ExamKindEnum.ESSAY) {
-      if (!hasSubjective || hasObjective) {
-        throw new BadRequestException('Essay exams must contain only essay questions');
-      }
-    }
     if (kind === ExamKindEnum.HYBRID) {
       if (!hasObjective && !hasSubjective) {
         throw new BadRequestException('Hybrid exams must include at least one question');
       }
     }
     if (kind === ExamKindEnum.MODEL) {
-      if (!hasObjective || !hasSubjective) {
-        throw new BadRequestException('Model exams must include both MCQ and essay questions');
+      if (!hasObjective && !hasSubjective) {
+        throw new BadRequestException('Model exams must include at least one question');
       }
     }
   }
@@ -920,7 +906,7 @@ export class ExamService {
       return exam.exam_kind;
     }
 
-    return exam.exam_type === ExamTypeEnum.SUBJECTIVE ? ExamKindEnum.ESSAY : ExamKindEnum.MCQ;
+    return exam.exam_type === ExamTypeEnum.SUBJECTIVE ? 'essay' : 'mcq';
   }
 
   private formatQuestionResponse(
@@ -951,7 +937,7 @@ export class ExamService {
       );
 
       const options = rawTexts.slice(0, optionCount).map((text, index) => ({
-        id: this.buildResponseOptionId(question.id, index),
+        id: buildResponseOptionId(question.id, index),
         text: (text ?? '').trim(),
         image: null,
       }));
@@ -997,19 +983,6 @@ export class ExamService {
     }
 
     return CORRECT_ANSWER_ENUM_BY_OPTION_INDEX.indexOf(answer);
-  }
-
-  private buildResponseOptionId(questionId: string, index: number): string {
-    const hex = createHash('sha256')
-      .update(`${questionId}:${index}`)
-      .digest('hex')
-      .slice(0, 32)
-      .split('');
-
-    hex[12] = '5';
-    hex[16] = ['8', '9', 'a', 'b'][parseInt(hex[16], 16) % 4];
-
-    return `${hex.slice(0, 8).join('')}-${hex.slice(8, 12).join('')}-${hex.slice(12, 16).join('')}-${hex.slice(16, 20).join('')}-${hex.slice(20, 32).join('')}`;
   }
 
   async updateExcludedStudents(

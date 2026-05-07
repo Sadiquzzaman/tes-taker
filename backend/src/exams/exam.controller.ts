@@ -44,7 +44,7 @@ export class ExamController {
   @ApiOperation({
     summary: "Create exam (unified wizard)",
     description:
-      "Single endpoint for mcq, essay, hybrid, and model tests. Subject blocks must use real subject UUIDs from GET /v1/subjects. `questions` may contain MCQ items, essay items, or a mix for hybrid/model exams. When testAudience is `specific_students`, each specificStudents item may contain one UUID or a comma-separated list. When testAudience is `anyone`, students access the exam by id after signing in (no invite token).",
+      "Unified wizard: hybrid (single subject) or model (multiple subjects). Subject blocks must use real subject UUIDs from GET /v1/subjects. Sections may be objective, essay, or mixed. When testAudience is `specific_students`, each specificStudents item may contain one UUID or a comma-separated list. When testAudience is `anyone`, students access the exam by id after signing in (no invite token).",
   })
   @ApiBody({ type: CreateExamWizardDto })
   @ApiResponse({ status: 201, description: "Exam created with sections and questions" })

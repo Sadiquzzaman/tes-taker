@@ -1,15 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { 
-  IsArray, 
-  IsEnum, 
-  IsNotEmpty, 
-  IsNumber, 
-  IsOptional, 
-  IsString, 
-  IsUUID, 
-  MaxLength, 
-  Min, 
-  ValidateNested 
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CorrectAnswerEnum } from '../entities/exam-question.entity';
@@ -74,6 +75,25 @@ export class SaveAnswerDto {
   @IsString()
   @MaxLength(10000, { message: 'Answer cannot exceed 10000 characters' })
   text_answer?: string;
+}
+
+export class SubmitAnswerSheetDto {
+  @ApiPropertyOptional({
+    description: 'Optional; if sent, must equal the authenticated student id',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: 'studentId must be a valid UUID' })
+  studentId?: string;
+
+  @ApiProperty({
+    description:
+      'Map of question UUID to answer. MCQ: value is the option UUID from the exam payload. Essay: plain text (max 10000 characters).',
+    example: { '550e8400-e29b-41d4-a716-446655440000': 'option-uuid-or-essay-text' },
+    type: 'object',
+    additionalProperties: { type: 'string' },
+  })
+  @IsObject()
+  answersheet: Record<string, string>;
 }
 
 export class SubmitExamDto {
