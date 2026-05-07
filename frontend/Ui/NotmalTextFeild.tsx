@@ -53,7 +53,9 @@ const NotmalTextFeild = ({
   };
 
   return (
-    <div className={`flex w-full min-h-[36px] items-start rounded-md border border-[#C6CFCF] px-2 py-[6px] ${parentClassName}`}>
+    <div
+      className={`flex w-full min-h-[36px] items-start rounded-md border border-[#C6CFCF] px-2 py-[6px] ${parentClassName}`}
+    >
       <textarea
         ref={textareaRef}
         placeholder={placeholder}

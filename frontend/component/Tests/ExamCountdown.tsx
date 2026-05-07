@@ -10,7 +10,7 @@ interface ExamCountdownProps {
 
 export default function ExamCountdown({ durationMinutes, submitButtonRef, onTimeUp }: ExamCountdownProps) {
   const [timeLeft, setTimeLeft] = useState<number | null>(
-    typeof durationMinutes === "number" ? .5 * 60 : null,
+    typeof durationMinutes === "number" ? durationMinutes * 60 : null,
   );
   const hasSubmittedRef = useRef(false);
 

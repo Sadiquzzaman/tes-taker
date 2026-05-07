@@ -122,8 +122,8 @@ const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
 
           {testData.test.test_audience === "selected_class" && (
             <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
-              Test shared with Class <span className="font-[700]">{testData.test.class?.class_name}</span> students. Only
-              these students will be able to join the test.
+              Test shared with Class <span className="font-[700]">{testData.test.class?.class_name}</span> students.
+              Only these students will be able to join the test.
             </p>
           )}
 

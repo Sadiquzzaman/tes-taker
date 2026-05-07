@@ -64,7 +64,7 @@ const JoinTest = () => {
         return;
       }
 
-      if(!parsedTestJoinResponse.eligible) {
+      if (!parsedTestJoinResponse.eligible) {
         handleErrorState("You are not eligible to join this test.", "Not Eligible");
         return;
       }
