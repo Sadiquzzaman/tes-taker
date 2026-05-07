@@ -27,6 +27,7 @@ import { StudentExamService } from './student-exam.service';
 import {
   StartExamDto,
   SaveAnswerDto,
+  SubmitAnswerSheetDto,
   SubmitExamDto,
   ReportViolationDto,
 } from './dto/student-exam.dto';
@@ -197,6 +198,28 @@ export class StudentExamController {
       ipAddress,
     );
     return { message: 'Exam started successfully', payload };
+  }
+
+  @Post(':examId/answersheet')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.STUDENT)
+  @ApiOperation({
+    summary: 'Save answersheet (bulk)',
+    description:
+      'Upserts all answers in one request. Body: optional studentId (must match JWT), answersheet as object map questionId → answer (MCQ: option UUID; essay: text, max 10000 chars). Stored as stringified JSON on the submission and synced to answer rows.',
+  })
+  @ApiParam({ name: 'examId', description: 'Exam UUID' })
+  @ApiResponse({ status: 201, description: 'Answersheet saved' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  @ApiResponse({ status: 400, description: 'Invalid payload or unknown question' })
+  async saveAnswerSheet(
+    @Param('examId', ParseUUIDPipe) examId: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+    @Body() dto: SubmitAnswerSheetDto,
+  ) {
+    const payload = await this.studentExamService.saveAnswerSheet(examId, jwtPayload.id, dto);
+    return { message: 'Answersheet saved successfully', payload };
   }
 
   @Post(':examId/save-answer')

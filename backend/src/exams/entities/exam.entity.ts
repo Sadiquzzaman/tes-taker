@@ -28,7 +28,7 @@ export class ExamEntity extends CustomBaseEntity {
   exam_type: ExamTypeEnum;
 
   @ApiPropertyOptional({
-    description: 'Wizard exam kind: mcq | essay | hybrid | model',
+    description: 'Wizard exam kind: hybrid | model (legacy rows may still read mcq | essay)',
     enum: ExamKindEnum,
   })
   @Column({ name: 'exam_kind', type: 'varchar', length: 20, nullable: true })
@@ -38,7 +38,7 @@ export class ExamEntity extends CustomBaseEntity {
   @Column({ name: 'test_name', type: 'varchar', length: 200, nullable: true })
   test_name: string | null;
 
-  @ApiPropertyOptional({ description: 'Primary subject for mcq, essay, hybrid (null for model tests)' })
+  @ApiPropertyOptional({ description: 'Primary subject for hybrid exams (null for model tests)' })
   @Column({ name: 'primary_subject_id', type: 'uuid', nullable: true })
   primary_subject_id: string | null;
 

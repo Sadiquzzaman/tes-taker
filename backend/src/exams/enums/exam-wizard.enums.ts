@@ -1,7 +1,5 @@
-/** Values sent by the frontend for exam type */
+/** Values sent by the frontend for exam type (standalone mcq/essay removed; use hybrid or model). */
 export enum ExamKindEnum {
-  MCQ = 'mcq',
-  ESSAY = 'essay',
   HYBRID = 'hybrid',
   MODEL = 'model',
 }

@@ -148,7 +148,7 @@ export class WizardSubjectBlockDto {
 }
 
 export class WizardFormStateDto {
-  @ApiProperty({ enum: ExamKindEnum, description: 'Exact values: mcq | essay | hybrid | model' })
+  @ApiProperty({ enum: ExamKindEnum, description: 'hybrid (single subject) | model (multiple subjects)' })
   @IsIn(Object.values(ExamKindEnum))
   examType: ExamKindEnum;
 
