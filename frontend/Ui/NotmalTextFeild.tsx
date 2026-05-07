@@ -8,6 +8,7 @@ type NotmalTextFeildProps = {
   inputClassName?: string;
   rows?: number;
   maxRows?: number;
+  disabled?: boolean;
 };
 
 const resizeTextarea = (element: HTMLTextAreaElement | null, rows: number, maxRows: number) => {
@@ -38,6 +39,7 @@ const NotmalTextFeild = ({
   inputClassName = "",
   rows = 1,
   maxRows = 4,
+  disabled = false,
 }: NotmalTextFeildProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -58,6 +60,7 @@ const NotmalTextFeild = ({
         value={value}
         onChange={handleChange}
         rows={rows}
+        disabled={disabled}
         className={`w-full resize-none bg-transparent text-[12px] font-[500] leading-[16px] text-[#232A25] placeholder:font-[400] placeholder:text-[#989eaf] align-middle focus:outline-none ${inputClassName}`}
       />
     </div>
