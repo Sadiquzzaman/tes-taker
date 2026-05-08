@@ -1,4 +1,5 @@
 import Image from "next/image";
+import NotmalTextFeild from "@/Ui/NotmalTextFeild";
 import CopyIconSVG from "@/component/svg/CopyIconSVG";
 import DragHandleIcon from "@/component/svg/DragHandleIcon";
 import ShuffleIcon from "@/component/svg/ShuffleIcon";
@@ -16,13 +17,14 @@ import {
   setActiveQuestionId,
   shuffleOptions,
   updateOptionImage,
+  updateQuestionInstruction,
   updateOptionText,
   updateQuestionPoints,
   updateQuestionImage,
   updateQuestionText,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
-import { getQuestionValidationErrors } from "@/utils/createTestValidation";
+import { getQuestionValidationErrors, OBJECTIVE_MAX_OPTIONS } from "@/utils/createTestValidation";
 import { memo, useCallback, useEffect, useRef } from "react";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -82,7 +84,7 @@ const QuestionCard = memo(
     const questionImageInputRef = useRef<HTMLInputElement>(null);
     const validationErrors = getQuestionValidationErrors(question, sectionType);
     const optionCount = question.options?.length ?? 0;
-    const canAddMoreOptions = sectionType === "objective" && optionCount < 4;
+    const canAddMoreOptions = sectionType === "objective" && optionCount < OBJECTIVE_MAX_OPTIONS;
 
     const activateCard = useCallback(() => {
       dispatch(setActiveQuestionId(question.id));
@@ -532,7 +534,7 @@ const QuestionCard = memo(
                   className="flex w-full items-center gap-2 py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)]"
                 >
                   <span className="h-4 w-4 rounded-full border border-[rgba(116,119,117,0.5)]" />
-                  <span>{canAddMoreOptions ? "Click to add a new option" : "Maximum 4 options added"}</span>
+                  <span>{canAddMoreOptions ? "Click to add a new option" : "Maximum 5 options added"}</span>
                 </button>
                 <input
                   ref={addOptionImageInputRef}
@@ -680,6 +682,28 @@ const QuestionCard = memo(
                 <TrashIcon />
               </button>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">Instruction</p>
+            <NotmalTextFeild
+              rows={1}
+              maxRows={4}
+              value={question.instruction ?? ""}
+              onChange={(event) =>
+                dispatch(
+                  updateQuestionInstruction({
+                    subjectId,
+                    sectionId,
+                    questionId: question.id,
+                    instruction: event.target.value,
+                  }),
+                )
+              }
+              placeholder="Add instruction (optional)"
+              parentClassName="rounded-[8px] border-[#E5E5E5] bg-white px-3 py-2"
+              inputClassName="text-[14px] leading-[20px] font-[400] text-[#232A25] placeholder:text-[#747775]"
+            />
           </div>
         </div>
         <button

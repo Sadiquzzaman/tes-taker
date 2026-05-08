@@ -28,6 +28,7 @@ export const createQuestion = (sectionType: QuestionSectionType): QuestionItem =
     return {
       id: createId(),
       text: "",
+      instruction: "",
       image: null,
       points: 2,
       showValidation: false,
@@ -37,6 +38,7 @@ export const createQuestion = (sectionType: QuestionSectionType): QuestionItem =
   return {
     id: createId(),
     text: "",
+    instruction: "",
     image: null,
     options: [],
     correctOptionId: null,
