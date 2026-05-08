@@ -22,7 +22,6 @@ const useSubmitAnswersheet = () => {
     return axiosReq
       .post<T, R, D>(`${process.env.NEXT_PUBLIC_BASE_URL}/student/exams/${examId}/answersheet`, payload)
       .then((response) => {
-        console.log({response})
         if (response?.status === 201) {
           sessionStorage.removeItem("testId");
           router.push("/");

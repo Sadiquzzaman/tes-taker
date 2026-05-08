@@ -176,7 +176,12 @@ export default function ParticipateTest() {
           </div>
         </div>
       </main>
-      <CreateModal open={submitLoading} onClose={() => {}} maxWidthClassName="max-w-[440px]" panelClassName="p-6 sm:p-7">
+      <CreateModal
+        open={submitLoading}
+        onClose={() => {}}
+        maxWidthClassName="max-w-[440px]"
+        panelClassName="p-6 sm:p-7"
+      >
         <div className="flex flex-col items-center gap-4 text-center">
           <RotatingLines
             visible={true}
