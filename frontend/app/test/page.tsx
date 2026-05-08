@@ -5,6 +5,7 @@ import ExamCountdown from "@/component/Tests/ExamCountdown";
 import CreateModal from "@/component/Tests/Create/CreateModal";
 import RightArrowIconSVG from "@/component/svg/RightArrowIconSVG";
 import useStudentExam from "@/hooks/api/exam/useStudentExam";
+import useSubmitAnswersheet from "@/hooks/api/tests/useSubmitAnswersheet";
 import { useEffect, useRef, useState } from "react";
 import { RotatingLines } from "react-loader-spinner";
 import { useRouter } from "next/navigation";
@@ -15,17 +16,14 @@ import ExamHeader from "@/component/Tests/exam/ExamHeader";
 export default function ParticipateTest() {
   const router = useRouter();
   const { examData: test, loading, apiComplete } = useStudentExam();
+  const [submitAnswersheet, { loading: submitLoading }] = useSubmitAnswersheet();
 
   const submitButtonRef = useRef<HTMLButtonElement | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitReason, setSubmitReason] = useState<"manual" | "timeout" | null>(null);
-  const isInteractionDisabled = loading || isSubmitting;
+  const [answerSheet, setAnswerSheet] = useState<AnswersheetMap>({});
+  const isInteractionDisabled = loading || submitLoading;
 
-  const handleSubmit = (reason: "manual" | "timeout" = "manual") => {
-    if (isSubmitting) {
-      return;
-    }
-
+  const handleSubmit = async (reason: "manual" | "timeout" = "manual") => {
     const user = localStorage.getItem("user");
     if (!user) {
       router.push("/login");
@@ -33,19 +31,19 @@ export default function ParticipateTest() {
     }
 
     setSubmitReason(reason);
-    setIsSubmitting(true);
 
-    const answerSubmitPayload = {
-      exam_id: test?.id ?? "",
-      student_id: JSON.parse(user)?.id ?? "",
-      answerSheet,
-    };
+    const parsedUser = JSON.parse(user) as { id?: string };
+    const examId = test?.id ?? "";
+    const studentId = parsedUser?.id ?? "";
 
-    console.log("answerSubmitPayload", answerSubmitPayload);
+    const response = await submitAnswersheet({
+      examId,
+      payload: {
+        studentId,
+        answersheet: answerSheet,
+      },
+    });
   };
-
-  const [answerSheet, setAnswerSheet] = useState<{ [key: string]: string }>({});
-  console.log("answerSheet", answerSheet);
 
   useEffect(() => {
     if (test?.subjects?.length) {
@@ -178,7 +176,7 @@ export default function ParticipateTest() {
           </div>
         </div>
       </main>
-      <CreateModal open={isSubmitting} onClose={() => {}} maxWidthClassName="max-w-[440px]" panelClassName="p-6 sm:p-7">
+      <CreateModal open={submitLoading} onClose={() => {}} maxWidthClassName="max-w-[440px]" panelClassName="p-6 sm:p-7">
         <div className="flex flex-col items-center gap-4 text-center">
           <RotatingLines
             visible={true}

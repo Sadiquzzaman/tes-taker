@@ -56,6 +56,13 @@ const EssayQuestionSectionCard = ({
               inputClassName="text-[16px] font-[400] leading-[18px] text-[#232A25] placeholder:text-[#747775]"
             />
 
+            {question.instruction ? (
+              <div className="flex items-start gap-2 rounded-[6px] bg-white">
+                <span className="mt-[2px] text-[16px] leading-[125%] text-[#49734f]">•</span>
+                <p className="text-[14px] font-[400] text-[#49734f]">{question.instruction}</p>
+              </div>
+            ) : null}
+
             <p className="text-[14px] font-[400] leading-[125%] text-[#747775]">
               Word count {answerSheet[question.id]?.trim() ? answerSheet[question.id].trim().split(/\s+/).length : 0}
             </p>

@@ -78,6 +78,12 @@ const ObjectiveQuestionSectionCard = ({
                     <span className="text-[16px] font-[400] leading-[125%] text-[#232A25] mb-1">{option.text}</span>
                   </label>
                 ))}
+                {question.instruction ? (
+                  <div className="flex items-start gap-2 rounded-[6px] bg-white">
+                    <span className="mt-[2px] text-[16px] leading-[125%] text-[#49734f]">•</span>
+                    <p className="text-[14px] font-[400] text-[#49734f]">{question.instruction}</p>
+                  </div>
+                ) : null}
               </div>
             </article>
           );
