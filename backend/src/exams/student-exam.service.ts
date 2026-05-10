@@ -551,7 +551,7 @@ export class StudentExamService {
       where: { 
         exam_id: examId, 
         student_id: studentId,
-        status: ExamSubmissionStatusEnum.IN_PROGRESS,
+        // status: ExamSubmissionStatusEnum.IN_PROGRESS,
       },
     });
 
@@ -636,7 +636,7 @@ export class StudentExamService {
       where: {
         exam_id: examId,
         student_id: studentId,
-        status: ExamSubmissionStatusEnum.IN_PROGRESS,
+        // status: ExamSubmissionStatusEnum.IN_PROGRESS,
       },
     });
 
