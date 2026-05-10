@@ -1,4 +1,5 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
+import { OBJECTIVE_MAX_OPTIONS } from "@/utils/createTestValidation";
 import {
   createId,
   createOption,
@@ -150,6 +151,17 @@ export const createTestQuestionReducers = {
       question.text = action.payload.text;
     }
   },
+  updateQuestionInstruction: (
+    state: CreateTestState,
+    action: PayloadAction<QuestionPayload & { instruction: string }>,
+  ) => {
+    const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
+    const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
+
+    if (question) {
+      question.instruction = action.payload.instruction;
+    }
+  },
   updateQuestionImage: (state: CreateTestState, action: PayloadAction<QuestionPayload & { image: string | null }>) => {
     const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
     const question = section?.questions.find((entry) => entry.id === action.payload.questionId);
@@ -233,7 +245,7 @@ export const createTestQuestionReducers = {
 
     question.options = question.options ?? [];
 
-    if (question.options.length >= 4) {
+    if (question.options.length >= OBJECTIVE_MAX_OPTIONS) {
       return;
     }
 

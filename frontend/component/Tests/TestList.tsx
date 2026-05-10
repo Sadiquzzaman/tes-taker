@@ -30,7 +30,7 @@ const TestList = () => {
       testList.filter(
         (testItem) =>
           testItem.subjects.some((subject) => matchesStartsWith(subject.name, normalizedSearchInput)) ||
-          matchesStartsWith(testItem.class.class_name, normalizedSearchInput) ||
+          matchesStartsWith(testItem?.class?.class_name || "", normalizedSearchInput) ||
           matchesStartsWith(testItem.test_name, normalizedSearchInput),
       ),
     [normalizedSearchInput, testList],

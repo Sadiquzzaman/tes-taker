@@ -1,6 +1,19 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+
+const resizeTextarea = (element: HTMLTextAreaElement | null) => {
+  if (!element) return;
+
+  const lineHeight = 20;
+  const maxHeight = lineHeight * 4;
+
+  element.style.height = "auto";
+  element.style.height = `${Math.min(element.scrollHeight, maxHeight)}px`;
+  element.style.overflowY = element.scrollHeight > maxHeight ? "auto" : "hidden";
+};
 
 const GradingModel = ({ openModal, setOpenModal }: { openModal: string; setOpenModal: (open: string) => void }) => {
+  const [questionInputData, setQuestionInputData] = useState<Record<string, { explanation: string }>>({});
+
   useEffect(() => {
     if (openModal) {
       document.body.style.overflow = "hidden";
@@ -14,6 +27,16 @@ const GradingModel = ({ openModal, setOpenModal }: { openModal: string; setOpenM
 
   const handleClose = () => {
     setOpenModal("");
+  };
+
+  const handleExplanationChange = (questionId: string, explanation: string) => {
+    setQuestionInputData((prev) => ({
+      ...prev,
+      [questionId]: {
+        ...prev[questionId],
+        explanation,
+      },
+    }));
   };
 
   const allQuestion = template.subjects.map((sub) => {
@@ -166,6 +189,8 @@ const GradingModel = ({ openModal, setOpenModal }: { openModal: string; setOpenM
                               }
                               score={4}
                               maxMarks={question.points}
+                              explanation={questionInputData[question.id]?.explanation || ""}
+                              onExplanationChange={(value) => handleExplanationChange(question.id, value)}
                             />
                           );
                         } else if (section.type === "objective") {
@@ -179,6 +204,8 @@ const GradingModel = ({ openModal, setOpenModal }: { openModal: string; setOpenM
                               correctOptionId={(question as any).correctOptionId}
                               score={4}
                               maxMarks={question.points}
+                              explanation={questionInputData[question.id]?.explanation || ""}
+                              onExplanationChange={(value) => handleExplanationChange(question.id, value)}
                             />
                           );
                         }
@@ -203,12 +230,16 @@ const EassayGradeTemplate = ({
   answer,
   score,
   maxMarks,
+  explanation,
+  onExplanationChange,
 }: {
   number: number;
   question: string;
   answer: string;
   score: number;
   maxMarks: number;
+  explanation?: string;
+  onExplanationChange?: (value: string) => void;
 }) => {
   return (
     <div className="border border-[#E5E5E5] rounded-[8px] p-4 flex flex-col gap-4">
@@ -227,6 +258,22 @@ const EassayGradeTemplate = ({
           Max marks: <span className="font-[500] ml-1">{maxMarks}</span>
         </p>
       </div>
+      {onExplanationChange && (
+        <div className="flex flex-col gap-2">
+          <p className="font-[500] text-[14px] leading-[125%] tracking-[-0.02em] text-[#232A25]">Explanation</p>
+          <textarea
+            rows={1}
+            value={explanation || ""}
+            onChange={(e) => {
+              resizeTextarea(e.target);
+              onExplanationChange(e.target.value);
+            }}
+            placeholder="Write explanation"
+            className="w-full min-h-10 resize-none rounded-[8px] border border-[#E5E5E5] px-2 py-[10px] text-[14px] font-[400] leading-5 text-[#232A25] placeholder:text-[#747775] focus:outline-none"
+            ref={resizeTextarea}
+          />
+        </div>
+      )}
     </div>
   );
 };
@@ -239,6 +286,8 @@ const ObjectiveGradeTemplate = ({
   score,
   maxMarks,
   correctOptionId,
+  explanation,
+  onExplanationChange,
 }: {
   number: number;
   question: string;
@@ -251,6 +300,8 @@ const ObjectiveGradeTemplate = ({
   }[];
   maxMarks: number;
   correctOptionId: string;
+  explanation?: string;
+  onExplanationChange?: (value: string) => void;
 }) => {
   const optionList = options.map((option) => {
     return {
@@ -365,6 +416,22 @@ const ObjectiveGradeTemplate = ({
           )}
         </div>
       </div>
+      {onExplanationChange && (
+        <div className="flex flex-col gap-2">
+          <p className="font-[500] text-[14px] leading-[125%] tracking-[-0.02em] text-[#232A25]">Explanation</p>
+          <textarea
+            rows={1}
+            value={explanation || ""}
+            onChange={(e) => {
+              resizeTextarea(e.target);
+              onExplanationChange(e.target.value);
+            }}
+            placeholder="Write explanation"
+            className="w-full min-h-10 resize-none rounded-[8px] border border-[#E5E5E5] px-2 py-[10px] text-[14px] font-[400] leading-5 text-[#232A25] placeholder:text-[#747775] focus:outline-none"
+            ref={resizeTextarea}
+          />
+        </div>
+      )}
     </div>
   );
 };

@@ -160,6 +160,7 @@ const PublishStep = () => {
                 value={publishState.selectedClassId}
                 handleChange={(value) => dispatch(setPublishField({ field: "selectedClassId", value }))}
                 list={classOptions}
+                maxOuputInDropdownList={5}
               />
               {publishState.selectedClassId && (
                 <>
@@ -210,7 +211,7 @@ const PublishStep = () => {
 
           {publishState.testAudience === "anyone" && (
             <div className="flex flex-col gap-2">
-              <p className="text-[14px] font-[600] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Class Join Link</p>
+              <p className="text-[14px] font-[600] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Test Join Link</p>
               <div className="flex items-center justify-between rounded-[6px] bg-[#EFF0F3]/75 px-3 py-[6px]">
                 <span className="text-[16px] font-[400] leading-5 tracking-[-0.02em] text-[#2765EC]">{JOIN_LINK}</span>
                 <button

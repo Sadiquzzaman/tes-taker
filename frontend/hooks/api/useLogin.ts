@@ -45,15 +45,27 @@ const useLogin = () => {
   };
 
   const handleClassJoinAfterLogin = async (classId: string) => {
-    const response = await apiClient.post(`${baseUrl}/classes/${classId}/join`, {});
+    const response = await apiClient.post(`${baseUrl}/classes/${classId}/join`, {}).catch((error) => {
+      if (error?.response?.data?.message === "You are already in this class") {
+        return {
+          data: {
+            message: "You have successfully joined the class.",
+            payload: {
+              class_id: classId,
+              status: "JOINED",
+            },
+          },
+        };
+      }
+    });
 
     triggerToast({
       title: "Class Join Successful",
-      description: response.data?.message || "",
+      description: response?.data?.message || "",
       type: "success",
     });
 
-    sessionStorage.setItem("classJoinResponse", JSON.stringify(response.data?.payload));
+    sessionStorage.setItem("classJoinResponse", JSON.stringify(response?.data?.payload));
     push("/join/class");
   };
 

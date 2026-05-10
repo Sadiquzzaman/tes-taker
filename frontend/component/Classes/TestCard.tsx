@@ -23,16 +23,17 @@ const TestCard = ({
 }) => {
   const dispatch = useAppDispatch();
 
-  const testStatus = "MarkingPending" as "Ongoing" | "Completed" | "MarkingPending";
-  const statusColors = {
-    Ongoing: "rgba(0,233,33,0.15)",
-    Completed: "rgba(73,115,79,0.15)",
-    MarkingPending: "#ED860025",
+  // const testStatus = "pending" as "ongoing" | "completed" | "pending";
+  const testStatus = testData.status;
+  const statusColors: Record<string, string> = {
+    ongoing: "rgba(0,233,33,0.15)",
+    completed: "rgba(73,115,79,0.15)",
+    pending: "#ED860025",
   };
-  const statusTextColors = {
-    Ongoing: "#49734F",
-    Completed: "#49734F",
-    MarkingPending: "#ED8600",
+  const statusTextColors: Record<string, string> = {
+    ongoing: "#49734F",
+    completed: "#49734F",
+    pending: "#ED8600",
   };
   return (
     <div
@@ -131,9 +132,9 @@ const TestCard = ({
               e.currentTarget.style.color = statusTextColors[testStatus];
             }}
           >
-            {testStatus === "Ongoing"
+            {testStatus === "ongoing"
               ? "View details"
-              : testStatus === "Completed"
+              : testStatus === "completed"
                 ? "View results"
                 : "Continue marking"}
           </button>
