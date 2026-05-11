@@ -30,6 +30,11 @@ const ObjectiveQuestionSectionCard = ({
   return (
     <section className="flex w-full flex-col items-start gap-4 self-stretch rounded-[8px] bg-[rgba(239,240,243,0.75)] p-4">
       <div className="flex flex-col items-start gap-1">
+        {section.instruction ? (
+          <div className="flex items-start gap-2 rounded-[6px]">
+            <p className="text-[14px] font-[400] text-[#49734f]">Instruction: {section.instruction}</p>
+          </div>
+        ) : null}
         <p className="text-[24px] font-[600] leading-[28px] text-[#232A25]">
           {section.headerText}
           {examType === "model" ? ` - ${subjectName}` : ""}

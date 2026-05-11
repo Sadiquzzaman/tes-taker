@@ -310,4 +310,11 @@ export const createTestQuestionReducers = {
   clearPendingFocusOption: (state: CreateTestState) => {
     state.pendingFocusOption = null;
   },
+  updateSectionInstruction: (state: CreateTestState, action: PayloadAction<SubjectSectionPayload & { instruction: string }>) => {
+    const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
+
+    if (section) {
+      section.instruction = action.payload.instruction;
+    }
+  },
 };
