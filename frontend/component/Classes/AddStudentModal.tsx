@@ -1,5 +1,5 @@
 import useAddStudentInClass from "@/hooks/api/class/useAddStudentInClass";
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "../Toast/ToastContext";
 import CrossIconSVG from "../svg/CrossIconSVG";
 import TagInput from "@/Ui/TagInput";
@@ -9,6 +9,15 @@ import ButtonLoader from "../Loader/ButtonLoadder";
 import RightArrowIconSVG from "../svg/RightArrowIconSVG";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setOpenAddStudentModal } from "@/lib/features/classSlice";
+import {
+  extractStudentsFromCsvRows,
+  getEditedInvalidTagState,
+  getInvalidStudentIndices,
+  getUniqueStudents,
+  getValidationError,
+  normalizeStudentIdentifier,
+  parseCsvText,
+} from "@/utils/addStudentModal";
 
 const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void }) => {
   const dispatch = useAppDispatch();
@@ -16,7 +25,10 @@ const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void 
   const [addStudent, { loading }] = useAddStudentInClass({ classId: openAddStudentModal?.id || "" });
   const [value, setValue] = useState("");
   const [students, setStudents] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const tagInputRef = useRef<HTMLInputElement | null>(null);
   const { triggerToast } = useToast();
+  const invalidStudentIndices = useMemo(() => getInvalidStudentIndices(students), [students]);
   // Lock scroll when modal is open
   useEffect(() => {
     if (openAddStudentModal) {
@@ -29,40 +41,108 @@ const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void 
     };
   }, [openAddStudentModal]);
 
+  const showValidationToast = (input: string) => {
+    const validationError = getValidationError(input);
+
+    if (!validationError) return false;
+
+    triggerToast({
+      ...validationError,
+      type: "error",
+    });
+
+    return true;
+  };
+
+  const focusTagInputAtEnd = () => {
+    requestAnimationFrame(() => {
+      tagInputRef.current?.focus();
+      const inputLength = tagInputRef.current?.value.length || 0;
+      tagInputRef.current?.setSelectionRange(inputLength, inputLength);
+    });
+  };
+
   const addTag = () => {
     const trimmed = value.trim();
 
     if (!trimmed) return;
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^\d+$/;
+    const normalizedValue = normalizeStudentIdentifier(trimmed);
 
-    if (!emailRegex.test(trimmed) && !phoneRegex.test(trimmed)) {
+    if (students.some((student) => normalizeStudentIdentifier(student) === normalizedValue)) {
       triggerToast({
-        title: "Invalid input",
-        description: "Please enter a valid email address or phone number.",
+        title: "Duplicate student",
+        description: "This phone or email is already in the list.",
         type: "error",
       });
-    } else if (trimmed.includes("@") && !emailRegex.test(trimmed)) {
+      return;
+    }
+
+    if (showValidationToast(trimmed)) return;
+
+    setStudents((prev) => [...prev, trimmed]);
+    setValue("");
+  };
+
+  const handleCsvUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    try {
+      const fileText = await file.text();
+      const parsedRows = parseCsvText(fileText);
+      const parsedStudents = extractStudentsFromCsvRows(parsedRows);
+
+      const uniqueStudents = getUniqueStudents(parsedStudents, students);
+
+      if (parsedStudents.length === 0) {
+        triggerToast({
+          title: "Empty CSV",
+          description: "No phone number or email was found in the uploaded CSV file.",
+          type: "error",
+        });
+        return;
+      }
+
+      if (uniqueStudents.length === 0) {
+        triggerToast({
+          title: "No new students added",
+          description: "All items in this CSV are already in the list.",
+          type: "error",
+        });
+        return;
+      }
+
+      setStudents((prev) => [...prev, ...uniqueStudents]);
       triggerToast({
-        title: "Invalid email",
-        description: "Please enter a valid email address.",
+        title: "CSV uploaded",
+        description: `${uniqueStudents.length} unique item${uniqueStudents.length > 1 ? "s" : ""} added to the student list.`,
+        type: "success",
+      });
+    } catch {
+      triggerToast({
+        title: "CSV upload failed",
+        description: "We could not read the CSV file. Please try again with a valid CSV file.",
         type: "error",
       });
-    } else if (phoneRegex.test(trimmed) && trimmed.length !== 11) {
-      triggerToast({
-        title: "Invalid phone number",
-        description: "Phone number must be 11 digits.",
-        type: "error",
-      });
-    } else {
-      setStudents((prev) => [...prev, trimmed]);
-      setValue("");
+    } finally {
+      event.target.value = "";
     }
   };
 
   const removeTag = (index: number) => {
     setStudents((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleTagClick = (index: number) => {
+    if (!invalidStudentIndices.includes(index)) return;
+
+    const { nextStudents, nextValue } = getEditedInvalidTagState(students, index, value);
+
+    setStudents(nextStudents);
+    setValue(nextValue);
+    focusTagInputAtEnd();
   };
 
   const handleClose = () => {
@@ -76,6 +156,12 @@ const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void 
         description: "Please add at least one student email or phone number.",
         type: "error",
       });
+    } else if (invalidStudentIndices.length > 0) {
+      triggerToast({
+        title: "Fix validation errors",
+        description: "Fix validation of phone or email and try again.",
+        type: "error",
+      });
     } else {
       addStudent({ students }).then((res) => {
         if (res?.statusCode === 201) {
@@ -85,6 +171,7 @@ const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void 
       });
     }
   };
+
   return (
     <>
       <div
@@ -122,12 +209,38 @@ const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void 
               tags={students}
               removeTag={removeTag}
               addTag={addTag}
+              invalidTagIndices={invalidStudentIndices}
+              onTagClick={handleTagClick}
+              inputRef={tagInputRef}
             />
           </div>
-          <div className="flex justify-between items-center gap-4 mt-4">
-            <p className={`font-[400] text-[14px] leading-[14px] tracking-[-0.02em] text-[#747775]`}>
-              Invite by single/bulk email or phone.
-            </p>
+          <div className="flex flex-col gap-3 mt-4 sm:flex-row sm:justify-between sm:items-center">
+            <div className="flex flex-col gap-2">
+              <p className={`font-[400] text-[14px] leading-[14px] tracking-[-0.02em] text-[#747775]`}>
+                Invite by single/bulk email or phone.
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleCsvUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-[32px] rounded-lg border border-[#C6CFCF] px-3 text-sm font-medium tracking-[-0.02em] text-[#232A25]"
+                >
+                  Upload CSV
+                </button>
+                {invalidStudentIndices.length > 0 && (
+                  <p className="text-[12px] leading-[14px] tracking-[-0.02em] text-[#C1121F]">
+                    Invalid items are highlighted in red. Click one to edit it.
+                  </p>
+                )}
+              </div>
+            </div>
             <button
               type="button"
               onClick={addTag}
