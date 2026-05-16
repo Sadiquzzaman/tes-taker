@@ -124,6 +124,12 @@ export class WizardQuestionSectionDto {
   @IsString()
   headerText?: string;
 
+  @ApiPropertyOptional({ description: 'Optional instructions for this section' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  instruction?: string;
+
   @ApiProperty({
     description:
       'MCQ items include options + correctOptionId. Essay items include text + points only. Hybrid/model requests may mix both shapes in the same array.',

@@ -1,4 +1,5 @@
 import InputSearchSVG from "@/component/svg/InputSearch";
+import { RefObject } from "react";
 
 const TagInput = ({
   value,
@@ -11,6 +12,9 @@ const TagInput = ({
   inputClassName = "",
   afterIcon = <InputSearchSVG />,
   beforeIcon = null,
+  invalidTagIndices = [],
+  onTagClick,
+  inputRef,
 }: {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -22,6 +26,9 @@ const TagInput = ({
   inputClassName?: string;
   afterIcon?: React.ReactNode;
   beforeIcon?: React.ReactNode;
+  invalidTagIndices?: number[];
+  onTagClick?: (index: number) => void;
+  inputRef?: RefObject<HTMLInputElement | null>;
 }) => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if ((e.key === "Enter" || e.key === " " || e.key === ",") && value.trim() !== "") {
@@ -37,9 +44,17 @@ const TagInput = ({
       {tags.map((tag, index) => (
         <div
           key={index}
-          className="flex items-center gap-1 bg-[#EFF0F3] text-[#232A25] text-[14px] px-4 py-[6px] rounded-[32px]"
+          className={`flex items-center gap-1 text-[#232A25] text-[14px] px-4 py-[6px] rounded-[32px] ${
+            invalidTagIndices.includes(index) ? "bg-[#FDECEC]" : "bg-[#EFF0F3]"
+          }`}
         >
-          {tag}
+          <button
+            type="button"
+            onClick={() => onTagClick?.(index)}
+            className={`text-left ${onTagClick ? "cursor-pointer" : "cursor-default"}`}
+          >
+            {tag}
+          </button>
           <button type="button" onClick={() => removeTag(index)} className="text-xs leading-none">
             <svg
               className="mt-[2px]"
@@ -62,6 +77,7 @@ const TagInput = ({
         </div>
       ))}
       <input
+        ref={inputRef}
         type="text"
         placeholder={tags.length === 0 ? placeholder : ""}
         value={value}

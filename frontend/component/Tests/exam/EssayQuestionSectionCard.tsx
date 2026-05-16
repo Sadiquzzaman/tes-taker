@@ -25,6 +25,11 @@ const EssayQuestionSectionCard = ({
   return (
     <section className="flex w-full flex-col items-start gap-4 self-stretch rounded-[8px] bg-[rgba(239,240,243,0.75)] p-4">
       <div className="flex flex-col items-start gap-1">
+        {section.instruction ? (
+          <div className="flex items-start gap-2 rounded-[6px]">
+            <p className="text-[14px] font-[400] text-[#49734f]">Instruction: {section.instruction}</p>
+          </div>
+        ) : null}
         <p className="text-[24px] font-[600] leading-[28px] text-[#232A25]">
           {section.headerText}
           {examType === "model" ? ` - ${subjectName}` : ""}
@@ -35,6 +40,13 @@ const EssayQuestionSectionCard = ({
       <div className="flex w-full flex-col gap-4">
         {section.questions.map((question, index) => (
           <article key={question.id} className="flex w-full flex-col gap-3 rounded-[6px] bg-white p-4">
+            {question.instruction ? (
+              <div className="flex items-start gap-2 rounded-[6px] bg-white">
+                <span className="mt-[2px] text-[16px] leading-[125%] text-[#49734f]">•</span>
+                <p className="text-[14px] font-[400] text-[#49734f]">{question.instruction}</p>
+              </div>
+            ) : null}
+
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-2">
                 <span className="text-[16px] font-[500] leading-[125%] text-[#0F1A12]">{index + 1}.</span>
@@ -55,13 +67,6 @@ const EssayQuestionSectionCard = ({
               parentClassName="border-[#E5E7EB] bg-white px-3 py-3"
               inputClassName="text-[16px] font-[400] leading-[18px] text-[#232A25] placeholder:text-[#747775]"
             />
-
-            {question.instruction ? (
-              <div className="flex items-start gap-2 rounded-[6px] bg-white">
-                <span className="mt-[2px] text-[16px] leading-[125%] text-[#49734f]">•</span>
-                <p className="text-[14px] font-[400] text-[#49734f]">{question.instruction}</p>
-              </div>
-            ) : null}
 
             <p className="text-[14px] font-[400] leading-[125%] text-[#747775]">
               Word count {answerSheet[question.id]?.trim() ? answerSheet[question.id].trim().split(/\s+/).length : 0}
