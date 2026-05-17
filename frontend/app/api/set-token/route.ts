@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
-  const { token, refreshToken } = await req.json();
+  const { token, refreshToken, role } = await req.json();
 
   const cookieStore = await cookies();
 
@@ -13,6 +13,13 @@ export async function POST(req: Request) {
   });
 
   cookieStore.set("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  });
+
+  cookieStore.set("role", role, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

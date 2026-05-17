@@ -3,6 +3,7 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "Dashboard",
     route: "/",
+    role: ["TEACHER"],
     image: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
@@ -40,6 +41,7 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "Classes",
     route: "/classes",
+    role: ["STUDENT","TEACHER"],
     image: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
@@ -70,6 +72,7 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "Tests",
     route: "/tests",
+    role: ["STUDENT","TEACHER"],
     image: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
@@ -86,6 +89,7 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "Grading",
     route: "/grading",
+    role: ["TEACHER"],
     image: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
@@ -124,6 +128,7 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "Results",
     route: "/results",
+    role: ["TEACHER"],
     image: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
@@ -162,6 +167,7 @@ const sidebarList: SideBarList[] = [
     category: "System",
     label: "Account",
     route: "/account",
+    role: ["STUDENT","TEACHER"],
     image: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
@@ -192,6 +198,7 @@ const sidebarList: SideBarList[] = [
     category: "System",
     label: "Help",
     route: "/help",
+    role: ["STUDENT","TEACHER"],
     image: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path

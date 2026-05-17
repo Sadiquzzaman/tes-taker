@@ -14,6 +14,8 @@ import SidebarLogout from "./SidebarLogout";
 const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
   const cookieStore = await cookies();
   const sidebarState = cookieStore.get("sidebar")?.value || "closed";
+  const role = cookieStore.get("role")?.value as RoleUserType;
+
   return (
     <div
       id="sidebar"
@@ -71,7 +73,7 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
               Platform
             </p>
             {sidebarList
-              .filter((element) => element.category === "Platform")
+              .filter((element) => element.category === "Platform" && element.role.includes(role))
               .map((element) => {
                 return (
                   <Link href={element.route} key={element.label} className="w-full">
@@ -89,7 +91,7 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
               System
             </p>
             {sidebarList
-              .filter((element) => element.category === "System")
+              .filter((element) => element.category === "System" && element.role.includes(role))
               .map((element) => {
                 return (
                   <Link href={element.route} key={element.label} className="w-full">
