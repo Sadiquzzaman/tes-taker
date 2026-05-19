@@ -17,13 +17,13 @@ const routePolicies: RoutePolicy[] = [
     path: "/login",
     match: "exact",
     isPublic: true,
-    redirectAuthenticatedTo: "/",
+    // redirectAuthenticatedTo: "/",
   },
   {
     path: "/signup",
     match: "exact",
     isPublic: true,
-    redirectAuthenticatedTo: "/",
+    // redirectAuthenticatedTo: "/",
   },
   {
     path: "/join",
@@ -99,8 +99,6 @@ const getRoleHomeRoute = (role: RoleUserType | null) => {
 
 const createRedirectResponse = (request: NextRequest, pathname: string) => {
   const url = new URL(pathname, request.url);
-  console.log({ request });
-  console.log({ pathname, url });
 
   return NextResponse.redirect(url);
 };
