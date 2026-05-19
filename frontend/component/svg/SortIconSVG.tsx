@@ -1,13 +1,6 @@
-const SortIconSVG = () => {
+const SortIconSVG = ({ className = "size-4" }: { className?: string }) => {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth="1.5"
-      stroke="#747775"
-      className="size-4"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="#747775" className={className}>
       <path
         strokeLinecap="round"
         strokeLinejoin="round"

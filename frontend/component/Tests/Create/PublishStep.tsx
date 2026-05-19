@@ -15,13 +15,8 @@ import { testAudienceOptions } from "@/utils/createTestOptions";
 import useGetAllClass from "@/hooks/api/class/useGetAllClass";
 import PublishSchedule from "./PublishSchedule";
 import { useToast } from "@/component/Toast/ToastContext";
-
-const CopyIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="4.5" y="4.5" width="8" height="8" rx="1" stroke="white" strokeWidth="1" />
-    <path d="M1.5 9.5V2.5C1.5 1.95 1.95 1.5 2.5 1.5H9.5" stroke="white" strokeWidth="1" strokeLinecap="round" />
-  </svg>
-);
+import AddStudentIconSVG from "@/component/svg/AddStudentIconSVG";
+import PublishCopyIconSVG from "@/component/svg/PublishCopyIconSVG";
 
 const JOIN_LINK = "app.testaker.com/join/class/ABCD1234";
 
@@ -188,16 +183,7 @@ const PublishStep = () => {
                       onClick={handleAddStudent}
                       className="flex h-[44px] items-center gap-[6px] rounded-[8px] bg-[#232A25] px-3 text-[14px] font-[500] leading-4 tracking-[-0.02em] text-white"
                     >
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="5.5" cy="4" r="2.5" stroke="white" strokeWidth="1.2" />
-                        <path
-                          d="M1 12C1 9.79086 3.01472 8 5.5 8"
-                          stroke="white"
-                          strokeWidth="1.2"
-                          strokeLinecap="round"
-                        />
-                        <path d="M10 9V13M8 11H12" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-                      </svg>
+                      <AddStudentIconSVG width={14} />
                       Add
                     </button>
                   </div>
@@ -219,7 +205,7 @@ const PublishStep = () => {
                   onClick={handleCopy}
                   className="flex items-center gap-[6px] rounded-[8px] bg-[#232A25] px-3 py-2 text-[14px] font-[500] leading-4 tracking-[-0.02em] capitalize text-white"
                 >
-                  <CopyIcon />
+                  <PublishCopyIconSVG width={14} />
                   {copied ? "Copied!" : "Copy"}
                 </button>
               </div>

@@ -3,26 +3,8 @@ import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import dayjs, { Dayjs } from "dayjs";
 import { useCallback, useState } from "react";
-
-const getDateValue = (value: string) => (value ? dayjs(value) : null);
-
-const getTimeValue = (value: string) => (value ? dayjs(`2026-01-01T${value}`) : null);
-
-const CalendarIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="1.5" y="3" width="13" height="11.5" rx="1.5" stroke="#49734F" strokeWidth="1.2" />
-    <path d="M1.5 6.5H14.5" stroke="#49734F" strokeWidth="1.2" strokeLinecap="round" />
-    <path d="M5.5 1.5V4.5" stroke="#49734F" strokeWidth="1.2" strokeLinecap="round" />
-    <path d="M10.5 1.5V4.5" stroke="#49734F" strokeWidth="1.2" strokeLinecap="round" />
-  </svg>
-);
-
-const ClockIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="8" cy="8" r="6.4" stroke="#49734F" strokeWidth="1.2" />
-    <path d="M8 4.8V8L10.4 9.6" stroke="#49734F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+import ScheduleCalendarIconSVG from "@/component/svg/ScheduleCalendarIconSVG";
+import ScheduleClockIconSVG from "@/component/svg/ScheduleClockIconSVG";
 
 const PublishSchedule = () => {
   const dispatch = useAppDispatch();
@@ -107,7 +89,7 @@ const PublishSchedule = () => {
             // onOpen={() => setOpenPicker("scheduleDate")}
             // onClose={() => setOpenPicker(null)}
             onChange={(value) => updateDateTime(value, "date", "scheduleAt")}
-            slots={{ openPickerIcon: CalendarIcon }}
+            slots={{ openPickerIcon: ScheduleCalendarIconSVG }}
             slotProps={pickerSx("scheduleDate")}
           />
           <TimePicker
@@ -117,7 +99,7 @@ const PublishSchedule = () => {
             // onOpen={() => setOpenPicker("scheduleTime")}
             // onClose={() => setOpenPicker(null)}
             onChange={(value) => updateDateTime(value, "time", "scheduleAt")}
-            slots={{ openPickerIcon: ClockIcon }}
+            slots={{ openPickerIcon: ScheduleClockIconSVG }}
             slotProps={pickerSx("scheduleTime")}
           />
         </div>
@@ -133,7 +115,7 @@ const PublishSchedule = () => {
             // onOpen={() => setOpenPicker("endingDate")}
             // onClose={() => setOpenPicker(null)}
             onChange={(value) => updateDateTime(value, "date", "endingAt")}
-            slots={{ openPickerIcon: CalendarIcon }}
+            slots={{ openPickerIcon: ScheduleCalendarIconSVG }}
             slotProps={pickerSx("endingDate")}
           />
           <TimePicker
@@ -143,7 +125,7 @@ const PublishSchedule = () => {
             // onOpen={() => setOpenPicker("endingTime")}
             // onClose={() => setOpenPicker(null)}
             onChange={(value) => updateDateTime(value, "time", "endingAt")}
-            slots={{ openPickerIcon: ClockIcon }}
+            slots={{ openPickerIcon: ScheduleClockIconSVG }}
             slotProps={pickerSx("endingTime")}
           />
         </div>

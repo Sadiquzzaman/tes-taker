@@ -2,6 +2,8 @@
 
 import React, { useRef, useState } from "react";
 import { LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line } from "recharts";
+import ChevronDownFilledIconSVG from "../svg/ChevronDownFilledIconSVG";
+import ChevronUpFilledIconSVG from "../svg/ChevronUpFilledIconSVG";
 
 const data = [
   {
@@ -84,31 +86,9 @@ const MyActivity = () => {
           <button className="flex items-center text-[#747775]" onClick={() => setOpen(!open)}>
             <div className="font-[400] text-[12px] leading-[12px] tracking-[-0.02em]">{selectedDuration.name}</div>
             {open ? (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="size-4 ml-2 mt-[2px]"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M11.47 7.72a.75.75 0 0 1 1.06 0l7.5 7.5a.75.75 0 1 1-1.06 1.06L12 9.31l-6.97 6.97a.75.75 0 0 1-1.06-1.06l7.5-7.5Z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <ChevronUpFilledIconSVG className="size-4 ml-2 mt-[2px]" />
             ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="size-4 ml-2 mt-[2px]"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M12.53 16.28a.75.75 0 0 1-1.06 0l-7.5-7.5a.75.75 0 0 1 1.06-1.06L12 14.69l6.97-6.97a.75.75 0 1 1 1.06 1.06l-7.5 7.5Z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <ChevronDownFilledIconSVG className="size-4 ml-2 mt-[2px]" />
             )}
           </button>
           {open && (

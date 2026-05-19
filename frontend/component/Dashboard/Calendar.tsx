@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import ChevronLeftIconSVG from "../svg/ChevronLeftIconSVG";
+import ChevronRightIconSVG from "../svg/ChevronRightIconSVG";
 
 const WEEK_DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
@@ -114,17 +116,8 @@ const Calendar = () => {
       <div className="flex justify-between items-center">
         <div className="font-[500] text-[14px] leading-[16px] text-[#232A25] tracking-[-0.02em]">Calendar</div>
         <div className="flex gap-1 items-center">
-          <button className="mr-2" onClick={handleDecreaseMonth}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="2.5"
-              stroke="#232A25"
-              className="size-4"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
+          <button className="mr-2 text-[#232A25]" onClick={handleDecreaseMonth}>
+            <ChevronLeftIconSVG className="size-4" strokeWidth={2.5} />
           </button>
           <div ref={yearPopupRef} className="relative">
             <button
@@ -154,17 +147,8 @@ const Calendar = () => {
               </div>
             )}
           </div>
-          <button className="ml-2" onClick={handleIncreaseMonth}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="2.5"
-              stroke="#232A25"
-              className="size-4"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </svg>
+          <button className="ml-2 text-[#232A25]" onClick={handleIncreaseMonth}>
+            <ChevronRightIconSVG className="size-4" strokeWidth={2.5} />
           </button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import React from "react";
+import RightArrowIconSVG from "../svg/RightArrowIconSVG";
 
 const TotalStudents = () => (
   <div className="bg-[#ffffff] p-4 rounded-[12px] flex flex-col text-white w-full h-full min-h-[240px]">
@@ -6,16 +7,7 @@ const TotalStudents = () => (
       <div className="font-[500] text-[14px] leading-[16px] text-[#232A25] tracking-[-0.02em]">Total Students</div>
       <button className="flex items-center text-[#49734F]">
         <div className="font-[400] text-[12px] leading-[12px] tracking-[-0.02em]">Add Student </div>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth="1.5"
-          stroke="currentColor"
-          className="size-4 ml-1 mt-[2px]"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-        </svg>
+        <RightArrowIconSVG />
       </button>
     </div>
 

@@ -2,6 +2,10 @@
 
 import NormalInput from "@/Ui/NormalInput";
 import React, { useRef, useState, useEffect } from "react";
+import ChevronDownFilledIconSVG from "../svg/ChevronDownFilledIconSVG";
+import ChevronUpFilledIconSVG from "../svg/ChevronUpFilledIconSVG";
+import RightArrowIconSVG from "../svg/RightArrowIconSVG";
+import SortIconSVG from "../svg/SortIconSVG";
 
 const sampleClassList = [
   { name: "ABC Class", value: "abc" },
@@ -82,31 +86,9 @@ const TopStudents = () => {
           <button className="flex items-center text-[#747775]" onClick={() => setOpen(!open)}>
             <div className="font-[400] text-[12px] leading-[12px] tracking-[-0.02em]">{selectedClass.name}</div>
             {open ? (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="size-4 ml-2 mt-[2px]"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M11.47 7.72a.75.75 0 0 1 1.06 0l7.5 7.5a.75.75 0 1 1-1.06 1.06L12 9.31l-6.97 6.97a.75.75 0 0 1-1.06-1.06l7.5-7.5Z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <ChevronUpFilledIconSVG className="size-4 ml-2 mt-[2px]" />
             ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="size-4 ml-2 mt-[2px]"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M12.53 16.28a.75.75 0 0 1-1.06 0l-7.5-7.5a.75.75 0 0 1 1.06-1.06L12 14.69l6.97-6.97a.75.75 0 1 1 1.06 1.06l-7.5 7.5Z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <ChevronDownFilledIconSVG className="size-4 ml-2 mt-[2px]" />
             )}
           </button>
           {open && (
@@ -134,37 +116,7 @@ const TopStudents = () => {
           onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
           title={sortOrder === "desc" ? "Sort: High to Low" : "Sort: Low to High"}
         >
-          {sortOrder === "desc" ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="#747775"
-              className="size-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"
-              />
-            </svg>
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="#747775"
-              className="size-4 rotate-180"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"
-              />
-            </svg>
-          )}
+          <SortIconSVG className={`size-4 ${sortOrder === "asc" ? "rotate-180" : ""}`} />
         </div>
       </div>
       <table className="w-full table-fixed">
@@ -196,16 +148,7 @@ const TopStudents = () => {
           <div className="font-[400] text-[12px] leading-[12px] tracking-[-0.02em]">
             View all <span className="font-[600]">{remainingStudents} Students</span>
           </div>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth="1.5"
-            stroke="currentColor"
-            className="size-4 ml-1 mt-[2px]"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-          </svg>
+          <RightArrowIconSVG />
         </div>
       )}
     </div>

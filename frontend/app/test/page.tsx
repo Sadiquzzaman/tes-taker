@@ -3,6 +3,7 @@
 import ButtonLoader from "@/component/Loader/ButtonLoadder";
 import ExamCountdown from "@/component/Tests/ExamCountdown";
 import CreateModal from "@/component/Tests/Create/CreateModal";
+import ExamTimerIconSVG from "@/component/svg/ExamTimerIconSVG";
 import RightArrowIconSVG from "@/component/svg/RightArrowIconSVG";
 import useStudentExam from "@/hooks/api/exam/useStudentExam";
 import useSubmitAnswersheet from "@/hooks/api/tests/useSubmitAnswersheet";
@@ -101,22 +102,7 @@ export default function ParticipateTest() {
           <div className="flex justify-between items-center">
             <p className="font-[600] text-[32px] leading-[32px] text-[#232A25]">{test?.test_name ?? "Loading test"}</p>
             <div className="flex items-center gap-4">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M1.83301 8.00065C1.83301 8.81047 1.99251 9.61236 2.30242 10.3605C2.61232 11.1087 3.06655 11.7885 3.63918 12.3611C4.21181 12.9338 4.89162 13.388 5.63979 13.6979C6.38797 14.0078 7.18986 14.1673 7.99967 14.1673C8.80949 14.1673 9.61138 14.0078 10.3596 13.6979C11.1077 13.388 11.7875 12.9338 12.3602 12.3611C12.9328 11.7885 13.387 11.1087 13.6969 10.3605C14.0068 9.61236 14.1663 8.81047 14.1663 8.00065C14.1663 7.19083 14.0068 6.38894 13.6969 5.64077C13.387 4.8926 12.9328 4.21279 12.3602 3.64016C11.7875 3.06753 11.1077 2.6133 10.3596 2.30339C9.61138 1.99349 8.80949 1.83398 7.99967 1.83398C7.18986 1.83398 6.38797 1.99349 5.63979 2.30339C4.89162 2.6133 4.21181 3.06753 3.63918 3.64016C3.06655 4.21279 2.61232 4.8926 2.30242 5.64077C1.99251 6.38894 1.83301 7.19083 1.83301 8.00065Z"
-                  stroke="#49734F"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M8 4.30078V8.00078H10.775"
-                  stroke="#49734F"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <ExamTimerIconSVG width={16} />
               <ExamCountdown
                 key={test?.id ?? "exam-countdown"}
                 durationMinutes={test?.duration_minutes}

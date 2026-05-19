@@ -3,6 +3,7 @@
 import React from "react";
 import { Bar, BarChart, CartesianGrid, Legend, Tooltip, TooltipProps, XAxis, YAxis } from "recharts";
 import { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
+import RightArrowIconSVG from "../svg/RightArrowIconSVG";
 
 const data = [
   {
@@ -37,16 +38,7 @@ const MyClasses = () => (
       <div className="font-[500] text-[14px] leading-[16px] text-[#232A25] tracking-[-0.02em]">My Classes</div>
       <button className="flex items-center text-[#49734F]">
         <div className="font-[400] text-[12px] leading-[12px] tracking-[-0.02em]">View All </div>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth="1.5"
-          stroke="currentColor"
-          className="size-4 ml-1 mt-[2px]"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-        </svg>
+        <RightArrowIconSVG />
       </button>
     </div>
     <div className="mt-4 h-[200px]">

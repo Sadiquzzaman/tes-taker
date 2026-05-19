@@ -6,6 +6,7 @@ import ClassSortSVG from "../svg/ClassSortSvg";
 import NormalInput from "@/Ui/NormalInput";
 import { gradingTabList } from "@/utils/gradingTabList";
 import FilterIconSVG from "../svg/FilterIconSVG";
+import SortIconSVG from "../svg/SortIconSVG";
 
 const GradingNameSection = () => {
   const { activeTab, searchInput } = useAppSelector((state) => state.grade);
@@ -50,20 +51,7 @@ const GradingNameSection = () => {
             className="min-w-10 h-10 flex justify-center items-center bg-[#EFF0F3] rounded-md cursor-pointer text-[#747775]"
             title="Filter"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="#747775"
-              className="size-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"
-              />
-            </svg>
+            <SortIconSVG />
           </div>
           <div
             className="min-w-10 h-10 flex justify-center items-center bg-[#EFF0F3] rounded-md cursor-pointer text-[#747775]"

@@ -17,6 +17,8 @@ import ParticipantIconSVG from "../svg/ParticipantIconSVG";
 import SortIconSVG from "../svg/SortIconSVG";
 import NormalInput from "@/Ui/NormalInput";
 import GradingModel from "./GradingModel";
+import PaginationChevronLeftIconSVG from "../svg/PaginationChevronLeftIconSVG";
+import PaginationChevronRightIconSVG from "../svg/PaginationChevronRightIconSVG";
 
 export const classTabList = [
   { name: "Student", value: "student" },
@@ -225,19 +227,11 @@ const GradeDetailsComponent = ({ classId }: { classId: string }) => {
             <div className="flex flex-row justify-center items-center gap-2 w-[272px] h-8 opacity-80">
               {/* Previous Button */}
               <button
-                className="flex flex-row justify-center items-center p-2 w-8 h-8 bg-white rounded-[6px] disabled:opacity-50"
+                className="flex flex-row justify-center items-center p-2 w-8 h-8 bg-white rounded-[6px] disabled:opacity-50 text-[#232A25]"
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M10 12L6 8L10 4"
-                    stroke="#232A25"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <PaginationChevronLeftIconSVG width={16} />
               </button>
               {/* Page Numbers */}
               {Array.from({ length: totalPages }).map((_, i) => {
@@ -270,19 +264,11 @@ const GradeDetailsComponent = ({ classId }: { classId: string }) => {
               })}
               {/* Next Button */}
               <button
-                className="flex flex-row justify-center items-center p-2 w-8 h-8 bg-white rounded-[6px] disabled:opacity-50"
+                className="flex flex-row justify-center items-center p-2 w-8 h-8 bg-white rounded-[6px] disabled:opacity-50 text-[#232A25]"
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
               >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M6 4L10 8L6 12"
-                    stroke="#232A25"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <PaginationChevronRightIconSVG width={16} />
               </button>
             </div>
           </div>

@@ -1,4 +1,8 @@
 import React, { useEffect, useState } from "react";
+import CloseIconSVG from "../svg/CloseIconSvg";
+import CorrectFilledIconSVG from "../svg/CorrectFilledIconSVG";
+import EditSquareIconSVG from "../svg/EditSquareIconSVG";
+import IncorrectFilledIconSVG from "../svg/IncorrectFilledIconSVG";
 
 const resizeTextarea = (element: HTMLTextAreaElement | null) => {
   if (!element) return;
@@ -74,15 +78,7 @@ const GradingModel = ({ openModal, setOpenModal }: { openModal: string; setOpenM
               {openModal === "edit" ? "Grade Submission" : "View Result"}
             </p>
             <button onClick={handleClose} className="text-gray-500 hover:text-gray-700">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <CloseIconSVG className="h-6 w-6" stroke="currentColor" />
             </button>
           </div>
           {openModal === "result" && (
@@ -94,20 +90,9 @@ const GradingModel = ({ openModal, setOpenModal }: { openModal: string; setOpenM
                   className="w-8 h-8 bg-[#EFF0F3] rounded-[6px] flex justify-center items-center cursor-pointer"
                   onClick={() => setOpenModal("edit")}
                 >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      d="M6.9998 2.14355H3.22272C2.93651 2.14355 2.66202 2.25725 2.45964 2.45964C2.25725 2.66202 2.14355 2.93651 2.14355 3.22272V10.7769C2.14355 11.0631 2.25725 11.3376 2.45964 11.54C2.66202 11.7424 2.93651 11.8561 3.22272 11.8561H10.7769C11.0631 11.8561 11.3376 11.7424 11.54 11.54C11.7424 11.3376 11.8561 11.0631 11.8561 10.7769V6.9998"
-                      stroke="#747775"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M10.44 1.9417C10.6546 1.72704 10.9458 1.60645 11.2493 1.60645C11.5529 1.60645 11.8441 1.72704 12.0587 1.9417C12.2734 2.15636 12.394 2.4475 12.394 2.75107C12.394 3.05465 12.2734 3.34579 12.0587 3.56045L7.00013 8.61904L4.8418 9.15863L5.38138 7.00029L10.44 1.9417Z"
-                      stroke="#747775"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <div className="text-[#747775]">
+                    <EditSquareIconSVG width={14} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -336,14 +321,7 @@ const ObjectiveGradeTemplate = ({
                 </div>
               )}
               {isRightAnswer && !isCorrect && !isWrong && (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M8 16C3.5816 16 0 12.4184 0 8C0 3.5816 3.5816 0 8 0C12.4184 0 16 3.5816 16 8C16 12.4184 12.4184 16 8 16ZM7.0584 9.712L4.8464 7.4984L4 8.3448L6.4952 10.8416C6.64522 10.9916 6.84867 11.0758 7.0608 11.0758C7.27293 11.0758 7.47638 10.9916 7.6264 10.8416L12.388 6.0816L11.5384 5.232L7.0584 9.712Z"
-                    fill="#49734F"
-                  />
-                </svg>
+                <CorrectFilledIconSVG width={16} />
               )}
               {!isRightAnswer && !isWrong && !isWrong && (
                 <div
@@ -372,45 +350,12 @@ const ObjectiveGradeTemplate = ({
           <p className="mr-1 font-[400] text-[14px] leading-[125%] tracking-[-0.02em] text-[#232A25]">Your answer</p>
           {correctOptionId === answer ? (
             <>
-              <svg
-                className="mt-[2px]"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M8 16C3.5816 16 0 12.4184 0 8C0 3.5816 3.5816 0 8 0C12.4184 0 16 3.5816 16 8C16 12.4184 12.4184 16 8 16ZM7.0584 9.712L4.8464 7.4984L4 8.3448L6.4952 10.8416C6.64522 10.9916 6.84867 11.0758 7.0608 11.0758C7.27293 11.0758 7.47638 10.9916 7.6264 10.8416L12.388 6.0816L11.5384 5.232L7.0584 9.712Z"
-                  fill="#49734F"
-                />
-              </svg>
+              <CorrectFilledIconSVG width={16} className="mt-[2px]" />
               <p className="font-[500] text-[14px] leading-[16px] tracking-[-0.02em] text-[#49734F]">Correct</p>
             </>
           ) : (
             <>
-              <svg
-                className="mt-[2px]"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <g clipPath="url(#clip0_495_19635)">
-                  <path
-                    d="M8 0C3.54286 0 0 3.54286 0 8C0 12.4571 3.54286 16 8 16C12.4571 16 16 12.4571 16 8C16 3.54286 12.4571 0 8 0ZM11.0857 12L8 8.91429L4.91429 12L4 11.0857L7.08571 8L4 4.91429L4.91429 4L8 7.08571L11.0857 4L12 4.91429L8.91429 8L12 11.0857L11.0857 12Z"
-                    fill="#D24B44"
-                  />
-                </g>
-                <defs>
-                  <clipPath id="clip0_495_19635">
-                    <rect width="16" height="16" fill="white" />
-                  </clipPath>
-                </defs>
-              </svg>
+              <IncorrectFilledIconSVG width={16} className="mt-[2px]" />
               <p className="font-[500] text-[14px] leading-[16px] tracking-[-0.02em] text-[#D24B44]">Incorrect</p>
             </>
           )}
