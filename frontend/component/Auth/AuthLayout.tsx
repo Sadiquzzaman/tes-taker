@@ -1,9 +1,9 @@
-import WelcomeBack from "./welcomeBack";
+import WelcomeBack from "./WelcomeBack";
 import TestTakerLogoMarkSVG from "../svg/TestTakerLogoMarkSVG";
 
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className=" min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="flex w-full h-[100vh] bg-white overflow-hidden">
         <WelcomeBack />
         <div className="w-full md:w-1/2 h-[100vh] overflow-auto">

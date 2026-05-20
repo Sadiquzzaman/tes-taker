@@ -32,8 +32,18 @@ type SignUpPageView = "signup" | "otp";
 
 interface SignUpInfoFormProps {
   signUpInfo: SignUpInfo;
-  setSignUpInfo: Dispatch<SetStateAction<SignUpInfo>>;
-  setView: Dispatch<SetStateAction<SignUpPageView>>;
+  formError: {
+    full_name: string;
+    email: string;
+    organization: string;
+    phone: string;
+    password: string;
+    confirm_password: string;
+  };
+  checkboxError: string;
+  loading: boolean;
+  handleFieldChange: <K extends keyof SignUpInfo>(field: K, value: SignUpInfo[K]) => void;
+  handleSignUp: () => void;
 }
 
 interface AuthInputProps {
