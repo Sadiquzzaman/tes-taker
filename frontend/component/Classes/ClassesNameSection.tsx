@@ -2,7 +2,7 @@
 
 import { setActiveTab, setSearchInput } from "@/lib/features/classSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { classTabList } from "@/utils/classTabList";
+import { classTabList } from "@/utils/classes/classTabList";
 import React, { useEffect, useState } from "react";
 import ClassSortSVG from "../svg/ClassSortSvg";
 import NormalInput from "@/Ui/NormalInput";

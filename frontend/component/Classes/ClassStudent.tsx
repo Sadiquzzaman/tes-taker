@@ -1,6 +1,4 @@
-import useApproveStudent from "@/hooks/api/class/useApproveStudent";
-import useRemoveStudentFromClass from "@/hooks/api/class/useRemoveStudentFromClass";
-import { useEffect, useState } from "react";
+import useClassStudent from "@/hooks/classes/useClassStudent";
 import SortIconSVG from "../svg/SortIconSVG";
 import HumanAddIconSVG from "../svg/HumanAddIconSvg";
 import NormalInput from "@/Ui/NormalInput";
@@ -11,56 +9,12 @@ import ThreeDotIconSVG from "../svg/ThreeDotIconSVG";
 import AddStudentModal from "./AddStudentModal";
 import { setOpenAddStudentModal } from "@/lib/features/classSlice";
 import { useAppDispatch } from "@/lib/hooks";
+import { InvitedBadge, JoinedBadge } from "./StudentBadges";
 
 const ClassStudent = ({ student, classId, fetch }: { student: ClassStudent[]; classId: string; fetch: () => void }) => {
   const dispatch = useAppDispatch();
-  const [searchStudentInput, setSearchStudentInput] = useState("");
-  const [filteredStudent, setFilteredStudent] = useState<{ pending: ClassStudent[]; active: ClassStudent[] }>({
-    pending: [],
-    active: [],
-  });
-
-  useEffect(() => {
-    if (student.length > 0 && searchStudentInput.trim() === "") {
-      setFilteredStudent({
-        pending: student.filter((item) => item.status === "PENDING"),
-        active: student.filter((item) => item.status !== "PENDING").sort((a, b) => (a.status === "JOINED" ? 0 : 1)),
-      });
-    } else if (student.length > 0 && searchStudentInput.trim() !== "") {
-      const searchTerm = searchStudentInput.toLowerCase();
-      const filtered = student.filter((item) => {
-        const fullName = item.student?.full_name?.toLowerCase() || "";
-        const email = item.student?.email?.toLowerCase() || item.invited_email?.toLowerCase() || "";
-        const phone = item.student?.phone || item.invited_phone || "";
-
-        return fullName.includes(searchTerm) || email.includes(searchTerm) || phone.includes(searchTerm);
-      });
-      setFilteredStudent({
-        pending: filtered.filter((item) => item.status === "PENDING"),
-        active: filtered.filter((item) => item.status !== "PENDING").sort((a, b) => (a.status === "JOINED" ? -1 : 1)),
-      });
-    } else {
-      setFilteredStudent({
-        pending: [],
-        active: [],
-      });
-    }
-  }, [student, searchStudentInput]);
-
-  const [removeStudentFromClass] = useRemoveStudentFromClass({ classId });
-  const [approveStudent] = useApproveStudent({ classId });
-
-  const handleRemoveStudent = (studentId: string) => {
-    removeStudentFromClass({ student_ids: [studentId] }).then((res) => {
-      if (res?.statusCode === 200) fetch();
-    });
-  };
-
-  const handleApproveStudent = (studentId: string) => {
-    approveStudent(studentId).then((res) => {
-      if (res?.statusCode === 201) fetch();
-    });
-  };
+  const { searchStudentInput, setSearchStudentInput, filteredStudent, handleRemoveStudent, handleApproveStudent } =
+    useClassStudent({ student, classId, fetch });
 
   return (
     <div className="p-2 sm:p-4 bg-white rounded-[8px] h-full">
@@ -180,37 +134,3 @@ const ClassStudent = ({ student, classId, fetch }: { student: ClassStudent[]; cl
 };
 
 export default ClassStudent;
-
-const InvitedBadge = () => {
-  return (
-    <div
-      className="flex items-center justify-center px-2 py-1 gap-2 w-14 h-6 
-        bg-[rgba(255,145,0,0.1)] border border-[rgba(255,145,0,0.1)] 
-        rounded-[27px] box-border"
-    >
-      <span
-        className="text-[#ED8600] text-[12px] leading-[12px] font-medium 
-            tracking-[-0.02em] font-['Instrument_Sans'] flex items-center"
-      >
-        Invited
-      </span>
-    </div>
-  );
-};
-
-const JoinedBadge = () => {
-  return (
-    <div
-      className="flex items-center justify-center px-2 py-1 gap-2 w-14 h-6
-        bg-[rgba(0,233,33,0.15)] border-[0.5px] border-[rgba(0,233,33,0.15)]
-        rounded-[27px] box-border"
-    >
-      <span
-        className="text-[#49734F] text-[12px] leading-[12px] font-medium
-            tracking-[-0.02em] font-['Instrument_Sans'] flex items-center"
-      >
-        Joined
-      </span>
-    </div>
-  );
-};
