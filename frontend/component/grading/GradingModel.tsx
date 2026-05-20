@@ -320,9 +320,7 @@ const ObjectiveGradeTemplate = ({
                   ></div>
                 </div>
               )}
-              {isRightAnswer && !isCorrect && !isWrong && (
-                <CorrectFilledIconSVG width={16} />
-              )}
+              {isRightAnswer && !isCorrect && !isWrong && <CorrectFilledIconSVG width={16} />}
               {!isRightAnswer && !isWrong && !isWrong && (
                 <div
                   className={`min-w-4 h-4 border rounded-full flex justify-center items-center border border-[#232A25]`}

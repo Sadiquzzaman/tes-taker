@@ -3,7 +3,9 @@ import type { InvalidQuestionPayload } from "./createTestActionPayloads";
 import { focusQuestion } from "./createTestDomain";
 
 const setQuestionValidationState = (state: CreateTestState, action: PayloadAction<InvalidQuestionPayload[]>) => {
-  const invalidQuestions = new Set(action.payload.map((item) => `${item.subjectId}:${item.sectionId}:${item.questionId}`));
+  const invalidQuestions = new Set(
+    action.payload.map((item) => `${item.subjectId}:${item.sectionId}:${item.questionId}`),
+  );
 
   state.subjects.forEach((subject) => {
     subject.questionSections.forEach((section) => {
@@ -16,7 +18,12 @@ const setQuestionValidationState = (state: CreateTestState, action: PayloadActio
   const firstInvalidQuestion = action.payload[0];
 
   if (firstInvalidQuestion) {
-    focusQuestion(state, firstInvalidQuestion.subjectId, firstInvalidQuestion.sectionId, firstInvalidQuestion.questionId);
+    focusQuestion(
+      state,
+      firstInvalidQuestion.subjectId,
+      firstInvalidQuestion.sectionId,
+      firstInvalidQuestion.questionId,
+    );
   }
 };
 

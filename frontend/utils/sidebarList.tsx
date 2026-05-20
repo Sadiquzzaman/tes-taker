@@ -18,14 +18,14 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "Classes",
     route: "/classes",
-    role: ["STUDENT","TEACHER"],
+    role: ["STUDENT", "TEACHER"],
     image: <SidebarClassesIconSVG width={16} />,
   },
   {
     category: "Platform",
     label: "Tests",
     route: "/tests",
-    role: ["STUDENT","TEACHER"],
+    role: ["STUDENT", "TEACHER"],
     image: <SidebarTestsIconSVG width={16} />,
   },
   {
@@ -47,14 +47,14 @@ const sidebarList: SideBarList[] = [
     category: "System",
     label: "Account",
     route: "/account",
-    role: ["STUDENT","TEACHER"],
+    role: ["STUDENT", "TEACHER"],
     image: <SidebarAccountIconSVG width={16} />,
   },
   {
     category: "System",
     label: "Help",
     route: "/help",
-    role: ["STUDENT","TEACHER"],
+    role: ["STUDENT", "TEACHER"],
     image: <SidebarHelpIconSVG width={16} />,
   },
 ];

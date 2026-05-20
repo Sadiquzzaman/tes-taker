@@ -196,11 +196,7 @@ const DropDownComponent = ({
               className="w-full bg-transparent text-[16px] leading-[125%] tracking-[-0.02em] text-[#232A25] placeholder:text-[#747775] focus:outline-none"
             />
             <button type="button" onClick={() => setOpen((prev) => !prev)} className="ml-2 text-[#232A25]">
-              {open ? (
-                <ChevronUpFilledIconSVG className="size-4" />
-              ) : (
-                <ChevronDownFilledIconSVG className="size-4" />
-              )}
+              {open ? <ChevronUpFilledIconSVG className="size-4" /> : <ChevronDownFilledIconSVG className="size-4" />}
             </button>
           </div>
         ) : (

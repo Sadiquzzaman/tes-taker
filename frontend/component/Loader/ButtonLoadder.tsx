@@ -18,9 +18,7 @@ const ButtonLoader = ({
   show?: boolean;
 }) => {
   if (!show) return null;
-  return (
-    <SpinnerIconSVG className={`${w} ${h} ${mr} ${ml} ${mt} ${mb} animate-spin`} />
-  );
+  return <SpinnerIconSVG className={`${w} ${h} ${mr} ${ml} ${mt} ${mb} animate-spin`} />;
 };
 
 export default ButtonLoader;

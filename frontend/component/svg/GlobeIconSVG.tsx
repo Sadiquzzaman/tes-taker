@@ -15,7 +15,13 @@ const GlobeIconSVG = ({ width = 16 }: { width?: number }) => {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M1.83301 8H14.1663" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M1.83301 8H14.1663"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 };

@@ -8,7 +8,13 @@ const ExamTimerIconSVG = ({ width = 16 }: { width?: number }) => {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M8 4.30078V8.00078H10.775" stroke="#49734F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M8 4.30078V8.00078H10.775"
+        stroke="#49734F"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 };
