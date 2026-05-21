@@ -24,6 +24,7 @@ import { RolesEnum } from 'src/common/enums/roles.enum';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { StudentExamService } from './student-exam.service';
+import { ExamService } from './exam.service';
 import {
   StartExamDto,
   SaveAnswerDto,
@@ -39,7 +40,10 @@ import { Request } from 'express';
   version: '1',
 })
 export class StudentExamController {
-  constructor(private readonly studentExamService: StudentExamService) {}
+  constructor(
+    private readonly studentExamService: StudentExamService,
+    private readonly examService: ExamService,
+  ) {}
 
   // ========================
   // STUDENT DASHBOARD
@@ -81,6 +85,21 @@ export class StudentExamController {
   async getExamHistory(@UserPayload() jwtPayload: JwtPayloadInterface) {
     const payload = await this.studentExamService.getExamHistory(jwtPayload.id);
     return { message: 'Exam history retrieved successfully', payload };
+  }
+
+  @Get('assigned')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.STUDENT)
+  @ApiOperation({
+    summary: 'List assigned tests',
+    description:
+      'Returns tests assigned via joined class (not excluded) or specific_students list. Basic metadata and lifecycle status only.',
+  })
+  @ApiResponse({ status: 200, description: 'List of assigned tests' })
+  async getAssignedExams(@UserPayload() jwtPayload: JwtPayloadInterface) {
+    const payload = await this.examService.findAllAssignedForStudent(jwtPayload.id);
+    return { message: 'Assigned tests retrieved successfully', payload };
   }
 
   // ========================
