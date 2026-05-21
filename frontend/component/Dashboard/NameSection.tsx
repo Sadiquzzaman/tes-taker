@@ -1,19 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import CreateActionPlusIconSVG from "../svg/CreateActionPlusIconSVG";
+import { useNameSection } from "@/hooks/Dashboard/useNameSection";
 
 const NameSection = () => {
-  const [fullName, setFullName] = useState("");
+  const { fullName } = useNameSection();
 
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      const user: User = JSON.parse(userData);
-      if (user.full_name) setFullName(user.full_name);
-    }
-  }, []);
   return (
     <div className="flex justify-between items-center w-full min-h-[40px] mb-2 sm:mb-4">
       <div className="text-[20px] md:text-[32px] tracking-[-0.04em] flex items-center gap-0 flex-wrap mr-4">

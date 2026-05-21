@@ -1,36 +1,9 @@
 "use client";
 
 import React from "react";
-import { Bar, BarChart, CartesianGrid, Legend, Tooltip, TooltipProps, XAxis, YAxis } from "recharts";
-import { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
+import { Bar, BarChart, CartesianGrid, Legend, Tooltip, XAxis, YAxis } from "recharts";
 import RightArrowIconSVG from "../svg/RightArrowIconSVG";
-
-const data = [
-  {
-    name: "Class 1",
-    student: 38,
-  },
-  {
-    name: "Class 2",
-    student: 42,
-  },
-  {
-    name: "Class 3",
-    student: 30,
-  },
-  {
-    name: "Class 4",
-    student: 28,
-  },
-  {
-    name: "Class 5",
-    student: 35,
-  },
-  {
-    name: "Class 6",
-    student: 58,
-  },
-];
+import { classesData } from "@/utils/Dashboard/classes";
 
 const MyClasses = () => (
   <div className="p-4 bg-[#ffffff] rounded-[12px] flex flex-col text-white w-full h-full min-h-[240px]">
@@ -45,7 +18,7 @@ const MyClasses = () => (
       <BarChart
         style={{ width: "100%", maxWidth: "700px", height: "100%", aspectRatio: 1.618 }}
         responsive
-        data={data}
+        data={classesData}
         margin={{
           top: 5,
           right: 0,
@@ -73,9 +46,7 @@ const MyClasses = () => (
 
 export default MyClasses;
 
-const CustomTooltip = (props: any) => {
-  const { active, payload, label } = props;
-
+const CustomTooltip = ({ active, payload, label }: ClassesTooltipProps) => {
   if (!active || !payload || payload.length === 0) return null;
 
   return (

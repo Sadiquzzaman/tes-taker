@@ -1,29 +1,17 @@
 "use client";
 
-import axios from "@/lib/axios";
-import { useRouter } from "next/navigation";
-import { useToast } from "../Toast/ToastContext";
+import React from "react";
 import LogoutIconSVG from "../svg/LogoutIconSVG";
+import { useSidebarLogout } from "@/hooks/Dashboard/useSidebarLogout";
 
 const SidebarLogout = () => {
-  const { push } = useRouter();
-  const { triggerToast } = useToast();
+  const { handleLogout } = useSidebarLogout();
+
   return (
     <div className="w-full">
       <button
-        className={`bg-[white] text-[#232A25] hover:bg-[#49734F] hover:text-white rounded-lg px-4 py-2 flex items-center gap-2 font-medium w-full`}
-        onClick={async () => {
-          await axios.post("/api/logout").then((response) => {
-            if (response.status === 200) {
-              localStorage.removeItem("user");
-              push("/login");
-              triggerToast({
-                title: "Logout successful",
-                type: "success",
-              });
-            }
-          });
-        }}
+        className="bg-[white] text-[#232A25] hover:bg-[#49734F] hover:text-white rounded-lg px-4 py-2 flex items-center gap-2 font-medium w-full"
+        onClick={handleLogout}
       >
         <LogoutIconSVG width={14} />
         Sign out

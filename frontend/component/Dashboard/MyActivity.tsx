@@ -1,89 +1,21 @@
 "use client";
 
-import React, { useRef, useState } from "react";
-import { LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line } from "recharts";
+import React from "react";
+import { LineChart, XAxis, YAxis, Tooltip, Legend, Line } from "recharts";
 import ChevronDownFilledIconSVG from "../svg/ChevronDownFilledIconSVG";
 import ChevronUpFilledIconSVG from "../svg/ChevronUpFilledIconSVG";
+import { useMyActivity } from "@/hooks/Dashboard/useMyActivity";
+import { activityData, sampleActivityDuration } from "@/utils/Dashboard/activity";
 
-const data = [
-  {
-    name: "Jan",
-    exam: 30,
-    participate: 1100,
-  },
-  {
-    name: "Feb",
-    exam: 25,
-    participate: 1000,
-  },
-  {
-    name: "Mar",
-    exam: 42,
-    participate: 1200,
-  },
-  {
-    name: "Apr",
-    exam: 38,
-    participate: 900,
-  },
-  {
-    name: "May",
-    exam: 25,
-    participate: 1000,
-  },
-  {
-    name: "Jun",
-    exam: 45,
-    participate: 1100,
-  },
-  {
-    name: "Jul",
-    exam: 36,
-    participate: 1200,
-  },
-  {
-    name: "Aug",
-    exam: 44,
-    participate: 1250,
-  },
-  {
-    name: "Sep",
-    exam: 27,
-    participate: 1300,
-  },
-  {
-    name: "Oct",
-    exam: 44,
-    participate: 1400,
-  },
-  {
-    name: "Nov",
-    exam: 43,
-    participate: 1500,
-  },
-  {
-    name: "Dec",
-    exam: 41,
-    participate: 1600,
-  },
-];
-
-const sampleActivityDuration = [
-  { name: "Monthly", value: "monthly" },
-  { name: "Weekly", value: "weekly" },
-  { name: "Daily", value: "daily" },
-];
 const MyActivity = () => {
-  const [open, setOpen] = useState(false);
-  const [selectedDuration, setSelectedDuration] = useState(sampleActivityDuration[0]);
-  const dropdownRef = useRef(null);
-  const isAnimationActive = true;
+  const { open, setOpen, selectedDuration, setSelectedDuration, dropdownRef, isAnimationActive } = useMyActivity();
+
   return (
     <div className="p-4 bg-[#ffffff] rounded-[12px] flex flex-col text-white w-full h-full min-h-[220px]">
       <div className="flex justify-between items-center">
         <div className="font-[500] text-[14px] leading-[16px] text-[#232A25] tracking-[-0.02em]">My Activity</div>
         <div ref={dropdownRef} className="relative inline-block">
-          <button className="flex items-center text-[#747775]" onClick={() => setOpen(!open)}>
+          <button type="button" className="flex items-center text-[#747775]" onClick={() => setOpen(!open)}>
             <div className="font-[400] text-[12px] leading-[12px] tracking-[-0.02em]">{selectedDuration.name}</div>
             {open ? (
               <ChevronUpFilledIconSVG className="size-4 ml-2 mt-[2px]" />
@@ -95,6 +27,7 @@ const MyActivity = () => {
             <div className="absolute right-0 mt-3 w-40 bg-white border border-gray-200 rounded shadow-lg z-50">
               {sampleActivityDuration.map((duration) => (
                 <button
+                  type="button"
                   onClick={() => {
                     setSelectedDuration(duration);
                     setOpen(false);
@@ -113,7 +46,7 @@ const MyActivity = () => {
         <LineChart
           style={{ width: "100%", maxWidth: "700px", height: "100%", aspectRatio: 1.618 }}
           responsive
-          data={data}
+          data={activityData}
           margin={{
             top: 5,
             right: 30,
@@ -121,7 +54,6 @@ const MyActivity = () => {
             bottom: 5,
           }}
         >
-          {/* <CartesianGrid strokeDasharray="3 3" /> */}
           <XAxis dataKey="name" tickLine={false} />
           <YAxis
             domain={[0, 50]}
@@ -136,7 +68,7 @@ const MyActivity = () => {
             cursor={{
               stroke: "#49734F",
               strokeWidth: 2,
-              strokeDasharray: "4 4", // 👈 makes it dotted
+              strokeDasharray: "4 4",
             }}
             content={<CustomTooltip />}
           />
@@ -158,9 +90,7 @@ const MyActivity = () => {
 
 export default MyActivity;
 
-const CustomTooltip = (props: any) => {
-  const { active, payload, label, ...rest } = props;
-  console.log({ payload, label, rest });
+const CustomTooltip = ({ active, payload }: ActivityTooltipProps) => {
   if (!active || !payload || payload.length === 0) return null;
 
   return (
