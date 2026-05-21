@@ -19,6 +19,7 @@ interface StudentExamQuestionSection {
   id: string;
   type: QuestionSectionType;
   headerText: string;
+  instruction: string;
   questions: StudentExamQuestion[];
 }
 

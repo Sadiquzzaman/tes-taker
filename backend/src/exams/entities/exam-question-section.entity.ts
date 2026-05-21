@@ -31,6 +31,10 @@ export class ExamQuestionSectionEntity extends CustomBaseEntity {
   @Column({ name: 'header_text', type: 'text', nullable: true })
   header_text: string | null;
 
+  @ApiPropertyOptional({ description: 'Optional instructions for this section' })
+  @Column({ name: 'instruction', type: 'text', nullable: true })
+  instruction: string | null;
+
   @ApiProperty({ description: 'Order among sections for the same exam' })
   @Column({ name: 'sort_order', type: 'int', default: 0 })
   sort_order: number;

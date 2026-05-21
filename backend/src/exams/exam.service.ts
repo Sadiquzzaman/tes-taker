@@ -41,6 +41,7 @@ type ExamSectionResponse = {
   id: string;
   type: string;
   headerText: string | null;
+  instruction: string | null;
   questions: ExamQuestionResponse[];
 };
 type ExamSubjectResponse = {
@@ -211,6 +212,7 @@ export class ExamService {
             subject_id: subj.id,
             section_type: sectionType,
             header_text: sec.headerText ?? null,
+            instruction: sec.instruction?.trim() ? sec.instruction.trim().slice(0, 1000) : null,
             sort_order: sectionOrder++,
             created_by: jwtPayload.id,
             created_user_name: jwtPayload.full_name,
@@ -989,6 +991,7 @@ export class ExamService {
         id: section.id,
         type: section.section_type,
         headerText: section.header_text,
+        instruction: section.instruction ?? null,
         questions: (section.questions || []).map((question) =>
           this.formatQuestionResponse(question, includeCorrectAnswers),
         ),

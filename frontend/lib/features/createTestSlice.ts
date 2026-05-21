@@ -56,6 +56,7 @@ export const {
   addExcludedStudent,
   removeExcludedStudent,
   updateQuestionInstruction,
+  updateSectionInstruction,
 } = createTestSlice.actions;
 
 export default createTestSlice.reducer;
