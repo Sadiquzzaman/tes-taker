@@ -711,6 +711,99 @@ export class ClassService {
   }
 
   /**
+   * Classes the student has joined (JOINED status only).
+   */
+  async findAllForStudent(studentId: string): Promise<
+    Array<{
+      id: string;
+      class_name: string;
+      description: string | null;
+      created_user_name: string | null;
+      joined_at: Date | null;
+    }>
+  > {
+    const memberships = await this.classStudentRepo.find({
+      where: { student_id: studentId, status: ClassStudentStatusEnum.JOINED },
+      relations: ['class', 'class.teacher'],
+      order: { joined_at: 'DESC' },
+    });
+
+    return memberships
+      .filter((m) => m.class)
+      .map((m) => ({
+        id: m.class.id,
+        class_name: m.class.class_name,
+        description: m.class.description ?? null,
+        created_user_name:
+          m.class.created_user_name ?? m.class.teacher?.full_name ?? null,
+        joined_at: m.joined_at ?? null,
+      }));
+  }
+
+  /**
+   * Class detail for an enrolled student, including classmates (name + joined_at only).
+   */
+  async findOneForStudent(
+    classId: string,
+    studentId: string,
+  ): Promise<{
+    id: string;
+    class_name: string;
+    description: string | null;
+    created_user_name: string | null;
+    joined_at: Date | null;
+    classmates: Array<{ name: string; joined_at: Date | null }>;
+  }> {
+    const membership = await this.classStudentRepo.findOne({
+      where: {
+        class_id: classId,
+        student_id: studentId,
+        status: ClassStudentStatusEnum.JOINED,
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('You are not enrolled in this class');
+    }
+
+    const classEntity = await this.classRepo.findOne({
+      where: { id: classId },
+      relations: ['teacher', 'classStudents', 'classStudents.student'],
+    });
+
+    if (!classEntity) {
+      throw new NotFoundException('Class not found');
+    }
+
+    const classmates = (classEntity.classStudents || [])
+      .filter(
+        (cs) =>
+          cs.status === ClassStudentStatusEnum.JOINED &&
+          cs.student_id &&
+          cs.student_id !== studentId,
+      )
+      .map((cs) => ({
+        name: cs.student?.full_name?.trim() || 'Student',
+        joined_at: cs.joined_at ?? null,
+      }))
+      .sort((a, b) => {
+        const ta = a.joined_at ? new Date(a.joined_at).getTime() : 0;
+        const tb = b.joined_at ? new Date(b.joined_at).getTime() : 0;
+        return tb - ta;
+      });
+
+    return {
+      id: classEntity.id,
+      class_name: classEntity.class_name,
+      description: classEntity.description ?? null,
+      created_user_name:
+        classEntity.created_user_name ?? classEntity.teacher?.full_name ?? null,
+      joined_at: membership.joined_at ?? null,
+      classmates,
+    };
+  }
+
+  /**
    * Search students by name, email, or phone
    */
   async searchStudents(query: string): Promise<UserEntity[]> {

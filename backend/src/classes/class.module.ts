@@ -4,6 +4,7 @@ import { ClassEntity } from './entities/class.entity';
 import { ClassStudentEntity } from './entities/class-student.entity';
 import { ClassService } from './class.service';
 import { ClassController } from './class.controller';
+import { StudentClassController } from './student-class.controller';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { EmailModule } from 'src/email/email.module';
 import { SmsModule } from 'src/sms/sms.module';
@@ -22,7 +23,7 @@ import { ExamEntity } from 'src/exams/entities/exam.entity';
     EmailModule,
     SmsModule,
   ],
-  controllers: [ClassController],
+  controllers: [ClassController, StudentClassController],
   providers: [ClassService],
   exports: [ClassService],
 })

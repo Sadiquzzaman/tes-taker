@@ -711,13 +711,28 @@ export class ExamService {
     }
 
     const studentId = jwtPayload.id;
+    await this.assertStudentCanViewExam(exam, studentId, jwtPayload);
+
+    const examStarted = Date.now() >= new Date(exam.exam_start_time).getTime();
+
+    return this.formatExamResponse(exam, {
+      includeCorrectAnswers: false,
+      includeQuestions: examStarted,
+    });
+  }
+
+  private async assertStudentCanViewExam(
+    exam: ExamEntity,
+    studentId: string,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<void> {
     const excluded = exam.excluded_students?.some((s) => s.id === studentId);
     if (excluded) {
       throw new ForbiddenException('You have been excluded from this exam');
     }
 
     if (exam.test_audience === TestAudienceEnum.ANYONE) {
-      return this.formatExamResponse(exam, { includeCorrectAnswers: false });
+      return;
     }
 
     if (exam.test_audience === TestAudienceEnum.SPECIFIC_STUDENTS) {
@@ -725,7 +740,7 @@ export class ExamService {
       if (!allowed) {
         throw new ForbiddenException('You are not on the list for this exam');
       }
-      return this.formatExamResponse(exam, { includeCorrectAnswers: false });
+      return;
     }
 
     if (exam.test_audience === TestAudienceEnum.SELECTED_CLASS) {
@@ -733,10 +748,86 @@ export class ExamService {
       if (!ok) {
         throw new ForbiddenException('You are not enrolled in this class for this exam');
       }
-      return this.formatExamResponse(exam, { includeCorrectAnswers: false });
+      return;
     }
 
     throw new ForbiddenException('You do not have access to this exam');
+  }
+
+  /**
+   * Tests assigned to the student (class membership, specific_students list; not open "anyone" exams).
+   */
+  async findAllAssignedForStudent(studentId: string): Promise<
+    Array<{
+      id: string;
+      test_name: string | null;
+      subject: string | null;
+      exam_type: string;
+      exam_kind: string | null;
+      test_audience: string | null;
+      duration_minutes: number | null;
+      exam_start_time: Date;
+      exam_end_time: Date;
+      class_id: string | null;
+      class_name: string | null;
+      created_user_name: string | null;
+      status: ExamLifecycleStatusEnum;
+    }>
+  > {
+    const byId = new Map<string, ExamEntity>();
+
+    const classes = await this.classRepo
+      .createQueryBuilder('class')
+      .innerJoin(
+        'class.classStudents',
+        'classStudent',
+        'classStudent.student_id = :studentId AND classStudent.status = :status',
+        { studentId, status: ClassStudentStatusEnum.JOINED },
+      )
+      .select(['class.id'])
+      .getMany();
+
+    const classIds = classes.map((c) => c.id);
+    if (classIds.length > 0) {
+      const classExams = await this.examRepo
+        .createQueryBuilder('exam')
+        .leftJoinAndSelect('exam.class', 'class')
+        .leftJoin('exam.excluded_students', 'excluded')
+        .where('exam.class_id IN (:...classIds)', { classIds })
+        .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId })
+        .orderBy('exam.exam_start_time', 'DESC')
+        .getMany();
+      classExams.forEach((e) => byId.set(e.id, e));
+    }
+
+    const targetExams = await this.examRepo
+      .createQueryBuilder('exam')
+      .innerJoin('exam.target_students', 'st', 'st.id = :studentId', { studentId })
+      .leftJoinAndSelect('exam.class', 'class')
+      .orderBy('exam.exam_start_time', 'DESC')
+      .getMany();
+    targetExams.forEach((e) => byId.set(e.id, e));
+
+    return Array.from(byId.values())
+      .sort(
+        (a, b) =>
+          new Date(b.exam_start_time).getTime() - new Date(a.exam_start_time).getTime(),
+      )
+      .map((exam) => ({
+        id: exam.id,
+        test_name: exam.test_name,
+        subject: exam.test_name || exam.subject,
+        exam_type: this.resolveResponseExamType(exam),
+        exam_kind: exam.exam_kind,
+        test_audience: exam.test_audience,
+        duration_minutes: exam.duration_minutes,
+        exam_start_time: exam.exam_start_time,
+        exam_end_time: exam.exam_end_time,
+        class_id: exam.class_id,
+        class_name: exam.class?.class_name ?? null,
+        created_user_name: exam.created_user_name ?? null,
+        status: this.computeExamLifecycleStatus(exam.exam_start_time, exam.exam_end_time),
+      }));
   }
 
   private async isStudentInClassForExam(
@@ -843,7 +934,10 @@ export class ExamService {
 
   private formatExamResponse(
     exam: ExamEntity,
-    opts: { includeCorrectAnswers: boolean } = { includeCorrectAnswers: true },
+    opts: { includeCorrectAnswers: boolean; includeQuestions?: boolean } = {
+      includeCorrectAnswers: true,
+      includeQuestions: true,
+    },
   ) {
     const {
       questions: _questions,
@@ -858,7 +952,10 @@ export class ExamService {
       ...rest,
       exam_type: this.resolveResponseExamType(exam),
       status: this.computeExamLifecycleStatus(exam.exam_start_time, exam.exam_end_time),
-      subjects: this.buildSubjectResponses(exam, opts.includeCorrectAnswers),
+      subjects:
+        opts.includeQuestions === false
+          ? []
+          : this.buildSubjectResponses(exam, opts.includeCorrectAnswers),
     };
   }
 
