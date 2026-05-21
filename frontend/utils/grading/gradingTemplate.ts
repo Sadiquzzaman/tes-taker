@@ -1,0 +1,166 @@
+export const template: GradingTemplate = {
+  currentStep: "Publish",
+  formState: {
+    examType: "model",
+    testName: "Summer Model Test",
+    duration: "40",
+    passingScore: "30",
+    allowNegativeMarking: true,
+    negativeMarking: "25",
+  },
+  subjects: [
+    {
+      id: "1776062179661-ij9x736",
+      name: "Mathematics",
+      value: "math",
+      questionSections: [
+        {
+          id: "1776062179661-6sj4ppl",
+          type: "objective",
+          headerText: "Objective Questions",
+          questions: [
+            {
+              id: "1776062179661-2jrlhm1",
+              text: "What is 2+2. slfj sdjfjsl fskdfjsjdfl ksdfj sdjklf sjfldjsklf sdfjsdlfjklsdjf sdjfklsdjlf sdkjfljsdlfk sdlkfjlksjf jsdlfjskldfj sdkjflksdjf sdjflds fklsdjf slkdfjsdl fjljsdfl sdjlfkjsdl fjsljflds f.",
+              image: null,
+              studentSelectedOptionId: "1776062217202-hrezlmx",
+              options: [
+                { id: "1776062217202-hrezlmx", text: "4", image: null },
+                { id: "1776062221006-qguebcc", text: "2", image: null },
+                { id: "1776062223755-ys6xscq", text: "3", image: null },
+                {
+                  id: "1776062226493-skldt8y",
+                  text: "fjdskljf sdjkflksdj fjdslkfjlsd fjlsdjflk dsfkljdklf jdklsfjkldjfdksljf lkdsjfklsdjf lsdkjfklsdjfkl sdjklfj sdlkfjsdklfj dlsjflksdjfkl sedfjkldsjf sdjflsdkjf sdjkflksdjf lsdfjdlsf jdlskfjsldfj",
+                  image: null,
+                },
+              ],
+              correctOptionId: "1776062217202-hrezlmx",
+              points: 4,
+              showValidation: false,
+            },
+            {
+              id: "1776062266599-uljru0z",
+              text: "What is 2+2. slfj sdjfjsl fskdfjsjdfl ksdfj sdjklf sjfldjsklf sdfjsdlfjklsdjf sdjfklsdjlf sdkjfljsdlfk sdlkfjlksjf jsdlfjskldfj sdkjflksdjf sdjflds fklsdjf slkdfjsdl fjljsdfl sdjlfkjsdl fjsljflds f.",
+              image: null,
+              studentSelectedOptionId: "1776062266599-qv56t8y",
+              options: [
+                { id: "1776062266599-qv56t8y", text: "4", image: null },
+                { id: "1776062266599-idr32yh", text: "2", image: null },
+                { id: "1776062266599-6kfye5d", text: "3", image: null },
+                {
+                  id: "1776062266599-n2rykjq",
+                  text: "fjdskljf sdjkflksdj fjdslkfjlsd fjlsdjflk dsfkljdklf jdklsfjkldjfdksljf lkdsjfklsdjf lsdkjfklsdjfkl sdjklfj sdlkfjsdklfj dlsjflksdjfkl sedfjkldsjf sdjflsdkjf sdjkflksdjf lsdfjdlsf jdlskfjsldfj",
+                  image: null,
+                },
+              ],
+              correctOptionId: "1776062266599-idr32yh",
+              points: 4,
+              showValidation: false,
+            },
+          ],
+        },
+        {
+          id: "1776062179661-csq6wc7",
+          type: "essay",
+          headerText: "Essay Questions",
+          questions: [
+            {
+              id: "1776062179661-1vk035p",
+              text: "Explain pythagorus formula.",
+              image: null,
+              points: 4,
+              showValidation: false,
+            },
+            {
+              id: "1776062295160-79wq1ft",
+              text: "Explain pythagorus formula. jksdfj jsdfjlsdf sdlfks dkfjlsdfj sldjfls dfjksdljfklsdjfklsdjf sjkdfjs dfjlsdkf jsdlkjfklsdjf lskdjflksdjflks dfjlksdjfl sdjflsdj flsdjf lksdfj lsdjflsdjflsd lsdkjflsdjf lsdj flsdjf lsjfl sdjlkfls lksdjflksdjf lsdkjfl sdjflsd flksdjflsd fjls",
+              image: null,
+              points: 4,
+              showValidation: false,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: "1776062325384-0bbxwcv",
+      name: "English",
+      value: "english",
+      questionSections: [
+        {
+          id: "1776062325384-t01ju74",
+          type: "objective",
+          headerText: "Objective Questions",
+          questions: [
+            {
+              id: "1776062325384-htmfiqc",
+              text: "When Robindranath Dies?",
+              image: null,
+              options: [
+                { id: "1776062338806-928a7vo", text: "1988", image: null },
+                { id: "1776062342244-yhq7gdu", text: "1985", image: null },
+                { id: "1776062345638-zzl2bfu", text: "1974", image: null },
+                { id: "1776062349430-41iqbbr", text: "1965", image: null },
+              ],
+              correctOptionId: "1776062342244-yhq7gdu",
+              points: 4,
+              showValidation: false,
+            },
+            {
+              id: "1776062364115-qz79dkj",
+              text: "When nazrul die? sldkfj lsdjfl lsdjf lsldjf lsdjk sldjf sl dfjlsd lsdkjf sls dfjldsj lsdkfj sldlsdjflsdj lsdjf lsl skdjf sl lsdfj lsdjfls l lsdjflsd lsdjfls lsjd f.",
+              image: null,
+              options: [
+                { id: "1776062389706-kwobmey", text: "1788", image: null },
+                { id: "1776062393266-xfm5og0", text: "1744", image: null },
+                { id: "1776062395932-efu9hxm", text: "1755", image: null },
+                {
+                  id: "1776062399300-217hj9l",
+                  text: "fdslkjf lskjdlfj lsjdf kjs fksdjfl lsdjfl sljflsj lsd flksjdlf lsjd fljsd fls sldjfl sdjlf sldjfl sfjls",
+                  image: null,
+                },
+              ],
+              correctOptionId: "1776062393266-xfm5og0",
+              points: 2,
+              showValidation: false,
+            },
+          ],
+        },
+        {
+          id: "1776062325384-12b5sfm",
+          type: "essay",
+          headerText: "Essay Questions",
+          questions: [
+            {
+              id: "1776062325384-bxxwgao",
+              text: "Who is robindronath?",
+              image: null,
+              points: 2,
+              showValidation: false,
+            },
+            {
+              id: "1776062439797-dboo1ex",
+              text: "sdf s sdlkjfl lsdjfl l sldkjfl ls dlfjl lsdjf sjl lsdjfl sl lsdkjflsj ls lsjdfljsl f sldjflsj lsdjf lsj lsjf ljsl ls lfsjdlfj sljflsdj flsl sldjf lsdjf l sdljflsdjf lsd flsjdf  sljdfllsdf l sldjfl sdlf sjdfl sdflj sl.",
+              image: null,
+              points: 2,
+              showValidation: false,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  activeSubjectId: "1776062325384-0bbxwcv",
+  activeQuestionId: "1776062439797-dboo1ex",
+  pendingFocusQuestion: null,
+  pendingFocusOption: null,
+  dragState: null,
+  publishState: {
+    publishTiming: "immediately",
+    scheduleAt: "2026-04-12T22:16:52.627Z",
+    endingAt: "2026-04-15T19:16:52.627Z",
+    testAudience: "anyone",
+    selectedClassId: "",
+    excluded_students: [],
+  },
+};

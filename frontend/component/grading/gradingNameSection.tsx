@@ -1,10 +1,10 @@
 "use client";
 
+import NormalInput from "@/Ui/NormalInput";
+import { gradingTabList } from "@/utils/gradingTabList";
 import { setActiveTab, setSearchInput } from "@/lib/features/gradingSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import ClassSortSVG from "../svg/ClassSortSvg";
-import NormalInput from "@/Ui/NormalInput";
-import { gradingTabList } from "@/utils/gradingTabList";
 import FilterIconSVG from "../svg/FilterIconSVG";
 import SortIconSVG from "../svg/SortIconSVG";
 
@@ -13,19 +13,20 @@ const GradingNameSection = () => {
   const dispatch = useAppDispatch();
 
   return (
-    <div className="mb-2 sm:mb-4 flex flex-col gap-2 sm:gap-4 min-h-[40px]">
-      <div className="flex justify-between items-center w-full">
-        <div className="text-[20px] md:text-[32px] tracking-[-0.04em] flex items-center gap-0 flex-wrap mr-4">
+    <div className="mb-2 flex min-h-[40px] flex-col gap-2 sm:mb-4 sm:gap-4">
+      <div className="flex w-full items-center justify-between">
+        <div className="mr-4 flex flex-wrap items-center gap-0 text-[20px] tracking-[-0.04em] md:text-[32px]">
           <p className="font-[500] text-[#232A25]">Grading</p>
         </div>
       </div>
-      <div className="flex flex-col flex-wrap lg:flex-row justify-start lg:justify-between items-start lg:items-center w-full min-h-10 mb-2 gap-2">
+
+      <div className="mb-2 flex min-h-10 w-full flex-col items-start justify-start gap-2 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex w-fit rounded-md bg-gray-100 p-0.5">
           {gradingTabList.map((tab) => (
             <button
               key={tab.value}
-              className={`px-2 sm:px-4 py-2 text-sm rounded leading-[20px] tracking-[-0.02em] ${
-                activeTab.value === tab.value ? "font-[400] bg-white shadow text-[#232A25]" : "text-[#747775]"
+              className={`rounded px-2 py-2 text-sm leading-[20px] tracking-[-0.02em] sm:px-4 ${
+                activeTab.value === tab.value ? "bg-white font-[400] text-[#232A25] shadow" : "text-[#747775]"
               }`}
               onClick={() => dispatch(setActiveTab(tab))}
             >
@@ -33,28 +34,29 @@ const GradingNameSection = () => {
             </button>
           ))}
         </div>
-        <div className="flex gap-2 lg:gap-4 h-10">
+
+        <div className="flex h-10 gap-2 lg:gap-4">
           <NormalInput
-            parentClassName="w-[320px] h-10"
-            inputClassName="text-[14px] leading-[14px] font-[400] placeholder:text-[#989eaf]"
+            parentClassName="h-10 w-[320px]"
+            inputClassName="text-[14px] font-[400] leading-[14px] placeholder:text-[#989eaf]"
             value={searchInput}
             placeholder="Search by Test, Subject or Class"
-            onChange={(e) => dispatch(setSearchInput(e.target.value))}
+            onChange={(event) => dispatch(setSearchInput(event.target.value))}
           />
           <div
-            className="min-w-10 h-10 flex justify-center items-center bg-[#EFF0F3] rounded-md cursor-pointer text-[#747775]"
+            className="flex min-w-10 cursor-pointer items-center justify-center rounded-md bg-[#EFF0F3] text-[#747775]"
             title="Filter"
           >
             <FilterIconSVG />
           </div>
           <div
-            className="min-w-10 h-10 flex justify-center items-center bg-[#EFF0F3] rounded-md cursor-pointer text-[#747775]"
+            className="flex min-w-10 cursor-pointer items-center justify-center rounded-md bg-[#EFF0F3] text-[#747775]"
             title="Filter"
           >
             <SortIconSVG />
           </div>
           <div
-            className="min-w-10 h-10 flex justify-center items-center bg-[#EFF0F3] rounded-md cursor-pointer text-[#747775]"
+            className="flex min-w-10 cursor-pointer items-center justify-center rounded-md bg-[#EFF0F3] text-[#747775]"
             title="Sort"
           >
             <ClassSortSVG />
