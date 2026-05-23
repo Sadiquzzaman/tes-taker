@@ -1,53 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import ContinueWithGoogle from "./continueWithGoogle";
-import useLogin from "@/hooks/api/useLogin";
 import Link from "next/link";
+import useLoginForm from "@/hooks/auth/useLoginForm";
 import AuthInput from "@/Ui/AuthInput";
 import ButtonLoader from "../Loader/ButtonLoadder";
-import useJoinStateManage from "@/hooks/ui/useJoinStateManage";
+import ContinueWithGoogle from "./ContinueWithGoogle";
 
 const LoginForm = () => {
-  const { joinInfo } = useJoinStateManage("login");
-  const [loginInfo, setLoginInfo] = useState<LoginInfo>({
-    identifier: "",
-    password: "",
-  });
-  const [loginUser, { loading }] = useLogin();
-  const [formError, setFormError] = useState({
-    identifier: "",
-    password: "",
-  });
-
-  const handleLoginSendCode = () => {
-    const value = loginInfo.identifier.trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const bdPhoneRegex = /^01[3-9]\d{8}$/;
-    const isEmail = value.includes("@");
-    const isPhone = /^\d+$/.test(value);
-
-    if (!value) {
-      setFormError({ ...formError, identifier: "Please enter email or phone number" });
-    } else if (isPhone && value.length !== 11) {
-      setFormError({ ...formError, identifier: "Phone number must be 11 digits" });
-    } else if (isPhone && !bdPhoneRegex.test(value)) {
-      setFormError({ ...formError, identifier: "Invalid Bangladeshi phone number" });
-    } else if (isEmail && !emailRegex.test(value)) {
-      setFormError({ ...formError, identifier: "Invalid email address" });
-    } else if (!isEmail && !isPhone) {
-      setFormError({ ...formError, identifier: "Enter a valid email or phone number" });
-    } else if (!loginInfo.password) {
-      setFormError({ ...formError, password: "Please enter a password" });
-    } else if (loginInfo.password.length < 8) {
-      setFormError({ ...formError, password: "Password must be at least 8 characters." });
-    } else {
-      setFormError({ ...formError, password: "", identifier: "" });
-      loginUser(
-        isEmail ? { email: value, password: loginInfo.password } : { phone: value, password: loginInfo.password },
-      );
-    }
-  };
+  const { loginInfo, formError, loading, joinInfo, handleFieldChange, handleLoginSendCode } = useLoginForm();
 
   return (
     <>
@@ -69,20 +29,14 @@ const LoginForm = () => {
         <div className="flex flex-col gap-4">
           <AuthInput
             value={loginInfo.identifier}
-            onChange={(e) => {
-              setFormError({ ...formError, identifier: "" });
-              setLoginInfo({ ...loginInfo, identifier: e.target.value });
-            }}
+            onChange={(e) => handleFieldChange("identifier", e.target.value)}
             formError={formError.identifier}
             placeholder="Enter email or phone"
             label="Email or phone"
           />
           <AuthInput
             value={loginInfo.password}
-            onChange={(e) => {
-              setFormError({ ...formError, password: "" });
-              setLoginInfo({ ...loginInfo, password: e.target.value });
-            }}
+            onChange={(e) => handleFieldChange("password", e.target.value)}
             type="password"
             formError={formError.password}
             placeholder="Enter password"

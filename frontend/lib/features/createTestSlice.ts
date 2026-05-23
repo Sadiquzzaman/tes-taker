@@ -1,10 +1,41 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { createTestDragReducers } from "./create-test/createTestDragReducers";
-import { createInitialState, createTestSteps } from "./create-test/createTestDomain";
-import { createTestNavigationReducers } from "./create-test/createTestNavigationReducers";
-import { createTestPublishReducers } from "./create-test/createTestPublishReducers";
-import { createTestQuestionReducers } from "./create-test/createTestQuestionReducers";
-import { createTestSubjectReducers } from "./create-test/createTestSubjectReducers";
+import addExcludedStudentReducer from "./create-test/addExcludedStudent";
+import addOptionReducer from "./create-test/addOption";
+import addQuestionReducer from "./create-test/addQuestion";
+import addSubjectReducer from "./create-test/addSubject";
+import cancelDraggingReducer from "./create-test/cancelDragging";
+import clearPendingFocusOptionReducer from "./create-test/clearPendingFocusOption";
+import clearPendingFocusQuestionIdReducer from "./create-test/clearPendingFocusQuestionId";
+import createInitialState from "./create-test/createInitialState";
+import deleteQuestionReducer from "./create-test/deleteQuestion";
+import duplicateQuestionReducer from "./create-test/duplicateQuestion";
+import finishDraggingReducer from "./create-test/finishDragging";
+import goToNextStepReducer from "./create-test/goToNextStep";
+import goToPreviousStepReducer from "./create-test/goToPreviousStep";
+import moveQuestionReducer from "./create-test/moveQuestion";
+import removeExcludedStudentReducer from "./create-test/removeExcludedStudent";
+import removeOptionReducer from "./create-test/removeOption";
+import removeSubjectReducer from "./create-test/removeSubject";
+import resetFormReducer from "./create-test/resetForm";
+import selectCorrectOptionReducer from "./create-test/selectCorrectOption";
+import setActiveQuestionIdReducer from "./create-test/setActiveQuestionId";
+import setActiveSubjectIdReducer from "./create-test/setActiveSubjectId";
+import setFormFieldReducer from "./create-test/setFormField";
+import setPublishFieldReducer from "./create-test/setPublishField";
+import setPublishTimingReducer from "./create-test/setPublishTiming";
+import setQuestionValidationStateReducer from "./create-test/setQuestionValidationState";
+import setSingleSubjectReducer from "./create-test/setSingleSubject";
+import setTestAudienceReducer from "./create-test/setTestAudience";
+import shuffleOptionsReducer from "./create-test/shuffleOptions";
+import startDraggingReducer from "./create-test/startDragging";
+import updateDraggingReducer from "./create-test/updateDragging";
+import updateOptionImageReducer from "./create-test/updateOptionImage";
+import updateOptionTextReducer from "./create-test/updateOptionText";
+import updateQuestionImageReducer from "./create-test/updateQuestionImage";
+import updateQuestionInstructionReducer from "./create-test/updateQuestionInstruction";
+import updateQuestionPointsReducer from "./create-test/updateQuestionPoints";
+import updateQuestionTextReducer from "./create-test/updateQuestionText";
+import updateSectionInstructionReducer from "./create-test/updateSectionInstruction";
 
 const initialState: CreateTestState = createInitialState();
 
@@ -12,11 +43,42 @@ export const createTestSlice = createSlice({
   name: "createTestSlice",
   initialState,
   reducers: {
-    ...createTestNavigationReducers,
-    ...createTestSubjectReducers,
-    ...createTestQuestionReducers,
-    ...createTestDragReducers,
-    ...createTestPublishReducers,
+    resetForm: resetFormReducer,
+    goToNextStep: goToNextStepReducer,
+    goToPreviousStep: goToPreviousStepReducer,
+    setFormField: setFormFieldReducer,
+    setSingleSubject: setSingleSubjectReducer,
+    addSubject: addSubjectReducer,
+    removeSubject: removeSubjectReducer,
+    setActiveSubjectId: setActiveSubjectIdReducer,
+    addQuestion: addQuestionReducer,
+    deleteQuestion: deleteQuestionReducer,
+    duplicateQuestion: duplicateQuestionReducer,
+    shuffleOptions: shuffleOptionsReducer,
+    updateQuestionText: updateQuestionTextReducer,
+    updateQuestionInstruction: updateQuestionInstructionReducer,
+    updateQuestionImage: updateQuestionImageReducer,
+    updateOptionText: updateOptionTextReducer,
+    updateOptionImage: updateOptionImageReducer,
+    selectCorrectOption: selectCorrectOptionReducer,
+    removeOption: removeOptionReducer,
+    addOption: addOptionReducer,
+    updateQuestionPoints: updateQuestionPointsReducer,
+    setQuestionValidationState: setQuestionValidationStateReducer,
+    moveQuestion: moveQuestionReducer,
+    setActiveQuestionId: setActiveQuestionIdReducer,
+    clearPendingFocusQuestionId: clearPendingFocusQuestionIdReducer,
+    clearPendingFocusOption: clearPendingFocusOptionReducer,
+    updateSectionInstruction: updateSectionInstructionReducer,
+    startDragging: startDraggingReducer,
+    updateDragging: updateDraggingReducer,
+    finishDragging: finishDraggingReducer,
+    cancelDragging: cancelDraggingReducer,
+    setPublishTiming: setPublishTimingReducer,
+    setPublishField: setPublishFieldReducer,
+    setTestAudience: setTestAudienceReducer,
+    addExcludedStudent: addExcludedStudentReducer,
+    removeExcludedStudent: removeExcludedStudentReducer,
   },
 });
 

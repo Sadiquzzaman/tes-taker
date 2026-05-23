@@ -1,8 +1,6 @@
 "use client";
 
-import useGetAllClassById from "@/hooks/api/class/useGetAllClassById";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import useClassDetails, { classTabList } from "@/hooks/classes/useClassDetails";
 import { RotatingLines } from "react-loader-spinner";
 import ShareIconSVG from "../svg/ShareIconSVG";
 import Link from "next/link";
@@ -10,24 +8,12 @@ import LeftArrowIconSVG from "../svg/LeftArrowIconSVG";
 import ClassStudent from "./ClassStudent";
 import ClassTests from "./ClassTests";
 import ShareClassModal from "./ShareClassModal";
-import { useAppDispatch } from "@/lib/hooks";
-import { setOpenShareClassModal } from "@/lib/features/classSlice";
-import useGetAllTests from "@/hooks/api/tests/useGetAllTests";
-
-export const classTabList = [
-  { name: "Student", value: "student" },
-  { name: "Tests", value: "tests" },
-];
 
 const ClassDetailsComponent = ({ classId }: { classId: string }) => {
-  const dispatch = useAppDispatch();
-  const router = useRouter();
-  if (!classId) router.push("/classes");
-  const { loading, classData, fetch, apiComplete } = useGetAllClassById({ id: classId });
-  const { testList } = useGetAllTests({ classId });
-  const [activeTab, setActiveTab] = useState(classTabList[0]);
+  const { loading, classData, fetch, apiComplete, testList, activeTab, setActiveTab, handleShareClass } =
+    useClassDetails(classId);
 
-  if (loading)
+  if (loading) {
     return (
       <div className="w-full min-h-[calc(100vh-162px)] flex items-center justify-center">
         <RotatingLines
@@ -43,6 +29,7 @@ const ClassDetailsComponent = ({ classId }: { classId: string }) => {
         />
       </div>
     );
+  }
 
   if (!apiComplete) return null;
 
@@ -55,6 +42,7 @@ const ClassDetailsComponent = ({ classId }: { classId: string }) => {
       </div>
     );
   }
+
   return (
     <>
       <div className="sm:mt-2 mb-2 sm:mb-4 flex flex-col gap-2 sm:gap-4 min-h-[40px]">
@@ -62,7 +50,6 @@ const ClassDetailsComponent = ({ classId }: { classId: string }) => {
           <Link href="/classes" className="flex justify-end items-center gap-2 h-[40px]">
             <button className="border border-[#E5E5E5] rounded-[43px] flex items-center justify-center gap-2 w-[128px] sm:w-[158px] h-[32px] sm:h-[40px] font-[500] text-[#747775] font-[500] text-[12px] sm:text-[14px]">
               <LeftArrowIconSVG width={16} />
-
               <span className="capitalize mb-[2px]">Back to Classes</span>
             </button>
           </Link>
@@ -70,10 +57,9 @@ const ClassDetailsComponent = ({ classId }: { classId: string }) => {
           <div className="flex justify-end items-center gap-2 h-[40px]">
             <button
               className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] sm:h-[40px] bg-[#232A25] rounded-xl font-[500] text-white font-medium text-[12px] sm:text-[14px]"
-              onClick={() => dispatch(setOpenShareClassModal(classData))}
+              onClick={handleShareClass}
             >
               <ShareIconSVG width={16} />
-
               <span className="capitalize mb-[2px]">Share Class</span>
             </button>
           </div>
@@ -107,4 +93,5 @@ const ClassDetailsComponent = ({ classId }: { classId: string }) => {
     </>
   );
 };
+
 export default ClassDetailsComponent;

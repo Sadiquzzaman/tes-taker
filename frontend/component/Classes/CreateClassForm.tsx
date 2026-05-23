@@ -1,75 +1,17 @@
 "use client";
 
 import NormalInput from "@/Ui/NormalInput";
-import { useState } from "react";
 import ImportantIconSVG from "../svg/ImportantIconSvg";
 import HumanAddIconSVG from "../svg/HumanAddIconSvg";
 import TagInput from "@/Ui/TagInput";
-import { useToast } from "../Toast/ToastContext";
 import RightArrowIconSVG from "../svg/RightArrowIconSVG";
 import Link from "next/link";
-import axiosReq from "@/lib/axios";
-import useCreateClass from "@/hooks/api/class/useCreateClass";
 import ButtonLoader from "../Loader/ButtonLoadder";
+import useCreateClassForm from "@/hooks/classes/useCreateClassForm";
 
 const CreateClassForm = () => {
-  const { triggerToast } = useToast();
-  const [mutate, { loading }] = useCreateClass();
-  const [createClassPayload, setCreateClassPayload] = useState<CreateClassPayload>({
-    class_name: "",
-    description: "",
-    student_ids: [],
-  });
-
-  const [value, setValue] = useState("");
-
-  const addTag = () => {
-    const trimmed = value.trim();
-
-    if (!trimmed) return;
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^\d+$/;
-
-    if (!emailRegex.test(trimmed) && !phoneRegex.test(trimmed)) {
-      triggerToast({
-        title: "Invalid input",
-        description: "Please enter a valid email address or phone number.",
-        type: "error",
-      });
-    } else if (trimmed.includes("@") && !emailRegex.test(trimmed)) {
-      triggerToast({
-        title: "Invalid email",
-        description: "Please enter a valid email address.",
-        type: "error",
-      });
-    } else if (phoneRegex.test(trimmed) && trimmed.length !== 11) {
-      triggerToast({
-        title: "Invalid phone number",
-        description: "Phone number must be 11 digits.",
-        type: "error",
-      });
-    } else {
-      setCreateClassPayload((prev) => ({ ...prev, student_ids: [...prev.student_ids, trimmed] }));
-      setValue("");
-    }
-  };
-
-  const removeTag = (index: number) => {
-    setCreateClassPayload((prev) => ({ ...prev, student_ids: prev.student_ids.filter((_, i) => i !== index) }));
-  };
-
-  const handleCreateClass = () => {
-    if (createClassPayload.class_name.trim() === "") {
-      triggerToast({
-        title: "Class name is required",
-        description: "Please enter a class name.",
-        type: "error",
-      });
-    } else {
-      mutate(createClassPayload);
-    }
-  };
+  const { createClassPayload, setCreateClassPayload, value, setValue, loading, addTag, removeTag, handleCreateClass } =
+    useCreateClassForm();
 
   return (
     <>
@@ -129,7 +71,9 @@ const CreateClassForm = () => {
         <button
           type="button"
           onClick={addTag}
-          className={`flex items-center justify-center gap-1.5 px-3 py-2 w-[71px] h-[32px] ${value.trim() === "" ? "bg-[#747775]" : "bg-[#232A25]"} rounded-lg text-white text-sm font-medium tracking-[-0.02em] capitalize`}
+          className={`flex items-center justify-center gap-1.5 px-3 py-2 w-[71px] h-[32px] ${
+            value.trim() === "" ? "bg-[#747775]" : "bg-[#232A25]"
+          } rounded-lg text-white text-sm font-medium tracking-[-0.02em] capitalize`}
         >
           <HumanAddIconSVG />
           Add
@@ -138,14 +82,18 @@ const CreateClassForm = () => {
       <div className="flex justify-end items-center gap-2 sm:gap-4 mt-6">
         <Link
           href="/classes"
-          className={`px-4 h-10 flex items-center justify-center rounded-[8px] text-[14px] font-[500] leading-[16px] tracking-[-0.02em] ${loading ? "bg-[#747775]" : "bg-[#EFF0F3]"} text-[#232A25]`}
+          className={`px-4 h-10 flex items-center justify-center rounded-[8px] text-[14px] font-[500] leading-[16px] tracking-[-0.02em] ${
+            loading ? "bg-[#747775]" : "bg-[#EFF0F3]"
+          } text-[#232A25]`}
         >
           Cancel
         </Link>
         <button
           onClick={handleCreateClass}
           disabled={loading}
-          className={`px-4 h-10 flex items-center justify-center rounded-[8px] text-[14px] font-[500] leading-[16px] tracking-[-0.02em] ${loading ? "bg-[#747775]" : "bg-[#49734F]"} text-[#FFFFFF]`}
+          className={`px-4 h-10 flex items-center justify-center rounded-[8px] text-[14px] font-[500] leading-[16px] tracking-[-0.02em] ${
+            loading ? "bg-[#747775]" : "bg-[#49734F]"
+          } text-[#FFFFFF]`}
         >
           <ButtonLoader show={loading} w="w-4" h="h-4" mr="mr-2" />
           {loading ? "Creating..." : "Create Class"}

@@ -19,5 +19,13 @@ export async function POST() {
     maxAge: 0, // expire immediately
   });
 
+  cookieStore.set("role", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0, // expire immediately
+  });
+
   return Response.json({ success: true });
 }

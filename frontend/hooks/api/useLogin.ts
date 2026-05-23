@@ -35,6 +35,7 @@ const useLogin = () => {
     const setTokenResponse = await apiClient.post("/api/set-token", {
       token: payload.access_token,
       refreshToken: payload.refresh_token,
+      role: payload.role,
     });
 
     if (setTokenResponse.status !== 200) {

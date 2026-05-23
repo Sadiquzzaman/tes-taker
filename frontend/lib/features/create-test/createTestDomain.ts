@@ -1,8 +1,5 @@
-import dayjs from "dayjs";
 import { v4 as uuidv4 } from "uuid";
 import { getQuestionValidationErrors } from "@/utils/createTestValidation";
-
-export const createTestSteps: CreateTestStep[] = ["Basic info", "Questions", "Review", "Publish"];
 
 export const createId = () => uuidv4();
 
@@ -105,32 +102,6 @@ export const moveQuestionInList = (questions: QuestionItem[], questionId: string
 
   return nextQuestions;
 };
-
-export const createInitialState = (): CreateTestState => ({
-  currentStep: createTestSteps[0],
-  formState: {
-    examType: "",
-    testName: "",
-    duration: "",
-    passingScore: "",
-    allowNegativeMarking: false,
-    negativeMarking: "",
-  },
-  subjects: [],
-  activeSubjectId: null,
-  activeQuestionId: null,
-  pendingFocusQuestion: null,
-  pendingFocusOption: null,
-  dragState: null,
-  publishState: {
-    publishTiming: "immediately",
-    scheduleAt: dayjs().add(3, "hour").toISOString(),
-    endingAt: dayjs().add(3, "day").toISOString(),
-    testAudience: "anyone",
-    selectedClassId: "",
-    excluded_students: [],
-  },
-});
 
 export const findSubjectById = (subjects: SubjectItem[], subjectId: string) =>
   subjects.find((subject) => subject.id === subjectId) ?? null;

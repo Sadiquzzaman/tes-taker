@@ -4,6 +4,8 @@ import CopyIconSVG from "@/component/svg/CopyIconSVG";
 import DragHandleIcon from "@/component/svg/DragHandleIcon";
 import ShuffleIcon from "@/component/svg/ShuffleIcon";
 import TrashIcon from "@/component/svg/TrashIcon";
+import TriangleDownFilledIconSVG from "@/component/svg/TriangleDownFilledIconSVG";
+import TriangleUpFilledIconSVG from "@/component/svg/TriangleUpFilledIconSVG";
 import UploadImageIconSVG from "@/component/svg/UploadImageIconSVG";
 import { useToast } from "@/component/Toast/ToastContext";
 import {
@@ -627,11 +629,9 @@ const QuestionCard = memo(
                         }),
                       )
                     }
-                    className="h-4 w-4 border-l border-b-[.5px] border-[#E5E5E5] flex justify-center items-center"
+                    className="h-4 w-4 border-l border-b-[.5px] border-[#E5E5E5] flex justify-center items-center text-[#747775]"
                   >
-                    <svg width="7" height="4" viewBox="0 0 7 4" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3.33333 -0.000325203L6.66667 3.33301H0L3.33333 -0.000325203Z" fill="#747775" />
-                    </svg>
+                    <TriangleUpFilledIconSVG width={7} />
                   </button>
                   <button
                     onClick={() =>
@@ -644,11 +644,9 @@ const QuestionCard = memo(
                         }),
                       )
                     }
-                    className="h-4 w-4 border-l border-t-[.5px] border-[#E5E5E5] flex justify-center items-center"
+                    className="h-4 w-4 border-l border-t-[.5px] border-[#E5E5E5] flex justify-center items-center text-[#747775]"
                   >
-                    <svg width="7" height="4" viewBox="0 0 7 4" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3.33333 3.33333L6.66667 0H0L3.33333 3.33333Z" fill="#747775" />
-                    </svg>
+                    <TriangleDownFilledIconSVG width={7} />
                   </button>
                 </div>
               </div>

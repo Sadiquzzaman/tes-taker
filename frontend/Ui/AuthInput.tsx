@@ -1,39 +1,6 @@
 import { useState } from "react";
-
-const EyeOpen = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    strokeWidth={1.5}
-    stroke="currentColor"
-    className="w-5 h-5"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M2.25 12s3.75-7.5 9.75-7.5 9.75 7.5 9.75 7.5-3.75 7.5-9.75 7.5S2.25 12 2.25 12z"
-    />
-    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" fill="none" />
-  </svg>
-);
-
-const EyeClosed = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    strokeWidth={1.5}
-    stroke="currentColor"
-    className="w-5 h-5"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M3 3l18 18M9.88 9.88A3 3 0 0012 15a3 3 0 002.12-5.12M6.53 6.53C4.06 8.36 2.25 12 2.25 12s3.75 7.5 9.75 7.5c2.13 0 4.09-.54 5.72-1.47M17.47 17.47C19.94 15.64 21.75 12 21.75 12s-3.75-7.5-9.75-7.5c-2.13 0-4.09.54-5.72 1.47"
-    />
-  </svg>
-);
+import EyeClosedIconSVG from "@/component/svg/EyeClosedIconSVG";
+import EyeOpenIconSVG from "@/component/svg/EyeOpenIconSVG";
 
 const AuthInput = ({ value, onChange, formError, placeholder, label, type = "text" }: AuthInputProps) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -61,7 +28,7 @@ const AuthInput = ({ value, onChange, formError, placeholder, label, type = "tex
             onClick={() => setShowPassword((prev) => !prev)}
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
-            {showPassword ? <EyeClosed /> : <EyeOpen />}
+            {showPassword ? <EyeClosedIconSVG /> : <EyeOpenIconSVG />}
           </button>
         )}
       </div>

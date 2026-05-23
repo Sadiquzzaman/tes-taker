@@ -1,4 +1,4 @@
-import { classTabList } from "@/utils/classTabList";
+import { classTabList } from "@/utils/classes/classTabList";
 import { createSlice } from "@reduxjs/toolkit";
 
 interface ClassSliceState {
