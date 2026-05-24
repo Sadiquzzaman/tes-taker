@@ -14,7 +14,7 @@ const sanitizeSubjectsForSubmission = (subjects: SubjectItem[]) =>
   }));
 
 const handlePublishStateForSubmission = (publishState: PublishState) => {
-  let result: PublishStateForPayload = {
+  const result: PublishStateForPayload = {
     testAudience: publishState.testAudience,
     publishTiming: publishState.publishTiming,
     scheduleAt: publishState.scheduleAt,
@@ -37,17 +37,12 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
 
   const handleNextStep = useCallback(async () => {
     if (currentStep === "Basic info") {
-      if (!formState.examType) {
-        triggerToast({ description: "Please select an exam type", type: "error" });
-        return;
-      }
-
       if (!formState.testName.trim()) {
         triggerToast({ description: "Please enter a test name", type: "error" });
         return;
       }
 
-      if (formState.examType !== "model" && subjects.length === 0) {
+      if (subjects.length === 0) {
         triggerToast({ description: "Please select a subject", type: "error" });
         return;
       }

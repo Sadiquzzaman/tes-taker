@@ -43,7 +43,7 @@ const ReviewStep = () => {
       <div className="w-full border-b border-[#E5E5E5]" />
       <div className="flex flex-col gap-3">
         {divSection({ label: "Test name", value: formState.testName })}
-        {divSection({ label: "Subject", value: formState.examType !== "model" ? "Model Test" : subjects[0].name })}
+        {divSection({ label: "Subject", value: subjects[0]?.name ?? "N/A" })}
         {divSection({ label: "Duration", value: `${formState.duration} minutes` })}
         {divSection({ label: "Total Questions", value: totalQuestions.toString() })}
         {divSection({ label: "Total Marks", value: totalMarks.toString() })}

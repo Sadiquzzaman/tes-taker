@@ -11,7 +11,7 @@ const addSubject = (state: CreateTestState, action: PayloadAction<SubjectSelecti
     return;
   }
 
-  const nextSubject = createSubject(state.formState.examType, {
+  const nextSubject = createSubject({
     name: action.payload.label,
     value: action.payload.value,
     id: action.payload.id,

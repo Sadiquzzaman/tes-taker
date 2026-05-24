@@ -4,7 +4,6 @@ import createTestSteps from "./createTestSteps";
 const createInitialState = (): CreateTestState => ({
   currentStep: createTestSteps[0],
   formState: {
-    examType: "",
     testName: "",
     duration: "",
     passingScore: "",

@@ -22,6 +22,7 @@ const TestCard = ({
   testData: ITest;
 }) => {
   const dispatch = useAppDispatch();
+  const primarySubjectName = testData?.subjects?.[0]?.name ?? "N/A";
 
   // const testStatus = "pending" as "ongoing" | "completed" | "pending";
   const testStatus = testData.status;
@@ -60,14 +61,12 @@ const TestCard = ({
             </p>
           </div>
         )}
-        {testData.exam_type !== "model" && (
-          <div className="w-1/2 lg:flex-1">
-            <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Subject</p>
-            <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
-              {testData?.subjects?.[0]?.name}
-            </p>
-          </div>
-        )}
+        <div className="w-1/2 lg:flex-1">
+          <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Subject</p>
+          <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
+            {primarySubjectName}
+          </p>
+        </div>
         <div className="w-1/2 lg:flex-1">
           <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Participants</p>
           <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">28</p>

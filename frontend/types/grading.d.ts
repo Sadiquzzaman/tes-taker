@@ -64,7 +64,6 @@ interface GradingSubject {
 }
 
 interface GradingTemplateFormState {
-  examType: string;
   testName: string;
   duration: string;
   passingScore: string;

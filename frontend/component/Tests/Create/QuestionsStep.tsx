@@ -1,12 +1,8 @@
 import PlusIcon from "@/component/svg/PlusIcon";
-import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
 import NotmalTextFeild from "@/Ui/NotmalTextFeild";
 import {
   addQuestion,
-  addSubject,
   finishDragging,
-  removeSubject,
-  setActiveSubjectId,
   startDragging,
   updateDragging,
   updateSectionInstruction,
@@ -14,7 +10,6 @@ import {
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import QuestionCard from "./QuestionCard";
-import QuestionSubjectTabs from "./QuestionSubjectTabs";
 
 const QUESTION_CARD_GAP = 16;
 
@@ -46,17 +41,8 @@ const getQuestionCardOffset = (questionIndex: number, dragState: DragState | nul
 const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const dispatch = useAppDispatch();
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
-  const subjectCatalog = useAppSelector((state) => state.subject.subjects);
-  const {
-    formState,
-    subjects,
-    activeSubjectId,
-    activeQuestionId,
-    pendingFocusQuestion,
-    pendingFocusOption,
-    dragState,
-  } = createTestState;
-  useGetAllSubject();
+  const { subjects, activeSubjectId, activeQuestionId, pendingFocusQuestion, pendingFocusOption, dragState } =
+    createTestState;
   const sectionContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dragStateRef = useRef<DragState | null>(null);
@@ -67,18 +53,6 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   );
 
   const questionSections = activeSubject?.questionSections ?? [];
-
-  const availableSubjectOptions = useMemo(
-    () =>
-      subjectCatalog
-        .map((subject) => ({
-          id: subject.id,
-          label: subject.name,
-          value: subject.value,
-        }))
-        .filter((option) => !subjects.some((subject) => subject.id === option.id)),
-    [subjectCatalog, subjects],
-  );
 
   const draggedSubject = useMemo(
     () => subjects.find((subject) => subject.id === dragState?.subjectId) ?? null,
@@ -271,229 +245,198 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     [dispatch, subjects],
   );
 
-  const handleAddSubject = useCallback(
-    (subjectOption: { label: string; value: string; id: string }) => {
-      dispatch(addSubject(subjectOption));
-    },
-    [dispatch],
-  );
+  // eslint-disable-next-line react-hooks/refs
+  const renderedQuestionSections = questionSections.map((section) => {
+    let dropIndicatorTop: number | null = null;
+    const sectionContainer = sectionContainerRefs.current[section.id];
 
-  const handleSelectSubject = useCallback(
-    (subjectId: string) => {
-      dispatch(setActiveSubjectId(subjectId));
-    },
-    [dispatch],
-  );
+    if (dragState?.subjectId === activeSubject.id && dragState.sectionId === section.id && sectionContainer) {
+      const { dropLineIndex, draggedOriginalIndex } = dragState;
 
-  const handleRemoveSubject = useCallback(
-    (subjectId: string) => {
-      dispatch(removeSubject(subjectId));
-    },
-    [dispatch],
-  );
+      if (dropLineIndex !== draggedOriginalIndex && dropLineIndex !== draggedOriginalIndex + 1) {
+        const containerRect = sectionContainer.getBoundingClientRect();
+
+        if (dropLineIndex <= 0) {
+          const firstElement = itemRefs.current[section.questions[0]?.id];
+          if (firstElement) {
+            dropIndicatorTop = firstElement.getBoundingClientRect().top - containerRect.top - 9;
+          }
+        } else if (dropLineIndex >= section.questions.length) {
+          const lastElement = itemRefs.current[section.questions[section.questions.length - 1]?.id];
+          if (lastElement) {
+            dropIndicatorTop = lastElement.getBoundingClientRect().bottom - containerRect.top + 7;
+          }
+        } else {
+          const aboveElement = itemRefs.current[section.questions[dropLineIndex - 1]?.id];
+          const belowElement = itemRefs.current[section.questions[dropLineIndex]?.id];
+
+          if (aboveElement && belowElement) {
+            const midY = (aboveElement.getBoundingClientRect().bottom + belowElement.getBoundingClientRect().top) / 2;
+            dropIndicatorTop = midY - containerRect.top - 1.5;
+          }
+        }
+      }
+    }
+
+    const totalMarks = section.questions.reduce((sum, question) => sum + question.points, 0);
+
+    return (
+      <section key={section.id} className="flex w-full flex-1 flex-col gap-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[20px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Questions</h2>
+          </div>
+          <NotmalTextFeild
+            rows={1}
+            maxRows={4}
+            value={section.instruction ?? ""}
+            onChange={(event) =>
+              dispatch(
+                updateSectionInstruction({
+                  subjectId: activeSubject.id,
+                  sectionId: section.id,
+                  instruction: event.target.value,
+                }),
+              )
+            }
+            placeholder="Add section instruction (optional)"
+            parentClassName="rounded-[8px] border-[#E5E5E5] bg-white px-3 py-2"
+            inputClassName="text-[14px] leading-[20px] font-[400] text-[#232A25] placeholder:text-[#747775]"
+          />
+        </div>
+        <div className="w-full border-b border-[#E5E5E5]" />
+
+        <div
+          className={`relative flex flex-col gap-4 ${
+            dragState?.subjectId === activeSubject.id && dragState.sectionId === section.id ? "pointer-events-none" : ""
+          }`}
+          ref={(node) => {
+            sectionContainerRefs.current[section.id] = node;
+          }}
+        >
+          {section.questions.map((question, questionIndex) => (
+            <QuestionCard
+              key={question.id}
+              scrollContainerRef={scrollContainerRef}
+              subjectId={activeSubject.id}
+              sectionId={section.id}
+              sectionType={section.type}
+              setCardRef={(node) => {
+                itemRefs.current[question.id] = node;
+              }}
+              question={question}
+              questionNumber={questionIndex + 1}
+              isActive={activeQuestionId === question.id}
+              shouldAutoFocus={
+                pendingFocusQuestion?.subjectId === activeSubject.id &&
+                pendingFocusQuestion.sectionId === section.id &&
+                pendingFocusQuestion.questionId === question.id
+              }
+              pendingFocusOptionId={
+                pendingFocusOption?.subjectId === activeSubject.id &&
+                pendingFocusOption.sectionId === section.id &&
+                pendingFocusOption.questionId === question.id
+                  ? pendingFocusOption.optionId
+                  : null
+              }
+              isDragging={dragState?.id === question.id}
+              cardStyle={
+                dragState?.subjectId === activeSubject.id && dragState.sectionId === section.id
+                  ? {
+                      transform: `translateY(${getQuestionCardOffset(questionIndex, dragState)}px)`,
+                      transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease",
+                      willChange: "transform",
+                    }
+                  : undefined
+              }
+              onDragHandlePointerDown={handleDragHandlePointerDown}
+            />
+          ))}
+          {dropIndicatorTop != null && (
+            <div
+              className="pointer-events-none absolute left-0 right-0 z-10 h-[3px] rounded-full bg-[#49734F]"
+              style={{ top: dropIndicatorTop }}
+            />
+          )}
+        </div>
+
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-6">
+            <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25]">
+              Questions added: {String(section.questions.length).padStart(2, "0")}
+            </p>
+            <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25]">
+              Total marks: {String(totalMarks).padStart(2, "0")}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => dispatch(addQuestion({ subjectId: activeSubject.id, sectionId: section.id }))}
+            className="flex h-8 items-center justify-center gap-2 rounded-[8px] border border-[#E5E5E5] bg-white px-4 text-[14px] leading-[16px] text-[#232A25]"
+          >
+            <PlusIcon />
+            <span className="text-[14px] font-[500] leading-[16px] tracking-[-0.02em]">Add Question</span>
+          </button>
+        </div>
+      </section>
+    );
+  });
+
+  /* eslint-disable react-hooks/refs */
+  const dragOverlay =
+    dragState && draggedQuestion && draggedSubject && draggedSection
+      ? (() => {
+          const sectionContainer = sectionContainerRefs.current[dragState.sectionId];
+          const sectionRect = sectionContainer?.getBoundingClientRect();
+          const unclampedTop = dragState.pointerY - dragState.pointerOffsetY;
+          const top = sectionRect
+            ? Math.min(Math.max(unclampedTop, sectionRect.top), sectionRect.bottom - dragState.height)
+            : unclampedTop;
+
+          return (
+            <QuestionCard
+              scrollContainerRef={scrollContainerRef}
+              subjectId={draggedSubject.id}
+              sectionId={dragState.sectionId}
+              sectionType={draggedSection.type}
+              question={draggedQuestion}
+              questionNumber={
+                (draggedSection.questions.findIndex((question) => question.id === draggedQuestion.id) ?? 0) + 1
+              }
+              isActive
+              shouldAutoFocus={false}
+              pendingFocusOptionId={null}
+              isDragging={false}
+              isDragOverlay
+              overlayStyle={{
+                top,
+                left: dragState.left,
+                width: dragState.width,
+              }}
+              setCardRef={() => {}}
+              onDragHandlePointerDown={() => {}}
+            />
+          );
+        })()
+      : null;
+  /* eslint-enable react-hooks/refs */
 
   return (
     <div className="flex min-h-[532px] w-full flex-1 flex-col gap-10">
-      {formState.examType === "model" && (
+      {!activeSubject && (
         <section className="flex flex-col gap-4">
-          <QuestionSubjectTabs
-            subjects={subjects}
-            activeSubjectId={activeSubject?.id ?? null}
-            availableSubjectOptions={availableSubjectOptions}
-            onSelectSubject={handleSelectSubject}
-            onAddSubject={handleAddSubject}
-            onRemoveSubject={handleRemoveSubject}
-          />
-
-          {!activeSubject && (
-            <div className="w-full rounded-[12px] border border-dashed border-[#DADCE0] bg-[#FAFBFA] px-5 py-10 text-center">
-              <p className="text-[16px] font-[500] leading-[24px] tracking-[-0.02em] text-[#232A25]">
-                {formState.examType === "model"
-                  ? "Add a subject to start creating questions."
-                  : "Select a subject in Basic Info to start creating questions."}
-              </p>
-            </div>
-          )}
+          <div className="w-full rounded-[12px] border border-dashed border-[#DADCE0] bg-[#FAFBFA] px-5 py-10 text-center">
+            <p className="text-[16px] font-[500] leading-[24px] tracking-[-0.02em] text-[#232A25]">
+              Select a subject in Basic Info to start creating questions.
+            </p>
+          </div>
         </section>
       )}
 
-      {questionSections.map((section) => {
-        let dropIndicatorTop: number | null = null;
-        const sectionContainer = sectionContainerRefs.current[section.id];
+      {renderedQuestionSections}
 
-        if (dragState?.subjectId === activeSubject.id && dragState.sectionId === section.id && sectionContainer) {
-          const { dropLineIndex, draggedOriginalIndex } = dragState;
-
-          if (dropLineIndex !== draggedOriginalIndex && dropLineIndex !== draggedOriginalIndex + 1) {
-            const containerRect = sectionContainer.getBoundingClientRect();
-
-            if (dropLineIndex <= 0) {
-              const firstElement = itemRefs.current[section.questions[0]?.id];
-              if (firstElement) {
-                dropIndicatorTop = firstElement.getBoundingClientRect().top - containerRect.top - 9;
-              }
-            } else if (dropLineIndex >= section.questions.length) {
-              const lastElement = itemRefs.current[section.questions[section.questions.length - 1]?.id];
-              if (lastElement) {
-                dropIndicatorTop = lastElement.getBoundingClientRect().bottom - containerRect.top + 7;
-              }
-            } else {
-              const aboveElement = itemRefs.current[section.questions[dropLineIndex - 1]?.id];
-              const belowElement = itemRefs.current[section.questions[dropLineIndex]?.id];
-
-              if (aboveElement && belowElement) {
-                const midY =
-                  (aboveElement.getBoundingClientRect().bottom + belowElement.getBoundingClientRect().top) / 2;
-                dropIndicatorTop = midY - containerRect.top - 1.5;
-              }
-            }
-          }
-        }
-
-        const totalMarks = section.questions.reduce((sum, question) => sum + question.points, 0);
-
-        return (
-          <section key={section.id} className="flex w-full flex-1 flex-col gap-4">
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-[24px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">
-                  {section.headerText}
-                </h2>
-              </div>
-              <NotmalTextFeild
-                rows={1}
-                maxRows={4}
-                value={section.instruction ?? ""}
-                onChange={(event) =>
-                  dispatch(
-                    updateSectionInstruction({
-                      subjectId: activeSubject.id,
-                      sectionId: section.id,
-                      instruction: event.target.value,
-                    }),
-                  )
-                }
-                placeholder="Add section instruction (optional)"
-                parentClassName="rounded-[8px] border-[#E5E5E5] bg-white px-3 py-2"
-                inputClassName="text-[14px] leading-[20px] font-[400] text-[#232A25] placeholder:text-[#747775]"
-              />
-            </div>
-            <div className="w-full border-b border-[#E5E5E5]" />
-
-            <div
-              className={`relative flex flex-col gap-4 ${
-                dragState?.subjectId === activeSubject.id && dragState.sectionId === section.id
-                  ? "pointer-events-none"
-                  : ""
-              }`}
-              ref={(node) => {
-                sectionContainerRefs.current[section.id] = node;
-              }}
-            >
-              {section.questions.map((question, questionIndex) => (
-                <QuestionCard
-                  key={question.id}
-                  scrollContainerRef={scrollContainerRef}
-                  subjectId={activeSubject.id}
-                  sectionId={section.id}
-                  sectionType={section.type}
-                  setCardRef={(node) => {
-                    itemRefs.current[question.id] = node;
-                  }}
-                  question={question}
-                  questionNumber={questionIndex + 1}
-                  isActive={activeQuestionId === question.id}
-                  shouldAutoFocus={
-                    pendingFocusQuestion?.subjectId === activeSubject.id &&
-                    pendingFocusQuestion.sectionId === section.id &&
-                    pendingFocusQuestion.questionId === question.id
-                  }
-                  pendingFocusOptionId={
-                    pendingFocusOption?.subjectId === activeSubject.id &&
-                    pendingFocusOption.sectionId === section.id &&
-                    pendingFocusOption.questionId === question.id
-                      ? pendingFocusOption.optionId
-                      : null
-                  }
-                  isDragging={dragState?.id === question.id}
-                  cardStyle={
-                    dragState?.subjectId === activeSubject.id && dragState.sectionId === section.id
-                      ? {
-                          transform: `translateY(${getQuestionCardOffset(questionIndex, dragState)}px)`,
-                          transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease",
-                          willChange: "transform",
-                        }
-                      : undefined
-                  }
-                  onDragHandlePointerDown={handleDragHandlePointerDown}
-                />
-              ))}
-              {dropIndicatorTop != null && (
-                <div
-                  className="pointer-events-none absolute left-0 right-0 z-10 h-[3px] rounded-full bg-[#49734F]"
-                  style={{ top: dropIndicatorTop }}
-                />
-              )}
-            </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <div className="flex items-center gap-6">
-                <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25]">
-                  Questions added: {String(section.questions.length).padStart(2, "0")}
-                </p>
-                <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25]">
-                  Total marks: {String(totalMarks).padStart(2, "0")}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => dispatch(addQuestion({ subjectId: activeSubject.id, sectionId: section.id }))}
-                className="flex h-8 items-center justify-center gap-2 rounded-[8px] border border-[#E5E5E5] bg-white px-4 text-[14px] leading-[16px] text-[#232A25]"
-              >
-                <PlusIcon />
-                <span className="text-[14px] font-[500] leading-[16px] tracking-[-0.02em]">Add Question</span>
-              </button>
-            </div>
-          </section>
-        );
-      })}
-
-      {dragState && draggedQuestion && draggedSubject && draggedSection
-        ? (() => {
-            const sectionContainer = sectionContainerRefs.current[dragState.sectionId];
-            const sectionRect = sectionContainer?.getBoundingClientRect();
-            const unclampedTop = dragState.pointerY - dragState.pointerOffsetY;
-            const top = sectionRect
-              ? Math.min(Math.max(unclampedTop, sectionRect.top), sectionRect.bottom - dragState.height)
-              : unclampedTop;
-
-            return (
-              <QuestionCard
-                scrollContainerRef={scrollContainerRef}
-                subjectId={draggedSubject.id}
-                sectionId={dragState.sectionId}
-                sectionType={draggedSection.type}
-                question={draggedQuestion}
-                questionNumber={
-                  (draggedSection.questions.findIndex((question) => question.id === draggedQuestion.id) ?? 0) + 1
-                }
-                isActive
-                shouldAutoFocus={false}
-                pendingFocusOptionId={null}
-                isDragging={false}
-                isDragOverlay
-                overlayStyle={{
-                  top,
-                  left: dragState.left,
-                  width: dragState.width,
-                }}
-                setCardRef={() => {}}
-                onDragHandlePointerDown={(_subjectId, _sectionId, _questionId, _event) => {}}
-              />
-            );
-          })()
-        : null}
+      {dragOverlay}
     </div>
   );
 });

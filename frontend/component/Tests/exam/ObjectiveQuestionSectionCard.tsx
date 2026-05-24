@@ -2,8 +2,6 @@ const ObjectiveQuestionSectionCard = ({
   section,
   negativeMarkValue,
   isNegativeMarkingEnabled,
-  examType,
-  subjectName,
   answerSheet,
   setAnswerSheet,
   disabled,
@@ -11,8 +9,6 @@ const ObjectiveQuestionSectionCard = ({
   section: StudentExamQuestionSection;
   negativeMarkValue: number;
   isNegativeMarkingEnabled: boolean;
-  examType: string;
-  subjectName: string;
   answerSheet: Record<string, string>;
   setAnswerSheet: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   disabled: boolean;
@@ -35,10 +31,7 @@ const ObjectiveQuestionSectionCard = ({
             <p className="text-[14px] font-[400] text-[#49734f]">Instruction: {section.instruction}</p>
           </div>
         ) : null}
-        <p className="text-[24px] font-[600] leading-[28px] text-[#232A25]">
-          {section.headerText}
-          {examType === "model" ? ` - ${subjectName}` : ""}
-        </p>
+        <p className="text-[24px] font-[600] leading-[28px] text-[#232A25]">{section.headerText}</p>
         <p className="text-[14px] font-[400] leading-[16px] text-[#747775]">{section.questions.length} Questions</p>
       </div>
 

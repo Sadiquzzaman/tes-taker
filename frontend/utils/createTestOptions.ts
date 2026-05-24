@@ -9,13 +9,6 @@ export const createTestSubjectOptions = [
   { label: "History2", value: "history2" },
 ];
 
-export const createTestExamTypeOptions = [
-  // { label: "Multiple choice (MCQ)", value: "mcq" },
-  // { label: "Essay writing", value: "essay" },
-  { label: "Hybrid - A combination of different questions", value: "hybrid" },
-  { label: "Model Test - Multiple subjects", value: "model" },
-];
-
 export const testAudienceOptions = [
   { label: "Anyone with the link", value: "anyone" },
   { label: "Group or class", value: "selected_class" },

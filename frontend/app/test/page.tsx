@@ -7,7 +7,7 @@ import ExamTimerIconSVG from "@/component/svg/ExamTimerIconSVG";
 import RightArrowIconSVG from "@/component/svg/RightArrowIconSVG";
 import useStudentExam from "@/hooks/api/exam/useStudentExam";
 import useSubmitAnswersheet from "@/hooks/api/tests/useSubmitAnswersheet";
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { RotatingLines } from "react-loader-spinner";
 import { useRouter } from "next/navigation";
 import EssayQuestionSectionCard from "@/component/Tests/exam/EssayQuestionSectionCard";
@@ -21,8 +21,23 @@ export default function ParticipateTest() {
 
   const submitButtonRef = useRef<HTMLButtonElement | null>(null);
   const [submitReason, setSubmitReason] = useState<"manual" | "timeout" | null>(null);
-  const [answerSheet, setAnswerSheet] = useState<AnswersheetMap>({});
+  const [draftAnswerSheet, setAnswerSheet] = useState<AnswersheetMap>({});
   const isInteractionDisabled = loading || submitLoading;
+  const answerSheet = useMemo(() => {
+    const nextAnswerSheet: AnswersheetMap = { ...draftAnswerSheet };
+
+    test?.subjects?.forEach((subject) => {
+      subject.questionSections.forEach((section) => {
+        section.questions.forEach((question) => {
+          if (!(question.id in nextAnswerSheet)) {
+            nextAnswerSheet[question.id] = "";
+          }
+        });
+      });
+    });
+
+    return nextAnswerSheet;
+  }, [draftAnswerSheet, test]);
 
   const handleSubmit = async (reason: "manual" | "timeout" = "manual") => {
     const user = localStorage.getItem("user");
@@ -37,7 +52,7 @@ export default function ParticipateTest() {
     const examId = test?.id ?? "";
     const studentId = parsedUser?.id ?? "";
 
-    const response = await submitAnswersheet({
+    await submitAnswersheet({
       examId,
       payload: {
         studentId,
@@ -45,23 +60,6 @@ export default function ParticipateTest() {
       },
     });
   };
-
-  useEffect(() => {
-    if (test?.subjects?.length) {
-      const initialAnswerSheet: { [key: string]: string } = answerSheet;
-
-      test.subjects.forEach((subject) => {
-        subject.questionSections.forEach((section) => {
-          section.questions.forEach((question) => {
-            if (!initialAnswerSheet[question.id]) {
-              initialAnswerSheet[question.id] = "";
-            }
-          });
-        });
-      });
-      setAnswerSheet(initialAnswerSheet);
-    }
-  }, [test]);
 
   if (loading)
     return (
@@ -121,8 +119,6 @@ export default function ParticipateTest() {
                     section={section}
                     answerSheet={answerSheet}
                     setAnswerSheet={setAnswerSheet}
-                    examType={test.exam_type}
-                    subjectName={subject.name}
                     disabled={isInteractionDisabled}
                   />
                 );
@@ -137,8 +133,6 @@ export default function ParticipateTest() {
                     answerSheet={answerSheet}
                     setAnswerSheet={setAnswerSheet}
                     isNegativeMarkingEnabled={test.is_negative_marking}
-                    examType={test.exam_type}
-                    subjectName={subject.name}
                     disabled={isInteractionDisabled}
                   />
                 );

@@ -8,8 +8,6 @@ interface GradingEditViewProps {
 }
 
 const GradingEditView = ({ handleExplanationChange, questionInputData }: GradingEditViewProps) => {
-  const isModelTest = template.formState.examType === "model";
-
   return (
     <div className="mt-4 flex flex-col gap-4">
       {template.subjects.flatMap((subject) =>
@@ -52,7 +50,7 @@ const GradingEditView = ({ handleExplanationChange, questionInputData }: Grading
           return (
             <div key={section.id} className="flex flex-col gap-4">
               <p className="text-[24px] font-[600] leading-[100%] tracking-[-0.02em] text-[#747775]">
-                {section.headerText} {isModelTest ? `(${subject.name})` : ""}
+                {section.headerText}
               </p>
               <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]">
                 {gradedCount} of {section.questions.length} questions {section.type === "objective" ? "auto " : ""}

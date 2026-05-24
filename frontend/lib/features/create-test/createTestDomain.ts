@@ -3,16 +3,10 @@ import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 
 export const createId = () => uuidv4();
 
-const getSectionTemplates = (examType: string): Array<{ type: QuestionSectionType; headerText: string }> => {
-  if (examType === "hybrid" || examType === "model") {
-    return [
-      { type: "objective", headerText: "Objective Questions" },
-      { type: "essay", headerText: "Essay Questions" },
-    ];
-  }
-
-  return [{ type: "objective", headerText: "Objective Questions" }];
-};
+const sectionTemplates: Array<{ type: QuestionSectionType; headerText: string }> = [
+  { type: "objective", headerText: "Objective Questions" },
+  { type: "essay", headerText: "Essay Questions" },
+];
 
 export const createOption = (text = "", image: string | null = null): QuestionOption => ({
   id: createId(),
@@ -53,12 +47,11 @@ export const createQuestionSection = (type: QuestionSectionType, headerText: str
 });
 
 export const createQuestionSections = (
-  examType: string,
   existingSections: QuestionSectionItem[] = [],
 ): QuestionSectionItem[] => {
   const existingSectionsByType = new Map(existingSections.map((section) => [section.type, section]));
 
-  return getSectionTemplates(examType).map(({ type, headerText }) => {
+  return sectionTemplates.map(({ type, headerText }) => {
     const existingSection = existingSectionsByType.get(type);
 
     if (existingSection) {
@@ -73,14 +66,13 @@ export const createQuestionSections = (
 };
 
 export const createSubject = (
-  examType: string,
   subjectOption: Pick<SubjectItem, "name" | "value" | "id">,
   existingSections: QuestionSectionItem[] = [],
 ): SubjectItem => ({
   id: subjectOption.id,
   name: subjectOption.name,
   value: subjectOption.value,
-  questionSections: createQuestionSections(examType, existingSections),
+  questionSections: createQuestionSections(existingSections),
 });
 
 export const moveQuestionInList = (questions: QuestionItem[], questionId: string, targetIndex: number) => {
@@ -158,20 +150,4 @@ export const showSectionValidationErrors = (section: QuestionSectionItem) => {
   section.questions.forEach((question) => {
     question.showValidation = getQuestionValidationErrors(question, section.type).length > 0;
   });
-};
-
-export const syncSubjectsForExamType = (subjects: SubjectItem[], examType: string, activeSubjectId: string | null) => {
-  const syncedSubjects = subjects.map((subject) => ({
-    ...subject,
-    questionSections: createQuestionSections(examType, subject.questionSections),
-  }));
-
-  if (examType === "model") {
-    return syncedSubjects;
-  }
-
-  const preferredSubject =
-    syncedSubjects.find((subject) => subject.id === activeSubjectId) ?? syncedSubjects[0] ?? null;
-
-  return preferredSubject ? [preferredSubject] : [];
 };

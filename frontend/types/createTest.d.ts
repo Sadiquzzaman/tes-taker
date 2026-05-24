@@ -1,5 +1,4 @@
 type FormState = {
-  examType: string;
   testName: string;
   duration: string;
   passingScore: string;
@@ -8,7 +7,6 @@ type FormState = {
 };
 
 type BasicInfoErrors = {
-  examType?: string;
   testName?: string;
   duration?: string;
   negativeMarking?: string;
@@ -154,10 +152,10 @@ interface Subject {
   is_active: number;
   created_by: string;
   created_user_name: string;
-  updated_by: any;
-  updated_user_name: any;
+  updated_by: string | null;
+  updated_user_name: string | null;
   created_at: string;
-  updated_at: any;
+  updated_at: string | null;
   name: string;
   code: string;
 }

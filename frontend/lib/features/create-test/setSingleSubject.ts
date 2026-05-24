@@ -9,9 +9,9 @@ const setSingleSubject = (state: CreateTestState, action: PayloadAction<SubjectS
         ...existingSubject,
         name: action.payload.label,
         value: action.payload.value,
-        questionSections: createQuestionSections(state.formState.examType, existingSubject.questionSections),
+        questionSections: createQuestionSections(existingSubject.questionSections),
       }
-    : createSubject(state.formState.examType, {
+    : createSubject({
         name: action.payload.label,
         value: action.payload.value,
         id: action.payload.id,

@@ -1,7 +1,6 @@
 export const template: GradingTemplate = {
   currentStep: "Publish",
   formState: {
-    examType: "model",
     testName: "Summer Model Test",
     duration: "40",
     passingScore: "30",
