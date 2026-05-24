@@ -42,7 +42,6 @@ export const createQuestionSection = (type: QuestionSectionType, headerText: str
   id: createId(),
   type,
   headerText,
-  instruction: "",
   questions: [createQuestion(type)],
 });
 

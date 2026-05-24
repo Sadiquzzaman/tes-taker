@@ -35,7 +35,6 @@ type QuestionSectionItem = {
   id: string;
   type: QuestionSectionType;
   headerText: string;
-  instruction: string;
   questions: QuestionItem[];
 };
 

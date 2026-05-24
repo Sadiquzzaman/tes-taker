@@ -1,11 +1,9 @@
 import PlusIcon from "@/component/svg/PlusIcon";
-import NotmalTextFeild from "@/Ui/NotmalTextFeild";
 import {
   addQuestion,
   finishDragging,
   startDragging,
   updateDragging,
-  updateSectionInstruction,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
@@ -286,23 +284,6 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
           <div className="flex items-center justify-between">
             <h2 className="text-[20px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Questions</h2>
           </div>
-          <NotmalTextFeild
-            rows={1}
-            maxRows={4}
-            value={section.instruction ?? ""}
-            onChange={(event) =>
-              dispatch(
-                updateSectionInstruction({
-                  subjectId: activeSubject.id,
-                  sectionId: section.id,
-                  instruction: event.target.value,
-                }),
-              )
-            }
-            placeholder="Add section instruction (optional)"
-            parentClassName="rounded-[8px] border-[#E5E5E5] bg-white px-3 py-2"
-            inputClassName="text-[14px] leading-[20px] font-[400] text-[#232A25] placeholder:text-[#747775]"
-          />
         </div>
         <div className="w-full border-b border-[#E5E5E5]" />
 
