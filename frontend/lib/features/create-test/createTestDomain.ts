@@ -3,10 +3,7 @@ import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 
 export const createId = () => uuidv4();
 
-const sectionTemplates: Array<{ type: QuestionSectionType; headerText: string }> = [
-  { type: "objective", headerText: "Objective Questions" },
-  { type: "essay", headerText: "Essay Questions" },
-];
+const defaultQuestionTypes: QuestionSectionType[] = ["objective", "essay"];
 
 export const createOption = (text = "", image: string | null = null): QuestionOption => ({
   id: createId(),
@@ -14,10 +11,12 @@ export const createOption = (text = "", image: string | null = null): QuestionOp
   image,
 });
 
-export const createQuestion = (sectionType: QuestionSectionType): QuestionItem => {
-  if (sectionType === "essay") {
+export const createQuestion = (questionType: QuestionSectionType): QuestionItem => {
+  if (questionType === "essay") {
     return {
       id: createId(),
+      type: questionType,
+      subType: "",
       text: "",
       instruction: "",
       image: null,
@@ -28,6 +27,8 @@ export const createQuestion = (sectionType: QuestionSectionType): QuestionItem =
 
   return {
     id: createId(),
+    type: questionType,
+    subType: "",
     text: "",
     instruction: "",
     image: null,
@@ -38,41 +39,50 @@ export const createQuestion = (sectionType: QuestionSectionType): QuestionItem =
   };
 };
 
-export const createQuestionSection = (type: QuestionSectionType, headerText: string): QuestionSectionItem => ({
-  id: createId(),
-  type,
-  headerText,
-  questions: [createQuestion(type)],
-});
+const normalizeQuestion = (question: QuestionItem): QuestionItem => {
+  if (question.type === "objective") {
+    return {
+      ...question,
+      subType: question.subType ?? "",
+      options: question.options ?? [],
+      correctOptionId: question.correctOptionId ?? null,
+    };
+  }
 
-export const createQuestionSections = (
-  existingSections: QuestionSectionItem[] = [],
-): QuestionSectionItem[] => {
-  const existingSectionsByType = new Map(existingSections.map((section) => [section.type, section]));
+  return {
+    ...question,
+    subType: question.subType ?? "",
+  };
+};
 
-  return sectionTemplates.map(({ type, headerText }) => {
-    const existingSection = existingSectionsByType.get(type);
+export const createSubjectQuestions = (existingQuestions: QuestionItem[] = []): QuestionItem[] => {
+  if (existingQuestions.length > 0) {
+    return existingQuestions.map(normalizeQuestion);
+  }
 
-    if (existingSection) {
-      return {
-        ...existingSection,
-        headerText,
-      };
-    }
+  return defaultQuestionTypes.map((questionType) => createQuestion(questionType));
+};
 
-    return createQuestionSection(type, headerText);
-  });
+export const resolveSubjectType = (questions: QuestionItem[]): SubjectItem["type"] => {
+  const uniqueTypes = Array.from(new Set(questions.map((question) => question.type)));
+
+  return uniqueTypes.length === 1 ? uniqueTypes[0] : "";
 };
 
 export const createSubject = (
   subjectOption: Pick<SubjectItem, "name" | "value" | "id">,
-  existingSections: QuestionSectionItem[] = [],
-): SubjectItem => ({
-  id: subjectOption.id,
-  name: subjectOption.name,
-  value: subjectOption.value,
-  questionSections: createQuestionSections(existingSections),
-});
+  existingQuestions: QuestionItem[] = [],
+): SubjectItem => {
+  const questions = createSubjectQuestions(existingQuestions);
+
+  return {
+    id: subjectOption.id,
+    name: subjectOption.name,
+    value: subjectOption.value,
+    type: resolveSubjectType(questions),
+    questions,
+  };
+};
 
 export const moveQuestionInList = (questions: QuestionItem[], questionId: string, targetIndex: number) => {
   const currentIndex = questions.findIndex((question) => question.id === questionId);
@@ -94,17 +104,50 @@ export const moveQuestionInList = (questions: QuestionItem[], questionId: string
   return nextQuestions;
 };
 
+export const reorderQuestionsByType = (
+  questions: QuestionItem[],
+  questionType: QuestionSectionType,
+  questionId: string,
+  targetIndex: number,
+) => {
+  const questionsOfType = questions.filter((question) => question.type === questionType);
+
+  if (questionsOfType.length === 0) {
+    return questions;
+  }
+
+  const reorderedQuestions = moveQuestionInList(questionsOfType, questionId, targetIndex);
+  let reorderedIndex = 0;
+
+  return questions.map((question) => {
+    if (question.type !== questionType) {
+      return question;
+    }
+
+    const reorderedQuestion = reorderedQuestions[reorderedIndex];
+    reorderedIndex += 1;
+    return reorderedQuestion;
+  });
+};
+
 export const findSubjectById = (subjects: SubjectItem[], subjectId: string) =>
   subjects.find((subject) => subject.id === subjectId) ?? null;
 
-export const findSectionById = (sections: QuestionSectionItem[], sectionId: string) =>
-  sections.find((section) => section.id === sectionId) ?? null;
+export const findQuestionById = (questions: QuestionItem[], questionId: string) =>
+  questions.find((question) => question.id === questionId) ?? null;
 
-export const findSubjectSection = (subjects: SubjectItem[], subjectId: string, sectionId: string) => {
+export const findSubjectQuestion = (subjects: SubjectItem[], subjectId: string, questionId: string) => {
   const subject = findSubjectById(subjects, subjectId);
-  const section = subject ? findSectionById(subject.questionSections, sectionId) : null;
+  const question = subject ? findQuestionById(subject.questions, questionId) : null;
 
-  return { subject, section };
+  return { subject, question };
+};
+
+export const getSubjectQuestionsByType = (subject: SubjectItem, questionType: QuestionSectionType) =>
+  subject.questions.filter((question) => question.type === questionType);
+
+export const syncSubjectType = (subject: SubjectItem) => {
+  subject.type = resolveSubjectType(subject.questions);
 };
 
 export const resetTransientState = (state: CreateTestState) => {
@@ -114,12 +157,11 @@ export const resetTransientState = (state: CreateTestState) => {
   state.dragState = null;
 };
 
-export const focusQuestion = (state: CreateTestState, subjectId: string, sectionId: string, questionId: string) => {
+export const focusQuestion = (state: CreateTestState, subjectId: string, questionId: string) => {
   state.activeSubjectId = subjectId;
   state.activeQuestionId = questionId;
   state.pendingFocusQuestion = {
     subjectId,
-    sectionId,
     questionId,
   };
   state.pendingFocusOption = null;
@@ -128,7 +170,6 @@ export const focusQuestion = (state: CreateTestState, subjectId: string, section
 export const focusOption = (
   state: CreateTestState,
   subjectId: string,
-  sectionId: string,
   questionId: string,
   optionId: string,
 ) => {
@@ -136,17 +177,16 @@ export const focusOption = (
   state.activeQuestionId = questionId;
   state.pendingFocusOption = {
     subjectId,
-    sectionId,
     questionId,
     optionId,
   };
 };
 
-export const getFirstInvalidQuestion = (section: QuestionSectionItem) =>
-  section.questions.find((question) => getQuestionValidationErrors(question, section.type).length > 0) ?? null;
+export const getFirstInvalidQuestion = (questions: QuestionItem[]) =>
+  questions.find((question) => getQuestionValidationErrors(question, question.type).length > 0) ?? null;
 
-export const showSectionValidationErrors = (section: QuestionSectionItem) => {
-  section.questions.forEach((question) => {
-    question.showValidation = getQuestionValidationErrors(question, section.type).length > 0;
+export const showQuestionValidationErrors = (questions: QuestionItem[]) => {
+  questions.forEach((question) => {
+    question.showValidation = getQuestionValidationErrors(question, question.type).length > 0;
   });
 };

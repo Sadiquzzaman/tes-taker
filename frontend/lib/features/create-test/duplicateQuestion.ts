@@ -2,30 +2,27 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import type { QuestionPayload } from "./createTestActionPayloads";
 import {
   createId,
-  findSubjectSection,
+  findSubjectQuestion,
   focusQuestion,
   getFirstInvalidQuestion,
-  showSectionValidationErrors,
+  getSubjectQuestionsByType,
+  showQuestionValidationErrors,
+  syncSubjectType,
 } from "./createTestDomain";
 
 const duplicateQuestion = (state: CreateTestState, action: PayloadAction<QuestionPayload>) => {
-  const { section, subject } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
+  const { question: target, subject } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
 
-  if (!section || !subject) {
+  if (!target || !subject) {
     return;
   }
 
-  const target = section.questions.find((question) => question.id === action.payload.questionId);
-
-  if (!target) {
-    return;
-  }
-
-  const invalidQuestion = getFirstInvalidQuestion(section);
+  const questionsOfType = getSubjectQuestionsByType(subject, target.type);
+  const invalidQuestion = getFirstInvalidQuestion(questionsOfType);
 
   if (invalidQuestion) {
-    showSectionValidationErrors(section);
-    focusQuestion(state, subject.id, section.id, invalidQuestion.id);
+    showQuestionValidationErrors(questionsOfType);
+    focusQuestion(state, subject.id, invalidQuestion.id);
     return;
   }
 
@@ -43,7 +40,7 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
   const duplicatedQuestion: QuestionItem = {
     ...target,
     id: createId(),
-    ...(section.type === "objective"
+    ...(target.type === "objective"
       ? {
           options: clonedOptions,
           correctOptionId: target.correctOptionId ? optionIdMap.get(target.correctOptionId) || null : null,
@@ -52,9 +49,10 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
     showValidation: false,
   };
 
-  const index = section.questions.findIndex((question) => question.id === action.payload.questionId);
-  section.questions.splice(index + 1, 0, duplicatedQuestion);
-  focusQuestion(state, subject.id, section.id, duplicatedQuestion.id);
+  const index = subject.questions.findIndex((question) => question.id === action.payload.questionId);
+  subject.questions.splice(index + 1, 0, duplicatedQuestion);
+  syncSubjectType(subject);
+  focusQuestion(state, subject.id, duplicatedQuestion.id);
 };
 
 export default duplicateQuestion;

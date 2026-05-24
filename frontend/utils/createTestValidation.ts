@@ -5,7 +5,6 @@ export const OBJECTIVE_MAX_OPTIONS = 5;
 
 export type QuestionValidationFailure = {
   subjectId: string;
-  sectionId: string;
   questionId: string;
   errors: string[];
 };
@@ -48,24 +47,20 @@ export const collectQuestionValidationFailures = (subjects: SubjectItem[]): Ques
   const failures: QuestionValidationFailure[] = [];
 
   subjects.forEach((subject) => {
-    subject.questionSections.forEach((section) => {
-      section.questions.forEach((question) => {
-        const errors = getQuestionValidationErrors(question, section.type);
+    subject.questions.forEach((question) => {
+      const errors = getQuestionValidationErrors(question, question.type);
 
-        if (errors.length > 0) {
-          failures.push({
-            subjectId: subject.id,
-            sectionId: section.id,
-            questionId: question.id,
-            errors,
-          });
-        }
-      });
+      if (errors.length > 0) {
+        failures.push({
+          subjectId: subject.id,
+          questionId: question.id,
+          errors,
+        });
+      }
     });
   });
 
   return failures;
 };
 
-export const getSubjectQuestionCount = (subject: SubjectItem): number =>
-  subject.questionSections.reduce((count, section) => count + section.questions.length, 0);
+export const getSubjectQuestionCount = (subject: SubjectItem): number => subject.questions.length;

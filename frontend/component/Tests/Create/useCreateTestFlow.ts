@@ -10,7 +10,7 @@ import useCreateTest from "@/hooks/api/tests/useCreateTest";
 const sanitizeSubjectsForSubmission = (subjects: SubjectItem[]) =>
   subjects.map((subject) => ({
     ...subject,
-    questionSections: subject.questionSections.filter((section) => section.questions.length > 0),
+    questions: subject.questions,
   }));
 
 const handlePublishStateForSubmission = (publishState: PublishState) => {
@@ -78,9 +78,8 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
 
       dispatch(
         setQuestionValidationState(
-          validationFailures.map(({ subjectId, sectionId, questionId }) => ({
+          validationFailures.map(({ subjectId, questionId }) => ({
             subjectId,
-            sectionId,
             questionId,
           })),
         ),

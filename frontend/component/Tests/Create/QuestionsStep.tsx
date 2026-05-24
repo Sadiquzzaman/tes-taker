@@ -1,6 +1,4 @@
-import PlusIcon from "@/component/svg/PlusIcon";
 import {
-  addQuestion,
   finishDragging,
   startDragging,
   updateDragging,
@@ -41,30 +39,28 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
   const { subjects, activeSubjectId, activeQuestionId, pendingFocusQuestion, pendingFocusOption, dragState } =
     createTestState;
-  const sectionContainerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const questionsContainerRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dragStateRef = useRef<DragState | null>(null);
+  const dragHandlePointerRef = useRef<{ element: HTMLButtonElement; pointerId: number } | null>(null);
 
   const activeSubject = useMemo(
     () => subjects.find((subject) => subject.id === activeSubjectId) ?? subjects[0] ?? null,
     [activeSubjectId, subjects],
   );
 
-  const questionSections = activeSubject?.questionSections ?? [];
+  const questions = activeSubject?.questions ?? [];
+  const questionCountLabel = questions.length > 0 ? String(questions.length).padStart(2, "0") : "None";
+  const totalMarks = questions.reduce((sum, question) => sum + question.points, 0);
 
   const draggedSubject = useMemo(
     () => subjects.find((subject) => subject.id === dragState?.subjectId) ?? null,
     [dragState?.subjectId, subjects],
   );
 
-  const draggedSection = useMemo(
-    () => draggedSubject?.questionSections.find((section) => section.id === dragState?.sectionId) ?? null,
-    [dragState?.sectionId, draggedSubject],
-  );
-
   const draggedQuestion = useMemo(
-    () => draggedSection?.questions.find((question) => question.id === dragState?.id) ?? null,
-    [dragState?.id, draggedSection],
+    () => draggedSubject?.questions.find((question) => question.id === dragState?.id) ?? null,
+    [dragState?.id, draggedSubject],
   );
 
   const scrollElementIntoView = useCallback(
@@ -114,17 +110,6 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     });
   }, [pendingFocusQuestion, scrollElementIntoView]);
 
-  const handleStopDragging = useCallback(() => {
-    if (!dragStateRef.current) {
-      return;
-    }
-
-    dispatch(finishDragging());
-    dragStateRef.current = null;
-    document.body.style.userSelect = "";
-    document.body.style.cursor = "";
-  }, [dispatch]);
-
   const handlePointerMove = useCallback(
     (event: PointerEvent) => {
       const currentDragState = dragStateRef.current;
@@ -134,18 +119,17 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
       }
 
       const dragSubject = subjects.find((subject) => subject.id === currentDragState.subjectId);
-      const section = dragSubject?.questionSections.find((entry) => entry.id === currentDragState.sectionId);
+      const subjectQuestions = dragSubject?.questions ?? [];
 
-      if (!section) {
+      if (subjectQuestions.length === 0) {
         return;
       }
 
-      const sectionContainer = sectionContainerRefs.current[currentDragState.sectionId];
-      const sectionRect = sectionContainer?.getBoundingClientRect();
-      const clampedPointerY = sectionRect
-        ? Math.min(Math.max(event.clientY, sectionRect.top), sectionRect.bottom)
+      const containerRect = questionsContainerRef.current?.getBoundingClientRect();
+      const clampedPointerY = containerRect
+        ? Math.min(Math.max(event.clientY, containerRect.top), containerRect.bottom)
         : event.clientY;
-      const otherQuestions = section.questions.filter((question) => question.id !== currentDragState.id);
+      const otherQuestions = subjectQuestions.filter((question) => question.id !== currentDragState.id);
       let targetIndex = otherQuestions.length;
 
       for (let index = 0; index < otherQuestions.length; index += 1) {
@@ -187,22 +171,46 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     [dispatch, scrollContainerRef, subjects],
   );
 
-  useEffect(() => {
-    if (!dragState) {
+  const handleStopDragging = useCallback(function handleStopDraggingListener() {
+    const currentDragState = dragStateRef.current;
+
+    window.removeEventListener("pointermove", handlePointerMove);
+    window.removeEventListener("pointerup", handleStopDraggingListener);
+    window.removeEventListener("pointercancel", handleStopDraggingListener);
+
+    const dragHandlePointer = dragHandlePointerRef.current;
+    if (dragHandlePointer?.element.hasPointerCapture(dragHandlePointer.pointerId)) {
+      dragHandlePointer.element.releasePointerCapture(dragHandlePointer.pointerId);
+    }
+    dragHandlePointerRef.current = null;
+
+    if (!currentDragState) {
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
       return;
     }
 
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handleStopDragging);
+    dispatch(finishDragging());
+    dragStateRef.current = null;
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+  }, [dispatch, handlePointerMove]);
 
+  useEffect(() => {
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handleStopDragging);
+      window.removeEventListener("pointercancel", handleStopDragging);
+
+      const dragHandlePointer = dragHandlePointerRef.current;
+      if (dragHandlePointer?.element.hasPointerCapture(dragHandlePointer.pointerId)) {
+        dragHandlePointer.element.releasePointerCapture(dragHandlePointer.pointerId);
+      }
     };
-  }, [dragState, handlePointerMove, handleStopDragging]);
+  }, [handlePointerMove, handleStopDragging]);
 
   const handleDragHandlePointerDown = useCallback(
-    (subjectId: string, sectionId: string, questionId: string, event: React.PointerEvent<HTMLButtonElement>) => {
+    (subjectId: string, questionId: string, event: React.PointerEvent<HTMLButtonElement>) => {
       const questionElement = itemRefs.current[questionId];
 
       if (!questionElement) {
@@ -213,178 +221,98 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
 
       const rect = questionElement.getBoundingClientRect();
       const dragSubject = subjects.find((subject) => subject.id === subjectId);
-      const section = dragSubject?.questionSections.find((entry) => entry.id === sectionId);
-      const draggedOriginalIndex = section?.questions.findIndex((question) => question.id === questionId) ?? -1;
+      const draggedOriginalIndex = dragSubject?.questions.findIndex((question) => question.id === questionId) ?? -1;
 
       if (draggedOriginalIndex === -1) {
         return;
       }
 
-      dispatch(
-        startDragging({
-          subjectId,
-          sectionId,
-          id: questionId,
-          draggedOriginalIndex,
-          dropLineIndex: draggedOriginalIndex,
-          height: rect.height,
-          left: rect.left,
-          pointerOffsetX: event.clientX - rect.left,
-          pointerOffsetY: event.clientY - rect.top,
-          pointerX: event.clientX,
-          pointerY: event.clientY,
-          width: rect.width,
-        }),
-      );
+      const nextDragState: DragState = {
+        subjectId,
+        id: questionId,
+        draggedOriginalIndex,
+        dropLineIndex: draggedOriginalIndex,
+        height: rect.height,
+        left: rect.left,
+        pointerOffsetX: event.clientX - rect.left,
+        pointerOffsetY: event.clientY - rect.top,
+        pointerX: event.clientX,
+        pointerY: event.clientY,
+        width: rect.width,
+      };
+
+      dragStateRef.current = nextDragState;
+      dragHandlePointerRef.current = {
+        element: event.currentTarget,
+        pointerId: event.pointerId,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handleStopDragging);
+      window.removeEventListener("pointercancel", handleStopDragging);
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handleStopDragging);
+      window.addEventListener("pointercancel", handleStopDragging);
+
+      dispatch(startDragging(nextDragState));
 
       document.body.style.userSelect = "none";
       document.body.style.cursor = "grabbing";
     },
-    [dispatch, subjects],
+    [dispatch, handlePointerMove, handleStopDragging, subjects],
   );
 
-  // eslint-disable-next-line react-hooks/refs
-  const renderedQuestionSections = questionSections.map((section) => {
-    let dropIndicatorTop: number | null = null;
-    const sectionContainer = sectionContainerRefs.current[section.id];
-
-    if (dragState?.subjectId === activeSubject.id && dragState.sectionId === section.id && sectionContainer) {
-      const { dropLineIndex, draggedOriginalIndex } = dragState;
-
-      if (dropLineIndex !== draggedOriginalIndex && dropLineIndex !== draggedOriginalIndex + 1) {
-        const containerRect = sectionContainer.getBoundingClientRect();
-
-        if (dropLineIndex <= 0) {
-          const firstElement = itemRefs.current[section.questions[0]?.id];
-          if (firstElement) {
-            dropIndicatorTop = firstElement.getBoundingClientRect().top - containerRect.top - 9;
-          }
-        } else if (dropLineIndex >= section.questions.length) {
-          const lastElement = itemRefs.current[section.questions[section.questions.length - 1]?.id];
-          if (lastElement) {
-            dropIndicatorTop = lastElement.getBoundingClientRect().bottom - containerRect.top + 7;
-          }
-        } else {
-          const aboveElement = itemRefs.current[section.questions[dropLineIndex - 1]?.id];
-          const belowElement = itemRefs.current[section.questions[dropLineIndex]?.id];
-
-          if (aboveElement && belowElement) {
-            const midY = (aboveElement.getBoundingClientRect().bottom + belowElement.getBoundingClientRect().top) / 2;
-            dropIndicatorTop = midY - containerRect.top - 1.5;
-          }
-        }
-      }
-    }
-
-    const totalMarks = section.questions.reduce((sum, question) => sum + question.points, 0);
-
+  const renderedQuestions = questions.map((question, questionIndex) => {
     return (
-      <section key={section.id} className="flex w-full flex-1 flex-col gap-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[20px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Questions</h2>
-          </div>
-        </div>
-        <div className="w-full border-b border-[#E5E5E5]" />
-
-        <div
-          className={`relative flex flex-col gap-4 ${
-            dragState?.subjectId === activeSubject.id && dragState.sectionId === section.id ? "pointer-events-none" : ""
-          }`}
-          ref={(node) => {
-            sectionContainerRefs.current[section.id] = node;
-          }}
-        >
-          {section.questions.map((question, questionIndex) => (
-            <QuestionCard
-              key={question.id}
-              scrollContainerRef={scrollContainerRef}
-              subjectId={activeSubject.id}
-              sectionId={section.id}
-              sectionType={section.type}
-              setCardRef={(node) => {
-                itemRefs.current[question.id] = node;
-              }}
-              question={question}
-              questionNumber={questionIndex + 1}
-              isActive={activeQuestionId === question.id}
-              shouldAutoFocus={
-                pendingFocusQuestion?.subjectId === activeSubject.id &&
-                pendingFocusQuestion.sectionId === section.id &&
-                pendingFocusQuestion.questionId === question.id
+      <QuestionCard
+        key={question.id}
+        scrollContainerRef={scrollContainerRef}
+        subjectId={activeSubject!.id}
+        setCardRef={(node) => {
+          itemRefs.current[question.id] = node;
+        }}
+        question={question}
+        questionNumber={questionIndex + 1}
+        isActive={activeQuestionId === question.id}
+        shouldAutoFocus={
+          pendingFocusQuestion?.subjectId === activeSubject?.id && pendingFocusQuestion.questionId === question.id
+        }
+        pendingFocusOptionId={
+          pendingFocusOption?.subjectId === activeSubject?.id && pendingFocusOption.questionId === question.id
+            ? pendingFocusOption.optionId
+            : null
+        }
+        isDragging={dragState?.id === question.id}
+        cardStyle={
+          dragState?.subjectId === activeSubject?.id
+            ? {
+                transform: `translateY(${getQuestionCardOffset(questionIndex, dragState)}px)`,
+                transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease",
+                willChange: "transform",
               }
-              pendingFocusOptionId={
-                pendingFocusOption?.subjectId === activeSubject.id &&
-                pendingFocusOption.sectionId === section.id &&
-                pendingFocusOption.questionId === question.id
-                  ? pendingFocusOption.optionId
-                  : null
-              }
-              isDragging={dragState?.id === question.id}
-              cardStyle={
-                dragState?.subjectId === activeSubject.id && dragState.sectionId === section.id
-                  ? {
-                      transform: `translateY(${getQuestionCardOffset(questionIndex, dragState)}px)`,
-                      transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease",
-                      willChange: "transform",
-                    }
-                  : undefined
-              }
-              onDragHandlePointerDown={handleDragHandlePointerDown}
-            />
-          ))}
-          {dropIndicatorTop != null && (
-            <div
-              className="pointer-events-none absolute left-0 right-0 z-10 h-[3px] rounded-full bg-[#49734F]"
-              style={{ top: dropIndicatorTop }}
-            />
-          )}
-        </div>
-
-        <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-6">
-            <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25]">
-              Questions added: {String(section.questions.length).padStart(2, "0")}
-            </p>
-            <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25]">
-              Total marks: {String(totalMarks).padStart(2, "0")}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => dispatch(addQuestion({ subjectId: activeSubject.id, sectionId: section.id }))}
-            className="flex h-8 items-center justify-center gap-2 rounded-[8px] border border-[#E5E5E5] bg-white px-4 text-[14px] leading-[16px] text-[#232A25]"
-          >
-            <PlusIcon />
-            <span className="text-[14px] font-[500] leading-[16px] tracking-[-0.02em]">Add Question</span>
-          </button>
-        </div>
-      </section>
+            : undefined
+        }
+        onDragHandlePointerDown={handleDragHandlePointerDown}
+      />
     );
   });
 
-  /* eslint-disable react-hooks/refs */
   const dragOverlay =
-    dragState && draggedQuestion && draggedSubject && draggedSection
+    dragState && draggedQuestion && draggedSubject
       ? (() => {
-          const sectionContainer = sectionContainerRefs.current[dragState.sectionId];
-          const sectionRect = sectionContainer?.getBoundingClientRect();
+          const containerRect = questionsContainerRef.current?.getBoundingClientRect();
           const unclampedTop = dragState.pointerY - dragState.pointerOffsetY;
-          const top = sectionRect
-            ? Math.min(Math.max(unclampedTop, sectionRect.top), sectionRect.bottom - dragState.height)
+          const top = containerRect
+            ? Math.min(Math.max(unclampedTop, containerRect.top), containerRect.bottom - dragState.height)
             : unclampedTop;
 
           return (
             <QuestionCard
               scrollContainerRef={scrollContainerRef}
               subjectId={draggedSubject.id}
-              sectionId={dragState.sectionId}
-              sectionType={draggedSection.type}
               question={draggedQuestion}
-              questionNumber={
-                (draggedSection.questions.findIndex((question) => question.id === draggedQuestion.id) ?? 0) + 1
-              }
+              questionNumber={(draggedSubject.questions.findIndex((question) => question.id === draggedQuestion.id) ?? 0) + 1}
               isActive
               shouldAutoFocus={false}
               pendingFocusOptionId={null}
@@ -401,21 +329,37 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
           );
         })()
       : null;
-  /* eslint-enable react-hooks/refs */
 
   return (
     <div className="flex min-h-[532px] w-full flex-1 flex-col gap-10">
-      {!activeSubject && (
-        <section className="flex flex-col gap-4">
-          <div className="w-full rounded-[12px] border border-dashed border-[#DADCE0] bg-[#FAFBFA] px-5 py-10 text-center">
-            <p className="text-[16px] font-[500] leading-[24px] tracking-[-0.02em] text-[#232A25]">
-              Select a subject in Basic Info to start creating questions.
+      <section className="flex w-full flex-1 flex-col gap-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[20px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Question</h2>
+          </div>
+        </div>
+        <div className="w-full border-b border-[#E5E5E5]" />
+
+        <div className="flex w-full max-w-[524px] items-center justify-between gap-6">
+          <div className="flex items-center gap-1">
+            <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]">Questions added:</p>
+            <p className="text-[14px] font-[600] leading-[16px] tracking-[-0.02em] text-[#747775]">{questionCountLabel}</p>
+          </div>
+          <div className="flex items-center gap-1">
+            <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]">Total marks:</p>
+            <p className="text-[14px] font-[600] leading-[16px] tracking-[-0.02em] text-[#747775]">
+              {String(totalMarks).padStart(2, "0")}
             </p>
           </div>
-        </section>
-      )}
+        </div>
 
-      {renderedQuestionSections}
+        <div
+          className={`relative flex flex-col gap-4 ${dragState?.subjectId === activeSubject?.id ? "pointer-events-none" : ""}`}
+          ref={questionsContainerRef}
+        >
+          {renderedQuestions}
+        </div>
+      </section>
 
       {dragOverlay}
     </div>

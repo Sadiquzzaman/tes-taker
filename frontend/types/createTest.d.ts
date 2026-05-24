@@ -20,6 +20,8 @@ type QuestionOption = {
 
 type QuestionItem = {
   id: string;
+  type: QuestionSectionType;
+  subType: string;
   text: string;
   instruction: string;
   image: string | null;
@@ -31,23 +33,16 @@ type QuestionItem = {
 
 type QuestionSectionType = "objective" | "essay";
 
-type QuestionSectionItem = {
-  id: string;
-  type: QuestionSectionType;
-  headerText: string;
-  questions: QuestionItem[];
-};
-
 type SubjectItem = {
   id: string;
   name: string;
   value: string;
-  questionSections: QuestionSectionItem[];
+  type: QuestionSectionType | "";
+  questions: QuestionItem[];
 };
 
 type DragState = {
   subjectId: string;
-  sectionId: string;
   id: string;
   draggedOriginalIndex: number;
   dropLineIndex: number;
@@ -68,13 +63,11 @@ type CreateTestStep = "Basic info" | "Questions" | "Review" | "Publish";
 
 type PendingFocusQuestion = {
   subjectId: string;
-  sectionId: string;
   questionId: string;
 };
 
 type PendingFocusOption = {
   subjectId: string;
-  sectionId: string;
   questionId: string;
   optionId: string;
 };
@@ -120,8 +113,6 @@ type QuestionsStepProps = {
 type QuestionCardProps = {
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   subjectId: string;
-  sectionId: string;
-  sectionType: QuestionSectionType;
   setCardRef: (node: HTMLDivElement | null) => void;
   question: QuestionItem;
   questionNumber: number;
@@ -134,7 +125,6 @@ type QuestionCardProps = {
   overlayStyle?: React.CSSProperties;
   onDragHandlePointerDown: (
     subjectId: string,
-    sectionId: string,
     questionId: string,
     event: React.PointerEvent<HTMLButtonElement>,
   ) => void;

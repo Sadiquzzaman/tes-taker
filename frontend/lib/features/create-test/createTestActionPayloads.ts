@@ -4,12 +4,13 @@ export type SubjectSelectionPayload = {
   id: string;
 };
 
-export type SubjectSectionPayload = {
+export type SubjectQuestionTypePayload = {
   subjectId: string;
-  sectionId: string;
+  questionType: QuestionSectionType;
 };
 
-export type QuestionPayload = SubjectSectionPayload & {
+export type QuestionPayload = {
+  subjectId: string;
   questionId: string;
 };
 
@@ -24,7 +25,6 @@ export type SetFormFieldPayload = {
 
 export type InvalidQuestionPayload = {
   subjectId: string;
-  sectionId: string;
   questionId: string;
 };
 
