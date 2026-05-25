@@ -6,7 +6,8 @@ export type SubjectSelectionPayload = {
 
 export type SubjectQuestionTypePayload = {
   subjectId: string;
-  questionType: QuestionSectionType;
+  questionType: CreateTestQuestionCategory;
+  subType: string;
 };
 
 export type QuestionPayload = {

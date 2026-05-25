@@ -18,9 +18,11 @@ type QuestionOption = {
   image: string | null;
 };
 
+type CreateTestQuestionCategory = "graded" | "ungraded" | "other";
+
 type QuestionItem = {
   id: string;
-  type: QuestionSectionType;
+  type: CreateTestQuestionCategory;
   subType: string;
   text: string;
   instruction: string;
@@ -37,7 +39,7 @@ type SubjectItem = {
   id: string;
   name: string;
   value: string;
-  type: QuestionSectionType | "";
+  type: CreateTestQuestionCategory | "";
   questions: QuestionItem[];
 };
 
@@ -130,9 +132,18 @@ type QuestionCardProps = {
   ) => void;
 };
 
+type CreateTestSubmissionQuestionItem = Omit<QuestionItem, "type"> & {
+  type: QuestionSectionType;
+};
+
+type CreateTestSubmissionSubjectItem = Omit<SubjectItem, "type" | "questions"> & {
+  type: QuestionSectionType | "";
+  questions: CreateTestSubmissionQuestionItem[];
+};
+
 interface CreateTestPayload {
   formState: FormState;
-  subjects: SubjectItem[];
+  subjects: CreateTestSubmissionSubjectItem[];
   publishState: PublishStateForPayload;
 }
 

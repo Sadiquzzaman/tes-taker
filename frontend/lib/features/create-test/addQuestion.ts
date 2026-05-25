@@ -5,7 +5,6 @@ import {
   findSubjectById,
   focusQuestion,
   getFirstInvalidQuestion,
-  getSubjectQuestionsByType,
   showQuestionValidationErrors,
   syncSubjectType,
 } from "./createTestDomain";
@@ -17,16 +16,19 @@ const addQuestion = (state: CreateTestState, action: PayloadAction<SubjectQuesti
     return;
   }
 
-  const questionsOfType = getSubjectQuestionsByType(subject, action.payload.questionType);
-  const invalidQuestion = getFirstInvalidQuestion(questionsOfType);
+  const invalidQuestion = getFirstInvalidQuestion(subject.questions);
 
   if (invalidQuestion) {
-    showQuestionValidationErrors(questionsOfType);
+    showQuestionValidationErrors(subject.questions);
     focusQuestion(state, subject.id, invalidQuestion.id);
     return;
   }
 
-  const nextQuestion = createQuestion(action.payload.questionType);
+  const nextQuestion = createQuestion(action.payload.questionType, action.payload.subType);
+
+  if (!nextQuestion) {
+    return;
+  }
 
   subject.questions.push(nextQuestion);
   syncSubjectType(subject);

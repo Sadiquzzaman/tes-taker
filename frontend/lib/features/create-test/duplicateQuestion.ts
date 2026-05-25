@@ -5,7 +5,6 @@ import {
   findSubjectQuestion,
   focusQuestion,
   getFirstInvalidQuestion,
-  getSubjectQuestionsByType,
   showQuestionValidationErrors,
   syncSubjectType,
 } from "./createTestDomain";
@@ -17,11 +16,10 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
     return;
   }
 
-  const questionsOfType = getSubjectQuestionsByType(subject, target.type);
-  const invalidQuestion = getFirstInvalidQuestion(questionsOfType);
+  const invalidQuestion = getFirstInvalidQuestion(subject.questions);
 
   if (invalidQuestion) {
-    showQuestionValidationErrors(questionsOfType);
+    showQuestionValidationErrors(subject.questions);
     focusQuestion(state, subject.id, invalidQuestion.id);
     return;
   }
@@ -40,7 +38,7 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
   const duplicatedQuestion: QuestionItem = {
     ...target,
     id: createId(),
-    ...(target.type === "objective"
+    ...(target.type === "graded"
       ? {
           options: clonedOptions,
           correctOptionId: target.correctOptionId ? optionIdMap.get(target.correctOptionId) || null : null,

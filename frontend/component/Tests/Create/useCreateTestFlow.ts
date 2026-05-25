@@ -7,11 +7,20 @@ import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/ut
 import { useToast } from "@/component/Toast/ToastContext";
 import useCreateTest from "@/hooks/api/tests/useCreateTest";
 
-const sanitizeSubjectsForSubmission = (subjects: SubjectItem[]) =>
-  subjects.map((subject) => ({
-    ...subject,
-    questions: subject.questions,
-  }));
+const sanitizeSubjectsForSubmission = (subjects: SubjectItem[]): CreateTestSubmissionSubjectItem[] =>
+  subjects.map((subject) => {
+    const questions: CreateTestSubmissionQuestionItem[] = subject.questions.map((question) => ({
+      ...question,
+      type: question.type === "graded" ? "objective" : "essay",
+    }));
+    const questionTypes = Array.from(new Set(questions.map((question) => question.type)));
+
+    return {
+      ...subject,
+      type: questionTypes.length === 1 ? questionTypes[0] : "",
+      questions,
+    };
+  });
 
 const handlePublishStateForSubmission = (publishState: PublishState) => {
   const result: PublishStateForPayload = {

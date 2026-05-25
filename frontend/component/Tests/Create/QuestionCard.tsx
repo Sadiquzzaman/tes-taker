@@ -82,10 +82,10 @@ const QuestionCard = memo(
     const addOptionImageInputRef = useRef<HTMLInputElement>(null);
     const questionInputRef = useRef<HTMLTextAreaElement>(null);
     const questionImageInputRef = useRef<HTMLInputElement>(null);
-    const questionType = question.type;
-    const validationErrors = getQuestionValidationErrors(question, questionType);
+    const isGradedQuestion = question.type === "graded";
+    const validationErrors = getQuestionValidationErrors(question);
     const optionCount = question.options?.length ?? 0;
-    const canAddMoreOptions = questionType === "objective" && optionCount < OBJECTIVE_MAX_OPTIONS;
+    const canAddMoreOptions = isGradedQuestion && optionCount < OBJECTIVE_MAX_OPTIONS;
 
     const activateCard = useCallback(() => {
       dispatch(setActiveQuestionId(question.id));
@@ -394,7 +394,7 @@ const QuestionCard = memo(
             </div>
           </div>
 
-          {questionType === "objective" && (
+          {isGradedQuestion && (
             <div className="flex flex-col gap-2">
               {(question.options ?? []).map((option) => {
                 const isSelected = question.correctOptionId === option.id;
@@ -642,7 +642,7 @@ const QuestionCard = memo(
             </div>
 
             <div className="flex items-center gap-2">
-              {questionType === "objective" && (
+              {isGradedQuestion && (
                 <button
                   type="button"
                   onClick={() => dispatch(shuffleOptions({ subjectId, questionId: question.id }))}

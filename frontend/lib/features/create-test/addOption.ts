@@ -6,7 +6,7 @@ import { createOption, findSubjectQuestion, focusOption } from "./createTestDoma
 const addOption = (state: CreateTestState, action: PayloadAction<QuestionPayload & { image?: string | null }>) => {
   const { question, subject } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
 
-  if (!question || !subject || question.type !== "objective") {
+  if (!question || !subject || question.type !== "graded") {
     return;
   }
 

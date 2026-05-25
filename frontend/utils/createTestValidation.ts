@@ -9,7 +9,7 @@ export type QuestionValidationFailure = {
   errors: string[];
 };
 
-export const getQuestionValidationErrors = (question: QuestionItem, sectionType: QuestionSectionType): string[] => {
+export const getQuestionValidationErrors = (question: QuestionItem): string[] => {
   const errors: string[] = [];
 
   if (!hasTextOrImage(question.text, question.image)) {
@@ -20,7 +20,7 @@ export const getQuestionValidationErrors = (question: QuestionItem, sectionType:
     errors.push("Points must be greater than 0.");
   }
 
-  if (sectionType === "objective") {
+  if (question.type === "graded") {
     const options = question.options ?? [];
 
     if (options.length < OBJECTIVE_MIN_OPTIONS || options.length > OBJECTIVE_MAX_OPTIONS) {
@@ -48,7 +48,7 @@ export const collectQuestionValidationFailures = (subjects: SubjectItem[]): Ques
 
   subjects.forEach((subject) => {
     subject.questions.forEach((question) => {
-      const errors = getQuestionValidationErrors(question, question.type);
+      const errors = getQuestionValidationErrors(question);
 
       if (errors.length > 0) {
         failures.push({

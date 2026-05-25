@@ -1,9 +1,12 @@
 import { v4 as uuidv4 } from "uuid";
 import { getQuestionValidationErrors } from "@/utils/createTestValidation";
+import {
+  CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
+  CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
+  isCreateTestQuestionCreationSupported,
+} from "@/utils/createTestOptions";
 
 export const createId = () => uuidv4();
-
-const defaultQuestionTypes: QuestionSectionType[] = ["objective", "essay"];
 
 export const createOption = (text = "", image: string | null = null): QuestionOption => ({
   id: createId(),
@@ -11,12 +14,19 @@ export const createOption = (text = "", image: string | null = null): QuestionOp
   image,
 });
 
-export const createQuestion = (questionType: QuestionSectionType): QuestionItem => {
-  if (questionType === "essay") {
+export const createQuestion = (
+  questionType: CreateTestQuestionCategory,
+  subType: string,
+): QuestionItem | null => {
+  if (!isCreateTestQuestionCreationSupported(questionType, subType)) {
+    return null;
+  }
+
+  if (questionType === "ungraded") {
     return {
       id: createId(),
       type: questionType,
-      subType: "",
+      subType,
       text: "",
       instruction: "",
       image: null,
@@ -25,10 +35,14 @@ export const createQuestion = (questionType: QuestionSectionType): QuestionItem 
     };
   }
 
+  if (questionType !== "graded") {
+    return null;
+  }
+
   return {
     id: createId(),
     type: questionType,
-    subType: "",
+    subType,
     text: "",
     instruction: "",
     image: null,
@@ -40,10 +54,26 @@ export const createQuestion = (questionType: QuestionSectionType): QuestionItem 
 };
 
 const normalizeQuestion = (question: QuestionItem): QuestionItem => {
-  if (question.type === "objective") {
+  const rawType = question.type as string;
+  const nextType =
+    rawType === "objective"
+      ? "graded"
+      : rawType === "essay"
+        ? "ungraded"
+        : question.type;
+  const nextSubType =
+    question.subType ??
+    (nextType === "graded"
+      ? CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID
+      : nextType === "ungraded"
+        ? CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID
+        : "");
+
+  if (nextType === "graded") {
     return {
       ...question,
-      subType: question.subType ?? "",
+      type: nextType,
+      subType: nextSubType,
       options: question.options ?? [],
       correctOptionId: question.correctOptionId ?? null,
     };
@@ -51,16 +81,15 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
 
   return {
     ...question,
-    subType: question.subType ?? "",
+    type: nextType,
+    subType: nextSubType,
+    options: undefined,
+    correctOptionId: undefined,
   };
 };
 
 export const createSubjectQuestions = (existingQuestions: QuestionItem[] = []): QuestionItem[] => {
-  if (existingQuestions.length > 0) {
-    return existingQuestions.map(normalizeQuestion);
-  }
-
-  return defaultQuestionTypes.map((questionType) => createQuestion(questionType));
+  return existingQuestions.map(normalizeQuestion);
 };
 
 export const resolveSubjectType = (questions: QuestionItem[]): SubjectItem["type"] => {
@@ -106,7 +135,7 @@ export const moveQuestionInList = (questions: QuestionItem[], questionId: string
 
 export const reorderQuestionsByType = (
   questions: QuestionItem[],
-  questionType: QuestionSectionType,
+  questionType: CreateTestQuestionCategory,
   questionId: string,
   targetIndex: number,
 ) => {
@@ -143,7 +172,7 @@ export const findSubjectQuestion = (subjects: SubjectItem[], subjectId: string, 
   return { subject, question };
 };
 
-export const getSubjectQuestionsByType = (subject: SubjectItem, questionType: QuestionSectionType) =>
+export const getSubjectQuestionsByType = (subject: SubjectItem, questionType: CreateTestQuestionCategory) =>
   subject.questions.filter((question) => question.type === questionType);
 
 export const syncSubjectType = (subject: SubjectItem) => {
@@ -183,10 +212,10 @@ export const focusOption = (
 };
 
 export const getFirstInvalidQuestion = (questions: QuestionItem[]) =>
-  questions.find((question) => getQuestionValidationErrors(question, question.type).length > 0) ?? null;
+  questions.find((question) => getQuestionValidationErrors(question).length > 0) ?? null;
 
 export const showQuestionValidationErrors = (questions: QuestionItem[]) => {
   questions.forEach((question) => {
-    question.showValidation = getQuestionValidationErrors(question, question.type).length > 0;
+    question.showValidation = getQuestionValidationErrors(question).length > 0;
   });
 };

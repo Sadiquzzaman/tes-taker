@@ -5,7 +5,7 @@ import { findSubjectQuestion } from "./createTestDomain";
 const shuffleOptions = (state: CreateTestState, action: PayloadAction<QuestionPayload>) => {
   const { question } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
 
-  if (!question?.options || question.type !== "objective") {
+  if (!question?.options || question.type !== "graded") {
     return;
   }
 

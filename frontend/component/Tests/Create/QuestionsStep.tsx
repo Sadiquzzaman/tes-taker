@@ -1,10 +1,17 @@
 import {
+  addQuestion,
   finishDragging,
   startDragging,
   updateDragging,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  createTestQuestionCategoryOptions,
+  getCreateTestDefaultCategory,
+  getCreateTestQuestionTabs,
+  isCreateTestQuestionCreationSupported,
+} from "@/utils/createTestOptions";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QuestionCard from "./QuestionCard";
 
 const QUESTION_CARD_GAP = 16;
@@ -36,6 +43,7 @@ const getQuestionCardOffset = (questionIndex: number, dragState: DragState | nul
 
 const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const dispatch = useAppDispatch();
+  const defaultQuestionCategory = getCreateTestDefaultCategory();
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
   const { subjects, activeSubjectId, activeQuestionId, pendingFocusQuestion, pendingFocusOption, dragState } =
     createTestState;
@@ -43,6 +51,9 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dragStateRef = useRef<DragState | null>(null);
   const dragHandlePointerRef = useRef<{ element: HTMLButtonElement; pointerId: number } | null>(null);
+  const [activeQuestionCategory, setActiveQuestionCategory] = useState<CreateTestQuestionCategory>(
+    defaultQuestionCategory,
+  );
 
   const activeSubject = useMemo(
     () => subjects.find((subject) => subject.id === activeSubjectId) ?? subjects[0] ?? null,
@@ -50,8 +61,12 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   );
 
   const questions = activeSubject?.questions ?? [];
-  const questionCountLabel = questions.length > 0 ? String(questions.length).padStart(2, "0") : "None";
+  const questionCountLabel = String(questions.length).padStart(2, "0");
   const totalMarks = questions.reduce((sum, question) => sum + question.points, 0);
+  const questionSubtypeTabs = useMemo(
+    () => getCreateTestQuestionTabs(activeQuestionCategory),
+    [activeQuestionCategory],
+  );
 
   const draggedSubject = useMemo(
     () => subjects.find((subject) => subject.id === dragState?.subjectId) ?? null,
@@ -263,6 +278,27 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     [dispatch, handlePointerMove, handleStopDragging, subjects],
   );
 
+  const handleQuestionCategorySelect = useCallback((category: CreateTestQuestionCategory) => {
+    setActiveQuestionCategory(category);
+  }, []);
+
+  const handleMakeQuestion = useCallback(
+    (subType: string) => {
+      if (!activeSubject || !isCreateTestQuestionCreationSupported(activeQuestionCategory, subType)) {
+        return;
+      }
+
+      dispatch(
+        addQuestion({
+          subjectId: activeSubject.id,
+          questionType: activeQuestionCategory,
+          subType,
+        }),
+      );
+    },
+    [activeQuestionCategory, activeSubject, dispatch],
+  );
+
   const renderedQuestions = questions.map((question, questionIndex) => {
     return (
       <QuestionCard
@@ -358,6 +394,42 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
           ref={questionsContainerRef}
         >
           {renderedQuestions}
+        </div>
+
+        <div className="flex flex-col gap-0">
+          <div className="flex w-fit items-center gap-2 rounded-[8px] border border-[#49734F] bg-white p-1">
+            {createTestQuestionCategoryOptions.map((category) => {
+              const isActive = activeQuestionCategory === category.id;
+
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => handleQuestionCategorySelect(category.id)}
+                  className={`flex h-9 min-w-[79px] items-center justify-center rounded-[6px] px-4 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] transition-none ${
+                    isActive ? "bg-[#49734F] text-white" : "bg-[#EFF0F3] text-[#232A25]"
+                  }`}
+                >
+                  {category.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex w-full max-w-[524px] items-center gap-1 overflow-x-auto rounded-tr-[6px] rounded-br-[6px] rounded-bl-[6px] rounded-tl-none bg-[#49734F] p-1">
+            {questionSubtypeTabs.map((tab) => {
+              return (
+                <button
+                  key={`${activeQuestionCategory}-${tab.id}`}
+                  type="button"
+                  onClick={() => handleMakeQuestion(tab.id)}
+                  className="flex h-[50px] min-w-[100px] flex-1 items-center justify-center rounded-[6px] bg-[rgba(255,255,255,0.05)] px-3 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] text-white transition-colors hover:bg-white hover:text-[#232A25]"
+                >
+                  <span className="flex items-center text-left">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 
