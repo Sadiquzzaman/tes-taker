@@ -3,6 +3,8 @@ import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 import {
   CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
   CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
+  getCreateTestQuestionAnswerMode,
+  getCreateTestQuestionOptionRules,
   isCreateTestQuestionCreationSupported,
 } from "@/utils/createTestOptions";
 
@@ -14,6 +16,9 @@ export const createOption = (text = "", image: string | null = null): QuestionOp
   image,
 });
 
+const createOptionsFromTemplates = (templates: { image: string | null; text: string }[]) =>
+  templates.map((template) => createOption(template.text, template.image));
+
 export const createQuestion = (
   questionType: CreateTestQuestionCategory,
   subType: string,
@@ -21,6 +26,9 @@ export const createQuestion = (
   if (!isCreateTestQuestionCreationSupported(questionType, subType)) {
     return null;
   }
+
+  const answerMode = getCreateTestQuestionAnswerMode(questionType, subType);
+  const optionRules = getCreateTestQuestionOptionRules(questionType, subType);
 
   if (questionType === "ungraded") {
     return {
@@ -39,18 +47,49 @@ export const createQuestion = (
     return null;
   }
 
-  return {
+  const nextQuestion: QuestionItem = {
     id: createId(),
     type: questionType,
     subType,
     text: "",
     instruction: "",
     image: null,
-    options: [],
-    correctOptionId: null,
+    options: optionRules ? (optionRules.useFixedOptions ? createOptionsFromTemplates(optionRules.fixedOptions) : []) : [],
     points: 2,
     showValidation: false,
   };
+
+  if (answerMode === "multiple") {
+    nextQuestion.correctOptionIds = [];
+    nextQuestion.correctOptionId = undefined;
+    return nextQuestion;
+  }
+
+  if (answerMode === "single") {
+    nextQuestion.correctOptionId = null;
+    nextQuestion.correctOptionIds = undefined;
+    return nextQuestion;
+  }
+
+  return nextQuestion;
+};
+
+const normalizeFixedOptions = (question: QuestionItem, subType: string, questionType: CreateTestQuestionCategory) => {
+  const optionRules = getCreateTestQuestionOptionRules(questionType, subType);
+
+  if (!optionRules?.useFixedOptions) {
+    return question.options ?? [];
+  }
+
+  return optionRules.fixedOptions.map((template, index) => {
+    const existingOption = question.options?.[index];
+
+    return {
+      id: existingOption?.id ?? createId(),
+      text: template.text,
+      image: template.image,
+    };
+  });
 };
 
 const normalizeQuestion = (question: QuestionItem): QuestionItem => {
@@ -68,14 +107,34 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
       : nextType === "ungraded"
         ? CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID
         : "");
+  const answerMode = getCreateTestQuestionAnswerMode(nextType, nextSubType);
+  const optionRules = getCreateTestQuestionOptionRules(nextType, nextSubType);
 
-  if (nextType === "graded") {
+  if (nextType === "graded" && optionRules) {
+    const options = optionRules.useFixedOptions
+      ? normalizeFixedOptions(question, nextSubType, nextType)
+      : question.options ?? [];
+    const validOptionIds = new Set(options.map((option) => option.id));
+
+    if (answerMode === "multiple") {
+      return {
+        ...question,
+        type: nextType,
+        subType: nextSubType,
+        options,
+        correctOptionId: undefined,
+        correctOptionIds: (question.correctOptionIds ?? []).filter((optionId) => validOptionIds.has(optionId)),
+      };
+    }
+
     return {
       ...question,
       type: nextType,
       subType: nextSubType,
-      options: question.options ?? [],
-      correctOptionId: question.correctOptionId ?? null,
+      options,
+      correctOptionId:
+        question.correctOptionId && validOptionIds.has(question.correctOptionId) ? question.correctOptionId : null,
+      correctOptionIds: undefined,
     };
   }
 

@@ -29,6 +29,7 @@ type QuestionItem = {
   image: string | null;
   options?: QuestionOption[];
   correctOptionId?: string | null;
+  correctOptionIds?: string[];
   points: number;
   showValidation: boolean;
 };

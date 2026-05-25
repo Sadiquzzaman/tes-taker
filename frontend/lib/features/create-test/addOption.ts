@@ -1,18 +1,19 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import { OBJECTIVE_MAX_OPTIONS } from "@/utils/createTestValidation";
+import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
 import type { QuestionPayload } from "./createTestActionPayloads";
 import { createOption, findSubjectQuestion, focusOption } from "./createTestDomain";
 
 const addOption = (state: CreateTestState, action: PayloadAction<QuestionPayload & { image?: string | null }>) => {
   const { question, subject } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
+  const optionRules = question ? getCreateTestQuestionOptionRules(question.type, question.subType) : null;
 
-  if (!question || !subject || question.type !== "graded") {
+  if (!question || !subject || !optionRules?.canAddOptions) {
     return;
   }
 
   question.options = question.options ?? [];
 
-  if (question.options.length >= OBJECTIVE_MAX_OPTIONS) {
+  if (question.options.length >= optionRules.maxOptions) {
     return;
   }
 

@@ -423,7 +423,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
                   key={`${activeQuestionCategory}-${tab.id}`}
                   type="button"
                   onClick={() => handleMakeQuestion(tab.id)}
-                  className="flex h-[50px] min-w-[100px] flex-1 items-center justify-center rounded-[6px] bg-[rgba(255,255,255,0.05)] px-3 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] text-white transition-colors hover:bg-white hover:text-[#232A25]"
+                  className="flex h-[50px] flex-1 items-center justify-center rounded-[6px] bg-[rgba(255,255,255,0.05)] px-3 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] text-white transition-colors hover:bg-white hover:text-[#232A25]"
                 >
                   <span className="flex items-center text-left">{tab.label}</span>
                 </button>

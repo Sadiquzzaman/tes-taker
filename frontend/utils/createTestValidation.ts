@@ -1,12 +1,73 @@
-const hasTextOrImage = (text: string, image: string | null | undefined) => Boolean(text.trim() || image);
+import {
+  getCreateTestQuestionAnswerMode,
+  getCreateTestQuestionOptionRules,
+  getCreateTestQuestionSubtype,
+} from "@/utils/createTestOptions";
 
-export const OBJECTIVE_MIN_OPTIONS = 2;
-export const OBJECTIVE_MAX_OPTIONS = 5;
+const hasTextOrImage = (text: string, image: string | null | undefined) => Boolean(text.trim() || image);
 
 export type QuestionValidationFailure = {
   subjectId: string;
   questionId: string;
   errors: string[];
+};
+
+const getSubtypeLabel = (question: QuestionItem) => getCreateTestQuestionSubtype(question.type, question.subType)?.label;
+
+const getSubtypeOptionValidationErrors = (question: QuestionItem): string[] => {
+  const optionRules = getCreateTestQuestionOptionRules(question.type, question.subType);
+  const answerMode = getCreateTestQuestionAnswerMode(question.type, question.subType);
+
+  if (!optionRules) {
+    return [];
+  }
+
+  const errors: string[] = [];
+  const options = question.options ?? [];
+  const subtypeLabel = getSubtypeLabel(question) ?? "This";
+
+  if (optionRules.useFixedOptions) {
+    const hasExpectedFixedOptions =
+      options.length === optionRules.fixedOptions.length &&
+      options.every(
+        (option, index) =>
+          option.text === optionRules.fixedOptions[index]?.text && option.image === optionRules.fixedOptions[index]?.image,
+      );
+
+    if (!hasExpectedFixedOptions) {
+      errors.push(`${subtypeLabel} questions must keep the fixed True, False, and Not Given options.`);
+    }
+  } else if (options.length < optionRules.minOptions || options.length > optionRules.maxOptions) {
+    errors.push(
+      `${subtypeLabel} questions must have between ${optionRules.minOptions} and ${optionRules.maxOptions} options.`,
+    );
+  }
+
+  options.forEach((option, index) => {
+    if (!hasTextOrImage(option.text, option.image)) {
+      errors.push(`Option ${index + 1} must have text or an image.`);
+    }
+  });
+
+  const validOptionIds = new Set(options.map((option) => option.id));
+
+  if (answerMode === "multiple") {
+    const correctOptionIds = (question.correctOptionIds ?? []).filter((optionId) => validOptionIds.has(optionId));
+
+    if (correctOptionIds.length === 0) {
+      errors.push("Select at least one correct option.");
+    }
+
+    return errors;
+  }
+
+  if (answerMode === "single") {
+    if (!question.correctOptionId || !validOptionIds.has(question.correctOptionId)) {
+      errors.push("Select one correct option.");
+    }
+  }
+
+  return errors;
 };
 
 export const getQuestionValidationErrors = (question: QuestionItem): string[] => {
@@ -21,23 +82,7 @@ export const getQuestionValidationErrors = (question: QuestionItem): string[] =>
   }
 
   if (question.type === "graded") {
-    const options = question.options ?? [];
-
-    if (options.length < OBJECTIVE_MIN_OPTIONS || options.length > OBJECTIVE_MAX_OPTIONS) {
-      errors.push(
-        `Objective questions must have between ${OBJECTIVE_MIN_OPTIONS} and ${OBJECTIVE_MAX_OPTIONS} options.`,
-      );
-    }
-
-    options.forEach((option, index) => {
-      if (!hasTextOrImage(option.text, option.image)) {
-        errors.push(`Option ${index + 1} must have text or an image.`);
-      }
-    });
-
-    if (!question.correctOptionId) {
-      errors.push("Select one correct option.");
-    }
+    errors.push(...getSubtypeOptionValidationErrors(question));
   }
 
   return errors;

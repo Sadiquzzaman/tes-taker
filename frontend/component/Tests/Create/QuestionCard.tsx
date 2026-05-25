@@ -1,6 +1,7 @@
 import Image from "next/image";
 import NotmalTextFeild from "@/Ui/NotmalTextFeild";
 import CopyIconSVG from "@/component/svg/CopyIconSVG";
+import PlusIcon from "@/component/svg/PlusIcon";
 import DragHandleIcon from "@/component/svg/DragHandleIcon";
 import ShuffleIcon from "@/component/svg/ShuffleIcon";
 import TrashIcon from "@/component/svg/TrashIcon";
@@ -26,7 +27,11 @@ import {
   updateQuestionText,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
-import { getQuestionValidationErrors, OBJECTIVE_MAX_OPTIONS } from "@/utils/createTestValidation";
+import {
+  getCreateTestQuestionAnswerMode,
+  getCreateTestQuestionOptionRules,
+} from "@/utils/createTestOptions";
+import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 import { memo, useCallback, useEffect, useRef } from "react";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -82,10 +87,18 @@ const QuestionCard = memo(
     const addOptionImageInputRef = useRef<HTMLInputElement>(null);
     const questionInputRef = useRef<HTMLTextAreaElement>(null);
     const questionImageInputRef = useRef<HTMLInputElement>(null);
-    const isGradedQuestion = question.type === "graded";
+    const optionRules = getCreateTestQuestionOptionRules(question.type, question.subType);
+    const answerMode = getCreateTestQuestionAnswerMode(question.type, question.subType);
     const validationErrors = getQuestionValidationErrors(question);
     const optionCount = question.options?.length ?? 0;
-    const canAddMoreOptions = isGradedQuestion && optionCount < OBJECTIVE_MAX_OPTIONS;
+    const hasOptionEditor = Boolean(optionRules);
+    const usesMultipleAnswers = answerMode === "multiple";
+    const canAddOptions = Boolean(optionRules?.canAddOptions);
+    const canEditOptionText = Boolean(optionRules?.canEditOptionText);
+    const canEditOptionImage = Boolean(optionRules?.canEditOptionImage);
+    const canRemoveOptions = Boolean(optionRules?.canRemoveOptions);
+    const canShuffleOptions = Boolean(optionRules?.canShuffleOptions);
+    const canAddMoreOptions = Boolean(optionRules?.canAddOptions && optionCount < optionRules.maxOptions);
 
     const activateCard = useCallback(() => {
       dispatch(setActiveQuestionId(question.id));
@@ -394,10 +407,12 @@ const QuestionCard = memo(
             </div>
           </div>
 
-          {isGradedQuestion && (
+          {hasOptionEditor && (
             <div className="flex flex-col gap-2">
               {(question.options ?? []).map((option) => {
-                const isSelected = question.correctOptionId === option.id;
+                const isSelected = usesMultipleAnswers
+                  ? Boolean(question.correctOptionIds?.includes(option.id))
+                  : question.correctOptionId === option.id;
 
                 return (
                   <div
@@ -405,8 +420,8 @@ const QuestionCard = memo(
                     className="group flex items-center gap-2 rounded-[2px] px-0 py-1 hover:bg-[#ED86001A]"
                   >
                     <input
-                      type="radio"
-                      name={`question-${question.id}`}
+                      type={usesMultipleAnswers ? "checkbox" : "radio"}
+                      name={usesMultipleAnswers ? option.id : `question-${question.id}`}
                       checked={isSelected}
                       onChange={() =>
                         dispatch(
@@ -420,7 +435,7 @@ const QuestionCard = memo(
                       className="mt-1 h-4 w-4 border-[#232A25] text-[#49734F] focus:ring-0"
                     />
                     <div className="flex min-w-0 flex-1 flex-col gap-3">
-                      {!option.image && (
+                      {canEditOptionText && !option.image ? (
                         <textarea
                           ref={(element) => {
                             optionInputRefs.current[option.id] = element;
@@ -443,6 +458,10 @@ const QuestionCard = memo(
                           rows={1}
                           className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25] outline-none placeholder:text-[#747775]"
                         />
+                      ) : (
+                        <p className="text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">
+                          {option.text}
+                        </p>
                       )}
                       {option.image ? (
                         <div className="flex items-center gap-2">
@@ -455,101 +474,117 @@ const QuestionCard = memo(
                               className="object-cover"
                             />
                           </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              title={option.image ? "Replace option image" : "Upload option image"}
-                              onClick={() => optionImageInputRefs.current[option.id]?.click()}
-                              className=""
-                              aria-label={option.image ? "Replace option image" : "Upload option image"}
-                            >
-                              <UploadImageIconSVG />
-                            </button>
-                            <button
-                              type="button"
-                              title="Remove option image"
-                              onClick={() =>
-                                dispatch(
-                                  updateOptionImage({
-                                    subjectId,
-                                    questionId: question.id,
-                                    optionId: option.id,
-                                    image: null,
-                                  }),
-                                )
-                              }
-                              className="flex items-center justify-center rounded-[8px] text-[#D24B44] transition-colors duration-150"
-                              aria-label="Remove option image"
-                            >
-                              <TrashIcon />
-                            </button>
-                          </div>
+                          {canEditOptionImage ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                title={option.image ? "Replace option image" : "Upload option image"}
+                                onClick={() => optionImageInputRefs.current[option.id]?.click()}
+                                className=""
+                                aria-label={option.image ? "Replace option image" : "Upload option image"}
+                              >
+                                <UploadImageIconSVG />
+                              </button>
+                              <button
+                                type="button"
+                                title="Remove option image"
+                                onClick={() =>
+                                  dispatch(
+                                    updateOptionImage({
+                                      subjectId,
+                                      questionId: question.id,
+                                      optionId: option.id,
+                                      image: null,
+                                    }),
+                                  )
+                                }
+                                className="flex items-center justify-center rounded-[8px] text-[#D24B44] transition-colors duration-150"
+                                aria-label="Remove option image"
+                              >
+                                <TrashIcon />
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                       ) : null}
                     </div>
                     <div className="flex shrink-0 items-start gap-2">
-                      <input
-                        ref={(element) => {
-                          optionImageInputRefs.current[option.id] = element;
-                        }}
-                        type="file"
-                        accept="image/*"
-                        onChange={(event) => {
-                          void handleOptionImageChange(option.id, event);
-                        }}
-                        className="hidden"
-                      />
+                      {canEditOptionImage ? (
+                        <input
+                          ref={(element) => {
+                            optionImageInputRefs.current[option.id] = element;
+                          }}
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) => {
+                            void handleOptionImageChange(option.id, event);
+                          }}
+                          className="hidden"
+                        />
+                      ) : null}
                       <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            dispatch(
-                              removeOption({
-                                subjectId,
-                                questionId: question.id,
-                                optionId: option.id,
-                              }),
-                            )
-                          }
-                          className="flex items-center justify-center rounded-[8px] text-[#D24B44] opacity-0 transition-all duration-150 group-hover:opacity-100"
-                          aria-label="Delete option"
-                        >
-                          <TrashIcon />
-                        </button>
+                        {canRemoveOptions ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              dispatch(
+                                removeOption({
+                                  subjectId,
+                                  questionId: question.id,
+                                  optionId: option.id,
+                                }),
+                              )
+                            }
+                            className="flex items-center justify-center rounded-[8px] text-[#D24B44] opacity-0 transition-all duration-150 group-hover:opacity-100"
+                            aria-label="Delete option"
+                          >
+                            <TrashIcon />
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                   </div>
                 );
               })}
-              <div className="flex w-full gap-2 items-center hover:bg-[#ED86001A]">
-                <button
-                  ref={addOptionButtonRef}
-                  type="button"
-                  onClick={handleAddOptionWithScroll}
-                  disabled={!canAddMoreOptions}
-                  className="flex w-full items-center gap-2 py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)]"
+              {canAddOptions ? (
+                <div
+                  className={`flex w-full gap-2 items-center ${canAddMoreOptions ? "hover:bg-[#ED86001A]" : ""}`}
                 >
-                  <span className="h-4 w-4 rounded-full border border-[rgba(116,119,117,0.5)]" />
-                  <span>{canAddMoreOptions ? "Click to add a new option" : "Maximum 5 options added"}</span>
-                </button>
-                <input
-                  ref={addOptionImageInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAddImageOptionChange}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  title="Add new option with image"
-                  onClick={() => addOptionImageInputRef.current?.click()}
-                  disabled={!canAddMoreOptions}
-                  className="flex shrink-0 items-center justify-center rounded-[8px] text-[#747775] transition-colors duration-150 hover:text-[#49734F] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-[#747775]"
-                  aria-label="Add new option with image"
-                >
-                  <UploadImageIconSVG />
-                </button>
-              </div>
+                  <button
+                    ref={addOptionButtonRef}
+                    type="button"
+                    onClick={handleAddOptionWithScroll}
+                    disabled={!canAddMoreOptions}
+                    className={`flex w-full items-center gap-2 py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)] ${canAddMoreOptions ? "" : "cursor-default"}`}
+                  >
+                    {canAddMoreOptions ? <PlusIcon width={16} /> : null}
+                    <span>
+                      {canAddMoreOptions ? "Click to add a new option" : `Maximum ${optionRules?.maxOptions ?? 0} options added`}
+                    </span>
+                  </button>
+                  {canEditOptionImage && canAddMoreOptions ? (
+                    <>
+                      <input
+                        ref={addOptionImageInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAddImageOptionChange}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        title="Add new option with image"
+                        onClick={() => addOptionImageInputRef.current?.click()}
+                        disabled={!canAddMoreOptions}
+                        className="flex shrink-0 items-center justify-center rounded-[8px] text-[#747775] transition-colors duration-150 hover:text-[#49734F] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-[#747775]"
+                        aria-label="Add new option with image"
+                      >
+                        <UploadImageIconSVG />
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -642,7 +677,7 @@ const QuestionCard = memo(
             </div>
 
             <div className="flex items-center gap-2">
-              {isGradedQuestion && (
+              {canShuffleOptions ? (
                 <button
                   type="button"
                   onClick={() => dispatch(shuffleOptions({ subjectId, questionId: question.id }))}
@@ -651,7 +686,7 @@ const QuestionCard = memo(
                 >
                   <ShuffleIcon />
                 </button>
-              )}
+              ) : null}
               <button
                 type="button"
                 onClick={() => dispatch(duplicateQuestion({ subjectId, questionId: question.id }))}
