@@ -2,10 +2,7 @@ import DragHandleIcon from "@/component/svg/DragHandleIcon";
 import { useToast } from "@/component/Toast/ToastContext";
 import { setActiveQuestionId } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
-import {
-  getCreateTestQuestionAnswerInputPlaceholder,
-  getCreateTestQuestionSubtype,
-} from "@/utils/createTestOptions";
+import { getCreateTestQuestionAnswerInputPlaceholder, getCreateTestQuestionSubtype } from "@/utils/createTestOptions";
 import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 import { memo, useCallback, useRef } from "react";
 import QuestionCardBody from "./QuestionCardBody";
@@ -181,10 +178,7 @@ function QuestionCard({
           />
         ) : null}
 
-        <QuestionCardValidation
-          showValidation={question.showValidation}
-          validationErrors={validationErrors}
-        />
+        <QuestionCardValidation showValidation={question.showValidation} validationErrors={validationErrors} />
 
         <QuestionCardFooter
           canShuffleOptions={canShuffleOptions}

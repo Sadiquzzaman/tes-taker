@@ -1,6 +1,5 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
-import type { QuestionPayload } from "./createTestActionPayloads";
 import {
   createId,
   findSubjectQuestion,
@@ -11,7 +10,11 @@ import {
 } from "./createTestDomain";
 
 const duplicateQuestion = (state: CreateTestState, action: PayloadAction<QuestionPayload>) => {
-  const { question: target, subject } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
+  const { question: target, subject } = findSubjectQuestion(
+    state.subjects,
+    action.payload.subjectId,
+    action.payload.questionId,
+  );
 
   if (!target || !subject) {
     return;

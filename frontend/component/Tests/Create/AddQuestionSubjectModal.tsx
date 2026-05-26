@@ -3,13 +3,6 @@ import { useMemo, useState } from "react";
 import AddSubjectModal from "./AddSubjectModal";
 import CreateModal from "./CreateModal";
 
-type AddQuestionSubjectModalProps = {
-  open: boolean;
-  onClose: () => void;
-  onSelect: (subject: { id: string; label: string; value: string }) => void;
-  subjectOptions: Array<{ id: string; label: string; value: string }>;
-};
-
 const AddQuestionSubjectModal = ({ open, onClose, onSelect, subjectOptions }: AddQuestionSubjectModalProps) => {
   const [searchText, setSearchText] = useState("");
   const [isCreateSubjectModalOpen, setIsCreateSubjectModalOpen] = useState(false);
@@ -24,12 +17,12 @@ const AddQuestionSubjectModal = ({ open, onClose, onSelect, subjectOptions }: Ad
     return subjectOptions.filter((subject) => subject.label.toLowerCase().includes(normalizedSearch)).slice(0, 10);
   }, [searchText, subjectOptions]);
 
-  const handleSelect = (subject: { id: string; label: string; value: string }) => {
+  const handleSelect = (subject: SubjectSelectionPayload) => {
     onSelect(subject);
     setSearchText("");
   };
 
-  const handleCreateSubject = (subject: { id: string; label: string; value: string }) => {
+  const handleCreateSubject = (subject: SubjectSelectionPayload) => {
     setIsCreateSubjectModalOpen(false);
     handleSelect(subject);
     onClose();

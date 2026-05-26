@@ -1,5 +1,4 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { QuestionPayload } from "./createTestActionPayloads";
 import { findSubjectById, syncSubjectType } from "./createTestDomain";
 
 const deleteQuestion = (state: CreateTestState, action: PayloadAction<QuestionPayload>) => {

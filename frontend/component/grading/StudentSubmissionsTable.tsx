@@ -4,16 +4,6 @@ import PaginationChevronLeftIconSVG from "../svg/PaginationChevronLeftIconSVG";
 import PaginationChevronRightIconSVG from "../svg/PaginationChevronRightIconSVG";
 import SortIconSVG from "../svg/SortIconSVG";
 
-interface StudentSubmissionsTableProps {
-  currentPage: number;
-  onPageChange: (page: number) => void;
-  openStudentModal: (view: GradingModalView) => void;
-  paginatedStudents: GradingStudent[];
-  searchStudentInput: string;
-  setSearchStudentInput: (value: string) => void;
-  totalPages: number;
-}
-
 const StudentSubmissionsTable = ({
   currentPage,
   onPageChange,

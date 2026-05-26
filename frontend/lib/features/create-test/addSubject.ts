@@ -1,5 +1,4 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { SubjectSelectionPayload } from "./createTestActionPayloads";
 import { createSubject, resetTransientState } from "./createTestDomain";
 
 const addSubject = (state: CreateTestState, action: PayloadAction<SubjectSelectionPayload>) => {

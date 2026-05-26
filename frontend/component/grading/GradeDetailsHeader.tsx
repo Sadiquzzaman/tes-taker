@@ -1,10 +1,6 @@
 import Link from "next/link";
 import LeftArrowIconSVG from "../svg/LeftArrowIconSVG";
 
-interface GradeDetailsHeaderProps {
-  title: string;
-}
-
 const GradeDetailsHeader = ({ title }: GradeDetailsHeaderProps) => {
   return (
     <>

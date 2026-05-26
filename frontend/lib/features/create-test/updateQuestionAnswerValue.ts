@@ -3,7 +3,6 @@ import {
   getCreateTestQuestionAnswerInputMode,
   getCreateTestQuestionSupportsAlternativeAnswers,
 } from "@/utils/createTestOptions";
-import type { QuestionAnswerValuePayload } from "./createTestActionPayloads";
 import { findSubjectQuestion } from "./createTestDomain";
 
 const updateQuestionAnswerValue = (state: CreateTestState, action: PayloadAction<QuestionAnswerValuePayload>) => {
@@ -15,11 +14,7 @@ const updateQuestionAnswerValue = (state: CreateTestState, action: PayloadAction
 
   const supportsAlternativeAnswers = getCreateTestQuestionSupportsAlternativeAnswers(question.type, question.subType);
   const nextValues =
-    question.answer?.type === "text"
-      ? [...question.answer.value]
-      : supportsAlternativeAnswers
-        ? ["", ""]
-        : [""];
+    question.answer?.type === "text" ? [...question.answer.value] : supportsAlternativeAnswers ? ["", ""] : [""];
 
   if (action.payload.index === 0) {
     nextValues[0] = action.payload.value;

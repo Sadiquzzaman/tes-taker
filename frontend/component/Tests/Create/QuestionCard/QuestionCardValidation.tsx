@@ -1,10 +1,5 @@
 import { memo } from "react";
 
-type QuestionCardValidationProps = {
-  showValidation: boolean;
-  validationErrors: string[];
-};
-
 function QuestionCardValidation({ showValidation, validationErrors }: QuestionCardValidationProps) {
   if (!showValidation || validationErrors.length === 0) {
     return null;

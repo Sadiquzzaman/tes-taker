@@ -1,6 +1,5 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { getCreateTestQuestionAnswerMode } from "@/utils/createTestOptions";
-import type { OptionPayload } from "./createTestActionPayloads";
 import { findSubjectQuestion } from "./createTestDomain";
 
 const selectCorrectOption = (state: CreateTestState, action: PayloadAction<OptionPayload>) => {

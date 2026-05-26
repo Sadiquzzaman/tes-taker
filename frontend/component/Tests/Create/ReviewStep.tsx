@@ -4,7 +4,8 @@ const ReviewStep = () => {
   const { formState, subjects } = useAppSelector((state) => state.createTest);
   const totalQuestions = subjects.reduce((total, subject) => total + subject.questions.length, 0);
   const totalMarks = subjects.reduce(
-    (total, subject) => total + subject.questions.reduce((questionTotal, question) => questionTotal + (question.points || 0), 0),
+    (total, subject) =>
+      total + subject.questions.reduce((questionTotal, question) => questionTotal + (question.points || 0), 0),
     0,
   );
   const divSection = ({ label, value }: { label: string; value: string }) => {

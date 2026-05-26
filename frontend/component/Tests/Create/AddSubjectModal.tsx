@@ -5,18 +5,6 @@ import useCreateSubject from "@/hooks/api/subject/userCreateSubject";
 import { useState } from "react";
 import CreateModal from "./CreateModal";
 
-type CreatedSubjectOption = {
-  id: string;
-  label: string;
-  value: string;
-};
-
-type AddSubjectModalProps = {
-  open: boolean;
-  onClose: () => void;
-  onCreated?: (subject: CreatedSubjectOption) => void;
-};
-
 const initialFormState = {
   name: "",
   code: "",

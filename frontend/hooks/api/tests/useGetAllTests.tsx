@@ -1,11 +1,7 @@
 import axiosReq from "@/lib/axios";
 import { AxiosError, AxiosResponse } from "axios";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useApiError } from "../useApiError";
-
-type T = ApiResponse<ITest[]>;
-type R = AxiosResponse<T>;
-type E = AxiosError<ApiError>;
 
 // without class id it will fetch all tests
 // and with class id it will fetch tests of that class only
@@ -16,28 +12,36 @@ const useGetAllTests = ({ classId = "" }: { classId?: string }) => {
   const [apiComplete, setApiComplete] = useState(false);
   const [testList, setTestList] = useState<ITest[]>([]);
 
-  const fetch = async () => {
+  const fetch = useCallback(async () => {
     setLoading(true);
 
     return axiosReq
-      .get<T, R>(`${process.env.NEXT_PUBLIC_BASE_URL}/exams${classId ? `/class/${classId}` : ""}`)
+      .get<ApiResponse<ITest[]>, AxiosResponse<ApiResponse<ITest[]>>>(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/exams${classId ? `/class/${classId}` : ""}`,
+      )
       .then(async (response) => {
         if (response.status === 200) {
           setTestList(response.data.payload);
         }
       })
-      .catch((error: E) => {
+      .catch((error: AxiosError<ApiError>) => {
         handleError(error);
       })
       .finally(() => {
         setLoading(false);
         setApiComplete(true);
       });
-  };
+  }, [classId, handleError]);
 
   useEffect(() => {
-    fetch();
-  }, []);
+    const timerId = window.setTimeout(() => {
+      void fetch();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [fetch]);
 
   return { loading, testList, fetch, apiComplete } as const;
 };

@@ -19,26 +19,6 @@ export const CREATE_TEST_UNGRADED_FILL_IN_THE_GAPS_SUBTYPE_ID = "fill-in-the-gap
 export const CREATE_TEST_VARIABLE_OPTION_MIN_COUNT = 3;
 export const CREATE_TEST_VARIABLE_OPTION_MAX_COUNT = 5;
 
-export type CreateTestQuestionAnswerMode = "single" | "multiple" | "none";
-export type CreateTestQuestionAnswerInputMode = "none" | "correct-answer";
-
-export type CreateTestQuestionFixedOptionTemplate = {
-  image: string | null;
-  text: string;
-};
-
-export type CreateTestQuestionOptionRules = {
-  canAddOptions: boolean;
-  canEditOptionImage: boolean;
-  canEditOptionText: boolean;
-  canRemoveOptions: boolean;
-  canShuffleOptions: boolean;
-  fixedOptions: CreateTestQuestionFixedOptionTemplate[];
-  maxOptions: number;
-  minOptions: number;
-  useFixedOptions: boolean;
-};
-
 const createVariableOptionRules = (): CreateTestQuestionOptionRules => ({
   canAddOptions: true,
   canEditOptionImage: true,
@@ -70,24 +50,6 @@ const createTrueFalseOptionTemplates = (): CreateTestQuestionFixedOptionTemplate
   { image: null, text: "False" },
   { image: null, text: "Not Given" },
 ];
-
-export type CreateTestQuestionSubtypeOption = {
-  answerMode: CreateTestQuestionAnswerMode;
-  answerInputMode: CreateTestQuestionAnswerInputMode;
-  answerInputPlaceholder?: string;
-  supportsAlternativeAnswers?: boolean;
-  id: string;
-  label: string;
-  optionRules: CreateTestQuestionOptionRules | null;
-  isSupported: boolean;
-  headerPayload: string;
-};
-
-export type CreateTestQuestionCategoryOption = {
-  id: CreateTestQuestionCategory;
-  label: string;
-  tabs: CreateTestQuestionSubtypeOption[];
-};
 
 export const createTestQuestionCategoryOptions: CreateTestQuestionCategoryOption[] = [
   {

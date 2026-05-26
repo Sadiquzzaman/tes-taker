@@ -16,11 +16,6 @@ const ImageList = [
   "/assets/image/classImage/class_default_5.png",
 ];
 
-interface ClassCardProps {
-  classItem: Class;
-  index: number;
-}
-
 const ClassCard = ({ classItem, index }: ClassCardProps) => {
   const dispatch = useAppDispatch();
 

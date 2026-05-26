@@ -1,6 +1,5 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
-import type { OptionPayload } from "./createTestActionPayloads";
 import { findSubjectQuestion } from "./createTestDomain";
 
 const updateOptionText = (state: CreateTestState, action: PayloadAction<OptionPayload & { text: string }>) => {

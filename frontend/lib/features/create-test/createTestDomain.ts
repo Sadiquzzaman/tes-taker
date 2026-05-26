@@ -3,7 +3,6 @@ import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 import {
   CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
   CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
-  type CreateTestQuestionAnswerMode,
   getCreateTestQuestionAnswerInputMode,
   getCreateTestQuestionAnswerMode,
   getCreateTestQuestionOptionRules,
@@ -18,13 +17,6 @@ export const createOption = (text = "", image: string | null = null): QuestionOp
   text,
   image,
 });
-
-type LegacyQuestionItem = QuestionItem & {
-  correctOptionId?: string | null;
-  correctOptionIds?: string[];
-  correctAns?: string;
-  alternativeAnser?: string[];
-};
 
 const createOptionsFromTemplates = (templates: { image: string | null; text: string }[]) =>
   templates.map((template) => createOption(template.text, template.image));
@@ -89,7 +81,7 @@ const normalizeOptionIdAnswer = (
     question.answer?.type === "optionId"
       ? question.answer.value
       : answerMode === "multiple"
-        ? question.correctOptionIds ?? []
+        ? (question.correctOptionIds ?? [])
         : question.correctOptionId
           ? [question.correctOptionId]
           : [];
@@ -102,10 +94,7 @@ const normalizeOptionIdAnswer = (
   return createOptionIdAnswer(nextValues.length > 0 ? [nextValues[0]] : []);
 };
 
-export const createQuestion = (
-  questionType: CreateTestQuestionCategory,
-  subType: string,
-): QuestionItem | null => {
+export const createQuestion = (questionType: CreateTestQuestionCategory, subType: string): QuestionItem | null => {
   if (!isCreateTestQuestionCreationSupported(questionType, subType)) {
     return null;
   }
@@ -139,7 +128,11 @@ export const createQuestion = (
     instruction: "",
     image: null,
     answer,
-    options: optionRules ? (optionRules.useFixedOptions ? createOptionsFromTemplates(optionRules.fixedOptions) : []) : [],
+    options: optionRules
+      ? optionRules.useFixedOptions
+        ? createOptionsFromTemplates(optionRules.fixedOptions)
+        : []
+      : [],
     points: 2,
     showValidation: false,
   };
@@ -168,12 +161,7 @@ const normalizeFixedOptions = (question: QuestionItem, subType: string, question
 const normalizeQuestion = (question: QuestionItem): QuestionItem => {
   const legacyQuestion = question as LegacyQuestionItem;
   const rawType = question.type as string;
-  const nextType =
-    rawType === "objective"
-      ? "graded"
-      : rawType === "essay"
-        ? "ungraded"
-        : question.type;
+  const nextType = rawType === "objective" ? "graded" : rawType === "essay" ? "ungraded" : question.type;
   const nextSubType =
     question.subType ??
     (nextType === "graded"
@@ -189,7 +177,7 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
   if (nextType === "graded" && optionRules) {
     const options = optionRules.useFixedOptions
       ? normalizeFixedOptions(question, nextSubType, nextType)
-      : question.options ?? [];
+      : (question.options ?? []);
     const validOptionIds = new Set(options.map((option) => option.id));
     const answer = normalizeOptionIdAnswer(legacyQuestion, answerMode, validOptionIds);
 
@@ -329,12 +317,7 @@ export const focusQuestion = (state: CreateTestState, subjectId: string, questio
   state.pendingFocusOption = null;
 };
 
-export const focusOption = (
-  state: CreateTestState,
-  subjectId: string,
-  questionId: string,
-  optionId: string,
-) => {
+export const focusOption = (state: CreateTestState, subjectId: string, questionId: string, optionId: string) => {
   state.activeSubjectId = subjectId;
   state.activeQuestionId = questionId;
   state.pendingFocusOption = {

@@ -1,10 +1,13 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
-import type { QuestionPayload } from "./createTestActionPayloads";
 import { createOption, findSubjectQuestion, focusOption } from "./createTestDomain";
 
 const addOption = (state: CreateTestState, action: PayloadAction<QuestionPayload & { image?: string | null }>) => {
-  const { question, subject } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
+  const { question, subject } = findSubjectQuestion(
+    state.subjects,
+    action.payload.subjectId,
+    action.payload.questionId,
+  );
   const optionRules = question ? getCreateTestQuestionOptionRules(question.type, question.subType) : null;
 
   if (!question || !subject || !optionRules?.canAddOptions) {

@@ -3,12 +3,6 @@ import { updateQuestionInstruction } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo } from "react";
 
-type QuestionCardInstructionProps = {
-  instruction: string;
-  questionId: string;
-  subjectId: string;
-};
-
 function QuestionCardInstruction({ instruction, questionId, subjectId }: QuestionCardInstructionProps) {
   const dispatch = useAppDispatch();
 

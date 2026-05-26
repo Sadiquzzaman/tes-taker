@@ -2,11 +2,6 @@ import EditSquareIconSVG from "../svg/EditSquareIconSVG";
 import EssayGradeTemplate from "./EssayGradeTemplate";
 import ObjectiveGradeTemplate from "./ObjectiveGradeTemplate";
 
-interface GradingResultViewProps {
-  allQuestion: { name: string; questionList: GradingQuestionWithType[] }[];
-  setOpenModal: (open: GradingModalView) => void;
-}
-
 const GradingResultView = ({ allQuestion, setOpenModal }: GradingResultViewProps) => {
   const questionGroups = allQuestion.map((subject) => (
     <div key={subject.name} className="flex flex-col gap-4">

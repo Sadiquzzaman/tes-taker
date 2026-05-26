@@ -1,5 +1,4 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { SubjectQuestionTypePayload } from "./createTestActionPayloads";
 import {
   createQuestion,
   findSubjectById,

@@ -8,11 +8,6 @@ import { useDispatch } from "react-redux";
 import { setNewTestCreated } from "@/lib/features/testSlice";
 import { resetForm } from "@/lib/features/createTestSlice";
 
-type T = ApiResponse<ITest>;
-type R = AxiosResponse<T>;
-type D = CreateTestPayload;
-type E = AxiosError<ApiError>;
-
 const useCreateTest = () => {
   const { triggerToast } = useToast();
   const { handleError } = useApiError();
@@ -24,7 +19,10 @@ const useCreateTest = () => {
     setLoading(true);
 
     return axiosReq
-      .post<T, R, D>(`${process.env.NEXT_PUBLIC_BASE_URL}/exams`, createTestPayload)
+      .post<ApiResponse<ITest>, AxiosResponse<ApiResponse<ITest>>, CreateTestPayload>(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/exams`,
+        createTestPayload,
+      )
       .then(async (response) => {
         if (response.status === 201) {
           triggerToast({
@@ -42,7 +40,7 @@ const useCreateTest = () => {
           push("/tests");
         }
       })
-      .catch((error: E) => {
+      .catch((error: AxiosError<ApiError>) => {
         handleError(error);
       })
       .finally(() => {

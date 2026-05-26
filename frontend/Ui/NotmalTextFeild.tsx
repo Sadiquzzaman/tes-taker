@@ -1,16 +1,5 @@
 import { useEffect, useRef } from "react";
 
-type NotmalTextFeildProps = {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  placeholder?: string;
-  parentClassName?: string;
-  inputClassName?: string;
-  rows?: number;
-  maxRows?: number;
-  disabled?: boolean;
-};
-
 const resizeTextarea = (element: HTMLTextAreaElement | null, rows: number, maxRows: number) => {
   if (!element) {
     return;

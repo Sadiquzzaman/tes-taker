@@ -1,5 +1,4 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { InvalidQuestionPayload } from "./createTestActionPayloads";
 import { focusQuestion } from "./createTestDomain";
 
 const setQuestionValidationState = (state: CreateTestState, action: PayloadAction<InvalidQuestionPayload[]>) => {

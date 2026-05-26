@@ -1,12 +1,4 @@
-import { useEffect, type ReactNode } from "react";
-
-type CreateModalProps = {
-  open: boolean;
-  onClose: () => void;
-  children: ReactNode;
-  maxWidthClassName?: string;
-  panelClassName?: string;
-};
+import { useEffect } from "react";
 
 const CreateModal = ({
   open,

@@ -1,14 +1,6 @@
-import {
-  addQuestion,
-  finishDragging,
-  startDragging,
-  updateDragging,
-} from "@/lib/features/createTestSlice";
+import { addQuestion, finishDragging, startDragging, updateDragging } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import {
-  createTestQuestionCategoryOptions,
-  isCreateTestQuestionCreationSupported,
-} from "@/utils/createTestOptions";
+import { createTestQuestionCategoryOptions, isCreateTestQuestionCreationSupported } from "@/utils/createTestOptions";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QuestionCard from "./QuestionCard";
 
@@ -49,9 +41,8 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dragStateRef = useRef<DragState | null>(null);
   const dragHandlePointerRef = useRef<{ element: HTMLButtonElement; pointerId: number } | null>(null);
-  const [activeQuestionCategory, setActiveQuestionCategory] = useState<CreateTestQuestionCategory>(
-    defaultQuestionCategory,
-  );
+  const [activeQuestionCategory, setActiveQuestionCategory] =
+    useState<CreateTestQuestionCategory>(defaultQuestionCategory);
 
   const activeSubject = useMemo(
     () => subjects.find((subject) => subject.id === activeSubjectId) ?? subjects[0] ?? null,
@@ -184,30 +175,33 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     [dispatch, scrollContainerRef, subjects],
   );
 
-  const handleStopDragging = useCallback(function handleStopDraggingListener() {
-    const currentDragState = dragStateRef.current;
+  const handleStopDragging = useCallback(
+    function handleStopDraggingListener() {
+      const currentDragState = dragStateRef.current;
 
-    window.removeEventListener("pointermove", handlePointerMove);
-    window.removeEventListener("pointerup", handleStopDraggingListener);
-    window.removeEventListener("pointercancel", handleStopDraggingListener);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handleStopDraggingListener);
+      window.removeEventListener("pointercancel", handleStopDraggingListener);
 
-    const dragHandlePointer = dragHandlePointerRef.current;
-    if (dragHandlePointer?.element.hasPointerCapture(dragHandlePointer.pointerId)) {
-      dragHandlePointer.element.releasePointerCapture(dragHandlePointer.pointerId);
-    }
-    dragHandlePointerRef.current = null;
+      const dragHandlePointer = dragHandlePointerRef.current;
+      if (dragHandlePointer?.element.hasPointerCapture(dragHandlePointer.pointerId)) {
+        dragHandlePointer.element.releasePointerCapture(dragHandlePointer.pointerId);
+      }
+      dragHandlePointerRef.current = null;
 
-    if (!currentDragState) {
+      if (!currentDragState) {
+        document.body.style.userSelect = "";
+        document.body.style.cursor = "";
+        return;
+      }
+
+      dispatch(finishDragging());
+      dragStateRef.current = null;
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
-      return;
-    }
-
-    dispatch(finishDragging());
-    dragStateRef.current = null;
-    document.body.style.userSelect = "";
-    document.body.style.cursor = "";
-  }, [dispatch, handlePointerMove]);
+    },
+    [dispatch, handlePointerMove],
+  );
 
   useEffect(() => {
     return () => {
@@ -346,7 +340,9 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
               scrollContainerRef={scrollContainerRef}
               subjectId={draggedSubject.id}
               question={draggedQuestion}
-              questionNumber={(draggedSubject.questions.findIndex((question) => question.id === draggedQuestion.id) ?? 0) + 1}
+              questionNumber={
+                (draggedSubject.questions.findIndex((question) => question.id === draggedQuestion.id) ?? 0) + 1
+              }
               isActive
               shouldAutoFocus={false}
               pendingFocusOptionId={null}
@@ -377,7 +373,9 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         <div className="flex w-full max-w-[524px] items-center justify-between gap-6">
           <div className="flex items-center gap-1">
             <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]">Questions added:</p>
-            <p className="text-[14px] font-[600] leading-[16px] tracking-[-0.02em] text-[#747775]">{questionCountLabel}</p>
+            <p className="text-[14px] font-[600] leading-[16px] tracking-[-0.02em] text-[#747775]">
+              {questionCountLabel}
+            </p>
           </div>
           <div className="flex items-center gap-1">
             <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]">Total marks:</p>

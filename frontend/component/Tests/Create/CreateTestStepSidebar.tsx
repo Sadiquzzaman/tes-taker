@@ -1,10 +1,6 @@
 import BlackTickIconSVG from "@/component/svg/BlackTickIconSVG";
 import createTestSteps from "@/lib/features/create-test/createTestSteps";
 
-type CreateTestStepSidebarProps = {
-  currentStep: CreateTestStep;
-};
-
 const CreateTestStepSidebar = ({ currentStep }: CreateTestStepSidebarProps) => {
   const currentStepIndex = createTestSteps.indexOf(currentStep);
   const progressWidth = `${(currentStepIndex / (createTestSteps.length - 1)) * 100}%`;

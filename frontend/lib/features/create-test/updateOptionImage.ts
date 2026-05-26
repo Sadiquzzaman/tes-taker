@@ -1,6 +1,5 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
-import type { OptionPayload } from "./createTestActionPayloads";
 import { findSubjectQuestion } from "./createTestDomain";
 
 const updateOptionImage = (state: CreateTestState, action: PayloadAction<OptionPayload & { image: string | null }>) => {

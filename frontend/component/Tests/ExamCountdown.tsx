@@ -1,12 +1,6 @@
 "use client";
 
-import { type RefObject, useEffect, useRef, useState } from "react";
-
-interface ExamCountdownProps {
-  durationMinutes?: number;
-  submitButtonRef: RefObject<HTMLButtonElement | null>;
-  onTimeUp?: () => void;
-}
+import { useEffect, useRef, useState } from "react";
 
 export default function ExamCountdown({ durationMinutes, submitButtonRef, onTimeUp }: ExamCountdownProps) {
   const [timeLeft, setTimeLeft] = useState<number | null>(

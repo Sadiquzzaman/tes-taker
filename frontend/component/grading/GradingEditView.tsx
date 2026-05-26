@@ -2,11 +2,6 @@ import { template } from "@/utils/grading/gradingTemplate";
 import EssayGradeTemplate from "./EssayGradeTemplate";
 import ObjectiveGradeTemplate from "./ObjectiveGradeTemplate";
 
-interface GradingEditViewProps {
-  handleExplanationChange: (questionId: string, explanation: string) => void;
-  questionInputData: Record<string, { explanation: string }>;
-}
-
 const GradingEditView = ({ handleExplanationChange, questionInputData }: GradingEditViewProps) => {
   return (
     <div className="mt-4 flex flex-col gap-4">

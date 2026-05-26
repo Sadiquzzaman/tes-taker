@@ -3,10 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { template } from "@/utils/grading/gradingTemplate";
 
-type QuestionInputData = Record<string, { explanation: string }>;
-
 const useGradingModal = (setOpenModal: (open: GradingModalView) => void, openModal: GradingModalView) => {
-  const [questionInputData, setQuestionInputData] = useState<QuestionInputData>({});
+  const [questionInputData, setQuestionInputData] = useState<GradingQuestionInputData>({});
 
   useEffect(() => {
     document.body.style.overflow = openModal ? "hidden" : "";

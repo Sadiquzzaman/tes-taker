@@ -12,33 +12,8 @@ import {
   updateOptionText,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
-import { memo, useCallback, useEffect, useRef, type ChangeEvent, type RefObject } from "react";
-import {
-  readImageFileAsDataUrl,
-  resizeTextarea,
-  type ScrollElementIntoView,
-  type ValidateImageFile,
-} from "./shared";
-
-type QuestionCardBodyProps = {
-  activateCard: () => void;
-  canAddMoreOptions: boolean;
-  canAddOptions: boolean;
-  canEditOptionImage: boolean;
-  canEditOptionText: boolean;
-  canRemoveOptions: boolean;
-  maxOptions: number;
-  options: QuestionOption[];
-  pendingFocusOptionId: string | null;
-  questionId: string;
-  questionNumber: number;
-  scrollContainerRef: RefObject<HTMLDivElement | null>;
-  scrollElementIntoView: ScrollElementIntoView;
-  selectedOptionIds: string[];
-  subjectId: string;
-  usesMultipleAnswers: boolean;
-  validateImageFile: ValidateImageFile;
-};
+import { memo, useCallback, useEffect, useRef, type ChangeEvent } from "react";
+import { readImageFileAsDataUrl, resizeTextarea } from "./shared";
 
 function QuestionCardBody({
   activateCard,
@@ -167,10 +142,7 @@ function QuestionCardBody({
           : selectedOptionIds[0] === option.id;
 
         return (
-          <div
-            key={option.id}
-            className="group flex items-center gap-2 rounded-[2px] px-0 py-1 hover:bg-[#ED86001A]"
-          >
+          <div key={option.id} className="group flex items-center gap-2 rounded-[2px] px-0 py-1 hover:bg-[#ED86001A]">
             <input
               type={usesMultipleAnswers ? "checkbox" : "radio"}
               name={usesMultipleAnswers ? option.id : `question-${questionId}`}
@@ -216,9 +188,7 @@ function QuestionCardBody({
                   className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25] outline-none placeholder:text-[#747775]"
                 />
               ) : (
-                <p className="text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">
-                  {option.text}
-                </p>
+                <p className="text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">{option.text}</p>
               )}
               {option.image ? (
                 <div className="flex items-center gap-2">
@@ -317,9 +287,7 @@ function QuestionCardBody({
             className={`flex w-full items-center gap-2 py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)] ${canAddMoreOptions ? "" : "cursor-default"}`}
           >
             {canAddMoreOptions ? <PlusIcon width={16} /> : null}
-            <span>
-              {canAddMoreOptions ? "Click to add a new option" : `Maximum ${maxOptions} options added`}
-            </span>
+            <span>{canAddMoreOptions ? "Click to add a new option" : `Maximum ${maxOptions} options added`}</span>
           </button>
           {canEditOptionImage && canAddMoreOptions ? (
             <>

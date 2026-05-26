@@ -2,10 +2,6 @@ import { useVerifyCode } from "@/hooks/auth/useVerifyCode";
 import { maskInputValue, formatTime } from "@/utils/auth/helpers";
 import ButtonLoader from "../Loader/ButtonLoadder";
 
-interface VerifyCodeProps {
-  value: string;
-}
-
 const VerifyCode = ({ value }: VerifyCodeProps) => {
   const {
     otp,

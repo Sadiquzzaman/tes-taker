@@ -25,7 +25,53 @@ type QuestionAnswer = {
   value: string[];
 };
 
+type LegacyQuestionItem = QuestionItem & {
+  correctOptionId?: string | null;
+  correctOptionIds?: string[];
+  correctAns?: string;
+  alternativeAnser?: string[];
+};
+
 type CreateTestQuestionCategory = "graded" | "ungraded" | "other";
+
+type CreateTestQuestionAnswerMode = "single" | "multiple" | "none";
+
+type CreateTestQuestionAnswerInputMode = "none" | "correct-answer";
+
+type CreateTestQuestionFixedOptionTemplate = {
+  image: string | null;
+  text: string;
+};
+
+type CreateTestQuestionOptionRules = {
+  canAddOptions: boolean;
+  canEditOptionImage: boolean;
+  canEditOptionText: boolean;
+  canRemoveOptions: boolean;
+  canShuffleOptions: boolean;
+  fixedOptions: CreateTestQuestionFixedOptionTemplate[];
+  maxOptions: number;
+  minOptions: number;
+  useFixedOptions: boolean;
+};
+
+type CreateTestQuestionSubtypeOption = {
+  answerMode: CreateTestQuestionAnswerMode;
+  answerInputMode: CreateTestQuestionAnswerInputMode;
+  answerInputPlaceholder?: string;
+  supportsAlternativeAnswers?: boolean;
+  id: string;
+  label: string;
+  optionRules: CreateTestQuestionOptionRules | null;
+  isSupported: boolean;
+  headerPayload: string;
+};
+
+type CreateTestQuestionCategoryOption = {
+  id: CreateTestQuestionCategory;
+  label: string;
+  tabs: CreateTestQuestionSubtypeOption[];
+};
 
 type QuestionItem = {
   id: string;
@@ -103,6 +149,47 @@ type PublishStateForPayload = {
   excluded_students?: string[];
 };
 
+type SubjectSelectionPayload = {
+  label: string;
+  value: string;
+  id: string;
+};
+
+type SubjectQuestionTypePayload = {
+  subjectId: string;
+  questionType: CreateTestQuestionCategory;
+  subType: string;
+};
+
+type QuestionPayload = {
+  subjectId: string;
+  questionId: string;
+};
+
+type QuestionAnswerValuePayload = QuestionPayload & {
+  index: number;
+  value: string;
+};
+
+type OptionPayload = QuestionPayload & {
+  optionId: string;
+};
+
+type SetFormFieldPayload = {
+  field: keyof FormState;
+  value: FormState[keyof FormState];
+};
+
+type InvalidQuestionPayload = {
+  subjectId: string;
+  questionId: string;
+};
+
+type SetPublishFieldPayload = {
+  field: keyof Omit<PublishState, "publishTiming" | "testAudience" | "excluded_students">;
+  value: string;
+};
+
 type CreateTestState = {
   currentStep: CreateTestStep;
   formState: FormState;
@@ -139,6 +226,132 @@ type QuestionCardProps = {
   ) => void;
 };
 
+type CreateModalProps = {
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  maxWidthClassName?: string;
+  panelClassName?: string;
+};
+
+type AddSubjectModalProps = {
+  open: boolean;
+  onClose: () => void;
+  onCreated?: (subject: SubjectSelectionPayload) => void;
+};
+
+type AddQuestionSubjectModalProps = {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (subject: SubjectSelectionPayload) => void;
+  subjectOptions: SubjectSelectionPayload[];
+};
+
+type CreateTestFooterProps = {
+  currentStep: CreateTestStep;
+  isFirstStep: boolean;
+  isSubmitting: boolean;
+  onBack: () => void;
+  onNext: () => void | Promise<void>;
+};
+
+type CreateTestStepContentProps = {
+  currentStep: CreateTestStep;
+  formState: FormState;
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+};
+
+type CreateTestStepSidebarProps = {
+  currentStep: CreateTestStep;
+};
+
+type QuestionSubjectTabsProps = {
+  subjects: SubjectItem[];
+  activeSubjectId: string | null;
+  availableSubjectOptions: SubjectSelectionPayload[];
+  onSelectSubject: (subjectId: string) => void;
+  onAddSubject: (subject: SubjectSelectionPayload) => void;
+  onRemoveSubject: (subjectId: string) => void;
+};
+
+type RemoveSubjectConfirmationModalProps = {
+  open: boolean;
+  subjectName: string;
+  onClose: () => void;
+  onConfirm: () => void;
+};
+
+type ScrollElementIntoView = (element: HTMLElement | null, behavior?: ScrollBehavior) => void;
+
+type ValidateImageFile = (file: File) => boolean;
+
+type QuestionCardHeaderProps = {
+  activateCard: () => void;
+  cardRef: React.RefObject<HTMLDivElement | null>;
+  questionId: string;
+  questionImage: string | null;
+  questionNumber: number;
+  questionText: string;
+  scrollElementIntoView: ScrollElementIntoView;
+  shouldAutoFocus: boolean;
+  subjectId: string;
+  validateImageFile: ValidateImageFile;
+  fullSubtype: CreateTestQuestionSubtypeOption;
+};
+
+type QuestionCardBodyProps = {
+  activateCard: () => void;
+  canAddMoreOptions: boolean;
+  canAddOptions: boolean;
+  canEditOptionImage: boolean;
+  canEditOptionText: boolean;
+  canRemoveOptions: boolean;
+  maxOptions: number;
+  options: QuestionOption[];
+  pendingFocusOptionId: string | null;
+  questionId: string;
+  questionNumber: number;
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+  scrollElementIntoView: ScrollElementIntoView;
+  selectedOptionIds: string[];
+  subjectId: string;
+  usesMultipleAnswers: boolean;
+  validateImageFile: ValidateImageFile;
+};
+
+type QuestionCardFooterProps = {
+  canShuffleOptions: boolean;
+  points: number;
+  questionId: string;
+  subjectId: string;
+};
+
+type QuestionCardInstructionProps = {
+  instruction: string;
+  questionId: string;
+  subjectId: string;
+};
+
+type QuestionCardTextAnswerProps = {
+  answerValues: string[];
+  activateCard: () => void;
+  placeholder: string;
+  questionId: string;
+  showAlternativeAnswerInput: boolean;
+  subjectId: string;
+};
+
+type QuestionCardValidationProps = {
+  showValidation: boolean;
+  validationErrors: string[];
+};
+
+type QuestionValidationFailure = {
+  subjectId: string;
+  questionId: string;
+  errors: string[];
+};
+
 type LegacyCreateTestSubmissionQuestionAnswer = {
   correctOptionId?: string | null;
   correctOptionIds?: string[];
@@ -148,8 +361,8 @@ type LegacyCreateTestSubmissionQuestionAnswer = {
 
 type CreateTestSubmissionQuestionItem = Omit<QuestionItem, "type" | "answer"> &
   LegacyCreateTestSubmissionQuestionAnswer & {
-  type: QuestionSectionType;
-};
+    type: QuestionSectionType;
+  };
 
 type CreateTestSubmissionSubjectItem = Omit<SubjectItem, "type" | "questions"> & {
   type: QuestionSectionType | "";

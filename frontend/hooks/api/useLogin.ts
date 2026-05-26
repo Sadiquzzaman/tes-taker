@@ -4,10 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useJoinStateManage from "../ui/useJoinStateManage";
 
-type LoginResponsePayload = User & {
-  message?: string;
-};
-
 const useLogin = () => {
   const { triggerToast } = useToast();
   const { joinInfo } = useJoinStateManage("login");
@@ -105,9 +101,17 @@ const useLogin = () => {
     push("/");
   };
 
-  const handleLoginError = (error: any) => {
-    if (error?.response?.data?.message?.message?.length) {
-      const messages = error.response.data.message.message;
+  const handleLoginError = (error: unknown) => {
+    const responseMessage = (error as { response?: { data?: { message?: string | { message?: string[] } } } }).response
+      ?.data?.message;
+
+    if (
+      typeof responseMessage === "object" &&
+      responseMessage &&
+      Array.isArray(responseMessage.message) &&
+      responseMessage.message.length
+    ) {
+      const messages = responseMessage.message;
 
       messages.forEach((message: string) => {
         showLoginErrorToast(message);
@@ -116,7 +120,7 @@ const useLogin = () => {
       return;
     }
 
-    const message = error?.response?.data?.message || "Failed to send OTP. Please try again.";
+    const message = typeof responseMessage === "string" ? responseMessage : "Failed to send OTP. Please try again.";
     showLoginErrorToast(message);
   };
 

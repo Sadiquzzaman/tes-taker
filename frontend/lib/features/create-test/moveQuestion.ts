@@ -1,5 +1,4 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { QuestionPayload } from "./createTestActionPayloads";
 import { findSubjectById, moveQuestionInList } from "./createTestDomain";
 
 const moveQuestion = (state: CreateTestState, action: PayloadAction<QuestionPayload & { targetIndex: number }>) => {

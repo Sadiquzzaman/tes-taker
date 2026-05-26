@@ -2,34 +2,10 @@ import Image from "next/image";
 import TrashIcon from "@/component/svg/TrashIcon";
 import UploadImageIconSVG from "@/component/svg/UploadImageIconSVG";
 import { useToast } from "@/component/Toast/ToastContext";
-import {
-  clearPendingFocusQuestionId,
-  updateQuestionImage,
-  updateQuestionText,
-} from "@/lib/features/createTestSlice";
+import { clearPendingFocusQuestionId, updateQuestionImage, updateQuestionText } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
-import { memo, useCallback, useEffect, useRef, type ChangeEvent, type RefObject } from "react";
-import {
-  readImageFileAsDataUrl,
-  resizeTextarea,
-  type ScrollElementIntoView,
-  type ValidateImageFile,
-} from "./shared";
-import { CreateTestQuestionSubtypeOption } from "@/utils/createTestOptions";
-
-type QuestionCardHeaderProps = {
-  activateCard: () => void;
-  cardRef: RefObject<HTMLDivElement | null>;
-  questionId: string;
-  questionImage: string | null;
-  questionNumber: number;
-  questionText: string;
-  scrollElementIntoView: ScrollElementIntoView;
-  shouldAutoFocus: boolean;
-  subjectId: string;
-  validateImageFile: ValidateImageFile;
-  fullSubtype: CreateTestQuestionSubtypeOption;
-};
+import { memo, useCallback, useEffect, useRef, type ChangeEvent } from "react";
+import { readImageFileAsDataUrl, resizeTextarea } from "./shared";
 
 function QuestionCardHeader({
   activateCard,

@@ -1,12 +1,5 @@
 export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
-export type ScrollElementIntoView = (
-  element: HTMLElement | null,
-  behavior?: ScrollBehavior,
-) => void;
-
-export type ValidateImageFile = (file: File) => boolean;
-
 export const resizeTextarea = (element: HTMLTextAreaElement | null) => {
   if (!element) {
     return;

@@ -7,13 +7,8 @@ import {
 
 const hasTextOrImage = (text: string, image: string | null | undefined) => Boolean(text.trim() || image);
 
-export type QuestionValidationFailure = {
-  subjectId: string;
-  questionId: string;
-  errors: string[];
-};
-
-const getSubtypeLabel = (question: QuestionItem) => getCreateTestQuestionSubtype(question.type, question.subType)?.label;
+const getSubtypeLabel = (question: QuestionItem) =>
+  getCreateTestQuestionSubtype(question.type, question.subType)?.label;
 
 const getSubtypeOptionValidationErrors = (question: QuestionItem): string[] => {
   const optionRules = getCreateTestQuestionOptionRules(question.type, question.subType);
@@ -32,7 +27,8 @@ const getSubtypeOptionValidationErrors = (question: QuestionItem): string[] => {
       options.length === optionRules.fixedOptions.length &&
       options.every(
         (option, index) =>
-          option.text === optionRules.fixedOptions[index]?.text && option.image === optionRules.fixedOptions[index]?.image,
+          option.text === optionRules.fixedOptions[index]?.text &&
+          option.image === optionRules.fixedOptions[index]?.image,
       );
 
     if (!hasExpectedFixedOptions) {

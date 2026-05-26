@@ -12,13 +12,6 @@ import {
 import { useAppDispatch } from "@/lib/hooks";
 import { memo, useCallback } from "react";
 
-type QuestionCardFooterProps = {
-  canShuffleOptions: boolean;
-  points: number;
-  questionId: string;
-  subjectId: string;
-};
-
 function QuestionCardFooter({ canShuffleOptions, points, questionId, subjectId }: QuestionCardFooterProps) {
   const dispatch = useAppDispatch();
 

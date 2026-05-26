@@ -2,15 +2,6 @@ import { updateQuestionAnswerValue } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo } from "react";
 
-type QuestionCardTextAnswerProps = {
-  answerValues: string[];
-  activateCard: () => void;
-  placeholder: string;
-  questionId: string;
-  showAlternativeAnswerInput: boolean;
-  subjectId: string;
-};
-
 function QuestionCardTextAnswer({
   answerValues,
   activateCard,

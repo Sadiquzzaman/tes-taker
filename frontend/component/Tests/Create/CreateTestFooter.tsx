@@ -3,14 +3,6 @@ import MusicPreviousIconSVG from "@/component/svg/MusicPreviousIconSVG";
 import MusicNextIconSVG from "@/component/svg/MusicNextIconSVG";
 import RightArrowIconSVG from "@/component/svg/RightArrowIconSVG";
 
-type CreateTestFooterProps = {
-  currentStep: CreateTestStep;
-  isFirstStep: boolean;
-  isSubmitting: boolean;
-  onBack: () => void;
-  onNext: () => void | Promise<void>;
-};
-
 const CreateTestFooter = ({ currentStep, isFirstStep, isSubmitting, onBack, onNext }: CreateTestFooterProps) => {
   const isPublishStep = currentStep === "Publish";
 
