@@ -1,4 +1,5 @@
 import {
+  getCreateTestQuestionAnswerInputMode,
   getCreateTestQuestionAnswerMode,
   getCreateTestQuestionOptionRules,
   getCreateTestQuestionSubtype,
@@ -50,9 +51,10 @@ const getSubtypeOptionValidationErrors = (question: QuestionItem): string[] => {
   });
 
   const validOptionIds = new Set(options.map((option) => option.id));
+  const optionAnswerValues = question.answer?.type === "optionId" ? question.answer.value : [];
 
   if (answerMode === "multiple") {
-    const correctOptionIds = (question.correctOptionIds ?? []).filter((optionId) => validOptionIds.has(optionId));
+    const correctOptionIds = optionAnswerValues.filter((optionId) => validOptionIds.has(optionId));
 
     if (correctOptionIds.length === 0) {
       errors.push("Select at least one correct option.");
@@ -62,7 +64,9 @@ const getSubtypeOptionValidationErrors = (question: QuestionItem): string[] => {
   }
 
   if (answerMode === "single") {
-    if (!question.correctOptionId || !validOptionIds.has(question.correctOptionId)) {
+    const correctOptionId = optionAnswerValues.find((optionId) => validOptionIds.has(optionId));
+
+    if (!correctOptionId) {
       errors.push("Select one correct option.");
     }
   }
@@ -72,6 +76,8 @@ const getSubtypeOptionValidationErrors = (question: QuestionItem): string[] => {
 
 export const getQuestionValidationErrors = (question: QuestionItem): string[] => {
   const errors: string[] = [];
+  const answerInputMode = getCreateTestQuestionAnswerInputMode(question.type, question.subType);
+  const textAnswerValue = question.answer?.type === "text" ? (question.answer.value[0] ?? "") : "";
 
   if (!hasTextOrImage(question.text, question.image)) {
     errors.push("Add a question title or question image.");
@@ -79,6 +85,10 @@ export const getQuestionValidationErrors = (question: QuestionItem): string[] =>
 
   if (question.points <= 0) {
     errors.push("Points must be greater than 0.");
+  }
+
+  if (answerInputMode === "correct-answer" && !textAnswerValue.trim()) {
+    errors.push("Add a correct answer.");
   }
 
   if (question.type === "graded") {

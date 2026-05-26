@@ -14,11 +14,13 @@ export const CREATE_TEST_GRADED_MULTIPLE_RESPONSE_SUBTYPE_ID = "multiple-respons
 export const CREATE_TEST_GRADED_TRUE_FALSE_SUBTYPE_ID = "true-false";
 export const CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID = "fill-in-the-blanks";
 export const CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID = "essay";
+export const CREATE_TEST_UNGRADED_FILL_IN_THE_GAPS_SUBTYPE_ID = "fill-in-the-gaps";
 
 export const CREATE_TEST_VARIABLE_OPTION_MIN_COUNT = 3;
 export const CREATE_TEST_VARIABLE_OPTION_MAX_COUNT = 5;
 
 export type CreateTestQuestionAnswerMode = "single" | "multiple" | "none";
+export type CreateTestQuestionAnswerInputMode = "none" | "correct-answer";
 
 export type CreateTestQuestionFixedOptionTemplate = {
   image: string | null;
@@ -71,10 +73,14 @@ const createTrueFalseOptionTemplates = (): CreateTestQuestionFixedOptionTemplate
 
 export type CreateTestQuestionSubtypeOption = {
   answerMode: CreateTestQuestionAnswerMode;
+  answerInputMode: CreateTestQuestionAnswerInputMode;
+  answerInputPlaceholder?: string;
+  supportsAlternativeAnswers?: boolean;
   id: string;
   label: string;
   optionRules: CreateTestQuestionOptionRules | null;
   isSupported: boolean;
+  headerPayload: string;
 };
 
 export type CreateTestQuestionCategoryOption = {
@@ -93,35 +99,45 @@ export const createTestQuestionCategoryOptions: CreateTestQuestionCategoryOption
         label: "Multiple Choice",
         isSupported: true,
         answerMode: "single",
+        answerInputMode: "none",
         optionRules: createVariableOptionRules(),
+        headerPayload: "Write your question here",
       },
       {
         id: "multiple-response",
         label: "Multiple Response",
         isSupported: true,
         answerMode: "multiple",
+        answerInputMode: "none",
         optionRules: createVariableOptionRules(),
+        headerPayload: "Write your question here",
       },
       {
         id: "true-false",
         label: "True / False",
         isSupported: true,
         answerMode: "single",
+        answerInputMode: "none",
         optionRules: createFixedOptionRules(createTrueFalseOptionTemplates()),
+        headerPayload: "Write your question here",
       },
       {
         id: "fill-in-the-blanks",
         label: "Fill in the Blanks",
         isSupported: true,
         answerMode: "single",
+        answerInputMode: "none",
         optionRules: createVariableOptionRules(),
+        headerPayload: "Write your question here (Use ______ for blank spot)",
       },
       {
         id: "matching-ordering",
         label: "Matching /Ordering",
         isSupported: false,
         answerMode: "none",
+        answerInputMode: "none",
         optionRules: null,
+        headerPayload: "Write your question here",
       },
     ],
   },
@@ -132,23 +148,32 @@ export const createTestQuestionCategoryOptions: CreateTestQuestionCategoryOption
       {
         id: "true-false",
         label: "True/False",
-        isSupported: false,
+        isSupported: true,
         answerMode: "none",
+        answerInputMode: "correct-answer",
+        answerInputPlaceholder: "Write True or False",
         optionRules: null,
+        headerPayload: "Write your question here",
       },
       {
         id: "essay",
         label: "Essay",
         isSupported: true,
         answerMode: "none",
+        answerInputMode: "none",
         optionRules: null,
+        headerPayload: "Write your question here",
       },
       {
-        id: "fill-in-the-gaps",
-        label: "Fill in the gaps",
-        isSupported: false,
+        id: CREATE_TEST_UNGRADED_FILL_IN_THE_GAPS_SUBTYPE_ID,
+        label: "Fill in the Blanks",
+        isSupported: true,
         answerMode: "none",
+        answerInputMode: "correct-answer",
+        answerInputPlaceholder: "Enter correct answer here",
+        supportsAlternativeAnswers: true,
         optionRules: null,
+        headerPayload: "Write your question here (Use ______ for blank spot)",
       },
     ],
   },
@@ -161,34 +186,133 @@ export const createTestQuestionCategoryOptions: CreateTestQuestionCategoryOption
         label: "MCQ",
         isSupported: false,
         answerMode: "none",
+        answerInputMode: "none",
         optionRules: null,
+        headerPayload: "Write your question here",
       },
     ],
   },
 ];
 
-export const getCreateTestQuestionCategory = (categoryId: CreateTestQuestionCategory) =>
-  createTestQuestionCategoryOptions.find((category) => category.id === categoryId) ?? null;
+export const getCreateTestQuestionSubtype = (categoryId: CreateTestQuestionCategory, subtypeId: string) => {
+  for (const category of createTestQuestionCategoryOptions) {
+    if (category.id !== categoryId) {
+      continue;
+    }
 
-export const getCreateTestQuestionTabs = (categoryId: CreateTestQuestionCategory) =>
-  getCreateTestQuestionCategory(categoryId)?.tabs ?? [];
+    for (const tab of category.tabs) {
+      if (tab.id === subtypeId) {
+        return tab;
+      }
+    }
+  }
 
-export const getCreateTestDefaultCategory = (): CreateTestQuestionCategory =>
-  createTestQuestionCategoryOptions[0]?.id ?? "graded";
+  return null;
+};
 
-export const getCreateTestQuestionSubtype = (categoryId: CreateTestQuestionCategory, subtypeId: string) =>
-  getCreateTestQuestionTabs(categoryId).find((tab) => tab.id === subtypeId) ?? null;
+export const getCreateTestQuestionOptionRules = (categoryId: CreateTestQuestionCategory, subtypeId: string) => {
+  const category: CreateTestQuestionCategoryOption | undefined = createTestQuestionCategoryOptions.find(
+    (category) => category.id === categoryId,
+  );
 
-export const getCreateTestQuestionOptionRules = (categoryId: CreateTestQuestionCategory, subtypeId: string) =>
-  getCreateTestQuestionSubtype(categoryId, subtypeId)?.optionRules ?? null;
+  if (!category) {
+    return null;
+  }
 
-export const getCreateTestQuestionAnswerMode = (categoryId: CreateTestQuestionCategory, subtypeId: string) =>
-  getCreateTestQuestionSubtype(categoryId, subtypeId)?.answerMode ?? "none";
+  const tab: CreateTestQuestionSubtypeOption | undefined = category.tabs.find((tab) => tab.id === subtypeId);
 
-export const isCreateTestQuestionCreationSupported = (
+  if (!tab) {
+    return null;
+  }
+
+  return tab.optionRules;
+};
+
+export const getCreateTestQuestionAnswerMode = (categoryId: CreateTestQuestionCategory, subtypeId: string) => {
+  for (const category of createTestQuestionCategoryOptions) {
+    if (category.id !== categoryId) {
+      continue;
+    }
+
+    for (const tab of category.tabs) {
+      if (tab.id === subtypeId) {
+        return tab.answerMode;
+      }
+    }
+  }
+
+  return "none";
+};
+
+export const getCreateTestQuestionAnswerInputMode = (categoryId: CreateTestQuestionCategory, subtypeId: string) => {
+  for (const category of createTestQuestionCategoryOptions) {
+    if (category.id !== categoryId) {
+      continue;
+    }
+
+    for (const tab of category.tabs) {
+      if (tab.id === subtypeId) {
+        return tab.answerInputMode;
+      }
+    }
+  }
+
+  return "none";
+};
+
+export const getCreateTestQuestionAnswerInputPlaceholder = (
   categoryId: CreateTestQuestionCategory,
   subtypeId: string,
-) => Boolean(getCreateTestQuestionSubtype(categoryId, subtypeId)?.isSupported);
+) => {
+  for (const category of createTestQuestionCategoryOptions) {
+    if (category.id !== categoryId) {
+      continue;
+    }
+
+    for (const tab of category.tabs) {
+      if (tab.id === subtypeId) {
+        return tab.answerInputPlaceholder ?? "Enter correct answer here";
+      }
+    }
+  }
+
+  return "Enter correct answer here";
+};
+
+export const getCreateTestQuestionSupportsAlternativeAnswers = (
+  categoryId: CreateTestQuestionCategory,
+  subtypeId: string,
+) => {
+  for (const category of createTestQuestionCategoryOptions) {
+    if (category.id !== categoryId) {
+      continue;
+    }
+
+    for (const tab of category.tabs) {
+      if (tab.id === subtypeId) {
+        return Boolean(tab.supportsAlternativeAnswers);
+      }
+    }
+  }
+
+  return false;
+};
+
+export const isCreateTestQuestionCreationSupported = (categoryId: CreateTestQuestionCategory, subtypeId: string) => {
+  for (const category of createTestQuestionCategoryOptions) {
+    if (category.id !== categoryId) {
+      continue;
+    }
+
+    for (const tab of category.tabs) {
+      if (tab.id === subtypeId) {
+        return tab.isSupported;
+      }
+    }
+  }
+
+  return false;
+};
 
 export const testAudienceOptions = [
   { label: "Anyone with the link", value: "anyone" },

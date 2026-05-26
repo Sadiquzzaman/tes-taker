@@ -13,12 +13,11 @@ const removeOption = (state: CreateTestState, action: PayloadAction<OptionPayloa
 
   question.options = question.options.filter((entry) => entry.id !== action.payload.optionId);
 
-  if (question.correctOptionId === action.payload.optionId) {
-    question.correctOptionId = null;
-  }
-
-  if (question.correctOptionIds?.length) {
-    question.correctOptionIds = question.correctOptionIds.filter((optionId) => optionId !== action.payload.optionId);
+  if (question.answer?.type === "optionId") {
+    question.answer = {
+      type: "optionId",
+      value: question.answer.value.filter((optionId) => optionId !== action.payload.optionId),
+    };
   }
 
   if (
@@ -27,10 +26,6 @@ const removeOption = (state: CreateTestState, action: PayloadAction<OptionPayloa
     state.pendingFocusOption.optionId === action.payload.optionId
   ) {
     state.pendingFocusOption = null;
-  }
-
-  if (question.correctOptionIds?.length === 0) {
-    question.correctOptionIds = [];
   }
 };
 

@@ -1,5 +1,5 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import { getCreateTestQuestionAnswerMode, getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
+import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
 import type { QuestionPayload } from "./createTestActionPayloads";
 import {
   createId,
@@ -35,25 +35,25 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
       id: newId,
     };
   });
-  const answerMode = getCreateTestQuestionAnswerMode(target.type, target.subType);
   const optionRules = getCreateTestQuestionOptionRules(target.type, target.subType);
+  const answer =
+    target.answer?.type === "optionId"
+      ? {
+          type: "optionId" as const,
+          value: target.answer.value.map((optionId) => optionIdMap.get(optionId)).filter(Boolean) as string[],
+        }
+      : target.answer
+        ? {
+            type: "text" as const,
+            value: [...target.answer.value],
+          }
+        : undefined;
 
   const duplicatedQuestion: QuestionItem = {
     ...target,
     id: createId(),
-    ...(optionRules
-      ? answerMode === "multiple"
-        ? {
-            options: clonedOptions,
-            correctOptionId: undefined,
-            correctOptionIds: (target.correctOptionIds ?? []).map((optionId) => optionIdMap.get(optionId)).filter(Boolean) as string[],
-          }
-        : {
-          options: clonedOptions,
-          correctOptionId: target.correctOptionId ? optionIdMap.get(target.correctOptionId) || null : null,
-          correctOptionIds: undefined,
-        }
-      : { options: undefined, correctOptionId: undefined, correctOptionIds: undefined }),
+    answer,
+    ...(optionRules ? { options: clonedOptions } : { options: undefined }),
     showValidation: false,
   };
 

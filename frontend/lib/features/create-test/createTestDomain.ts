@@ -3,8 +3,11 @@ import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 import {
   CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
   CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
+  type CreateTestQuestionAnswerMode,
+  getCreateTestQuestionAnswerInputMode,
   getCreateTestQuestionAnswerMode,
   getCreateTestQuestionOptionRules,
+  getCreateTestQuestionSupportsAlternativeAnswers,
   isCreateTestQuestionCreationSupported,
 } from "@/utils/createTestOptions";
 
@@ -16,8 +19,88 @@ export const createOption = (text = "", image: string | null = null): QuestionOp
   image,
 });
 
+type LegacyQuestionItem = QuestionItem & {
+  correctOptionId?: string | null;
+  correctOptionIds?: string[];
+  correctAns?: string;
+  alternativeAnser?: string[];
+};
+
 const createOptionsFromTemplates = (templates: { image: string | null; text: string }[]) =>
   templates.map((template) => createOption(template.text, template.image));
+
+const createOptionIdAnswer = (value: string[] = []): QuestionAnswer => ({
+  type: "optionId",
+  value,
+});
+
+const createTextAnswer = (supportsAlternativeAnswers: boolean, value: string[] = []): QuestionAnswer => {
+  const primaryValue = value[0] ?? "";
+
+  if (!supportsAlternativeAnswers) {
+    return {
+      type: "text",
+      value: [primaryValue],
+    };
+  }
+
+  return {
+    type: "text",
+    value: [primaryValue, primaryValue.trim() ? (value[1] ?? "") : ""],
+  };
+};
+
+const createQuestionAnswer = (
+  questionType: CreateTestQuestionCategory,
+  subType: string,
+): QuestionAnswer | undefined => {
+  const answerMode = getCreateTestQuestionAnswerMode(questionType, subType);
+  const answerInputMode = getCreateTestQuestionAnswerInputMode(questionType, subType);
+  const supportsAlternativeAnswers = getCreateTestQuestionSupportsAlternativeAnswers(questionType, subType);
+
+  if (answerInputMode === "correct-answer") {
+    return createTextAnswer(supportsAlternativeAnswers, supportsAlternativeAnswers ? ["", ""] : [""]);
+  }
+
+  if (questionType === "graded" && answerMode !== "none") {
+    return createOptionIdAnswer();
+  }
+
+  return undefined;
+};
+
+const normalizeTextAnswer = (question: LegacyQuestionItem, supportsAlternativeAnswers: boolean): QuestionAnswer => {
+  const sourceValues =
+    question.answer?.type === "text"
+      ? question.answer.value
+      : supportsAlternativeAnswers
+        ? [question.correctAns ?? "", question.alternativeAnser?.[0] ?? ""]
+        : [question.correctAns ?? ""];
+
+  return createTextAnswer(supportsAlternativeAnswers, sourceValues);
+};
+
+const normalizeOptionIdAnswer = (
+  question: LegacyQuestionItem,
+  answerMode: CreateTestQuestionAnswerMode,
+  validOptionIds: Set<string>,
+): QuestionAnswer => {
+  const sourceValues =
+    question.answer?.type === "optionId"
+      ? question.answer.value
+      : answerMode === "multiple"
+        ? question.correctOptionIds ?? []
+        : question.correctOptionId
+          ? [question.correctOptionId]
+          : [];
+  const nextValues = sourceValues.filter((optionId) => validOptionIds.has(optionId));
+
+  if (answerMode === "multiple") {
+    return createOptionIdAnswer(nextValues);
+  }
+
+  return createOptionIdAnswer(nextValues.length > 0 ? [nextValues[0]] : []);
+};
 
 export const createQuestion = (
   questionType: CreateTestQuestionCategory,
@@ -27,8 +110,8 @@ export const createQuestion = (
     return null;
   }
 
-  const answerMode = getCreateTestQuestionAnswerMode(questionType, subType);
   const optionRules = getCreateTestQuestionOptionRules(questionType, subType);
+  const answer = createQuestionAnswer(questionType, subType);
 
   if (questionType === "ungraded") {
     return {
@@ -38,6 +121,7 @@ export const createQuestion = (
       text: "",
       instruction: "",
       image: null,
+      answer,
       points: 2,
       showValidation: false,
     };
@@ -54,22 +138,11 @@ export const createQuestion = (
     text: "",
     instruction: "",
     image: null,
+    answer,
     options: optionRules ? (optionRules.useFixedOptions ? createOptionsFromTemplates(optionRules.fixedOptions) : []) : [],
     points: 2,
     showValidation: false,
   };
-
-  if (answerMode === "multiple") {
-    nextQuestion.correctOptionIds = [];
-    nextQuestion.correctOptionId = undefined;
-    return nextQuestion;
-  }
-
-  if (answerMode === "single") {
-    nextQuestion.correctOptionId = null;
-    nextQuestion.correctOptionIds = undefined;
-    return nextQuestion;
-  }
 
   return nextQuestion;
 };
@@ -93,6 +166,7 @@ const normalizeFixedOptions = (question: QuestionItem, subType: string, question
 };
 
 const normalizeQuestion = (question: QuestionItem): QuestionItem => {
+  const legacyQuestion = question as LegacyQuestionItem;
   const rawType = question.type as string;
   const nextType =
     rawType === "objective"
@@ -108,6 +182,8 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
         ? CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID
         : "");
   const answerMode = getCreateTestQuestionAnswerMode(nextType, nextSubType);
+  const answerInputMode = getCreateTestQuestionAnswerInputMode(nextType, nextSubType);
+  const supportsAlternativeAnswers = getCreateTestQuestionSupportsAlternativeAnswers(nextType, nextSubType);
   const optionRules = getCreateTestQuestionOptionRules(nextType, nextSubType);
 
   if (nextType === "graded" && optionRules) {
@@ -115,26 +191,24 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
       ? normalizeFixedOptions(question, nextSubType, nextType)
       : question.options ?? [];
     const validOptionIds = new Set(options.map((option) => option.id));
-
-    if (answerMode === "multiple") {
-      return {
-        ...question,
-        type: nextType,
-        subType: nextSubType,
-        options,
-        correctOptionId: undefined,
-        correctOptionIds: (question.correctOptionIds ?? []).filter((optionId) => validOptionIds.has(optionId)),
-      };
-    }
+    const answer = normalizeOptionIdAnswer(legacyQuestion, answerMode, validOptionIds);
 
     return {
       ...question,
       type: nextType,
       subType: nextSubType,
       options,
-      correctOptionId:
-        question.correctOptionId && validOptionIds.has(question.correctOptionId) ? question.correctOptionId : null,
-      correctOptionIds: undefined,
+      answer,
+    };
+  }
+
+  if (answerInputMode === "correct-answer") {
+    return {
+      ...question,
+      type: nextType,
+      subType: nextSubType,
+      options: undefined,
+      answer: normalizeTextAnswer(legacyQuestion, supportsAlternativeAnswers),
     };
   }
 
@@ -143,7 +217,7 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
     type: nextType,
     subType: nextSubType,
     options: undefined,
-    correctOptionId: undefined,
+    answer: undefined,
   };
 };
 

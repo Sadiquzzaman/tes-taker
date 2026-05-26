@@ -15,7 +15,7 @@ const PublishSchedule = () => {
       dispatch(
         setPublishField({
           field: "scheduleAt",
-          value: dayjs().add(3, "hour").toISOString(),
+          value: dayjs().toISOString(),
         }),
       );
     }

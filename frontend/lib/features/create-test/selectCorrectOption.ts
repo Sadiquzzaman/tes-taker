@@ -13,7 +13,7 @@ const selectCorrectOption = (state: CreateTestState, action: PayloadAction<Optio
   }
 
   if (answerMode === "multiple") {
-    const selectedOptionIds = new Set(question.correctOptionIds ?? []);
+    const selectedOptionIds = new Set(question.answer?.type === "optionId" ? question.answer.value : []);
 
     if (selectedOptionIds.has(action.payload.optionId)) {
       selectedOptionIds.delete(action.payload.optionId);
@@ -21,15 +21,19 @@ const selectCorrectOption = (state: CreateTestState, action: PayloadAction<Optio
       selectedOptionIds.add(action.payload.optionId);
     }
 
-    question.correctOptionIds = Array.from(selectedOptionIds);
-    question.correctOptionId = undefined;
+    question.answer = {
+      type: "optionId",
+      value: Array.from(selectedOptionIds),
+    };
     question.showValidation = false;
     return;
   }
 
   if (answerMode === "single") {
-    question.correctOptionId = action.payload.optionId;
-    question.correctOptionIds = undefined;
+    question.answer = {
+      type: "optionId",
+      value: [action.payload.optionId],
+    };
     question.showValidation = false;
   }
 };

@@ -18,6 +18,13 @@ type QuestionOption = {
   image: string | null;
 };
 
+type QuestionAnswerType = "text" | "optionId";
+
+type QuestionAnswer = {
+  type: QuestionAnswerType;
+  value: string[];
+};
+
 type CreateTestQuestionCategory = "graded" | "ungraded" | "other";
 
 type QuestionItem = {
@@ -28,8 +35,7 @@ type QuestionItem = {
   instruction: string;
   image: string | null;
   options?: QuestionOption[];
-  correctOptionId?: string | null;
-  correctOptionIds?: string[];
+  answer?: QuestionAnswer;
   points: number;
   showValidation: boolean;
 };
@@ -133,7 +139,15 @@ type QuestionCardProps = {
   ) => void;
 };
 
-type CreateTestSubmissionQuestionItem = Omit<QuestionItem, "type"> & {
+type LegacyCreateTestSubmissionQuestionAnswer = {
+  correctOptionId?: string | null;
+  correctOptionIds?: string[];
+  correctAns?: string;
+  alternativeAnser?: string[];
+};
+
+type CreateTestSubmissionQuestionItem = Omit<QuestionItem, "type" | "answer"> &
+  LegacyCreateTestSubmissionQuestionAnswer & {
   type: QuestionSectionType;
 };
 

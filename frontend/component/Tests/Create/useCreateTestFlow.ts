@@ -3,16 +3,49 @@
 import { useCallback } from "react";
 import { goToNextStep, goToPreviousStep, setQuestionValidationState } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
+import { getCreateTestQuestionAnswerMode } from "@/utils/createTestOptions";
 import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/utils/createTestValidation";
 import { useToast } from "@/component/Toast/ToastContext";
 import useCreateTest from "@/hooks/api/tests/useCreateTest";
 
+const mapQuestionAnswerForSubmission = (question: QuestionItem): LegacyCreateTestSubmissionQuestionAnswer => {
+  if (!question.answer) {
+    return {};
+  }
+
+  if (question.answer.type === "text") {
+    const primaryAnswer = question.answer.value[0] ?? "";
+    const alternativeAnswer = question.answer.value[1]?.trim() ? [question.answer.value[1]] : [];
+
+    return {
+      correctAns: primaryAnswer,
+      alternativeAnser: alternativeAnswer,
+    };
+  }
+
+  if (getCreateTestQuestionAnswerMode(question.type, question.subType) === "multiple") {
+    return {
+      correctOptionIds: question.answer.value,
+    };
+  }
+
+  return {
+    correctOptionId: question.answer.value[0] ?? null,
+  };
+};
+
 const sanitizeSubjectsForSubmission = (subjects: SubjectItem[]): CreateTestSubmissionSubjectItem[] =>
   subjects.map((subject) => {
-    const questions: CreateTestSubmissionQuestionItem[] = subject.questions.map((question) => ({
-      ...question,
-      type: question.type === "graded" ? "objective" : "essay",
-    }));
+    const questions: CreateTestSubmissionQuestionItem[] = subject.questions.map((question) => {
+      const questionWithoutAnswer = { ...question };
+      Reflect.deleteProperty(questionWithoutAnswer, "answer");
+
+      return {
+        ...questionWithoutAnswer,
+        ...mapQuestionAnswerForSubmission(question),
+        type: question.type === "graded" ? "objective" : "essay",
+      };
+    });
     const questionTypes = Array.from(new Set(questions.map((question) => question.type)));
 
     return {

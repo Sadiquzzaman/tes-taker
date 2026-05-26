@@ -7,8 +7,6 @@ import {
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   createTestQuestionCategoryOptions,
-  getCreateTestDefaultCategory,
-  getCreateTestQuestionTabs,
   isCreateTestQuestionCreationSupported,
 } from "@/utils/createTestOptions";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -43,7 +41,7 @@ const getQuestionCardOffset = (questionIndex: number, dragState: DragState | nul
 
 const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const dispatch = useAppDispatch();
-  const defaultQuestionCategory = getCreateTestDefaultCategory();
+  const defaultQuestionCategory = createTestQuestionCategoryOptions[0].id;
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
   const { subjects, activeSubjectId, activeQuestionId, pendingFocusQuestion, pendingFocusOption, dragState } =
     createTestState;
@@ -64,7 +62,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const questionCountLabel = String(questions.length).padStart(2, "0");
   const totalMarks = questions.reduce((sum, question) => sum + question.points, 0);
   const questionSubtypeTabs = useMemo(
-    () => getCreateTestQuestionTabs(activeQuestionCategory),
+    () => createTestQuestionCategoryOptions.find((category) => category.id === activeQuestionCategory)?.tabs ?? [],
     [activeQuestionCategory],
   );
 

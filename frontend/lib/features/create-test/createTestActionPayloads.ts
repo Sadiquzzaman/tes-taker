@@ -15,6 +15,11 @@ export type QuestionPayload = {
   questionId: string;
 };
 
+export type QuestionAnswerValuePayload = QuestionPayload & {
+  index: number;
+  value: string;
+};
+
 export type OptionPayload = QuestionPayload & {
   optionId: string;
 };
