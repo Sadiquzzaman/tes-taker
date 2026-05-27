@@ -1,30 +1,28 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import { OBJECTIVE_MAX_OPTIONS } from "@/utils/createTestValidation";
-import type { QuestionPayload } from "./createTestActionPayloads";
-import { createOption, findSubjectSection, focusOption } from "./createTestDomain";
+import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
+import { createOption, findSubjectQuestion, focusOption } from "./createTestDomain";
 
 const addOption = (state: CreateTestState, action: PayloadAction<QuestionPayload & { image?: string | null }>) => {
-  const { section, subject } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
+  const { question, subject } = findSubjectQuestion(
+    state.subjects,
+    action.payload.subjectId,
+    action.payload.questionId,
+  );
+  const optionRules = question ? getCreateTestQuestionOptionRules(question.type, question.subType) : null;
 
-  if (!section || !subject || section.type !== "objective") {
-    return;
-  }
-
-  const question = section.questions.find((entry) => entry.id === action.payload.questionId);
-
-  if (!question) {
+  if (!question || !subject || !optionRules?.canAddOptions) {
     return;
   }
 
   question.options = question.options ?? [];
 
-  if (question.options.length >= OBJECTIVE_MAX_OPTIONS) {
+  if (question.options.length >= optionRules.maxOptions) {
     return;
   }
 
   const nextOption = createOption(action.payload.image ? " " : "", action.payload.image ?? null);
   question.options.push(nextOption);
-  focusOption(state, subject.id, section.id, question.id, nextOption.id);
+  focusOption(state, subject.id, question.id, nextOption.id);
 };
 
 export default addOption;

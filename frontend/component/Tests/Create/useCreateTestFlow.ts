@@ -3,18 +3,60 @@
 import { useCallback } from "react";
 import { goToNextStep, goToPreviousStep, setQuestionValidationState } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
+import { getCreateTestQuestionAnswerMode } from "@/utils/createTestOptions";
 import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/utils/createTestValidation";
 import { useToast } from "@/component/Toast/ToastContext";
 import useCreateTest from "@/hooks/api/tests/useCreateTest";
 
-const sanitizeSubjectsForSubmission = (subjects: SubjectItem[]) =>
-  subjects.map((subject) => ({
-    ...subject,
-    questionSections: subject.questionSections.filter((section) => section.questions.length > 0),
-  }));
+const mapQuestionAnswerForSubmission = (question: QuestionItem): LegacyCreateTestSubmissionQuestionAnswer => {
+  if (!question.answer) {
+    return {};
+  }
+
+  if (question.answer.type === "text") {
+    const primaryAnswer = question.answer.value[0] ?? "";
+    const alternativeAnswer = question.answer.value[1]?.trim() ? [question.answer.value[1]] : [];
+
+    return {
+      correctAns: primaryAnswer,
+      alternativeAnser: alternativeAnswer,
+    };
+  }
+
+  if (getCreateTestQuestionAnswerMode(question.type, question.subType) === "multiple") {
+    return {
+      correctOptionIds: question.answer.value,
+    };
+  }
+
+  return {
+    correctOptionId: question.answer.value[0] ?? null,
+  };
+};
+
+const sanitizeSubjectsForSubmission = (subjects: SubjectItem[]): CreateTestSubmissionSubjectItem[] =>
+  subjects.map((subject) => {
+    const questions: CreateTestSubmissionQuestionItem[] = subject.questions.map((question) => {
+      const questionWithoutAnswer = { ...question };
+      Reflect.deleteProperty(questionWithoutAnswer, "answer");
+
+      return {
+        ...questionWithoutAnswer,
+        ...mapQuestionAnswerForSubmission(question),
+        type: question.type === "graded" ? "objective" : "essay",
+      };
+    });
+    const questionTypes = Array.from(new Set(questions.map((question) => question.type)));
+
+    return {
+      ...subject,
+      type: questionTypes.length === 1 ? questionTypes[0] : "",
+      questions,
+    };
+  });
 
 const handlePublishStateForSubmission = (publishState: PublishState) => {
-  let result: PublishStateForPayload = {
+  const result: PublishStateForPayload = {
     testAudience: publishState.testAudience,
     publishTiming: publishState.publishTiming,
     scheduleAt: publishState.scheduleAt,
@@ -37,17 +79,12 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
 
   const handleNextStep = useCallback(async () => {
     if (currentStep === "Basic info") {
-      if (!formState.examType) {
-        triggerToast({ description: "Please select an exam type", type: "error" });
-        return;
-      }
-
       if (!formState.testName.trim()) {
         triggerToast({ description: "Please enter a test name", type: "error" });
         return;
       }
 
-      if (formState.examType !== "model" && subjects.length === 0) {
+      if (subjects.length === 0) {
         triggerToast({ description: "Please select a subject", type: "error" });
         return;
       }
@@ -83,9 +120,8 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
 
       dispatch(
         setQuestionValidationState(
-          validationFailures.map(({ subjectId, sectionId, questionId }) => ({
+          validationFailures.map(({ subjectId, questionId }) => ({
             subjectId,
-            sectionId,
             questionId,
           })),
         ),

@@ -6,35 +6,13 @@ import { AxiosError, AxiosResponse } from "axios";
 import { useState } from "react";
 import { useApiError } from "../useApiError";
 
-type CreateSubjectPayload = {
-  name: string;
-  code: string;
-};
-
-type CreateSubjectResponse = {
-  id: string;
-  name: string;
-  code: string | null;
-};
-
-type CreatedSubjectOption = {
-  id: string;
-  label: string;
-  value: string;
-};
-
-type T = ApiResponse<CreateSubjectResponse>;
-type R = AxiosResponse<T>;
-type D = CreateSubjectPayload;
-type E = AxiosError<ApiError>;
-
 const useCreateSubject = () => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
 
-  const mutate = async (createSubjectPayload: CreateSubjectPayload): Promise<CreatedSubjectOption | null> => {
+  const mutate = async (createSubjectPayload: CreateSubjectPayload): Promise<SubjectCatalogOption | null> => {
     const name = createSubjectPayload.name.trim();
     const code = createSubjectPayload.code.trim().toUpperCase();
 
@@ -59,7 +37,10 @@ const useCreateSubject = () => {
     setLoading(true);
 
     return axiosReq
-      .post<T, R, D>(`${process.env.NEXT_PUBLIC_BASE_URL}/subjects`, { name, code })
+      .post<ApiResponse<SubjectApiEntry>, AxiosResponse<ApiResponse<SubjectApiEntry>>, CreateSubjectPayload>(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/subjects`,
+        { name, code },
+      )
       .then((response) => {
         if (response.status === 201) {
           triggerToast({
@@ -87,7 +68,7 @@ const useCreateSubject = () => {
 
         return null;
       })
-      .catch((error: E) => {
+      .catch((error: AxiosError<ApiError>) => {
         handleError(error);
         return null;
       })

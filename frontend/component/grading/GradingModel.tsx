@@ -3,11 +3,6 @@ import GradingEditView from "./GradingEditView";
 import GradingResultView from "./GradingResultView";
 import useGradingModal from "@/hooks/grading/useGradingModal";
 
-interface GradingModelProps {
-  openModal: GradingModalView;
-  setOpenModal: (open: GradingModalView) => void;
-}
-
 const GradingModel = ({ openModal, setOpenModal }: GradingModelProps) => {
   const { allQuestion, handleClose, handleExplanationChange, questionInputData } = useGradingModal(
     setOpenModal,

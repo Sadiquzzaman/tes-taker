@@ -1,14 +1,36 @@
-import { template } from "@/utils/grading/gradingTemplate";
 import EditSquareIconSVG from "../svg/EditSquareIconSVG";
 import EssayGradeTemplate from "./EssayGradeTemplate";
 import ObjectiveGradeTemplate from "./ObjectiveGradeTemplate";
 
-interface GradingResultViewProps {
-  allQuestion: { name: string; questionList: GradingQuestionWithType[] }[];
-  setOpenModal: (open: GradingModalView) => void;
-}
-
 const GradingResultView = ({ allQuestion, setOpenModal }: GradingResultViewProps) => {
+  const questionGroups = allQuestion.map((subject) => (
+    <div key={subject.name} className="flex flex-col gap-4">
+      {subject.questionList.map((question, questionIndex) =>
+        question.type === "essay" ? (
+          <EssayGradeTemplate
+            key={question.id}
+            number={questionIndex + 1}
+            question={question.text}
+            answer="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+            score={4}
+            maxMarks={question.points}
+          />
+        ) : (
+          <ObjectiveGradeTemplate
+            key={question.id}
+            number={questionIndex + 1}
+            question={question.text}
+            options={question.options}
+            answer={question.studentSelectedOptionId || ""}
+            correctOptionId={question.correctOptionId}
+            score={4}
+            maxMarks={question.points}
+          />
+        ),
+      )}
+    </div>
+  ));
+
   return (
     <>
       <div className="flex items-center justify-between py-4">
@@ -26,38 +48,7 @@ const GradingResultView = ({ allQuestion, setOpenModal }: GradingResultViewProps
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        {allQuestion.map((subject) => (
-          <div key={subject.name} className="flex flex-col gap-4">
-            {template.formState.examType === "model" && (
-              <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#49734F]">{subject.name}</p>
-            )}
-            {subject.questionList.map((question, questionIndex) =>
-              question.type === "essay" ? (
-                <EssayGradeTemplate
-                  key={question.id}
-                  number={questionIndex + 1}
-                  question={question.text}
-                  answer="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-                  score={4}
-                  maxMarks={question.points}
-                />
-              ) : (
-                <ObjectiveGradeTemplate
-                  key={question.id}
-                  number={questionIndex + 1}
-                  question={question.text}
-                  options={question.options}
-                  answer={question.studentSelectedOptionId || ""}
-                  correctOptionId={question.correctOptionId}
-                  score={4}
-                  maxMarks={question.points}
-                />
-              ),
-            )}
-          </div>
-        ))}
-      </div>
+      <div className="flex flex-col gap-4">{questionGroups}</div>
     </>
   );
 };

@@ -5,11 +5,6 @@ import { useState } from "react";
 import { useApiError } from "../useApiError";
 import { useRouter } from "next/navigation";
 
-type T = ApiResponse<{ submission_id: string; saved_count: number }>;
-type R = AxiosResponse<T>;
-type D = SubmitAnswersheetPayload;
-type E = AxiosError<ApiError>;
-
 const useSubmitAnswersheet = () => {
   const { triggerToast } = useToast();
   const router = useRouter();
@@ -20,7 +15,11 @@ const useSubmitAnswersheet = () => {
     setLoading(true);
 
     return axiosReq
-      .post<T, R, D>(`${process.env.NEXT_PUBLIC_BASE_URL}/student/exams/${examId}/answersheet`, payload)
+      .post<
+        ApiResponse<SubmitAnswersheetResponsePayload>,
+        AxiosResponse<ApiResponse<SubmitAnswersheetResponsePayload>>,
+        SubmitAnswersheetPayload
+      >(`${process.env.NEXT_PUBLIC_BASE_URL}/student/exams/${examId}/answersheet`, payload)
       .then((response) => {
         if (response?.status === 201) {
           sessionStorage.removeItem("testId");
@@ -35,7 +34,7 @@ const useSubmitAnswersheet = () => {
 
         return response;
       })
-      .catch((error: E) => {
+      .catch((error: AxiosError<ApiError>) => {
         handleError(error);
       })
       .finally(() => {

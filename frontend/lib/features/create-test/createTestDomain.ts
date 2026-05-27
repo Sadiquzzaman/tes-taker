@@ -1,18 +1,16 @@
 import { v4 as uuidv4 } from "uuid";
 import { getQuestionValidationErrors } from "@/utils/createTestValidation";
+import {
+  CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
+  CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
+  getCreateTestQuestionAnswerInputMode,
+  getCreateTestQuestionAnswerMode,
+  getCreateTestQuestionOptionRules,
+  getCreateTestQuestionSupportsAlternativeAnswers,
+  isCreateTestQuestionCreationSupported,
+} from "@/utils/createTestOptions";
 
 export const createId = () => uuidv4();
-
-const getSectionTemplates = (examType: string): Array<{ type: QuestionSectionType; headerText: string }> => {
-  if (examType === "hybrid" || examType === "model") {
-    return [
-      { type: "objective", headerText: "Objective Questions" },
-      { type: "essay", headerText: "Essay Questions" },
-    ];
-  }
-
-  return [{ type: "objective", headerText: "Objective Questions" }];
-};
 
 export const createOption = (text = "", image: string | null = null): QuestionOption => ({
   id: createId(),
@@ -20,68 +18,221 @@ export const createOption = (text = "", image: string | null = null): QuestionOp
   image,
 });
 
-export const createQuestion = (sectionType: QuestionSectionType): QuestionItem => {
-  if (sectionType === "essay") {
+const createOptionsFromTemplates = (templates: { image: string | null; text: string }[]) =>
+  templates.map((template) => createOption(template.text, template.image));
+
+const createOptionIdAnswer = (value: string[] = []): QuestionAnswer => ({
+  type: "optionId",
+  value,
+});
+
+const createTextAnswer = (supportsAlternativeAnswers: boolean, value: string[] = []): QuestionAnswer => {
+  const primaryValue = value[0] ?? "";
+
+  if (!supportsAlternativeAnswers) {
+    return {
+      type: "text",
+      value: [primaryValue],
+    };
+  }
+
+  return {
+    type: "text",
+    value: [primaryValue, primaryValue.trim() ? (value[1] ?? "") : ""],
+  };
+};
+
+const createQuestionAnswer = (
+  questionType: CreateTestQuestionCategory,
+  subType: string,
+): QuestionAnswer | undefined => {
+  const answerMode = getCreateTestQuestionAnswerMode(questionType, subType);
+  const answerInputMode = getCreateTestQuestionAnswerInputMode(questionType, subType);
+  const supportsAlternativeAnswers = getCreateTestQuestionSupportsAlternativeAnswers(questionType, subType);
+
+  if (answerInputMode === "correct-answer") {
+    return createTextAnswer(supportsAlternativeAnswers, supportsAlternativeAnswers ? ["", ""] : [""]);
+  }
+
+  if (questionType === "graded" && answerMode !== "none") {
+    return createOptionIdAnswer();
+  }
+
+  return undefined;
+};
+
+const normalizeTextAnswer = (question: LegacyQuestionItem, supportsAlternativeAnswers: boolean): QuestionAnswer => {
+  const sourceValues =
+    question.answer?.type === "text"
+      ? question.answer.value
+      : supportsAlternativeAnswers
+        ? [question.correctAns ?? "", question.alternativeAnser?.[0] ?? ""]
+        : [question.correctAns ?? ""];
+
+  return createTextAnswer(supportsAlternativeAnswers, sourceValues);
+};
+
+const normalizeOptionIdAnswer = (
+  question: LegacyQuestionItem,
+  answerMode: CreateTestQuestionAnswerMode,
+  validOptionIds: Set<string>,
+): QuestionAnswer => {
+  const sourceValues =
+    question.answer?.type === "optionId"
+      ? question.answer.value
+      : answerMode === "multiple"
+        ? (question.correctOptionIds ?? [])
+        : question.correctOptionId
+          ? [question.correctOptionId]
+          : [];
+  const nextValues = sourceValues.filter((optionId) => validOptionIds.has(optionId));
+
+  if (answerMode === "multiple") {
+    return createOptionIdAnswer(nextValues);
+  }
+
+  return createOptionIdAnswer(nextValues.length > 0 ? [nextValues[0]] : []);
+};
+
+export const createQuestion = (questionType: CreateTestQuestionCategory, subType: string): QuestionItem | null => {
+  if (!isCreateTestQuestionCreationSupported(questionType, subType)) {
+    return null;
+  }
+
+  const optionRules = getCreateTestQuestionOptionRules(questionType, subType);
+  const answer = createQuestionAnswer(questionType, subType);
+
+  if (questionType === "ungraded") {
     return {
       id: createId(),
+      type: questionType,
+      subType,
       text: "",
       instruction: "",
       image: null,
+      answer,
       points: 2,
       showValidation: false,
     };
   }
 
-  return {
+  if (questionType !== "graded") {
+    return null;
+  }
+
+  const nextQuestion: QuestionItem = {
     id: createId(),
+    type: questionType,
+    subType,
     text: "",
     instruction: "",
     image: null,
-    options: [],
-    correctOptionId: null,
+    answer,
+    options: optionRules
+      ? optionRules.useFixedOptions
+        ? createOptionsFromTemplates(optionRules.fixedOptions)
+        : []
+      : [],
     points: 2,
     showValidation: false,
   };
+
+  return nextQuestion;
 };
 
-export const createQuestionSection = (type: QuestionSectionType, headerText: string): QuestionSectionItem => ({
-  id: createId(),
-  type,
-  headerText,
-  instruction: "",
-  questions: [createQuestion(type)],
-});
+const normalizeFixedOptions = (question: QuestionItem, subType: string, questionType: CreateTestQuestionCategory) => {
+  const optionRules = getCreateTestQuestionOptionRules(questionType, subType);
 
-export const createQuestionSections = (
-  examType: string,
-  existingSections: QuestionSectionItem[] = [],
-): QuestionSectionItem[] => {
-  const existingSectionsByType = new Map(existingSections.map((section) => [section.type, section]));
+  if (!optionRules?.useFixedOptions) {
+    return question.options ?? [];
+  }
 
-  return getSectionTemplates(examType).map(({ type, headerText }) => {
-    const existingSection = existingSectionsByType.get(type);
+  return optionRules.fixedOptions.map((template, index) => {
+    const existingOption = question.options?.[index];
 
-    if (existingSection) {
-      return {
-        ...existingSection,
-        headerText,
-      };
-    }
-
-    return createQuestionSection(type, headerText);
+    return {
+      id: existingOption?.id ?? createId(),
+      text: template.text,
+      image: template.image,
+    };
   });
 };
 
+const normalizeQuestion = (question: QuestionItem): QuestionItem => {
+  const legacyQuestion = question as LegacyQuestionItem;
+  const rawType = question.type as string;
+  const nextType = rawType === "objective" ? "graded" : rawType === "essay" ? "ungraded" : question.type;
+  const nextSubType =
+    question.subType ??
+    (nextType === "graded"
+      ? CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID
+      : nextType === "ungraded"
+        ? CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID
+        : "");
+  const answerMode = getCreateTestQuestionAnswerMode(nextType, nextSubType);
+  const answerInputMode = getCreateTestQuestionAnswerInputMode(nextType, nextSubType);
+  const supportsAlternativeAnswers = getCreateTestQuestionSupportsAlternativeAnswers(nextType, nextSubType);
+  const optionRules = getCreateTestQuestionOptionRules(nextType, nextSubType);
+
+  if (nextType === "graded" && optionRules) {
+    const options = optionRules.useFixedOptions
+      ? normalizeFixedOptions(question, nextSubType, nextType)
+      : (question.options ?? []);
+    const validOptionIds = new Set(options.map((option) => option.id));
+    const answer = normalizeOptionIdAnswer(legacyQuestion, answerMode, validOptionIds);
+
+    return {
+      ...question,
+      type: nextType,
+      subType: nextSubType,
+      options,
+      answer,
+    };
+  }
+
+  if (answerInputMode === "correct-answer") {
+    return {
+      ...question,
+      type: nextType,
+      subType: nextSubType,
+      options: undefined,
+      answer: normalizeTextAnswer(legacyQuestion, supportsAlternativeAnswers),
+    };
+  }
+
+  return {
+    ...question,
+    type: nextType,
+    subType: nextSubType,
+    options: undefined,
+    answer: undefined,
+  };
+};
+
+export const createSubjectQuestions = (existingQuestions: QuestionItem[] = []): QuestionItem[] => {
+  return existingQuestions.map(normalizeQuestion);
+};
+
+export const resolveSubjectType = (questions: QuestionItem[]): SubjectItem["type"] => {
+  const uniqueTypes = Array.from(new Set(questions.map((question) => question.type)));
+
+  return uniqueTypes.length === 1 ? uniqueTypes[0] : "";
+};
+
 export const createSubject = (
-  examType: string,
   subjectOption: Pick<SubjectItem, "name" | "value" | "id">,
-  existingSections: QuestionSectionItem[] = [],
-): SubjectItem => ({
-  id: subjectOption.id,
-  name: subjectOption.name,
-  value: subjectOption.value,
-  questionSections: createQuestionSections(examType, existingSections),
-});
+  existingQuestions: QuestionItem[] = [],
+): SubjectItem => {
+  const questions = createSubjectQuestions(existingQuestions);
+
+  return {
+    id: subjectOption.id,
+    name: subjectOption.name,
+    value: subjectOption.value,
+    type: resolveSubjectType(questions),
+    questions,
+  };
+};
 
 export const moveQuestionInList = (questions: QuestionItem[], questionId: string, targetIndex: number) => {
   const currentIndex = questions.findIndex((question) => question.id === questionId);
@@ -103,17 +254,50 @@ export const moveQuestionInList = (questions: QuestionItem[], questionId: string
   return nextQuestions;
 };
 
+export const reorderQuestionsByType = (
+  questions: QuestionItem[],
+  questionType: CreateTestQuestionCategory,
+  questionId: string,
+  targetIndex: number,
+) => {
+  const questionsOfType = questions.filter((question) => question.type === questionType);
+
+  if (questionsOfType.length === 0) {
+    return questions;
+  }
+
+  const reorderedQuestions = moveQuestionInList(questionsOfType, questionId, targetIndex);
+  let reorderedIndex = 0;
+
+  return questions.map((question) => {
+    if (question.type !== questionType) {
+      return question;
+    }
+
+    const reorderedQuestion = reorderedQuestions[reorderedIndex];
+    reorderedIndex += 1;
+    return reorderedQuestion;
+  });
+};
+
 export const findSubjectById = (subjects: SubjectItem[], subjectId: string) =>
   subjects.find((subject) => subject.id === subjectId) ?? null;
 
-export const findSectionById = (sections: QuestionSectionItem[], sectionId: string) =>
-  sections.find((section) => section.id === sectionId) ?? null;
+export const findQuestionById = (questions: QuestionItem[], questionId: string) =>
+  questions.find((question) => question.id === questionId) ?? null;
 
-export const findSubjectSection = (subjects: SubjectItem[], subjectId: string, sectionId: string) => {
+export const findSubjectQuestion = (subjects: SubjectItem[], subjectId: string, questionId: string) => {
   const subject = findSubjectById(subjects, subjectId);
-  const section = subject ? findSectionById(subject.questionSections, sectionId) : null;
+  const question = subject ? findQuestionById(subject.questions, questionId) : null;
 
-  return { subject, section };
+  return { subject, question };
+};
+
+export const getSubjectQuestionsByType = (subject: SubjectItem, questionType: CreateTestQuestionCategory) =>
+  subject.questions.filter((question) => question.type === questionType);
+
+export const syncSubjectType = (subject: SubjectItem) => {
+  subject.type = resolveSubjectType(subject.questions);
 };
 
 export const resetTransientState = (state: CreateTestState) => {
@@ -123,55 +307,31 @@ export const resetTransientState = (state: CreateTestState) => {
   state.dragState = null;
 };
 
-export const focusQuestion = (state: CreateTestState, subjectId: string, sectionId: string, questionId: string) => {
+export const focusQuestion = (state: CreateTestState, subjectId: string, questionId: string) => {
   state.activeSubjectId = subjectId;
   state.activeQuestionId = questionId;
   state.pendingFocusQuestion = {
     subjectId,
-    sectionId,
     questionId,
   };
   state.pendingFocusOption = null;
 };
 
-export const focusOption = (
-  state: CreateTestState,
-  subjectId: string,
-  sectionId: string,
-  questionId: string,
-  optionId: string,
-) => {
+export const focusOption = (state: CreateTestState, subjectId: string, questionId: string, optionId: string) => {
   state.activeSubjectId = subjectId;
   state.activeQuestionId = questionId;
   state.pendingFocusOption = {
     subjectId,
-    sectionId,
     questionId,
     optionId,
   };
 };
 
-export const getFirstInvalidQuestion = (section: QuestionSectionItem) =>
-  section.questions.find((question) => getQuestionValidationErrors(question, section.type).length > 0) ?? null;
+export const getFirstInvalidQuestion = (questions: QuestionItem[]) =>
+  questions.find((question) => getQuestionValidationErrors(question).length > 0) ?? null;
 
-export const showSectionValidationErrors = (section: QuestionSectionItem) => {
-  section.questions.forEach((question) => {
-    question.showValidation = getQuestionValidationErrors(question, section.type).length > 0;
+export const showQuestionValidationErrors = (questions: QuestionItem[]) => {
+  questions.forEach((question) => {
+    question.showValidation = getQuestionValidationErrors(question).length > 0;
   });
-};
-
-export const syncSubjectsForExamType = (subjects: SubjectItem[], examType: string, activeSubjectId: string | null) => {
-  const syncedSubjects = subjects.map((subject) => ({
-    ...subject,
-    questionSections: createQuestionSections(examType, subject.questionSections),
-  }));
-
-  if (examType === "model") {
-    return syncedSubjects;
-  }
-
-  const preferredSubject =
-    syncedSubjects.find((subject) => subject.id === activeSubjectId) ?? syncedSubjects[0] ?? null;
-
-  return preferredSubject ? [preferredSubject] : [];
 };

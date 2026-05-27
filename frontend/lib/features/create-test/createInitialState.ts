@@ -1,10 +1,8 @@
-import dayjs from "dayjs";
 import createTestSteps from "./createTestSteps";
 
 const createInitialState = (): CreateTestState => ({
   currentStep: createTestSteps[0],
   formState: {
-    examType: "",
     testName: "",
     duration: "",
     passingScore: "",
@@ -19,8 +17,8 @@ const createInitialState = (): CreateTestState => ({
   dragState: null,
   publishState: {
     publishTiming: "immediately",
-    scheduleAt: dayjs().add(3, "hour").toISOString(),
-    endingAt: dayjs().add(3, "day").toISOString(),
+    scheduleAt: "",
+    endingAt: "",
     testAudience: "anyone",
     selectedClassId: "",
     excluded_students: [],

@@ -2,27 +2,12 @@ import { useAppSelector } from "@/lib/hooks";
 
 const ReviewStep = () => {
   const { formState, subjects } = useAppSelector((state) => state.createTest);
-  const totalQuestions = subjects.reduce((total, subject) => {
-    return (
-      total +
-      subject.questionSections.reduce((sectionTotal, section) => {
-        return sectionTotal + section.questions.length;
-      }, 0)
-    );
-  }, 0);
-  const totalMarks = subjects.reduce((total, subject) => {
-    return (
-      total +
-      subject.questionSections.reduce((sectionTotal, section) => {
-        return (
-          sectionTotal +
-          section.questions.reduce((questionTotal, question) => {
-            return questionTotal + (question.points || 0);
-          }, 0)
-        );
-      }, 0)
-    );
-  }, 0);
+  const totalQuestions = subjects.reduce((total, subject) => total + subject.questions.length, 0);
+  const totalMarks = subjects.reduce(
+    (total, subject) =>
+      total + subject.questions.reduce((questionTotal, question) => questionTotal + (question.points || 0), 0),
+    0,
+  );
   const divSection = ({ label, value }: { label: string; value: string }) => {
     return (
       <div className="flex">
@@ -43,7 +28,7 @@ const ReviewStep = () => {
       <div className="w-full border-b border-[#E5E5E5]" />
       <div className="flex flex-col gap-3">
         {divSection({ label: "Test name", value: formState.testName })}
-        {divSection({ label: "Subject", value: formState.examType !== "model" ? "Model Test" : subjects[0].name })}
+        {divSection({ label: "Subject", value: subjects[0]?.name ?? "N/A" })}
         {divSection({ label: "Duration", value: `${formState.duration} minutes` })}
         {divSection({ label: "Total Questions", value: totalQuestions.toString() })}
         {divSection({ label: "Total Marks", value: totalMarks.toString() })}

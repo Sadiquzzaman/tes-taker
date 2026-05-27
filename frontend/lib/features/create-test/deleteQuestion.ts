@@ -1,18 +1,18 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { QuestionPayload } from "./createTestActionPayloads";
-import { findSubjectSection } from "./createTestDomain";
+import { findSubjectById, syncSubjectType } from "./createTestDomain";
 
 const deleteQuestion = (state: CreateTestState, action: PayloadAction<QuestionPayload>) => {
-  const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
+  const subject = findSubjectById(state.subjects, action.payload.subjectId);
 
-  if (!section) {
+  if (!subject) {
     return;
   }
 
-  section.questions = section.questions.filter((question) => question.id !== action.payload.questionId);
+  subject.questions = subject.questions.filter((question) => question.id !== action.payload.questionId);
+  syncSubjectType(subject);
 
   if (state.activeQuestionId === action.payload.questionId) {
-    state.activeQuestionId = section.questions[section.questions.length - 1]?.id ?? null;
+    state.activeQuestionId = subject.questions[subject.questions.length - 1]?.id ?? null;
   }
 
   if (

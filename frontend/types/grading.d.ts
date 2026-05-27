@@ -64,7 +64,6 @@ interface GradingSubject {
 }
 
 interface GradingTemplateFormState {
-  examType: string;
   testName: string;
   duration: string;
   passingScore: string;
@@ -113,4 +112,57 @@ interface ObjectiveGradeTemplateProps {
   correctOptionId: string;
   explanation?: string;
   onExplanationChange?: (value: string) => void;
+}
+
+type GradingQuestionInputData = Record<string, { explanation: string }>;
+
+type GradingQuestionGroup = {
+  name: string;
+  questionList: GradingQuestionWithType[];
+};
+
+interface StudentSubmissionsTableProps {
+  currentPage: number;
+  onPageChange: (page: number) => void;
+  openStudentModal: (view: GradingModalView) => void;
+  paginatedStudents: GradingStudent[];
+  searchStudentInput: string;
+  setSearchStudentInput: (value: string) => void;
+  totalPages: number;
+}
+
+interface GradingResultViewProps {
+  allQuestion: GradingQuestionGroup[];
+  setOpenModal: (open: GradingModalView) => void;
+}
+
+interface GradingModelProps {
+  openModal: GradingModalView;
+  setOpenModal: (open: GradingModalView) => void;
+}
+
+interface GradingEditViewProps {
+  handleExplanationChange: (questionId: string, explanation: string) => void;
+  questionInputData: GradingQuestionInputData;
+}
+
+interface GradeDetailsStatsProps {
+  totalStudents: number;
+  submissions: number;
+  pendingCount: number;
+  gradedCount: number;
+}
+
+interface GradeDetailsHeaderProps {
+  title: string;
+}
+
+interface GradeCardProps {
+  classItem: Class;
+  status?: GradeCardStatus;
+}
+
+interface GradingSliceState {
+  activeTab: Tab;
+  searchInput: string;
 }

@@ -1,12 +1,11 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { QuestionPayload } from "./createTestActionPayloads";
-import { findSubjectSection, moveQuestionInList } from "./createTestDomain";
+import { findSubjectById, moveQuestionInList } from "./createTestDomain";
 
 const moveQuestion = (state: CreateTestState, action: PayloadAction<QuestionPayload & { targetIndex: number }>) => {
-  const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
+  const subject = findSubjectById(state.subjects, action.payload.subjectId);
 
-  if (section) {
-    section.questions = moveQuestionInList(section.questions, action.payload.questionId, action.payload.targetIndex);
+  if (subject) {
+    subject.questions = moveQuestionInList(subject.questions, action.payload.questionId, action.payload.targetIndex);
   }
 };
 

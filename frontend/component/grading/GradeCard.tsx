@@ -3,11 +3,6 @@ import RemainingIconSVG from "../svg/RemainingIconSVG";
 import ShareIconSVG from "../svg/ShareIconSVG";
 import { getGradeCardButtonText, gradeCardStatusColors, gradeCardStatusTextColors } from "@/utils/grading/gradeCard";
 
-interface GradeCardProps {
-  classItem: Class;
-  status?: GradeCardStatus;
-}
-
 const GradeCard = ({ classItem, status = "Graded" }: GradeCardProps) => {
   const statusColor = gradeCardStatusTextColors[status];
 

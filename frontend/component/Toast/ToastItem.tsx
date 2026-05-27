@@ -1,12 +1,4 @@
 import React from "react";
-import { ToastType } from "./ToastContext";
-
-interface ToastItemProps {
-  title: string;
-  description: string;
-  type: ToastType;
-  onClose: () => void;
-}
 
 const ToastItem: React.FC<ToastItemProps> = ({ title = "", description = "", type = "warning", onClose }) => {
   const bgColor: Record<ToastType, string> = {

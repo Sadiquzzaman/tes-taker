@@ -1,15 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-type RoutePolicy = {
-  path: string;
-  match: "exact" | "prefix";
-  isPublic?: boolean;
-  allowedRoles?: RoleUserType[];
-  redirectAuthenticatedTo?: string;
-  redirectUnauthorizedTo?: string;
-};
-
 const validRoles: RoleUserType[] = ["TEACHER", "STUDENT"];
 
 const routePolicies: RoutePolicy[] = [

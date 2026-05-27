@@ -75,3 +75,20 @@ interface ClassStudent {
 interface DeleteClassStudentPayload {
   student_ids: string[];
 }
+
+interface AddStudentInClassPayload {
+  students: string[];
+}
+
+interface ClassCardProps {
+  classItem: Class;
+  index: number;
+}
+
+interface ClassSliceState {
+  activeTab: Tab;
+  searchInput: string;
+  newClassCreated: CreateClassResponse | null;
+  openAddStudentModal: Class | null;
+  openShareClassModal: Class | null;
+}

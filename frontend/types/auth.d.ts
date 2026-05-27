@@ -54,3 +54,11 @@ interface AuthInputProps {
   label: string;
   type?: string;
 }
+
+type LoginResponsePayload = User & {
+  message?: string;
+};
+
+interface VerifyCodeProps {
+  value: string;
+}

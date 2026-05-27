@@ -19,7 +19,6 @@ interface StudentExamQuestionSection {
   id: string;
   type: QuestionSectionType;
   headerText: string;
-  instruction: string;
   questions: StudentExamQuestion[];
 }
 
@@ -39,7 +38,6 @@ interface ITest {
   updated_user_name: string | null;
   created_at: string;
   updated_at: string | null;
-  exam_type: string;
   test_name: string;
   duration_minutes: number;
   passing_score: number;

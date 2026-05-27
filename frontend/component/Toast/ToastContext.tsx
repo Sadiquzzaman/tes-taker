@@ -1,19 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
 import ToastItem from "./ToastItem";
-export type ToastType = "success" | "error" | "warning";
-
-interface Toast {
-  id: number;
-  title?: string;
-  description?: string;
-  type?: ToastType;
-}
-
-interface ToastContextProps {
-  triggerToast: (toast: Omit<Toast, "id">) => void;
-}
 
 const ToastContext = createContext<ToastContextProps | undefined>(undefined);
 
@@ -23,14 +11,10 @@ export const useToast = () => {
   return context;
 };
 
-interface ToastProviderProps {
-  children: ReactNode;
-}
-
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const triggerToast = useCallback((toast: Omit<Toast, "id">) => {
+  const triggerToast = useCallback((toast: ToastPayload) => {
     const id = Date.now();
     setToasts((prev) => [...prev, { ...toast, id }]);
 

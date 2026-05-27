@@ -4,20 +4,18 @@ import { AxiosError, AxiosResponse } from "axios";
 import { useState } from "react";
 import { useApiError } from "../useApiError";
 
-type T = ApiResponse<CreateClassResponse>;
-type R = AxiosResponse<T>;
-type E = AxiosError<ApiError>;
-
 const useApproveStudent = ({ classId }: { classId: string }) => {
   const { triggerToast } = useToast();
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
 
-  const mutate = async (studentId: string): Promise<void | T | undefined> => {
+  const mutate = async (studentId: string): Promise<void | ApiResponse<CreateClassResponse> | undefined> => {
     setLoading(true);
 
     return axiosReq
-      .post<T, R>(`${process.env.NEXT_PUBLIC_BASE_URL}/classes/${classId}/students/${studentId}/approve`)
+      .post<ApiResponse<CreateClassResponse>, AxiosResponse<ApiResponse<CreateClassResponse>>>(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/classes/${classId}/students/${studentId}/approve`,
+      )
       .then(async (response) => {
         if (response.status === 201) {
           triggerToast({
@@ -29,7 +27,7 @@ const useApproveStudent = ({ classId }: { classId: string }) => {
           return response.data;
         }
       })
-      .catch((error: E) => {
+      .catch((error: AxiosError<ApiError>) => {
         handleError(error);
       })
       .finally(() => {

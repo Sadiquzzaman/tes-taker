@@ -8,9 +8,7 @@ const removeSubject = (state: CreateTestState, action: PayloadAction<string>) =>
   }
 
   const removedSubject = state.subjects[removedSubjectIndex];
-  const removedQuestionIds = new Set(
-    removedSubject.questionSections.flatMap((section) => section.questions.map((question) => question.id)),
-  );
+  const removedQuestionIds = new Set(removedSubject.questions.map((question) => question.id));
 
   state.subjects.splice(removedSubjectIndex, 1);
 

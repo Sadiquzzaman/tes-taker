@@ -1,31 +1,30 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { QuestionPayload } from "./createTestActionPayloads";
+import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
 import {
   createId,
-  findSubjectSection,
+  findSubjectQuestion,
   focusQuestion,
   getFirstInvalidQuestion,
-  showSectionValidationErrors,
+  showQuestionValidationErrors,
+  syncSubjectType,
 } from "./createTestDomain";
 
 const duplicateQuestion = (state: CreateTestState, action: PayloadAction<QuestionPayload>) => {
-  const { section, subject } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
+  const { question: target, subject } = findSubjectQuestion(
+    state.subjects,
+    action.payload.subjectId,
+    action.payload.questionId,
+  );
 
-  if (!section || !subject) {
+  if (!target || !subject) {
     return;
   }
 
-  const target = section.questions.find((question) => question.id === action.payload.questionId);
-
-  if (!target) {
-    return;
-  }
-
-  const invalidQuestion = getFirstInvalidQuestion(section);
+  const invalidQuestion = getFirstInvalidQuestion(subject.questions);
 
   if (invalidQuestion) {
-    showSectionValidationErrors(section);
-    focusQuestion(state, subject.id, section.id, invalidQuestion.id);
+    showQuestionValidationErrors(subject.questions);
+    focusQuestion(state, subject.id, invalidQuestion.id);
     return;
   }
 
@@ -39,22 +38,32 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
       id: newId,
     };
   });
+  const optionRules = getCreateTestQuestionOptionRules(target.type, target.subType);
+  const answer =
+    target.answer?.type === "optionId"
+      ? {
+          type: "optionId" as const,
+          value: target.answer.value.map((optionId) => optionIdMap.get(optionId)).filter(Boolean) as string[],
+        }
+      : target.answer
+        ? {
+            type: "text" as const,
+            value: [...target.answer.value],
+          }
+        : undefined;
 
   const duplicatedQuestion: QuestionItem = {
     ...target,
     id: createId(),
-    ...(section.type === "objective"
-      ? {
-          options: clonedOptions,
-          correctOptionId: target.correctOptionId ? optionIdMap.get(target.correctOptionId) || null : null,
-        }
-      : { options: undefined, correctOptionId: undefined }),
+    answer,
+    ...(optionRules ? { options: clonedOptions } : { options: undefined }),
     showValidation: false,
   };
 
-  const index = section.questions.findIndex((question) => question.id === action.payload.questionId);
-  section.questions.splice(index + 1, 0, duplicatedQuestion);
-  focusQuestion(state, subject.id, section.id, duplicatedQuestion.id);
+  const index = subject.questions.findIndex((question) => question.id === action.payload.questionId);
+  subject.questions.splice(index + 1, 0, duplicatedQuestion);
+  syncSubjectType(subject);
+  focusQuestion(state, subject.id, duplicatedQuestion.id);
 };
 
 export default duplicateQuestion;

@@ -1,15 +1,6 @@
 import { testsTabList } from "@/utils/testsTabList";
 import { createSlice } from "@reduxjs/toolkit";
 
-interface TestSliceState {
-  activeTab: {
-    name: string;
-    value: string;
-  };
-  searchInput: string;
-  newTestCreated: NewTestShareData | null;
-}
-
 const initialState: TestSliceState = {
   activeTab: testsTabList[0],
   searchInput: "",

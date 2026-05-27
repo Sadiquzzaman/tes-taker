@@ -7,23 +7,17 @@ import GmailImage from "@/public/assets/image/share_modal/gmail.png";
 import TelegramImage from "@/public/assets/image/share_modal/telegram2.png";
 import LinkedInImage from "@/public/assets/image/share_modal/Linkedin.png";
 import { useToast } from "../Toast/ToastContext";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import dayjs from "dayjs";
-
-type ShareTestModalProps = {
-  open: boolean;
-  setOpen: () => void;
-  testData: NewTestShareData;
-};
 
 const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
   const { triggerToast } = useToast();
-  const [testLink, setTestLink] = useState("");
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && testData.test.id) {
-      setTestLink(`${window.location.origin}/join/test/${testData.test.id}`);
+  const testLink = useMemo(() => {
+    if (typeof window === "undefined" || !testData.test.id) {
+      return "";
     }
+
+    return `${window.location.origin}/join/test/${testData.test.id}`;
   }, [testData.test.id]);
 
   const handleClose = () => {

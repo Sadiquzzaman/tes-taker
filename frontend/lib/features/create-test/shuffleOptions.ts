@@ -1,17 +1,12 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { QuestionPayload } from "./createTestActionPayloads";
-import { findSubjectSection } from "./createTestDomain";
+import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
+import { findSubjectQuestion } from "./createTestDomain";
 
 const shuffleOptions = (state: CreateTestState, action: PayloadAction<QuestionPayload>) => {
-  const { section } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
+  const { question } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
+  const optionRules = question ? getCreateTestQuestionOptionRules(question.type, question.subType) : null;
 
-  if (!section || section.type !== "objective") {
-    return;
-  }
-
-  const question = section.questions.find((entry) => entry.id === action.payload.questionId);
-
-  if (!question?.options) {
+  if (!question?.options || !optionRules?.canShuffleOptions) {
     return;
   }
 

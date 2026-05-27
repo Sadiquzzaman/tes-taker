@@ -1,13 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-type SubjectCatalogState = {
-  subjects: Array<{
-    id: string;
-    name: string;
-    value: string;
-  }>;
-};
-
 const initialState: SubjectCatalogState = {
   subjects: [],
 };

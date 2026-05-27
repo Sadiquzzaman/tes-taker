@@ -31,11 +31,11 @@ import startDraggingReducer from "./create-test/startDragging";
 import updateDraggingReducer from "./create-test/updateDragging";
 import updateOptionImageReducer from "./create-test/updateOptionImage";
 import updateOptionTextReducer from "./create-test/updateOptionText";
+import updateQuestionAnswerValueReducer from "./create-test/updateQuestionAnswerValue";
 import updateQuestionImageReducer from "./create-test/updateQuestionImage";
 import updateQuestionInstructionReducer from "./create-test/updateQuestionInstruction";
 import updateQuestionPointsReducer from "./create-test/updateQuestionPoints";
 import updateQuestionTextReducer from "./create-test/updateQuestionText";
-import updateSectionInstructionReducer from "./create-test/updateSectionInstruction";
 
 const initialState: CreateTestState = createInitialState();
 
@@ -57,6 +57,7 @@ export const createTestSlice = createSlice({
     shuffleOptions: shuffleOptionsReducer,
     updateQuestionText: updateQuestionTextReducer,
     updateQuestionInstruction: updateQuestionInstructionReducer,
+    updateQuestionAnswerValue: updateQuestionAnswerValueReducer,
     updateQuestionImage: updateQuestionImageReducer,
     updateOptionText: updateOptionTextReducer,
     updateOptionImage: updateOptionImageReducer,
@@ -69,7 +70,6 @@ export const createTestSlice = createSlice({
     setActiveQuestionId: setActiveQuestionIdReducer,
     clearPendingFocusQuestionId: clearPendingFocusQuestionIdReducer,
     clearPendingFocusOption: clearPendingFocusOptionReducer,
-    updateSectionInstruction: updateSectionInstructionReducer,
     startDragging: startDraggingReducer,
     updateDragging: updateDraggingReducer,
     finishDragging: finishDraggingReducer,
@@ -109,6 +109,7 @@ export const {
   updateOptionImage,
   updateDragging,
   updateOptionText,
+  updateQuestionAnswerValue,
   updateQuestionImage,
   updateQuestionPoints,
   updateQuestionText,
@@ -118,7 +119,6 @@ export const {
   addExcludedStudent,
   removeExcludedStudent,
   updateQuestionInstruction,
-  updateSectionInstruction,
 } = createTestSlice.actions;
 
 export default createTestSlice.reducer;

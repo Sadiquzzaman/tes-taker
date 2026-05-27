@@ -1,12 +1,5 @@
 import ParticipantIconSVG from "../svg/ParticipantIconSVG";
 
-interface GradeDetailsStatsProps {
-  totalStudents: number;
-  submissions: number;
-  pendingCount: number;
-  gradedCount: number;
-}
-
 const GradeDetailsStats = ({ gradedCount, pendingCount, submissions, totalStudents }: GradeDetailsStatsProps) => {
   const stats = [
     { label: "Total students", value: totalStudents },

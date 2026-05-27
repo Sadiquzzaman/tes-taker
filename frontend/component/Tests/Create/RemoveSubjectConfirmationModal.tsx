@@ -1,12 +1,5 @@
 import CreateModal from "./CreateModal";
 
-type RemoveSubjectConfirmationModalProps = {
-  open: boolean;
-  subjectName: string;
-  onClose: () => void;
-  onConfirm: () => void;
-};
-
 const RemoveSubjectConfirmationModal = ({
   open,
   subjectName,

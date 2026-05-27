@@ -4,10 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useApiError } from "../useApiError";
 import { useRouter } from "next/navigation";
 
-type T = ApiResponse<ITest>;
-type R = AxiosResponse<T>;
-type E = AxiosError<ApiError>;
-
 const useStudentExam = () => {
   const router = useRouter();
   const { handleError } = useApiError();
@@ -20,13 +16,15 @@ const useStudentExam = () => {
       setLoading(true);
 
       return axiosReq
-        .get<T, R>(`${process.env.NEXT_PUBLIC_BASE_URL}/exams/${examId}`)
+        .get<ApiResponse<ITest>, AxiosResponse<ApiResponse<ITest>>>(
+          `${process.env.NEXT_PUBLIC_BASE_URL}/exams/${examId}`,
+        )
         .then((response) => {
           if (response.status === 200) {
             setExamData(response.data.payload);
           }
         })
-        .catch((error: E) => {
+        .catch((error: AxiosError<ApiError>) => {
           setExamData(null);
           handleError(error);
         })
@@ -40,12 +38,20 @@ const useStudentExam = () => {
 
   useEffect(() => {
     const testId = sessionStorage.getItem("testId");
+
     if (!testId) {
       router.push("/");
-    } else {
-      fetch(testId);
+      return;
     }
-  }, [fetch]);
+
+    const timerId = window.setTimeout(() => {
+      void fetch(testId);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [fetch, router]);
 
   return { loading, apiComplete, examData, fetch } as const;
 };

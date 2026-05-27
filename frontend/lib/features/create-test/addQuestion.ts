@@ -1,32 +1,37 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { SubjectSectionPayload } from "./createTestActionPayloads";
 import {
   createQuestion,
-  findSubjectSection,
+  findSubjectById,
   focusQuestion,
   getFirstInvalidQuestion,
-  showSectionValidationErrors,
+  showQuestionValidationErrors,
+  syncSubjectType,
 } from "./createTestDomain";
 
-const addQuestion = (state: CreateTestState, action: PayloadAction<SubjectSectionPayload>) => {
-  const { section, subject } = findSubjectSection(state.subjects, action.payload.subjectId, action.payload.sectionId);
+const addQuestion = (state: CreateTestState, action: PayloadAction<SubjectQuestionTypePayload>) => {
+  const subject = findSubjectById(state.subjects, action.payload.subjectId);
 
-  if (!section || !subject) {
+  if (!subject) {
     return;
   }
 
-  const invalidQuestion = getFirstInvalidQuestion(section);
+  const invalidQuestion = getFirstInvalidQuestion(subject.questions);
 
   if (invalidQuestion) {
-    showSectionValidationErrors(section);
-    focusQuestion(state, subject.id, section.id, invalidQuestion.id);
+    showQuestionValidationErrors(subject.questions);
+    focusQuestion(state, subject.id, invalidQuestion.id);
     return;
   }
 
-  const nextQuestion = createQuestion(section.type);
+  const nextQuestion = createQuestion(action.payload.questionType, action.payload.subType);
 
-  section.questions.push(nextQuestion);
-  focusQuestion(state, subject.id, section.id, nextQuestion.id);
+  if (!nextQuestion) {
+    return;
+  }
+
+  subject.questions.push(nextQuestion);
+  syncSubjectType(subject);
+  focusQuestion(state, subject.id, nextQuestion.id);
 };
 
 export default addQuestion;

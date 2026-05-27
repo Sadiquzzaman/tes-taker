@@ -4,15 +4,6 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import AddQuestionSubjectModal from "./AddQuestionSubjectModal";
 import RemoveSubjectConfirmationModal from "./RemoveSubjectConfirmationModal";
 
-type QuestionSubjectTabsProps = {
-  subjects: SubjectItem[];
-  activeSubjectId: string | null;
-  availableSubjectOptions: Array<{ id: string; label: string; value: string }>;
-  onSelectSubject: (subjectId: string) => void;
-  onAddSubject: (subject: { id: string; label: string; value: string }) => void;
-  onRemoveSubject: (subjectId: string) => void;
-};
-
 const QuestionSubjectTabs = memo(
   ({
     subjects,

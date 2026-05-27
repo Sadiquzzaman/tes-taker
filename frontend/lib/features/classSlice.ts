@@ -1,17 +1,6 @@
 import { classTabList } from "@/utils/classes/classTabList";
 import { createSlice } from "@reduxjs/toolkit";
 
-interface ClassSliceState {
-  activeTab: {
-    name: string;
-    value: string;
-  };
-  searchInput: string;
-  newClassCreated: CreateClassResponse | null;
-  openAddStudentModal: Class | null;
-  openShareClassModal: Class | null;
-}
-
 const initialState: ClassSliceState = {
   activeTab: classTabList[1],
   searchInput: "",
