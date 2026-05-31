@@ -1,22 +1,10 @@
 "use client";
 
-import useClassList from "@/hooks/classes/useClassList";
-import ClassCard from "./ClassCard";
-import AddStudentModal from "./AddStudentModal";
-import ShareClassModal from "./ShareClassModal";
+import StudentClassList from "./StudentClassList";
+import TeacherClassList from "./TeacherClassList";
 
-const ClassList = () => {
-  const { fetch, filteredClassList } = useClassList();
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-4">
-      {filteredClassList.map((classItem, index) => (
-        <ClassCard key={classItem.id} classItem={classItem} index={index} />
-      ))}
-      <AddStudentModal fetchClassDetails={fetch} />
-      <ShareClassModal />
-    </div>
-  );
+const ClassList = ({ role }: ClassListProps) => {
+  return role === "TEACHER" ? <TeacherClassList /> : <StudentClassList />;
 };
 
 export default ClassList;

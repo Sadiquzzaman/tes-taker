@@ -50,6 +50,14 @@ interface Class {
   type?: "new" | "existing";
 }
 
+interface StudentClass {
+  id: string;
+  class_name: string;
+  description: string;
+  created_user_name: string;
+  joined_at: string;
+}
+
 interface ClassStudent {
   id: string;
   is_active: number;
@@ -80,9 +88,13 @@ interface AddStudentInClassPayload {
   students: string[];
 }
 
-interface ClassCardProps {
-  classItem: Class;
+interface ClassCardProps<T> {
+  classItem: T;
   index: number;
+}
+
+interface ClassListProps {
+  role: RoleUserType | undefined;
 }
 
 interface ClassSliceState {

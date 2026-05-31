@@ -3,16 +3,21 @@
 import { setActiveTab, setSearchInput } from "@/lib/features/classSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { classTabList } from "@/utils/classes/classTabList";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import ClassSortSVG from "../svg/ClassSortSvg";
 import NormalInput from "@/Ui/NormalInput";
 import Link from "next/link";
 import ShareClassModal from "./ShareClassModal";
 import CreateActionPlusIconSVG from "../svg/CreateActionPlusIconSVG";
 
-const ClassesNameSection = () => {
+interface ClassesNameSectionProps {
+  role: RoleUserType | undefined;
+}
+
+const ClassesNameSection = ({ role }: ClassesNameSectionProps) => {
   const { activeTab, searchInput } = useAppSelector((state) => state.class);
   const dispatch = useAppDispatch();
+  const shouldShowCreateClassButton = role === "TEACHER";
 
   return (
     <div className="mb-2 sm:mb-4 flex flex-col gap-2 sm:gap-4 min-h-[40px]">
@@ -21,14 +26,16 @@ const ClassesNameSection = () => {
           <p className="font-[500] text-[#232A25]">Classes</p>
         </div>
 
-        <div className="flex justify-end items-center gap-2 h-[40px]">
-          <Link href="/classes/create">
-            <button className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] sm:h-[40px] bg-[#232A25] rounded-xl font-[500] text-white font-medium text-[12px] sm:text-[14px]">
-              <CreateActionPlusIconSVG className="size-4 text-white" />
-              <span className="capitalize mb-[2px]">Create Class</span>
-            </button>
-          </Link>
-        </div>
+        {shouldShowCreateClassButton && (
+          <div className="flex justify-end items-center gap-2 h-[40px]">
+            <Link href="/classes/create">
+              <button className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] sm:h-[40px] bg-[#232A25] rounded-xl font-[500] text-white font-medium text-[12px] sm:text-[14px]">
+                <CreateActionPlusIconSVG className="size-4 text-white" />
+                <span className="capitalize mb-[2px]">Create Class</span>
+              </button>
+            </Link>
+          </div>
+        )}
       </div>
       <div className="flex flex-col sm:flex-row justify-start sm:justify-between items-start sm:items-center w-full min-h-10 mb-2">
         <div className="flex w-fit rounded-md bg-gray-100 p-0.5">
