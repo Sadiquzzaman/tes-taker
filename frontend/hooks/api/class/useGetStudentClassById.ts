@@ -1,17 +1,16 @@
+import { useToast } from "@/component/Toast/ToastContext";
 import axiosReq from "@/lib/axios";
 import { AxiosError, AxiosResponse } from "axios";
 import { useCallback, useEffect, useState } from "react";
-import { useApiError } from "../useApiError";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/component/Toast/ToastContext";
+import { useApiError } from "../useApiError";
 
-const useGetAllClassById = ({ id, enabled = true }: { id: string; enabled?: boolean }) => {
+const useGetStudentClassById = ({ id, enabled = true }: { id: string; enabled?: boolean }) => {
   const { handleError } = useApiError();
   const router = useRouter();
   const { triggerToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [apiComplete, setApiComplete] = useState(false);
-
   const [classData, setClassData] = useState<ClassDetailsData | null>(null);
 
   const fetch = useCallback(async () => {
@@ -27,12 +26,20 @@ const useGetAllClassById = ({ id, enabled = true }: { id: string; enabled?: bool
     setLoading(true);
 
     return axiosReq
-      .get<ApiResponse<CreateClassResponse>, AxiosResponse<ApiResponse<CreateClassResponse>>>(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/classes/${id}`,
+      .get<ApiResponse<StudentClassDetailsResponse>, AxiosResponse<ApiResponse<StudentClassDetailsResponse>>>(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/student/classes/${id}`,
       )
       .then(async (response) => {
         if (response.status === 200) {
-          setClassData(response.data.payload);
+          setClassData({
+            id: response.data.payload.id,
+            class_name: response.data.payload.class_name,
+            description: response.data.payload.description,
+            created_user_name: response.data.payload.created_user_name,
+            classStudents: response.data.payload.classmates ?? [],
+            joined_at: response.data.payload.joined_at,
+            type: "existing",
+          });
         }
       })
       .catch((error: AxiosError<ApiError>) => {
@@ -70,4 +77,4 @@ const useGetAllClassById = ({ id, enabled = true }: { id: string; enabled?: bool
   return { loading, classData, fetch, apiComplete } as const;
 };
 
-export default useGetAllClassById;
+export default useGetStudentClassById;

@@ -9,9 +9,9 @@ import ClassStudent from "./ClassStudent";
 import ClassTests from "./ClassTests";
 import ShareClassModal from "./ShareClassModal";
 
-const ClassDetailsComponent = ({ classId }: { classId: string }) => {
+const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleUserType | undefined }) => {
   const { loading, classData, fetch, apiComplete, testList, activeTab, setActiveTab, handleShareClass } =
-    useClassDetails(classId);
+    useClassDetails(classId, role);
 
   if (loading) {
     return (

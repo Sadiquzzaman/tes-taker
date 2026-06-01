@@ -58,6 +58,20 @@ interface StudentClass {
   joined_at: string;
 }
 
+interface StudentClassDetailsResponse extends StudentClass {
+  classmates: ClassStudent[];
+}
+
+interface ClassDetailsData {
+  id: string;
+  class_name: string;
+  description: string;
+  created_user_name: string;
+  classStudents: ClassStudent[];
+  joined_at?: string;
+  type?: "new" | "existing";
+}
+
 interface ClassStudent {
   id: string;
   is_active: number;

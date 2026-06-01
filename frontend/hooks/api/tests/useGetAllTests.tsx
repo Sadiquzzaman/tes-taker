@@ -6,13 +6,17 @@ import { useApiError } from "../useApiError";
 // without class id it will fetch all tests
 // and with class id it will fetch tests of that class only
 
-const useGetAllTests = ({ classId = "" }: { classId?: string }) => {
+const useGetAllTests = ({ classId = "", enabled = true }: { classId?: string; enabled?: boolean }) => {
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
   const [apiComplete, setApiComplete] = useState(false);
   const [testList, setTestList] = useState<ITest[]>([]);
 
   const fetch = useCallback(async () => {
+    if (!enabled) {
+      return;
+    }
+
     setLoading(true);
 
     return axiosReq
@@ -31,9 +35,13 @@ const useGetAllTests = ({ classId = "" }: { classId?: string }) => {
         setLoading(false);
         setApiComplete(true);
       });
-  }, [classId, handleError]);
+  }, [classId, enabled, handleError]);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const timerId = window.setTimeout(() => {
       void fetch();
     }, 0);
@@ -41,9 +49,14 @@ const useGetAllTests = ({ classId = "" }: { classId?: string }) => {
     return () => {
       window.clearTimeout(timerId);
     };
-  }, [fetch]);
+  }, [enabled, fetch]);
 
-  return { loading, testList, fetch, apiComplete } as const;
+  return {
+    loading: enabled ? loading : false,
+    testList: enabled ? testList : [],
+    fetch,
+    apiComplete: enabled ? apiComplete : true,
+  } as const;
 };
 
 export default useGetAllTests;
