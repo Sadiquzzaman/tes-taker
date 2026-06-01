@@ -2,7 +2,7 @@ import Header from "../Dashboard/Header";
 import NameSection from "../Dashboard/NameSection";
 import Sidebar from "../Dashboard/Sidebar";
 
-const PageLayout = ({ children, route, subText }: { children: React.ReactNode; route: string; subText?: string }) => {
+const PageLayout = ({ children, route="", subText }: { children: React.ReactNode; route?: string; subText?: string }) => {
   return (
     <div className="flex flex-row h-screen bg-[#EFF0F3] overflow-y-auto">
       <Sidebar activeRoute={route} />
