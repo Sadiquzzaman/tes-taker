@@ -84,7 +84,7 @@ const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleU
       <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 flex flex-col gap-6 min-h-[calc(100vh-300px)]">
         <div className="p-2 sm:p-4 bg-white rounded-[8px] h-full">
           {activeTab.value === "student" && (
-            <ClassStudent classId={classId} student={classData?.classStudents || []} fetch={fetch} />
+            <ClassStudent classId={classId} student={classData?.classStudents || []} fetch={fetch} role={role} />
           )}
           {activeTab.value === "tests" && <ClassTests testList={testList} />}
         </div>

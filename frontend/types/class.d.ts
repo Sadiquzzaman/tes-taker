@@ -59,15 +59,22 @@ interface StudentClass {
 }
 
 interface StudentClassDetailsResponse extends StudentClass {
-  classmates: ClassStudent[];
+  classmates: StudentClassmate[];
 }
+
+interface StudentClassmate {
+  name: string;
+  joined_at: string;
+}
+
+type ClassDetailsStudentItem = ClassStudent | StudentClassmate;
 
 interface ClassDetailsData {
   id: string;
   class_name: string;
   description: string;
   created_user_name: string;
-  classStudents: ClassStudent[];
+  classStudents: ClassDetailsStudentItem[];
   joined_at?: string;
   type?: "new" | "existing";
 }
