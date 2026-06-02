@@ -32,8 +32,7 @@ const StudentClassCard = ({ classItem, index }: ClassCardProps<StudentClass>) =>
           {classItem.class_name}
         </p>
         <p className="pb-3 font-[400] text-[12px] leading-[12px] tracking-[-0.02em] text-[#747775]">
-          Joined On -{" "}
-          {classItem.joined_at ? new Date(classItem.joined_at).toLocaleString() : "N/A"}
+          Joined On - {classItem.joined_at ? new Date(classItem.joined_at).toLocaleString() : "N/A"}
         </p>
         <div className="flex justify-between items-center">
           <div className="w-[45%] flex gap-1">

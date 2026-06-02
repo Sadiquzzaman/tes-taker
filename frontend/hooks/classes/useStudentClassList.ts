@@ -9,7 +9,7 @@ export default function useStudentClassList() {
   const dispatch = useAppDispatch();
 
   const normalizedSearchInput = searchInput.toLowerCase();
-  
+
   const filteredClassList = classList.filter(
     (classItem) =>
       classItem.class_name.toLowerCase().includes(normalizedSearchInput) ||
