@@ -1,10 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useAppDispatch } from "@/lib/hooks";
-import { setOpenAddStudentModal, setOpenShareClassModal } from "@/lib/features/classSlice";
-import HumanAddIconSVG from "../svg/HumanAddIconSvg";
+import { setOpenShareClassModal } from "@/lib/features/classSlice";
 import ShareIconSVG from "../svg/ShareIconSVG";
-import ThreeDotIconSVG from "../svg/ThreeDotIconSVG";
 import ClassStudentCardIconSVG from "../svg/ClassStudentCardIconSVG";
 import ClassTestsTakenIconSVG from "../svg/ClassTestsTakenIconSVG";
 
@@ -16,7 +14,7 @@ const ImageList = [
   "/assets/image/classImage/class_default_5.png",
 ];
 
-const ClassCard = ({ classItem, index }: ClassCardProps<Class>) => {
+const StudentClassCard = ({ classItem, index }: ClassCardProps<StudentClass>) => {
   const dispatch = useAppDispatch();
 
   return (
@@ -34,8 +32,7 @@ const ClassCard = ({ classItem, index }: ClassCardProps<Class>) => {
           {classItem.class_name}
         </p>
         <p className="pb-3 font-[400] text-[12px] leading-[12px] tracking-[-0.02em] text-[#747775]">
-          Last quiz taken on -{" "}
-          {classItem.last_test_taken_date ? new Date(classItem.last_test_taken_date).toLocaleString() : "N/A"}
+          Joined On - {classItem.joined_at ? new Date(classItem.joined_at).toLocaleString() : "N/A"}
         </p>
         <div className="flex justify-between items-center">
           <div className="w-[45%] flex gap-1">
@@ -45,7 +42,7 @@ const ClassCard = ({ classItem, index }: ClassCardProps<Class>) => {
             <div>
               <p className="font-[400] text-[12px] leading-[16px] tracking-[-0.01em] text-[#232A25]">Student</p>
               <p className="mt-2 ml-1 font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25]">
-                {classItem.classStudents.length}
+                {/* {classItem.classStudents.length} */}
               </p>
             </div>
           </div>
@@ -56,7 +53,7 @@ const ClassCard = ({ classItem, index }: ClassCardProps<Class>) => {
             <div>
               <p className="font-[400] text-[12px] leading-[16px] tracking-[-0.01em] text-[#232A25]">Tests taken</p>
               <p className="mt-2 ml-1 font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25]">
-                {classItem.total_test_taken}
+                {/* {classItem.total_test_taken} */}
               </p>
             </div>
           </div>
@@ -65,21 +62,11 @@ const ClassCard = ({ classItem, index }: ClassCardProps<Class>) => {
       <div className="w-full h-[64px] flex items-center justify-between p-4 border-t border-[#EFF0F3]">
         <div className="flex items-center gap-2 text-[#747775]">
           <button
-            title="Add Students"
-            className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]"
-            onClick={() => dispatch(setOpenAddStudentModal(classItem))}
-          >
-            <HumanAddIconSVG width={16} />
-          </button>
-          <button
             title="Share Class"
             className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]"
             onClick={() => dispatch(setOpenShareClassModal(classItem))}
           >
             <ShareIconSVG width={16} />
-          </button>
-          <button className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]">
-            <ThreeDotIconSVG width={16} />
           </button>
         </div>
         <Link href={`/classes/details/${classItem.id}`}>
@@ -92,4 +79,4 @@ const ClassCard = ({ classItem, index }: ClassCardProps<Class>) => {
   );
 };
 
-export default ClassCard;
+export default StudentClassCard;

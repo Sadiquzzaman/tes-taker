@@ -1,48 +1,86 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import useRemoveStudentFromClass from "@/hooks/api/class/useRemoveStudentFromClass";
 import useApproveStudent from "@/hooks/api/class/useApproveStudent";
+
+const isTeacherStudent = (item: ClassDetailsStudentItem): item is ClassStudent => "student_id" in item;
+
+const isStudentClassmate = (item: ClassDetailsStudentItem): item is StudentClassmate => "name" in item;
+
+const sortTeacherStudents = (firstItem: ClassStudent, secondItem: ClassStudent) => {
+  if (firstItem.status === secondItem.status) {
+    return 0;
+  }
+
+  return firstItem.status === "JOINED" ? -1 : 1;
+};
 
 export default function useClassStudent({
   student,
   classId,
   fetch,
+  role,
 }: {
-  student: ClassStudent[];
+  student: ClassDetailsStudentItem[];
   classId: string;
   fetch: () => void;
+  role: RoleUserType | undefined;
 }) {
   const [searchStudentInput, setSearchStudentInput] = useState("");
-  const [filteredStudent, setFilteredStudent] = useState<{ pending: ClassStudent[]; active: ClassStudent[] }>({
-    pending: [],
-    active: [],
-  });
 
-  useEffect(() => {
-    if (student.length > 0 && searchStudentInput.trim() === "") {
-      setFilteredStudent({
-        pending: student.filter((item) => item.status === "PENDING"),
-        active: student.filter((item) => item.status !== "PENDING").sort((a, b) => (a.status === "JOINED" ? 0 : 1)),
-      });
-    } else if (student.length > 0 && searchStudentInput.trim() !== "") {
+  const filteredStudent = useMemo<{
+    pending: ClassStudent[];
+    activeStudents: ClassStudent[];
+    classmates: StudentClassmate[];
+  }>(() => {
+    if (role === "TEACHER" && student.length > 0 && searchStudentInput.trim() === "") {
+      const teacherStudents = student.filter(isTeacherStudent);
+
+      return {
+        pending: teacherStudents.filter((item) => item.status === "PENDING"),
+        activeStudents: teacherStudents.filter((item) => item.status !== "PENDING").sort(sortTeacherStudents),
+        classmates: [],
+      };
+    }
+
+    if (role === "TEACHER" && student.length > 0 && searchStudentInput.trim() !== "") {
+      const teacherStudents = student.filter(isTeacherStudent);
       const searchTerm = searchStudentInput.toLowerCase();
-      const filtered = student.filter((item) => {
+      const filtered = teacherStudents.filter((item) => {
         const fullName = item.student?.full_name?.toLowerCase() || "";
         const email = item.student?.email || item.invited_email || "";
         const phone = item.student?.phone || item.invited_phone || "";
 
         return fullName.includes(searchTerm) || email.toLowerCase().includes(searchTerm) || phone.includes(searchTerm);
       });
-      setFilteredStudent({
+
+      return {
         pending: filtered.filter((item) => item.status === "PENDING"),
-        active: filtered.filter((item) => item.status !== "PENDING").sort((a, b) => (a.status === "JOINED" ? -1 : 1)),
-      });
-    } else {
-      setFilteredStudent({
-        pending: [],
-        active: [],
-      });
+        activeStudents: filtered.filter((item) => item.status !== "PENDING").sort(sortTeacherStudents),
+        classmates: [],
+      };
     }
-  }, [student, searchStudentInput]);
+
+    if (role === "STUDENT" && student.length > 0) {
+      const classmateList = student.filter(isStudentClassmate);
+      const searchTerm = searchStudentInput.trim().toLowerCase();
+      const filteredClassmates =
+        searchTerm === ""
+          ? classmateList
+          : classmateList.filter((item) => item.name.toLowerCase().includes(searchTerm));
+
+      return {
+        pending: [],
+        activeStudents: [],
+        classmates: filteredClassmates,
+      };
+    }
+
+    return {
+      pending: [],
+      activeStudents: [],
+      classmates: [],
+    };
+  }, [role, searchStudentInput, student]);
 
   const [removeStudentFromClass] = useRemoveStudentFromClass({ classId });
   const [approveStudent] = useApproveStudent({ classId });

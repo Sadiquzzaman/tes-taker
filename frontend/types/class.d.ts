@@ -50,6 +50,35 @@ interface Class {
   type?: "new" | "existing";
 }
 
+interface StudentClass {
+  id: string;
+  class_name: string;
+  description: string;
+  created_user_name: string;
+  joined_at: string;
+}
+
+interface StudentClassDetailsResponse extends StudentClass {
+  classmates: StudentClassmate[];
+}
+
+interface StudentClassmate {
+  name: string;
+  joined_at: string;
+}
+
+type ClassDetailsStudentItem = ClassStudent | StudentClassmate;
+
+interface ClassDetailsData {
+  id: string;
+  class_name: string;
+  description: string;
+  created_user_name: string;
+  classStudents: ClassDetailsStudentItem[];
+  joined_at?: string;
+  type?: "new" | "existing";
+}
+
 interface ClassStudent {
   id: string;
   is_active: number;
@@ -80,9 +109,13 @@ interface AddStudentInClassPayload {
   students: string[];
 }
 
-interface ClassCardProps {
-  classItem: Class;
+interface ClassCardProps<T> {
+  classItem: T;
   index: number;
+}
+
+interface ClassListProps {
+  role: RoleUserType | undefined;
 }
 
 interface ClassSliceState {
