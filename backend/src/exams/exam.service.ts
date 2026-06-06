@@ -25,6 +25,14 @@ import { RolesEnum } from 'src/common/enums/roles.enum';
 import { SmsService } from 'src/sms/sms.service';
 import { SubjectService } from 'src/subjects/subject.service';
 import { ExamKindEnum, ExamLifecycleStatusEnum, TestAudienceEnum } from './enums/exam-wizard.enums';
+import {
+  ExamSubmissionStatusEnum,
+} from './entities/student-exam-answer.entity';
+
+type ExamListMetrics = {
+  participant_count: number | 'N/A';
+  submitted_count: number;
+};
 
 type WizardSectionType = 'objective' | 'essay' | 'mixed';
 type ExamQuestionResponse = {
@@ -634,7 +642,11 @@ export class ExamService {
       ],
       order: { created_at: 'DESC' },
     });
-    return exams.map((exam) => this.formatExamResponse(exam, { includeCorrectAnswers: true }));
+    const metrics = await this.loadExamListMetrics(exams);
+    return exams.map((exam) => ({
+      ...this.formatExamResponse(exam, { includeCorrectAnswers: true }),
+      ...metrics.get(exam.id)!,
+    }));
   }
 
   async findAllAdmin(): Promise<any[]> {
@@ -668,7 +680,11 @@ export class ExamService {
       ],
       order: { created_at: 'DESC' },
     });
-    return exams.map((exam) => this.formatExamResponse(exam, { includeCorrectAnswers: true }));
+    const metrics = await this.loadExamListMetrics(exams);
+    return exams.map((exam) => ({
+      ...this.formatExamResponse(exam, { includeCorrectAnswers: true }),
+      ...metrics.get(exam.id)!,
+    }));
   }
 
   async findOne(id: string, jwtPayload: JwtPayloadInterface): Promise<any> {
@@ -808,26 +824,139 @@ export class ExamService {
       .getMany();
     targetExams.forEach((e) => byId.set(e.id, e));
 
-    return Array.from(byId.values())
-      .sort(
-        (a, b) =>
-          new Date(b.exam_start_time).getTime() - new Date(a.exam_start_time).getTime(),
-      )
-      .map((exam) => ({
-        id: exam.id,
-        test_name: exam.test_name,
-        subject: exam.test_name || exam.subject,
-        exam_type: this.resolveResponseExamType(exam),
-        exam_kind: exam.exam_kind,
-        test_audience: exam.test_audience,
-        duration_minutes: exam.duration_minutes,
-        exam_start_time: exam.exam_start_time,
-        exam_end_time: exam.exam_end_time,
-        class_id: exam.class_id,
-        class_name: exam.class?.class_name ?? null,
-        created_user_name: exam.created_user_name ?? null,
-        status: this.computeExamLifecycleStatus(exam.exam_start_time, exam.exam_end_time),
-      }));
+    const exams = Array.from(byId.values()).sort(
+      (a, b) =>
+        new Date(b.exam_start_time).getTime() - new Date(a.exam_start_time).getTime(),
+    );
+
+    const metrics = await this.loadExamListMetrics(exams);
+
+    return exams.map((exam) => ({
+      id: exam.id,
+      test_name: exam.test_name,
+      subject: exam.test_name || exam.subject,
+      exam_type: this.resolveResponseExamType(exam),
+      exam_kind: exam.exam_kind,
+      test_audience: exam.test_audience,
+      duration_minutes: exam.duration_minutes,
+      exam_start_time: exam.exam_start_time,
+      exam_end_time: exam.exam_end_time,
+      class_id: exam.class_id,
+      class_name: exam.class?.class_name ?? null,
+      created_user_name: exam.created_user_name ?? null,
+      status: this.computeExamLifecycleStatus(exam.exam_start_time, exam.exam_end_time),
+      participant_count: metrics.get(exam.id)!.participant_count,
+      submitted_count: metrics.get(exam.id)!.submitted_count,
+    }));
+  }
+
+  /**
+   * Batch participant/submission counts for exam list endpoints (avoids N+1).
+   * - anyone: participant_count = "N/A"
+   * - selected_class: joined students in class minus excluded for that exam
+   * - specific_students: count of target_students rows
+   */
+  private async loadExamListMetrics(exams: ExamEntity[]): Promise<Map<string, ExamListMetrics>> {
+    const out = new Map<string, ExamListMetrics>();
+    if (exams.length === 0) {
+      return out;
+    }
+
+    const examIds = exams.map((e) => e.id);
+
+    const submittedRows = await this.dataSource
+      .createQueryBuilder()
+      .select('submission.exam_id', 'exam_id')
+      .addSelect('COUNT(DISTINCT submission.student_id)', 'cnt')
+      .from('student_exam_submissions', 'submission')
+      .where('submission.exam_id IN (:...examIds)', { examIds })
+      .andWhere('submission.status IN (:...statuses)', {
+        statuses: [ExamSubmissionStatusEnum.SUBMITTED, ExamSubmissionStatusEnum.AUTO_SUBMITTED],
+      })
+      .groupBy('submission.exam_id')
+      .getRawMany<{ exam_id: string; cnt: string }>();
+
+    const submittedByExam = new Map(
+      submittedRows.map((r) => [r.exam_id, Number(r.cnt) || 0]),
+    );
+
+    const classIds = [
+      ...new Set(
+        exams
+          .filter(
+            (e) =>
+              e.test_audience === TestAudienceEnum.SELECTED_CLASS && e.class_id != null,
+          )
+          .map((e) => e.class_id as string),
+      ),
+    ];
+
+    const joinedByClass = new Map<string, number>();
+    if (classIds.length > 0) {
+      const joinedRows = await this.classStudentRepo
+        .createQueryBuilder('cs')
+        .select('cs.class_id', 'class_id')
+        .addSelect('COUNT(*)', 'cnt')
+        .where('cs.class_id IN (:...classIds)', { classIds })
+        .andWhere('cs.status = :status', { status: ClassStudentStatusEnum.JOINED })
+        .andWhere('cs.student_id IS NOT NULL')
+        .groupBy('cs.class_id')
+        .getRawMany<{ class_id: string; cnt: string }>();
+      joinedRows.forEach((r) => joinedByClass.set(r.class_id, Number(r.cnt) || 0));
+    }
+
+    const excludedRows = await this.dataSource
+      .createQueryBuilder()
+      .select('ees.exam_id', 'exam_id')
+      .addSelect('COUNT(*)', 'cnt')
+      .from('exam_excluded_students', 'ees')
+      .where('ees.exam_id IN (:...examIds)', { examIds })
+      .groupBy('ees.exam_id')
+      .getRawMany<{ exam_id: string; cnt: string }>();
+
+    const excludedByExam = new Map(
+      excludedRows.map((r) => [r.exam_id, Number(r.cnt) || 0]),
+    );
+
+    const specificExamIds = exams
+      .filter((e) => e.test_audience === TestAudienceEnum.SPECIFIC_STUDENTS)
+      .map((e) => e.id);
+
+    const targetByExam = new Map<string, number>();
+    if (specificExamIds.length > 0) {
+      const targetRows = await this.dataSource
+        .createQueryBuilder()
+        .select('ets.exam_id', 'exam_id')
+        .addSelect('COUNT(*)', 'cnt')
+        .from('exam_target_students', 'ets')
+        .where('ets.exam_id IN (:...examIds)', { examIds: specificExamIds })
+        .groupBy('ets.exam_id')
+        .getRawMany<{ exam_id: string; cnt: string }>();
+      targetRows.forEach((r) => targetByExam.set(r.exam_id, Number(r.cnt) || 0));
+    }
+
+    for (const exam of exams) {
+      const submitted_count = submittedByExam.get(exam.id) ?? 0;
+      let participant_count: number | 'N/A' = 'N/A';
+
+      if (exam.test_audience === TestAudienceEnum.ANYONE) {
+        participant_count = 'N/A';
+      } else if (
+        exam.test_audience === TestAudienceEnum.SELECTED_CLASS &&
+        exam.class_id
+      ) {
+        const joined = joinedByClass.get(exam.class_id) ?? 0;
+        const excluded = excludedByExam.get(exam.id) ?? 0;
+        participant_count = Math.max(0, joined - excluded);
+      } else if (exam.test_audience === TestAudienceEnum.SPECIFIC_STUDENTS) {
+        participant_count =
+          targetByExam.get(exam.id) ?? exam.target_students?.length ?? 0;
+      }
+
+      out.set(exam.id, { participant_count, submitted_count });
+    }
+
+    return out;
   }
 
   private async isStudentInClassForExam(

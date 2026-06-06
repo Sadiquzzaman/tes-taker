@@ -17,7 +17,6 @@ import { ExamEntity } from 'src/exams/entities/exam.entity';
       ClassEntity,
       ClassStudentEntity,
       UserEntity,
-      StudentExamSubmissionEntity,
       ExamEntity,
     ]),
     EmailModule,

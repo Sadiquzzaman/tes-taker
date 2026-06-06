@@ -29,9 +29,10 @@ export class ClassEntity extends CustomBaseEntity {
   classStudents: ClassStudentEntity[];
 
   // Computed properties (not stored in DB, computed in service)
-  @ApiPropertyOptional({ description: 'Number of tests (exams) created for this class' })
-  test_count?: number;
-  @ApiPropertyOptional({ description: 'Total completed test submissions across all exams in this class' })
+  @ApiPropertyOptional({
+    description: 'Number of exams already conducted for this class (exam_end_time in the past)',
+  })
   total_test_taken?: number;
+  @ApiPropertyOptional({ description: 'Most recent conducted exam end time for this class' })
   last_test_taken_date?: Date | null;
 }

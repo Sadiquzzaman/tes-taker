@@ -19,7 +19,6 @@ export type ClassPublicSummary = {
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { EmailService } from 'src/email/email.service';
 import { SmsService } from 'src/sms/sms.service';
-import { StudentExamSubmissionEntity, ExamSubmissionStatusEnum } from 'src/exams/entities/student-exam-answer.entity';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
 import { randomUUID } from 'crypto';
 
@@ -32,8 +31,6 @@ export class ClassService {
     private readonly classStudentRepo: Repository<ClassStudentEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
-    @InjectRepository(StudentExamSubmissionEntity)
-    private readonly submissionRepo: Repository<StudentExamSubmissionEntity>,
     @InjectRepository(ExamEntity)
     private readonly examRepo: Repository<ExamEntity>,
     private readonly emailService: EmailService,
@@ -91,10 +88,8 @@ export class ClassService {
       order: { created_at: 'DESC' },
     });
 
-    // Add test statistics
-    for (const classEntity of classes) {
-      await this.addTestStatistics(classEntity);
-    }
+    // Past-exam statistics (batch, avoids N+1)
+    await this.attachConductedExamStatistics(classes);
 
     return classes;
   }
@@ -148,44 +143,49 @@ export class ClassService {
       throw new ForbiddenException('You do not have permission to access this class');
     }
 
-    // Add test statistics (tests created for class + submission stats)
-    await this.addTestStatistics(classEntity);
+    // Conducted-exam statistics for teacher/admin detail view
+    await this.attachConductedExamStatistics([classEntity]);
 
     return classEntity;
   }
 
   /**
-   * Add test statistics to class entity
+   * Count exams that have already been conducted (ended) per class.
+   * Uses exam_end_time < now — future/ongoing exams are excluded.
    */
-  private async addTestStatistics(classEntity: ClassEntity): Promise<void> {
-    // Get all exams (tests) for this class
-    const exams = await this.examRepo.find({
-      where: { class_id: classEntity.id },
-      select: ['id'],
-    });
-
-    classEntity.test_count = exams.length;
-
-    if (exams.length === 0) {
-      classEntity.total_test_taken = 0;
-      classEntity.last_test_taken_date = null;
+  private async attachConductedExamStatistics(classEntities: ClassEntity[]): Promise<void> {
+    if (classEntities.length === 0) {
       return;
     }
 
-    const examIds = exams.map(e => e.id);
+    const classIds = classEntities.map((c) => c.id);
+    const now = new Date();
 
-    // Get all submissions for these exams
-    const submissions = await this.submissionRepo.find({
-      where: {
-        exam_id: In(examIds),
-        status: In([ExamSubmissionStatusEnum.SUBMITTED, ExamSubmissionStatusEnum.AUTO_SUBMITTED]),
-      },
-      select: ['submitted_at'],
-      order: { submitted_at: 'DESC' },
-    });
+    const rows = await this.examRepo
+      .createQueryBuilder('exam')
+      .select('exam.class_id', 'class_id')
+      .addSelect('COUNT(*)', 'conducted_count')
+      .addSelect('MAX(exam.exam_end_time)', 'last_exam_end_time')
+      .where('exam.class_id IN (:...classIds)', { classIds })
+      .andWhere('exam.exam_end_time < :now', { now })
+      .groupBy('exam.class_id')
+      .getRawMany<{ class_id: string; conducted_count: string; last_exam_end_time: Date | null }>();
 
-    classEntity.total_test_taken = submissions.length;
-    classEntity.last_test_taken_date = submissions.length > 0 ? submissions[0].submitted_at : null;
+    const byClassId = new Map(
+      rows.map((r) => [
+        r.class_id,
+        {
+          count: Number(r.conducted_count) || 0,
+          lastEnd: r.last_exam_end_time ? new Date(r.last_exam_end_time) : null,
+        },
+      ]),
+    );
+
+    for (const classEntity of classEntities) {
+      const stats = byClassId.get(classEntity.id);
+      classEntity.total_test_taken = stats?.count ?? 0;
+      classEntity.last_test_taken_date = stats?.lastEnd ?? null;
+    }
   }
 
   /**
@@ -720,6 +720,8 @@ export class ClassService {
       description: string | null;
       created_user_name: string | null;
       joined_at: Date | null;
+      total_test_taken: number;
+      last_test_taken_date: Date | null;
     }>
   > {
     const memberships = await this.classStudentRepo.find({
@@ -727,6 +729,16 @@ export class ClassService {
       relations: ['class', 'class.teacher'],
       order: { joined_at: 'DESC' },
     });
+
+    const classEntities = memberships.map((m) => m.class).filter(Boolean) as ClassEntity[];
+    await this.attachConductedExamStatistics(classEntities);
+
+    const statsByClassId = new Map(
+      classEntities.map((c) => [
+        c.id,
+        { total_test_taken: c.total_test_taken ?? 0, last_test_taken_date: c.last_test_taken_date ?? null },
+      ]),
+    );
 
     return memberships
       .filter((m) => m.class)
@@ -737,6 +749,8 @@ export class ClassService {
         created_user_name:
           m.class.created_user_name ?? m.class.teacher?.full_name ?? null,
         joined_at: m.joined_at ?? null,
+        total_test_taken: statsByClassId.get(m.class.id)?.total_test_taken ?? 0,
+        last_test_taken_date: statsByClassId.get(m.class.id)?.last_test_taken_date ?? null,
       }));
   }
 
