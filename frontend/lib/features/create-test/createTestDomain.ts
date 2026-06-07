@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 import {
   CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
+  CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
   CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
   getCreateTestQuestionAnswerInputMode,
   getCreateTestQuestionAnswerMode,
@@ -11,6 +12,7 @@ import {
 } from "@/utils/createTestOptions";
 
 export const createId = () => uuidv4();
+export const MATCHING_ORDERING_PAIR_DELIMITER = "::";
 
 export const createOption = (text = "", image: string | null = null): QuestionOption => ({
   id: createId(),
@@ -25,6 +27,24 @@ const createOptionIdAnswer = (value: string[] = []): QuestionAnswer => ({
   type: "optionId",
   value,
 });
+
+export const createMatchingOrderingAnswer = (value: string[] = []): QuestionAnswer => ({
+  type: "matchingOrdering",
+  value,
+});
+
+export const buildMatchingOrderingAnswerValue = (matchingOptions: MatchingQuestionOptions): string[] => {
+  return matchingOptions.left.reduce<string[]>((pairs, leftOption, index) => {
+    const rightOption = matchingOptions.right[index];
+
+    if (!rightOption) {
+      return pairs;
+    }
+
+    pairs.push(`${leftOption.id}${MATCHING_ORDERING_PAIR_DELIMITER}${rightOption.id}`);
+    return pairs;
+  }, []);
+};
 
 const createTextAnswer = (supportsAlternativeAnswers: boolean, value: string[] = []): QuestionAnswer => {
   const primaryValue = value[0] ?? "";
@@ -49,6 +69,10 @@ const createQuestionAnswer = (
   const answerMode = getCreateTestQuestionAnswerMode(questionType, subType);
   const answerInputMode = getCreateTestQuestionAnswerInputMode(questionType, subType);
   const supportsAlternativeAnswers = getCreateTestQuestionSupportsAlternativeAnswers(questionType, subType);
+
+  if (questionType === "graded" && subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID) {
+    return createMatchingOrderingAnswer();
+  }
 
   if (answerInputMode === "correct-answer") {
     return createTextAnswer(supportsAlternativeAnswers, supportsAlternativeAnswers ? ["", ""] : [""]);
@@ -120,6 +144,25 @@ export const createQuestion = (questionType: CreateTestQuestionCategory, subType
     return null;
   }
 
+  if (subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID) {
+    return {
+      id: createId(),
+      type: questionType,
+      subType,
+      text: "",
+      instruction: "",
+      image: null,
+      matchingOptions: {
+        left: [],
+        right: [],
+      },
+      answer,
+      options: undefined,
+      points: 2,
+      showValidation: false,
+    };
+  }
+
   const nextQuestion: QuestionItem = {
     id: createId(),
     type: questionType,
@@ -139,6 +182,17 @@ export const createQuestion = (questionType: CreateTestQuestionCategory, subType
 
   return nextQuestion;
 };
+
+const normalizeMatchingOptions = (question: QuestionItem): MatchingQuestionOptions => ({
+  left: (question.matchingOptions?.left ?? []).map((option) => ({
+    ...option,
+    image: null,
+  })),
+  right: (question.matchingOptions?.right ?? []).map((option) => ({
+    ...option,
+    image: null,
+  })),
+});
 
 const normalizeFixedOptions = (question: QuestionItem, subType: string, questionType: CreateTestQuestionCategory) => {
   const optionRules = getCreateTestQuestionOptionRules(questionType, subType);
@@ -174,6 +228,23 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
   const supportsAlternativeAnswers = getCreateTestQuestionSupportsAlternativeAnswers(nextType, nextSubType);
   const optionRules = getCreateTestQuestionOptionRules(nextType, nextSubType);
 
+  if (nextType === "graded" && nextSubType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID) {
+    const matchingOptions = normalizeMatchingOptions(question);
+    const answer =
+      question.answer?.type === "matchingOrdering"
+        ? createMatchingOrderingAnswer(question.answer.value)
+        : createMatchingOrderingAnswer(buildMatchingOrderingAnswerValue(matchingOptions));
+
+    return {
+      ...question,
+      type: nextType,
+      subType: nextSubType,
+      matchingOptions,
+      options: undefined,
+      answer,
+    };
+  }
+
   if (nextType === "graded" && optionRules) {
     const options = optionRules.useFixedOptions
       ? normalizeFixedOptions(question, nextSubType, nextType)
@@ -185,6 +256,7 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
       ...question,
       type: nextType,
       subType: nextSubType,
+      matchingOptions: undefined,
       options,
       answer,
     };
@@ -195,6 +267,7 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
       ...question,
       type: nextType,
       subType: nextSubType,
+      matchingOptions: undefined,
       options: undefined,
       answer: normalizeTextAnswer(legacyQuestion, supportsAlternativeAnswers),
     };
@@ -204,6 +277,7 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
     ...question,
     type: nextType,
     subType: nextSubType,
+    matchingOptions: undefined,
     options: undefined,
     answer: undefined,
   };

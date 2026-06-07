@@ -18,7 +18,14 @@ type QuestionOption = {
   image: string | null;
 };
 
-type QuestionAnswerType = "text" | "optionId";
+type MatchingOptionSide = "left" | "right";
+
+type MatchingQuestionOptions = {
+  left: QuestionOption[];
+  right: QuestionOption[];
+};
+
+type QuestionAnswerType = "text" | "optionId" | "matchingOrdering";
 
 type QuestionAnswer = {
   type: QuestionAnswerType;
@@ -80,6 +87,7 @@ type QuestionItem = {
   text: string;
   instruction: string;
   image: string | null;
+  matchingOptions?: MatchingQuestionOptions;
   options?: QuestionOption[];
   answer?: QuestionAnswer;
   points: number;
@@ -173,6 +181,16 @@ type QuestionAnswerValuePayload = QuestionPayload & {
 
 type OptionPayload = QuestionPayload & {
   optionId: string;
+};
+
+type MatchingPairPayload = QuestionPayload & {
+  pairIndex: number;
+};
+
+type MatchingOptionTextPayload = QuestionPayload & {
+  optionId: string;
+  side: MatchingOptionSide;
+  text: string;
 };
 
 type SetFormFieldPayload = {
@@ -317,6 +335,19 @@ type QuestionCardBodyProps = {
   subjectId: string;
   usesMultipleAnswers: boolean;
   validateImageFile: ValidateImageFile;
+};
+
+type QuestionCardMatchingBodyProps = {
+  activateCard: () => void;
+  canAddMorePairs: boolean;
+  leftOptions: QuestionOption[];
+  maxPairs: number;
+  pendingFocusOptionId: string | null;
+  questionId: string;
+  rightOptions: QuestionOption[];
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+  scrollElementIntoView: ScrollElementIntoView;
+  subjectId: string;
 };
 
 type QuestionCardFooterProps = {

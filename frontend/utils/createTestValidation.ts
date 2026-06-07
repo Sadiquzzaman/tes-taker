@@ -1,4 +1,5 @@
 import {
+  CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
   getCreateTestQuestionAnswerInputMode,
   getCreateTestQuestionAnswerMode,
   getCreateTestQuestionOptionRules,
@@ -9,6 +10,37 @@ const hasTextOrImage = (text: string, image: string | null | undefined) => Boole
 
 const getSubtypeLabel = (question: QuestionItem) =>
   getCreateTestQuestionSubtype(question.type, question.subType)?.label;
+
+const getMatchingOrderingValidationErrors = (question: QuestionItem): string[] => {
+  const errors: string[] = [];
+  const matchingOptions = question.matchingOptions;
+  const leftOptions = matchingOptions?.left ?? [];
+  const rightOptions = matchingOptions?.right ?? [];
+
+  if (
+    leftOptions.length < 2 ||
+    rightOptions.length < 2 ||
+    leftOptions.length > 5 ||
+    rightOptions.length > 5 ||
+    leftOptions.length !== rightOptions.length
+  ) {
+    errors.push("Matching /Ordering questions must have between 2 and 5 pairs.");
+  }
+
+  leftOptions.forEach((option, index) => {
+    if (!option.text.trim()) {
+      errors.push(`Left choice ${index + 1} cannot be empty.`);
+    }
+  });
+
+  rightOptions.forEach((option, index) => {
+    if (!option.text.trim()) {
+      errors.push(`Right choice ${index + 1} cannot be empty.`);
+    }
+  });
+
+  return errors;
+};
 
 const getSubtypeOptionValidationErrors = (question: QuestionItem): string[] => {
   const optionRules = getCreateTestQuestionOptionRules(question.type, question.subType);
@@ -74,8 +106,12 @@ export const getQuestionValidationErrors = (question: QuestionItem): string[] =>
   const errors: string[] = [];
   const answerInputMode = getCreateTestQuestionAnswerInputMode(question.type, question.subType);
   const textAnswerValue = question.answer?.type === "text" ? (question.answer.value[0] ?? "") : "";
+  const isMatchingOrdering =
+    question.type === "graded" && question.subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
 
-  if (!hasTextOrImage(question.text, question.image)) {
+  if (isMatchingOrdering && !question.text.trim()) {
+    errors.push("Add a question title.");
+  } else if (!hasTextOrImage(question.text, question.image)) {
     errors.push("Add a question title or question image.");
   }
 
@@ -87,7 +123,9 @@ export const getQuestionValidationErrors = (question: QuestionItem): string[] =>
     errors.push("Add a correct answer.");
   }
 
-  if (question.type === "graded") {
+  if (isMatchingOrdering) {
+    errors.push(...getMatchingOrderingValidationErrors(question));
+  } else if (question.type === "graded") {
     errors.push(...getSubtypeOptionValidationErrors(question));
   }
 

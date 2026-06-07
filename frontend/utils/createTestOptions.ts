@@ -13,6 +13,7 @@ export const CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID = "multiple-choice";
 export const CREATE_TEST_GRADED_MULTIPLE_RESPONSE_SUBTYPE_ID = "multiple-response";
 export const CREATE_TEST_GRADED_TRUE_FALSE_SUBTYPE_ID = "true-false";
 export const CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID = "fill-in-the-blanks";
+export const CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID = "matching-ordering";
 export const CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID = "essay";
 export const CREATE_TEST_UNGRADED_FILL_IN_THE_GAPS_SUBTYPE_ID = "fill-in-the-gaps";
 
@@ -43,6 +44,18 @@ const createFixedOptionRules = (
   maxOptions: fixedOptions.length,
   minOptions: fixedOptions.length,
   useFixedOptions: true,
+});
+
+const createMatchingOrderingOptionRules = (): CreateTestQuestionOptionRules => ({
+  canAddOptions: true,
+  canEditOptionImage: false,
+  canEditOptionText: true,
+  canRemoveOptions: true,
+  canShuffleOptions: false,
+  fixedOptions: [],
+  maxOptions: CREATE_TEST_VARIABLE_OPTION_MAX_COUNT,
+  minOptions: 2,
+  useFixedOptions: false,
 });
 
 const createTrueFalseOptionTemplates = (): CreateTestQuestionFixedOptionTemplate[] => [
@@ -93,12 +106,12 @@ export const createTestQuestionCategoryOptions: CreateTestQuestionCategoryOption
         headerPayload: "Write your question here (Use ______ for blank spot)",
       },
       {
-        id: "matching-ordering",
+        id: CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
         label: "Matching /Ordering",
-        isSupported: false,
+        isSupported: true,
         answerMode: "none",
         answerInputMode: "none",
-        optionRules: null,
+        optionRules: createMatchingOrderingOptionRules(),
         headerPayload: "Write your question here",
       },
     ],

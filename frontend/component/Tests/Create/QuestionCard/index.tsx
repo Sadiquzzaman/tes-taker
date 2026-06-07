@@ -2,13 +2,19 @@ import DragHandleIcon from "@/component/svg/DragHandleIcon";
 import { useToast } from "@/component/Toast/ToastContext";
 import { setActiveQuestionId } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
-import { getCreateTestQuestionAnswerInputPlaceholder, getCreateTestQuestionSubtype } from "@/utils/createTestOptions";
+import {
+  CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
+  getCreateTestQuestionAnswerInputPlaceholder,
+  getCreateTestQuestionSubtype,
+} from "@/utils/createTestOptions";
 import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 import { memo, useCallback, useRef } from "react";
 import QuestionCardBody from "./QuestionCardBody";
 import QuestionCardFooter from "./QuestionCardFooter";
 import QuestionCardHeader from "./QuestionCardHeader";
 import QuestionCardInstruction from "./QuestionCardInstruction";
+import QuestionCardMatchingBody from "./QuestionCardMatchingBody";
+import QuestionCardMatchingHint from "./QuestionCardMatchingHint";
 import QuestionCardTextAnswer from "./QuestionCardTextAnswer";
 import QuestionCardValidation from "./QuestionCardValidation";
 import { MAX_IMAGE_SIZE_BYTES } from "./shared";
@@ -35,10 +41,14 @@ function QuestionCard({
   const optionRules = fullSubtype?.optionRules ?? null;
   const answerMode = fullSubtype?.answerMode ?? "none";
   const answerInputMode = fullSubtype?.answerInputMode ?? "none";
+  const isMatchingOrdering =
+    question.type === "graded" && question.subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
   const validationErrors = getQuestionValidationErrors(question);
-  const optionCount = question.options?.length ?? 0;
+  const matchingOptions = question.matchingOptions ?? { left: [], right: [] };
+  const optionCount = isMatchingOrdering ? matchingOptions.left.length : (question.options?.length ?? 0);
   const maxOptions = optionRules?.maxOptions ?? 0;
-  const hasOptionEditor = Boolean(optionRules);
+  const hasOptionEditor = Boolean(optionRules) && !isMatchingOrdering;
+  const hasMatchingOptionEditor = Boolean(optionRules) && isMatchingOrdering;
   const hasTextAnswerEditor = answerInputMode === "correct-answer";
   const showAlternativeAnswerInput = Boolean(fullSubtype?.supportsAlternativeAnswers);
   const answerInputPlaceholder = getCreateTestQuestionAnswerInputPlaceholder(question.type, question.subType);
@@ -167,6 +177,21 @@ function QuestionCard({
           />
         ) : null}
 
+        {hasMatchingOptionEditor ? (
+          <QuestionCardMatchingBody
+            activateCard={activateCard}
+            canAddMorePairs={canAddMoreOptions}
+            leftOptions={matchingOptions.left}
+            maxPairs={maxOptions}
+            pendingFocusOptionId={pendingFocusOptionId}
+            questionId={question.id}
+            rightOptions={matchingOptions.right}
+            scrollContainerRef={scrollContainerRef}
+            scrollElementIntoView={scrollElementIntoView}
+            subjectId={subjectId}
+          />
+        ) : null}
+
         {hasTextAnswerEditor ? (
           <QuestionCardTextAnswer
             answerValues={question.answer?.type === "text" ? answerValues : []}
@@ -179,6 +204,8 @@ function QuestionCard({
         ) : null}
 
         <QuestionCardValidation showValidation={question.showValidation} validationErrors={validationErrors} />
+
+        {isMatchingOrdering ? <QuestionCardMatchingHint /> : null}
 
         <QuestionCardFooter
           canShuffleOptions={canShuffleOptions}

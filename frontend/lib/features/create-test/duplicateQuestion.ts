@@ -1,7 +1,9 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
 import {
+  buildMatchingOrderingAnswerValue,
   createId,
+  createMatchingOrderingAnswer,
   findSubjectQuestion,
   focusQuestion,
   getFirstInvalidQuestion,
@@ -38,9 +40,23 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
       id: newId,
     };
   });
+  const clonedMatchingOptions = target.matchingOptions
+    ? {
+        left: target.matchingOptions.left.map((option) => ({
+          ...option,
+          id: createId(),
+        })),
+        right: target.matchingOptions.right.map((option) => ({
+          ...option,
+          id: createId(),
+        })),
+      }
+    : undefined;
   const optionRules = getCreateTestQuestionOptionRules(target.type, target.subType);
   const answer =
-    target.answer?.type === "optionId"
+    target.answer?.type === "matchingOrdering" && clonedMatchingOptions
+      ? createMatchingOrderingAnswer(buildMatchingOrderingAnswerValue(clonedMatchingOptions))
+      : target.answer?.type === "optionId"
       ? {
           type: "optionId" as const,
           value: target.answer.value.map((optionId) => optionIdMap.get(optionId)).filter(Boolean) as string[],
@@ -56,7 +72,8 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
     ...target,
     id: createId(),
     answer,
-    ...(optionRules ? { options: clonedOptions } : { options: undefined }),
+    matchingOptions: clonedMatchingOptions,
+    ...(clonedMatchingOptions ? { options: undefined } : optionRules ? { options: clonedOptions } : { options: undefined }),
     showValidation: false,
   };
 
