@@ -10,10 +10,22 @@ import {
   updateQuestionPoints,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
+import { CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID } from "@/utils/createTestOptions";
 import { memo, useCallback } from "react";
 
-function QuestionCardFooter({ canShuffleOptions, points, questionId, subjectId }: QuestionCardFooterProps) {
+function QuestionCardFooter({
+  canShuffleOptions,
+  points,
+  questionId,
+  questionSubType,
+  questionType,
+  subjectId,
+}: QuestionCardFooterProps) {
   const dispatch = useAppDispatch();
+  const pointsLabel =
+    questionType === "ungraded" && questionSubType === CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID
+      ? "Max Points"
+      : "Points";
 
   const updatePoints = useCallback(
     (nextPoints: number) => {
@@ -31,7 +43,7 @@ function QuestionCardFooter({ canShuffleOptions, points, questionId, subjectId }
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="flex items-center gap-2">
-        <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">Points</p>
+        <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">{pointsLabel}</p>
         <div className="flex items-center justify-between border border-[#E5E5E5] bg-white">
           <input
             type="text"

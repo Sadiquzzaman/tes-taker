@@ -183,7 +183,9 @@ function QuestionCard({
         <QuestionCardFooter
           canShuffleOptions={canShuffleOptions}
           points={question.points}
+          questionSubType={question.subType}
           questionId={question.id}
+          questionType={question.type}
           subjectId={subjectId}
         />
 

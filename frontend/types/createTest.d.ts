@@ -322,7 +322,9 @@ type QuestionCardBodyProps = {
 type QuestionCardFooterProps = {
   canShuffleOptions: boolean;
   points: number;
+  questionSubType: string;
   questionId: string;
+  questionType: CreateTestQuestionCategory;
   subjectId: string;
 };
 
