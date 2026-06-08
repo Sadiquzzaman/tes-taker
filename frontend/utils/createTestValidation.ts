@@ -4,6 +4,7 @@ import {
   getCreateTestQuestionAnswerMode,
   getCreateTestQuestionOptionRules,
   getCreateTestQuestionSubtype,
+  isCreateTestObjectiveCategory,
 } from "@/utils/createTestOptions";
 
 const hasTextOrImage = (text: string, image: string | null | undefined) => Boolean(text.trim() || image);
@@ -107,7 +108,8 @@ export const getQuestionValidationErrors = (question: QuestionItem): string[] =>
   const answerInputMode = getCreateTestQuestionAnswerInputMode(question.type, question.subType);
   const textAnswerValue = question.answer?.type === "text" ? (question.answer.value[0] ?? "") : "";
   const isMatchingOrdering =
-    question.type === "graded" && question.subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
+    isCreateTestObjectiveCategory(question.type) &&
+    question.subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
 
   if (isMatchingOrdering && !question.text.trim()) {
     errors.push("Add a question title.");
@@ -125,7 +127,7 @@ export const getQuestionValidationErrors = (question: QuestionItem): string[] =>
 
   if (isMatchingOrdering) {
     errors.push(...getMatchingOrderingValidationErrors(question));
-  } else if (question.type === "graded") {
+  } else if (isCreateTestObjectiveCategory(question.type)) {
     errors.push(...getSubtypeOptionValidationErrors(question));
   }
 

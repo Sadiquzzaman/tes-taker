@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { goToNextStep, goToPreviousStep, setQuestionValidationState } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
-import { getCreateTestQuestionAnswerMode } from "@/utils/createTestOptions";
+import { getCreateTestQuestionAnswerMode, isCreateTestObjectiveCategory } from "@/utils/createTestOptions";
 import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/utils/createTestValidation";
 import { useToast } from "@/component/Toast/ToastContext";
 import useCreateTest from "@/hooks/api/tests/useCreateTest";
@@ -43,7 +43,7 @@ const sanitizeSubjectsForSubmission = (subjects: SubjectItem[]): CreateTestSubmi
       return {
         ...questionWithoutAnswer,
         ...mapQuestionAnswerForSubmission(question),
-        type: question.type === "graded" ? "objective" : "essay",
+        type: isCreateTestObjectiveCategory(question.type) ? "objective" : "essay",
       };
     });
     const questionTypes = Array.from(new Set(questions.map((question) => question.type)));

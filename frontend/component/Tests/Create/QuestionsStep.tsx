@@ -370,7 +370,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         </div>
         <div className="w-full border-b border-[#E5E5E5]" />
 
-        <div className="flex w-full max-w-[524px] items-center justify-between gap-6">
+        <div className="flex w-full max-w-[564px] items-center justify-between gap-6">
           <div className="flex items-center gap-1">
             <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]">Questions added:</p>
             <p className="text-[14px] font-[600] leading-[16px] tracking-[-0.02em] text-[#747775]">
@@ -392,7 +392,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
           {renderedQuestions}
         </div>
 
-        <div className="flex flex-col gap-0">
+        <div className="flex flex-col gap-1">
           <div className="flex w-fit items-center gap-2 rounded-[8px] border border-[#49734F] bg-white p-1">
             {createTestQuestionCategoryOptions.map((category) => {
               const isActive = activeQuestionCategory === category.id;
@@ -402,7 +402,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
                   key={category.id}
                   type="button"
                   onClick={() => handleQuestionCategorySelect(category.id)}
-                  className={`flex h-9 min-w-[79px] items-center justify-center rounded-[6px] px-4 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] transition-none ${
+                  className={`flex pb-1 h-9 min-w-[79px] items-center justify-center rounded-[6px] px-4 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] transition-none ${
                     isActive ? "bg-[#49734F] text-white" : "bg-[#EFF0F3] text-[#232A25]"
                   }`}
                 >
@@ -412,7 +412,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
             })}
           </div>
 
-          <div className="flex w-full max-w-[524px] items-center gap-1 overflow-x-auto rounded-tr-[6px] rounded-br-[6px] rounded-bl-[6px] rounded-tl-none bg-[#49734F] p-1">
+          <div className="flex w-full max-w-[564px] items-center gap-1 overflow-x-auto rounded-[6px] bg-[#49734F] p-1">
             {questionSubtypeTabs.map((tab) => {
               return (
                 <button

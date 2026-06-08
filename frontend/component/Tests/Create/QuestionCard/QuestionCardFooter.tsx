@@ -13,6 +13,7 @@ import { useAppDispatch } from "@/lib/hooks";
 import {
   CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
   CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
+  isCreateTestObjectiveCategory,
 } from "@/utils/createTestOptions";
 import { memo, useCallback, type ReactNode } from "react";
 
@@ -26,7 +27,8 @@ function QuestionCardFooter({
 }: QuestionCardFooterProps) {
   const dispatch = useAppDispatch();
   const isMatchingOrdering =
-    questionType === "graded" && questionSubType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
+    isCreateTestObjectiveCategory(questionType) &&
+    questionSubType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
   let pointsLabel: ReactNode = "Points";
 
   if (questionType === "ungraded" && questionSubType === CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID) {

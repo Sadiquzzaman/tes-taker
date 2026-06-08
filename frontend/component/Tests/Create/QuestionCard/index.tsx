@@ -6,6 +6,7 @@ import {
   CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
   getCreateTestQuestionAnswerInputPlaceholder,
   getCreateTestQuestionSubtype,
+  isCreateTestObjectiveCategory,
 } from "@/utils/createTestOptions";
 import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 import { memo, useCallback, useRef } from "react";
@@ -42,7 +43,8 @@ function QuestionCard({
   const answerMode = fullSubtype?.answerMode ?? "none";
   const answerInputMode = fullSubtype?.answerInputMode ?? "none";
   const isMatchingOrdering =
-    question.type === "graded" && question.subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
+    isCreateTestObjectiveCategory(question.type) &&
+    question.subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
   const validationErrors = getQuestionValidationErrors(question);
   const matchingOptions = question.matchingOptions ?? { left: [], right: [] };
   const optionCount = isMatchingOrdering ? matchingOptions.left.length : (question.options?.length ?? 0);

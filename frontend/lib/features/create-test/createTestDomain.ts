@@ -8,6 +8,7 @@ import {
   getCreateTestQuestionAnswerMode,
   getCreateTestQuestionOptionRules,
   getCreateTestQuestionSupportsAlternativeAnswers,
+  isCreateTestObjectiveCategory,
   isCreateTestQuestionCreationSupported,
 } from "@/utils/createTestOptions";
 
@@ -70,7 +71,7 @@ const createQuestionAnswer = (
   const answerInputMode = getCreateTestQuestionAnswerInputMode(questionType, subType);
   const supportsAlternativeAnswers = getCreateTestQuestionSupportsAlternativeAnswers(questionType, subType);
 
-  if (questionType === "graded" && subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID) {
+  if (isCreateTestObjectiveCategory(questionType) && subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID) {
     return createMatchingOrderingAnswer();
   }
 
@@ -78,7 +79,7 @@ const createQuestionAnswer = (
     return createTextAnswer(supportsAlternativeAnswers, supportsAlternativeAnswers ? ["", ""] : [""]);
   }
 
-  if (questionType === "graded" && answerMode !== "none") {
+  if (isCreateTestObjectiveCategory(questionType) && answerMode !== "none") {
     return createOptionIdAnswer();
   }
 
@@ -140,7 +141,7 @@ export const createQuestion = (questionType: CreateTestQuestionCategory, subType
     };
   }
 
-  if (questionType !== "graded") {
+  if (!isCreateTestObjectiveCategory(questionType)) {
     return null;
   }
 
@@ -228,7 +229,7 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
   const supportsAlternativeAnswers = getCreateTestQuestionSupportsAlternativeAnswers(nextType, nextSubType);
   const optionRules = getCreateTestQuestionOptionRules(nextType, nextSubType);
 
-  if (nextType === "graded" && nextSubType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID) {
+  if (isCreateTestObjectiveCategory(nextType) && nextSubType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID) {
     const matchingOptions = normalizeMatchingOptions(question);
     const answer =
       question.answer?.type === "matchingOrdering"
@@ -245,7 +246,7 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
     };
   }
 
-  if (nextType === "graded" && optionRules) {
+  if (isCreateTestObjectiveCategory(nextType) && optionRules) {
     const options = optionRules.useFixedOptions
       ? normalizeFixedOptions(question, nextSubType, nextType)
       : (question.options ?? []);

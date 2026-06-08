@@ -39,7 +39,7 @@ type LegacyQuestionItem = QuestionItem & {
   alternativeAnser?: string[];
 };
 
-type CreateTestQuestionCategory = "graded" | "ungraded" | "other";
+type CreateTestQuestionCategory = "graded" | "ungraded" | "passage-question";
 
 type CreateTestQuestionAnswerMode = "single" | "multiple" | "none";
 

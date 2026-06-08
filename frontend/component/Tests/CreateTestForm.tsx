@@ -23,7 +23,7 @@ const CreateTestForm = () => {
           <CloseIconSVG />
         </Link>
       </div>
-      <div className="mt-6 flex max-h-[80%] min-h-0 w-full max-w-[816px] flex-1 gap-6 overflow-hidden md:gap-8">
+      <div className="mt-6 flex max-h-[80%] min-h-0 w-full max-w-[896px] flex-1 gap-6 overflow-hidden md:gap-8">
         <CreateTestStepSidebar currentStep={currentStep} />
 
         <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto pr-8">
