@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAppSelector } from "@/lib/hooks";
 import CloseIconSVG from "../svg/CloseIconSvg";
@@ -10,10 +10,19 @@ import CreateTestStepSidebar from "./Create/CreateTestStepSidebar";
 import useCreateTestFlow from "./Create/useCreateTestFlow";
 
 const CreateTestForm = () => {
+  const [isHydrated, setIsHydrated] = useState(false);
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
   const { currentStep, formState } = createTestState;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { handleNextStep, handlePreviousStep, isFirstStep, isSubmitting } = useCreateTestFlow(createTestState);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  if (!isHydrated) {
+    return null;
+  }
 
   return (
     <div className="flex h-[85vh] flex-col overflow-hidden">

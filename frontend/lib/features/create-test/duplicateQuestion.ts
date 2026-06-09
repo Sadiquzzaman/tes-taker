@@ -5,6 +5,7 @@ import {
   createId,
   createMatchingOrderingAnswer,
   findSubjectQuestion,
+  focusPassage,
   focusQuestion,
   getFirstInvalidQuestion,
   showQuestionValidationErrors,
@@ -16,17 +17,26 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
     state.subjects,
     action.payload.subjectId,
     action.payload.questionId,
+    action.payload.parentPassageId,
   );
 
   if (!target || !subject) {
     return;
   }
 
-  const invalidQuestion = getFirstInvalidQuestion(subject.questions);
+  const invalidQuestion = getFirstInvalidQuestion(subject.id, subject.questions);
 
   if (invalidQuestion) {
     showQuestionValidationErrors(subject.questions);
-    focusQuestion(state, subject.id, invalidQuestion.id);
+
+    if (invalidQuestion.targetType === "passage" && invalidQuestion.parentPassageId) {
+      focusPassage(state, subject.id, invalidQuestion.parentPassageId);
+      return;
+    }
+
+    if (invalidQuestion.questionId) {
+      focusQuestion(state, subject.id, invalidQuestion.questionId, invalidQuestion.parentPassageId);
+    }
     return;
   }
 
@@ -76,6 +86,25 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
     ...(clonedMatchingOptions ? { options: undefined } : optionRules ? { options: clonedOptions } : { options: undefined }),
     showValidation: false,
   };
+
+  if (action.payload.parentPassageId) {
+    const { parentPassage } = findSubjectQuestion(
+      state.subjects,
+      action.payload.subjectId,
+      action.payload.questionId,
+      action.payload.parentPassageId,
+    );
+
+    if (!parentPassage) {
+      return;
+    }
+
+    const index = parentPassage.childQuestions.findIndex((question) => question.id === action.payload.questionId);
+    parentPassage.childQuestions.splice(index + 1, 0, duplicatedQuestion);
+    syncSubjectType(subject);
+    focusQuestion(state, subject.id, duplicatedQuestion.id, parentPassage.id);
+    return;
+  }
 
   const index = subject.questions.findIndex((question) => question.id === action.payload.questionId);
   subject.questions.splice(index + 1, 0, duplicatedQuestion);

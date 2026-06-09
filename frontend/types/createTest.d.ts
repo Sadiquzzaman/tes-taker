@@ -94,6 +94,16 @@ type QuestionItem = {
   showValidation: boolean;
 };
 
+type PassageQuestionItem = {
+  id: string;
+  type: "passage-question";
+  passageText: string;
+  childQuestions: QuestionItem[];
+  showValidation: boolean;
+};
+
+type RootQuestionItem = QuestionItem | PassageQuestionItem;
+
 type QuestionSectionType = "objective" | "essay";
 
 type SubjectItem = {
@@ -101,7 +111,7 @@ type SubjectItem = {
   name: string;
   value: string;
   type: CreateTestQuestionCategory | "";
-  questions: QuestionItem[];
+  questions: RootQuestionItem[];
 };
 
 type DragState = {
@@ -126,13 +136,15 @@ type CreateTestStep = "Basic info" | "Questions" | "Review" | "Publish";
 
 type PendingFocusQuestion = {
   subjectId: string;
-  questionId: string;
+  questionId: string | null;
+  parentPassageId?: string | null;
 };
 
 type PendingFocusOption = {
   subjectId: string;
   questionId: string;
   optionId: string;
+  parentPassageId?: string | null;
 };
 
 type PublishTiming = "immediately" | "later";
@@ -172,6 +184,7 @@ type SubjectQuestionTypePayload = {
 type QuestionPayload = {
   subjectId: string;
   questionId: string;
+  parentPassageId?: string | null;
 };
 
 type QuestionAnswerValuePayload = QuestionPayload & {
@@ -200,7 +213,14 @@ type SetFormFieldPayload = {
 
 type InvalidQuestionPayload = {
   subjectId: string;
-  questionId: string;
+  questionId: string | null;
+  parentPassageId?: string | null;
+  targetType: "question" | "passage";
+};
+
+type SetActiveQuestionIdPayload = {
+  questionId: string | null;
+  parentPassageId?: string | null;
 };
 
 type SetPublishFieldPayload = {
@@ -214,6 +234,7 @@ type CreateTestState = {
   subjects: SubjectItem[];
   activeSubjectId: string | null;
   activeQuestionId: string | null;
+  activePassageId: string | null;
   pendingFocusQuestion: PendingFocusQuestion | null;
   pendingFocusOption: PendingFocusOption | null;
   dragState: DragState | null;
@@ -226,6 +247,7 @@ type QuestionsStepProps = {
 
 type QuestionCardProps = {
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+  parentPassageId?: string | null;
   subjectId: string;
   setCardRef: (node: HTMLDivElement | null) => void;
   question: QuestionItem;
@@ -235,8 +257,32 @@ type QuestionCardProps = {
   pendingFocusOptionId: string | null;
   isDragging: boolean;
   isDragOverlay?: boolean;
+  showDragHandle?: boolean;
+  borderless?: boolean;
   cardStyle?: React.CSSProperties;
   overlayStyle?: React.CSSProperties;
+  onDragHandlePointerDown: (
+    subjectId: string,
+    questionId: string,
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => void;
+};
+
+type PassageQuestionBlockProps = {
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+  passage: PassageQuestionItem;
+  questionStartNumber: number;
+  subjectId: string;
+  setBlockRef: (node: HTMLDivElement | null) => void;
+  setQuestionRef: (questionId: string, node: HTMLDivElement | null) => void;
+  isActive: boolean;
+  isDragging: boolean;
+  isDragOverlay?: boolean;
+  cardStyle?: React.CSSProperties;
+  overlayStyle?: React.CSSProperties;
+  activeQuestionId: string | null;
+  pendingFocusQuestion: PendingFocusQuestion | null;
+  pendingFocusOption: PendingFocusOption | null;
   onDragHandlePointerDown: (
     subjectId: string,
     questionId: string,
@@ -306,6 +352,7 @@ type ValidateImageFile = (file: File) => boolean;
 type QuestionCardHeaderProps = {
   activateCard: () => void;
   cardRef: React.RefObject<HTMLDivElement | null>;
+  parentPassageId?: string | null;
   questionId: string;
   questionImage: string | null;
   questionNumber: number;
@@ -327,6 +374,7 @@ type QuestionCardBodyProps = {
   maxOptions: number;
   options: QuestionOption[];
   pendingFocusOptionId: string | null;
+  parentPassageId?: string | null;
   questionId: string;
   questionNumber: number;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -343,6 +391,7 @@ type QuestionCardMatchingBodyProps = {
   leftOptions: QuestionOption[];
   maxPairs: number;
   pendingFocusOptionId: string | null;
+  parentPassageId?: string | null;
   questionId: string;
   rightOptions: QuestionOption[];
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -353,14 +402,18 @@ type QuestionCardMatchingBodyProps = {
 type QuestionCardFooterProps = {
   canShuffleOptions: boolean;
   points: number;
+  parentPassageId?: string | null;
   questionSubType: string;
   questionId: string;
   questionType: CreateTestQuestionCategory;
   subjectId: string;
+  showDuplicateButton?: boolean;
+  showDeleteButton?: boolean;
 };
 
 type QuestionCardInstructionProps = {
   instruction: string;
+  parentPassageId?: string | null;
   questionId: string;
   subjectId: string;
 };
@@ -369,6 +422,7 @@ type QuestionCardTextAnswerProps = {
   answerValues: string[];
   activateCard: () => void;
   placeholder: string;
+  parentPassageId?: string | null;
   questionId: string;
   showAlternativeAnswerInput: boolean;
   subjectId: string;
@@ -381,8 +435,10 @@ type QuestionCardValidationProps = {
 
 type QuestionValidationFailure = {
   subjectId: string;
-  questionId: string;
+  questionId: string | null;
+  parentPassageId?: string | null;
   errors: string[];
+  targetType: "question" | "passage";
 };
 
 type LegacyCreateTestSubmissionQuestionAnswer = {

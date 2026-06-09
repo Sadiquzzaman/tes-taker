@@ -16,19 +16,22 @@ import {
   isCreateTestObjectiveCategory,
 } from "@/utils/createTestOptions";
 import { memo, useCallback, type ReactNode } from "react";
+import { QUESTION_BUILDER_GAPS } from "./shared";
 
 function QuestionCardFooter({
   canShuffleOptions,
   points,
+  parentPassageId,
   questionId,
   questionSubType,
   questionType,
+  showDeleteButton = true,
+  showDuplicateButton = true,
   subjectId,
 }: QuestionCardFooterProps) {
   const dispatch = useAppDispatch();
   const isMatchingOrdering =
-    isCreateTestObjectiveCategory(questionType) &&
-    questionSubType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
+    isCreateTestObjectiveCategory(questionType) && questionSubType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
   let pointsLabel: ReactNode = "Points";
 
   if (questionType === "ungraded" && questionSubType === CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID) {
@@ -50,15 +53,16 @@ function QuestionCardFooter({
           subjectId,
           questionId,
           points: nextPoints,
+          parentPassageId,
         }),
       );
     },
-    [dispatch, questionId, subjectId],
+    [dispatch, parentPassageId, questionId, subjectId],
   );
 
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex items-center gap-2">
+    <div className={`flex items-center justify-between ${QUESTION_BUILDER_GAPS.footerOuter}`}>
+      <div className={`flex items-center ${QUESTION_BUILDER_GAPS.footerGroup}`}>
         <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">{pointsLabel}</p>
         <div className="flex items-center justify-between border border-[#E5E5E5] bg-white">
           <input
@@ -99,7 +103,7 @@ function QuestionCardFooter({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className={`flex items-center ${QUESTION_BUILDER_GAPS.footerGroup}`}>
         {isMatchingOrdering ? (
           <div className="group relative">
             <button
@@ -116,29 +120,33 @@ function QuestionCardFooter({
         ) : canShuffleOptions ? (
           <button
             type="button"
-            onClick={() => dispatch(shuffleOptions({ subjectId, questionId }))}
+            onClick={() => dispatch(shuffleOptions({ subjectId, questionId, parentPassageId }))}
             className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#232A25] transition-colors duration-150 hover:bg-[#49734F] hover:text-[#FFFFFF]"
             aria-label="Shuffle options"
           >
             <ShuffleIcon />
           </button>
         ) : null}
-        <button
-          type="button"
-          onClick={() => dispatch(duplicateQuestion({ subjectId, questionId }))}
-          className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#232A25] transition-colors duration-150 hover:bg-[#49734F] hover:text-[#FFFFFF]"
-          aria-label="Duplicate question"
-        >
-          <CopyIconSVG />
-        </button>
-        <button
-          type="button"
-          onClick={() => dispatch(deleteQuestion({ subjectId, questionId }))}
-          className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#D24B44] transition-colors duration-150 hover:bg-[#D24B44] hover:text-[#FFFFFF]"
-          aria-label="Delete question"
-        >
-          <TrashIcon />
-        </button>
+        {showDuplicateButton ? (
+          <button
+            type="button"
+            onClick={() => dispatch(duplicateQuestion({ subjectId, questionId, parentPassageId }))}
+            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#232A25] transition-colors duration-150 hover:bg-[#49734F] hover:text-[#FFFFFF]"
+            aria-label="Duplicate question"
+          >
+            <CopyIconSVG />
+          </button>
+        ) : null}
+        {showDeleteButton ? (
+          <button
+            type="button"
+            onClick={() => dispatch(deleteQuestion({ subjectId, questionId, parentPassageId }))}
+            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#D24B44] transition-colors duration-150 hover:bg-[#D24B44] hover:text-[#FFFFFF]"
+            aria-label="Delete question"
+          >
+            <TrashIcon />
+          </button>
+        ) : null}
       </div>
     </div>
   );

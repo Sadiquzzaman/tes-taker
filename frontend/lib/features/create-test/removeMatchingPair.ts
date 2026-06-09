@@ -3,7 +3,12 @@ import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
 import { buildMatchingOrderingAnswerValue, createMatchingOrderingAnswer, findSubjectQuestion } from "./createTestDomain";
 
 const removeMatchingPair = (state: CreateTestState, action: PayloadAction<MatchingPairPayload>) => {
-  const { question } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
+  const { question } = findSubjectQuestion(
+    state.subjects,
+    action.payload.subjectId,
+    action.payload.questionId,
+    action.payload.parentPassageId,
+  );
   const optionRules = question ? getCreateTestQuestionOptionRules(question.type, question.subType) : null;
   const matchingOptions = question?.matchingOptions;
 
@@ -25,6 +30,7 @@ const removeMatchingPair = (state: CreateTestState, action: PayloadAction<Matchi
   if (
     state.pendingFocusOption?.subjectId === action.payload.subjectId &&
     state.pendingFocusOption.questionId === action.payload.questionId &&
+    state.pendingFocusOption.parentPassageId === (action.payload.parentPassageId ?? null) &&
     (state.pendingFocusOption.optionId === leftOption.id || state.pendingFocusOption.optionId === rightOption.id)
   ) {
     state.pendingFocusOption = null;

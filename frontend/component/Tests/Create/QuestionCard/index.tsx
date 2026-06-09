@@ -18,10 +18,11 @@ import QuestionCardMatchingBody from "./QuestionCardMatchingBody";
 import QuestionCardMatchingHint from "./QuestionCardMatchingHint";
 import QuestionCardTextAnswer from "./QuestionCardTextAnswer";
 import QuestionCardValidation from "./QuestionCardValidation";
-import { MAX_IMAGE_SIZE_BYTES } from "./shared";
+import { MAX_IMAGE_SIZE_BYTES, QUESTION_BUILDER_GAPS } from "./shared";
 
 function QuestionCard({
   scrollContainerRef,
+  parentPassageId,
   subjectId,
   setCardRef,
   question,
@@ -31,6 +32,8 @@ function QuestionCard({
   pendingFocusOptionId,
   isDragging,
   isDragOverlay = false,
+  showDragHandle = true,
+  borderless = false,
   cardStyle,
   overlayStyle,
   onDragHandlePointerDown,
@@ -55,6 +58,9 @@ function QuestionCard({
   const showAlternativeAnswerInput = Boolean(fullSubtype?.supportsAlternativeAnswers);
   const answerInputPlaceholder = getCreateTestQuestionAnswerInputPlaceholder(question.type, question.subType);
   const answerValues = question.answer?.value ?? [];
+  const cardInnerGap = parentPassageId
+    ? QUESTION_BUILDER_GAPS.passageQuestionCardInner
+    : QUESTION_BUILDER_GAPS.normalCardInner;
   const usesMultipleAnswers = answerMode === "multiple";
   const canAddOptions = Boolean(optionRules?.canAddOptions);
   const canEditOptionText = Boolean(optionRules?.canEditOptionText);
@@ -64,8 +70,13 @@ function QuestionCard({
   const canAddMoreOptions = Boolean(optionRules?.canAddOptions && optionCount < maxOptions);
 
   const activateCard = useCallback(() => {
-    dispatch(setActiveQuestionId(question.id));
-  }, [dispatch, question.id]);
+    dispatch(
+      setActiveQuestionId({
+        questionId: question.id,
+        parentPassageId,
+      }),
+    );
+  }, [dispatch, parentPassageId, question.id]);
 
   const validateImageFile = useCallback(
     (file: File) => {
@@ -134,19 +145,26 @@ function QuestionCard({
       style={isDragOverlay ? overlayStyle : cardStyle}
       onPointerDownCapture={isDragOverlay ? undefined : activateCard}
       onFocusCapture={isDragOverlay ? undefined : activateCard}
-      className={`flex w-full items-center gap-2 ${
+      className={`flex w-full items-center ${QUESTION_BUILDER_GAPS.blockOuter} ${
         isDragOverlay ? "fixed z-50 bg-[#FDF3E5] pointer-events-none shadow-[0px_24px_60px_rgba(15,26,18,0.18)]" : ""
       } ${isDragging ? "opacity-0" : "opacity-100"}`}
     >
       <div
-        className={`w-full flex flex-col gap-6 rounded-[8px] border p-5 transition-[opacity,transform,box-shadow] duration-200 ${
-          isActive ? "border-transparent bg-[#FDF3E5]" : "border-[#E5E5E5] bg-white"
+        className={`w-full flex flex-col ${cardInnerGap} rounded-[8px] transition-[opacity,transform,box-shadow] duration-200 ${
+          borderless
+            ? isActive
+              ? "border-none bg-[#FDF3E5] p-0"
+              : "border-none bg-white p-0"
+            : isActive
+              ? "border border-transparent bg-[#FDF3E5] p-5"
+              : "border border-[#E5E5E5] bg-white p-5"
         }`}
       >
         <QuestionCardHeader
           activateCard={activateCard}
           cardRef={cardRef}
           fullSubtype={fullSubtype}
+          parentPassageId={parentPassageId}
           questionId={question.id}
           questionImage={question.image}
           questionNumber={questionNumber}
@@ -168,6 +186,7 @@ function QuestionCard({
             maxOptions={maxOptions}
             options={question.options ?? []}
             pendingFocusOptionId={pendingFocusOptionId}
+            parentPassageId={parentPassageId}
             questionId={question.id}
             questionNumber={questionNumber}
             scrollContainerRef={scrollContainerRef}
@@ -186,6 +205,7 @@ function QuestionCard({
             leftOptions={matchingOptions.left}
             maxPairs={maxOptions}
             pendingFocusOptionId={pendingFocusOptionId}
+            parentPassageId={parentPassageId}
             questionId={question.id}
             rightOptions={matchingOptions.right}
             scrollContainerRef={scrollContainerRef}
@@ -199,6 +219,7 @@ function QuestionCard({
             answerValues={question.answer?.type === "text" ? answerValues : []}
             activateCard={activateCard}
             placeholder={answerInputPlaceholder}
+            parentPassageId={parentPassageId}
             questionId={question.id}
             showAlternativeAnswerInput={showAlternativeAnswerInput}
             subjectId={subjectId}
@@ -212,6 +233,7 @@ function QuestionCard({
         <QuestionCardFooter
           canShuffleOptions={canShuffleOptions}
           points={question.points}
+          parentPassageId={parentPassageId}
           questionSubType={question.subType}
           questionId={question.id}
           questionType={question.type}
@@ -220,18 +242,21 @@ function QuestionCard({
 
         <QuestionCardInstruction
           instruction={question.instruction ?? ""}
+          parentPassageId={parentPassageId}
           questionId={question.id}
           subjectId={subjectId}
         />
       </div>
-      <button
-        type="button"
-        onPointerDown={(event) => onDragHandlePointerDown(subjectId, question.id, event)}
-        className="flex-shrink-0 cursor-grab touch-none text-[#747775] transition-colors hover:text-[#232A25] active:cursor-grabbing"
-        aria-label="Drag to reorder"
-      >
-        <DragHandleIcon />
-      </button>
+      {showDragHandle ? (
+        <button
+          type="button"
+          onPointerDown={(event) => onDragHandlePointerDown(subjectId, question.id, event)}
+          className="flex-shrink-0 cursor-grab touch-none text-[#747775] transition-colors hover:text-[#232A25] active:cursor-grabbing"
+          aria-label="Drag to reorder"
+        >
+          <DragHandleIcon />
+        </button>
+      ) : null}
     </div>
   );
 }

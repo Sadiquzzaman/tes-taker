@@ -7,6 +7,7 @@ const addOption = (state: CreateTestState, action: PayloadAction<QuestionPayload
     state.subjects,
     action.payload.subjectId,
     action.payload.questionId,
+    action.payload.parentPassageId,
   );
   const optionRules = question ? getCreateTestQuestionOptionRules(question.type, question.subType) : null;
 
@@ -22,7 +23,7 @@ const addOption = (state: CreateTestState, action: PayloadAction<QuestionPayload
 
   const nextOption = createOption(action.payload.image ? " " : "", action.payload.image ?? null);
   question.options.push(nextOption);
-  focusOption(state, subject.id, question.id, nextOption.id);
+  focusOption(state, subject.id, question.id, nextOption.id, action.payload.parentPassageId);
 };
 
 export default addOption;

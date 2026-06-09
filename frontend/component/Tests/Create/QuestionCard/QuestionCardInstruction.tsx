@@ -2,12 +2,18 @@ import NotmalTextFeild from "@/Ui/NotmalTextFeild";
 import { updateQuestionInstruction } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo } from "react";
+import { QUESTION_BUILDER_GAPS } from "./shared";
 
-function QuestionCardInstruction({ instruction, questionId, subjectId }: QuestionCardInstructionProps) {
+function QuestionCardInstruction({
+  instruction,
+  parentPassageId,
+  questionId,
+  subjectId,
+}: QuestionCardInstructionProps) {
   const dispatch = useAppDispatch();
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={`flex flex-col ${QUESTION_BUILDER_GAPS.instruction}`}>
       <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">Instruction</p>
       <NotmalTextFeild
         rows={1}
@@ -19,6 +25,7 @@ function QuestionCardInstruction({ instruction, questionId, subjectId }: Questio
               subjectId,
               questionId,
               instruction: event.target.value,
+              parentPassageId,
             }),
           )
         }

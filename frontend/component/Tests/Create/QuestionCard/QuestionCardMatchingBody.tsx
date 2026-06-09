@@ -7,7 +7,7 @@ import {
 import { useAppDispatch } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useRef } from "react";
 import QuestionCardMatchingRow from "./QuestionCardMatchingRow";
-import { resizeTextarea } from "./shared";
+import { QUESTION_BUILDER_GAPS, resizeTextarea } from "./shared";
 
 function QuestionCardMatchingBody({
   activateCard,
@@ -15,6 +15,7 @@ function QuestionCardMatchingBody({
   leftOptions,
   maxPairs,
   pendingFocusOptionId,
+  parentPassageId,
   questionId,
   rightOptions,
   scrollContainerRef,
@@ -30,7 +31,11 @@ function QuestionCardMatchingBody({
     const buttonRect = addPairButtonRef.current.getBoundingClientRect();
     const scrollRect = scrollContainerRef.current.getBoundingClientRect();
     if (scrollRect.bottom - buttonRect.bottom <= 30) {
-      setTimeout(() => scrollContainerRef.current?.scrollTo({ top: scrollContainerRef.current.scrollHeight, behavior: "smooth" }), 0);
+      setTimeout(
+        () =>
+          scrollContainerRef.current?.scrollTo({ top: scrollContainerRef.current.scrollHeight, behavior: "smooth" }),
+        0,
+      );
     }
   }, [scrollContainerRef]);
 
@@ -49,7 +54,7 @@ function QuestionCardMatchingBody({
   }, [leftOptions, rightOptions]);
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className={`flex flex-col ${QUESTION_BUILDER_GAPS.matchingBody}`}>
       {leftOptions.map((leftOption, index) => {
         const rightOption = rightOptions[index];
         if (!rightOption) return null;
@@ -59,12 +64,38 @@ function QuestionCardMatchingBody({
             activateCard={activateCard}
             index={index}
             leftOption={leftOption}
-            onLeftChange={(event) => dispatch(updateMatchingOptionText({ subjectId, questionId, optionId: leftOption.id, side: "left", text: event.target.value }))}
-            onRemove={() => dispatch(removeMatchingPair({ subjectId, questionId, pairIndex: index }))}
-            onRightChange={(event) => dispatch(updateMatchingOptionText({ subjectId, questionId, optionId: rightOption.id, side: "right", text: event.target.value }))}
+            onLeftChange={(event) =>
+              dispatch(
+                updateMatchingOptionText({
+                  subjectId,
+                  questionId,
+                  optionId: leftOption.id,
+                  side: "left",
+                  text: event.target.value,
+                  parentPassageId,
+                }),
+              )
+            }
+            onRemove={() => dispatch(removeMatchingPair({ subjectId, questionId, pairIndex: index, parentPassageId }))}
+            onRightChange={(event) =>
+              dispatch(
+                updateMatchingOptionText({
+                  subjectId,
+                  questionId,
+                  optionId: rightOption.id,
+                  side: "right",
+                  text: event.target.value,
+                  parentPassageId,
+                }),
+              )
+            }
             rightOption={rightOption}
-            setLeftInputRef={(element) => { leftInputRefs.current[leftOption.id] = element; }}
-            setRightInputRef={(element) => { rightInputRefs.current[rightOption.id] = element; }}
+            setLeftInputRef={(element) => {
+              leftInputRefs.current[leftOption.id] = element;
+            }}
+            setRightInputRef={(element) => {
+              rightInputRefs.current[rightOption.id] = element;
+            }}
           />
         );
       })}
@@ -72,12 +103,12 @@ function QuestionCardMatchingBody({
         ref={addPairButtonRef}
         type="button"
         onClick={() => {
-          dispatch(addMatchingPair({ subjectId, questionId }));
+          dispatch(addMatchingPair({ subjectId, questionId, parentPassageId }));
           activateCard();
           scrollToListEndIfNeeded();
         }}
         disabled={!canAddMorePairs}
-        className="flex items-center gap-2 py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)] disabled:cursor-default"
+        className={`flex items-center ${QUESTION_BUILDER_GAPS.matchingAddButton} py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)] disabled:cursor-default`}
       >
         <span>{canAddMorePairs ? "Add Another Choice" : `Maximum ${maxPairs} pairs added`}</span>
       </button>

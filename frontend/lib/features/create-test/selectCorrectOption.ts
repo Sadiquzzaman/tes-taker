@@ -3,7 +3,12 @@ import { getCreateTestQuestionAnswerMode } from "@/utils/createTestOptions";
 import { findSubjectQuestion } from "./createTestDomain";
 
 const selectCorrectOption = (state: CreateTestState, action: PayloadAction<OptionPayload>) => {
-  const { question } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
+  const { question } = findSubjectQuestion(
+    state.subjects,
+    action.payload.subjectId,
+    action.payload.questionId,
+    action.payload.parentPassageId,
+  );
   const answerMode = question ? getCreateTestQuestionAnswerMode(question.type, question.subType) : "none";
   const hasMatchingOption = question?.options?.some((option) => option.id === action.payload.optionId);
 

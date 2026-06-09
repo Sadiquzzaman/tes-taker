@@ -1,11 +1,13 @@
 import { updateQuestionAnswerValue } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo } from "react";
+import { QUESTION_BUILDER_GAPS } from "./shared";
 
 function QuestionCardTextAnswer({
   answerValues,
   activateCard,
   placeholder,
+  parentPassageId,
   questionId,
   showAlternativeAnswerInput,
   subjectId,
@@ -16,8 +18,10 @@ function QuestionCardTextAnswer({
   const isAlternativeAnswerEnabled = Boolean(primaryAnswerValue.trim());
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="box-border flex items-center justify-center gap-2 rounded-[6px] border border-[#232A25] px-3 py-2.5">
+    <div className={`flex flex-col ${QUESTION_BUILDER_GAPS.textAnswerStack}`}>
+      <div
+        className={`box-border flex items-center justify-center ${QUESTION_BUILDER_GAPS.textAnswerInput} rounded-[6px] border border-[#232A25] px-3 py-2.5`}
+      >
         <input
           type="text"
           value={primaryAnswerValue}
@@ -28,6 +32,7 @@ function QuestionCardTextAnswer({
                 questionId,
                 index: 0,
                 value: event.target.value,
+                parentPassageId,
               }),
             )
           }
@@ -38,7 +43,7 @@ function QuestionCardTextAnswer({
       </div>
       {showAlternativeAnswerInput ? (
         <div
-          className={`box-border flex items-center justify-center gap-2 rounded-[6px] px-3 py-2.5 ${
+          className={`box-border flex items-center justify-center ${QUESTION_BUILDER_GAPS.textAnswerInput} rounded-[6px] px-3 py-2.5 ${
             isAlternativeAnswerEnabled
               ? "border border-[#232A25]"
               : "border border-dashed border-[#D6D7D4] bg-[#F7F7F5]"
@@ -54,6 +59,7 @@ function QuestionCardTextAnswer({
                   questionId,
                   index: 1,
                   value: event.target.value,
+                  parentPassageId,
                 }),
               )
             }

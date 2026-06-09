@@ -1,7 +1,13 @@
 import { addQuestion, finishDragging, startDragging, updateDragging } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import {
+  getSubjectQuestionCount,
+  getSubjectTotalMarks,
+  isPassageQuestionItem,
+} from "@/lib/features/create-test/createTestDomain";
 import { createTestQuestionCategoryOptions, isCreateTestQuestionCreationSupported } from "@/utils/createTestOptions";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import PassageQuestionBlock from "./PassageQuestionBlock";
 import QuestionCard from "./QuestionCard";
 
 const QUESTION_CARD_GAP = 16;
@@ -35,8 +41,15 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const dispatch = useAppDispatch();
   const defaultQuestionCategory = createTestQuestionCategoryOptions[0].id;
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
-  const { subjects, activeSubjectId, activeQuestionId, pendingFocusQuestion, pendingFocusOption, dragState } =
-    createTestState;
+  const {
+    subjects,
+    activeSubjectId,
+    activePassageId,
+    activeQuestionId,
+    pendingFocusQuestion,
+    pendingFocusOption,
+    dragState,
+  } = createTestState;
   const questionsContainerRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dragStateRef = useRef<DragState | null>(null);
@@ -50,8 +63,8 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   );
 
   const questions = activeSubject?.questions ?? [];
-  const questionCountLabel = String(questions.length).padStart(2, "0");
-  const totalMarks = questions.reduce((sum, question) => sum + question.points, 0);
+  const questionCountLabel = String(activeSubject ? getSubjectQuestionCount(activeSubject) : 0).padStart(2, "0");
+  const totalMarks = activeSubject ? getSubjectTotalMarks(activeSubject) : 0;
   const questionSubtypeTabs = useMemo(
     () => createTestQuestionCategoryOptions.find((category) => category.id === activeQuestionCategory)?.tabs ?? [],
     [activeQuestionCategory],
@@ -109,7 +122,8 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        scrollElementIntoView(itemRefs.current[pendingFocusQuestion.questionId]);
+        const focusTargetId = pendingFocusQuestion.questionId ?? pendingFocusQuestion.parentPassageId ?? "";
+        scrollElementIntoView(itemRefs.current[focusTargetId]);
       });
     });
   }, [pendingFocusQuestion, scrollElementIntoView]);
@@ -291,7 +305,48 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     [activeQuestionCategory, activeSubject, dispatch],
   );
 
-  const renderedQuestions = questions.map((question, questionIndex) => {
+  let nextQuestionNumber = 1;
+  const renderedRootQuestions = questions.map((question, questionIndex) => {
+    const rootCardStyle =
+      dragState?.subjectId === activeSubject?.id
+        ? {
+            transform: `translateY(${getQuestionCardOffset(questionIndex, dragState)}px)`,
+            transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease",
+            willChange: "transform",
+          }
+        : undefined;
+
+    if (isPassageQuestionItem(question)) {
+      const questionStartNumber = nextQuestionNumber;
+      nextQuestionNumber += question.childQuestions.length;
+
+      return (
+        <PassageQuestionBlock
+          key={question.id}
+          scrollContainerRef={scrollContainerRef}
+          passage={question}
+          questionStartNumber={questionStartNumber}
+          subjectId={activeSubject!.id}
+          setBlockRef={(node) => {
+            itemRefs.current[question.id] = node;
+          }}
+          setQuestionRef={(questionId, node) => {
+            itemRefs.current[questionId] = node;
+          }}
+          isActive={activePassageId === question.id}
+          isDragging={dragState?.id === question.id}
+          cardStyle={rootCardStyle}
+          activeQuestionId={activeQuestionId}
+          pendingFocusQuestion={pendingFocusQuestion}
+          pendingFocusOption={pendingFocusOption}
+          onDragHandlePointerDown={handleDragHandlePointerDown}
+        />
+      );
+    }
+
+    const questionNumber = nextQuestionNumber;
+    nextQuestionNumber += 1;
+
     return (
       <QuestionCard
         key={question.id}
@@ -301,26 +356,22 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
           itemRefs.current[question.id] = node;
         }}
         question={question}
-        questionNumber={questionIndex + 1}
-        isActive={activeQuestionId === question.id}
+        questionNumber={questionNumber}
+        isActive={activeQuestionId === question.id && !activePassageId}
         shouldAutoFocus={
-          pendingFocusQuestion?.subjectId === activeSubject?.id && pendingFocusQuestion.questionId === question.id
+          pendingFocusQuestion?.subjectId === activeSubject?.id &&
+          pendingFocusQuestion.parentPassageId == null &&
+          pendingFocusQuestion.questionId === question.id
         }
         pendingFocusOptionId={
-          pendingFocusOption?.subjectId === activeSubject?.id && pendingFocusOption.questionId === question.id
+          pendingFocusOption?.subjectId === activeSubject?.id &&
+          pendingFocusOption.parentPassageId == null &&
+          pendingFocusOption.questionId === question.id
             ? pendingFocusOption.optionId
             : null
         }
         isDragging={dragState?.id === question.id}
-        cardStyle={
-          dragState?.subjectId === activeSubject?.id
-            ? {
-                transform: `translateY(${getQuestionCardOffset(questionIndex, dragState)}px)`,
-                transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease",
-                willChange: "transform",
-              }
-            : undefined
-        }
+        cardStyle={rootCardStyle}
         onDragHandlePointerDown={handleDragHandlePointerDown}
       />
     );
@@ -335,14 +386,50 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
             ? Math.min(Math.max(unclampedTop, containerRect.top), containerRect.bottom - dragState.height)
             : unclampedTop;
 
+          const questionNumber =
+            draggedSubject.questions.reduce((currentQuestionNumber, rootQuestion) => {
+              if (rootQuestion.id === draggedQuestion.id) {
+                return currentQuestionNumber;
+              }
+
+              if (isPassageQuestionItem(rootQuestion)) {
+                return currentQuestionNumber + rootQuestion.childQuestions.length;
+              }
+
+              return currentQuestionNumber + 1;
+            }, 1) ?? 1;
+
+          if (isPassageQuestionItem(draggedQuestion)) {
+            return (
+              <PassageQuestionBlock
+                scrollContainerRef={scrollContainerRef}
+                subjectId={draggedSubject.id}
+                passage={draggedQuestion}
+                questionStartNumber={questionNumber}
+                isActive
+                isDragging={false}
+                isDragOverlay
+                overlayStyle={{
+                  top,
+                  left: dragState.left,
+                  width: dragState.width,
+                }}
+                setBlockRef={() => {}}
+                setQuestionRef={() => {}}
+                activeQuestionId={activeQuestionId}
+                pendingFocusQuestion={null}
+                pendingFocusOption={null}
+                onDragHandlePointerDown={() => {}}
+              />
+            );
+          }
+
           return (
             <QuestionCard
               scrollContainerRef={scrollContainerRef}
               subjectId={draggedSubject.id}
               question={draggedQuestion}
-              questionNumber={
-                (draggedSubject.questions.findIndex((question) => question.id === draggedQuestion.id) ?? 0) + 1
-              }
+              questionNumber={questionNumber}
               isActive
               shouldAutoFocus={false}
               pendingFocusOptionId={null}
@@ -389,7 +476,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
           className={`relative flex flex-col gap-4 ${dragState?.subjectId === activeSubject?.id ? "pointer-events-none" : ""}`}
           ref={questionsContainerRef}
         >
-          {renderedQuestions}
+          {renderedRootQuestions}
         </div>
 
         <div className="flex flex-col gap-1">

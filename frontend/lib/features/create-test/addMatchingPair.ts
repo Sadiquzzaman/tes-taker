@@ -13,6 +13,7 @@ const addMatchingPair = (state: CreateTestState, action: PayloadAction<QuestionP
     state.subjects,
     action.payload.subjectId,
     action.payload.questionId,
+    action.payload.parentPassageId,
   );
   const optionRules = question ? getCreateTestQuestionOptionRules(question.type, question.subType) : null;
 
@@ -32,7 +33,7 @@ const addMatchingPair = (state: CreateTestState, action: PayloadAction<QuestionP
   question.matchingOptions.left.push(leftOption);
   question.matchingOptions.right.push(rightOption);
   question.answer = createMatchingOrderingAnswer(buildMatchingOrderingAnswerValue(question.matchingOptions));
-  focusOption(state, subject.id, question.id, leftOption.id);
+  focusOption(state, subject.id, question.id, leftOption.id, action.payload.parentPassageId);
 };
 
 export default addMatchingPair;

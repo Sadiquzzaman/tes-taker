@@ -12,6 +12,7 @@ const createInitialState = (): CreateTestState => ({
   subjects: [],
   activeSubjectId: null,
   activeQuestionId: null,
+  activePassageId: null,
   pendingFocusQuestion: null,
   pendingFocusOption: null,
   dragState: null,

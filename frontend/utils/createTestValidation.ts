@@ -8,6 +8,8 @@ import {
 } from "@/utils/createTestOptions";
 
 const hasTextOrImage = (text: string, image: string | null | undefined) => Boolean(text.trim() || image);
+const isPassageQuestionItem = (question: RootQuestionItem): question is PassageQuestionItem =>
+  "childQuestions" in question;
 
 const getSubtypeLabel = (question: QuestionItem) =>
   getCreateTestQuestionSubtype(question.type, question.subType)?.label;
@@ -134,11 +136,51 @@ export const getQuestionValidationErrors = (question: QuestionItem): string[] =>
   return errors;
 };
 
+export const getPassageValidationErrors = (question: PassageQuestionItem): string[] => {
+  const errors: string[] = [];
+
+  if (!question.passageText.trim()) {
+    errors.push("Add passage text.");
+  }
+
+  return errors;
+};
+
 export const collectQuestionValidationFailures = (subjects: SubjectItem[]): QuestionValidationFailure[] => {
   const failures: QuestionValidationFailure[] = [];
 
   subjects.forEach((subject) => {
     subject.questions.forEach((question) => {
+      if (isPassageQuestionItem(question)) {
+        const passageErrors = getPassageValidationErrors(question);
+
+        if (passageErrors.length > 0) {
+          failures.push({
+            subjectId: subject.id,
+            questionId: question.id,
+            parentPassageId: question.id,
+            errors: passageErrors,
+            targetType: "passage",
+          });
+        }
+
+        question.childQuestions.forEach((childQuestion) => {
+          const childErrors = getQuestionValidationErrors(childQuestion);
+
+          if (childErrors.length > 0) {
+            failures.push({
+              subjectId: subject.id,
+              questionId: childQuestion.id,
+              parentPassageId: question.id,
+              errors: childErrors,
+              targetType: "question",
+            });
+          }
+        });
+
+        return;
+      }
+
       const errors = getQuestionValidationErrors(question);
 
       if (errors.length > 0) {
@@ -146,6 +188,7 @@ export const collectQuestionValidationFailures = (subjects: SubjectItem[]): Ques
           subjectId: subject.id,
           questionId: question.id,
           errors,
+          targetType: "question",
         });
       }
     });
@@ -154,4 +197,11 @@ export const collectQuestionValidationFailures = (subjects: SubjectItem[]): Ques
   return failures;
 };
 
-export const getSubjectQuestionCount = (subject: SubjectItem): number => subject.questions.length;
+export const getSubjectQuestionCount = (subject: SubjectItem): number =>
+  subject.questions.reduce((questionCount, question) => {
+    if (isPassageQuestionItem(question)) {
+      return questionCount + question.childQuestions.length;
+    }
+
+    return questionCount + 1;
+  }, 0);

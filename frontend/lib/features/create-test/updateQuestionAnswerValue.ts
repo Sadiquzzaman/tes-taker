@@ -6,7 +6,12 @@ import {
 import { findSubjectQuestion } from "./createTestDomain";
 
 const updateQuestionAnswerValue = (state: CreateTestState, action: PayloadAction<QuestionAnswerValuePayload>) => {
-  const { question } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
+  const { question } = findSubjectQuestion(
+    state.subjects,
+    action.payload.subjectId,
+    action.payload.questionId,
+    action.payload.parentPassageId,
+  );
 
   if (!question || getCreateTestQuestionAnswerInputMode(question.type, question.subType) !== "correct-answer") {
     return;

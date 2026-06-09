@@ -5,11 +5,12 @@ import { useToast } from "@/component/Toast/ToastContext";
 import { clearPendingFocusQuestionId, updateQuestionImage, updateQuestionText } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useRef, type ChangeEvent } from "react";
-import { readImageFileAsDataUrl, resizeTextarea } from "./shared";
+import { QUESTION_BUILDER_GAPS, readImageFileAsDataUrl, resizeTextarea } from "./shared";
 
 function QuestionCardHeader({
   activateCard,
   cardRef,
+  parentPassageId,
   questionId,
   questionImage,
   questionNumber,
@@ -36,7 +37,7 @@ function QuestionCardHeader({
 
       try {
         const image = await readImageFileAsDataUrl(file);
-        dispatch(updateQuestionImage({ subjectId, questionId, image }));
+        dispatch(updateQuestionImage({ subjectId, questionId, image, parentPassageId }));
         activateCard();
       } catch {
         triggerToast({
@@ -66,13 +67,13 @@ function QuestionCardHeader({
   }, [questionText]);
 
   return (
-    <div className="flex items-start justify-between gap-8">
-      <div className="flex w-full items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-1 gap-2">
+    <div className={`flex items-start justify-between ${QUESTION_BUILDER_GAPS.headerOuter}`}>
+      <div className={`flex w-full items-start justify-between ${QUESTION_BUILDER_GAPS.headerContent}`}>
+        <div className={`flex min-w-0 flex-1 ${QUESTION_BUILDER_GAPS.headerLead}`}>
           <span className="pt-[2px] text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
             {questionNumber}.
           </span>
-          <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div className={`flex min-w-0 flex-1 flex-col ${QUESTION_BUILDER_GAPS.headerText}`}>
             <textarea
               ref={questionInputRef}
               value={questionText}
@@ -82,6 +83,7 @@ function QuestionCardHeader({
                     subjectId,
                     questionId,
                     text: event.target.value,
+                    parentPassageId,
                   }),
                 )
               }
@@ -94,7 +96,7 @@ function QuestionCardHeader({
               className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12] outline-none placeholder:text-[#747775]"
             />
             {questionImage ? (
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center ${QUESTION_BUILDER_GAPS.headerImageActions}`}>
                 <div className="relative h-40 w-full max-w-[320px] overflow-hidden rounded-[12px] border border-[#E5E5E5] bg-white">
                   <Image
                     src={questionImage}
@@ -104,7 +106,7 @@ function QuestionCardHeader({
                     className="object-cover"
                   />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center ${QUESTION_BUILDER_GAPS.headerImageActions}`}>
                   <button
                     type="button"
                     title="Replace question image"
@@ -116,7 +118,9 @@ function QuestionCardHeader({
                   <button
                     type="button"
                     title="Remove question image"
-                    onClick={() => dispatch(updateQuestionImage({ subjectId, questionId, image: null }))}
+                    onClick={() =>
+                      dispatch(updateQuestionImage({ subjectId, questionId, image: null, parentPassageId }))
+                    }
                     className="flex h-9 w-9 items-center justify-center rounded-[8px] text-[#D24B44] transition-colors duration-150"
                     aria-label="Remove question image"
                   >
@@ -127,7 +131,7 @@ function QuestionCardHeader({
             ) : null}
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-2">
+        <div className={`flex shrink-0 flex-col items-end ${QUESTION_BUILDER_GAPS.headerSide}`}>
           <input
             ref={questionImageInputRef}
             type="file"
@@ -136,7 +140,7 @@ function QuestionCardHeader({
             className="hidden"
           />
           {!questionImage ? (
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center ${QUESTION_BUILDER_GAPS.headerImageActions}`}>
               <button
                 type="button"
                 title="Upload question image"

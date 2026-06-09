@@ -34,6 +34,7 @@ import updateDraggingReducer from "./create-test/updateDragging";
 import updateMatchingOptionTextReducer from "./create-test/updateMatchingOptionText";
 import updateOptionImageReducer from "./create-test/updateOptionImage";
 import updateOptionTextReducer from "./create-test/updateOptionText";
+import updatePassageTextReducer from "./create-test/updatePassageText";
 import updateQuestionAnswerValueReducer from "./create-test/updateQuestionAnswerValue";
 import updateQuestionImageReducer from "./create-test/updateQuestionImage";
 import updateQuestionInstructionReducer from "./create-test/updateQuestionInstruction";
@@ -63,6 +64,7 @@ export const createTestSlice = createSlice({
     updateQuestionInstruction: updateQuestionInstructionReducer,
     updateQuestionAnswerValue: updateQuestionAnswerValueReducer,
     updateQuestionImage: updateQuestionImageReducer,
+    updatePassageText: updatePassageTextReducer,
     updateMatchingOptionText: updateMatchingOptionTextReducer,
     updateOptionText: updateOptionTextReducer,
     updateOptionImage: updateOptionImageReducer,
@@ -120,6 +122,7 @@ export const {
   updateOptionText,
   updateQuestionAnswerValue,
   updateQuestionImage,
+  updatePassageText,
   updateQuestionPoints,
   updateQuestionText,
   setPublishTiming,

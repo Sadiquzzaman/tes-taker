@@ -1,7 +1,7 @@
 import QuestionCardMatchingConnectorIconSVG from "@/component/svg/QuestionCardMatchingConnectorIconSVG";
 import TrashIcon from "@/component/svg/TrashIcon";
 import { memo, type ChangeEvent } from "react";
-import { resizeTextarea } from "./shared";
+import { QUESTION_BUILDER_GAPS, resizeTextarea } from "./shared";
 
 type QuestionCardMatchingRowProps = {
   activateCard: () => void;
@@ -27,8 +27,10 @@ function QuestionCardMatchingRow({
   setRightInputRef,
 }: QuestionCardMatchingRowProps) {
   return (
-    <div className="group flex items-center gap-4 rounded-[2px] px-0 py-1 hover:bg-[#ED86001A] focus-within:bg-[#ED86001A]">
-      <div className="flex min-w-0 flex-1 items-center gap-2">
+    <div
+      className={`group flex items-center ${QUESTION_BUILDER_GAPS.matchingRow} rounded-[2px] px-0 py-1 hover:bg-[#ED86001A] focus-within:bg-[#ED86001A]`}
+    >
+      <div className={`flex min-w-0 flex-1 items-center ${QUESTION_BUILDER_GAPS.matchingSide}`}>
         <div
           className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] bg-white text-[14px] leading-4 ${
             leftOption.text.trim() ? "text-[#232A25]" : "text-[rgba(35,42,37,0.5)]"
@@ -52,7 +54,7 @@ function QuestionCardMatchingRow({
       <div className="flex shrink-0 items-center justify-center">
         <QuestionCardMatchingConnectorIconSVG />
       </div>
-      <div className="flex min-w-0 flex-1 items-center gap-2">
+      <div className={`flex min-w-0 flex-1 items-center ${QUESTION_BUILDER_GAPS.matchingSide}`}>
         <div
           className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] bg-white text-[14px] leading-4 ${
             rightOption.text.trim() ? "text-[#232A25]" : "text-[rgba(35,42,37,0.5)]"

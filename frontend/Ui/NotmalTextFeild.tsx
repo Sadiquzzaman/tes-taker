@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-const resizeTextarea = (element: HTMLTextAreaElement | null, rows: number, maxRows: number) => {
+const resizeTextarea = (element: HTMLTextAreaElement | null, rows: number, maxRows?: number) => {
   if (!element) {
     return;
   }
@@ -10,14 +10,15 @@ const resizeTextarea = (element: HTMLTextAreaElement | null, rows: number, maxRo
   const paddingTop = Number.parseFloat(styles.paddingTop) || 0;
   const paddingBottom = Number.parseFloat(styles.paddingBottom) || 0;
   const minHeight = lineHeight * rows + paddingTop + paddingBottom;
-  const maxHeight = lineHeight * maxRows + paddingTop + paddingBottom;
+  const maxHeight = maxRows ? lineHeight * maxRows + paddingTop + paddingBottom : null;
 
   element.style.height = "auto";
 
-  const nextHeight = Math.min(Math.max(element.scrollHeight, minHeight), maxHeight);
+  const baseHeight = Math.max(element.scrollHeight, minHeight);
+  const nextHeight = maxHeight ? Math.min(baseHeight, maxHeight) : baseHeight;
 
   element.style.height = `${nextHeight}px`;
-  element.style.overflowY = element.scrollHeight > maxHeight ? "auto" : "hidden";
+  element.style.overflowY = maxHeight && element.scrollHeight > maxHeight ? "auto" : "hidden";
 };
 
 const NotmalTextFeild = ({
@@ -27,13 +28,20 @@ const NotmalTextFeild = ({
   parentClassName = "",
   inputClassName = "",
   rows = 1,
-  maxRows = 4,
+  maxRows,
   disabled = false,
+  onFocus,
+  setTextareaRef,
 }: NotmalTextFeildProps) => {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleTextareaRef = (element: HTMLTextAreaElement | null) => {
+    internalTextareaRef.current = element;
+    setTextareaRef?.(element);
+  };
 
   useEffect(() => {
-    resizeTextarea(textareaRef.current, rows, maxRows);
+    resizeTextarea(internalTextareaRef.current, rows, maxRows);
   }, [maxRows, rows, value]);
 
   const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -46,10 +54,11 @@ const NotmalTextFeild = ({
       className={`flex w-full min-h-[36px] items-start rounded-md border border-[#C6CFCF] px-2 py-[6px] ${parentClassName}`}
     >
       <textarea
-        ref={textareaRef}
+        ref={handleTextareaRef}
         placeholder={placeholder}
         value={value}
         onChange={handleChange}
+        onFocus={onFocus}
         rows={rows}
         disabled={disabled}
         className={`w-full resize-none bg-transparent text-[12px] font-[500] leading-[16px] text-[#232A25] placeholder:font-[400] placeholder:text-[#989eaf] align-middle focus:outline-none ${inputClassName}`}
