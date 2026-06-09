@@ -1,6 +1,10 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
-import { buildMatchingOrderingAnswerValue, createMatchingOrderingAnswer, findSubjectQuestion } from "./createTestDomain";
+import {
+  buildMatchingOrderingAnswerValue,
+  createMatchingOrderingAnswer,
+  findSubjectQuestion,
+} from "./createTestDomain";
 
 const removeMatchingPair = (state: CreateTestState, action: PayloadAction<MatchingPairPayload>) => {
   const { question } = findSubjectQuestion(

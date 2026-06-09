@@ -4,7 +4,8 @@ import { focusPassage, focusQuestion, isPassageQuestionItem } from "./createTest
 const setQuestionValidationState = (state: CreateTestState, action: PayloadAction<InvalidQuestionPayload[]>) => {
   const invalidQuestions = new Set(
     action.payload.map(
-      (item) => `${item.subjectId}:${item.parentPassageId ?? "root"}:${item.questionId ?? item.parentPassageId}:${item.targetType}`,
+      (item) =>
+        `${item.subjectId}:${item.parentPassageId ?? "root"}:${item.questionId ?? item.parentPassageId}:${item.targetType}`,
     ),
   );
 
@@ -13,7 +14,9 @@ const setQuestionValidationState = (state: CreateTestState, action: PayloadActio
       if (isPassageQuestionItem(question)) {
         question.showValidation = invalidQuestions.has(`${subject.id}:${question.id}:${question.id}:passage`);
         question.childQuestions.forEach((childQuestion) => {
-          childQuestion.showValidation = invalidQuestions.has(`${subject.id}:${question.id}:${childQuestion.id}:question`);
+          childQuestion.showValidation = invalidQuestions.has(
+            `${subject.id}:${question.id}:${childQuestion.id}:question`,
+          );
         });
         return;
       }
