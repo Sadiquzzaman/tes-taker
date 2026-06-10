@@ -499,7 +499,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
             })}
           </div>
 
-          <div className="flex w-full max-w-[564px] items-center gap-1 overflow-x-auto rounded-[6px] bg-[#49734F] p-1">
+          <div className="flex w-full flex-wrap items-center gap-1 overflow-x-auto rounded-[6px] bg-[#49734F] p-1">
             {questionSubtypeTabs.map((tab) => {
               return (
                 <button
