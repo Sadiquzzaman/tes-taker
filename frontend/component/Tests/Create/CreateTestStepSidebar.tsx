@@ -6,7 +6,7 @@ const CreateTestStepSidebar = ({ currentStep }: CreateTestStepSidebarProps) => {
   const progressWidth = `${(currentStepIndex / (createTestSteps.length - 1)) * 100}%`;
 
   return (
-    <aside className="h-full rounded-[12px] bg-[rgba(239,240,243,0.75)] p-5 md:w-[260px] md:min-w-[260px]">
+    <aside className="w-full rounded-[12px] bg-[rgba(239,240,243,0.75)] px-4 py-2 md:p-5 md:h-full md:w-[260px] md:min-w-[260px]">
       <div className="flex h-full flex-col gap-6">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
@@ -15,12 +15,12 @@ const CreateTestStepSidebar = ({ currentStep }: CreateTestStepSidebarProps) => {
               {currentStepIndex + 1}/{createTestSteps.length}
             </p>
           </div>
-          <div className="h-1 w-full overflow-hidden rounded-[19px] bg-[#E5E5E5]">
+          <div className="hidden h-1 w-full overflow-hidden rounded-[19px] bg-[#E5E5E5] md:block">
             <div className="h-1 rounded-[19px] bg-[#49734F]" style={{ width: progressWidth }} />
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="hidden md:flex md:flex-col md:gap-4">
           {createTestSteps.map((step, index) => {
             const isActive = step === currentStep;
             const isCompleted = index < currentStepIndex;
