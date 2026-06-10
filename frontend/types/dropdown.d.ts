@@ -7,6 +7,7 @@ interface DropDownMenuPosition {
   top: number;
   left: number;
   width: number;
+  placement: "top" | "bottom";
 }
 
 interface DropDownFilterArgs {

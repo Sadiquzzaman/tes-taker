@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_MAX_OUTPUT_IN_DROPDOWN_LIST,
   DROPDOWN_OPTION_HEIGHT,
+  EMPTY_DROPDOWN_HEIGHT,
   getDropDownMenuPosition,
   getFilteredDropdownList,
 } from "@/utils/ui/dropdown";
@@ -27,8 +28,19 @@ const useDropDown = ({
     return getFilteredDropdownList({ isSearchable, list, searchText });
   }, [isSearchable, list, searchText]);
 
+  const expectedMenuHeight = useMemo(() => {
+    if (filteredList.length === 0) {
+      return EMPTY_DROPDOWN_HEIGHT;
+    }
+
+    const visibleItemCount = Math.min(filteredList.length, maxOuputInDropdownList);
+
+    return visibleItemCount * DROPDOWN_OPTION_HEIGHT;
+  }, [filteredList.length, maxOuputInDropdownList]);
+
   const closeDropDown = useCallback(() => {
     setOpen(false);
+    setMenuPosition(null);
 
     if (isSearchable) {
       setSearchText(selected?.label ?? "");
@@ -43,7 +55,7 @@ const useDropDown = ({
     }
 
     const rect = container.getBoundingClientRect();
-    const menuHeight = menuRef.current?.offsetHeight ?? 0;
+    const menuHeight = menuRef.current?.offsetHeight ?? expectedMenuHeight;
 
     setMenuPosition(
       getDropDownMenuPosition({
@@ -52,15 +64,18 @@ const useDropDown = ({
         viewportHeight: window.innerHeight,
       }),
     );
-  }, []);
+  }, [expectedMenuHeight]);
 
-  useEffect(() => {
-    if (!isSearchable) {
-      return;
-    }
+  const setMenuRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      menuRef.current = node;
 
-    setSearchText(selected?.label ?? "");
-  }, [isSearchable, selected?.label]);
+      if (node) {
+        updateMenuPosition();
+      }
+    },
+    [updateMenuPosition],
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -80,7 +95,6 @@ const useDropDown = ({
 
   useEffect(() => {
     if (!open) {
-      setMenuPosition(null);
       return;
     }
 
@@ -94,21 +108,15 @@ const useDropDown = ({
     };
   }, [open, updateMenuPosition]);
 
-  useEffect(() => {
-    if (!open || !menuRef.current) {
-      return;
-    }
-
-    updateMenuPosition();
-  }, [filteredList.length, open, updateMenuPosition]);
-
   const handleSelect = (item: DropDownOption) => {
     handleChange(item.value);
     setSearchText(item.label);
     setOpen(false);
+    setMenuPosition(null);
   };
 
   const handleInputFocus = () => {
+    setSearchText(selected?.label ?? "");
     setOpen(true);
   };
 
@@ -121,7 +129,16 @@ const useDropDown = ({
   };
 
   const toggleDropdown = () => {
-    setOpen((previousValue) => !previousValue);
+    if (open) {
+      closeDropDown();
+      return;
+    }
+
+    if (isSearchable) {
+      setSearchText(selected?.label ?? "");
+    }
+
+    setOpen(true);
   };
 
   return {
@@ -130,6 +147,7 @@ const useDropDown = ({
     menuPosition,
     containerRef,
     menuRef,
+    setMenuRef,
     selected,
     filteredList,
     dropdownMaxHeight,
