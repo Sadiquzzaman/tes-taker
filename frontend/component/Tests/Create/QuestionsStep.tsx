@@ -448,7 +448,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
       : null;
 
   return (
-    <div className="flex min-h-[532px] w-full flex-1 flex-col gap-10">
+    <div className="flex w-full flex-1 flex-col gap-10">
       <section className="flex w-full flex-1 flex-col gap-4">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
