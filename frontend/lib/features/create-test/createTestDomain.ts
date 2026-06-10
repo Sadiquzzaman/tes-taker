@@ -1,16 +1,21 @@
 import { v4 as uuidv4 } from "uuid";
-import { getQuestionValidationErrors } from "@/utils/createTestValidation";
+import { getPassageValidationErrors, getQuestionValidationErrors } from "@/utils/createTestValidation";
 import {
   CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
+  CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
   CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
   getCreateTestQuestionAnswerInputMode,
   getCreateTestQuestionAnswerMode,
   getCreateTestQuestionOptionRules,
   getCreateTestQuestionSupportsAlternativeAnswers,
+  isCreateTestObjectiveCategory,
   isCreateTestQuestionCreationSupported,
 } from "@/utils/createTestOptions";
 
 export const createId = () => uuidv4();
+export const MATCHING_ORDERING_PAIR_DELIMITER = "::";
+export const isPassageQuestionItem = (question: RootQuestionItem): question is PassageQuestionItem =>
+  "childQuestions" in question;
 
 export const createOption = (text = "", image: string | null = null): QuestionOption => ({
   id: createId(),
@@ -25,6 +30,24 @@ const createOptionIdAnswer = (value: string[] = []): QuestionAnswer => ({
   type: "optionId",
   value,
 });
+
+export const createMatchingOrderingAnswer = (value: string[] = []): QuestionAnswer => ({
+  type: "matchingOrdering",
+  value,
+});
+
+export const buildMatchingOrderingAnswerValue = (matchingOptions: MatchingQuestionOptions): string[] => {
+  return matchingOptions.left.reduce<string[]>((pairs, leftOption, index) => {
+    const rightOption = matchingOptions.right[index];
+
+    if (!rightOption) {
+      return pairs;
+    }
+
+    pairs.push(`${leftOption.id}${MATCHING_ORDERING_PAIR_DELIMITER}${rightOption.id}`);
+    return pairs;
+  }, []);
+};
 
 const createTextAnswer = (supportsAlternativeAnswers: boolean, value: string[] = []): QuestionAnswer => {
   const primaryValue = value[0] ?? "";
@@ -50,11 +73,15 @@ const createQuestionAnswer = (
   const answerInputMode = getCreateTestQuestionAnswerInputMode(questionType, subType);
   const supportsAlternativeAnswers = getCreateTestQuestionSupportsAlternativeAnswers(questionType, subType);
 
+  if (isCreateTestObjectiveCategory(questionType) && subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID) {
+    return createMatchingOrderingAnswer();
+  }
+
   if (answerInputMode === "correct-answer") {
     return createTextAnswer(supportsAlternativeAnswers, supportsAlternativeAnswers ? ["", ""] : [""]);
   }
 
-  if (questionType === "graded" && answerMode !== "none") {
+  if (isCreateTestObjectiveCategory(questionType) && answerMode !== "none") {
     return createOptionIdAnswer();
   }
 
@@ -116,8 +143,27 @@ export const createQuestion = (questionType: CreateTestQuestionCategory, subType
     };
   }
 
-  if (questionType !== "graded") {
+  if (!isCreateTestObjectiveCategory(questionType)) {
     return null;
+  }
+
+  if (subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID) {
+    return {
+      id: createId(),
+      type: questionType,
+      subType,
+      text: "",
+      instruction: "",
+      image: null,
+      matchingOptions: {
+        left: [],
+        right: [],
+      },
+      answer,
+      options: undefined,
+      points: 2,
+      showValidation: false,
+    };
   }
 
   const nextQuestion: QuestionItem = {
@@ -139,6 +185,33 @@ export const createQuestion = (questionType: CreateTestQuestionCategory, subType
 
   return nextQuestion;
 };
+
+export const createPassageQuestion = (subType: string): PassageQuestionItem | null => {
+  const childQuestion = createQuestion("passage-question", subType);
+
+  if (!childQuestion) {
+    return null;
+  }
+
+  return {
+    id: createId(),
+    type: "passage-question",
+    passageText: "",
+    childQuestions: [childQuestion],
+    showValidation: false,
+  };
+};
+
+const normalizeMatchingOptions = (question: QuestionItem): MatchingQuestionOptions => ({
+  left: (question.matchingOptions?.left ?? []).map((option) => ({
+    ...option,
+    image: null,
+  })),
+  right: (question.matchingOptions?.right ?? []).map((option) => ({
+    ...option,
+    image: null,
+  })),
+});
 
 const normalizeFixedOptions = (question: QuestionItem, subType: string, questionType: CreateTestQuestionCategory) => {
   const optionRules = getCreateTestQuestionOptionRules(questionType, subType);
@@ -174,7 +247,24 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
   const supportsAlternativeAnswers = getCreateTestQuestionSupportsAlternativeAnswers(nextType, nextSubType);
   const optionRules = getCreateTestQuestionOptionRules(nextType, nextSubType);
 
-  if (nextType === "graded" && optionRules) {
+  if (isCreateTestObjectiveCategory(nextType) && nextSubType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID) {
+    const matchingOptions = normalizeMatchingOptions(question);
+    const answer =
+      question.answer?.type === "matchingOrdering"
+        ? createMatchingOrderingAnswer(question.answer.value)
+        : createMatchingOrderingAnswer(buildMatchingOrderingAnswerValue(matchingOptions));
+
+    return {
+      ...question,
+      type: nextType,
+      subType: nextSubType,
+      matchingOptions,
+      options: undefined,
+      answer,
+    };
+  }
+
+  if (isCreateTestObjectiveCategory(nextType) && optionRules) {
     const options = optionRules.useFixedOptions
       ? normalizeFixedOptions(question, nextSubType, nextType)
       : (question.options ?? []);
@@ -185,6 +275,7 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
       ...question,
       type: nextType,
       subType: nextSubType,
+      matchingOptions: undefined,
       options,
       answer,
     };
@@ -195,6 +286,7 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
       ...question,
       type: nextType,
       subType: nextSubType,
+      matchingOptions: undefined,
       options: undefined,
       answer: normalizeTextAnswer(legacyQuestion, supportsAlternativeAnswers),
     };
@@ -204,24 +296,47 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
     ...question,
     type: nextType,
     subType: nextSubType,
+    matchingOptions: undefined,
     options: undefined,
     answer: undefined,
   };
 };
 
-export const createSubjectQuestions = (existingQuestions: QuestionItem[] = []): QuestionItem[] => {
-  return existingQuestions.map(normalizeQuestion);
+const normalizeRootQuestion = (question: RootQuestionItem): RootQuestionItem => {
+  if (!isPassageQuestionItem(question)) {
+    return normalizeQuestion(question);
+  }
+
+  return {
+    ...question,
+    passageText: question.passageText ?? "",
+    childQuestions: question.childQuestions.map((childQuestion) => normalizeQuestion(childQuestion)),
+  };
 };
 
-export const resolveSubjectType = (questions: QuestionItem[]): SubjectItem["type"] => {
-  const uniqueTypes = Array.from(new Set(questions.map((question) => question.type)));
+export const createSubjectQuestions = (existingQuestions: RootQuestionItem[] = []): RootQuestionItem[] => {
+  return existingQuestions.map(normalizeRootQuestion);
+};
+
+export const resolveSubjectType = (questions: RootQuestionItem[]): SubjectItem["type"] => {
+  const uniqueTypes = Array.from(
+    new Set(
+      questions.map((question) => {
+        if (isPassageQuestionItem(question)) {
+          return "passage-question";
+        }
+
+        return question.type;
+      }),
+    ),
+  );
 
   return uniqueTypes.length === 1 ? uniqueTypes[0] : "";
 };
 
 export const createSubject = (
   subjectOption: Pick<SubjectItem, "name" | "value" | "id">,
-  existingQuestions: QuestionItem[] = [],
+  existingQuestions: RootQuestionItem[] = [],
 ): SubjectItem => {
   const questions = createSubjectQuestions(existingQuestions);
 
@@ -234,7 +349,7 @@ export const createSubject = (
   };
 };
 
-export const moveQuestionInList = (questions: QuestionItem[], questionId: string, targetIndex: number) => {
+export const moveQuestionInList = (questions: RootQuestionItem[], questionId: string, targetIndex: number) => {
   const currentIndex = questions.findIndex((question) => question.id === questionId);
 
   if (currentIndex === -1) {
@@ -255,12 +370,14 @@ export const moveQuestionInList = (questions: QuestionItem[], questionId: string
 };
 
 export const reorderQuestionsByType = (
-  questions: QuestionItem[],
+  questions: RootQuestionItem[],
   questionType: CreateTestQuestionCategory,
   questionId: string,
   targetIndex: number,
 ) => {
-  const questionsOfType = questions.filter((question) => question.type === questionType);
+  const questionsOfType = questions.filter(
+    (question) => !isPassageQuestionItem(question) && question.type === questionType,
+  );
 
   if (questionsOfType.length === 0) {
     return questions;
@@ -270,7 +387,7 @@ export const reorderQuestionsByType = (
   let reorderedIndex = 0;
 
   return questions.map((question) => {
-    if (question.type !== questionType) {
+    if (isPassageQuestionItem(question) || question.type !== questionType) {
       return question;
     }
 
@@ -286,15 +403,83 @@ export const findSubjectById = (subjects: SubjectItem[], subjectId: string) =>
 export const findQuestionById = (questions: QuestionItem[], questionId: string) =>
   questions.find((question) => question.id === questionId) ?? null;
 
-export const findSubjectQuestion = (subjects: SubjectItem[], subjectId: string, questionId: string) => {
-  const subject = findSubjectById(subjects, subjectId);
-  const question = subject ? findQuestionById(subject.questions, questionId) : null;
+export const findPassageById = (questions: RootQuestionItem[], passageId: string) => {
+  const rootQuestion = questions.find((question) => question.id === passageId);
 
-  return { subject, question };
+  if (!rootQuestion || !isPassageQuestionItem(rootQuestion)) {
+    return null;
+  }
+
+  return rootQuestion;
+};
+
+export const findSubjectQuestion = (
+  subjects: SubjectItem[],
+  subjectId: string,
+  questionId: string,
+  parentPassageId?: string | null,
+) => {
+  const subject = findSubjectById(subjects, subjectId);
+  if (!subject) {
+    return { parentPassage: null, question: null, subject: null };
+  }
+
+  if (parentPassageId) {
+    const parentPassage = findPassageById(subject.questions, parentPassageId);
+    const question = parentPassage ? findQuestionById(parentPassage.childQuestions, questionId) : null;
+
+    return { parentPassage, question, subject };
+  }
+
+  for (const rootQuestion of subject.questions) {
+    if (isPassageQuestionItem(rootQuestion)) {
+      const nestedQuestion = findQuestionById(rootQuestion.childQuestions, questionId);
+
+      if (nestedQuestion) {
+        return {
+          parentPassage: rootQuestion,
+          question: nestedQuestion,
+          subject,
+        };
+      }
+
+      continue;
+    }
+
+    if (rootQuestion.id === questionId) {
+      return {
+        parentPassage: null,
+        question: rootQuestion,
+        subject,
+      };
+    }
+  }
+
+  return { parentPassage: null, question: null, subject };
 };
 
 export const getSubjectQuestionsByType = (subject: SubjectItem, questionType: CreateTestQuestionCategory) =>
-  subject.questions.filter((question) => question.type === questionType);
+  subject.questions.filter((question) => !isPassageQuestionItem(question) && question.type === questionType);
+
+export const getSubjectQuestionCount = (subject: SubjectItem): number =>
+  subject.questions.reduce((questionCount, question) => {
+    if (isPassageQuestionItem(question)) {
+      return questionCount + question.childQuestions.length;
+    }
+
+    return questionCount + 1;
+  }, 0);
+
+export const getSubjectTotalMarks = (subject: SubjectItem): number =>
+  subject.questions.reduce((totalMarks, question) => {
+    if (isPassageQuestionItem(question)) {
+      return (
+        totalMarks + question.childQuestions.reduce((childTotal, childQuestion) => childTotal + childQuestion.points, 0)
+      );
+    }
+
+    return totalMarks + question.points;
+  }, 0);
 
 export const syncSubjectType = (subject: SubjectItem) => {
   subject.type = resolveSubjectType(subject.questions);
@@ -302,36 +487,112 @@ export const syncSubjectType = (subject: SubjectItem) => {
 
 export const resetTransientState = (state: CreateTestState) => {
   state.activeQuestionId = null;
+  state.activePassageId = null;
   state.pendingFocusQuestion = null;
   state.pendingFocusOption = null;
   state.dragState = null;
 };
 
-export const focusQuestion = (state: CreateTestState, subjectId: string, questionId: string) => {
+export const focusPassage = (state: CreateTestState, subjectId: string, passageId: string) => {
   state.activeSubjectId = subjectId;
-  state.activeQuestionId = questionId;
+  state.activeQuestionId = null;
+  state.activePassageId = passageId;
   state.pendingFocusQuestion = {
     subjectId,
-    questionId,
+    questionId: null,
+    parentPassageId: passageId,
   };
   state.pendingFocusOption = null;
 };
 
-export const focusOption = (state: CreateTestState, subjectId: string, questionId: string, optionId: string) => {
+export const focusQuestion = (
+  state: CreateTestState,
+  subjectId: string,
+  questionId: string,
+  parentPassageId?: string | null,
+) => {
   state.activeSubjectId = subjectId;
   state.activeQuestionId = questionId;
+  state.activePassageId = parentPassageId ?? null;
+  state.pendingFocusQuestion = {
+    subjectId,
+    questionId,
+    parentPassageId: parentPassageId ?? null,
+  };
+  state.pendingFocusOption = null;
+};
+
+export const focusOption = (
+  state: CreateTestState,
+  subjectId: string,
+  questionId: string,
+  optionId: string,
+  parentPassageId?: string | null,
+) => {
+  state.activeSubjectId = subjectId;
+  state.activeQuestionId = questionId;
+  state.activePassageId = parentPassageId ?? null;
   state.pendingFocusOption = {
     subjectId,
     questionId,
     optionId,
+    parentPassageId: parentPassageId ?? null,
   };
 };
 
-export const getFirstInvalidQuestion = (questions: QuestionItem[]) =>
-  questions.find((question) => getQuestionValidationErrors(question).length > 0) ?? null;
+export const getFirstInvalidQuestion = (
+  subjectId: string,
+  questions: RootQuestionItem[],
+): InvalidQuestionPayload | null => {
+  for (const question of questions) {
+    if (isPassageQuestionItem(question)) {
+      if (getPassageValidationErrors(question).length > 0) {
+        return {
+          subjectId,
+          questionId: question.id,
+          parentPassageId: question.id,
+          targetType: "passage",
+        };
+      }
 
-export const showQuestionValidationErrors = (questions: QuestionItem[]) => {
+      const invalidChildQuestion = question.childQuestions.find(
+        (childQuestion) => getQuestionValidationErrors(childQuestion).length > 0,
+      );
+
+      if (invalidChildQuestion) {
+        return {
+          subjectId,
+          questionId: invalidChildQuestion.id,
+          parentPassageId: question.id,
+          targetType: "question",
+        };
+      }
+
+      continue;
+    }
+
+    if (getQuestionValidationErrors(question).length > 0) {
+      return {
+        subjectId,
+        questionId: question.id,
+        targetType: "question",
+      };
+    }
+  }
+
+  return null;
+};
+
+export const showQuestionValidationErrors = (questions: RootQuestionItem[]) => {
   questions.forEach((question) => {
+    if (isPassageQuestionItem(question)) {
+      question.showValidation = getPassageValidationErrors(question).length > 0;
+      question.childQuestions.forEach((childQuestion) => {
+        childQuestion.showValidation = getQuestionValidationErrors(childQuestion).length > 0;
+      });
+      return;
+    }
+
     question.showValidation = getQuestionValidationErrors(question).length > 0;
   });
 };

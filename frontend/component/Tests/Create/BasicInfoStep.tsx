@@ -66,7 +66,7 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
 
   return (
     <>
-      <section className="flex min-h-[532px] w-full flex-1 flex-col gap-4">
+      <section className="flex w-full flex-1 flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-[24px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Basic Info</h2>
         </div>

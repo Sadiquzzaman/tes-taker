@@ -3,7 +3,12 @@ import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
 import { findSubjectQuestion } from "./createTestDomain";
 
 const removeOption = (state: CreateTestState, action: PayloadAction<OptionPayload>) => {
-  const { question } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
+  const { question } = findSubjectQuestion(
+    state.subjects,
+    action.payload.subjectId,
+    action.payload.questionId,
+    action.payload.parentPassageId,
+  );
   const optionRules = question ? getCreateTestQuestionOptionRules(question.type, question.subType) : null;
 
   if (!question?.options || !optionRules?.canRemoveOptions) {
@@ -22,6 +27,7 @@ const removeOption = (state: CreateTestState, action: PayloadAction<OptionPayloa
   if (
     state.pendingFocusOption?.subjectId === action.payload.subjectId &&
     state.pendingFocusOption.questionId === action.payload.questionId &&
+    state.pendingFocusOption.parentPassageId === (action.payload.parentPassageId ?? null) &&
     state.pendingFocusOption.optionId === action.payload.optionId
   ) {
     state.pendingFocusOption = null;

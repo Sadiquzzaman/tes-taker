@@ -2,8 +2,9 @@
 
 import { useCallback } from "react";
 import { goToNextStep, goToPreviousStep, setQuestionValidationState } from "@/lib/features/createTestSlice";
+import { isPassageQuestionItem } from "@/lib/features/create-test/createTestDomain";
 import { useAppDispatch } from "@/lib/hooks";
-import { getCreateTestQuestionAnswerMode } from "@/utils/createTestOptions";
+import { getCreateTestQuestionAnswerMode, isCreateTestObjectiveCategory } from "@/utils/createTestOptions";
 import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/utils/createTestValidation";
 import { useToast } from "@/component/Toast/ToastContext";
 import useCreateTest from "@/hooks/api/tests/useCreateTest";
@@ -34,16 +35,47 @@ const mapQuestionAnswerForSubmission = (question: QuestionItem): LegacyCreateTes
   };
 };
 
+const combinePassageInstruction = (passageText: string, instruction: string) => {
+  const trimmedPassageText = passageText.trim();
+  const trimmedInstruction = instruction.trim();
+
+  if (!trimmedPassageText) {
+    return instruction;
+  }
+
+  if (!trimmedInstruction) {
+    return trimmedPassageText;
+  }
+
+  return `${trimmedPassageText}\n\n${trimmedInstruction}`;
+};
+
 const sanitizeSubjectsForSubmission = (subjects: SubjectItem[]): CreateTestSubmissionSubjectItem[] =>
   subjects.map((subject) => {
-    const questions: CreateTestSubmissionQuestionItem[] = subject.questions.map((question) => {
+    const questions: CreateTestSubmissionQuestionItem[] = subject.questions.flatMap((question) => {
+      if (isPassageQuestionItem(question)) {
+        return question.childQuestions.map((childQuestion) => {
+          const questionWithoutAnswer = {
+            ...childQuestion,
+            instruction: combinePassageInstruction(question.passageText, childQuestion.instruction),
+          };
+          Reflect.deleteProperty(questionWithoutAnswer, "answer");
+
+          return {
+            ...questionWithoutAnswer,
+            ...mapQuestionAnswerForSubmission(childQuestion),
+            type: "objective",
+          };
+        });
+      }
+
       const questionWithoutAnswer = { ...question };
       Reflect.deleteProperty(questionWithoutAnswer, "answer");
 
       return {
         ...questionWithoutAnswer,
         ...mapQuestionAnswerForSubmission(question),
-        type: question.type === "graded" ? "objective" : "essay",
+        type: isCreateTestObjectiveCategory(question.type) ? "objective" : "essay",
       };
     });
     const questionTypes = Array.from(new Set(questions.map((question) => question.type)));
@@ -120,9 +152,11 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
 
       dispatch(
         setQuestionValidationState(
-          validationFailures.map(({ subjectId, questionId }) => ({
+          validationFailures.map(({ subjectId, questionId, parentPassageId, targetType }) => ({
             subjectId,
             questionId,
+            parentPassageId,
+            targetType,
           })),
         ),
       );

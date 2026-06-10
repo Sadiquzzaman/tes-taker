@@ -2,7 +2,12 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import { findSubjectQuestion } from "./createTestDomain";
 
 const updateQuestionPoints = (state: CreateTestState, action: PayloadAction<QuestionPayload & { points: number }>) => {
-  const { question } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
+  const { question } = findSubjectQuestion(
+    state.subjects,
+    action.payload.subjectId,
+    action.payload.questionId,
+    action.payload.parentPassageId,
+  );
 
   if (question) {
     question.points = Math.max(0, action.payload.points || 0);

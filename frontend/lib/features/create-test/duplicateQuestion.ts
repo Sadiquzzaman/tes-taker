@@ -1,8 +1,11 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { getCreateTestQuestionOptionRules } from "@/utils/createTestOptions";
 import {
+  buildMatchingOrderingAnswerValue,
   createId,
+  createMatchingOrderingAnswer,
   findSubjectQuestion,
+  focusPassage,
   focusQuestion,
   getFirstInvalidQuestion,
   showQuestionValidationErrors,
@@ -14,17 +17,26 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
     state.subjects,
     action.payload.subjectId,
     action.payload.questionId,
+    action.payload.parentPassageId,
   );
 
   if (!target || !subject) {
     return;
   }
 
-  const invalidQuestion = getFirstInvalidQuestion(subject.questions);
+  const invalidQuestion = getFirstInvalidQuestion(subject.id, subject.questions);
 
   if (invalidQuestion) {
     showQuestionValidationErrors(subject.questions);
-    focusQuestion(state, subject.id, invalidQuestion.id);
+
+    if (invalidQuestion.targetType === "passage" && invalidQuestion.parentPassageId) {
+      focusPassage(state, subject.id, invalidQuestion.parentPassageId);
+      return;
+    }
+
+    if (invalidQuestion.questionId) {
+      focusQuestion(state, subject.id, invalidQuestion.questionId, invalidQuestion.parentPassageId);
+    }
     return;
   }
 
@@ -38,27 +50,65 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
       id: newId,
     };
   });
+  const clonedMatchingOptions = target.matchingOptions
+    ? {
+        left: target.matchingOptions.left.map((option) => ({
+          ...option,
+          id: createId(),
+        })),
+        right: target.matchingOptions.right.map((option) => ({
+          ...option,
+          id: createId(),
+        })),
+      }
+    : undefined;
   const optionRules = getCreateTestQuestionOptionRules(target.type, target.subType);
   const answer =
-    target.answer?.type === "optionId"
-      ? {
-          type: "optionId" as const,
-          value: target.answer.value.map((optionId) => optionIdMap.get(optionId)).filter(Boolean) as string[],
-        }
-      : target.answer
+    target.answer?.type === "matchingOrdering" && clonedMatchingOptions
+      ? createMatchingOrderingAnswer(buildMatchingOrderingAnswerValue(clonedMatchingOptions))
+      : target.answer?.type === "optionId"
         ? {
-            type: "text" as const,
-            value: [...target.answer.value],
+            type: "optionId" as const,
+            value: target.answer.value.map((optionId) => optionIdMap.get(optionId)).filter(Boolean) as string[],
           }
-        : undefined;
+        : target.answer
+          ? {
+              type: "text" as const,
+              value: [...target.answer.value],
+            }
+          : undefined;
 
   const duplicatedQuestion: QuestionItem = {
     ...target,
     id: createId(),
     answer,
-    ...(optionRules ? { options: clonedOptions } : { options: undefined }),
+    matchingOptions: clonedMatchingOptions,
+    ...(clonedMatchingOptions
+      ? { options: undefined }
+      : optionRules
+        ? { options: clonedOptions }
+        : { options: undefined }),
     showValidation: false,
   };
+
+  if (action.payload.parentPassageId) {
+    const { parentPassage } = findSubjectQuestion(
+      state.subjects,
+      action.payload.subjectId,
+      action.payload.questionId,
+      action.payload.parentPassageId,
+    );
+
+    if (!parentPassage) {
+      return;
+    }
+
+    const index = parentPassage.childQuestions.findIndex((question) => question.id === action.payload.questionId);
+    parentPassage.childQuestions.splice(index + 1, 0, duplicatedQuestion);
+    syncSubjectType(subject);
+    focusQuestion(state, subject.id, duplicatedQuestion.id, parentPassage.id);
+    return;
+  }
 
   const index = subject.questions.findIndex((question) => question.id === action.payload.questionId);
   subject.questions.splice(index + 1, 0, duplicatedQuestion);

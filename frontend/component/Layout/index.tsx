@@ -1,5 +1,4 @@
 import Header from "../Dashboard/Header";
-import NameSection from "../Dashboard/NameSection";
 import Sidebar from "../Dashboard/Sidebar";
 
 const PageLayout = ({
@@ -12,11 +11,11 @@ const PageLayout = ({
   subText?: string;
 }) => {
   return (
-    <div className="flex flex-row h-screen bg-[#EFF0F3] overflow-y-auto">
+    <div className="flex h-[100dvh] flex-row overflow-y-auto bg-[#EFF0F3]">
       <Sidebar activeRoute={route} />
       <div className="flex-1">
         <Header activeRoute={route} subText={subText} />
-        <main className="h-[calc(100vh-72px)] bg-white overflow-y-auto px-4 sm:px-8 py-2 sm:py-3">{children}</main>
+        <main className="h-[calc(100dvh-72px)] overflow-y-auto bg-white px-4 py-2 sm:px-8 sm:py-3">{children}</main>
       </div>
     </div>
   );

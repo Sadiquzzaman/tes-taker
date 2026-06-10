@@ -13,6 +13,8 @@ export const CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID = "multiple-choice";
 export const CREATE_TEST_GRADED_MULTIPLE_RESPONSE_SUBTYPE_ID = "multiple-response";
 export const CREATE_TEST_GRADED_TRUE_FALSE_SUBTYPE_ID = "true-false";
 export const CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID = "fill-in-the-blanks";
+export const CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID = "matching-ordering";
+export const CREATE_TEST_PASSAGE_HYBRID_SUBTYPE_ID = "hybrid-question";
 export const CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID = "essay";
 export const CREATE_TEST_UNGRADED_FILL_IN_THE_GAPS_SUBTYPE_ID = "fill-in-the-gaps";
 
@@ -45,63 +47,77 @@ const createFixedOptionRules = (
   useFixedOptions: true,
 });
 
+const createMatchingOrderingOptionRules = (): CreateTestQuestionOptionRules => ({
+  canAddOptions: true,
+  canEditOptionImage: false,
+  canEditOptionText: true,
+  canRemoveOptions: true,
+  canShuffleOptions: false,
+  fixedOptions: [],
+  maxOptions: CREATE_TEST_VARIABLE_OPTION_MAX_COUNT,
+  minOptions: 2,
+  useFixedOptions: false,
+});
+
 const createTrueFalseOptionTemplates = (): CreateTestQuestionFixedOptionTemplate[] => [
   { image: null, text: "True" },
   { image: null, text: "False" },
   { image: null, text: "Not Given" },
 ];
 
+const createObjectiveQuestionTabs = (): CreateTestQuestionSubtypeOption[] => [
+  {
+    id: CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
+    label: "Multiple Choice",
+    isSupported: true,
+    answerMode: "single",
+    answerInputMode: "none",
+    optionRules: createVariableOptionRules(),
+    headerPayload: "Write your question here",
+  },
+  {
+    id: CREATE_TEST_GRADED_MULTIPLE_RESPONSE_SUBTYPE_ID,
+    label: "Multiple Response",
+    isSupported: true,
+    answerMode: "multiple",
+    answerInputMode: "none",
+    optionRules: createVariableOptionRules(),
+    headerPayload: "Write your question here",
+  },
+  {
+    id: CREATE_TEST_GRADED_TRUE_FALSE_SUBTYPE_ID,
+    label: "True / False",
+    isSupported: true,
+    answerMode: "single",
+    answerInputMode: "none",
+    optionRules: createFixedOptionRules(createTrueFalseOptionTemplates()),
+    headerPayload: "Write your question here",
+  },
+  {
+    id: CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID,
+    label: "Fill in the Blanks",
+    isSupported: true,
+    answerMode: "single",
+    answerInputMode: "none",
+    optionRules: createVariableOptionRules(),
+    headerPayload: "Write your question here (Use ______ for blank spot)",
+  },
+  {
+    id: CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
+    label: "Matching/ Ordering",
+    isSupported: true,
+    answerMode: "none",
+    answerInputMode: "none",
+    optionRules: createMatchingOrderingOptionRules(),
+    headerPayload: "Write your question here",
+  },
+];
+
 export const createTestQuestionCategoryOptions: CreateTestQuestionCategoryOption[] = [
   {
     id: "graded",
     label: "Graded",
-    tabs: [
-      {
-        id: "multiple-choice",
-        label: "Multiple Choice",
-        isSupported: true,
-        answerMode: "single",
-        answerInputMode: "none",
-        optionRules: createVariableOptionRules(),
-        headerPayload: "Write your question here",
-      },
-      {
-        id: "multiple-response",
-        label: "Multiple Response",
-        isSupported: true,
-        answerMode: "multiple",
-        answerInputMode: "none",
-        optionRules: createVariableOptionRules(),
-        headerPayload: "Write your question here",
-      },
-      {
-        id: "true-false",
-        label: "True / False",
-        isSupported: true,
-        answerMode: "single",
-        answerInputMode: "none",
-        optionRules: createFixedOptionRules(createTrueFalseOptionTemplates()),
-        headerPayload: "Write your question here",
-      },
-      {
-        id: "fill-in-the-blanks",
-        label: "Fill in the Blanks",
-        isSupported: true,
-        answerMode: "single",
-        answerInputMode: "none",
-        optionRules: createVariableOptionRules(),
-        headerPayload: "Write your question here (Use ______ for blank spot)",
-      },
-      {
-        id: "matching-ordering",
-        label: "Matching /Ordering",
-        isSupported: false,
-        answerMode: "none",
-        answerInputMode: "none",
-        optionRules: null,
-        headerPayload: "Write your question here",
-      },
-    ],
+    tabs: createObjectiveQuestionTabs(),
   },
   {
     id: "ungraded",
@@ -140,21 +156,25 @@ export const createTestQuestionCategoryOptions: CreateTestQuestionCategoryOption
     ],
   },
   {
-    id: "other",
-    label: "Other",
+    id: "passage-question",
+    label: "Passage Question",
     tabs: [
-      {
-        id: "mcq",
-        label: "MCQ",
-        isSupported: false,
-        answerMode: "none",
-        answerInputMode: "none",
-        optionRules: null,
-        headerPayload: "Write your question here",
-      },
+      // {
+      //   id: CREATE_TEST_PASSAGE_HYBRID_SUBTYPE_ID,
+      //   label: "Hybrid Question",
+      //   isSupported: false,
+      //   answerMode: "none",
+      //   answerInputMode: "none",
+      //   optionRules: null,
+      //   headerPayload: "Write your question here",
+      // },
+      ...createObjectiveQuestionTabs(),
     ],
   },
 ];
+
+export const isCreateTestObjectiveCategory = (categoryId: CreateTestQuestionCategory) =>
+  categoryId === "graded" || categoryId === "passage-question";
 
 export const getCreateTestQuestionSubtype = (categoryId: CreateTestQuestionCategory, subtypeId: string) => {
   for (const category of createTestQuestionCategoryOptions) {

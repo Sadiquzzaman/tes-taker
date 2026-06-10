@@ -13,7 +13,7 @@ import {
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useRef, type ChangeEvent } from "react";
-import { readImageFileAsDataUrl, resizeTextarea } from "./shared";
+import { QUESTION_BUILDER_GAPS, readImageFileAsDataUrl, resizeTextarea } from "./shared";
 
 function QuestionCardBody({
   activateCard,
@@ -25,6 +25,7 @@ function QuestionCardBody({
   maxOptions,
   options,
   pendingFocusOptionId,
+  parentPassageId,
   questionId,
   questionNumber,
   scrollContainerRef,
@@ -71,7 +72,7 @@ function QuestionCardBody({
 
       try {
         const image = await readImageFileAsDataUrl(file);
-        dispatch(updateOptionImage({ subjectId, questionId, optionId, image }));
+        dispatch(updateOptionImage({ subjectId, questionId, optionId, image, parentPassageId }));
         activateCard();
       } catch {
         triggerToast({
@@ -80,7 +81,7 @@ function QuestionCardBody({
         });
       }
     },
-    [activateCard, dispatch, questionId, subjectId, triggerToast, validateImageFile],
+    [activateCard, dispatch, parentPassageId, questionId, subjectId, triggerToast, validateImageFile],
   );
 
   const handleAddImageOptionChange = useCallback(
@@ -94,7 +95,7 @@ function QuestionCardBody({
 
       try {
         const image = await readImageFileAsDataUrl(file);
-        dispatch(addOption({ subjectId, questionId, image }));
+        dispatch(addOption({ subjectId, questionId, image, parentPassageId }));
         activateCard();
         scrollToOptionListEndIfNeeded();
       } catch {
@@ -104,13 +105,22 @@ function QuestionCardBody({
         });
       }
     },
-    [activateCard, dispatch, questionId, scrollToOptionListEndIfNeeded, subjectId, triggerToast, validateImageFile],
+    [
+      activateCard,
+      dispatch,
+      parentPassageId,
+      questionId,
+      scrollToOptionListEndIfNeeded,
+      subjectId,
+      triggerToast,
+      validateImageFile,
+    ],
   );
 
   const handleAddOptionWithScroll = useCallback(() => {
-    dispatch(addOption({ subjectId, questionId }));
+    dispatch(addOption({ subjectId, questionId, parentPassageId }));
     scrollToOptionListEndIfNeeded();
-  }, [dispatch, questionId, scrollToOptionListEndIfNeeded, subjectId]);
+  }, [dispatch, parentPassageId, questionId, scrollToOptionListEndIfNeeded, subjectId]);
 
   useEffect(() => {
     if (!pendingFocusOptionId) {
@@ -135,14 +145,17 @@ function QuestionCardBody({
   }, [options]);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={`flex flex-col ${QUESTION_BUILDER_GAPS.bodyStack}`}>
       {options.map((option) => {
         const isSelected = usesMultipleAnswers
           ? selectedOptionIds.includes(option.id)
           : selectedOptionIds[0] === option.id;
 
         return (
-          <div key={option.id} className="group flex items-center gap-2 rounded-[2px] px-0 py-1 hover:bg-[#ED86001A]">
+          <div
+            key={option.id}
+            className={`group flex items-center ${QUESTION_BUILDER_GAPS.optionRow} rounded-[2px] px-0 py-1 hover:bg-[#ED86001A]`}
+          >
             <input
               type={usesMultipleAnswers ? "checkbox" : "radio"}
               name={usesMultipleAnswers ? option.id : `question-${questionId}`}
@@ -153,12 +166,13 @@ function QuestionCardBody({
                     subjectId,
                     questionId,
                     optionId: option.id,
+                    parentPassageId,
                   }),
                 )
               }
               className="mt-1 h-4 w-4 border-[#232A25] text-[#49734F] focus:ring-0"
             />
-            <div className="flex min-w-0 flex-1 flex-col gap-3">
+            <div className={`flex min-w-0 flex-1 flex-col ${QUESTION_BUILDER_GAPS.optionContent}`}>
               {canEditOptionText && !option.image ? (
                 <textarea
                   ref={(element) => {
@@ -179,6 +193,7 @@ function QuestionCardBody({
                         questionId,
                         optionId: option.id,
                         text: event.target.value,
+                        parentPassageId,
                       }),
                     );
                   }}
@@ -191,7 +206,7 @@ function QuestionCardBody({
                 <p className="text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">{option.text}</p>
               )}
               {option.image ? (
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center ${QUESTION_BUILDER_GAPS.optionImageActions}`}>
                   <div className="relative h-32 w-full max-w-[240px] overflow-hidden rounded-[12px] border border-[#E5E5E5] bg-white">
                     <Image
                       src={option.image}
@@ -202,7 +217,7 @@ function QuestionCardBody({
                     />
                   </div>
                   {canEditOptionImage ? (
-                    <div className="flex items-center gap-1">
+                    <div className={`flex items-center ${QUESTION_BUILDER_GAPS.optionActionButtons}`}>
                       <button
                         type="button"
                         title="Replace option image"
@@ -221,6 +236,7 @@ function QuestionCardBody({
                               questionId,
                               optionId: option.id,
                               image: null,
+                              parentPassageId,
                             }),
                           )
                         }
@@ -234,7 +250,7 @@ function QuestionCardBody({
                 </div>
               ) : null}
             </div>
-            <div className="flex shrink-0 items-start gap-2">
+            <div className={`flex shrink-0 items-start ${QUESTION_BUILDER_GAPS.optionSide}`}>
               {canEditOptionImage ? (
                 <input
                   ref={(element) => {
@@ -253,7 +269,7 @@ function QuestionCardBody({
                   className="hidden"
                 />
               ) : null}
-              <div className="flex items-center gap-1">
+              <div className={`flex items-center ${QUESTION_BUILDER_GAPS.optionActionButtons}`}>
                 {canRemoveOptions ? (
                   <button
                     type="button"
@@ -263,6 +279,7 @@ function QuestionCardBody({
                           subjectId,
                           questionId,
                           optionId: option.id,
+                          parentPassageId,
                         }),
                       )
                     }
@@ -278,13 +295,19 @@ function QuestionCardBody({
         );
       })}
       {canAddOptions ? (
-        <div className={`flex w-full items-center gap-2 ${canAddMoreOptions ? "hover:bg-[#ED86001A]" : ""}`}>
+        <div
+          className={`flex w-full items-center ${QUESTION_BUILDER_GAPS.addOptionRow} ${
+            canAddMoreOptions ? "hover:bg-[#ED86001A]" : ""
+          }`}
+        >
           <button
             ref={addOptionButtonRef}
             type="button"
             onClick={handleAddOptionWithScroll}
             disabled={!canAddMoreOptions}
-            className={`flex w-full items-center gap-2 py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)] ${canAddMoreOptions ? "" : "cursor-default"}`}
+            className={`flex w-full items-center ${QUESTION_BUILDER_GAPS.addOptionRow} py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)] ${
+              canAddMoreOptions ? "" : "cursor-default"
+            }`}
           >
             {canAddMoreOptions ? <PlusIcon width={16} /> : null}
             <span>{canAddMoreOptions ? "Click to add a new option" : `Maximum ${maxOptions} options added`}</span>

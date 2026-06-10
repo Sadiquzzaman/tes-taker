@@ -22,15 +22,15 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
     <div
       id="sidebar"
       className={`
-      fixed top-0 left-0 h-screen bg-white overflow-y-auto
-      w-64 transform z-1
+      fixed top-0 left-0 h-[100dvh] bg-white
+      w-64 transform z-50
       transition-transform duration-1000
       ${sidebarState === "open" ? "translate-x-0" : "-translate-x-full"}
       md:translate-x-0 md:static md:block  
           `}
     >
-      <aside className="w-[256px] h-full border-r border-gray-200 flex flex-col z-10 justify-between">
-        <div className="px-4">
+      <aside className="flex h-full w-[256px] flex-col border-r border-gray-200 bg-white">
+        <div className="flex-1 overflow-y-auto px-4 min-h-0">
           <div className="w-full flex justify-between items-center h-[72px]">
             <div className="flex items-center justify-center">
               <TestTakerLogoMarkSVG width={21} />
@@ -82,7 +82,7 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
               })}
           </nav>
         </div>
-        <div className="w-full h-16 px-4 flex items-center border-t border-gray-200">
+        <div className="w-full shrink-0 border-t border-gray-200 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
           <SidebarLogout />
         </div>
       </aside>

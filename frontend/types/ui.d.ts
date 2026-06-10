@@ -7,4 +7,6 @@ type NotmalTextFeildProps = {
   rows?: number;
   maxRows?: number;
   disabled?: boolean;
+  onFocus?: (event: React.FocusEvent<HTMLTextAreaElement>) => void;
+  setTextareaRef?: (element: HTMLTextAreaElement | null) => void;
 };

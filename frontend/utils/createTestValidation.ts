@@ -1,14 +1,49 @@
 import {
+  CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
   getCreateTestQuestionAnswerInputMode,
   getCreateTestQuestionAnswerMode,
   getCreateTestQuestionOptionRules,
   getCreateTestQuestionSubtype,
+  isCreateTestObjectiveCategory,
 } from "@/utils/createTestOptions";
 
 const hasTextOrImage = (text: string, image: string | null | undefined) => Boolean(text.trim() || image);
+const isPassageQuestionItem = (question: RootQuestionItem): question is PassageQuestionItem =>
+  "childQuestions" in question;
 
 const getSubtypeLabel = (question: QuestionItem) =>
   getCreateTestQuestionSubtype(question.type, question.subType)?.label;
+
+const getMatchingOrderingValidationErrors = (question: QuestionItem): string[] => {
+  const errors: string[] = [];
+  const matchingOptions = question.matchingOptions;
+  const leftOptions = matchingOptions?.left ?? [];
+  const rightOptions = matchingOptions?.right ?? [];
+
+  if (
+    leftOptions.length < 2 ||
+    rightOptions.length < 2 ||
+    leftOptions.length > 5 ||
+    rightOptions.length > 5 ||
+    leftOptions.length !== rightOptions.length
+  ) {
+    errors.push("Matching /Ordering questions must have between 2 and 5 pairs.");
+  }
+
+  leftOptions.forEach((option, index) => {
+    if (!option.text.trim()) {
+      errors.push(`Left choice ${index + 1} cannot be empty.`);
+    }
+  });
+
+  rightOptions.forEach((option, index) => {
+    if (!option.text.trim()) {
+      errors.push(`Right choice ${index + 1} cannot be empty.`);
+    }
+  });
+
+  return errors;
+};
 
 const getSubtypeOptionValidationErrors = (question: QuestionItem): string[] => {
   const optionRules = getCreateTestQuestionOptionRules(question.type, question.subType);
@@ -74,8 +109,13 @@ export const getQuestionValidationErrors = (question: QuestionItem): string[] =>
   const errors: string[] = [];
   const answerInputMode = getCreateTestQuestionAnswerInputMode(question.type, question.subType);
   const textAnswerValue = question.answer?.type === "text" ? (question.answer.value[0] ?? "") : "";
+  const isMatchingOrdering =
+    isCreateTestObjectiveCategory(question.type) &&
+    question.subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
 
-  if (!hasTextOrImage(question.text, question.image)) {
+  if (isMatchingOrdering && !question.text.trim()) {
+    errors.push("Add a question title.");
+  } else if (!hasTextOrImage(question.text, question.image)) {
     errors.push("Add a question title or question image.");
   }
 
@@ -87,8 +127,20 @@ export const getQuestionValidationErrors = (question: QuestionItem): string[] =>
     errors.push("Add a correct answer.");
   }
 
-  if (question.type === "graded") {
+  if (isMatchingOrdering) {
+    errors.push(...getMatchingOrderingValidationErrors(question));
+  } else if (isCreateTestObjectiveCategory(question.type)) {
     errors.push(...getSubtypeOptionValidationErrors(question));
+  }
+
+  return errors;
+};
+
+export const getPassageValidationErrors = (question: PassageQuestionItem): string[] => {
+  const errors: string[] = [];
+
+  if (!question.passageText.trim()) {
+    errors.push("Add passage text.");
   }
 
   return errors;
@@ -99,6 +151,36 @@ export const collectQuestionValidationFailures = (subjects: SubjectItem[]): Ques
 
   subjects.forEach((subject) => {
     subject.questions.forEach((question) => {
+      if (isPassageQuestionItem(question)) {
+        const passageErrors = getPassageValidationErrors(question);
+
+        if (passageErrors.length > 0) {
+          failures.push({
+            subjectId: subject.id,
+            questionId: question.id,
+            parentPassageId: question.id,
+            errors: passageErrors,
+            targetType: "passage",
+          });
+        }
+
+        question.childQuestions.forEach((childQuestion) => {
+          const childErrors = getQuestionValidationErrors(childQuestion);
+
+          if (childErrors.length > 0) {
+            failures.push({
+              subjectId: subject.id,
+              questionId: childQuestion.id,
+              parentPassageId: question.id,
+              errors: childErrors,
+              targetType: "question",
+            });
+          }
+        });
+
+        return;
+      }
+
       const errors = getQuestionValidationErrors(question);
 
       if (errors.length > 0) {
@@ -106,6 +188,7 @@ export const collectQuestionValidationFailures = (subjects: SubjectItem[]): Ques
           subjectId: subject.id,
           questionId: question.id,
           errors,
+          targetType: "question",
         });
       }
     });
@@ -114,4 +197,11 @@ export const collectQuestionValidationFailures = (subjects: SubjectItem[]): Ques
   return failures;
 };
 
-export const getSubjectQuestionCount = (subject: SubjectItem): number => subject.questions.length;
+export const getSubjectQuestionCount = (subject: SubjectItem): number =>
+  subject.questions.reduce((questionCount, question) => {
+    if (isPassageQuestionItem(question)) {
+      return questionCount + question.childQuestions.length;
+    }
+
+    return questionCount + 1;
+  }, 0);

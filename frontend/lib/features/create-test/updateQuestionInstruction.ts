@@ -5,7 +5,12 @@ const updateQuestionInstruction = (
   state: CreateTestState,
   action: PayloadAction<QuestionPayload & { instruction: string }>,
 ) => {
-  const { question } = findSubjectQuestion(state.subjects, action.payload.subjectId, action.payload.questionId);
+  const { question } = findSubjectQuestion(
+    state.subjects,
+    action.payload.subjectId,
+    action.payload.questionId,
+    action.payload.parentPassageId,
+  );
 
   if (question) {
     question.instruction = action.payload.instruction;

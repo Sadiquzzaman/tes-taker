@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import addExcludedStudentReducer from "./create-test/addExcludedStudent";
+import addMatchingPairReducer from "./create-test/addMatchingPair";
 import addOptionReducer from "./create-test/addOption";
 import addQuestionReducer from "./create-test/addQuestion";
 import addSubjectReducer from "./create-test/addSubject";
@@ -14,6 +15,7 @@ import goToNextStepReducer from "./create-test/goToNextStep";
 import goToPreviousStepReducer from "./create-test/goToPreviousStep";
 import moveQuestionReducer from "./create-test/moveQuestion";
 import removeExcludedStudentReducer from "./create-test/removeExcludedStudent";
+import removeMatchingPairReducer from "./create-test/removeMatchingPair";
 import removeOptionReducer from "./create-test/removeOption";
 import removeSubjectReducer from "./create-test/removeSubject";
 import resetFormReducer from "./create-test/resetForm";
@@ -29,8 +31,10 @@ import setTestAudienceReducer from "./create-test/setTestAudience";
 import shuffleOptionsReducer from "./create-test/shuffleOptions";
 import startDraggingReducer from "./create-test/startDragging";
 import updateDraggingReducer from "./create-test/updateDragging";
+import updateMatchingOptionTextReducer from "./create-test/updateMatchingOptionText";
 import updateOptionImageReducer from "./create-test/updateOptionImage";
 import updateOptionTextReducer from "./create-test/updateOptionText";
+import updatePassageTextReducer from "./create-test/updatePassageText";
 import updateQuestionAnswerValueReducer from "./create-test/updateQuestionAnswerValue";
 import updateQuestionImageReducer from "./create-test/updateQuestionImage";
 import updateQuestionInstructionReducer from "./create-test/updateQuestionInstruction";
@@ -48,6 +52,7 @@ export const createTestSlice = createSlice({
     goToPreviousStep: goToPreviousStepReducer,
     setFormField: setFormFieldReducer,
     setSingleSubject: setSingleSubjectReducer,
+    addMatchingPair: addMatchingPairReducer,
     addSubject: addSubjectReducer,
     removeSubject: removeSubjectReducer,
     setActiveSubjectId: setActiveSubjectIdReducer,
@@ -59,9 +64,12 @@ export const createTestSlice = createSlice({
     updateQuestionInstruction: updateQuestionInstructionReducer,
     updateQuestionAnswerValue: updateQuestionAnswerValueReducer,
     updateQuestionImage: updateQuestionImageReducer,
+    updatePassageText: updatePassageTextReducer,
+    updateMatchingOptionText: updateMatchingOptionTextReducer,
     updateOptionText: updateOptionTextReducer,
     updateOptionImage: updateOptionImageReducer,
     selectCorrectOption: selectCorrectOptionReducer,
+    removeMatchingPair: removeMatchingPairReducer,
     removeOption: removeOptionReducer,
     addOption: addOptionReducer,
     updateQuestionPoints: updateQuestionPointsReducer,
@@ -84,6 +92,7 @@ export const createTestSlice = createSlice({
 
 export const {
   resetForm,
+  addMatchingPair,
   addOption,
   addQuestion,
   addSubject,
@@ -97,6 +106,7 @@ export const {
   goToNextStep,
   goToPreviousStep,
   moveQuestion,
+  removeMatchingPair,
   removeOption,
   selectCorrectOption,
   setActiveQuestionId,
@@ -106,11 +116,13 @@ export const {
   setSingleSubject,
   shuffleOptions,
   startDragging,
+  updateMatchingOptionText,
   updateOptionImage,
   updateDragging,
   updateOptionText,
   updateQuestionAnswerValue,
   updateQuestionImage,
+  updatePassageText,
   updateQuestionPoints,
   updateQuestionText,
   setPublishTiming,
