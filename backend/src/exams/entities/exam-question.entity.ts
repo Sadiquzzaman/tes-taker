@@ -1,9 +1,17 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { ExamEntity } from './exam.entity';
 import { ExamQuestionSectionEntity } from './exam-question-section.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { QuestionCategoryEnum } from '../enums/question.enums';
+
+export type StoredQuestionOption = { id: string; text: string };
+export type StoredMatchingOptions = {
+  left: StoredQuestionOption[];
+  right: StoredQuestionOption[];
+};
+export type StoredQuestionAnswer = { type: string; value: string[] };
 
 export enum CorrectAnswerEnum {
   OPTION_1 = 'Option 1',
@@ -44,9 +52,50 @@ export class ExamQuestionEntity extends CustomBaseEntity {
   @Column({ name: 'sort_order', type: 'int', default: 0 })
   sort_order: number;
 
-  @ApiProperty({ description: 'Type of question', enum: QuestionTypeEnum })
+  @ApiProperty({ description: 'Legacy auto/manual bucket (OBJECTIVE | SUBJECTIVE)' })
   @Column({ type: 'enum', enum: QuestionTypeEnum, default: QuestionTypeEnum.OBJECTIVE })
   question_type: QuestionTypeEnum;
+
+  @ApiPropertyOptional({
+    description: 'Builder category: graded | ungraded | passage-question',
+    enum: QuestionCategoryEnum,
+  })
+  @Column({ name: 'category', type: 'varchar', length: 30, nullable: true })
+  category: QuestionCategoryEnum | null;
+
+  @ApiPropertyOptional({ description: 'Builder sub-type e.g. multiple-choice, essay' })
+  @Column({ name: 'sub_type', type: 'varchar', length: 40, nullable: true })
+  sub_type: string | null;
+
+  @ApiPropertyOptional({ description: 'Parent passage question id for passage child rows' })
+  @Column({ name: 'parent_id', type: 'uuid', nullable: true })
+  parent_id: string | null;
+
+  @ManyToOne(() => ExamQuestionEntity, (q) => q.childQuestions, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'parent_id' })
+  parent: ExamQuestionEntity | null;
+
+  @OneToMany(() => ExamQuestionEntity, (q) => q.parent)
+  childQuestions: ExamQuestionEntity[];
+
+  @ApiPropertyOptional({ description: 'Reading passage body (passage parent only)' })
+  @Column({ name: 'passage_text', type: 'text', nullable: true })
+  passage_text: string | null;
+
+  @ApiPropertyOptional({ description: 'Options with stable client ids' })
+  @Column({ name: 'options_json', type: 'jsonb', nullable: true })
+  options_json: StoredQuestionOption[] | null;
+
+  @ApiPropertyOptional({ description: 'Left/right columns for matching-ordering' })
+  @Column({ name: 'matching_options_json', type: 'jsonb', nullable: true })
+  matching_options_json: StoredMatchingOptions | null;
+
+  @ApiPropertyOptional({ description: 'Correct answer payload from builder' })
+  @Column({ name: 'answer_json', type: 'jsonb', nullable: true })
+  answer_json: StoredQuestionAnswer | null;
 
   @ApiProperty({ description: 'The question text' })
   @Column({ type: 'text' })

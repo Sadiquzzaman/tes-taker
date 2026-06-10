@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional, ApiExtraModels } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, ApiExtraModels, getSchemaPath } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
@@ -16,85 +16,126 @@ import {
   ArrayMaxSize,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
-import { ExamKindEnum, PublishTimingEnum, TestAudienceEnum } from '../enums/exam-wizard.enums';
+import { PublishTimingEnum, TestAudienceEnum } from '../enums/exam-wizard.enums';
+import {
+  AUTO_SCORED_SUB_TYPES,
+  MANUAL_SUB_TYPES,
+  QuestionCategoryEnum,
+} from '../enums/question.enums';
 
 export class WizardOptionDto {
-  @ApiProperty({ description: 'Client-generated option id (used to resolve correct answer)' })
+  @ApiProperty()
   @IsString()
   @IsNotEmpty()
   id: string;
 
-  @ApiProperty({ description: 'Option text' })
+  @ApiProperty()
   @IsString()
   @IsNotEmpty()
   @MaxLength(2000)
   text: string;
 
-  @ApiPropertyOptional({ description: 'Reserved for future image support; ignored for now' })
+  @ApiPropertyOptional({ description: 'Ignored by backend' })
   @IsOptional()
   image?: unknown | null;
 }
 
-export class WizardMcqQuestionDto {
-  @ApiPropertyOptional({ description: 'Optional client-side identifier' })
-  @IsOptional()
-  @IsString()
-  id?: string;
-
-  @ApiProperty({ description: 'Question stem' })
+export class WizardMatchingSideOptionDto {
+  @ApiProperty()
   @IsString()
   @IsNotEmpty()
+  id: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
   text: string;
 
-  @ApiPropertyOptional({ description: 'Reserved for future image support; ignored for now' })
+  @ApiPropertyOptional({ description: 'Ignored by backend' })
   @IsOptional()
   image?: unknown | null;
-
-  @ApiProperty({ type: [WizardOptionDto], minItems: 2, maxItems: 5 })
-  @IsArray()
-  @ArrayMinSize(2)
-  @ArrayMaxSize(5)
-  @ValidateNested({ each: true })
-  @Type(() => WizardOptionDto)
-  options: WizardOptionDto[];
-
-  @ApiProperty({ description: 'Must match one of options[].id' })
-  @IsString()
-  @IsNotEmpty()
-  correctOptionId: string;
-
-  @ApiProperty({ description: 'Marks for this question', minimum: 0 })
-  @IsNumber()
-  @Min(0)
-  @Type(() => Number)
-  points: number;
-
-  @ApiPropertyOptional({ description: 'Instructions for this question (max 500 characters)' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  instruction?: string;
-
-  @ApiPropertyOptional({ description: 'Client-only validation flag; ignored by backend' })
-  @IsOptional()
-  @IsBoolean()
-  showValidation?: boolean;
 }
 
-export class WizardEssayQuestionDto {
-  @ApiPropertyOptional({ description: 'Optional client-side identifier' })
+export class WizardMatchingOptionsDto {
+  @ApiProperty({ type: [WizardMatchingSideOptionDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => WizardMatchingSideOptionDto)
+  left: WizardMatchingSideOptionDto[];
+
+  @ApiProperty({ type: [WizardMatchingSideOptionDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => WizardMatchingSideOptionDto)
+  right: WizardMatchingSideOptionDto[];
+}
+
+export class WizardAnswerDto {
+  @ApiProperty({ enum: ['optionId', 'matchingOrdering', 'text'] })
+  @IsIn(['optionId', 'matchingOrdering', 'text'])
+  type: 'optionId' | 'matchingOrdering' | 'text';
+
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  value: string[];
+}
+
+export class WizardChildQuestionDto {
+  @ApiPropertyOptional({ description: 'Client-side id; persisted when valid UUID' })
   @IsOptional()
-  @IsString()
+  @IsUUID('4')
   id?: string;
+
+  @ApiProperty({
+    enum: QuestionCategoryEnum,
+    example: QuestionCategoryEnum.PASSAGE,
+  })
+  @IsIn([QuestionCategoryEnum.PASSAGE])
+  type: QuestionCategoryEnum.PASSAGE;
+
+  @ApiProperty({
+    enum: [...AUTO_SCORED_SUB_TYPES],
+    example: 'multiple-choice',
+  })
+  @IsIn([...AUTO_SCORED_SUB_TYPES])
+  subType: (typeof AUTO_SCORED_SUB_TYPES)[number];
 
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
   text: string;
 
-  @ApiPropertyOptional({ description: 'Reserved for future image support; ignored for now' })
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  instruction?: string;
+
+  @ApiPropertyOptional({ description: 'Ignored by backend' })
   @IsOptional()
   image?: unknown | null;
+
+  @ApiPropertyOptional({ type: [WizardOptionDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => WizardOptionDto)
+  options?: WizardOptionDto[];
+
+  @ApiPropertyOptional({ type: WizardMatchingOptionsDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WizardMatchingOptionsDto)
+  matchingOptions?: WizardMatchingOptionsDto;
+
+  @ApiProperty({ type: WizardAnswerDto })
+  @ValidateNested()
+  @Type(() => WizardAnswerDto)
+  answer: WizardAnswerDto;
 
   @ApiProperty({ minimum: 0 })
   @IsNumber()
@@ -102,87 +143,223 @@ export class WizardEssayQuestionDto {
   @Type(() => Number)
   points: number;
 
-  @ApiPropertyOptional({ description: 'Instructions for this question (max 500 characters)' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  instruction?: string;
-
-  @ApiPropertyOptional({ description: 'Client-only validation flag; ignored by backend' })
+  @ApiPropertyOptional({ description: 'Ignored by backend' })
   @IsOptional()
   @IsBoolean()
   showValidation?: boolean;
 }
 
-export class WizardQuestionSectionDto {
-  @ApiProperty({ enum: ['objective', 'essay', 'mixed'] })
-  @IsIn(['objective', 'essay', 'mixed'])
-  type: 'objective' | 'essay' | 'mixed';
+export class WizardPassageQuestionDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID('4')
+  id?: string;
+
+  @ApiProperty({
+    enum: QuestionCategoryEnum,
+    example: QuestionCategoryEnum.PASSAGE,
+    description: 'Passage block — use passageText + childQuestions (not text/options on the parent)',
+  })
+  @IsIn([QuestionCategoryEnum.PASSAGE])
+  type: QuestionCategoryEnum.PASSAGE;
+
+  @ApiProperty({
+    example:
+      'This is a passage. This is a passage. This is a passage.',
+  })
+  @IsString()
+  @IsNotEmpty()
+  passageText: string;
+
+  @ApiProperty({
+    type: [WizardChildQuestionDto],
+    description: 'Auto-scored questions based on the passage',
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => WizardChildQuestionDto)
+  childQuestions: WizardChildQuestionDto[];
+
+  @ApiPropertyOptional({ description: 'Ignored by backend' })
+  @IsOptional()
+  @IsBoolean()
+  showValidation?: boolean;
+}
+
+export class WizardGradedQuestionDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID('4')
+  id?: string;
+
+  @ApiProperty({
+    enum: QuestionCategoryEnum,
+    example: QuestionCategoryEnum.GRADED,
+  })
+  @IsIn([QuestionCategoryEnum.GRADED])
+  type: QuestionCategoryEnum.GRADED;
+
+  @ApiProperty({
+    enum: [...AUTO_SCORED_SUB_TYPES],
+    example: 'multiple-choice',
+  })
+  @IsIn([...AUTO_SCORED_SUB_TYPES])
+  subType: (typeof AUTO_SCORED_SUB_TYPES)[number];
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  text: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  headerText?: string;
-
-  @ApiPropertyOptional({ description: 'Optional instructions for this section' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(1000)
+  @MaxLength(500)
   instruction?: string;
 
-  @ApiProperty({
-    description:
-      'MCQ items include options + correctOptionId. Essay items include text + points only. Hybrid/model requests may mix both shapes in the same array.',
-    type: 'array',
-  })
+  @ApiPropertyOptional({ description: 'Ignored by backend' })
+  @IsOptional()
+  image?: unknown | null;
+
+  @ApiPropertyOptional({ type: [WizardOptionDto] })
+  @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
-  questions: Record<string, unknown>[];
+  @ValidateNested({ each: true })
+  @Type(() => WizardOptionDto)
+  options?: WizardOptionDto[];
+
+  @ApiPropertyOptional({ type: WizardMatchingOptionsDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WizardMatchingOptionsDto)
+  matchingOptions?: WizardMatchingOptionsDto;
+
+  @ApiProperty({ type: WizardAnswerDto })
+  @ValidateNested()
+  @Type(() => WizardAnswerDto)
+  answer: WizardAnswerDto;
+
+  @ApiProperty({ minimum: 0 })
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  points: number;
+
+  @ApiPropertyOptional({ description: 'Ignored by backend' })
+  @IsOptional()
+  @IsBoolean()
+  showValidation?: boolean;
 }
 
+export class WizardUngradedQuestionDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID('4')
+  id?: string;
+
+  @ApiProperty({
+    enum: QuestionCategoryEnum,
+    example: QuestionCategoryEnum.UNGRADED,
+  })
+  @IsIn([QuestionCategoryEnum.UNGRADED])
+  type: QuestionCategoryEnum.UNGRADED;
+
+  @ApiProperty({
+    enum: [...MANUAL_SUB_TYPES],
+    example: 'essay',
+  })
+  @IsIn([...MANUAL_SUB_TYPES])
+  subType: (typeof MANUAL_SUB_TYPES)[number];
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  text: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  instruction?: string;
+
+  @ApiPropertyOptional({ description: 'Ignored by backend' })
+  @IsOptional()
+  image?: unknown | null;
+
+  @ApiPropertyOptional({ type: WizardAnswerDto, description: 'Sample answers for manual grading' })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WizardAnswerDto)
+  answer?: WizardAnswerDto;
+
+  @ApiProperty({ minimum: 0 })
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  points: number;
+
+  @ApiPropertyOptional({ description: 'Ignored by backend' })
+  @IsOptional()
+  @IsBoolean()
+  showValidation?: boolean;
+}
+
+export type WizardQuestionDto =
+  | WizardGradedQuestionDto
+  | WizardUngradedQuestionDto
+  | WizardPassageQuestionDto;
+
 export class WizardSubjectBlockDto {
-  @ApiProperty({ description: 'Subject UUID from GET /v1/subjects' })
+  @ApiProperty({ description: 'Subject UUID from GET /v1/subjects', format: 'uuid' })
   @IsUUID('4')
   id: string;
 
-  @ApiProperty({ type: [WizardQuestionSectionDto] })
+  @ApiProperty({
+    description:
+      'Flat question list. Each item is graded, ungraded, or a passage block (see Schemas below).',
+    type: 'array',
+    items: {
+      oneOf: [
+        { $ref: getSchemaPath(WizardGradedQuestionDto) },
+        { $ref: getSchemaPath(WizardUngradedQuestionDto) },
+        { $ref: getSchemaPath(WizardPassageQuestionDto) },
+      ],
+    },
+  })
   @IsArray()
   @ArrayMinSize(1)
-  @ValidateNested({ each: true })
-  @Type(() => WizardQuestionSectionDto)
-  questionSections: WizardQuestionSectionDto[];
+  questions: WizardQuestionDto[];
 }
 
 export class WizardFormStateDto {
-  @ApiProperty({ enum: ExamKindEnum, description: 'hybrid (single subject) | model (multiple subjects)' })
-  @IsIn(Object.values(ExamKindEnum))
-  examType: ExamKindEnum;
-
   @ApiProperty({ description: 'Title of the test' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
   testName: string;
 
-  @ApiProperty({ description: 'Duration in minutes (string or number from UI)', example: '40' })
+  @ApiProperty({ description: 'Duration in minutes', example: '40' })
   @Transform(({ value }) => (value === '' || value === undefined ? NaN : Number(value)))
   @IsNumber()
   @Min(1)
   duration: number;
 
-  @ApiProperty({ description: 'Minimum score to pass', example: '30' })
-  @Transform(({ value }) => (value === '' || value === undefined ? NaN : Number(value)))
+  @ApiPropertyOptional({ description: 'Minimum score to pass', example: '30' })
+  @Transform(({ value }) =>
+    value === '' || value === undefined || value === null ? undefined : Number(value),
+  )
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  passingScore: number;
+  passingScore?: number;
 
   @ApiProperty()
   @IsBoolean()
   allowNegativeMarking: boolean;
 
   @ApiPropertyOptional({
-    description:
-      'When allowNegativeMarking is true: percentage 1–100. Each wrong MCQ deducts (negativeMarking/100) × that question’s points from the objective total.',
+    description: 'Percentage 1–100 when negative marking is enabled',
     example: 25,
   })
   @IsOptional()
@@ -210,7 +387,7 @@ export class WizardPublishStateDto {
   @Type(() => Date)
   endingAt: Date;
 
-  @ApiProperty({ enum: TestAudienceEnum, description: 'anyone | selected_class | specific_students' })
+  @ApiProperty({ enum: TestAudienceEnum })
   @IsIn(Object.values(TestAudienceEnum))
   testAudience: TestAudienceEnum;
 
@@ -221,36 +398,71 @@ export class WizardPublishStateDto {
 
   @ApiPropertyOptional({
     type: [String],
-    description:
-      'Student user UUIDs when testAudience is specific_students. Each array item may contain one UUID or a comma-separated list of UUIDs.',
+    description: 'Student UUIDs when testAudience is specific_students',
   })
   @IsOptional()
   @Transform(({ value }) => {
     if (value === undefined || value === null) {
       return undefined;
     }
-
     const rawItems = Array.isArray(value) ? value : [value];
     const normalized = rawItems
       .flatMap((item) => (typeof item === 'string' ? item.split(',') : []))
       .map((item) => item.trim())
       .filter((item) => item.length > 0);
-
     return [...new Set(normalized)];
   })
   @IsArray()
   @IsUUID('4', { each: true })
   specificStudents?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Students excluded when audience is selected_class',
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+    const rawItems = Array.isArray(value) ? value : [value];
+    return rawItems
+      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .filter((item) => item.length > 0);
+  })
+  @IsArray()
+  @IsUUID('4', { each: true })
+  excluded_students?: string[];
 }
 
-@ApiExtraModels(WizardMcqQuestionDto, WizardEssayQuestionDto)
+@ApiExtraModels(
+  WizardOptionDto,
+  WizardMatchingSideOptionDto,
+  WizardMatchingOptionsDto,
+  WizardAnswerDto,
+  WizardChildQuestionDto,
+  WizardPassageQuestionDto,
+  WizardGradedQuestionDto,
+  WizardUngradedQuestionDto,
+  WizardSubjectBlockDto,
+  WizardFormStateDto,
+  WizardPublishStateDto,
+)
 export class CreateExamWizardDto {
+  @ApiPropertyOptional({ description: 'Ignored by backend — builder UI step name' })
+  @IsOptional()
+  @IsString()
+  currentStep?: string;
+
   @ApiProperty({ type: WizardFormStateDto })
   @ValidateNested()
   @Type(() => WizardFormStateDto)
   formState: WizardFormStateDto;
 
-  @ApiProperty({ type: [WizardSubjectBlockDto] })
+  @ApiProperty({
+    type: [WizardSubjectBlockDto],
+    description: 'One or more subject blocks, each with a flat questions array',
+  })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
