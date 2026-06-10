@@ -34,11 +34,7 @@ const DropDownComponent = ({
     isSearchable,
     maxOuputInDropdownList,
   });
-  const icon = open ? (
-    <ChevronUpFilledIconSVG className="size-4" />
-  ) : (
-    <ChevronDownFilledIconSVG className="size-4" />
-  );
+  const icon = open ? <ChevronUpFilledIconSVG className="size-4" /> : <ChevronDownFilledIconSVG className="size-4" />;
 
   const menu =
     open && menuPosition

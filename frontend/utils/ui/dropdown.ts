@@ -25,8 +25,7 @@ export const getDropDownMenuPosition = ({
 }: DropDownPositionArgs): DropDownMenuPosition => {
   const spaceBelow = viewportHeight - rect.bottom;
   const spaceAbove = rect.top;
-  const shouldOpenUpward =
-    menuHeight > 0 && spaceBelow < menuHeight + DROPDOWN_VIEWPORT_GAP && spaceAbove > spaceBelow;
+  const shouldOpenUpward = menuHeight > 0 && spaceBelow < menuHeight + DROPDOWN_VIEWPORT_GAP && spaceAbove > spaceBelow;
 
   return {
     top: shouldOpenUpward
