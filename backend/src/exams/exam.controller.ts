@@ -44,7 +44,7 @@ export class ExamController {
   @ApiOperation({
     summary: "Create exam (unified wizard)",
     description:
-      "Unified wizard: hybrid (single subject) or model (multiple subjects). Subject blocks must use real subject UUIDs from GET /v1/subjects. Sections may be objective, essay, or mixed. When testAudience is `specific_students`, each specificStudents item may contain one UUID or a comma-separated list. When testAudience is `anyone`, students access the exam by id after signing in (no invite token).",
+      "Create a test with graded, ungraded, and passage questions under subject blocks. Ignores client-only fields (currentStep, showValidation, image). When testAudience is `specific_students`, each specificStudents item may contain one UUID or a comma-separated list. When testAudience is `selected_class`, optional excluded_students may be supplied.",
   })
   @ApiBody({ type: CreateExamWizardDto })
   @ApiResponse({ status: 201, description: "Exam created with sections and questions" })

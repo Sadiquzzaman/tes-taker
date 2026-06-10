@@ -42,7 +42,10 @@ import {
 import {
   findObjectiveOptionIndexBySubmittedId,
   getObjectiveOptionSlotCount,
+  buildResponseOptionId,
 } from './utils/exam-option-ids.util';
+import { isAutoScoredQuestion, scoreStudentAnswer } from './utils/exam-question.util';
+import { QuestionCategoryEnum } from './enums/question.enums';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 
 @Injectable()
@@ -81,18 +84,23 @@ export class StudentExamService {
     return StudentExamService.UUID_V4_RE.test(value);
   }
 
-  /** Flatten questions: wizard exams use sections; legacy uses exam.questions only */
+  /** Flatten scorable questions; wizard exams use sections; legacy uses exam.questions only */
   private getOrderedQuestions(exam: ExamEntity): ExamQuestionEntity[] {
+    let ordered: ExamQuestionEntity[];
     if (exam.questionSections?.length) {
       const sections = [...exam.questionSections].sort((a, b) => a.sort_order - b.sort_order);
-      const out: ExamQuestionEntity[] = [];
+      ordered = [];
       for (const s of sections) {
         const qs = [...(s.questions || [])].sort((a, b) => a.sort_order - b.sort_order);
-        out.push(...qs);
+        ordered.push(...qs);
       }
-      return out;
+    } else {
+      ordered = [...(exam.questions || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     }
-    return [...(exam.questions || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+    return ordered.filter(
+      (q) => !(q.category === QuestionCategoryEnum.PASSAGE && !q.parent_id),
+    );
   }
 
   // ========================
@@ -673,6 +681,29 @@ export class StudentExamService {
         const question = questionById.get(questionId)!;
         const value = rawValue === undefined || rawValue === null ? '' : String(rawValue);
 
+        if (isAutoScoredQuestion(question.category, question.sub_type)) {
+          const trimmed = value.trim();
+          if (!trimmed) {
+            throw new BadRequestException(`Answer required for question ${questionId}`);
+          }
+
+          if (question.sub_type === 'multiple-response' || question.sub_type === 'matching-ordering') {
+            await this.upsertTextAnswer(answerRepo, subRow.id, questionId, trimmed, studentId);
+            continue;
+          }
+
+          if (question.options_json?.length) {
+            const validIds = new Set(question.options_json.map((o) => o.id));
+            if (!validIds.has(trimmed)) {
+              throw new BadRequestException(`Invalid option selection for question ${questionId}`);
+            }
+            const idx = question.options_json.findIndex((o) => o.id === trimmed);
+            const selected = CORRECT_ANSWER_ENUM_BY_OPTION_INDEX[idx];
+            await this.upsertSelectedAnswer(answerRepo, subRow.id, questionId, selected, studentId);
+            continue;
+          }
+        }
+
         if (question.question_type === QuestionTypeEnum.OBJECTIVE) {
           const trimmed = value.trim();
           if (!trimmed) {
@@ -819,8 +850,16 @@ export class StudentExamService {
     }
 
     const ordered = this.getOrderedQuestions(exam);
-    const hasObjective = ordered.some((q) => q.question_type === QuestionTypeEnum.OBJECTIVE);
-    const hasSubjective = ordered.some((q) => q.question_type === QuestionTypeEnum.SUBJECTIVE);
+    const hasObjective = ordered.some(
+      (q) =>
+        q.question_type === QuestionTypeEnum.OBJECTIVE ||
+        isAutoScoredQuestion(q.category, q.sub_type),
+    );
+    const hasSubjective = ordered.some(
+      (q) =>
+        q.question_type === QuestionTypeEnum.SUBJECTIVE &&
+        !isAutoScoredQuestion(q.category, q.sub_type),
+    );
     if (hasObjective) {
       await this.calculateObjectiveScore(submission.id, exam);
     }
@@ -856,6 +895,96 @@ export class StudentExamService {
       total_score: result!.total_score,
       max_score: result!.max_score,
     };
+  }
+
+  private resolveSubmittedAnswerValue(
+    answer: StudentExamAnswerEntity,
+    question: ExamQuestionEntity,
+  ): string {
+    if (answer.text_answer?.trim()) {
+      return answer.text_answer.trim();
+    }
+    if (answer.selected_answer && question.options_json?.length) {
+      const idx = CORRECT_ANSWER_ENUM_BY_OPTION_INDEX.indexOf(answer.selected_answer);
+      if (idx >= 0 && question.options_json[idx]) {
+        return question.options_json[idx].id;
+      }
+    }
+    if (answer.selected_answer) {
+      const idx = CORRECT_ANSWER_ENUM_BY_OPTION_INDEX.indexOf(answer.selected_answer);
+      if (idx >= 0) {
+        return buildResponseOptionId(question.id, idx);
+      }
+    }
+    return '';
+  }
+
+  private async upsertSelectedAnswer(
+    answerRepo: Repository<StudentExamAnswerEntity>,
+    submissionId: string,
+    questionId: string,
+    selected: CorrectAnswerEnum,
+    studentId: string,
+  ): Promise<void> {
+    const existing = await answerRepo.findOne({
+      where: { submission_id: submissionId, question_id: questionId },
+    });
+    if (existing) {
+      await answerRepo.update(
+        { id: existing.id },
+        {
+          selected_answer: selected,
+          text_answer: null,
+          word_count: null,
+          answered_at: new Date(),
+          updated_at: new Date(),
+        } as object,
+      );
+      return;
+    }
+    const row = answerRepo.create({
+      submission_id: submissionId,
+      question_id: questionId,
+      selected_answer: selected,
+      answered_at: new Date(),
+      created_by: studentId,
+      created_at: new Date(),
+    });
+    await answerRepo.save(row);
+  }
+
+  private async upsertTextAnswer(
+    answerRepo: Repository<StudentExamAnswerEntity>,
+    submissionId: string,
+    questionId: string,
+    value: string,
+    studentId: string,
+  ): Promise<void> {
+    const existing = await answerRepo.findOne({
+      where: { submission_id: submissionId, question_id: questionId },
+    });
+    if (existing) {
+      await answerRepo.update(
+        { id: existing.id },
+        {
+          text_answer: value,
+          selected_answer: null,
+          word_count: null,
+          answered_at: new Date(),
+          updated_at: new Date(),
+        } as object,
+      );
+      return;
+    }
+    const row = answerRepo.create({
+      submission_id: submissionId,
+      question_id: questionId,
+      text_answer: value,
+      answered_at: new Date(),
+      created_by: studentId,
+      created_at: new Date(),
+    });
+    await answerRepo.save(row);
   }
 
   /**
@@ -897,21 +1026,34 @@ export class StudentExamService {
 
     for (const answer of answers) {
       const question = questionMap.get(answer.question_id);
-      if (!question || question.question_type !== QuestionTypeEnum.OBJECTIVE) continue;
+      if (!question) continue;
+
+      const autoScored =
+        isAutoScoredQuestion(question.category, question.sub_type) ||
+        question.question_type === QuestionTypeEnum.OBJECTIVE;
+      if (!autoScored) continue;
 
       const pts = question.points ?? 1;
       maxObjective += pts;
-      const expected = this.expectedCorrectAnswer(question);
 
-      if (expected && answer.selected_answer === expected) {
+      let isCorrect = false;
+      if (isAutoScoredQuestion(question.category, question.sub_type) && question.answer_json) {
+        const rawAnswer = this.resolveSubmittedAnswerValue(answer, question);
+        isCorrect = scoreStudentAnswer(question, rawAnswer);
+      } else {
+        const expected = this.expectedCorrectAnswer(question);
+        isCorrect = !!(expected && answer.selected_answer === expected);
+      }
+
+      if (isCorrect) {
         answer.is_correct = true;
         answer.marks_obtained = pts;
         correctCount++;
         totalScore += pts;
-      } else if (answer.selected_answer) {
+      } else if (answer.selected_answer || answer.text_answer) {
         answer.is_correct = false;
         const nm = exam.negative_mark_value ?? 0;
-        const usePercentPenalty = exam.exam_kind != null;
+        const usePercentPenalty = nm > 0 && nm <= 100;
         const penalty = exam.is_negative_marking
           ? usePercentPenalty
             ? (nm / 100) * pts
@@ -927,14 +1069,21 @@ export class StudentExamService {
       await this.answerRepo.save(answer);
     }
 
-    const objectiveQs = ordered.filter((q) => q.question_type === QuestionTypeEnum.OBJECTIVE);
+    const objectiveQs = ordered.filter(
+      (q) =>
+        q.question_type === QuestionTypeEnum.OBJECTIVE ||
+        isAutoScoredQuestion(q.category, q.sub_type),
+    );
     const answeredObjectiveIds = new Set(
       answers
-        .filter(
-          (a) =>
-            !!a.selected_answer &&
-            questionMap.get(a.question_id)?.question_type === QuestionTypeEnum.OBJECTIVE,
-        )
+        .filter((a) => {
+          const q = questionMap.get(a.question_id);
+          if (!q) return false;
+          const auto =
+            isAutoScoredQuestion(q.category, q.sub_type) ||
+            q.question_type === QuestionTypeEnum.OBJECTIVE;
+          return auto && (!!a.selected_answer || !!a.text_answer?.trim());
+        })
         .map((a) => a.question_id),
     );
     const unanswered = objectiveQs.length - answeredObjectiveIds.size;
@@ -964,7 +1113,11 @@ export class StudentExamService {
     });
 
     const ordered = this.getOrderedQuestions(exam);
-    const subjectiveQs = ordered.filter((q) => q.question_type === QuestionTypeEnum.SUBJECTIVE);
+    const subjectiveQs = ordered.filter(
+      (q) =>
+        q.question_type === QuestionTypeEnum.SUBJECTIVE &&
+        !isAutoScoredQuestion(q.category, q.sub_type),
+    );
     const maxScore = subjectiveQs.reduce(
       (sum, q) => sum + (q.points ?? q.marks_per_question ?? 0),
       0,

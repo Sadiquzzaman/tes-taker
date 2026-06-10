@@ -16,7 +16,13 @@ import {
 } from './entities/exam-question.entity';
 import { ExamQuestionSectionEntity } from './entities/exam-question-section.entity';
 import { CreateObjectiveExamDto, CreateSubjectiveExamDto } from './dto/create-exam.dto';
-import { CreateExamWizardDto, WizardMcqQuestionDto, WizardEssayQuestionDto } from './dto/create-exam-wizard.dto';
+import {
+  CreateExamWizardDto,
+  WizardChildQuestionDto,
+  WizardGradedQuestionDto,
+  WizardPassageQuestionDto,
+  WizardUngradedQuestionDto,
+} from './dto/create-exam-wizard.dto';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
@@ -24,7 +30,18 @@ import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { SmsService } from 'src/sms/sms.service';
 import { SubjectService } from 'src/subjects/subject.service';
-import { ExamKindEnum, ExamLifecycleStatusEnum, TestAudienceEnum } from './enums/exam-wizard.enums';
+import { ExamLifecycleStatusEnum, TestAudienceEnum } from './enums/exam-wizard.enums';
+import { QuestionCategoryEnum } from './enums/question.enums';
+import {
+  mapAnswerForStorage,
+  mapMatchingForStorage,
+  mapOptionsForStorage,
+  normalizePoints,
+  parseWizardQuestion,
+  resolveQuestionId,
+  syncLegacyOptionColumns,
+  validateSubjectQuestions,
+} from './utils/exam-question.util';
 import {
   ExamSubmissionStatusEnum,
 } from './entities/student-exam-answer.entity';
@@ -34,29 +51,12 @@ type ExamListMetrics = {
   submitted_count: number;
 };
 
-type WizardSectionType = 'objective' | 'essay' | 'mixed';
-type ExamQuestionResponse = {
-  id: string;
-  text: string;
-  image: null;
-  points: number | null;
-  instruction?: string | null;
-  showValidation: false;
-  options?: Array<{ id: string; text: string; image: null }>;
-  correctOptionId?: string | null;
-};
-type ExamSectionResponse = {
-  id: string;
-  type: string;
-  headerText: string | null;
-  instruction: string | null;
-  questions: ExamQuestionResponse[];
-};
+type ExamQuestionResponse = Record<string, unknown>;
 type ExamSubjectResponse = {
   id: string | null;
   name: string | null;
   code: string | null;
-  questionSections: ExamSectionResponse[];
+  questions: ExamQuestionResponse[];
 };
 
 @Injectable()
@@ -83,7 +83,7 @@ export class ExamService {
   ) {}
 
   /**
-   * Unified wizard create (hybrid | model)
+   * Unified wizard create (graded / ungraded / passage questions)
    */
   async createFromWizard(
     dto: CreateExamWizardDto,
@@ -113,18 +113,16 @@ export class ExamService {
     const subjectIds = subjects.map((s) => s.id);
     await this.subjectService.assertSubjectsExist(subjectIds);
 
-    if (formState.examType === ExamKindEnum.HYBRID) {
-      if (subjects.length !== 1) {
-        throw new BadRequestException(`${formState.examType} exams must include exactly one subject block`);
-      }
+    for (const subj of subjects) {
+      validateSubjectQuestions(subj.questions);
     }
 
-    this.validateSectionsForExamType(formState.examType, subjects);
-
-    let primarySubjectId: string | null = subjects[0].id;
-    if (formState.examType === ExamKindEnum.MODEL) {
-      primarySubjectId = null;
+    const { hasAutoScored, hasManual } = this.countQuestionCategories(subjects);
+    if (!hasAutoScored && !hasManual) {
+      throw new BadRequestException('Exam must include at least one question');
     }
+
+    const primarySubjectId = subjects.length === 1 ? subjects[0].id : null;
 
     if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS) {
       if (!publishState.selectedClassId) {
@@ -154,11 +152,21 @@ export class ExamService {
       }
     }
 
-    const { hasObjective, hasSubjective } = this.countQuestionTypes(subjects);
+    let excludedStudents: UserEntity[] = [];
+    const excludedIds = publishState.excluded_students ?? [];
+    if (excludedIds.length > 0) {
+      excludedStudents = await this.userRepo.find({
+        where: { id: In(excludedIds), role: RolesEnum.STUDENT },
+      });
+      if (excludedStudents.length !== excludedIds.length) {
+        throw new BadRequestException('One or more excluded student ids are invalid');
+      }
+    }
+
     const examType =
-      hasObjective && !hasSubjective
+      hasAutoScored && !hasManual
         ? ExamTypeEnum.OBJECTIVE
-        : hasSubjective && !hasObjective
+        : hasManual && !hasAutoScored
           ? ExamTypeEnum.SUBJECTIVE
           : ExamTypeEnum.OBJECTIVE;
 
@@ -183,11 +191,11 @@ export class ExamService {
 
       const examPayload: DeepPartial<ExamEntity> = {
         exam_type: examType,
-        exam_kind: formState.examType,
+        exam_kind: null,
         test_name: formState.testName.trim(),
         primary_subject_id: primarySubjectId,
         duration_minutes: formState.duration,
-        passing_score: formState.passingScore,
+        passing_score: formState.passingScore ?? null,
         publish_timing: publishState.publishTiming,
         test_audience: publishState.testAudience,
         exam_start_time: publishState.scheduleAt,
@@ -199,6 +207,7 @@ export class ExamService {
           publishState.testAudience === TestAudienceEnum.SELECTED_CLASS
             ? publishState.selectedClassId!
             : null,
+        excluded_students: excludedStudents,
         created_by: jwtPayload.id,
         created_user_name: jwtPayload.full_name,
         created_at: new Date(),
@@ -213,76 +222,52 @@ export class ExamService {
 
       let sectionOrder = 0;
       for (const subj of subjects) {
-        for (const sec of subj.questionSections) {
-          const sectionType = this.resolveWizardSectionType(sec.questions);
-          const sectionPayload: DeepPartial<ExamQuestionSectionEntity> = {
-            exam_id: savedExam.id,
-            subject_id: subj.id,
-            section_type: sectionType,
-            header_text: sec.headerText ?? null,
-            instruction: sec.instruction?.trim() ? sec.instruction.trim().slice(0, 1000) : null,
-            sort_order: sectionOrder++,
-            created_by: jwtPayload.id,
-            created_user_name: jwtPayload.full_name,
-            created_at: new Date(),
-          };
-          const section = sectionRepo.create(sectionPayload);
-          const savedSec = await sectionRepo.save(section);
+        const sectionPayload: DeepPartial<ExamQuestionSectionEntity> = {
+          exam_id: savedExam.id,
+          subject_id: subj.id,
+          section_type: 'mixed',
+          header_text: null,
+          instruction: null,
+          sort_order: sectionOrder++,
+          created_by: jwtPayload.id,
+          created_user_name: jwtPayload.full_name,
+          created_at: new Date(),
+        };
+        const section = sectionRepo.create(sectionPayload);
+        const savedSec = await sectionRepo.save(section);
 
-          let qOrder = 0;
-          for (const raw of sec.questions) {
-            const questionKind = this.inferWizardQuestionKind(raw);
-            if (questionKind === 'objective') {
-              const q = raw as unknown as WizardMcqQuestionDto;
-              this.assertMcqQuestion(q);
-              const points = this.normalizeQuestionPoints(q.points);
-              const idx = q.options.findIndex((o) => o.id === q.correctOptionId);
-              if (idx < 0 || idx >= q.options.length) {
-                throw new BadRequestException('Each MCQ must reference a valid correctOptionId');
-              }
-              const objectivePayload: DeepPartial<ExamQuestionEntity> = {
-                section_id: savedSec.id,
-                exam: { id: savedExam.id } as ExamEntity,
-                sort_order: qOrder++,
-                question_type: QuestionTypeEnum.OBJECTIVE,
-                question: q.text,
-                image_url: null,
-                points,
-                instruction: q.instruction?.trim() ? q.instruction.trim().slice(0, 500) : null,
-                correct_option_index: idx,
-                correct_answer: CORRECT_ANSWER_ENUM_BY_OPTION_INDEX[idx],
-                option1: q.options[0]?.text ?? null,
-                option2: q.options[1]?.text ?? null,
-                option3: q.options[2]?.text ?? null,
-                option4: q.options[3]?.text ?? null,
-                option5: q.options[4]?.text ?? null,
-                created_by: jwtPayload.id,
-                created_user_name: jwtPayload.full_name,
-                created_at: new Date(),
-              };
-              const row = questionRepo.create(objectivePayload);
-              await questionRepo.save(row);
-            } else {
-              const q = raw as unknown as WizardEssayQuestionDto;
-              this.assertEssayQuestion(q);
-              const points = this.normalizeQuestionPoints(q.points);
-              const essayPayload: DeepPartial<ExamQuestionEntity> = {
-                section_id: savedSec.id,
-                exam: { id: savedExam.id } as ExamEntity,
-                sort_order: qOrder++,
-                question_type: QuestionTypeEnum.SUBJECTIVE,
-                question: q.text,
-                image_url: null,
-                points,
-                instruction: q.instruction?.trim() ? q.instruction.trim().slice(0, 500) : null,
-                marks_per_question: points,
-                created_by: jwtPayload.id,
-                created_user_name: jwtPayload.full_name,
-                created_at: new Date(),
-              };
-              const row = questionRepo.create(essayPayload);
-              await questionRepo.save(row);
-            }
+        let qOrder = 0;
+        for (const raw of subj.questions) {
+          const parsed = parseWizardQuestion(raw);
+          if (parsed.kind === 'passage') {
+            qOrder = await this.persistPassageQuestion(
+              questionRepo,
+              savedExam.id,
+              savedSec.id,
+              parsed.data,
+              qOrder,
+              jwtPayload,
+            );
+          } else if (parsed.kind === 'graded') {
+            await this.persistAutoScoredQuestion(
+              questionRepo,
+              savedExam.id,
+              savedSec.id,
+              parsed.data,
+              qOrder++,
+              jwtPayload,
+              QuestionCategoryEnum.GRADED,
+              null,
+            );
+          } else {
+            await this.persistUngradedQuestion(
+              questionRepo,
+              savedExam.id,
+              savedSec.id,
+              parsed.data,
+              qOrder++,
+              jwtPayload,
+            );
           }
         }
       }
@@ -320,94 +305,160 @@ export class ExamService {
     });
   }
 
-  private validateSectionsForExamType(kind: ExamKindEnum, subjects: CreateExamWizardDto['subjects']): void {
-    const { hasObjective, hasSubjective } = this.countQuestionTypes(subjects);
-
-    if (kind === ExamKindEnum.HYBRID) {
-      if (!hasObjective && !hasSubjective) {
-        throw new BadRequestException('Hybrid exams must include at least one question');
-      }
-    }
-    if (kind === ExamKindEnum.MODEL) {
-      if (!hasObjective && !hasSubjective) {
-        throw new BadRequestException('Model exams must include at least one question');
-      }
-    }
-  }
-
-  private countQuestionTypes(subjects: CreateExamWizardDto['subjects']): {
-    hasObjective: boolean;
-    hasSubjective: boolean;
+  private countQuestionCategories(subjects: CreateExamWizardDto['subjects']): {
+    hasAutoScored: boolean;
+    hasManual: boolean;
   } {
-    let hasObjective = false;
-    let hasSubjective = false;
-    for (const s of subjects) {
-      for (const sec of s.questionSections) {
-        for (const raw of sec.questions) {
-          if (this.inferWizardQuestionKind(raw) === 'objective') {
-            hasObjective = true;
-          } else {
-            hasSubjective = true;
-          }
+    let hasAutoScored = false;
+    let hasManual = false;
+
+    for (const subj of subjects) {
+      for (const raw of subj.questions) {
+        const parsed = parseWizardQuestion(raw);
+        if (parsed.kind === 'passage' || parsed.kind === 'graded') {
+          hasAutoScored = true;
+        } else {
+          hasManual = true;
         }
       }
     }
-    return { hasObjective, hasSubjective };
+
+    return { hasAutoScored, hasManual };
   }
 
-  private inferWizardQuestionKind(raw: unknown): Exclude<WizardSectionType, 'mixed'> {
-    const q = (raw ?? {}) as Record<string, unknown>;
-    return Array.isArray(q.options) || typeof q.correctOptionId === 'string'
-      ? 'objective'
-      : 'essay';
+  private async persistPassageQuestion(
+    questionRepo: Repository<ExamQuestionEntity>,
+    examId: string,
+    sectionId: string,
+    passage: WizardPassageQuestionDto,
+    sortOrder: number,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<number> {
+    const parentPayload: DeepPartial<ExamQuestionEntity> = {
+      id: resolveQuestionId(passage.id),
+      section_id: sectionId,
+      exam: { id: examId } as ExamEntity,
+      sort_order: sortOrder,
+      question_type: QuestionTypeEnum.SUBJECTIVE,
+      category: QuestionCategoryEnum.PASSAGE,
+      sub_type: null,
+      parent_id: null,
+      passage_text: passage.passageText.trim(),
+      question: passage.passageText.trim().slice(0, 500),
+      image_url: null,
+      points: null,
+      instruction: null,
+      created_by: jwtPayload.id,
+      created_user_name: jwtPayload.full_name,
+      created_at: new Date(),
+    };
+    const parentRow = questionRepo.create(parentPayload);
+    const savedParent = await questionRepo.save(parentRow);
+
+    let childOrder = 0;
+    for (const child of passage.childQuestions) {
+      await this.persistAutoScoredQuestion(
+        questionRepo,
+        examId,
+        sectionId,
+        child,
+        childOrder++,
+        jwtPayload,
+        QuestionCategoryEnum.PASSAGE,
+        savedParent.id,
+      );
+    }
+
+    return sortOrder + 1;
   }
 
-  private resolveWizardSectionType(rawQuestions: Record<string, unknown>[]): WizardSectionType {
-    let hasObjective = false;
-    let hasEssay = false;
+  private async persistAutoScoredQuestion(
+    questionRepo: Repository<ExamQuestionEntity>,
+    examId: string,
+    sectionId: string,
+    q: WizardGradedQuestionDto | WizardChildQuestionDto,
+    sortOrder: number,
+    jwtPayload: JwtPayloadInterface,
+    category: QuestionCategoryEnum.GRADED | QuestionCategoryEnum.PASSAGE,
+    parentId: string | null,
+  ): Promise<void> {
+    const points = normalizePoints(q.points);
+    const options = mapOptionsForStorage(q.options);
+    const matchingOptions = mapMatchingForStorage(q.matchingOptions);
+    const answerJson = mapAnswerForStorage(q.answer);
+    const legacyOpts = syncLegacyOptionColumns(options, q.answer?.value ?? []);
 
-    for (const raw of rawQuestions) {
-      if (this.inferWizardQuestionKind(raw) === 'objective') {
-        hasObjective = true;
-      } else {
-        hasEssay = true;
-      }
-    }
+    const payload: DeepPartial<ExamQuestionEntity> = {
+      id: resolveQuestionId(q.id),
+      section_id: sectionId,
+      exam: { id: examId } as ExamEntity,
+      sort_order: sortOrder,
+      question_type: QuestionTypeEnum.OBJECTIVE,
+      category,
+      sub_type: q.subType,
+      parent_id: parentId,
+      passage_text: null,
+      question: q.text.trim(),
+      image_url: null,
+      points,
+      instruction: q.instruction?.trim() ? q.instruction.trim().slice(0, 500) : null,
+      options_json: options.length ? options : null,
+      matching_options_json: matchingOptions,
+      answer_json: answerJson,
+      option1: legacyOpts.option1,
+      option2: legacyOpts.option2,
+      option3: legacyOpts.option3,
+      option4: legacyOpts.option4,
+      option5: legacyOpts.option5 ?? null,
+      correct_option_index: legacyOpts.correct_option_index,
+      correct_answer:
+        legacyOpts.correct_option_index !== null && legacyOpts.correct_option_index >= 0
+          ? CORRECT_ANSWER_ENUM_BY_OPTION_INDEX[legacyOpts.correct_option_index]
+          : undefined,
+      created_by: jwtPayload.id,
+      created_user_name: jwtPayload.full_name,
+      created_at: new Date(),
+    };
 
-    if (hasObjective && hasEssay) {
-      return 'mixed';
-    }
-
-    return hasObjective ? 'objective' : 'essay';
+    const row = questionRepo.create(payload);
+    await questionRepo.save(row);
   }
 
-  private normalizeQuestionPoints(points: unknown): number {
-    const normalized = Number(points);
-    if (!Number.isFinite(normalized) || normalized < 0) {
-      throw new BadRequestException('Each question must include a valid non-negative points value');
-    }
-    return normalized;
-  }
+  private async persistUngradedQuestion(
+    questionRepo: Repository<ExamQuestionEntity>,
+    examId: string,
+    sectionId: string,
+    q: WizardUngradedQuestionDto,
+    sortOrder: number,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<void> {
+    const points = normalizePoints(q.points);
+    const answerJson = mapAnswerForStorage(q.answer);
 
-  private assertMcqQuestion(q: WizardMcqQuestionDto): void {
-    if (!q.options || q.options.length < 2 || q.options.length > 5) {
-      throw new BadRequestException('Each MCQ must have between 2 and 5 options');
-    }
-    const optionIds = q.options.map((o) => o.id);
-    if (new Set(optionIds).size !== optionIds.length) {
-      throw new BadRequestException('Each MCQ option id must be unique');
-    }
-    if (!q.text || q.points === undefined || !q.correctOptionId) {
-      throw new BadRequestException('Each MCQ needs text, options, points, and correctOptionId');
-    }
-    this.normalizeQuestionPoints(q.points);
-  }
+    const payload: DeepPartial<ExamQuestionEntity> = {
+      id: resolveQuestionId(q.id),
+      section_id: sectionId,
+      exam: { id: examId } as ExamEntity,
+      sort_order: sortOrder,
+      question_type: QuestionTypeEnum.SUBJECTIVE,
+      category: QuestionCategoryEnum.UNGRADED,
+      sub_type: q.subType,
+      parent_id: null,
+      passage_text: null,
+      question: q.text.trim(),
+      image_url: null,
+      points,
+      marks_per_question: points,
+      instruction: q.instruction?.trim() ? q.instruction.trim().slice(0, 500) : null,
+      answer_json: answerJson,
+      sample_answer: answerJson?.value?.join('\n'),
+      created_by: jwtPayload.id,
+      created_user_name: jwtPayload.full_name,
+      created_at: new Date(),
+    };
 
-  private assertEssayQuestion(q: WizardEssayQuestionDto): void {
-    if (!q.text || q.points === undefined) {
-      throw new BadRequestException('Each essay question needs text and points');
-    }
-    this.normalizeQuestionPoints(q.points);
+    const row = questionRepo.create(payload);
+    await questionRepo.save(row);
   }
 
   /**
@@ -778,8 +829,6 @@ export class ExamService {
       id: string;
       test_name: string | null;
       subject: string | null;
-      exam_type: string;
-      exam_kind: string | null;
       test_audience: string | null;
       duration_minutes: number | null;
       exam_start_time: Date;
@@ -788,6 +837,8 @@ export class ExamService {
       class_name: string | null;
       created_user_name: string | null;
       status: ExamLifecycleStatusEnum;
+      participant_count: number | 'N/A';
+      submitted_count: number;
     }>
   > {
     const byId = new Map<string, ExamEntity>();
@@ -835,8 +886,6 @@ export class ExamService {
       id: exam.id,
       test_name: exam.test_name,
       subject: exam.test_name || exam.subject,
-      exam_type: this.resolveResponseExamType(exam),
-      exam_kind: exam.exam_kind,
       test_audience: exam.test_audience,
       duration_minutes: exam.duration_minutes,
       exam_start_time: exam.exam_start_time,
@@ -1071,6 +1120,7 @@ export class ExamService {
     const {
       questions: _questions,
       questionSections: _questionSections,
+      exam_type: _examType,
       exam_kind: _examKind,
       primary_subject_id: _primarySubjectId,
       primary_subject: _primarySubject,
@@ -1079,7 +1129,6 @@ export class ExamService {
 
     return {
       ...rest,
-      exam_type: this.resolveResponseExamType(exam),
       status: this.computeExamLifecycleStatus(exam.exam_start_time, exam.exam_end_time),
       subjects:
         opts.includeQuestions === false
@@ -1089,18 +1138,25 @@ export class ExamService {
   }
 
   private buildSubjectResponses(exam: ExamEntity, includeCorrectAnswers: boolean): ExamSubjectResponse[] {
-    const sections = exam.questionSections || [];
+    const sections = [...(exam.questionSections || [])].sort((a, b) => a.sort_order - b.sort_order);
+
     if (sections.length === 0) {
-      return exam.primary_subject || exam.subject
-        ? [
-            {
-              id: exam.primary_subject?.id ?? null,
-              name: exam.primary_subject?.name ?? exam.subject ?? null,
-              code: exam.primary_subject?.code ?? null,
-              questionSections: [],
-            },
-          ]
-        : [];
+      const legacyQuestions = [...(exam.questions || [])]
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        .map((q) => this.formatQuestionResponse(q, includeCorrectAnswers));
+
+      if (legacyQuestions.length === 0) {
+        return [];
+      }
+
+      return [
+        {
+          id: exam.primary_subject?.id ?? null,
+          name: exam.primary_subject?.name ?? exam.subject ?? null,
+          code: exam.primary_subject?.code ?? null,
+          questions: legacyQuestions,
+        },
+      ];
     }
 
     const grouped = new Map<string, ExamSubjectResponse>();
@@ -1112,33 +1168,130 @@ export class ExamService {
           id: subject?.id ?? exam.primary_subject?.id ?? null,
           name: subject?.name ?? exam.primary_subject?.name ?? exam.subject ?? null,
           code: subject?.code ?? exam.primary_subject?.code ?? null,
-          questionSections: [],
+          questions: [],
         });
       }
 
-      grouped.get(key)!.questionSections.push({
-        id: section.id,
-        type: section.section_type,
-        headerText: section.header_text,
-        instruction: section.instruction ?? null,
-        questions: (section.questions || []).map((question) =>
-          this.formatQuestionResponse(question, includeCorrectAnswers),
-        ),
-      });
+      const allQuestions = [...(section.questions || [])].sort((a, b) => a.sort_order - b.sort_order);
+      const childrenByParent = new Map<string, ExamQuestionEntity[]>();
+      for (const q of allQuestions) {
+        if (q.parent_id) {
+          const list = childrenByParent.get(q.parent_id) ?? [];
+          list.push(q);
+          childrenByParent.set(q.parent_id, list);
+        }
+      }
+
+      for (const q of allQuestions) {
+        if (q.parent_id) {
+          continue;
+        }
+        grouped.get(key)!.questions.push(
+          this.formatQuestionResponse(q, includeCorrectAnswers, childrenByParent),
+        );
+      }
     }
 
     return Array.from(grouped.values());
   }
 
-  private resolveResponseExamType(exam: ExamEntity): string {
-    if (exam.exam_kind) {
-      return exam.exam_kind;
+  private formatQuestionResponse(
+    question: ExamQuestionEntity,
+    includeCorrectAnswers: boolean,
+    childrenByParent?: Map<string, ExamQuestionEntity[]>,
+  ): ExamQuestionResponse {
+    if (question.category === QuestionCategoryEnum.PASSAGE && !question.parent_id) {
+      const children = (childrenByParent?.get(question.id) ?? [])
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((child) => this.formatPassageChildResponse(child, includeCorrectAnswers));
+
+      return {
+        id: question.id,
+        type: QuestionCategoryEnum.PASSAGE,
+        passageText: question.passage_text ?? question.question,
+        childQuestions: children,
+        showValidation: false,
+      };
     }
 
-    return exam.exam_type === ExamTypeEnum.SUBJECTIVE ? 'essay' : 'mcq';
+    if (question.category === QuestionCategoryEnum.UNGRADED) {
+      const base: ExamQuestionResponse = {
+        id: question.id,
+        type: QuestionCategoryEnum.UNGRADED,
+        subType: question.sub_type,
+        text: question.question,
+        instruction: question.instruction ?? null,
+        image: null,
+        points: question.points ?? question.marks_per_question ?? null,
+        showValidation: false,
+      };
+      if (includeCorrectAnswers && question.answer_json) {
+        base.answer = question.answer_json;
+      }
+      return base;
+    }
+
+    if (
+      question.category === QuestionCategoryEnum.GRADED ||
+      (question.category === QuestionCategoryEnum.PASSAGE && question.parent_id)
+    ) {
+      return this.formatAutoScoredQuestionResponse(question, includeCorrectAnswers);
+    }
+
+    return this.formatLegacyQuestionResponse(question, includeCorrectAnswers);
   }
 
-  private formatQuestionResponse(
+  private formatPassageChildResponse(
+    question: ExamQuestionEntity,
+    includeCorrectAnswers: boolean,
+  ): ExamQuestionResponse {
+    const base = this.formatAutoScoredQuestionResponse(question, includeCorrectAnswers);
+    return {
+      ...base,
+      type: QuestionCategoryEnum.PASSAGE,
+    };
+  }
+
+  private formatAutoScoredQuestionResponse(
+    question: ExamQuestionEntity,
+    includeCorrectAnswers: boolean,
+  ): ExamQuestionResponse {
+    const options = (question.options_json ?? []).map((o) => ({
+      id: o.id,
+      text: o.text,
+      image: null,
+    }));
+
+    const base: ExamQuestionResponse = {
+      id: question.id,
+      type: question.category === QuestionCategoryEnum.PASSAGE
+        ? QuestionCategoryEnum.PASSAGE
+        : QuestionCategoryEnum.GRADED,
+      subType: question.sub_type,
+      text: question.question,
+      instruction: question.instruction ?? null,
+      image: null,
+      points: question.points ?? null,
+      showValidation: false,
+    };
+
+    if (question.sub_type === 'matching-ordering' && question.matching_options_json) {
+      base.matchingOptions = {
+        left: question.matching_options_json.left.map((o) => ({ ...o, image: null })),
+        right: question.matching_options_json.right.map((o) => ({ ...o, image: null })),
+      };
+    } else if (options.length) {
+      base.options = options;
+    }
+
+    if (includeCorrectAnswers && question.answer_json) {
+      base.answer = question.answer_json;
+    }
+
+    return base;
+  }
+
+  private formatLegacyQuestionResponse(
     question: ExamQuestionEntity,
     includeCorrectAnswers: boolean,
   ): ExamQuestionResponse {
