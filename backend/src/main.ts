@@ -3,6 +3,20 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import {
+  CreateExamWizardDto,
+  WizardAnswerDto,
+  WizardChildQuestionDto,
+  WizardFormStateDto,
+  WizardGradedQuestionDto,
+  WizardMatchingOptionsDto,
+  WizardMatchingSideOptionDto,
+  WizardOptionDto,
+  WizardPassageQuestionDto,
+  WizardPublishStateDto,
+  WizardSubjectBlockDto,
+  WizardUngradedQuestionDto,
+} from './exams/dto/create-exam-wizard.dto';
 import { WrapResponseInterceptor } from './common/interceptors/wrap-response.interceptor';
 import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
 
@@ -42,7 +56,22 @@ async function bootstrap() {
       'jwt',
     )
     .build();
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, config, {
+    extraModels: [
+      CreateExamWizardDto,
+      WizardFormStateDto,
+      WizardPublishStateDto,
+      WizardSubjectBlockDto,
+      WizardGradedQuestionDto,
+      WizardUngradedQuestionDto,
+      WizardPassageQuestionDto,
+      WizardChildQuestionDto,
+      WizardOptionDto,
+      WizardMatchingSideOptionDto,
+      WizardMatchingOptionsDto,
+      WizardAnswerDto,
+    ],
+  });
   SwaggerModule.setup('apidoc', app, document);
 
   //use custom made global handlers to use in app

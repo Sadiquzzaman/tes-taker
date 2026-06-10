@@ -48,7 +48,7 @@ export function parseWizardQuestion(raw: unknown): ParsedWizardQuestion {
   throw new BadRequestException(`Unknown question type: ${type}`);
 }
 
-export function validateSubjectQuestions(questions: Record<string, unknown>[]): void {
+export function validateSubjectQuestions(questions: unknown[]): void {
   if (!questions.length) {
     throw new BadRequestException('Each subject must include at least one question');
   }

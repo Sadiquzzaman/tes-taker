@@ -28,6 +28,7 @@ import { JwtPayloadInterface } from "src/auth/interfaces/jwt-payload.interface";
 import { UserPayload } from "src/common/decorators/user-payload.decorator";
 import { ExamService } from "./exam.service";
 import { CreateExamWizardDto } from "./dto/create-exam-wizard.dto";
+import { CREATE_EXAM_WIZARD_EXAMPLE } from "./dto/create-exam-wizard.swagger";
 
 @ApiTags("Exams")
 @Controller({
@@ -46,7 +47,17 @@ export class ExamController {
     description:
       "Create a test with graded, ungraded, and passage questions under subject blocks. Ignores client-only fields (currentStep, showValidation, image). When testAudience is `specific_students`, each specificStudents item may contain one UUID or a comma-separated list. When testAudience is `selected_class`, optional excluded_students may be supplied.",
   })
-  @ApiBody({ type: CreateExamWizardDto })
+  @ApiBody({
+    type: CreateExamWizardDto,
+    examples: {
+      builderPayload: {
+        summary: 'Test builder payload (graded, ungraded, passage)',
+        description:
+          'Matches the frontend create-test wizard. currentStep, showValidation, and image are ignored by the backend.',
+        value: CREATE_EXAM_WIZARD_EXAMPLE,
+      },
+    },
+  })
   @ApiResponse({ status: 201, description: "Exam created with sections and questions" })
   @ApiResponse({ status: 400, description: "Validation error" })
   @ApiResponse({ status: 401, description: "Unauthorized" })

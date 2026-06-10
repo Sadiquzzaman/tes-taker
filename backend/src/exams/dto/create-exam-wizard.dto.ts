@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional, ApiExtraModels } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, ApiExtraModels, getSchemaPath } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
@@ -90,11 +90,17 @@ export class WizardChildQuestionDto {
   @IsUUID('4')
   id?: string;
 
-  @ApiProperty({ enum: [QuestionCategoryEnum.PASSAGE] })
+  @ApiProperty({
+    enum: QuestionCategoryEnum,
+    example: QuestionCategoryEnum.PASSAGE,
+  })
   @IsIn([QuestionCategoryEnum.PASSAGE])
   type: QuestionCategoryEnum.PASSAGE;
 
-  @ApiProperty({ enum: AUTO_SCORED_SUB_TYPES })
+  @ApiProperty({
+    enum: [...AUTO_SCORED_SUB_TYPES],
+    example: 'multiple-choice',
+  })
   @IsIn([...AUTO_SCORED_SUB_TYPES])
   subType: (typeof AUTO_SCORED_SUB_TYPES)[number];
 
@@ -149,16 +155,26 @@ export class WizardPassageQuestionDto {
   @IsUUID('4')
   id?: string;
 
-  @ApiProperty({ enum: [QuestionCategoryEnum.PASSAGE] })
+  @ApiProperty({
+    enum: QuestionCategoryEnum,
+    example: QuestionCategoryEnum.PASSAGE,
+    description: 'Passage block — use passageText + childQuestions (not text/options on the parent)',
+  })
   @IsIn([QuestionCategoryEnum.PASSAGE])
   type: QuestionCategoryEnum.PASSAGE;
 
-  @ApiProperty()
+  @ApiProperty({
+    example:
+      'This is a passage. This is a passage. This is a passage.',
+  })
   @IsString()
   @IsNotEmpty()
   passageText: string;
 
-  @ApiProperty({ type: [WizardChildQuestionDto] })
+  @ApiProperty({
+    type: [WizardChildQuestionDto],
+    description: 'Auto-scored questions based on the passage',
+  })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
@@ -177,11 +193,17 @@ export class WizardGradedQuestionDto {
   @IsUUID('4')
   id?: string;
 
-  @ApiProperty({ enum: [QuestionCategoryEnum.GRADED] })
+  @ApiProperty({
+    enum: QuestionCategoryEnum,
+    example: QuestionCategoryEnum.GRADED,
+  })
   @IsIn([QuestionCategoryEnum.GRADED])
   type: QuestionCategoryEnum.GRADED;
 
-  @ApiProperty({ enum: AUTO_SCORED_SUB_TYPES })
+  @ApiProperty({
+    enum: [...AUTO_SCORED_SUB_TYPES],
+    example: 'multiple-choice',
+  })
   @IsIn([...AUTO_SCORED_SUB_TYPES])
   subType: (typeof AUTO_SCORED_SUB_TYPES)[number];
 
@@ -236,11 +258,17 @@ export class WizardUngradedQuestionDto {
   @IsUUID('4')
   id?: string;
 
-  @ApiProperty({ enum: [QuestionCategoryEnum.UNGRADED] })
+  @ApiProperty({
+    enum: QuestionCategoryEnum,
+    example: QuestionCategoryEnum.UNGRADED,
+  })
   @IsIn([QuestionCategoryEnum.UNGRADED])
   type: QuestionCategoryEnum.UNGRADED;
 
-  @ApiProperty({ enum: MANUAL_SUB_TYPES })
+  @ApiProperty({
+    enum: [...MANUAL_SUB_TYPES],
+    example: 'essay',
+  })
   @IsIn([...MANUAL_SUB_TYPES])
   subType: (typeof MANUAL_SUB_TYPES)[number];
 
@@ -277,18 +305,31 @@ export class WizardUngradedQuestionDto {
   showValidation?: boolean;
 }
 
+export type WizardQuestionDto =
+  | WizardGradedQuestionDto
+  | WizardUngradedQuestionDto
+  | WizardPassageQuestionDto;
+
 export class WizardSubjectBlockDto {
-  @ApiProperty({ description: 'Subject UUID from GET /v1/subjects' })
+  @ApiProperty({ description: 'Subject UUID from GET /v1/subjects', format: 'uuid' })
   @IsUUID('4')
   id: string;
 
   @ApiProperty({
-    description: 'Flat question list: graded, ungraded, or passage blocks',
+    description:
+      'Flat question list. Each item is graded, ungraded, or a passage block (see Schemas below).',
     type: 'array',
+    items: {
+      oneOf: [
+        { $ref: getSchemaPath(WizardGradedQuestionDto) },
+        { $ref: getSchemaPath(WizardUngradedQuestionDto) },
+        { $ref: getSchemaPath(WizardPassageQuestionDto) },
+      ],
+    },
   })
   @IsArray()
   @ArrayMinSize(1)
-  questions: Record<string, unknown>[];
+  questions: WizardQuestionDto[];
 }
 
 export class WizardFormStateDto {
@@ -395,13 +436,20 @@ export class WizardPublishStateDto {
 }
 
 @ApiExtraModels(
+  WizardOptionDto,
+  WizardMatchingSideOptionDto,
+  WizardMatchingOptionsDto,
+  WizardAnswerDto,
+  WizardChildQuestionDto,
+  WizardPassageQuestionDto,
   WizardGradedQuestionDto,
   WizardUngradedQuestionDto,
-  WizardPassageQuestionDto,
-  WizardChildQuestionDto,
+  WizardSubjectBlockDto,
+  WizardFormStateDto,
+  WizardPublishStateDto,
 )
 export class CreateExamWizardDto {
-  @ApiPropertyOptional({ description: 'Ignored by backend' })
+  @ApiPropertyOptional({ description: 'Ignored by backend — builder UI step name' })
   @IsOptional()
   @IsString()
   currentStep?: string;
@@ -411,7 +459,10 @@ export class CreateExamWizardDto {
   @Type(() => WizardFormStateDto)
   formState: WizardFormStateDto;
 
-  @ApiProperty({ type: [WizardSubjectBlockDto] })
+  @ApiProperty({
+    type: [WizardSubjectBlockDto],
+    description: 'One or more subject blocks, each with a flat questions array',
+  })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
