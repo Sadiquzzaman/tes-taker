@@ -1,6 +1,15 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { getCreateTestQuestionAnswerMode } from "@/utils/createTestOptions";
+import { getQuestionValidationErrors } from "@/utils/createTestValidation";
 import { findSubjectQuestion } from "./createTestDomain";
+
+const updateQuestionValidationVisibility = (question: QuestionItem) => {
+  if (!question.showValidation) {
+    return;
+  }
+
+  question.showValidation = getQuestionValidationErrors(question).length > 0;
+};
 
 const selectCorrectOption = (state: CreateTestState, action: PayloadAction<OptionPayload>) => {
   const { question } = findSubjectQuestion(
@@ -29,7 +38,7 @@ const selectCorrectOption = (state: CreateTestState, action: PayloadAction<Optio
       type: "optionId",
       value: Array.from(selectedOptionIds),
     };
-    question.showValidation = false;
+    updateQuestionValidationVisibility(question);
     return;
   }
 
@@ -38,7 +47,7 @@ const selectCorrectOption = (state: CreateTestState, action: PayloadAction<Optio
       type: "optionId",
       value: [action.payload.optionId],
     };
-    question.showValidation = false;
+    updateQuestionValidationVisibility(question);
   }
 };
 
