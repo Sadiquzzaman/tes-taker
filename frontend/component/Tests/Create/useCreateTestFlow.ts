@@ -50,43 +50,6 @@ const combinePassageInstruction = (passageText: string, instruction: string) => 
   return `${trimmedPassageText}\n\n${trimmedInstruction}`;
 };
 
-const sanitizeSubjectsForSubmission = (subjects: SubjectItem[]): CreateTestSubmissionSubjectItem[] =>
-  subjects.map((subject) => {
-    const questions: CreateTestSubmissionQuestionItem[] = subject.questions.flatMap((question) => {
-      if (isPassageQuestionItem(question)) {
-        return question.childQuestions.map((childQuestion) => {
-          const questionWithoutAnswer = {
-            ...childQuestion,
-            instruction: combinePassageInstruction(question.passageText, childQuestion.instruction),
-          };
-          Reflect.deleteProperty(questionWithoutAnswer, "answer");
-
-          return {
-            ...questionWithoutAnswer,
-            ...mapQuestionAnswerForSubmission(childQuestion),
-            type: "objective",
-          };
-        });
-      }
-
-      const questionWithoutAnswer = { ...question };
-      Reflect.deleteProperty(questionWithoutAnswer, "answer");
-
-      return {
-        ...questionWithoutAnswer,
-        ...mapQuestionAnswerForSubmission(question),
-        type: isCreateTestObjectiveCategory(question.type) ? "objective" : "essay",
-      };
-    });
-    const questionTypes = Array.from(new Set(questions.map((question) => question.type)));
-
-    return {
-      ...subject,
-      type: questionTypes.length === 1 ? questionTypes[0] : "",
-      questions,
-    };
-  });
-
 const handlePublishStateForSubmission = (publishState: PublishState) => {
   const result: PublishStateForPayload = {
     testAudience: publishState.testAudience,
@@ -186,7 +149,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
 
       await mutate({
         formState,
-        subjects: sanitizeSubjectsForSubmission(subjects),
+        subjects,
         publishState: handlePublishStateForSubmission(publishState),
       });
       return;
