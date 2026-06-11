@@ -87,8 +87,8 @@ const getSubtypeOptionValidationErrors = (question: QuestionItem): string[] => {
   if (answerMode === "multiple") {
     const correctOptionIds = optionAnswerValues.filter((optionId) => validOptionIds.has(optionId));
 
-    if (correctOptionIds.length === 0) {
-      errors.push("Select at least one correct option.");
+    if (correctOptionIds.length < 2) {
+      errors.push("Select at least two correct options.");
     }
 
     return errors;
