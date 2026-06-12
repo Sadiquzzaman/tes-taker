@@ -1,34 +1,14 @@
-import { setPublishField } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import dayjs, { Dayjs } from "dayjs";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ScheduleCalendarIconSVG from "@/component/svg/ScheduleCalendarIconSVG";
 import ScheduleClockIconSVG from "@/component/svg/ScheduleClockIconSVG";
+import { setPublishField } from "@/lib/features/createTestSlice";
 
 const PublishSchedule = () => {
   const dispatch = useAppDispatch();
   const publishState = useAppSelector((state) => (state.createTest as CreateTestState).publishState);
-
-  useEffect(() => {
-    if (!publishState.scheduleAt) {
-      dispatch(
-        setPublishField({
-          field: "scheduleAt",
-          value: dayjs().toISOString(),
-        }),
-      );
-    }
-
-    if (!publishState.endingAt) {
-      dispatch(
-        setPublishField({
-          field: "endingAt",
-          value: dayjs().add(3, "day").toISOString(),
-        }),
-      );
-    }
-  }, [dispatch, publishState.endingAt, publishState.scheduleAt]);
 
   const mergeToISO = (existingISO: string, newValue: Dayjs | null, type: "date" | "time") => {
     if (!newValue) return "";

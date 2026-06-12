@@ -460,7 +460,7 @@ type CreateTestSubmissionSubjectItem = Omit<SubjectItem, "type" | "questions"> &
 
 interface CreateTestPayload {
   formState: FormState;
-  subjects: CreateTestSubmissionSubjectItem[];
+  subjects: SubjectItem[];
   publishState: PublishStateForPayload;
 }
 
