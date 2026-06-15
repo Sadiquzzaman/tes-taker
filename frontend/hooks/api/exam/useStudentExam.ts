@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useApiError } from "../useApiError";
 import { useRouter } from "next/navigation";
 
-const useStudentExam = () => {
+const useStudentExam = ({ enabled = true }: { enabled?: boolean }) => {
   const router = useRouter();
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
@@ -37,21 +37,18 @@ const useStudentExam = () => {
   );
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const testId = sessionStorage.getItem("testId");
 
     if (!testId) {
       router.push("/");
-      return;
+    } else {
+      fetch(testId);
     }
-
-    const timerId = window.setTimeout(() => {
-      void fetch(testId);
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timerId);
-    };
-  }, [fetch, router]);
+  }, [enabled, fetch, router]);
 
   return { loading, apiComplete, examData, fetch } as const;
 };

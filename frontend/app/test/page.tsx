@@ -5,41 +5,41 @@ import ExamCountdown from "@/component/Tests/ExamCountdown";
 import CreateModal from "@/component/Tests/Create/CreateModal";
 import ExamTimerIconSVG from "@/component/svg/ExamTimerIconSVG";
 import RightArrowIconSVG from "@/component/svg/RightArrowIconSVG";
+import ProctoringPanel from "@/component/Tests/exam/ProctoringPanel";
 import useStudentExam from "@/hooks/api/exam/useStudentExam";
 import useSubmitAnswersheet from "@/hooks/api/tests/useSubmitAnswersheet";
-import { useMemo, useRef, useState } from "react";
+import useProctoring from "@/hooks/tests/proctoring/useProctoring";
+import { selectIsProctoringReady } from "@/lib/features/proctoringSlice";
+import { useAppSelector } from "@/lib/hooks";
+import { useRef, useState } from "react";
 import { RotatingLines } from "react-loader-spinner";
 import { useRouter } from "next/navigation";
-import EssayQuestionSectionCard from "@/component/Tests/exam/EssayQuestionSectionCard";
-import ObjectiveQuestionSectionCard from "@/component/Tests/exam/ObjectiveQuestionSectionCard";
 import ExamHeader from "@/component/Tests/exam/ExamHeader";
 
 export default function ParticipateTest() {
   const router = useRouter();
-  const { examData: test, loading, apiComplete } = useStudentExam();
+  const isProctoringReady = useAppSelector(selectIsProctoringReady);
+  const { videoRef, retryProctoringSetup } = useProctoring({ isExamReady: true });
+  const {
+    examData: test,
+    loading,
+    apiComplete,
+  } = useStudentExam({
+    enabled: isProctoringReady,
+  });
   const [submitAnswersheet, { loading: submitLoading }] = useSubmitAnswersheet();
 
   const submitButtonRef = useRef<HTMLButtonElement | null>(null);
   const [submitReason, setSubmitReason] = useState<"manual" | "timeout" | null>(null);
-  const [draftAnswerSheet, setAnswerSheet] = useState<AnswersheetMap>({});
+  const answerSheet: AnswersheetMap = {};
   const isInteractionDisabled = loading || submitLoading;
-  const answerSheet = useMemo(() => {
-    const nextAnswerSheet: AnswersheetMap = { ...draftAnswerSheet };
-
-    test?.subjects?.forEach((subject) => {
-      subject.questionSections.forEach((section) => {
-        section.questions.forEach((question) => {
-          if (!(question.id in nextAnswerSheet)) {
-            nextAnswerSheet[question.id] = "";
-          }
-        });
-      });
-    });
-
-    return nextAnswerSheet;
-  }, [draftAnswerSheet, test]);
+  const proctoringPanel = <ProctoringPanel videoRef={videoRef} onRetry={retryProctoringSetup} />;
 
   const handleSubmit = async (reason: "manual" | "timeout" = "manual") => {
+    if (!isProctoringReady) {
+      return;
+    }
+
     const user = localStorage.getItem("user");
     if (!user) {
       router.push("/login");
@@ -61,33 +61,57 @@ export default function ParticipateTest() {
     });
   };
 
+  if (!isProctoringReady) {
+    return (
+      <div>
+        <ExamHeader />
+        <main className="w-full overflow-auto" style={{ height: "calc(100vh - 72px)" }}>
+          <div className="w-full md:w-[60%] mx-auto py-8">
+            <div className="rounded-[8px] border border-[#DDE5DE] bg-[#F8FBF8] p-4 text-[14px] leading-5 text-[#49734F]">
+              Webcam and microphone access are required before loading the test.
+            </div>
+          </div>
+        </main>
+        {proctoringPanel}
+      </div>
+    );
+  }
+
   if (loading)
     return (
-      <div className="w-full min-h-[calc(100vh-300px)] flex items-center justify-center">
-        <RotatingLines
-          visible={true}
-          height="48"
-          width="48"
-          color="grey"
-          strokeWidth="5"
-          animationDuration="0.75"
-          ariaLabel="rotating-lines-loading"
-          wrapperStyle={{}}
-          wrapperClass=""
-        />
+      <div>
+        <div className="w-full min-h-[calc(100vh-300px)] flex items-center justify-center">
+          <RotatingLines
+            visible={true}
+            height="48"
+            width="48"
+            color="grey"
+            strokeWidth="5"
+            animationDuration="0.75"
+            ariaLabel="rotating-lines-loading"
+            wrapperStyle={{}}
+            wrapperClass=""
+          />
+        </div>
+        {proctoringPanel}
       </div>
     );
 
-  if (!apiComplete) return null;
+  if (!apiComplete) {
+    return <div>{proctoringPanel}</div>;
+  }
 
   if (!test) {
     return (
-      <div className="w-full min-h-[calc(100vh-162px)] flex items-center justify-center">
-        <div className="text-center">
-          <p className="font-[600] text-[24px] leading-[32px] tracking-[-0.04em] text-[#232A25]">
-            Unable to load the test.
-          </p>
+      <div>
+        <div className="w-full min-h-[calc(100vh-162px)] flex items-center justify-center">
+          <div className="text-center">
+            <p className="font-[600] text-[24px] leading-[32px] tracking-[-0.04em] text-[#232A25]">
+              Unable to load the test.
+            </p>
+          </div>
         </div>
+        {proctoringPanel}
       </div>
     );
   }
@@ -110,7 +134,7 @@ export default function ParticipateTest() {
             </div>
           </div>
 
-          {test?.subjects.map((subject) => {
+          {/* {test?.subjects.map((subject) => {
             return subject.questionSections.map((section) => {
               if (section.type === "essay") {
                 return (
@@ -140,7 +164,7 @@ export default function ParticipateTest() {
 
               return null;
             });
-          })}
+          })} */}
 
           <div className="flex flex-row justify-end">
             <button
@@ -149,13 +173,14 @@ export default function ParticipateTest() {
               disabled={isInteractionDisabled}
               className={`px-4 h-10 flex items-center justify-center rounded-[8px] text-[14px] font-[500] leading-[16px] tracking-[-0.02em] ${isInteractionDisabled ? "bg-[#747775]" : "bg-[#49734F]"} text-[#FFFFFF]`}
             >
-              <ButtonLoader show={isInteractionDisabled} w="w-4" h="h-4" mr="mr-2" />
-              {isInteractionDisabled ? "Submitting..." : "Submit Answer"}
+              <ButtonLoader show={submitLoading} w="w-4" h="h-4" mr="mr-2" />
+              {submitLoading ? "Submitting..." : "Submit Answer"}
               <RightArrowIconSVG />
             </button>
           </div>
         </div>
       </main>
+      {proctoringPanel}
       <CreateModal
         open={submitLoading}
         onClose={() => {}}
