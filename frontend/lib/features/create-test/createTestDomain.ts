@@ -137,7 +137,7 @@ export const createQuestion = (questionType: CreateTestQuestionCategory, subType
       text: "",
       instruction: "",
       image: null,
-      answer,
+      answer: undefined,
       points: 2,
       showValidation: false,
     };
@@ -278,6 +278,17 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
       matchingOptions: undefined,
       options,
       answer,
+    };
+  }
+
+  if (nextType === "ungraded") {
+    return {
+      ...question,
+      type: nextType,
+      subType: nextSubType,
+      matchingOptions: undefined,
+      options: undefined,
+      answer: undefined,
     };
   }
 

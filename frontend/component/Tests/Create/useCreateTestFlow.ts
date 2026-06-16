@@ -4,51 +4,10 @@ import { useCallback } from "react";
 import { goToNextStep, goToPreviousStep, setQuestionValidationState } from "@/lib/features/createTestSlice";
 import { isPassageQuestionItem } from "@/lib/features/create-test/createTestDomain";
 import { useAppDispatch } from "@/lib/hooks";
-import { getCreateTestQuestionAnswerMode, isCreateTestObjectiveCategory } from "@/utils/createTestOptions";
 import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/utils/createTestValidation";
 import { useToast } from "@/component/Toast/ToastContext";
 import useCreateTest from "@/hooks/api/tests/useCreateTest";
 
-const mapQuestionAnswerForSubmission = (question: QuestionItem): LegacyCreateTestSubmissionQuestionAnswer => {
-  if (!question.answer) {
-    return {};
-  }
-
-  if (question.answer.type === "text") {
-    const primaryAnswer = question.answer.value[0] ?? "";
-    const alternativeAnswer = question.answer.value[1]?.trim() ? [question.answer.value[1]] : [];
-
-    return {
-      correctAns: primaryAnswer,
-      alternativeAnser: alternativeAnswer,
-    };
-  }
-
-  if (getCreateTestQuestionAnswerMode(question.type, question.subType) === "multiple") {
-    return {
-      correctOptionIds: question.answer.value,
-    };
-  }
-
-  return {
-    correctOptionId: question.answer.value[0] ?? null,
-  };
-};
-
-const combinePassageInstruction = (passageText: string, instruction: string) => {
-  const trimmedPassageText = passageText.trim();
-  const trimmedInstruction = instruction.trim();
-
-  if (!trimmedPassageText) {
-    return instruction;
-  }
-
-  if (!trimmedInstruction) {
-    return trimmedPassageText;
-  }
-
-  return `${trimmedPassageText}\n\n${trimmedInstruction}`;
-};
 
 const handlePublishStateForSubmission = (publishState: PublishState) => {
   const result: PublishStateForPayload = {

@@ -64,7 +64,9 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
     : undefined;
   const optionRules = getCreateTestQuestionOptionRules(target.type, target.subType);
   const answer =
-    target.answer?.type === "matchingOrdering" && clonedMatchingOptions
+    target.type === "ungraded"
+      ? undefined
+      : target.answer?.type === "matchingOrdering" && clonedMatchingOptions
       ? createMatchingOrderingAnswer(buildMatchingOrderingAnswerValue(clonedMatchingOptions))
       : target.answer?.type === "optionId"
         ? {
