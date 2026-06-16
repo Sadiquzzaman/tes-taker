@@ -78,6 +78,17 @@ export class ExamEntity extends CustomBaseEntity {
   @Column({ name: 'negative_mark_value', type: 'float', nullable: true })
   negative_mark_value: number | null;
 
+  @ApiPropertyOptional({ description: 'When true, students may share screen during the exam' })
+  @Column({ name: 'allow_screen_share', type: 'boolean', default: false })
+  allow_screen_share: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Seconds of screen-share violation before auto-disqualify (when allow_screen_share is false)',
+    default: 15,
+  })
+  @Column({ name: 'screen_share_disqualify_seconds', type: 'int', default: 15 })
+  screen_share_disqualify_seconds: number;
+
   @ApiPropertyOptional({ description: 'Deprecated: use test_name + subjects. Kept for legacy rows.' })
   @Column({ name: 'subject', type: 'varchar', length: 100, nullable: true })
   subject: string | null;

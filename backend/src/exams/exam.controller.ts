@@ -153,7 +153,10 @@ export class ExamController {
   @ApiOperation({
     summary: "Get exam by ID",
     description:
-      "No token: minimal fields plus lifecycle status. Student token: basic exam fields; questions (no correct answers) only after exam_start_time. Teacher token: full exam with answers only if this teacher created the exam. Admin/super_admin: full details for any exam.",
+      "No token: public summary only (id, test_name, created_user_name, duration_minutes, test_audience, status). " +
+      "Student token: wizard-shaped exam with questions (no answers) after exam_start_time when audience rules pass. " +
+      "Teacher token: full wizard-shaped exam with correct answers when this teacher owns the exam. " +
+      "Admin/super_admin: full details for any exam.",
   })
   @ApiParam({ name: "id", description: "Exam UUID" })
   @ApiResponse({ status: 200, description: "Exam details" })

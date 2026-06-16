@@ -9,6 +9,7 @@ import { ExamModule } from './exams/exam.module';
 import { ClassModule } from './classes/class.module';
 import { SubscriptionModule } from './subscriptions/subscription.module';
 import { SubjectModule } from './subjects/subject.module';
+import { ProctoringModule } from './proctoring/proctoring.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { SubjectModule } from './subjects/subject.module';
     ClassModule,
     SubscriptionModule,
     SubjectModule,
+    ProctoringModule,
   ],
   controllers: [AppController],
   providers: [AppService],

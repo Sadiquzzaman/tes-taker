@@ -22,7 +22,12 @@ import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.enableCors();
+  const clientOrigin = process.env.CLIENT_ORIGIN;
+  app.enableCors(
+    clientOrigin
+      ? { origin: clientOrigin.split(',').map((o) => o.trim()), credentials: true }
+      : undefined,
+  );
   app.setGlobalPrefix('api');
   app.enableVersioning({
     type: VersioningType.URI,

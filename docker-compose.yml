@@ -64,6 +64,7 @@ services:
       DATABASE_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:3000}
     volumes:
       - ./backend:/app
       - /app/node_modules

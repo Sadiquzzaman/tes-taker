@@ -748,41 +748,30 @@ export class ExamService {
       throw new ForbiddenException('You do not have permission to view this exam');
     }
 
-    return this.formatExamResponse(exam, { includeCorrectAnswers: true });
+    return this.formatAuthorizedExamResponse(exam, {
+      audience: 'teacher',
+      includeCorrectAnswers: true,
+      includeQuestions: true,
+    });
   }
 
   /**
-   * Full exam for a student (no correct answers / correct option ids), when audience rules allow.
+   * Full exam for a student (no correct answers), when audience rules allow.
+   * Questions are included only after exam_start_time.
    */
   async findOneForStudent(id: string, jwtPayload: JwtPayloadInterface): Promise<any> {
     if (jwtPayload.role !== RolesEnum.STUDENT) {
       throw new ForbiddenException('Only students can use this access path');
     }
 
-    const exam = await this.examRepo.findOne({
-      where: { id },
-      relations: [
-        'questions',
-        'questionSections',
-        'questionSections.questions',
-        'questionSections.subject',
-        'class',
-        'excluded_students',
-        'target_students',
-        'primary_subject',
-      ],
-    });
-
-    if (!exam) {
-      throw new NotFoundException('Exam not found');
-    }
-
+    const exam = await this.findOneEntity(id);
     const studentId = jwtPayload.id;
     await this.assertStudentCanViewExam(exam, studentId, jwtPayload);
 
     const examStarted = Date.now() >= new Date(exam.exam_start_time).getTime();
 
-    return this.formatExamResponse(exam, {
+    return this.formatAuthorizedExamResponse(exam, {
+      audience: 'student',
       includeCorrectAnswers: false,
       includeQuestions: examStarted,
     });
@@ -819,6 +808,40 @@ export class ExamService {
     }
 
     throw new ForbiddenException('You do not have access to this exam');
+  }
+
+  async assertExamExists(examId: string): Promise<void> {
+    const exam = await this.examRepo.findOne({ where: { id: examId }, select: ['id'] });
+    if (!exam) {
+      throw new NotFoundException('Exam not found');
+    }
+  }
+
+  async assertTeacherCanMonitorExam(
+    examId: string,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<void> {
+    const exam = await this.examRepo.findOne({
+      where: { id: examId },
+      select: ['id', 'created_by'],
+    });
+    if (!exam) {
+      throw new NotFoundException('Exam not found');
+    }
+    if (
+      jwtPayload.role === RolesEnum.TEACHER &&
+      exam.created_by !== jwtPayload.id
+    ) {
+      throw new ForbiddenException('You do not have permission to monitor this exam');
+    }
+  }
+
+  async assertStudentCanTakeExam(
+    examId: string,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<void> {
+    const exam = await this.findOneEntity(examId);
+    await this.assertStudentCanViewExam(exam, jwtPayload.id, jwtPayload);
   }
 
   /**
@@ -1038,7 +1061,8 @@ export class ExamService {
   }
 
   /**
-   * Minimal exam card for unauthenticated clients or students hitting GET /v1/exams/:id.
+   * Minimal public card for unauthenticated GET /v1/exams/:id.
+   * Does not expose schedule, questions, class, or student lists.
    */
   async findOnePublicSummary(
     id: string,
@@ -1110,6 +1134,64 @@ export class ExamService {
     return exam;
   }
 
+  /**
+   * Wizard-shaped response for authenticated teacher/student callers.
+   */
+  private formatAuthorizedExamResponse(
+    exam: ExamEntity,
+    opts: {
+      audience: 'teacher' | 'student';
+      includeCorrectAnswers: boolean;
+      includeQuestions?: boolean;
+    },
+  ): Record<string, unknown> {
+    const includeQuestions = opts.includeQuestions !== false;
+    const subjects = includeQuestions
+      ? this.buildSubjectResponses(exam, opts.includeCorrectAnswers)
+      : [];
+
+    const response: Record<string, unknown> = {
+      id: exam.id,
+      test_name: exam.test_name,
+      status: this.computeExamLifecycleStatus(exam.exam_start_time, exam.exam_end_time),
+      formState: {
+        testName: exam.test_name ?? '',
+        duration: exam.duration_minutes ?? 0,
+        passingScore: exam.passing_score ?? '',
+        allowNegativeMarking: exam.is_negative_marking,
+        negativeMarking: exam.negative_mark_value ?? '',
+        allowScreenShare: exam.allow_screen_share ?? false,
+        screenShareDisqualifySeconds: exam.screen_share_disqualify_seconds ?? 15,
+      },
+      publishState: {
+        publishTiming: exam.publish_timing,
+        scheduleAt: exam.exam_start_time,
+        endingAt: exam.exam_end_time,
+        testAudience: exam.test_audience,
+        selectedClassId: exam.class_id ?? '',
+        ...(opts.audience === 'teacher'
+          ? {
+              excluded_students: (exam.excluded_students ?? []).map((s) => s.id),
+              specificStudents: (exam.target_students ?? []).map((s) => s.id),
+            }
+          : {}),
+      },
+      subjects,
+      class_id: exam.class_id,
+      class_name: exam.class?.class_name ?? null,
+    };
+
+    if (opts.audience === 'teacher') {
+      response.created_by = exam.created_by;
+      response.created_user_name = exam.created_user_name;
+      response.created_at = exam.created_at;
+      response.updated_at = exam.updated_at;
+    }
+
+    return response;
+  }
+
+  /** Used by list endpoints and create responses (teacher view). */
   private formatExamResponse(
     exam: ExamEntity,
     opts: { includeCorrectAnswers: boolean; includeQuestions?: boolean } = {
@@ -1117,24 +1199,11 @@ export class ExamService {
       includeQuestions: true,
     },
   ) {
-    const {
-      questions: _questions,
-      questionSections: _questionSections,
-      exam_type: _examType,
-      exam_kind: _examKind,
-      primary_subject_id: _primarySubjectId,
-      primary_subject: _primarySubject,
-      ...rest
-    } = exam;
-
-    return {
-      ...rest,
-      status: this.computeExamLifecycleStatus(exam.exam_start_time, exam.exam_end_time),
-      subjects:
-        opts.includeQuestions === false
-          ? []
-          : this.buildSubjectResponses(exam, opts.includeCorrectAnswers),
-    };
+    return this.formatAuthorizedExamResponse(exam, {
+      audience: 'teacher',
+      includeCorrectAnswers: opts.includeCorrectAnswers,
+      includeQuestions: opts.includeQuestions,
+    });
   }
 
   private buildSubjectResponses(exam: ExamEntity, includeCorrectAnswers: boolean): ExamSubjectResponse[] {
