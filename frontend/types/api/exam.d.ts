@@ -4,11 +4,129 @@ interface StudentExamOption {
   image: string | null;
 }
 
-interface StudentExamQuestion {
+interface StudentExamMatchingOption {
   id: string;
   text: string;
   image: string | null;
+}
+
+type StudentExamQuestionType = "graded" | "ungraded" | "passage-question";
+type StudentExamAutoScoredSubType =
+  | "multiple-choice"
+  | "multiple-response"
+  | "true-false"
+  | "fill-in-the-blanks"
+  | "matching-ordering";
+type StudentExamManualSubType = "true-false" | "essay" | "fill-in-the-gaps";
+type StudentExamQuestionSubType = StudentExamAutoScoredSubType | StudentExamManualSubType;
+type StudentExamQuestionInputMode = "single-select" | "multi-select" | "matching" | "text";
+
+interface StudentExamQuestionBase {
+  id: string;
+  instruction: string | null;
+  image: string | null;
+  points: number;
+  showValidation: boolean;
+}
+
+interface StudentExamStandardQuestion extends StudentExamQuestionBase {
+  type: "graded" | "ungraded";
+  subType: StudentExamQuestionSubType;
+  text: string;
   options?: StudentExamOption[];
+  matchingOptions?: {
+    left: StudentExamMatchingOption[];
+    right: StudentExamMatchingOption[];
+  };
+  correctOptionId?: string | null;
+}
+
+interface StudentExamPassageChildQuestion extends StudentExamQuestionBase {
+  type: "passage-question";
+  subType: StudentExamAutoScoredSubType;
+  text: string;
+  options?: StudentExamOption[];
+  matchingOptions?: {
+    left: StudentExamMatchingOption[];
+    right: StudentExamMatchingOption[];
+  };
+  correctOptionId?: string | null;
+}
+
+interface StudentExamPassageQuestion {
+  id: string;
+  type: "passage-question";
+  text?: string;
+  instruction?: string | null;
+  image?: string | null;
+  options?: StudentExamOption[];
+  points?: number;
+  correctOptionId?: string | null;
+  passageText: string;
+  childQuestions: StudentExamPassageChildQuestion[];
+  showValidation: boolean;
+}
+
+type StudentExamSubjectQuestion = StudentExamStandardQuestion | StudentExamPassageQuestion;
+
+interface StudentExamViewQuestion extends StudentExamQuestionBase {
+  type: StudentExamQuestionType;
+  subType: StudentExamQuestionSubType;
+  text: string;
+  options?: StudentExamOption[];
+  matchingOptions?: {
+    left: StudentExamMatchingOption[];
+    right: StudentExamMatchingOption[];
+  };
+  inputMode: StudentExamQuestionInputMode;
+  isAutoScored: boolean;
+  questionNumber: number;
+}
+
+interface StudentExamSingleQuestionItem {
+  id: string;
+  kind: "single";
+  question: StudentExamViewQuestion;
+}
+
+interface StudentExamPassageItem {
+  id: string;
+  kind: "passage";
+  passageText: string;
+  questions: StudentExamViewQuestion[];
+}
+
+type StudentExamViewItem = StudentExamSingleQuestionItem | StudentExamPassageItem;
+
+interface StudentExamViewSection {
+  id: string;
+  title: string;
+  questionCount: number;
+  items: StudentExamViewItem[];
+}
+
+interface StudentExamViewSummary {
+  subjectSummary: string;
+  totalMarks: number;
+  totalQuestions: number;
+}
+
+interface StudentExamViewModel {
+  summary: StudentExamViewSummary;
+  sections: StudentExamViewSection[];
+}
+
+interface StudentExamQuestion {
+  id: string;
+  type?: StudentExamQuestionType;
+  subType?: StudentExamQuestionSubType;
+  text: string;
+  image: string | null;
+  options?: StudentExamOption[];
+  matchingOptions?: {
+    left: StudentExamMatchingOption[];
+    right: StudentExamMatchingOption[];
+  };
   points: number;
   instruction: string | null;
   showValidation: boolean;
@@ -26,7 +144,36 @@ interface StudentExamSubject {
   id: string;
   name: string;
   code: string | null;
-  questionSections: StudentExamQuestionSection[];
+  questions: StudentExamSubjectQuestion[];
+}
+
+interface StudentExamFormState {
+  testName: string;
+  duration: number;
+  passingScore: number | string;
+  allowNegativeMarking: boolean;
+  negativeMarking: number | string;
+  allowScreenShare: boolean;
+  screenShareDisqualifySeconds: number;
+}
+
+interface StudentExamPublishState {
+  publishTiming: "now" | "later";
+  scheduleAt: string | null;
+  endingAt: string | null;
+  testAudience: "anyone" | "selected_class";
+  selectedClassId: string;
+}
+
+interface StudentExamDetails {
+  id: string;
+  test_name: string;
+  status: "ongoing" | "completed" | "pending";
+  formState: StudentExamFormState;
+  publishState: StudentExamPublishState;
+  subjects: StudentExamSubject[];
+  class_id: string | null;
+  class_name: string | null;
 }
 
 interface ITest {

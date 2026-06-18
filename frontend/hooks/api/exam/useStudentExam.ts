@@ -4,19 +4,25 @@ import { useCallback, useEffect, useState } from "react";
 import { useApiError } from "../useApiError";
 import { useRouter } from "next/navigation";
 
-const useStudentExam = ({ enabled = true }: { enabled?: boolean }) => {
+const useStudentExam = ({ enabled = true, examId }: { enabled?: boolean; examId?: string | null }) => {
   const router = useRouter();
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
   const [apiComplete, setApiComplete] = useState(false);
-  const [examData, setExamData] = useState<ITest | null>(null);
+  const [examData, setExamData] = useState<StudentExamDetails | null>(null);
 
   const fetch = useCallback(
     async (examId?: string | null) => {
+      if (!examId) {
+        setApiComplete(true);
+        setExamData(null);
+        return;
+      }
+
       setLoading(true);
 
       return axiosReq
-        .get<ApiResponse<ITest>, AxiosResponse<ApiResponse<ITest>>>(
+        .get<ApiResponse<StudentExamDetails>, AxiosResponse<ApiResponse<StudentExamDetails>>>(
           `${process.env.NEXT_PUBLIC_BASE_URL}/exams/${examId}`,
         )
         .then((response) => {
@@ -41,14 +47,18 @@ const useStudentExam = ({ enabled = true }: { enabled?: boolean }) => {
       return;
     }
 
-    const testId = sessionStorage.getItem("testId");
-
-    if (!testId) {
+    if (!examId) {
       router.push("/");
     } else {
-      fetch(testId);
+      const timeoutId = window.setTimeout(() => {
+        void fetch(examId);
+      }, 0);
+
+      return () => {
+        window.clearTimeout(timeoutId);
+      };
     }
-  }, [enabled, fetch, router]);
+  }, [enabled, examId, fetch, router]);
 
   return { loading, apiComplete, examData, fetch } as const;
 };

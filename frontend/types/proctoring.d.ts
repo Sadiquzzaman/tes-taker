@@ -57,6 +57,8 @@ interface VoiceMonitoringOptions {
 
 interface UseProctoringOptions {
   isExamReady: boolean;
+  allowScreenShare?: boolean;
+  screenShareDisqualifySeconds?: number;
 }
 
 interface UseProctoringResult {
@@ -65,9 +67,31 @@ interface UseProctoringResult {
   stopProctoringSession: () => void;
 }
 
+interface UseProctoringSocketOptions {
+  answerSheet: AnswersheetMap;
+  examId?: string;
+  flags: ProctoringFlag[];
+  isEnabled: boolean;
+  totalFlagPoints: number;
+}
+
+interface UseProctoringSocketResult {
+  connectToSocket: () => void;
+  emitExamSubmit: () => void;
+  isSessionReady: boolean;
+  connectionError: string | null;
+}
+
+interface ScreenSharingMonitoringOptions {
+  isActive: boolean;
+  allowScreenShare?: boolean;
+  screenShareDisqualifySeconds?: number;
+}
+
 interface ProctoringPanelProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   onRetry: () => void;
+  connectionError?: string | null;
 }
 
 interface StartStudentExamPayload {

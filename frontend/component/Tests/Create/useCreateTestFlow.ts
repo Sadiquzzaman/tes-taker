@@ -8,7 +8,6 @@ import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/ut
 import { useToast } from "@/component/Toast/ToastContext";
 import useCreateTest from "@/hooks/api/tests/useCreateTest";
 
-
 const handlePublishStateForSubmission = (publishState: PublishState) => {
   const result: PublishStateForPayload = {
     testAudience: publishState.testAudience,

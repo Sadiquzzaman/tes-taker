@@ -67,18 +67,18 @@ const duplicateQuestion = (state: CreateTestState, action: PayloadAction<Questio
     target.type === "ungraded"
       ? undefined
       : target.answer?.type === "matchingOrdering" && clonedMatchingOptions
-      ? createMatchingOrderingAnswer(buildMatchingOrderingAnswerValue(clonedMatchingOptions))
-      : target.answer?.type === "optionId"
-        ? {
-            type: "optionId" as const,
-            value: target.answer.value.map((optionId) => optionIdMap.get(optionId)).filter(Boolean) as string[],
-          }
-        : target.answer
+        ? createMatchingOrderingAnswer(buildMatchingOrderingAnswerValue(clonedMatchingOptions))
+        : target.answer?.type === "optionId"
           ? {
-              type: "text" as const,
-              value: [...target.answer.value],
+              type: "optionId" as const,
+              value: target.answer.value.map((optionId) => optionIdMap.get(optionId)).filter(Boolean) as string[],
             }
-          : undefined;
+          : target.answer
+            ? {
+                type: "text" as const,
+                value: [...target.answer.value],
+              }
+            : undefined;
 
   const duplicatedQuestion: QuestionItem = {
     ...target,

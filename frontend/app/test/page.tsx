@@ -1,72 +1,172 @@
 "use client";
 
-import ButtonLoader from "@/component/Loader/ButtonLoadder";
-import ExamCountdown from "@/component/Tests/ExamCountdown";
 import CreateModal from "@/component/Tests/Create/CreateModal";
-import ExamTimerIconSVG from "@/component/svg/ExamTimerIconSVG";
-import RightArrowIconSVG from "@/component/svg/RightArrowIconSVG";
+import ExamHeader from "@/component/Tests/exam/ExamHeader";
 import ProctoringPanel from "@/component/Tests/exam/ProctoringPanel";
+import StudentExamMain from "@/component/Tests/exam/StudentExamMain";
+import useStartStudentExam from "@/hooks/api/exam/useStartStudentExam";
 import useStudentExam from "@/hooks/api/exam/useStudentExam";
 import useSubmitAnswersheet from "@/hooks/api/tests/useSubmitAnswersheet";
 import useProctoring from "@/hooks/tests/proctoring/useProctoring";
+import useProctoringSocket from "@/hooks/tests/proctoring/useProctoringSocket";
+import {
+  initializeExamAnswers,
+  resetExamAnswers,
+  selectExamAnswerState,
+  setExamAnswerValue,
+} from "@/lib/features/studentExamAnswerSlice";
 import { selectIsProctoringReady } from "@/lib/features/proctoringSlice";
-import { useAppSelector } from "@/lib/hooks";
-import { useRef, useState } from "react";
-import { RotatingLines } from "react-loader-spinner";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { createInitialExamAnswerState } from "@/utils/tests/studentExamAnswers";
 import { useRouter } from "next/navigation";
-import ExamHeader from "@/component/Tests/exam/ExamHeader";
+import { useEffect, useRef, useState } from "react";
+import { RotatingLines } from "react-loader-spinner";
+
+const getStoredTestId = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return sessionStorage.getItem("testId");
+};
+
+const getStoredUserId = () => {
+  const user = localStorage.getItem("user");
+
+  if (!user) {
+    return null;
+  }
+
+  try {
+    const parsedUser = JSON.parse(user) as User;
+    return parsedUser.id;
+  } catch {
+    return null;
+  }
+};
 
 export default function ParticipateTest() {
+  const dispatch = useAppDispatch();
   const router = useRouter();
+
   const isProctoringReady = useAppSelector(selectIsProctoringReady);
-  const { videoRef, retryProctoringSetup } = useProctoring({ isExamReady: true });
+  const proctoringState = useAppSelector((state) => state.proctoring);
+  const answerState = useAppSelector(selectExamAnswerState);
+
+  const [testId] = useState<string | null>(getStoredTestId);
+  const [hasStartedExam, setHasStartedExam] = useState(false);
+  const [hasAttemptedStart, setHasAttemptedStart] = useState(false);
+  const [submitReason, setSubmitReason] = useState<"manual" | "timeout" | null>(null);
+  const submitButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [startStudentExam, { loading: startLoading }] = useStartStudentExam();
+  const [submitAnswersheet, { loading: submitLoading }] = useSubmitAnswersheet();
+  const isExamPageReady = Boolean(testId);
+
   const {
     examData: test,
-    loading,
+    loading: testLoading,
     apiComplete,
   } = useStudentExam({
-    enabled: isProctoringReady,
+    enabled: isProctoringReady && hasStartedExam && Boolean(testId),
+    examId: testId,
   });
-  const [submitAnswersheet, { loading: submitLoading }] = useSubmitAnswersheet();
+  const { videoRef, retryProctoringSetup } = useProctoring({
+    isExamReady: isExamPageReady,
+    allowScreenShare: test?.formState.allowScreenShare,
+    screenShareDisqualifySeconds: test?.formState.screenShareDisqualifySeconds,
+  });
+  const { connectToSocket, emitExamSubmit, connectionError } = useProctoringSocket({
+    answerSheet: answerState,
+    examId: test?.id,
+    flags: proctoringState.flags,
+    isEnabled: isProctoringReady && hasStartedExam && Boolean(test?.id),
+    totalFlagPoints: proctoringState.totalPenaltyPoints,
+  });
+  
+  const isInteractionDisabled = startLoading || testLoading || submitLoading;
 
-  const submitButtonRef = useRef<HTMLButtonElement | null>(null);
-  const [submitReason, setSubmitReason] = useState<"manual" | "timeout" | null>(null);
-  const answerSheet: AnswersheetMap = {};
-  const isInteractionDisabled = loading || submitLoading;
-  const proctoringPanel = <ProctoringPanel videoRef={videoRef} onRetry={retryProctoringSetup} />;
+  useEffect(() => {
+    if (!testId) {
+      router.push("/");
+    }
+  }, [router, testId]);
 
-  const handleSubmit = async (reason: "manual" | "timeout" = "manual") => {
-    if (!isProctoringReady) {
+  useEffect(() => {
+    if (!testId || !isProctoringReady || hasAttemptedStart) {
       return;
     }
 
-    const user = localStorage.getItem("user");
-    if (!user) {
+    const startExamSession = async () => {
+      setHasAttemptedStart(true);
+
+      const response = await startStudentExam({
+        examId: testId,
+        payload: {
+          user_agent: navigator.userAgent,
+        },
+      });
+
+      if (response?.status === 201) {
+        setHasStartedExam(true);
+      }
+    };
+
+    void startExamSession();
+  }, [hasAttemptedStart, isProctoringReady, startStudentExam, testId]);
+
+  useEffect(() => {
+    if (!test) {
+      return;
+    }
+
+    dispatch(
+      initializeExamAnswers({
+        examId: test.id,
+        values: createInitialExamAnswerState(test),
+      }),
+    );
+  }, [dispatch, test]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(resetExamAnswers());
+    };
+  }, [dispatch]);
+
+  const handleSubmit = async (reason: "manual" | "timeout" = "manual") => {
+    if (!isProctoringReady || !test?.id) {
+      return;
+    }
+
+    const studentId = getStoredUserId();
+
+    if (!studentId) {
       router.push("/login");
       return;
     }
 
     setSubmitReason(reason);
-
-    const parsedUser = JSON.parse(user) as { id?: string };
-    const examId = test?.id ?? "";
-    const studentId = parsedUser?.id ?? "";
+    emitExamSubmit();
 
     await submitAnswersheet({
-      examId,
+      examId: test.id,
       payload: {
         studentId,
-        answersheet: answerSheet,
+        answersheet: answerState,
       },
     });
   };
 
+  const proctoringPanel = (
+    <ProctoringPanel videoRef={videoRef} onRetry={retryProctoringSetup} connectionError={connectionError} />
+  );
+
   if (!isProctoringReady) {
     return (
-      <div>
+      <div className="flex h-screen flex-col overflow-hidden">
         <ExamHeader />
-        <main className="w-full overflow-auto" style={{ height: "calc(100vh - 72px)" }}>
-          <div className="w-full md:w-[60%] mx-auto py-8">
+        <main className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[920px] px-4 py-8">
             <div className="rounded-[8px] border border-[#DDE5DE] bg-[#F8FBF8] p-4 text-[14px] leading-5 text-[#49734F]">
               Webcam and microphone access are required before loading the test.
             </div>
@@ -77,10 +177,10 @@ export default function ParticipateTest() {
     );
   }
 
-  if (loading)
+  if (startLoading || (hasStartedExam && testLoading)) {
     return (
       <div>
-        <div className="w-full min-h-[calc(100vh-300px)] flex items-center justify-center">
+        <div className="flex min-h-[calc(100vh-300px)] w-full items-center justify-center">
           <RotatingLines
             visible={true}
             height="48"
@@ -88,14 +188,27 @@ export default function ParticipateTest() {
             color="grey"
             strokeWidth="5"
             animationDuration="0.75"
-            ariaLabel="rotating-lines-loading"
-            wrapperStyle={{}}
-            wrapperClass=""
+            ariaLabel="exam-loading"
           />
         </div>
         {proctoringPanel}
       </div>
     );
+  }
+
+  if (hasAttemptedStart && !hasStartedExam && !startLoading) {
+    return (
+      <div>
+        <ExamHeader />
+        <div className="flex min-h-[calc(100vh-162px)] items-center justify-center">
+          <p className="text-[24px] font-[600] leading-8 tracking-[-0.04em] text-[#232A25]">
+            Unable to start the test.
+          </p>
+        </div>
+        {proctoringPanel}
+      </div>
+    );
+  }
 
   if (!apiComplete) {
     return <div>{proctoringPanel}</div>;
@@ -104,12 +217,8 @@ export default function ParticipateTest() {
   if (!test) {
     return (
       <div>
-        <div className="w-full min-h-[calc(100vh-162px)] flex items-center justify-center">
-          <div className="text-center">
-            <p className="font-[600] text-[24px] leading-[32px] tracking-[-0.04em] text-[#232A25]">
-              Unable to load the test.
-            </p>
-          </div>
+        <div className="flex min-h-[calc(100vh-162px)] items-center justify-center">
+          <p className="text-[24px] font-[600] leading-8 tracking-[-0.04em] text-[#232A25]">Unable to load the test.</p>
         </div>
         {proctoringPanel}
       </div>
@@ -117,69 +226,20 @@ export default function ParticipateTest() {
   }
 
   return (
-    <div>
+    <div className="flex h-screen flex-col overflow-hidden">
       <ExamHeader />
-      <main className="w-full overflow-auto" style={{ height: "calc(100vh - 72px)" }}>
-        <div className="w-full md:w-[60%] mx-auto py-8 flex flex-col gap-8">
-          <div className="flex justify-between items-center">
-            <p className="font-[600] text-[32px] leading-[32px] text-[#232A25]">{test?.test_name ?? "Loading test"}</p>
-            <div className="flex items-center gap-4">
-              <ExamTimerIconSVG width={16} />
-              <ExamCountdown
-                key={test?.id ?? "exam-countdown"}
-                durationMinutes={test?.duration_minutes}
-                submitButtonRef={submitButtonRef}
-                onTimeUp={() => handleSubmit("timeout")}
-              />
-            </div>
-          </div>
-
-          {/* {test?.subjects.map((subject) => {
-            return subject.questionSections.map((section) => {
-              if (section.type === "essay") {
-                return (
-                  <EssayQuestionSectionCard
-                    key={section.id}
-                    section={section}
-                    answerSheet={answerSheet}
-                    setAnswerSheet={setAnswerSheet}
-                    disabled={isInteractionDisabled}
-                  />
-                );
-              }
-
-              if (section.type === "objective") {
-                return (
-                  <ObjectiveQuestionSectionCard
-                    key={section.id}
-                    section={section}
-                    negativeMarkValue={test.negative_mark_value}
-                    answerSheet={answerSheet}
-                    setAnswerSheet={setAnswerSheet}
-                    isNegativeMarkingEnabled={test.is_negative_marking}
-                    disabled={isInteractionDisabled}
-                  />
-                );
-              }
-
-              return null;
-            });
-          })} */}
-
-          <div className="flex flex-row justify-end">
-            <button
-              ref={submitButtonRef}
-              onClick={() => handleSubmit("manual")}
-              disabled={isInteractionDisabled}
-              className={`px-4 h-10 flex items-center justify-center rounded-[8px] text-[14px] font-[500] leading-[16px] tracking-[-0.02em] ${isInteractionDisabled ? "bg-[#747775]" : "bg-[#49734F]"} text-[#FFFFFF]`}
-            >
-              <ButtonLoader show={submitLoading} w="w-4" h="h-4" mr="mr-2" />
-              {submitLoading ? "Submitting..." : "Submit Answer"}
-              <RightArrowIconSVG />
-            </button>
-          </div>
-        </div>
-      </main>
+      <StudentExamMain
+        exam={test}
+        answerState={answerState}
+        isInteractionDisabled={isInteractionDisabled}
+        isSubmitLoading={submitLoading}
+        submitButtonRef={submitButtonRef}
+        onAnswerChange={(questionId, value) => dispatch(setExamAnswerValue({ questionId, value }))}
+        onMatchingChange={(questionId, value) => dispatch(setExamAnswerValue({ questionId, value }))}
+        onSubmit={() => void handleSubmit("manual")}
+        onCountdownStart={connectToSocket}
+        onTimeUp={() => void handleSubmit("timeout")}
+      />
       {proctoringPanel}
       <CreateModal
         open={submitLoading}
@@ -198,10 +258,10 @@ export default function ParticipateTest() {
             ariaLabel="submission-loading"
           />
           <div className="flex flex-col gap-2">
-            <p className="font-[600] text-[24px] leading-[28px] text-[#232A25]">
+            <p className="text-[24px] font-[600] leading-7 text-[#232A25]">
               {submitReason === "timeout" ? "Time is up" : "Your answer is submitting"}
             </p>
-            <p className="text-[14px] font-[400] leading-[20px] text-[#747775]">
+            <p className="text-[14px] leading-5 text-[#747775]">
               {submitReason === "timeout"
                 ? "Time is up and your answer is submitting. Please wait a moment."
                 : "Your answer is submitting. Please wait a moment."}

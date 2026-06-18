@@ -3,17 +3,21 @@ import { useAppDispatch } from "@/lib/hooks";
 import { useEffect, useRef } from "react";
 
 const CHECK_INTERVAL_MS = 3000;
-const DISQUALIFY_AFTER_MS = 15000;
 
-const useScreenSharingMonitoring = (isActive: boolean) => {
+const useScreenSharingMonitoring = ({
+  isActive,
+  allowScreenShare = false,
+  screenShareDisqualifySeconds = 15,
+}: ScreenSharingMonitoringOptions) => {
   const dispatch = useAppDispatch();
   const violationStartedAtRef = useRef<number | null>(null);
   const hasDisqualifiedRef = useRef(false);
 
   useEffect(() => {
     let cleanup = () => {};
+    const disqualifyAfterMs = screenShareDisqualifySeconds * 1000;
 
-    if (!isActive) {
+    if (!isActive || allowScreenShare) {
       violationStartedAtRef.current = null;
       hasDisqualifiedRef.current = false;
     }
@@ -51,18 +55,18 @@ const useScreenSharingMonitoring = (isActive: boolean) => {
       }
 
       const violationDuration = Date.now() - violationStartedAtRef.current;
-      if (violationDuration >= DISQUALIFY_AFTER_MS && !hasDisqualifiedRef.current) {
+      if (violationDuration >= disqualifyAfterMs && !hasDisqualifiedRef.current) {
         hasDisqualifiedRef.current = true;
         dispatch(
           disqualifyExam({
             type: "screen-sharing",
-            message: "Screen sharing, inactive tab, or multiple display activity continued for 15 seconds.",
+            message: `Screen sharing, inactive tab, or multiple display activity continued for ${screenShareDisqualifySeconds} seconds.`,
           }),
         );
       }
     };
 
-    if (isActive) {
+    if (isActive && !allowScreenShare) {
       void checkScreenState();
       const intervalId = window.setInterval(() => {
         void checkScreenState();
@@ -72,7 +76,7 @@ const useScreenSharingMonitoring = (isActive: boolean) => {
     }
 
     return cleanup;
-  }, [dispatch, isActive]);
+  }, [allowScreenShare, dispatch, isActive, screenShareDisqualifySeconds]);
 };
 
 export default useScreenSharingMonitoring;

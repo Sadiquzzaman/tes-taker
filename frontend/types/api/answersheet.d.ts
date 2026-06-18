@@ -1,4 +1,11 @@
-type AnswersheetMap = Record<string, string>;
+type AnswersheetMap = any;
+type ExamAnswerValue = string | string[];
+type ExamAnswerState = Record<string, ExamAnswerValue>;
+
+interface ExamAnswerSliceState {
+  examId: string | null;
+  values: ExamAnswerState;
+}
 
 type SubmitAnswersheetResponsePayload = {
   submission_id: string;

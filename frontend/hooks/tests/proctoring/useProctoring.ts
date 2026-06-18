@@ -26,7 +26,11 @@ import {
 import useScreenSharingMonitoring from "./useScreenSharingMonitoring";
 import useVoiceDetection from "./useVoiceDetection";
 
-const useProctoring = ({ isExamReady }: UseProctoringOptions): UseProctoringResult => {
+const useProctoring = ({
+  isExamReady,
+  allowScreenShare,
+  screenShareDisqualifySeconds,
+}: UseProctoringOptions): UseProctoringResult => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
   const isProctoringActive = useAppSelector(selectIsProctoringActive);
@@ -159,7 +163,11 @@ const useProctoring = ({ isExamReady }: UseProctoringOptions): UseProctoringResu
   useKeyboardMonitoring(isMonitoringActive);
   useIdleDetection(isMonitoringActive);
   useDevToolsDetection(isMonitoringActive);
-  useScreenSharingMonitoring(isMonitoringActive);
+  useScreenSharingMonitoring({
+    isActive: isMonitoringActive,
+    allowScreenShare,
+    screenShareDisqualifySeconds,
+  });
 
   return {
     videoRef,

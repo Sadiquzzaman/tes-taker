@@ -4,7 +4,7 @@ import ProctoringFlagListModal from "@/component/Tests/exam/ProctoringFlagListMo
 import { selectProctoringPanelState } from "@/lib/features/proctoringSlice";
 import { useAppSelector } from "@/lib/hooks";
 
-const ProctoringPanel = ({ videoRef, onRetry }: ProctoringPanelProps) => {
+const ProctoringPanel = ({ videoRef, onRetry, connectionError }: ProctoringPanelProps) => {
   const { totalPenaltyPoints, riskLevel, permissionError, statusText } = useAppSelector(selectProctoringPanelState);
 
   const handleEnterFullscreen = async () => {
@@ -44,6 +44,7 @@ const ProctoringPanel = ({ videoRef, onRetry }: ProctoringPanelProps) => {
         <ProctoringFlagListModal />
 
         {permissionError ? <p className="text-[12px] leading-4 text-[#B93815]">{permissionError}</p> : null}
+        {connectionError ? <p className="text-[12px] leading-4 text-[#B93815]">{connectionError}</p> : null}
 
         <div className="flex gap-2">
           {permissionError ? (
