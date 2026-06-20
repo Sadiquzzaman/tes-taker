@@ -4,6 +4,8 @@ import { subjectSlice } from "./features/subjectSlice";
 import { testSlice } from "./features/testSlice";
 import { gradingSlice } from "./features/gradingSlice";
 import { createTestSlice } from "./features/createTestSlice";
+import { proctoringSlice } from "./features/proctoringSlice";
+import { studentExamAnswerSlice } from "./features/studentExamAnswerSlice";
 
 export const makeStore = () => {
   return configureStore({
@@ -13,6 +15,8 @@ export const makeStore = () => {
       test: testSlice.reducer,
       grade: gradingSlice.reducer,
       createTest: createTestSlice.reducer,
+      proctoring: proctoringSlice.reducer,
+      studentExamAnswer: studentExamAnswerSlice.reducer,
     },
   });
 };

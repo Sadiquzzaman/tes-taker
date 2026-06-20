@@ -12,11 +12,15 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@mediapipe/face_mesh": "^0.4.1633559619",
     "@mui/material": "^9.0.0",
     "@mui/x-date-pickers": "^9.0.0",
     "@reduxjs/toolkit": "^2.11.2",
+    "@tensorflow-models/coco-ssd": "^2.2.3",
+    "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.13.5",
     "dayjs": "^1.11.20",
+    "face-api.js": "^0.22.2",
     "next": "^16.1.7",
     "prettier": "^3.8.1",
     "react": "19.2.3",
@@ -24,6 +28,7 @@
     "react-loader-spinner": "^8.0.2",
     "react-redux": "^9.2.0",
     "recharts": "^3.7.0",
+    "socket.io-client": "^4.8.3",
     "uuid": "^14.0.0"
   },
   "devDependencies": {
@@ -42,6 +47,7 @@
     "typescript": "^5"
   },
   "overrides": {
-    "postcss": "^8.5.12"
+    "postcss": "^8.5.12",
+    "node-fetch": "2.7.0"
   }
 }
