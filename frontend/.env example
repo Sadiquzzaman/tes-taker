@@ -1,3 +1,16 @@
 NEXT_PUBLIC_BASE_URL=http://localhost:4000/api/v1
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_URL=http://app:3000/api/v1
+# Docker-only internal URL for server-side fetches inside containers.
+# Leave unset for local dev — server code falls back to NEXT_PUBLIC_BASE_URL.
+INTERNAL_API_URL=http://app:3000/api/v1
+# Legacy alias; avoid Docker hostnames (app/backend) when running frontend locally.
+NEXT_PUBLIC_URL=http://localhost:4000/api/v1
+
+NEXT_PUBLIC_ENABLE_FLAGGING=true
+NEXT_PUBLIC_GREEN_LIMIT=5
+NEXT_PUBLIC_LIGHT_GREEN_LIMIT=10
+NEXT_PUBLIC_ORANGE_LIMIT=14
+NEXT_PUBLIC_RED_LIMIT=15
+NEXT_PUBLIC_DISQUALIFY_AFTER=15
+NEXT_PUBLIC_SCREEN_SHARE_TIMEOUT=15
+NEXT_PUBLIC_DOUBLE_DISPLAY_TIMEOUT=15

@@ -69,3 +69,15 @@ export const requestFullscreenIfNeeded = async () => {
 
   return Boolean(document.fullscreenElement);
 };
+
+export const exitFullscreenIfActive = async () => {
+  if (!document.fullscreenElement) {
+    return;
+  }
+
+  try {
+    await document.exitFullscreen();
+  } catch {
+    // Browser may block programmatic exit in some cases.
+  }
+};

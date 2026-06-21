@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { getServerApiBaseUrl } from "@/lib/server/getServerApiBaseUrl";
 
 const DEFAULT_ERROR_MESSAGE = "Class not found or unavailable.";
 
@@ -31,7 +32,7 @@ const getJoinClassById = cache(async (classId: string): Promise<JoinClassResult>
     };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_URL;
+  const baseUrl = getServerApiBaseUrl();
 
   if (!baseUrl) {
     return {

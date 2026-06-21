@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { getServerApiBaseUrl } from "@/lib/server/getServerApiBaseUrl";
 
 const DEFAULT_ERROR_MESSAGE = "Test not found or unavailable.";
 
@@ -31,7 +32,7 @@ const getJoinTestById = cache(async (testId: string): Promise<JoinTestResult> =>
     };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_URL;
+  const baseUrl = getServerApiBaseUrl();
 
   if (!baseUrl) {
     return {
@@ -42,7 +43,6 @@ const getJoinTestById = cache(async (testId: string): Promise<JoinTestResult> =>
   }
 
   try {
-    console.log({ baseUrl, testId: trimmedTestId });
     const response = await fetch(`${baseUrl}/exams/${encodeURIComponent(trimmedTestId)}`, {
       method: "GET",
       headers: {
@@ -50,7 +50,6 @@ const getJoinTestById = cache(async (testId: string): Promise<JoinTestResult> =>
       },
       cache: "no-store",
     });
-    console.log({ response });
 
     const responseBody = (await response.json().catch(() => null)) as
       | JoinTestApiResponse

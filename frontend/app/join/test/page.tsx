@@ -77,7 +77,7 @@ const JoinTest = () => {
     sessionStorage.removeItem("testJoinResponse");
     sessionStorage.removeItem("joinSessionInfo");
     sessionStorage.setItem("testId", pageState?.testId || "");
-    router.push("/test");
+    router.push("/test/permissions");
   };
 
   const handleContinue = () => {

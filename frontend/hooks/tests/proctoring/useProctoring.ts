@@ -9,9 +9,11 @@ import {
 } from "@/lib/features/proctoringSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { useToast } from "@/component/Toast/ToastContext";
+import { PROCTORING_CONFIG } from "@/utils/tests/proctoringConfig";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useBrowserMonitoring from "./useBrowserMonitoring";
 import useDevToolsDetection from "./useDevToolsDetection";
+import useDoubleDisplayMonitoring from "./useDoubleDisplayMonitoring";
 import useHeadEyeMonitoring from "./useHeadEyeMonitoring";
 import useIdleDetection from "./useIdleDetection";
 import useKeyboardMonitoring from "./useKeyboardMonitoring";
@@ -23,28 +25,31 @@ import {
   requestFullscreenIfNeeded,
   stopMediaTracks,
 } from "./proctoringMonitorUtils";
-import useScreenSharingMonitoring from "./useScreenSharingMonitoring";
 import useVoiceDetection from "./useVoiceDetection";
 
 const useProctoring = ({
   isExamReady,
-  allowScreenShare,
-  screenShareDisqualifySeconds,
+  doubleDisplayTimeoutSeconds = PROCTORING_CONFIG.doubleDisplayTimeout,
+  initialMediaStream = null,
+  skipAutoSetup = false,
 }: UseProctoringOptions): UseProctoringResult => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
   const isProctoringActive = useAppSelector(selectIsProctoringActive);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(initialMediaStream);
   const activeSetupRequestRef = useRef(0);
 
   const stopProctoringSession = useCallback(() => {
-    setMediaStream((currentStream) => {
-      stopMediaTracks(currentStream);
-      return null;
-    });
+    if (!skipAutoSetup) {
+      setMediaStream((currentStream) => {
+        stopMediaTracks(currentStream);
+        return null;
+      });
+    }
+
     dispatch(stopProctoring());
-  }, [dispatch]);
+  }, [dispatch, skipAutoSetup]);
 
   const requestMediaAccess = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -113,9 +118,28 @@ const useProctoring = ({
   );
 
   useEffect(() => {
+    if (!initialMediaStream) {
+      return;
+    }
+
+    initialMediaStream.getVideoTracks().forEach((track) => {
+      track.addEventListener("ended", () => {
+        dispatch(
+          setProctoringPermissionError("Camera access was revoked. Re-enable camera permissions to continue."),
+        );
+      });
+    });
+
+    dispatch(resetProctoring());
+    dispatch(startProctoring());
+    dispatch(setProctoringReady());
+    setMediaStream(initialMediaStream);
+  }, [dispatch, initialMediaStream]);
+
+  useEffect(() => {
     let cleanup = () => {};
 
-    if (isExamReady) {
+    if (isExamReady && !skipAutoSetup && !initialMediaStream) {
       const setupTimeoutId = window.setTimeout(() => {
         void requestMediaAccess();
       }, 0);
@@ -128,7 +152,7 @@ const useProctoring = ({
     }
 
     return cleanup;
-  }, [isExamReady, requestMediaAccess, stopProctoringSession]);
+  }, [initialMediaStream, isExamReady, requestMediaAccess, skipAutoSetup, stopProctoringSession]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -163,14 +187,14 @@ const useProctoring = ({
   useKeyboardMonitoring(isMonitoringActive);
   useIdleDetection(isMonitoringActive);
   useDevToolsDetection(isMonitoringActive);
-  useScreenSharingMonitoring({
+  useDoubleDisplayMonitoring({
     isActive: isMonitoringActive,
-    allowScreenShare,
-    screenShareDisqualifySeconds,
+    timeoutSeconds: doubleDisplayTimeoutSeconds,
   });
 
   return {
     videoRef,
+    mediaStream,
     retryProctoringSetup,
     stopProctoringSession,
   };

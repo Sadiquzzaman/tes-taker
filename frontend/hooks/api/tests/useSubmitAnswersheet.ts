@@ -1,4 +1,5 @@
 import { useToast } from "@/component/Toast/ToastContext";
+import { exitFullscreenIfActive } from "@/hooks/tests/proctoring/proctoringMonitorUtils";
 import axiosReq from "@/lib/axios";
 import { AxiosError, AxiosResponse } from "axios";
 import { useState } from "react";
@@ -20,8 +21,9 @@ const useSubmitAnswersheet = () => {
         AxiosResponse<ApiResponse<SubmitAnswersheetResponsePayload>>,
         SubmitAnswersheetPayload
       >(`${process.env.NEXT_PUBLIC_BASE_URL}/student/exams/${examId}/answersheet`, payload)
-      .then((response) => {
+      .then(async (response) => {
         if (response?.status === 201) {
+          await exitFullscreenIfActive();
           sessionStorage.removeItem("testId");
           router.push("/");
 

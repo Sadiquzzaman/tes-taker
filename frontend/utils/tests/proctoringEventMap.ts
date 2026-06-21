@@ -12,6 +12,9 @@ const SOCKET_FLAG_TYPE_MAP: Record<ProctoringFlagType, string> = {
   "idle-too-long": "IDLE",
   "devtools-open": "DEVTOOLS",
   "screen-sharing": "SCREEN_SHARING",
+  "camera-blocked": "NO_FACE",
+  "screen-share-stopped": "SCREEN_SHARING",
+  "double-display": "SCREEN_SHARING",
 };
 
 const PERSISTED_VIOLATION_TYPE_MAP: Partial<Record<ProctoringFlagType, "TAB_SWITCH" | "BROWSER_SWITCH">> = {

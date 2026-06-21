@@ -1,11 +1,12 @@
 "use client";
 
 import ProctoringFlagListModal from "@/component/Tests/exam/ProctoringFlagListModal";
+import ProctoringVideoPreview from "@/component/Tests/exam/ProctoringVideoPreview";
 import { selectProctoringPanelState } from "@/lib/features/proctoringSlice";
 import { useAppSelector } from "@/lib/hooks";
 
-const ProctoringPanel = ({ videoRef, onRetry, connectionError }: ProctoringPanelProps) => {
-  const { totalPenaltyPoints, riskLevel, permissionError, statusText } = useAppSelector(selectProctoringPanelState);
+const ProctoringPanel = ({ mediaStream, onRetry, connectionError }: ProctoringPanelProps) => {
+  const { permissionError, statusText } = useAppSelector(selectProctoringPanelState);
 
   const handleEnterFullscreen = async () => {
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
@@ -14,14 +15,8 @@ const ProctoringPanel = ({ videoRef, onRetry, connectionError }: ProctoringPanel
   };
 
   return (
-    <aside className="fixed bottom-4 right-4 z-30 w-[220px] overflow-hidden rounded-[8px] border border-[#DDE5DE] bg-white shadow-lg">
-      <video
-        ref={videoRef}
-        muted
-        playsInline
-        className="h-[124px] w-full bg-[#0F1A12] object-cover"
-        aria-label="Webcam preview"
-      />
+    <aside className="fixed bottom-4 right-4 z-20 hidden w-[220px] overflow-hidden rounded-[8px] border border-[#DDE5DE] bg-white shadow-lg md:block xl:hidden">
+      <ProctoringVideoPreview mediaStream={mediaStream} className="h-[124px] w-full bg-[#0F1A12] object-cover" />
 
       <div className="flex flex-col gap-2 p-3">
         <div className="flex items-center justify-between">
@@ -29,16 +24,6 @@ const ProctoringPanel = ({ videoRef, onRetry, connectionError }: ProctoringPanel
           <span className="rounded-[6px] bg-[#EDF4EE] px-2 py-1 text-[12px] font-[500] leading-3 text-[#49734F]">
             {statusText}
           </span>
-        </div>
-
-        <div className="flex items-center justify-between text-[12px] leading-4 text-[#747775]">
-          <span>Penalty</span>
-          <span className="font-[600] text-[#232A25]">{totalPenaltyPoints}</span>
-        </div>
-
-        <div className="flex items-center justify-between text-[12px] leading-4 text-[#747775]">
-          <span>Risk</span>
-          <span className="font-[600] text-[#232A25]">{riskLevel}</span>
         </div>
 
         <ProctoringFlagListModal />

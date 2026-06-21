@@ -40,8 +40,13 @@ const routePolicies: RoutePolicy[] = [
     redirectUnauthorizedTo: "/",
   },
   {
+    path: "/tests",
+    match: "prefix",
+    allowedRoles: ["TEACHER", "STUDENT"],
+  },
+  {
     path: "/test",
-    match: "exact",
+    match: "prefix",
     allowedRoles: ["STUDENT"],
     redirectUnauthorizedTo: "/tests",
   },
@@ -53,11 +58,6 @@ const routePolicies: RoutePolicy[] = [
   },
   {
     path: "/classes",
-    match: "prefix",
-    allowedRoles: ["TEACHER", "STUDENT"],
-  },
-  {
-    path: "/tests",
     match: "prefix",
     allowedRoles: ["TEACHER", "STUDENT"],
   },
@@ -74,6 +74,10 @@ const isValidRole = (role: string | undefined): role is RoleUserType =>
 
 const matchesPolicy = (pathname: string, policy: RoutePolicy) => {
   if (policy.match === "prefix") {
+    if (policy.path === "/test") {
+      return pathname === "/test" || pathname.startsWith("/test/");
+    }
+
     return pathname.startsWith(policy.path);
   }
 

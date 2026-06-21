@@ -2,11 +2,17 @@
 
 import CreateModal from "@/component/Tests/Create/CreateModal";
 import ExamHeader from "@/component/Tests/exam/ExamHeader";
+import ProctoringCountdownModal from "@/component/Tests/exam/ProctoringCountdownModal";
+import ProctoringDisqualificationScreen from "@/component/Tests/exam/ProctoringDisqualificationScreen";
+import ProctoringMobileFab from "@/component/Tests/exam/ProctoringMobileFab";
 import ProctoringPanel from "@/component/Tests/exam/ProctoringPanel";
+import ProctoringSidebar from "@/component/Tests/exam/ProctoringSidebar";
+import ProctoringWarningModal from "@/component/Tests/exam/ProctoringWarningModal";
 import StudentExamMain from "@/component/Tests/exam/StudentExamMain";
 import useStartStudentExam from "@/hooks/api/exam/useStartStudentExam";
 import useStudentExam from "@/hooks/api/exam/useStudentExam";
 import useSubmitAnswersheet from "@/hooks/api/tests/useSubmitAnswersheet";
+import useExamFullscreen from "@/hooks/tests/proctoring/useExamFullscreen";
 import useProctoring from "@/hooks/tests/proctoring/useProctoring";
 import useProctoringSocket from "@/hooks/tests/proctoring/useProctoringSocket";
 import {
@@ -15,20 +21,22 @@ import {
   selectExamAnswerState,
   setExamAnswerValue,
 } from "@/lib/features/studentExamAnswerSlice";
-import { selectIsProctoringReady } from "@/lib/features/proctoringSlice";
+import {
+  selectIsExamInteractionBlocked,
+  selectIsProctoringReady,
+} from "@/lib/features/proctoringSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { PROCTORING_CONFIG } from "@/utils/tests/proctoringConfig";
+import {
+  clearExamPermissionsComplete,
+  clearExamSession,
+  getExamMediaStreams,
+  isExamPermissionsComplete,
+} from "@/utils/tests/examSessionMedia";
 import { createInitialExamAnswerState } from "@/utils/tests/studentExamAnswers";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { RotatingLines } from "react-loader-spinner";
-
-const getStoredTestId = () => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return sessionStorage.getItem("testId");
-};
 
 const getStoredUserId = () => {
   const user = localStorage.getItem("user");
@@ -45,36 +53,49 @@ const getStoredUserId = () => {
   }
 };
 
+const isMediaStreamActive = (stream: MediaStream | null) =>
+  Boolean(stream?.getTracks().some((track) => track.readyState === "live" && track.enabled));
+
 export default function ParticipateTest() {
   const dispatch = useAppDispatch();
   const router = useRouter();
 
   const isProctoringReady = useAppSelector(selectIsProctoringReady);
+  const isExamInteractionBlocked = useAppSelector(selectIsExamInteractionBlocked);
   const proctoringState = useAppSelector((state) => state.proctoring);
   const answerState = useAppSelector(selectExamAnswerState);
 
-  const [testId] = useState<string | null>(getStoredTestId);
+  const [isMounted, setIsMounted] = useState(false);
+  const [testId, setTestId] = useState<string | null>(null);
+  const [initialMediaStream, setInitialMediaStream] = useState<MediaStream | null>(null);
   const [hasStartedExam, setHasStartedExam] = useState(false);
   const [hasAttemptedStart, setHasAttemptedStart] = useState(false);
-  const [submitReason, setSubmitReason] = useState<"manual" | "timeout" | null>(null);
+  const [submitReason, setSubmitReason] = useState<"manual" | "timeout" | "disqualified" | null>(null);
   const submitButtonRef = useRef<HTMLButtonElement | null>(null);
+  const hasHandledDisqualificationRef = useRef(false);
   const [startStudentExam, { loading: startLoading }] = useStartStudentExam();
   const [submitAnswersheet, { loading: submitLoading }] = useSubmitAnswersheet();
-  const isExamPageReady = Boolean(testId);
+
+  const isExamPageReady =
+    isMounted && Boolean(testId) && isExamPermissionsComplete() && isMediaStreamActive(initialMediaStream);
 
   const {
     examData: test,
     loading: testLoading,
     apiComplete,
+    fetch: refetchExam,
   } = useStudentExam({
     enabled: isProctoringReady && hasStartedExam && Boolean(testId),
     examId: testId,
   });
-  const { videoRef, retryProctoringSetup } = useProctoring({
+
+  const { videoRef, mediaStream, retryProctoringSetup, stopProctoringSession } = useProctoring({
     isExamReady: isExamPageReady,
-    allowScreenShare: test?.formState.allowScreenShare,
-    screenShareDisqualifySeconds: test?.formState.screenShareDisqualifySeconds,
+    doubleDisplayTimeoutSeconds: PROCTORING_CONFIG.doubleDisplayTimeout,
+    initialMediaStream,
+    skipAutoSetup: Boolean(initialMediaStream),
   });
+
   const { connectToSocket, emitExamSubmit, connectionError } = useProctoringSocket({
     answerSheet: answerState,
     examId: test?.id,
@@ -82,14 +103,44 @@ export default function ParticipateTest() {
     isEnabled: isProctoringReady && hasStartedExam && Boolean(test?.id),
     totalFlagPoints: proctoringState.totalPenaltyPoints,
   });
-  
-  const isInteractionDisabled = startLoading || testLoading || submitLoading;
+
+  const isInteractionDisabled =
+    startLoading || testLoading || submitLoading || isExamInteractionBlocked || proctoringState.isDisqualified;
+
+  const isExamActive =
+    isMounted && Boolean(testId) && isProctoringReady && !proctoringState.isDisqualified && !submitLoading;
+
+  const { needsFullscreen, restoreFullscreen } = useExamFullscreen(isExamActive);
+
+  const handleExamSurfaceClick = () => {
+    if (needsFullscreen) {
+      void restoreFullscreen();
+    }
+  };
 
   useEffect(() => {
-    if (!testId) {
-      router.push("/");
+    const storedTestId = sessionStorage.getItem("testId");
+    const { cameraStream } = getExamMediaStreams();
+
+    setTestId(storedTestId);
+    setInitialMediaStream(cameraStream);
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) {
+      return;
     }
-  }, [router, testId]);
+
+    if (!testId) {
+      router.replace("/");
+      return;
+    }
+
+    if (!isExamPermissionsComplete()) {
+      router.replace("/test/permissions");
+    }
+  }, [isMounted, router, testId]);
 
   useEffect(() => {
     if (!testId || !isProctoringReady || hasAttemptedStart) {
@@ -133,7 +184,7 @@ export default function ParticipateTest() {
     };
   }, [dispatch]);
 
-  const handleSubmit = async (reason: "manual" | "timeout" = "manual") => {
+  const handleSubmit = async (reason: "manual" | "timeout" | "disqualified" = "manual") => {
     if (!isProctoringReady || !test?.id) {
       return;
     }
@@ -155,11 +206,83 @@ export default function ParticipateTest() {
         answersheet: answerState,
       },
     });
+
+    stopProctoringSession();
+    await clearExamSession();
   };
 
-  const proctoringPanel = (
-    <ProctoringPanel videoRef={videoRef} onRetry={retryProctoringSetup} connectionError={connectionError} />
+  useEffect(() => {
+    if (!proctoringState.isDisqualified || hasHandledDisqualificationRef.current || !test?.id) {
+      return;
+    }
+
+    hasHandledDisqualificationRef.current = true;
+    void handleSubmit("disqualified");
+  }, [proctoringState.isDisqualified, test?.id]);
+
+  if (!isMounted || !testId) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <RotatingLines
+          visible={true}
+          height="48"
+          width="48"
+          color="#49734F"
+          strokeWidth="5"
+          animationDuration="0.75"
+          ariaLabel="exam-loading"
+        />
+      </div>
+    );
+  }
+
+  const proctoringOverlays = (
+    <>
+      <video
+        ref={videoRef}
+        muted
+        playsInline
+        autoPlay
+        className="pointer-events-none fixed left-0 top-0 h-px w-px opacity-0"
+        aria-hidden
+      />
+      <ProctoringPanel mediaStream={mediaStream} onRetry={retryProctoringSetup} connectionError={connectionError} />
+      <ProctoringSidebar mediaStream={mediaStream} />
+      <ProctoringMobileFab mediaStream={mediaStream} />
+      <ProctoringWarningModal />
+      <ProctoringCountdownModal />
+      <ProctoringDisqualificationScreen
+        open={proctoringState.isDisqualified}
+        reason={proctoringState.disqualificationReason}
+      />
+    </>
   );
+
+  if (!isMediaStreamActive(initialMediaStream)) {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden">
+        <ExamHeader />
+        <main className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[920px] px-4 py-8">
+            <div className="rounded-[8px] border border-[#DDE5DE] bg-[#F8FBF8] p-4 text-[14px] leading-5 text-[#49734F]">
+              Camera and microphone access were lost. Please return to permissions and try again.
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                clearExamPermissionsComplete();
+                router.replace("/test/permissions");
+              }}
+              className="mt-4 h-11 rounded-[10px] bg-[#49734F] px-5 text-[14px] font-[600] leading-4 text-white"
+            >
+              Back to Permissions
+            </button>
+          </div>
+        </main>
+        {proctoringOverlays}
+      </div>
+    );
+  }
 
   if (!isProctoringReady) {
     return (
@@ -172,7 +295,7 @@ export default function ParticipateTest() {
             </div>
           </div>
         </main>
-        {proctoringPanel}
+        {proctoringOverlays}
       </div>
     );
   }
@@ -180,6 +303,7 @@ export default function ParticipateTest() {
   if (startLoading || (hasStartedExam && testLoading)) {
     return (
       <div>
+        <ExamHeader />
         <div className="flex min-h-[calc(100vh-300px)] w-full items-center justify-center">
           <RotatingLines
             visible={true}
@@ -191,7 +315,7 @@ export default function ParticipateTest() {
             ariaLabel="exam-loading"
           />
         </div>
-        {proctoringPanel}
+        {proctoringOverlays}
       </div>
     );
   }
@@ -205,42 +329,91 @@ export default function ParticipateTest() {
             Unable to start the test.
           </p>
         </div>
-        {proctoringPanel}
+        {proctoringOverlays}
       </div>
     );
   }
 
   if (!apiComplete) {
-    return <div>{proctoringPanel}</div>;
+    return (
+      <div>
+        <ExamHeader />
+        <div className="flex min-h-[calc(100vh-300px)] w-full items-center justify-center">
+          <RotatingLines
+            visible={true}
+            height="48"
+            width="48"
+            color="#49734F"
+            strokeWidth="5"
+            animationDuration="0.75"
+            ariaLabel="exam-loading"
+          />
+        </div>
+        {proctoringOverlays}
+      </div>
+    );
   }
 
   if (!test) {
     return (
       <div>
-        <div className="flex min-h-[calc(100vh-162px)] items-center justify-center">
+        <ExamHeader />
+        <div className="flex min-h-[calc(100vh-162px)] flex-col items-center justify-center gap-4 px-4">
           <p className="text-[24px] font-[600] leading-8 tracking-[-0.04em] text-[#232A25]">Unable to load the test.</p>
+          <button
+            type="button"
+            onClick={() => void refetchExam(testId)}
+            className="h-11 rounded-[10px] bg-[#49734F] px-5 text-[14px] font-[600] leading-4 text-white"
+          >
+            Retry
+          </button>
         </div>
-        {proctoringPanel}
+        {proctoringOverlays}
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden" onClick={handleExamSurfaceClick}>
+      {needsFullscreen ? (
+        <div className="pointer-events-none fixed inset-x-0 top-20 z-40 flex justify-center px-4">
+          <div className="rounded-[10px] border border-[#FEDF89] bg-[#FFFAEB] px-4 py-3 text-[13px] leading-5 text-[#B54708] shadow-md">
+            Click anywhere on the exam page to return to fullscreen.
+          </div>
+        </div>
+      ) : null}
       <ExamHeader />
-      <StudentExamMain
-        exam={test}
-        answerState={answerState}
-        isInteractionDisabled={isInteractionDisabled}
-        isSubmitLoading={submitLoading}
-        submitButtonRef={submitButtonRef}
-        onAnswerChange={(questionId, value) => dispatch(setExamAnswerValue({ questionId, value }))}
-        onMatchingChange={(questionId, value) => dispatch(setExamAnswerValue({ questionId, value }))}
-        onSubmit={() => void handleSubmit("manual")}
-        onCountdownStart={connectToSocket}
-        onTimeUp={() => void handleSubmit("timeout")}
+      <div className="flex min-h-0 flex-1">
+        <StudentExamMain
+          exam={test}
+          answerState={answerState}
+          isInteractionDisabled={isInteractionDisabled}
+          isSubmitLoading={submitLoading}
+          submitButtonRef={submitButtonRef}
+          onAnswerChange={(questionId, value) => dispatch(setExamAnswerValue({ questionId, value }))}
+          onMatchingChange={(questionId, value) => dispatch(setExamAnswerValue({ questionId, value }))}
+          onSubmit={() => void handleSubmit("manual")}
+          onCountdownStart={connectToSocket}
+          onTimeUp={() => void handleSubmit("timeout")}
+        />
+        <ProctoringSidebar mediaStream={mediaStream} />
+      </div>
+      <video
+        ref={videoRef}
+        muted
+        playsInline
+        autoPlay
+        className="pointer-events-none fixed left-0 top-0 h-px w-px opacity-0"
+        aria-hidden
       />
-      {proctoringPanel}
+      <ProctoringPanel mediaStream={mediaStream} onRetry={retryProctoringSetup} connectionError={connectionError} />
+      <ProctoringMobileFab mediaStream={mediaStream} />
+      <ProctoringWarningModal />
+      <ProctoringCountdownModal />
+      <ProctoringDisqualificationScreen
+        open={proctoringState.isDisqualified}
+        reason={proctoringState.disqualificationReason}
+      />
       <CreateModal
         open={submitLoading}
         onClose={() => {}}
@@ -259,12 +432,18 @@ export default function ParticipateTest() {
           />
           <div className="flex flex-col gap-2">
             <p className="text-[24px] font-[600] leading-7 text-[#232A25]">
-              {submitReason === "timeout" ? "Time is up" : "Your answer is submitting"}
+              {submitReason === "timeout"
+                ? "Time is up"
+                : submitReason === "disqualified"
+                  ? "Exam ended"
+                  : "Your answer is submitting"}
             </p>
             <p className="text-[14px] leading-5 text-[#747775]">
               {submitReason === "timeout"
                 ? "Time is up and your answer is submitting. Please wait a moment."
-                : "Your answer is submitting. Please wait a moment."}
+                : submitReason === "disqualified"
+                  ? "Your session was disqualified and your answers are being submitted."
+                  : "Your answer is submitting. Please wait a moment."}
             </p>
           </div>
         </div>

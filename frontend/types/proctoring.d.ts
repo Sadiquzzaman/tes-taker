@@ -14,7 +14,23 @@ type ProctoringFlagType =
   | "voice-detected"
   | "idle-too-long"
   | "devtools-open"
-  | "screen-sharing";
+  | "screen-sharing"
+  | "camera-blocked"
+  | "screen-share-stopped"
+  | "double-display";
+
+type ProctoringCountdownType = "screen-share" | "double-display";
+
+type ProctoringCountdownState = {
+  type: ProctoringCountdownType;
+  secondsRemaining: number;
+  message: string;
+};
+
+type ProctoringWarningState = {
+  message: string;
+  flagCount: number;
+};
 
 type ProctoringFlag = {
   id: string;
@@ -27,6 +43,7 @@ type ProctoringFlag = {
 type ProctoringSummary = {
   flags: ProctoringFlag[];
   totalPenaltyPoints: number;
+  flagCount: number;
   riskLevel: ProctoringRiskLevel;
   isDisqualified: boolean;
 };
@@ -35,6 +52,10 @@ interface ProctoringState extends ProctoringSummary {
   isProctoringActive: boolean;
   permissionError: string | null;
   setupStatus: ProctoringSetupStatus;
+  pendingWarning: ProctoringWarningState | null;
+  isWarningBlocking: boolean;
+  activeCountdown: ProctoringCountdownState | null;
+  disqualificationReason: string | null;
 }
 
 interface AddProctoringFlagPayload {
@@ -57,14 +78,22 @@ interface VoiceMonitoringOptions {
 
 interface UseProctoringOptions {
   isExamReady: boolean;
-  allowScreenShare?: boolean;
-  screenShareDisqualifySeconds?: number;
+  doubleDisplayTimeoutSeconds?: number;
+  initialMediaStream?: MediaStream | null;
+  skipAutoSetup?: boolean;
 }
 
 interface UseProctoringResult {
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  mediaStream: MediaStream | null;
   retryProctoringSetup: () => void;
   stopProctoringSession: () => void;
+}
+
+interface ProctoringPanelProps {
+  mediaStream: MediaStream | null;
+  onRetry: () => void;
+  connectionError?: string | null;
 }
 
 interface UseProctoringSocketOptions {
@@ -86,12 +115,6 @@ interface ScreenSharingMonitoringOptions {
   isActive: boolean;
   allowScreenShare?: boolean;
   screenShareDisqualifySeconds?: number;
-}
-
-interface ProctoringPanelProps {
-  videoRef: React.RefObject<HTMLVideoElement | null>;
-  onRetry: () => void;
-  connectionError?: string | null;
 }
 
 interface StartStudentExamPayload {

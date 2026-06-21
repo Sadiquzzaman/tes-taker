@@ -45,11 +45,17 @@ const JoinTestModal = ({ testData, testId, apiResponse, errorMessage }: JoinTest
                   : "w-full text-[16px] font-normal leading-5 tracking-[-0.02em] text-[#747775]"
               }
             >
-              Here is a small test summary and you will have <b>{apiResponse?.payload?.duration_minutes} minutes</b> to
-              complete the test.{" "}
-              {testData?.test_audience === "selected_class"
-                ? "This is a private test, only Selected Students will be able to join."
-                : "This is a public test, any student will be able to join."}
+              {isError ? (
+                description
+              ) : (
+                <>
+                  Here is a small test summary and you will have <b>{apiResponse?.payload?.duration_minutes} minutes</b> to
+                  complete the test.{" "}
+                  {testData?.test_audience === "selected_class"
+                    ? "This is a private test, only Selected Students will be able to join."
+                    : "This is a public test, any student will be able to join."}
+                </>
+              )}
             </p>
           </div>
         </div>
