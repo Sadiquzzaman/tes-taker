@@ -102,6 +102,27 @@ export class StudentExamController {
     return { message: 'Assigned tests retrieved successfully', payload };
   }
 
+  @Get('class/:classId')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.STUDENT)
+  @ApiOperation({
+    summary: 'List assigned tests for a class',
+    description:
+      'Returns tests assigned to the logged-in student for the given class. Student must be joined in the class and not excluded from each test.',
+  })
+  @ApiParam({ name: 'classId', description: 'Class UUID' })
+  @ApiResponse({ status: 200, description: 'List of assigned tests for the class' })
+  @ApiResponse({ status: 403, description: 'Not enrolled in this class' })
+  @ApiResponse({ status: 404, description: 'Class not found' })
+  async getAssignedExamsByClass(
+    @Param('classId', ParseUUIDPipe) classId: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.examService.findAssignedForStudentByClass(jwtPayload.id, classId);
+    return { message: 'Assigned tests for class retrieved successfully', payload };
+  }
+
   // ========================
   // EXAM ACCESS
   // ========================

@@ -42,12 +42,29 @@ import {
   syncLegacyOptionColumns,
   validateSubjectQuestions,
 } from './utils/exam-question.util';
+import { resolveExamSubjectLabel } from './utils/exam-subject.util';
 import {
   ExamSubmissionStatusEnum,
 } from './entities/student-exam-answer.entity';
 
 type ExamListMetrics = {
-  participant_count: number | 'N/A';
+  participant_count: number;
+  submitted_count: number;
+};
+
+type StudentAssignedExamListItem = {
+  id: string;
+  test_name: string | null;
+  subject: string | null;
+  test_audience: string | null;
+  duration_minutes: number | null;
+  exam_start_time: Date;
+  exam_end_time: Date;
+  class_id: string | null;
+  class_name: string | null;
+  created_user_name: string | null;
+  status: ExamLifecycleStatusEnum;
+  participant_count: number;
   submitted_count: number;
 };
 
@@ -847,26 +864,49 @@ export class ExamService {
   /**
    * Tests assigned to the student (class membership, specific_students list; not open "anyone" exams).
    */
-  async findAllAssignedForStudent(studentId: string): Promise<
-    Array<{
-      id: string;
-      test_name: string | null;
-      subject: string | null;
-      test_audience: string | null;
-      duration_minutes: number | null;
-      exam_start_time: Date;
-      exam_end_time: Date;
-      class_id: string | null;
-      class_name: string | null;
-      created_user_name: string | null;
-      status: ExamLifecycleStatusEnum;
-      participant_count: number | 'N/A';
-      submitted_count: number;
-    }>
-  > {
+  async findAllAssignedForStudent(studentId: string): Promise<StudentAssignedExamListItem[]> {
+    const exams = await this.loadAssignedExamsForStudent(studentId);
+    return await this.mapStudentAssignedExamList(exams);
+  }
+
+  /**
+   * Tests assigned to the student for a specific class (joined, not excluded).
+   */
+  async findAssignedForStudentByClass(
+    studentId: string,
+    classId: string,
+  ): Promise<StudentAssignedExamListItem[]> {
+    await this.assertStudentJoinedClass(studentId, classId);
+    const exams = await this.loadAssignedExamsForStudent(studentId, classId);
+    return await this.mapStudentAssignedExamList(exams);
+  }
+
+  private async assertStudentJoinedClass(studentId: string, classId: string): Promise<void> {
+    const classEntity = await this.classRepo.findOne({ where: { id: classId } });
+    if (!classEntity) {
+      throw new NotFoundException('Class not found');
+    }
+
+    const membership = await this.classStudentRepo.findOne({
+      where: {
+        class_id: classId,
+        student_id: studentId,
+        status: ClassStudentStatusEnum.JOINED,
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('You are not enrolled in this class');
+    }
+  }
+
+  private async loadAssignedExamsForStudent(
+    studentId: string,
+    classId?: string,
+  ): Promise<ExamEntity[]> {
     const byId = new Map<string, ExamEntity>();
 
-    const classes = await this.classRepo
+    const classQuery = this.classRepo
       .createQueryBuilder('class')
       .innerJoin(
         'class.classStudents',
@@ -874,14 +914,22 @@ export class ExamService {
         'classStudent.student_id = :studentId AND classStudent.status = :status',
         { studentId, status: ClassStudentStatusEnum.JOINED },
       )
-      .select(['class.id'])
-      .getMany();
+      .select(['class.id']);
 
+    if (classId) {
+      classQuery.andWhere('class.id = :classId', { classId });
+    }
+
+    const classes = await classQuery.getMany();
     const classIds = classes.map((c) => c.id);
+
     if (classIds.length > 0) {
       const classExams = await this.examRepo
         .createQueryBuilder('exam')
         .leftJoinAndSelect('exam.class', 'class')
+        .leftJoinAndSelect('exam.primary_subject', 'primary_subject')
+        .leftJoinAndSelect('exam.questionSections', 'questionSections')
+        .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
         .leftJoin('exam.excluded_students', 'excluded')
         .where('exam.class_id IN (:...classIds)', { classIds })
         .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId })
@@ -890,25 +938,34 @@ export class ExamService {
       classExams.forEach((e) => byId.set(e.id, e));
     }
 
-    const targetExams = await this.examRepo
-      .createQueryBuilder('exam')
-      .innerJoin('exam.target_students', 'st', 'st.id = :studentId', { studentId })
-      .leftJoinAndSelect('exam.class', 'class')
-      .orderBy('exam.exam_start_time', 'DESC')
-      .getMany();
-    targetExams.forEach((e) => byId.set(e.id, e));
+    if (!classId) {
+      let targetQuery = this.examRepo
+        .createQueryBuilder('exam')
+        .innerJoin('exam.target_students', 'st', 'st.id = :studentId', { studentId })
+        .leftJoinAndSelect('exam.class', 'class')
+        .leftJoinAndSelect('exam.primary_subject', 'primary_subject')
+        .leftJoinAndSelect('exam.questionSections', 'questionSections')
+        .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
+        .orderBy('exam.exam_start_time', 'DESC');
+      const targetExams = await targetQuery.getMany();
+      targetExams.forEach((e) => byId.set(e.id, e));
+    }
 
-    const exams = Array.from(byId.values()).sort(
+    return Array.from(byId.values()).sort(
       (a, b) =>
         new Date(b.exam_start_time).getTime() - new Date(a.exam_start_time).getTime(),
     );
+  }
 
+  private async mapStudentAssignedExamList(
+    exams: ExamEntity[],
+  ): Promise<StudentAssignedExamListItem[]> {
     const metrics = await this.loadExamListMetrics(exams);
 
     return exams.map((exam) => ({
       id: exam.id,
       test_name: exam.test_name,
-      subject: exam.test_name || exam.subject,
+      subject: resolveExamSubjectLabel(exam),
       test_audience: exam.test_audience,
       duration_minutes: exam.duration_minutes,
       exam_start_time: exam.exam_start_time,
@@ -924,7 +981,7 @@ export class ExamService {
 
   /**
    * Batch participant/submission counts for exam list endpoints (avoids N+1).
-   * - anyone: participant_count = "N/A"
+   * - anyone: participant_count = 0
    * - selected_class: joined students in class minus excluded for that exam
    * - specific_students: count of target_students rows
    */
@@ -1009,10 +1066,10 @@ export class ExamService {
 
     for (const exam of exams) {
       const submitted_count = submittedByExam.get(exam.id) ?? 0;
-      let participant_count: number | 'N/A' = 'N/A';
+      let participant_count = 0;
 
       if (exam.test_audience === TestAudienceEnum.ANYONE) {
-        participant_count = 'N/A';
+        participant_count = 0;
       } else if (
         exam.test_audience === TestAudienceEnum.SELECTED_CLASS &&
         exam.class_id

@@ -45,6 +45,7 @@ import {
   buildResponseOptionId,
 } from './utils/exam-option-ids.util';
 import { isAutoScoredQuestion, scoreStudentAnswer } from './utils/exam-question.util';
+import { resolveExamSubjectLabel } from './utils/exam-subject.util';
 import { QuestionCategoryEnum } from './enums/question.enums';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 
@@ -207,6 +208,9 @@ export class StudentExamService {
       let examQuery = this.examRepo
         .createQueryBuilder('exam')
         .leftJoinAndSelect('exam.class', 'class')
+        .leftJoinAndSelect('exam.primary_subject', 'primary_subject')
+        .leftJoinAndSelect('exam.questionSections', 'questionSections')
+        .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
         .leftJoin('exam.excluded_students', 'excluded')
         .where('exam.class_id IN (:...classIds)', { classIds })
         .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId });
@@ -222,7 +226,10 @@ export class StudentExamService {
     let targetQuery = this.examRepo
       .createQueryBuilder('exam')
       .innerJoin('exam.target_students', 'st', 'st.id = :studentId', { studentId })
-      .leftJoinAndSelect('exam.class', 'class');
+      .leftJoinAndSelect('exam.class', 'class')
+      .leftJoinAndSelect('exam.primary_subject', 'primary_subject')
+      .leftJoinAndSelect('exam.questionSections', 'questionSections')
+      .leftJoinAndSelect('questionSections.subject', 'sectionSubject');
     if (!includePast) {
       targetQuery = targetQuery.where('exam.exam_end_time > :now', { now });
     }
@@ -271,7 +278,8 @@ export class StudentExamService {
 
       return {
         id: exam.id,
-        subject: exam.test_name || exam.subject,
+        subject: resolveExamSubjectLabel(exam),
+        test_name: exam.test_name,
         exam_type: exam.exam_type,
         exam_kind: exam.exam_kind,
         exam_start_time: exam.exam_start_time,
@@ -298,13 +306,20 @@ export class StudentExamService {
         student_id: studentId,
         status: In([ExamSubmissionStatusEnum.SUBMITTED, ExamSubmissionStatusEnum.AUTO_SUBMITTED]),
       },
-      relations: ['exam', 'exam.class'],
+      relations: [
+        'exam',
+        'exam.class',
+        'exam.primary_subject',
+        'exam.questionSections',
+        'exam.questionSections.subject',
+      ],
       order: { submitted_at: 'DESC' },
     });
 
     return submissions.map((sub) => ({
       id: sub.exam_id,
-      subject: sub.exam.test_name || sub.exam.subject,
+      subject: resolveExamSubjectLabel(sub.exam),
+      test_name: sub.exam.test_name,
       exam_type: sub.exam.exam_type,
       class_name: sub.exam.class?.class_name,
       submitted_at: sub.submitted_at,
@@ -342,6 +357,7 @@ export class StudentExamService {
         'questionSections.questions',
         'questionSections.subject',
         'target_students',
+        'primary_subject',
       ],
     });
 
@@ -467,7 +483,7 @@ export class StudentExamService {
     return {
       id: exam.id,
       test_name: exam.test_name,
-      subject: exam.test_name || exam.subject,
+      subject: resolveExamSubjectLabel(exam),
       exam_type: exam.exam_type,
       exam_kind: exam.exam_kind,
       exam_start_time: exam.exam_start_time,
@@ -1209,7 +1225,13 @@ export class StudentExamService {
         student_id: studentId,
         status: In([ExamSubmissionStatusEnum.SUBMITTED, ExamSubmissionStatusEnum.AUTO_SUBMITTED]),
       },
-      relations: ['exam', 'exam.questions'],
+      relations: [
+        'exam',
+        'exam.questions',
+        'exam.primary_subject',
+        'exam.questionSections',
+        'exam.questionSections.subject',
+      ],
     });
 
     if (!submission) {
@@ -1236,7 +1258,7 @@ export class StudentExamService {
 
     return {
       exam_id: submission.exam_id,
-      subject: submission.exam.subject,
+      subject: resolveExamSubjectLabel(submission.exam),
       exam_type: submission.exam.exam_type,
       submitted_at: submission.submitted_at,
       status: submission.status,
