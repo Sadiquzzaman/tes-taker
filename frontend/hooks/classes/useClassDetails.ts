@@ -4,6 +4,7 @@ import { useAppDispatch } from "@/lib/hooks";
 import useGetAllClassById from "@/hooks/api/class/useGetAllClassById";
 import useGetStudentClassById from "@/hooks/api/class/useGetStudentClassById";
 import useGetAllTests from "@/hooks/api/tests/useGetAllTests";
+import useGetStudentClassTests from "@/hooks/api/tests/useGetStudentClassTests";
 import { setOpenShareClassModal } from "@/lib/features/classSlice";
 
 export const classTabList = [
@@ -15,16 +16,19 @@ export default function useClassDetails(classId: string, role: RoleUserType | un
   const dispatch = useAppDispatch();
   const router = useRouter();
   const isTeacher = role === "TEACHER";
+  const isStudent = role === "STUDENT";
 
   if (!classId) {
     router.push("/classes");
   }
 
   const teacherClassDetails = useGetAllClassById({ id: classId, enabled: isTeacher });
-  const studentClassDetails = useGetStudentClassById({ id: classId, enabled: !isTeacher });
-  const { loading, classData, fetch, apiComplete } = isTeacher ? teacherClassDetails : studentClassDetails;
+  const studentClassDetails = useGetStudentClassById({ id: classId, enabled: isStudent });
+  const { loading, classData, fetch, apiComplete } = isStudent ? studentClassDetails : teacherClassDetails;
 
-  const { testList } = useGetAllTests({ classId, enabled: isTeacher });
+  const teacherTests = useGetAllTests({ classId, enabled: isTeacher, role: "TEACHER" });
+  const studentTests = useGetStudentClassTests({ classId, enabled: isStudent });
+  const { testList } = isStudent ? studentTests : teacherTests;
   const [activeTab, setActiveTab] = useState(classTabList[0]);
 
   const handleShareClass = () => {

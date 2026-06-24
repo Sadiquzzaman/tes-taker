@@ -165,6 +165,16 @@ interface StudentExamPublishState {
   selectedClassId: string;
 }
 
+interface TeacherExamPublishState {
+  publishTiming: PublishTiming;
+  scheduleAt: string | null;
+  endingAt: string | null;
+  testAudience: TestAudience;
+  selectedClassId: string;
+  excluded_students: string[];
+  specificStudents: string[];
+}
+
 interface StudentExamDetails {
   id: string;
   test_name: string;
@@ -175,6 +185,42 @@ interface StudentExamDetails {
   class_id: string | null;
   class_name: string | null;
 }
+
+interface TeacherExamListItem {
+  id: string;
+  test_name: string;
+  status: "ongoing" | "completed" | "pending";
+  formState: StudentExamFormState;
+  publishState: TeacherExamPublishState;
+  subjects: StudentExamSubject[];
+  class_id: string | null;
+  class_name: string | null;
+  created_by: string;
+  created_user_name: string;
+  created_at: string;
+  updated_at: string | null;
+  participant_count: number;
+  submitted_count: number;
+}
+
+interface StudentAssignedExamListItem {
+  id: string;
+  test_name: string;
+  subject: string;
+  test_audience: TestAudience;
+  duration_minutes: number;
+  exam_start_time: string;
+  exam_end_time: string;
+  class_id: string | null;
+  class_name: string | null;
+  created_user_name: string;
+  status: "ongoing" | "completed" | "pending";
+  participant_count: number;
+  submitted_count: number;
+}
+
+type TestListItem = TeacherExamListItem | StudentAssignedExamListItem;
+type TeacherShareableTest = TeacherExamListItem | ITest;
 
 interface ITest {
   id: string;
@@ -196,9 +242,12 @@ interface ITest {
   negative_mark_value: number;
   subject: string;
   class_id: string | null;
+  class_name?: string | null;
   class: Class | null;
   excluded_students: unknown[];
   target_students: unknown[];
+  participant_count?: number;
+  submitted_count?: number;
   status: "ongoing" | "completed" | "pending";
   subjects: StudentExamSubject[];
 }
