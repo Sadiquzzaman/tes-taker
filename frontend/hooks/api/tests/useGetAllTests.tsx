@@ -6,11 +6,25 @@ import { useApiError } from "../useApiError";
 // without class id it will fetch all tests
 // and with class id it will fetch tests of that class only
 
-const useGetAllTests = ({ classId = "", enabled = true }: { classId?: string; enabled?: boolean }) => {
+interface UseGetAllTestsParams {
+  classId?: string;
+  enabled?: boolean;
+  role?: RoleUserType;
+}
+
+const getTestsEndpoint = ({ classId, role }: { classId: string; role: RoleUserType }) => {
+  if (role === "STUDENT") {
+    return `${process.env.NEXT_PUBLIC_BASE_URL}/student/exams/assigned`;
+  }
+
+  return `${process.env.NEXT_PUBLIC_BASE_URL}/exams${classId ? `/class/${classId}` : ""}`;
+};
+
+const useGetAllTests = ({ classId = "", enabled = true, role = "TEACHER" }: UseGetAllTestsParams) => {
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
   const [apiComplete, setApiComplete] = useState(false);
-  const [testList, setTestList] = useState<ITest[]>([]);
+  const [testList, setTestList] = useState<TestListItem[]>([]);
 
   const fetch = useCallback(async () => {
     if (!enabled) {
@@ -20,12 +34,17 @@ const useGetAllTests = ({ classId = "", enabled = true }: { classId?: string; en
     setLoading(true);
 
     return axiosReq
-      .get<ApiResponse<ITest[]>, AxiosResponse<ApiResponse<ITest[]>>>(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/exams${classId ? `/class/${classId}` : ""}`,
+      .get<ApiResponse<TeacherExamListItem[] | StudentAssignedExamListItem[]>, AxiosResponse<ApiResponse<TeacherExamListItem[] | StudentAssignedExamListItem[]>>>(
+        getTestsEndpoint({ classId, role }),
       )
       .then(async (response) => {
         if (response.status === 200) {
-          setTestList(response.data.payload);
+          const nextTestList =
+            role === "STUDENT"
+              ? (response.data.payload as StudentAssignedExamListItem[])
+              : (response.data.payload as TeacherExamListItem[]);
+
+          setTestList(nextTestList);
         }
       })
       .catch((error: AxiosError<ApiError>) => {
@@ -35,7 +54,7 @@ const useGetAllTests = ({ classId = "", enabled = true }: { classId?: string; en
         setLoading(false);
         setApiComplete(true);
       });
-  }, [classId, enabled, handleError]);
+  }, [classId, enabled, handleError, role]);
 
   useEffect(() => {
     if (!enabled) {

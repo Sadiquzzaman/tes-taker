@@ -1,6 +1,6 @@
 type NewTestShareData = {
   type?: "new" | "existing";
-  test: ITest;
+  test: TeacherShareableTest;
 };
 
 type ShareTestModalProps = {

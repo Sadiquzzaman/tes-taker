@@ -1,27 +1,39 @@
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import FileIconSVG from "../svg/FileIconSVG";
 import TestCard from "./TestCard";
 
 const classTestTabList = [
-  { name: "Active", value: "active" },
-  { name: "Marking Pending", value: "marking_pending" },
+  { name: "All", value: "all"},
+  { name: "Active", value: "ongoing" },
+  { name: "Marking Pending", value: "pending" },
   { name: "Completed", value: "completed" },
 ];
 
-const ClassTests = ({ testList }: { testList: ITest[] }) => {
+const ClassTests = ({ testList, role }: { testList: TestListItem[]; role: RoleUserType | undefined }) => {
   const [activeTestTab, setActiveTestTab] = useState(classTestTabList[0]);
+  const isTeacher = role === "TEACHER";
+  const filteredTestList = useMemo(() => {
+    if (activeTestTab.value === "all") {
+      return testList;
+    }
+
+    return testList.filter((test) => test.status === activeTestTab.value);
+  }, [activeTestTab.value, testList]);
+
   return (
     <div className="p-2 sm:p-4 bg-white rounded-[8px] h-full">
       <div className="flex justify-between items-center">
         <p className="font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">Tests</p>
 
-        <Link href="/tests/create">
-          <button className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] bg-[#49734F] rounded-[8px] font-[500] text-white font-medium text-[12px] sm:text-[14px]">
-            <FileIconSVG width={16} />
-            <span className="capitalize mb-[2px]">Create Test</span>
-          </button>
-        </Link>
+        {isTeacher && (
+          <Link href="/tests/create">
+            <button className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] bg-[#49734F] rounded-[8px] font-[500] text-white font-medium text-[12px] sm:text-[14px]">
+              <FileIconSVG width={16} />
+              <span className="capitalize mb-[2px]">Create Test</span>
+            </button>
+          </Link>
+        )}
       </div>
       <div className="py-4 flex flex-col sm:flex-row justify-start sm:justify-between items-start sm:items-center w-full min-h-10 mb-2">
         <div className="flex w-fit rounded-md bg-gray-100 p-0.5">
@@ -39,10 +51,15 @@ const ClassTests = ({ testList }: { testList: ITest[] }) => {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-4">
-        {testList.map((test) => (
-          <TestCard key={test.id} testData={test} />
+        {filteredTestList.map((test) => (
+          <TestCard key={test.id} testData={test} role={role} />
         ))}
       </div>
+      {filteredTestList.length === 0 && <div className="w-full min-h-[100px] flex items-center justify-center">
+        <div className="text-center">
+          <p className="font-[600] text-[24px] leading-[32px] tracking-[-0.04em] text-[#232A25]">Test not found</p>
+        </div>
+      </div>}
     </div>
   );
 };

@@ -9,9 +9,11 @@ import LinkedInImage from "@/public/assets/image/share_modal/Linkedin.png";
 import { useToast } from "../Toast/ToastContext";
 import { useMemo } from "react";
 import dayjs from "dayjs";
+import { getTeacherShareMeta } from "@/utils/tests/testListItem";
 
 const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
   const { triggerToast } = useToast();
+  const { publishTiming, scheduledAt, testAudience, className, excludedStudentsCount } = getTeacherShareMeta(testData.test);
   const testLink = useMemo(() => {
     if (typeof window === "undefined" || !testData.test.id) {
       return "";
@@ -83,7 +85,7 @@ const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
           <div className="pb-4 flex justify-between items-center">
             <p className="font-[400] text-[20px] leading-[20px] tracking-[-0.02em] text-[#747775]">
               {testData.type === "new"
-                ? testData.test.publish_timing === "later"
+                ? publishTiming === "later"
                   ? "Test is scheduled"
                   : "Test successfully created"
                 : "Share test"}
@@ -92,38 +94,38 @@ const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
               <CrossIconSVG width={24} />
             </button>
           </div>
-          {testData.test.publish_timing === "later" && (
+          {publishTiming === "later" && scheduledAt && (
             <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
-              {`Scheduled for ${dayjs(testData.test.exam_start_time).format("MMM DD, hh:mm A")}`}
+              {`Scheduled for ${dayjs(scheduledAt).format("MMM DD, hh:mm A")}`}
             </p>
           )}
-          {testData.test.publish_timing !== "later" && testData.type === "new" && (
+          {publishTiming !== "later" && testData.type === "new" && (
             <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
               {`‘${testData.test.test_name}’ created successfully.`}
             </p>
           )}
-          {testData.test.publish_timing !== "later" && testData.type !== "new" && (
+          {publishTiming !== "later" && testData.type !== "new" && (
             <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
               {`Share ‘${testData.test.test_name}’`}
             </p>
           )}
 
-          {testData.test.test_audience === "anyone" && (
+          {testAudience === "anyone" && (
             <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
               Anyone with the link will be able to participate
             </p>
           )}
 
-          {testData.test.test_audience === "selected_class" && (
+          {testAudience === "selected_class" && (
             <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
-              Test shared with Class <span className="font-[700]">{testData.test.class?.class_name}</span> students.
+              Test shared with Class <span className="font-[700]">{className}</span> students.
               Only these students will be able to join the test.
             </p>
           )}
 
-          {testData.test.test_audience === "selected_class" && testData.test.excluded_students.length > 0 && (
+          {testAudience === "selected_class" && excludedStudentsCount > 0 && (
             <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
-              Total <span className="font-[700]">{testData.test.excluded_students.length}</span> students are excluded
+              Total <span className="font-[700]">{excludedStudentsCount}</span> students are excluded
               from this test.
             </p>
           )}

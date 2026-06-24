@@ -12,6 +12,7 @@ import ShareClassModal from "./ShareClassModal";
 const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleUserType | undefined }) => {
   const { loading, classData, fetch, apiComplete, testList, activeTab, setActiveTab, handleShareClass } =
     useClassDetails(classId, role);
+  const isTeacher = role === "TEACHER";
 
   if (loading) {
     return (
@@ -54,15 +55,17 @@ const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleU
             </button>
           </Link>
 
-          <div className="flex justify-end items-center gap-2 h-[40px]">
-            <button
-              className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] sm:h-[40px] bg-[#232A25] rounded-xl font-[500] text-white font-medium text-[12px] sm:text-[14px]"
-              onClick={handleShareClass}
-            >
-              <ShareIconSVG width={16} />
-              <span className="capitalize mb-[2px]">Share Class</span>
-            </button>
-          </div>
+          {isTeacher && (
+            <div className="flex justify-end items-center gap-2 h-[40px]">
+              <button
+                className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] sm:h-[40px] bg-[#232A25] rounded-xl font-[500] text-white font-medium text-[12px] sm:text-[14px]"
+                onClick={handleShareClass}
+              >
+                <ShareIconSVG width={16} />
+                <span className="capitalize mb-[2px]">Share Class</span>
+              </button>
+            </div>
+          )}
         </div>
         <p className="py-2 font-[600] text-[32px] leading-[32px] tracking-[-0.04em]">{classData?.class_name || ""}</p>
         <div className="flex flex-col sm:flex-row justify-start sm:justify-between items-start sm:items-center w-full min-h-10 mb-2">
@@ -86,7 +89,7 @@ const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleU
           {activeTab.value === "student" && (
             <ClassStudent classId={classId} student={classData?.classStudents || []} fetch={fetch} role={role} />
           )}
-          {activeTab.value === "tests" && <ClassTests testList={testList} />}
+          {activeTab.value === "tests" && <ClassTests testList={testList} role={role} />}
         </div>
       </div>
       <ShareClassModal />
