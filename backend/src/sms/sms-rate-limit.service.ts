@@ -17,6 +17,10 @@ export class SmsRateLimitService {
     return `sms_otp:${phoneNumber}`;
   }
 
+  private getPasswordResetOtpKey(identifier: string): string {
+    return `pwd_reset_otp:${identifier.toLowerCase()}`;
+  }
+
   async canSendSms(phoneNumber: string): Promise<{ canSend: boolean; remainingAttempts?: number; blockedUntil?: Date }> {
     try {
       // Check if phone is blocked
@@ -104,6 +108,31 @@ export class SmsRateLimitService {
       await this.redisService.del(key);
     } catch (error) {
       console.error('Redis error in removeOtp:', error);
+    }
+  }
+
+  async storePasswordResetOtp(identifier: string, otp: string): Promise<void> {
+    try {
+      await this.redisService.set(this.getPasswordResetOtpKey(identifier), otp, 300); // 5 minutes TTL
+    } catch (error) {
+      console.error('Redis error in storePasswordResetOtp:', error);
+    }
+  }
+
+  async getPasswordResetOtp(identifier: string): Promise<string | null> {
+    try {
+      return await this.redisService.get(this.getPasswordResetOtpKey(identifier));
+    } catch (error) {
+      console.error('Redis error in getPasswordResetOtp:', error);
+      return null;
+    }
+  }
+
+  async removePasswordResetOtp(identifier: string): Promise<void> {
+    try {
+      await this.redisService.del(this.getPasswordResetOtpKey(identifier));
+    } catch (error) {
+      console.error('Redis error in removePasswordResetOtp:', error);
     }
   }
 

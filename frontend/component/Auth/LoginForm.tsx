@@ -42,6 +42,11 @@ const LoginForm = () => {
             placeholder="Enter password"
             label="Password"
           />
+          <div className="flex justify-end -mt-2">
+            <Link href="/forgot-password" className="text-[#49734F] text-[14px] font-medium underline">
+              Forgot password?
+            </Link>
+          </div>
           <button
             onClick={handleLoginSendCode}
             className="w-full mt-4 bg-[#49734F] text-white py-3 rounded-lg font-medium mb-4 hover:bg-green-800 transition flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-gray-400"

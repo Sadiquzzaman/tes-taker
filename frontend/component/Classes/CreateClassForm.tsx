@@ -10,8 +10,22 @@ import ButtonLoader from "../Loader/ButtonLoadder";
 import useCreateClassForm from "@/hooks/classes/useCreateClassForm";
 
 const CreateClassForm = () => {
-  const { createClassPayload, setCreateClassPayload, value, setValue, loading, addTag, removeTag, handleCreateClass } =
-    useCreateClassForm();
+  const {
+    createClassPayload,
+    setCreateClassPayload,
+    value,
+    setValue,
+    loading,
+    fileInputRef,
+    tagInputRef,
+    invalidStudentIndices,
+    addTag,
+    removeTag,
+    handleTagClick,
+    handleCsvUpload,
+    handleDownloadTemplate,
+    handleCreateClass,
+  } = useCreateClassForm();
 
   return (
     <>
@@ -62,12 +76,45 @@ const CreateClassForm = () => {
           tags={createClassPayload.student_ids}
           removeTag={removeTag}
           addTag={addTag}
+          invalidTagIndices={invalidStudentIndices}
+          onTagClick={handleTagClick}
+          inputRef={tagInputRef}
         />
       </div>
-      <div className="flex justify-between items-center gap-2 mt-4">
-        <p className={`font-[400] text-[16px] leading-[125%] tracking-[-0.02em] text-[#747775]`}>
-          Invite by single/bulk email or phone. You can always add students later.{" "}
-        </p>
+      <div className="flex flex-col gap-3 mt-4 sm:flex-row sm:justify-between sm:items-center">
+        <div className="flex flex-col gap-2">
+          <p className={`font-[400] text-[16px] leading-[125%] tracking-[-0.02em] text-[#747775]`}>
+            Invite by single/bulk email or phone. You can always add students later.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleCsvUpload}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-[32px] rounded-lg border border-[#C6CFCF] px-3 text-sm font-medium tracking-[-0.02em] text-[#232A25]"
+            >
+              Upload CSV
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadTemplate}
+              className="h-[32px] rounded-lg border border-[#C6CFCF] px-3 text-sm font-medium tracking-[-0.02em] text-[#49734F]"
+            >
+              Download demo Excel
+            </button>
+          </div>
+          {invalidStudentIndices.length > 0 && (
+            <p className="text-[12px] leading-[14px] tracking-[-0.02em] text-[#C1121F]">
+              Invalid items are highlighted in red. Click one to edit it.
+            </p>
+          )}
+        </div>
         <button
           type="button"
           onClick={addTag}

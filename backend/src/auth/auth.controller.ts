@@ -3,6 +3,10 @@ import { AuthService } from './auth.service';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiBody } from '@nestjs/swagger';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { VerifyResetOtpDto } from './dto/verify-reset-otp.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { JwtPayloadInterface } from './interfaces/jwt-payload.interface';
@@ -210,6 +214,117 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto) {
     const payload = await this.authService.login(loginDto);
     return { message: 'Login successful!', payload };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Request a password reset OTP',
+    description:
+      'Accepts a phone number or email. If an account exists, a 6-digit OTP is generated, logged to the server console, and sent to the account\'s phone (SMS) and email. The OTP is valid for 5 minutes.',
+  })
+  @ApiBody({
+    type: ForgotPasswordDto,
+    examples: {
+      withPhone: { value: { identifier: '01734911480' } },
+      withEmail: { value: { identifier: 'user@example.com' } },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'OTP sent to the account phone and email' })
+  @ApiResponse({ status: 404, description: 'No account found with this phone number or email' })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    const payload = await this.authService.forgotPassword(forgotPasswordDto);
+    return { message: payload.message, payload };
+  }
+
+  @Post('reset-password/verify-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verify a password reset OTP',
+    description: 'Verifies the OTP sent for password reset without consuming it. The same OTP is required to complete the reset.',
+  })
+  @ApiBody({
+    type: VerifyResetOtpDto,
+    examples: { verify: { value: { identifier: '01734911480', otp: '123456' } } },
+  })
+  @ApiResponse({ status: 200, description: 'OTP verified successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired OTP' })
+  async verifyResetOtp(@Body() verifyResetOtpDto: VerifyResetOtpDto) {
+    const payload = await this.authService.verifyResetOtp(verifyResetOtpDto);
+    return { message: payload.message, payload };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reset password using OTP',
+    description: 'Sets a new password after verifying the OTP sent for password reset.',
+  })
+  @ApiBody({
+    type: ResetPasswordDto,
+    examples: {
+      reset: {
+        value: {
+          identifier: '01734911480',
+          otp: '123456',
+          password: 'NewStrongPass123',
+          confirm_password: 'NewStrongPass123',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Password reset successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid OTP or password mismatch' })
+  @ApiResponse({ status: 404, description: 'No account found' })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    const payload = await this.authService.resetPassword(resetPasswordDto);
+    return { message: payload.message, payload };
+  }
+
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Change password for the authenticated user',
+    description: 'Allows a logged-in user to change their password by providing the current password, a new password, and confirmation.',
+  })
+  @ApiBody({
+    type: ChangePasswordDto,
+    examples: {
+      change: {
+        value: {
+          current_password: 'StrongPass123',
+          new_password: 'NewStrongPass123',
+          confirm_password: 'NewStrongPass123',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 400, description: 'Current password incorrect or password mismatch' })
+  @ApiResponse({ status: 401, description: 'Invalid, expired, or missing JWT token' })
+  async changePassword(
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    const payload = await this.authService.changePassword(jwtPayload.id, changePasswordDto);
+    return { message: payload.message, payload };
+  }
+
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get the authenticated user profile',
+    description: 'Returns the profile details of the currently logged-in user based on the JWT token.',
+  })
+  @ApiResponse({ status: 200, description: 'Authenticated user profile' })
+  @ApiResponse({ status: 401, description: 'Invalid, expired, or missing JWT token' })
+  async getProfile(@UserPayload() jwtPayload: JwtPayloadInterface) {
+    const payload = await this.authService.getProfile(jwtPayload.id);
+    return { message: 'Profile retrieved successfully', payload };
   }
 
   @ApiBearerAuth('jwt')

@@ -131,6 +131,27 @@ const getCsvIdentifierColumnIndex = (rows: string[][]) => {
   return headerRow.findIndex((item) => csvIdentifierHeaders.includes(item));
 };
 
+export const downloadStudentCsvTemplate = () => {
+  const templateRows = [
+    "email_or_phone",
+    "01712345678",
+    "student@example.com",
+    "01798765432",
+  ];
+
+  const csvContent = templateRows.join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "student-list-template.csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 export const extractStudentsFromCsvRows = (rows: string[][]) => {
   const identifierColumnIndex = getCsvIdentifierColumnIndex(rows);
 
