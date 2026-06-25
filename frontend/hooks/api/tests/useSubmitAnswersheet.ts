@@ -1,6 +1,7 @@
 import { useToast } from "@/component/Toast/ToastContext";
 import { exitFullscreenIfActive } from "@/hooks/tests/proctoring/proctoringMonitorUtils";
 import axiosReq from "@/lib/axios";
+import { clearExamAnswersFromStorage } from "@/utils/tests/examAnswerStorage";
 import { AxiosError, AxiosResponse } from "axios";
 import { useState } from "react";
 import { useApiError } from "../useApiError";
@@ -12,7 +13,7 @@ const useSubmitAnswersheet = () => {
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
 
-  const mutate = async ({ examId, payload }: SubmitAnswersheetRequest) => {
+  const mutate = async ({ examId, payload, onSuccess }: SubmitAnswersheetRequest) => {
     setLoading(true);
 
     return axiosReq
@@ -24,12 +25,20 @@ const useSubmitAnswersheet = () => {
       .then(async (response) => {
         if (response?.status === 201) {
           await exitFullscreenIfActive();
+          clearExamAnswersFromStorage(examId, payload.studentId);
           sessionStorage.removeItem("testId");
-          router.push("/");
 
+          const reason = payload.reason ?? "manual";
+
+          if (onSuccess) {
+            onSuccess(reason);
+            return response;
+          }
+
+          router.push("/");
           triggerToast({
             title: "Success",
-            description: response.data.message || "Answersheet saved successfully.",
+            description: response.data.message || "Exam submitted successfully.",
             type: "success",
           });
         }

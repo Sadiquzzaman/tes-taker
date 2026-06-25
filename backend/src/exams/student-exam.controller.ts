@@ -151,6 +151,7 @@ export class StudentExamController {
       payload: {
         can_access: payload.canAccess,
         reason: payload.reason,
+        reason_code: payload.reason_code,
       },
     };
   }
@@ -180,6 +181,7 @@ export class StudentExamController {
         eligible: payload.canAccess,
         can_access: payload.canAccess,
         reason: payload.reason,
+        reason_code: payload.reason_code,
       },
     };
   }
@@ -245,21 +247,21 @@ export class StudentExamController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.STUDENT)
   @ApiOperation({
-    summary: 'Save answersheet (bulk)',
+    summary: 'Finalize answersheet (submit exam)',
     description:
-      'Upserts all answers in one request. Body: optional studentId (must match JWT), answersheet as object map questionId → answer (MCQ: option UUID; essay: text, max 10000 chars). Stored as stringified JSON on the submission and synced to answer rows.',
+      'Finalizes the student submission with status SUBMITTED, AUTO_SUBMITTED, or DISQUALIFIED. Body: optional studentId (must match JWT), answersheet as object map questionId → answer, and optional reason (manual | timeout | disqualified).',
   })
   @ApiParam({ name: 'examId', description: 'Exam UUID' })
-  @ApiResponse({ status: 201, description: 'Answersheet saved' })
+  @ApiResponse({ status: 201, description: 'Exam finalized successfully' })
   @ApiResponse({ status: 403, description: 'Access denied' })
   @ApiResponse({ status: 400, description: 'Invalid payload or unknown question' })
-  async saveAnswerSheet(
+  async finalizeAnswerSheet(
     @Param('examId', ParseUUIDPipe) examId: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
     @Body() dto: SubmitAnswerSheetDto,
   ) {
-    const payload = await this.studentExamService.saveAnswerSheet(examId, jwtPayload.id, dto);
-    return { message: 'Answersheet saved successfully', payload };
+    const payload = await this.studentExamService.finalizeAnswerSheet(examId, jwtPayload.id, dto);
+    return { message: 'Exam submitted successfully', payload };
   }
 
   @Post(':examId/save-answer')

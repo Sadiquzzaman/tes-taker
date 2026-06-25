@@ -60,7 +60,8 @@ const StudentExamMain = ({
           <div className="flex items-center gap-2 text-[#49734F]">
             <ExamTimerIconSVG width={16} />
             <ExamCountdown
-              key={exam.id}
+              key={`${exam.id}-${exam.remaining_time_seconds ?? exam.formState.duration}`}
+              remainingSeconds={exam.remaining_time_seconds}
               durationMinutes={exam.formState.duration}
               submitButtonRef={submitButtonRef}
               onStart={onCountdownStart}

@@ -14,6 +14,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CorrectAnswerEnum } from '../entities/exam-question.entity';
+import { ExamFinalizeReasonEnum } from '../enums/exam-access-reason.enum';
 
 export class StartExamDto {
   @ApiPropertyOptional({ description: 'User agent string from browser' })
@@ -94,6 +95,23 @@ export class SubmitAnswerSheetDto {
   })
   @IsObject()
   answersheet: Record<string, string>;
+
+  @ApiPropertyOptional({
+    description: 'Reason for finalizing the submission',
+    enum: ExamFinalizeReasonEnum,
+    example: ExamFinalizeReasonEnum.MANUAL,
+  })
+  @IsOptional()
+  @IsEnum(ExamFinalizeReasonEnum)
+  reason?: ExamFinalizeReasonEnum;
+
+  @ApiPropertyOptional({
+    description: 'Optional disqualification reason when reason is disqualified',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  disqualification_reason?: string;
 }
 
 export class SubmitExamDto {

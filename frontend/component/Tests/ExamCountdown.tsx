@@ -2,10 +2,21 @@
 
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
-export default function ExamCountdown({ durationMinutes, submitButtonRef, onStart, onTimeUp }: ExamCountdownProps) {
-  const [timeLeft, setTimeLeft] = useState<number | null>(
-    typeof durationMinutes === "number" ? durationMinutes * 60 : null,
-  );
+export default function ExamCountdown({
+  durationMinutes,
+  remainingSeconds,
+  submitButtonRef,
+  onStart,
+  onTimeUp,
+}: ExamCountdownProps) {
+  const initialSeconds =
+    typeof remainingSeconds === "number"
+      ? remainingSeconds
+      : typeof durationMinutes === "number"
+        ? durationMinutes * 60
+        : null;
+
+  const [timeLeft, setTimeLeft] = useState<number | null>(initialSeconds);
   const hasSubmittedRef = useRef(false);
   const hasStartedRef = useRef(false);
   const handleStart = useEffectEvent(() => {
@@ -16,13 +27,23 @@ export default function ExamCountdown({ durationMinutes, submitButtonRef, onStar
   });
 
   useEffect(() => {
-    if (typeof durationMinutes !== "number") {
+    if (initialSeconds === null) {
       hasSubmittedRef.current = false;
       hasStartedRef.current = false;
+      setTimeLeft(null);
       return;
     }
 
     hasSubmittedRef.current = false;
+    setTimeLeft(initialSeconds);
+
+    if (initialSeconds <= 0) {
+      if (!hasSubmittedRef.current) {
+        hasSubmittedRef.current = true;
+        handleTimeUp();
+      }
+      return;
+    }
 
     if (!hasStartedRef.current) {
       hasStartedRef.current = true;
@@ -52,13 +73,13 @@ export default function ExamCountdown({ durationMinutes, submitButtonRef, onStar
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [durationMinutes, handleStart, handleTimeUp, submitButtonRef]);
+  }, [durationMinutes, handleStart, handleTimeUp, initialSeconds, remainingSeconds, submitButtonRef]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
+    const remaining = seconds % 60;
 
-    return `${String(minutes).padStart(2, "0")} min ${String(remainingSeconds).padStart(2, "0")} sec`;
+    return `${String(minutes).padStart(2, "0")} min ${String(remaining).padStart(2, "0")} sec`;
   };
 
   return (

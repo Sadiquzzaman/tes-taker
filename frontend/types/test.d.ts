@@ -11,6 +11,7 @@ type ShareTestModalProps = {
 
 interface ExamCountdownProps {
   durationMinutes?: number;
+  remainingSeconds?: number | null;
   submitButtonRef: React.RefObject<HTMLButtonElement | null>;
   onStart?: () => void;
   onTimeUp?: () => void;
@@ -25,6 +26,7 @@ interface TestSliceState {
 interface InitializeExamAnswersPayload {
   examId: string;
   values: ExamAnswerState;
+  savedValues?: ExamAnswerState;
 }
 
 interface SetExamAnswerValuePayload {

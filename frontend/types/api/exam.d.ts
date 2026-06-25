@@ -184,6 +184,9 @@ interface StudentExamDetails {
   subjects: StudentExamSubject[];
   class_id: string | null;
   class_name: string | null;
+  remaining_time_seconds?: number;
+  effective_deadline?: string;
+  submission_status?: string | null;
 }
 
 interface TeacherExamListItem {

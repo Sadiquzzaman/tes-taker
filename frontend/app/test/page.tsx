@@ -8,7 +8,9 @@ import ProctoringMobileFab from "@/component/Tests/exam/ProctoringMobileFab";
 import ProctoringPanel from "@/component/Tests/exam/ProctoringPanel";
 import ProctoringSidebar from "@/component/Tests/exam/ProctoringSidebar";
 import ProctoringWarningModal from "@/component/Tests/exam/ProctoringWarningModal";
+import ExamMessageScreen, { type ExamMessageVariant } from "@/component/Tests/exam/ExamMessageScreen";
 import StudentExamMain from "@/component/Tests/exam/StudentExamMain";
+import useExamEligibility from "@/hooks/api/exam/useExamEligibility";
 import useStartStudentExam from "@/hooks/api/exam/useStartStudentExam";
 import useStudentExam from "@/hooks/api/exam/useStudentExam";
 import useSubmitAnswersheet from "@/hooks/api/tests/useSubmitAnswersheet";
@@ -16,7 +18,7 @@ import useExamFullscreen from "@/hooks/tests/proctoring/useExamFullscreen";
 import useProctoring from "@/hooks/tests/proctoring/useProctoring";
 import useProctoringSocket from "@/hooks/tests/proctoring/useProctoringSocket";
 import {
-  initializeExamAnswers,
+  hydrateExamAnswers,
   resetExamAnswers,
   selectExamAnswerState,
   setExamAnswerValue,
@@ -34,6 +36,10 @@ import {
   isExamPermissionsComplete,
 } from "@/utils/tests/examSessionMedia";
 import { createInitialExamAnswerState } from "@/utils/tests/studentExamAnswers";
+import {
+  loadExamAnswersFromStorage,
+  saveExamAnswersToStorage,
+} from "@/utils/tests/examAnswerStorage";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { RotatingLines } from "react-loader-spinner";
@@ -71,10 +77,19 @@ export default function ParticipateTest() {
   const [hasStartedExam, setHasStartedExam] = useState(false);
   const [hasAttemptedStart, setHasAttemptedStart] = useState(false);
   const [submitReason, setSubmitReason] = useState<"manual" | "timeout" | "disqualified" | null>(null);
+  const [postSubmitMessage, setPostSubmitMessage] = useState<ExamMessageVariant | null>(null);
   const submitButtonRef = useRef<HTMLButtonElement | null>(null);
   const hasHandledDisqualificationRef = useRef(false);
+  const hasFinalizedRef = useRef(false);
   const [startStudentExam, { loading: startLoading }] = useStartStudentExam();
   const [submitAnswersheet, { loading: submitLoading }] = useSubmitAnswersheet();
+
+  const {
+    loading: eligibilityLoading,
+    checked: eligibilityChecked,
+    eligibility,
+    messageVariant: eligibilityMessageVariant,
+  } = useExamEligibility(testId, isMounted && Boolean(testId));
 
   const isExamPageReady =
     isMounted && Boolean(testId) && isExamPermissionsComplete() && isMediaStreamActive(initialMediaStream);
@@ -170,13 +185,32 @@ export default function ParticipateTest() {
       return;
     }
 
+    const studentId = getStoredUserId();
+    const defaults = createInitialExamAnswerState(test);
+    const savedValues =
+      studentId && test.id ? loadExamAnswersFromStorage(test.id, studentId) ?? undefined : undefined;
+
     dispatch(
-      initializeExamAnswers({
+      hydrateExamAnswers({
         examId: test.id,
-        values: createInitialExamAnswerState(test),
+        values: defaults,
+        savedValues,
       }),
     );
   }, [dispatch, test]);
+
+  useEffect(() => {
+    if (!test?.id) {
+      return;
+    }
+
+    const studentId = getStoredUserId();
+    if (!studentId || Object.keys(answerState).length === 0) {
+      return;
+    }
+
+    saveExamAnswersToStorage(test.id, studentId, answerState);
+  }, [answerState, test?.id]);
 
   useEffect(() => {
     return () => {
@@ -185,7 +219,7 @@ export default function ParticipateTest() {
   }, [dispatch]);
 
   const handleSubmit = async (reason: "manual" | "timeout" | "disqualified" = "manual") => {
-    if (!isProctoringReady || !test?.id) {
+    if (hasFinalizedRef.current || !isProctoringReady || !test?.id) {
       return;
     }
 
@@ -196,19 +230,36 @@ export default function ParticipateTest() {
       return;
     }
 
+    hasFinalizedRef.current = true;
     setSubmitReason(reason);
     emitExamSubmit();
 
-    await submitAnswersheet({
+    const response = await submitAnswersheet({
       examId: test.id,
       payload: {
         studentId,
         answersheet: answerState,
+        reason,
+        disqualification_reason:
+          reason === "disqualified" ? proctoringState.disqualificationReason ?? undefined : undefined,
+      },
+      onSuccess: (submitReasonValue) => {
+        stopProctoringSession();
+        void clearExamSession();
+
+        if (submitReasonValue === "manual") {
+          router.push("/");
+          return;
+        }
+
+        setPostSubmitMessage(submitReasonValue === "timeout" ? "time-up" : "disqualified");
       },
     });
 
-    stopProctoringSession();
-    await clearExamSession();
+    if (!response) {
+      hasFinalizedRef.current = false;
+      stopProctoringSession();
+    }
   };
 
   useEffect(() => {
@@ -231,6 +282,44 @@ export default function ParticipateTest() {
           strokeWidth="5"
           animationDuration="0.75"
           ariaLabel="exam-loading"
+        />
+      </div>
+    );
+  }
+
+  if (eligibilityLoading || !eligibilityChecked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <RotatingLines
+          visible={true}
+          height="48"
+          width="48"
+          color="#49734F"
+          strokeWidth="5"
+          animationDuration="0.75"
+          ariaLabel="eligibility-loading"
+        />
+      </div>
+    );
+  }
+
+  if (eligibilityMessageVariant) {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden">
+        <ExamHeader />
+        <ExamMessageScreen variant={eligibilityMessageVariant} reason={eligibility?.reason} />
+      </div>
+    );
+  }
+
+  if (postSubmitMessage) {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden">
+        <ExamHeader />
+        <ExamMessageScreen
+          variant={postSubmitMessage}
+          reason={proctoringState.disqualificationReason}
+          onAction={() => router.push("/classes")}
         />
       </div>
     );

@@ -45,7 +45,12 @@ import {
 import { resolveExamSubjectLabel } from './utils/exam-subject.util';
 import {
   ExamSubmissionStatusEnum,
+  StudentExamSubmissionEntity,
 } from './entities/student-exam-answer.entity';
+import {
+  computeEffectiveDeadline,
+  computeRemainingTimeSeconds,
+} from './utils/exam-deadline.util';
 
 type ExamListMetrics = {
   participant_count: number;
@@ -93,6 +98,9 @@ export class ExamService {
 
     @InjectRepository(ClassStudentEntity)
     private readonly classStudentRepo: Repository<ClassStudentEntity>,
+
+    @InjectRepository(StudentExamSubmissionEntity)
+    private readonly submissionRepo: Repository<StudentExamSubmissionEntity>,
 
     private readonly smsService: SmsService,
     private readonly subjectService: SubjectService,
@@ -787,11 +795,24 @@ export class ExamService {
 
     const examStarted = Date.now() >= new Date(exam.exam_start_time).getTime();
 
-    return this.formatAuthorizedExamResponse(exam, {
+    const submission = await this.submissionRepo.findOne({
+      where: { exam_id: id, student_id: studentId },
+    });
+
+    const response = this.formatAuthorizedExamResponse(exam, {
       audience: 'student',
       includeCorrectAnswers: false,
       includeQuestions: examStarted,
     });
+
+    const effectiveDeadline = computeEffectiveDeadline(exam, submission);
+
+    return {
+      ...response,
+      remaining_time_seconds: computeRemainingTimeSeconds(exam, submission),
+      effective_deadline: effectiveDeadline.toISOString(),
+      submission_status: submission?.status ?? null,
+    };
   }
 
   private async assertStudentCanViewExam(

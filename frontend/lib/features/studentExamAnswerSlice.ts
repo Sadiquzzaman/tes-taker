@@ -26,11 +26,19 @@ export const studentExamAnswerSlice = createSlice({
     setExamAnswerValue: (state, action: PayloadAction<SetExamAnswerValuePayload>) => {
       state.values[action.payload.questionId] = action.payload.value;
     },
+    hydrateExamAnswers: (state, action: PayloadAction<InitializeExamAnswersPayload>) => {
+      state.examId = action.payload.examId;
+      state.values = {
+        ...action.payload.values,
+        ...(action.payload.savedValues ?? {}),
+      };
+    },
     resetExamAnswers: () => initialState,
   },
 });
 
-export const { initializeExamAnswers, setExamAnswerValue, resetExamAnswers } = studentExamAnswerSlice.actions;
+export const { initializeExamAnswers, hydrateExamAnswers, setExamAnswerValue, resetExamAnswers } =
+  studentExamAnswerSlice.actions;
 
 export const selectExamAnswerState = (state: RootState) => state.studentExamAnswer.values;
 

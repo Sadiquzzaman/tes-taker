@@ -46,8 +46,23 @@ import {
 } from './utils/exam-option-ids.util';
 import { isAutoScoredQuestion, scoreStudentAnswer } from './utils/exam-question.util';
 import { resolveExamSubjectLabel } from './utils/exam-subject.util';
+import {
+  computeEffectiveDeadline,
+  computeRemainingTimeSeconds,
+} from './utils/exam-deadline.util';
 import { QuestionCategoryEnum } from './enums/question.enums';
 import { RolesEnum } from 'src/common/enums/roles.enum';
+import {
+  ExamAccessReasonCodeEnum,
+  ExamFinalizeReasonEnum,
+} from './enums/exam-access-reason.enum';
+
+export type ExamAccessValidation = {
+  canAccess: boolean;
+  reason?: string;
+  reason_code: ExamAccessReasonCodeEnum;
+  exam?: ExamEntity;
+};
 
 @Injectable()
 export class StudentExamService {
@@ -344,7 +359,7 @@ export class StudentExamService {
   async validateExamAccess(
     examId: string,
     studentId: string,
-  ): Promise<{ canAccess: boolean; reason?: string; exam?: ExamEntity }> {
+  ): Promise<ExamAccessValidation> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
       relations: [
@@ -362,7 +377,73 @@ export class StudentExamService {
     });
 
     if (!exam) {
-      return { canAccess: false, reason: 'Exam not found' };
+      return {
+        canAccess: false,
+        reason: 'Exam not found',
+        reason_code: ExamAccessReasonCodeEnum.NOT_ASSIGNED,
+      };
+    }
+
+    const existingSubmission = await this.submissionRepo.findOne({
+      where: { exam_id: examId, student_id: studentId },
+    });
+
+    if (
+      existingSubmission?.status === ExamSubmissionStatusEnum.SUBMITTED ||
+      existingSubmission?.status === ExamSubmissionStatusEnum.AUTO_SUBMITTED
+    ) {
+      return {
+        canAccess: false,
+        reason: 'You have already submitted this exam',
+        reason_code: ExamAccessReasonCodeEnum.ALREADY_SUBMITTED,
+        exam,
+      };
+    }
+
+    if (existingSubmission?.status === ExamSubmissionStatusEnum.DISQUALIFIED) {
+      return {
+        canAccess: false,
+        reason: 'You have been disqualified from this exam',
+        reason_code: ExamAccessReasonCodeEnum.DISQUALIFIED,
+        exam,
+      };
+    }
+
+    const now = new Date();
+    const examStart = new Date(exam.exam_start_time);
+    const examEnd = new Date(exam.exam_end_time);
+
+    if (now < examStart) {
+      return {
+        canAccess: false,
+        reason: 'Exam has not started yet',
+        reason_code: ExamAccessReasonCodeEnum.NOT_STARTED,
+        exam,
+      };
+    }
+
+    if (now > examEnd) {
+      return {
+        canAccess: false,
+        reason: 'Exam has ended',
+        reason_code: ExamAccessReasonCodeEnum.ENDED,
+        exam,
+      };
+    }
+
+    if (
+      existingSubmission?.status === ExamSubmissionStatusEnum.IN_PROGRESS &&
+      existingSubmission.started_at
+    ) {
+      const effectiveDeadline = computeEffectiveDeadline(exam, existingSubmission);
+      if (now > effectiveDeadline) {
+        return {
+          canAccess: false,
+          reason: 'Your exam time has expired',
+          reason_code: ExamAccessReasonCodeEnum.ENDED,
+          exam,
+        };
+      }
     }
 
     const audience = exam.test_audience;
@@ -370,49 +451,45 @@ export class StudentExamService {
     if (audience === TestAudienceEnum.SPECIFIC_STUDENTS) {
       const allowed = exam.target_students?.some((s) => s.id === studentId);
       if (!allowed) {
-        return { canAccess: false, reason: 'You are not on the list for this exam' };
+        return {
+          canAccess: false,
+          reason: 'You are not on the list for this exam',
+          reason_code: ExamAccessReasonCodeEnum.NOT_ASSIGNED,
+          exam,
+        };
       }
     } else if (audience !== TestAudienceEnum.ANYONE) {
       if (!exam.class) {
-        return { canAccess: false, reason: 'Exam is not assigned to any class' };
+        return {
+          canAccess: false,
+          reason: 'Exam is not assigned to any class',
+          reason_code: ExamAccessReasonCodeEnum.NOT_ASSIGNED,
+          exam,
+        };
       }
       const isInClass = exam.class.classStudents?.some(
         (cs) => cs.student_id === studentId && cs.status === ClassStudentStatusEnum.JOINED,
       );
       if (!isInClass) {
-        return { canAccess: false, reason: 'You are not enrolled in this class' };
+        return {
+          canAccess: false,
+          reason: 'You are not enrolled in this class',
+          reason_code: ExamAccessReasonCodeEnum.NOT_ASSIGNED,
+          exam,
+        };
       }
       const isExcluded = exam.excluded_students?.some((s) => s.id === studentId);
       if (isExcluded) {
-        return { canAccess: false, reason: 'You have been excluded from this exam' };
+        return {
+          canAccess: false,
+          reason: 'You have been excluded from this exam',
+          reason_code: ExamAccessReasonCodeEnum.NOT_ASSIGNED,
+          exam,
+        };
       }
     }
 
-    const existingSubmission = await this.submissionRepo.findOne({
-      where: {
-        exam_id: examId,
-        student_id: studentId,
-        status: In([ExamSubmissionStatusEnum.SUBMITTED, ExamSubmissionStatusEnum.AUTO_SUBMITTED]),
-      },
-    });
-
-    if (existingSubmission) {
-      return { canAccess: false, reason: 'You have already submitted this exam' };
-    }
-
-    const disqualifiedSubmission = await this.submissionRepo.findOne({
-      where: {
-        exam_id: examId,
-        student_id: studentId,
-        status: ExamSubmissionStatusEnum.DISQUALIFIED,
-      },
-    });
-
-    if (disqualifiedSubmission) {
-      return { canAccess: false, reason: 'You have been disqualified from this exam' };
-    }
-
-    return { canAccess: true, exam };
+    return { canAccess: true, reason_code: ExamAccessReasonCodeEnum.OK, exam };
   }
 
   /**
@@ -476,9 +553,7 @@ export class StudentExamService {
       };
     });
 
-    const now = new Date();
-    const endTime = new Date(exam.exam_end_time);
-    const remainingTimeMs = endTime.getTime() - now.getTime();
+    const effectiveDeadline = computeEffectiveDeadline(exam, submission);
 
     return {
       id: exam.id,
@@ -488,10 +563,12 @@ export class StudentExamService {
       exam_kind: exam.exam_kind,
       exam_start_time: exam.exam_start_time,
       exam_end_time: exam.exam_end_time,
+      duration_minutes: exam.duration_minutes,
       is_negative_marking: exam.is_negative_marking,
       negative_mark_value: exam.negative_mark_value,
       total_questions: questions.length,
-      remaining_time_seconds: Math.max(0, Math.floor(remainingTimeMs / 1000)),
+      remaining_time_seconds: computeRemainingTimeSeconds(exam, submission),
+      effective_deadline: effectiveDeadline.toISOString(),
       questions,
       submission_status: submission?.status || null,
       saved_answers: savedAnswers,
@@ -631,6 +708,125 @@ export class StudentExamService {
   }
 
   /**
+   * Finalize a student's answersheet (manual submit, timeout auto-submit, or disqualification).
+   */
+  async finalizeAnswerSheet(
+    examId: string,
+    studentId: string,
+    dto: SubmitAnswerSheetDto,
+  ): Promise<{
+    submission_id: string;
+    status: ExamSubmissionStatusEnum;
+    saved_count: number;
+    total_score: number | null;
+    max_score: number | null;
+    already_finalized?: boolean;
+  }> {
+    if (dto.studentId && dto.studentId !== studentId) {
+      throw new BadRequestException('studentId does not match the authenticated user');
+    }
+
+    const exam = await this.examRepo.findOne({
+      where: { id: examId },
+      relations: [
+        'class',
+        'class.classStudents',
+        'questions',
+        'questionSections',
+        'questionSections.questions',
+        'questionSections.subject',
+        'target_students',
+        'excluded_students',
+        'primary_subject',
+      ],
+    });
+
+    if (!exam) {
+      throw new NotFoundException('Exam not found');
+    }
+
+    const submission = await this.submissionRepo.findOne({
+      where: { exam_id: examId, student_id: studentId },
+    });
+
+    if (!submission) {
+      throw new BadRequestException('Please start the exam first');
+    }
+
+    const finalizedStatuses = [
+      ExamSubmissionStatusEnum.SUBMITTED,
+      ExamSubmissionStatusEnum.AUTO_SUBMITTED,
+      ExamSubmissionStatusEnum.DISQUALIFIED,
+    ];
+
+    if (finalizedStatuses.includes(submission.status)) {
+      return {
+        submission_id: submission.id,
+        status: submission.status,
+        saved_count: 0,
+        total_score: submission.total_score ?? null,
+        max_score: submission.max_score ?? null,
+        already_finalized: true,
+      };
+    }
+
+    if (submission.status !== ExamSubmissionStatusEnum.IN_PROGRESS) {
+      throw new BadRequestException('No active exam session for this submission');
+    }
+
+    const answersheet = dto.answersheet ?? {};
+    const savedCount = await this.syncAnswersheetToSubmission(
+      exam,
+      submission,
+      answersheet,
+      studentId,
+      { strict: false },
+    );
+
+    const ordered = this.getOrderedQuestions(exam);
+    const hasObjective = ordered.some(
+      (q) =>
+        q.question_type === QuestionTypeEnum.OBJECTIVE ||
+        isAutoScoredQuestion(q.category, q.sub_type),
+    );
+    const hasSubjective = ordered.some(
+      (q) =>
+        q.question_type === QuestionTypeEnum.SUBJECTIVE &&
+        !isAutoScoredQuestion(q.category, q.sub_type),
+    );
+
+    if (hasObjective) {
+      await this.calculateObjectiveScore(submission.id, exam);
+    }
+    if (hasSubjective) {
+      await this.calculateSubjectiveMaxScore(submission.id, exam);
+    }
+
+    const reason = dto.reason ?? ExamFinalizeReasonEnum.MANUAL;
+    let status = ExamSubmissionStatusEnum.SUBMITTED;
+    if (reason === ExamFinalizeReasonEnum.TIMEOUT) {
+      status = ExamSubmissionStatusEnum.AUTO_SUBMITTED;
+    } else if (reason === ExamFinalizeReasonEnum.DISQUALIFIED) {
+      status = ExamSubmissionStatusEnum.DISQUALIFIED;
+    }
+
+    submission.status = status;
+    submission.submitted_at = new Date();
+    submission.updated_at = new Date();
+    await this.submissionRepo.save(submission);
+
+    const result = await this.submissionRepo.findOne({ where: { id: submission.id } });
+
+    return {
+      submission_id: submission.id,
+      status,
+      saved_count: savedCount,
+      total_score: result?.total_score ?? null,
+      max_score: result?.max_score ?? null,
+    };
+  }
+
+  /**
    * Save a full answersheet object (stringified JSON on submission + normalized answer rows).
    * Keys are question UUIDs; MCQ values are option UUIDs; essay values are text (max 10000 chars).
    */
@@ -660,7 +856,6 @@ export class StudentExamService {
       where: {
         exam_id: examId,
         student_id: studentId,
-        // status: ExamSubmissionStatusEnum.IN_PROGRESS,
       },
     });
 
@@ -668,6 +863,27 @@ export class StudentExamService {
       throw new BadRequestException('Please start the exam first');
     }
 
+    const savedCount = await this.syncAnswersheetToSubmission(
+      exam,
+      submission,
+      answersheet,
+      studentId,
+      { strict: true },
+    );
+
+    return {
+      submission_id: submission.id,
+      saved_count: savedCount,
+    };
+  }
+
+  private async syncAnswersheetToSubmission(
+    exam: ExamEntity,
+    submission: StudentExamSubmissionEntity,
+    answersheet: Record<string, string>,
+    studentId: string,
+    options: { strict: boolean },
+  ): Promise<number> {
     const ordered = this.getOrderedQuestions(exam);
     const questionById = new Map(ordered.map((q) => [q.id, q]));
 
@@ -696,13 +912,16 @@ export class StudentExamService {
       for (const [questionId, rawValue] of Object.entries(answersheet)) {
         const question = questionById.get(questionId)!;
         const value = rawValue === undefined || rawValue === null ? '' : String(rawValue);
+        const trimmed = value.trim();
 
-        if (isAutoScoredQuestion(question.category, question.sub_type)) {
-          const trimmed = value.trim();
-          if (!trimmed) {
+        if (!trimmed) {
+          if (options.strict) {
             throw new BadRequestException(`Answer required for question ${questionId}`);
           }
+          continue;
+        }
 
+        if (isAutoScoredQuestion(question.category, question.sub_type)) {
           if (question.sub_type === 'multiple-response' || question.sub_type === 'matching-ordering') {
             await this.upsertTextAnswer(answerRepo, subRow.id, questionId, trimmed, studentId);
             continue;
@@ -721,10 +940,6 @@ export class StudentExamService {
         }
 
         if (question.question_type === QuestionTypeEnum.OBJECTIVE) {
-          const trimmed = value.trim();
-          if (!trimmed) {
-            throw new BadRequestException(`MCQ answer required for question ${questionId}`);
-          }
           const slotCount = getObjectiveOptionSlotCount(question);
           const idx = findObjectiveOptionIndexBySubmittedId(questionId, trimmed, slotCount);
           if (idx === null) {
@@ -766,8 +981,8 @@ export class StudentExamService {
               `Essay answer for question ${questionId} exceeds 10000 characters`,
             );
           }
-          const wordCount = value.trim().length
-            ? value.trim().split(/\s+/).filter((w) => w.length > 0).length
+          const wordCount = trimmed.length
+            ? trimmed.split(/\s+/).filter((w) => w.length > 0).length
             : 0;
 
           const existing = await answerRepo.findOne({
@@ -800,10 +1015,7 @@ export class StudentExamService {
       }
     });
 
-    return {
-      submission_id: submission.id,
-      saved_count: Object.keys(answersheet).length,
-    };
+    return Object.keys(answersheet).length;
   }
 
   /**
