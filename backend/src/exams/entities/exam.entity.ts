@@ -70,6 +70,10 @@ export class ExamEntity extends CustomBaseEntity {
   @Column({ name: 'exam_end_time', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   exam_end_time: Date;
 
+  @ApiPropertyOptional({ description: 'When the teacher published results to students (manual-grading exams)' })
+  @Column({ name: 'result_published_at', type: 'timestamp', nullable: true })
+  result_published_at: Date | null;
+
   @ApiPropertyOptional({ description: 'Whether negative marking is enabled for objective items' })
   @Column({ name: 'is_negative_marking', type: 'boolean', default: false })
   is_negative_marking: boolean;

@@ -94,6 +94,18 @@ export class StudentExamSubmissionEntity extends CustomBaseEntity {
   })
   @Column({ name: 'answersheet_json', type: 'text', nullable: true })
   answersheet_json: string | null;
+
+  @ApiPropertyOptional({ description: 'Whether manual grading is complete for this submission' })
+  @Column({ name: 'is_graded', type: 'boolean', default: false })
+  is_graded: boolean;
+
+  @ApiPropertyOptional({ description: 'When manual grading was completed' })
+  @Column({ name: 'graded_at', type: 'timestamp', nullable: true })
+  graded_at?: Date | null;
+
+  @ApiPropertyOptional({ description: 'Teacher who completed manual grading' })
+  @Column({ name: 'graded_by', type: 'uuid', nullable: true })
+  graded_by?: string | null;
 }
 
 @Entity('student_exam_answers')

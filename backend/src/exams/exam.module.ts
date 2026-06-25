@@ -11,6 +11,7 @@ import { ClassStudentEntity } from 'src/classes/entities/class-student.entity';
 import { StudentExamSubmissionEntity, StudentExamAnswerEntity } from './entities/student-exam-answer.entity';
 import { StudentExamController } from './student-exam.controller';
 import { StudentExamService } from './student-exam.service';
+import { ExamGradingController } from './exam-grading.controller';
 import { SmsModule } from 'src/sms/sms.module';
 import { SubjectModule } from 'src/subjects/subject.module';
 
@@ -29,7 +30,7 @@ import { SubjectModule } from 'src/subjects/subject.module';
     SmsModule,
     SubjectModule,
   ],
-  controllers: [ExamController, StudentExamController],
+  controllers: [ExamController, StudentExamController, ExamGradingController],
   providers: [ExamService, StudentExamService],
   exports: [ExamService, StudentExamService],
 })

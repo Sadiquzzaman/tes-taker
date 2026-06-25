@@ -51,6 +51,15 @@ import {
   computeEffectiveDeadline,
   computeRemainingTimeSeconds,
 } from './utils/exam-deadline.util';
+import { GradingListQueryDto, GradingSummaryQueryDto } from './dto/grade-submission.dto';
+import { GradingStatusEnum, SubmissionGradingStatusEnum } from './enums/grading-status.enum';
+import {
+  computeExamTotalMarks,
+  computeGradingStatus,
+  computePercentage,
+  examHasManualQuestions,
+  FINALIZED_SUBMISSION_STATUSES,
+} from './utils/exam-grading.util';
 
 type ExamListMetrics = {
   participant_count: number;
@@ -1551,5 +1560,287 @@ export class ExamService {
     }
 
     await this.examRepo.remove(exam);
+  }
+
+  // ========================
+  // TEACHER GRADING
+  // ========================
+
+  async getGradingList(
+    jwtPayload: JwtPayloadInterface,
+    query: GradingListQueryDto,
+  ): Promise<{ items: Record<string, unknown>[]; meta: Record<string, number> }> {
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(50, Math.max(1, query.limit ?? 10));
+    const now = new Date();
+
+    const qb = this.examRepo
+      .createQueryBuilder('exam')
+      .leftJoinAndSelect('exam.class', 'class')
+      .leftJoinAndSelect('exam.primary_subject', 'primary_subject')
+      .leftJoinAndSelect('exam.questionSections', 'questionSections')
+      .leftJoinAndSelect('questionSections.questions', 'sectionQuestions')
+      .leftJoinAndSelect('exam.questions', 'questions')
+      .where('exam.created_by = :teacherId', { teacherId: jwtPayload.id })
+      .andWhere('exam.exam_end_time < :now', { now });
+
+    if (query.search?.trim()) {
+      const term = `%${query.search.trim()}%`;
+      qb.andWhere(
+        '(exam.test_name ILIKE :term OR exam.subject ILIKE :term OR class.class_name ILIKE :term)',
+        { term },
+      );
+    }
+
+    qb.orderBy('exam.exam_end_time', 'DESC');
+
+    const exams = await qb.getMany();
+    const metrics = await this.loadExamListMetrics(exams);
+    const gradingStats = await this.loadExamGradingStats(exams);
+
+    let items = exams.map((exam) => {
+      const hasManualQuestions = examHasManualQuestions(exam);
+      const stat = gradingStats.get(exam.id)!;
+      const examMetrics = metrics.get(exam.id)!;
+
+      return {
+        id: exam.id,
+        test_name: exam.test_name,
+        subject: resolveExamSubjectLabel(exam),
+        class_name: exam.class?.class_name ?? null,
+        exam_end_time: exam.exam_end_time,
+        lifecycle_status: this.computeExamLifecycleStatus(
+          exam.exam_start_time,
+          exam.exam_end_time,
+        ),
+        total_participants: examMetrics.participant_count,
+        submitted_count: stat.submitted_count,
+        graded_count: stat.graded_count,
+        pending_count: stat.pending_count,
+        average_percentage: stat.average_percentage,
+        has_manual_questions: hasManualQuestions,
+        is_result_published: Boolean(exam.result_published_at),
+        result_published_at: exam.result_published_at ?? null,
+        grading_status: computeGradingStatus(exam, hasManualQuestions, stat.submitted_submissions),
+      };
+    });
+
+    if (query.status) {
+      items = items.filter((item) => item.grading_status === query.status);
+    }
+
+    const total = items.length;
+    const paginatedItems = items.slice((page - 1) * limit, page * limit);
+
+    return {
+      items: paginatedItems,
+      meta: {
+        page,
+        limit,
+        total,
+        total_pages: Math.ceil(total / limit) || 1,
+      },
+    };
+  }
+
+  async getGradingSummary(
+    examId: string,
+    jwtPayload: JwtPayloadInterface,
+    query: GradingSummaryQueryDto,
+  ): Promise<Record<string, unknown>> {
+    await this.assertTeacherCanMonitorExam(examId, jwtPayload);
+
+    const exam = await this.findOneEntity(examId);
+    const hasManualQuestions = examHasManualQuestions(exam);
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(50, Math.max(1, query.limit ?? 10));
+
+    const metrics = await this.loadExamListMetrics([exam]);
+    const gradingStats = await this.loadExamGradingStats([exam]);
+    const stat = gradingStats.get(exam.id)!;
+    const examMetrics = metrics.get(exam.id)!;
+
+    const totalStudents =
+      examMetrics.participant_count > 0
+        ? examMetrics.participant_count
+        : stat.submitted_count;
+
+    const submissionsQb = this.submissionRepo
+      .createQueryBuilder('submission')
+      .leftJoinAndSelect('submission.student', 'student')
+      .where('submission.exam_id = :examId', { examId })
+      .andWhere('submission.status IN (:...statuses)', {
+        statuses: FINALIZED_SUBMISSION_STATUSES,
+      })
+      .orderBy('submission.submitted_at', 'DESC');
+
+    if (query.search?.trim()) {
+      const term = `%${query.search.trim()}%`;
+      submissionsQb.andWhere(
+        '(student.full_name ILIKE :term OR student.email ILIKE :term OR student.phone ILIKE :term)',
+        { term },
+      );
+    }
+
+    const [submissions, submissionTotal] = await submissionsQb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    const gradingStatus = computeGradingStatus(exam, hasManualQuestions, stat.submitted_submissions);
+
+    return {
+      exam: {
+        id: exam.id,
+        test_name: exam.test_name,
+        subject: resolveExamSubjectLabel(exam),
+        class_name: exam.class?.class_name ?? null,
+        total_marks: computeExamTotalMarks(exam),
+        has_manual_questions: hasManualQuestions,
+        grading_status: gradingStatus,
+        is_result_published: Boolean(exam.result_published_at),
+        result_published_at: exam.result_published_at ?? null,
+        passing_score: exam.passing_score,
+        exam_end_time: exam.exam_end_time,
+      },
+      stats: {
+        total_students: totalStudents,
+        submissions: stat.submitted_count,
+        not_submitted: Math.max(0, totalStudents - stat.submitted_count),
+        graded: stat.graded_count,
+        pending: stat.pending_count,
+        average_percentage: stat.average_percentage,
+      },
+      submissions: submissions.map((submission) => ({
+        submission_id: submission.id,
+        student_id: submission.student_id,
+        student_name: submission.student?.full_name ?? null,
+        email: submission.student?.email ?? null,
+        phone: submission.student?.phone ?? null,
+        submitted_at: submission.submitted_at ?? null,
+        status: submission.status,
+        total_score: submission.total_score ?? null,
+        max_score: submission.max_score ?? null,
+        percentage: computePercentage(submission.total_score, submission.max_score),
+        is_graded: submission.is_graded,
+        grading_status: submission.is_graded
+          ? SubmissionGradingStatusEnum.GRADED
+          : SubmissionGradingStatusEnum.PENDING,
+      })),
+      meta: {
+        page,
+        limit,
+        total: submissionTotal,
+        total_pages: Math.ceil(submissionTotal / limit) || 1,
+      },
+    };
+  }
+
+  async publishResult(
+    examId: string,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<Record<string, unknown>> {
+    await this.assertTeacherCanMonitorExam(examId, jwtPayload);
+
+    const exam = await this.findOneEntity(examId);
+
+    if (exam.result_published_at) {
+      return {
+        is_result_published: true,
+        result_published_at: exam.result_published_at,
+        grading_status: GradingStatusEnum.PUBLISHED,
+      };
+    }
+
+    const submittedSubmissions = await this.submissionRepo.find({
+      where: {
+        exam_id: examId,
+        status: In(FINALIZED_SUBMISSION_STATUSES),
+      },
+    });
+
+    const ungraded = submittedSubmissions.filter((submission) => !submission.is_graded);
+    if (ungraded.length > 0) {
+      throw new BadRequestException('Grade all submissions before publishing.');
+    }
+
+    exam.result_published_at = new Date();
+    exam.updated_at = new Date();
+    exam.updated_by = jwtPayload.id;
+    await this.examRepo.save(exam);
+
+    return {
+      is_result_published: true,
+      result_published_at: exam.result_published_at,
+      grading_status: GradingStatusEnum.PUBLISHED,
+    };
+  }
+
+  private async loadExamGradingStats(exams: ExamEntity[]): Promise<
+    Map<
+      string,
+      {
+        submitted_count: number;
+        graded_count: number;
+        pending_count: number;
+        average_percentage: number | null;
+        submitted_submissions: Pick<StudentExamSubmissionEntity, 'is_graded'>[];
+      }
+    >
+  > {
+    const out = new Map<
+      string,
+      {
+        submitted_count: number;
+        graded_count: number;
+        pending_count: number;
+        average_percentage: number | null;
+        submitted_submissions: Pick<StudentExamSubmissionEntity, 'is_graded'>[];
+      }
+    >();
+
+    if (exams.length === 0) {
+      return out;
+    }
+
+    const examIds = exams.map((exam) => exam.id);
+    const submissions = await this.submissionRepo.find({
+      where: {
+        exam_id: In(examIds),
+        status: In(FINALIZED_SUBMISSION_STATUSES),
+      },
+      select: ['id', 'exam_id', 'is_graded', 'total_score', 'max_score'],
+    });
+
+    const submissionsByExam = new Map<string, StudentExamSubmissionEntity[]>();
+    for (const submission of submissions) {
+      const existing = submissionsByExam.get(submission.exam_id) ?? [];
+      existing.push(submission);
+      submissionsByExam.set(submission.exam_id, existing);
+    }
+
+    for (const exam of exams) {
+      const examSubmissions = submissionsByExam.get(exam.id) ?? [];
+      const gradedSubmissions = examSubmissions.filter((submission) => submission.is_graded);
+      const gradedWithScores = gradedSubmissions.filter((submission) => Number(submission.max_score) > 0);
+
+      let averagePercentage: number | null = null;
+      if (gradedWithScores.length > 0) {
+        const totalPercentage = gradedWithScores.reduce((sum, submission) => {
+          return sum + (Number(submission.total_score) || 0) / Number(submission.max_score) * 100;
+        }, 0);
+        averagePercentage = Math.round((totalPercentage / gradedWithScores.length) * 100) / 100;
+      }
+
+      out.set(exam.id, {
+        submitted_count: examSubmissions.length,
+        graded_count: gradedSubmissions.length,
+        pending_count: examSubmissions.length - gradedSubmissions.length,
+        average_percentage: averagePercentage,
+        submitted_submissions: examSubmissions,
+      });
+    }
+
+    return out;
   }
 }

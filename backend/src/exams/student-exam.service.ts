@@ -56,6 +56,17 @@ import {
   ExamAccessReasonCodeEnum,
   ExamFinalizeReasonEnum,
 } from './enums/exam-access-reason.enum';
+import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
+import { GradeSubmissionDto } from './dto/grade-submission.dto';
+import { SubmissionGradingStatusEnum } from './enums/grading-status.enum';
+import { AnswerValueTypeEnum } from './enums/question.enums';
+import {
+  computePercentage,
+  examHasManualQuestions,
+  FINALIZED_SUBMISSION_STATUSES,
+  getAutoScoredQuestions,
+  getManualQuestions,
+} from './utils/exam-grading.util';
 
 export type ExamAccessValidation = {
   canAccess: boolean;
@@ -331,20 +342,29 @@ export class StudentExamService {
       order: { submitted_at: 'DESC' },
     });
 
-    return submissions.map((sub) => ({
-      id: sub.exam_id,
-      subject: resolveExamSubjectLabel(sub.exam),
-      test_name: sub.exam.test_name,
-      exam_type: sub.exam.exam_type,
-      class_name: sub.exam.class?.class_name,
-      submitted_at: sub.submitted_at,
-      total_score: sub.total_score,
-      max_score: sub.max_score,
-      correct_answers: sub.correct_answers,
-      wrong_answers: sub.wrong_answers,
-      total_questions: sub.total_questions,
-      percentage: sub.max_score ? ((sub.total_score || 0) / sub.max_score * 100).toFixed(2) : null,
-    }));
+    return submissions.map((sub) => {
+      const hasManualQuestions = examHasManualQuestions(sub.exam);
+      const resultPublished = Boolean(sub.exam.result_published_at);
+      const canShowScores = !hasManualQuestions || resultPublished;
+
+      return {
+        id: sub.exam_id,
+        subject: resolveExamSubjectLabel(sub.exam),
+        test_name: sub.exam.test_name,
+        exam_type: sub.exam.exam_type,
+        class_name: sub.exam.class?.class_name,
+        submitted_at: sub.submitted_at,
+        result_published: resultPublished,
+        total_score: canShowScores ? sub.total_score : null,
+        max_score: canShowScores ? sub.max_score : null,
+        correct_answers: canShowScores ? sub.correct_answers : null,
+        wrong_answers: canShowScores ? sub.wrong_answers : null,
+        total_questions: sub.total_questions,
+        percentage: canShowScores
+          ? computePercentage(sub.total_score, sub.max_score)
+          : null,
+      };
+    });
   }
 
   // ========================
@@ -813,6 +833,7 @@ export class StudentExamService {
     submission.status = status;
     submission.submitted_at = new Date();
     submission.updated_at = new Date();
+    this.applySubmissionGradingState(submission, exam);
     await this.submissionRepo.save(submission);
 
     const result = await this.submissionRepo.findOne({ where: { id: submission.id } });
@@ -1101,6 +1122,7 @@ export class StudentExamService {
       : ExamSubmissionStatusEnum.SUBMITTED;
     submission.submitted_at = new Date();
     submission.updated_at = new Date();
+    this.applySubmissionGradingState(submission, exam);
 
     await this.submissionRepo.save(submission);
 
@@ -1450,6 +1472,13 @@ export class StudentExamService {
       throw new NotFoundException('No submission found for this exam');
     }
 
+    if (
+      examHasManualQuestions(submission.exam) &&
+      !submission.exam.result_published_at
+    ) {
+      throw new ForbiddenException('Result has not been published yet');
+    }
+
     const answers = await this.answerRepo.find({
       where: { submission_id: submission.id },
       relations: ['question'],
@@ -1485,5 +1514,295 @@ export class StudentExamService {
         : null,
       answers: formattedAnswers,
     };
+  }
+
+  // ========================
+  // TEACHER GRADING
+  // ========================
+
+  async getSubmissionForGrading(
+    examId: string,
+    submissionId: string,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<Record<string, unknown>> {
+    const exam = await this.assertTeacherOwnsExam(examId, jwtPayload);
+    const submission = await this.loadGradableSubmission(examId, submissionId);
+    const answers = await this.answerRepo.find({
+      where: { submission_id: submission.id },
+    });
+    const answerByQuestionId = new Map(answers.map((answer) => [answer.question_id, answer]));
+
+    const manualQuestions = getManualQuestions(exam).map((question) => {
+      const answer = answerByQuestionId.get(question.id);
+      const marksObtained =
+        answer?.marks_obtained !== undefined && answer?.marks_obtained !== null
+          ? Number(answer.marks_obtained)
+          : null;
+
+      return {
+        question_id: question.id,
+        question: question.question,
+        instruction: question.instruction ?? null,
+        image_url: question.image_url ?? null,
+        points: question.points ?? question.marks_per_question ?? 0,
+        sub_type: question.sub_type,
+        sample_answer: question.sample_answer ?? this.extractSampleAnswer(question),
+        expected_word_limit: question.expected_word_limit ?? null,
+        student_answer: {
+          text_answer: answer?.text_answer ?? null,
+          word_count: answer?.word_count ?? null,
+        },
+        marks_obtained: marksObtained,
+        is_graded: marksObtained !== null,
+      };
+    });
+
+    const autoQuestions = getAutoScoredQuestions(exam).map((question) => {
+      const answer = answerByQuestionId.get(question.id);
+      const correctOptionIds = new Set(question.answer_json?.value ?? []);
+      const options = (question.options_json ?? []).map((option) => ({
+        id: option.id,
+        text: option.text,
+        is_correct: correctOptionIds.has(option.id),
+      }));
+
+      return {
+        question_id: question.id,
+        question: question.question,
+        instruction: question.instruction ?? null,
+        image_url: question.image_url ?? null,
+        points: question.points ?? 1,
+        sub_type: question.sub_type,
+        options,
+        student_selected: answer
+          ? this.resolveSubmittedAnswerValue(answer, question)
+          : null,
+        selected_answer: answer?.selected_answer ?? null,
+        text_answer: answer?.text_answer ?? null,
+        is_correct: answer?.is_correct ?? null,
+        marks_obtained:
+          answer?.marks_obtained !== undefined && answer?.marks_obtained !== null
+            ? Number(answer.marks_obtained)
+            : null,
+      };
+    });
+
+    const manualGradedCount = manualQuestions.filter((question) => question.is_graded).length;
+
+    return {
+      submission: {
+        submission_id: submission.id,
+        exam_id: submission.exam_id,
+        student_id: submission.student_id,
+        student_name: submission.student?.full_name ?? null,
+        email: submission.student?.email ?? null,
+        phone: submission.student?.phone ?? null,
+        submitted_at: submission.submitted_at ?? null,
+        status: submission.status,
+        total_score: submission.total_score ?? null,
+        max_score: submission.max_score ?? null,
+        percentage: computePercentage(submission.total_score, submission.max_score),
+        is_graded: submission.is_graded,
+        grading_status: submission.is_graded
+          ? SubmissionGradingStatusEnum.GRADED
+          : SubmissionGradingStatusEnum.PENDING,
+      },
+      manual_questions: manualQuestions,
+      auto_questions: autoQuestions,
+      totals: {
+        manual_total_count: manualQuestions.length,
+        manual_graded_count: manualGradedCount,
+        auto_total_count: autoQuestions.length,
+        auto_graded_count: autoQuestions.filter(
+          (question) => question.marks_obtained !== null,
+        ).length,
+      },
+    };
+  }
+
+  async saveSubmissionGrades(
+    examId: string,
+    submissionId: string,
+    dto: GradeSubmissionDto,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<Record<string, unknown>> {
+    const exam = await this.assertTeacherOwnsExam(examId, jwtPayload);
+    const submission = await this.loadGradableSubmission(examId, submissionId);
+    const manualQuestionMap = new Map(
+      getManualQuestions(exam).map((question) => [question.id, question]),
+    );
+
+    for (const grade of dto.grades) {
+      const question = manualQuestionMap.get(grade.question_id);
+      if (!question) {
+        throw new BadRequestException(`Question ${grade.question_id} is not a manual grading question`);
+      }
+
+      const maxPoints = question.points ?? question.marks_per_question ?? 0;
+      if (grade.marks_obtained > maxPoints) {
+        throw new BadRequestException(
+          `Marks for question ${grade.question_id} cannot exceed ${maxPoints}`,
+        );
+      }
+
+      let answer = await this.answerRepo.findOne({
+        where: {
+          submission_id: submission.id,
+          question_id: grade.question_id,
+        },
+      });
+
+      if (answer) {
+        answer.marks_obtained = grade.marks_obtained;
+        answer.updated_at = new Date();
+        answer.updated_by = jwtPayload.id;
+        await this.answerRepo.save(answer);
+      } else {
+        answer = this.answerRepo.create({
+          submission_id: submission.id,
+          question_id: grade.question_id,
+          marks_obtained: grade.marks_obtained,
+          created_by: jwtPayload.id,
+          created_at: new Date(),
+        });
+        await this.answerRepo.save(answer);
+      }
+    }
+
+    await this.recomputeSubmissionTotalScore(submission.id);
+
+    const answers = await this.answerRepo.find({
+      where: { submission_id: submission.id },
+    });
+    const answerByQuestionId = new Map(answers.map((answer) => [answer.question_id, answer]));
+    const allManualGraded = [...manualQuestionMap.values()].every((question) => {
+      const answer = answerByQuestionId.get(question.id);
+      return answer?.marks_obtained !== undefined && answer?.marks_obtained !== null;
+    });
+
+    submission.is_graded = allManualGraded || manualQuestionMap.size === 0;
+    submission.graded_at = submission.is_graded ? new Date() : null;
+    submission.graded_by = submission.is_graded ? jwtPayload.id : null;
+    submission.updated_at = new Date();
+    submission.updated_by = jwtPayload.id;
+    await this.submissionRepo.save(submission);
+
+    const refreshedSubmission = await this.submissionRepo.findOne({
+      where: { id: submission.id },
+    });
+
+    const manualGradedCount = [...manualQuestionMap.values()].filter((question) => {
+      const answer = answerByQuestionId.get(question.id);
+      return answer?.marks_obtained !== undefined && answer?.marks_obtained !== null;
+    }).length;
+
+    return {
+      submission_id: submission.id,
+      total_score: refreshedSubmission?.total_score ?? null,
+      max_score: refreshedSubmission?.max_score ?? null,
+      percentage: computePercentage(
+        refreshedSubmission?.total_score,
+        refreshedSubmission?.max_score,
+      ),
+      is_graded: refreshedSubmission?.is_graded ?? false,
+      grading_status: refreshedSubmission?.is_graded
+        ? SubmissionGradingStatusEnum.GRADED
+        : SubmissionGradingStatusEnum.PENDING,
+      manual_graded_count: manualGradedCount,
+      manual_total_count: manualQuestionMap.size,
+    };
+  }
+
+  private applySubmissionGradingState(
+    submission: StudentExamSubmissionEntity,
+    exam: ExamEntity,
+  ): void {
+    const hasManualQuestions = examHasManualQuestions(exam);
+    submission.is_graded = !hasManualQuestions;
+    submission.graded_at = hasManualQuestions ? null : new Date();
+    submission.graded_by = null;
+  }
+
+  private async assertTeacherOwnsExam(
+    examId: string,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<ExamEntity> {
+    const exam = await this.examRepo.findOne({
+      where: { id: examId },
+      relations: [
+        'questions',
+        'questionSections',
+        'questionSections.questions',
+        'questionSections.subject',
+        'primary_subject',
+        'class',
+      ],
+    });
+
+    if (!exam) {
+      throw new NotFoundException('Exam not found');
+    }
+
+    if (
+      jwtPayload.role === RolesEnum.TEACHER &&
+      exam.created_by !== jwtPayload.id
+    ) {
+      throw new ForbiddenException('You do not have permission to grade this exam');
+    }
+
+    return exam;
+  }
+
+  private async loadGradableSubmission(
+    examId: string,
+    submissionId: string,
+  ): Promise<StudentExamSubmissionEntity> {
+    const submission = await this.submissionRepo.findOne({
+      where: { id: submissionId, exam_id: examId },
+      relations: ['student'],
+    });
+
+    if (!submission) {
+      throw new NotFoundException('Submission not found');
+    }
+
+    if (!FINALIZED_SUBMISSION_STATUSES.includes(submission.status)) {
+      throw new BadRequestException('Only submitted exams can be graded');
+    }
+
+    return submission;
+  }
+
+  private async recomputeSubmissionTotalScore(submissionId: string): Promise<void> {
+    const answers = await this.answerRepo.find({
+      where: { submission_id: submissionId },
+    });
+
+    const totalScore = answers.reduce((sum, answer) => {
+      if (answer.marks_obtained === undefined || answer.marks_obtained === null) {
+        return sum;
+      }
+      return sum + Number(answer.marks_obtained);
+    }, 0);
+
+    await this.submissionRepo.update(
+      { id: submissionId },
+      {
+        total_score: Math.max(0, totalScore),
+        updated_at: new Date(),
+      },
+    );
+  }
+
+  private extractSampleAnswer(question: ExamQuestionEntity): string | null {
+    if (question.sample_answer) {
+      return question.sample_answer;
+    }
+
+    if (question.answer_json?.type === AnswerValueTypeEnum.TEXT) {
+      return question.answer_json.value?.[0] ?? null;
+    }
+
+    return null;
   }
 }
