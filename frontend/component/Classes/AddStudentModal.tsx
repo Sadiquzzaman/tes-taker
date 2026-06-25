@@ -18,6 +18,7 @@ const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void 
     loading,
     addTag,
     handleCsvUpload,
+    handleDownloadTemplate,
     removeTag,
     handleTagClick,
     handleClose,
@@ -89,6 +90,13 @@ const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void 
                   className="h-[32px] rounded-lg border border-[#C6CFCF] px-3 text-sm font-medium tracking-[-0.02em] text-[#232A25]"
                 >
                   Upload CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="h-[32px] rounded-lg border border-[#C6CFCF] px-3 text-sm font-medium tracking-[-0.02em] text-[#49734F]"
+                >
+                  Download demo Excel
                 </button>
                 {invalidStudentIndices.length > 0 && (
                   <p className="text-[12px] leading-[14px] tracking-[-0.02em] text-[#C1121F]">

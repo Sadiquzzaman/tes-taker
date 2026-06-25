@@ -17,6 +17,11 @@ const routePolicies: RoutePolicy[] = [
     // redirectAuthenticatedTo: "/",
   },
   {
+    path: "/forgot-password",
+    match: "exact",
+    isPublic: true,
+  },
+  {
     path: "/join",
     match: "prefix",
     isPublic: true,

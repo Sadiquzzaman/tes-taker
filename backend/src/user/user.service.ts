@@ -156,6 +156,65 @@ export class UserService {
     });
   }
 
+  async findByPhoneOrEmail(identifier: string): Promise<UserEntity | null> {
+    const trimmed = identifier.trim();
+
+    if (trimmed.includes('@')) {
+      return await this.findByEmail(trimmed.toLowerCase());
+    }
+
+    return await this.findByPhone(trimmed);
+  }
+
+  async updatePassword(userId: string, newPassword: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    user.password = await this.crypto.hashPassword(newPassword);
+    await this.userRepository.save(user);
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isCurrentPasswordValid = await this.crypto.comparePassword(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const isSamePassword = await this.crypto.comparePassword(newPassword, user.password);
+    if (isSamePassword) {
+      throw new BadRequestException('New password must be different from the current password');
+    }
+
+    user.password = await this.crypto.hashPassword(newPassword);
+    await this.userRepository.save(user);
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.findById(userId);
+
+    return {
+      id: user.id,
+      full_name: user.full_name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      is_verified: user.is_verified,
+      is_otp_verified: user.is_otp_verified,
+      is_active: user.is_active,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+    };
+  }
+
   async verifyUserByPhone(phone: string): Promise<UserEntity> {
     const user = await this.userRepository.findOne({
       where: { phone },

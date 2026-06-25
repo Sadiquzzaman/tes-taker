@@ -43,6 +43,92 @@ export const validateLoginForm = (loginInfo: LoginInfo): LoginErrors => {
 };
 
 /**
+ * Validates the forgot-password identifier (email or phone number).
+ */
+export const validateForgotIdentifier = (identifier: string): string => {
+  const value = identifier.trim();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const bdPhoneRegex = /^01[3-9]\d{8}$/;
+  const isEmail = value.includes("@");
+  const isPhone = /^\d+$/.test(value);
+
+  if (!value) {
+    return "Please enter your email or phone number";
+  }
+  if (isPhone && value.length !== 11) {
+    return "Phone number must be 11 digits";
+  }
+  if (isPhone && !bdPhoneRegex.test(value)) {
+    return "Invalid Bangladeshi phone number";
+  }
+  if (isEmail && !emailRegex.test(value)) {
+    return "Invalid email address";
+  }
+  if (!isEmail && !isPhone) {
+    return "Enter a valid email or phone number";
+  }
+
+  return "";
+};
+
+export interface ResetPasswordErrors {
+  password?: string;
+  confirm_password?: string;
+}
+
+/**
+ * Validates the new password and confirmation during a password reset.
+ */
+export const validateResetPassword = (password: string, confirmPassword: string): ResetPasswordErrors => {
+  const errors: ResetPasswordErrors = {};
+
+  if (!password) {
+    errors.password = "Please enter a password";
+  } else if (password.length < 8) {
+    errors.password = "Password must be at least 8 characters.";
+  } else if (!confirmPassword) {
+    errors.confirm_password = "Please confirm your password";
+  } else if (password !== confirmPassword) {
+    errors.confirm_password = "Password and Confirm password do not match";
+  }
+
+  return errors;
+};
+
+export interface ChangePasswordErrors {
+  current_password?: string;
+  new_password?: string;
+  confirm_password?: string;
+}
+
+/**
+ * Validates the change-password form for a logged-in user.
+ */
+export const validateChangePassword = (
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string,
+): ChangePasswordErrors => {
+  const errors: ChangePasswordErrors = {};
+
+  if (!currentPassword) {
+    errors.current_password = "Please enter your current password";
+  } else if (!newPassword) {
+    errors.new_password = "Please enter a new password";
+  } else if (newPassword.length < 8) {
+    errors.new_password = "New password must be at least 8 characters.";
+  } else if (newPassword === currentPassword) {
+    errors.new_password = "New password must be different from the current password";
+  } else if (!confirmPassword) {
+    errors.confirm_password = "Please confirm your new password";
+  } else if (newPassword !== confirmPassword) {
+    errors.confirm_password = "New password and Confirm password do not match";
+  }
+
+  return errors;
+};
+
+/**
  * Validates sign-up form inputs sequentially, matching original logic.
  */
 export const validateSignUpForm = (signUpInfo: SignUpInfo): SignUpErrors => {

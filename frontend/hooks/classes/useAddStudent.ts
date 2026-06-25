@@ -4,6 +4,7 @@ import { setOpenAddStudentModal } from "@/lib/features/classSlice";
 import useAddStudentInClass from "@/hooks/api/class/useAddStudentInClass";
 import { useToast } from "@/component/Toast/ToastContext";
 import {
+  downloadStudentCsvTemplate,
   extractStudentsFromCsvRows,
   getEditedInvalidTagState,
   getInvalidStudentIndices,
@@ -126,6 +127,10 @@ export default function useAddStudent(fetchClassDetails: () => void) {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    downloadStudentCsvTemplate();
+  };
+
   const removeTag = (index: number) => {
     setStudents((prev) => prev.filter((_, i) => i !== index));
   };
@@ -178,6 +183,7 @@ export default function useAddStudent(fetchClassDetails: () => void) {
     loading,
     addTag,
     handleCsvUpload,
+    handleDownloadTemplate,
     removeTag,
     handleTagClick,
     handleClose,
