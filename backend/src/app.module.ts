@@ -10,6 +10,7 @@ import { ClassModule } from './classes/class.module';
 import { SubscriptionModule } from './subscriptions/subscription.module';
 import { SubjectModule } from './subjects/subject.module';
 import { ProctoringModule } from './proctoring/proctoring.module';
+import { PaymentModule } from './modules/payment/payment.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { ProctoringModule } from './proctoring/proctoring.module';
     SubscriptionModule,
     SubjectModule,
     ProctoringModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
