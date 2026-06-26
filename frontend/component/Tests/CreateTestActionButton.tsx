@@ -22,6 +22,7 @@ const CreateTestActionButton = () => {
   if (isExamLimitReached) {
     return (
       <Tooltip
+        placement="bottom"
         content={
           <span>
             You&apos;ve reached your exam limit. Please upgrade.{" "}

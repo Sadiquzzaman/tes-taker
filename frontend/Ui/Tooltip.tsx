@@ -7,9 +7,16 @@ type TooltipProps = {
   children: ReactNode;
   disabled?: boolean;
   className?: string;
+  placement?: "top" | "bottom";
 };
 
-const Tooltip = ({ content, children, disabled = false, className = "" }: TooltipProps) => {
+const Tooltip = ({
+  content,
+  children,
+  disabled = false,
+  className = "",
+  placement = "top",
+}: TooltipProps) => {
   const [visible, setVisible] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -46,9 +53,12 @@ const Tooltip = ({ content, children, disabled = false, className = "" }: Toolti
           role="tooltip"
           onMouseEnter={show}
           onMouseLeave={scheduleHide}
-          // pb-2 acts as a hoverable "bridge" so there is no empty gap between the
-          // trigger and the tooltip bubble for the cursor to fall through.
-          className="absolute bottom-full left-1/2 z-50 flex -translate-x-1/2 justify-center pb-2"
+          // The padding (pb-2 / pt-2) acts as a hoverable "bridge" so there is no
+          // empty gap between the trigger and the tooltip bubble for the cursor to
+          // fall through.
+          className={`absolute left-1/2 z-50 flex -translate-x-1/2 justify-center ${
+            placement === "bottom" ? "top-full pt-2" : "bottom-full pb-2"
+          }`}
         >
           <span
             className="w-max max-w-[220px] rounded-[8px] bg-[#232A25] px-3 py-2 text-xs text-white shadow-lg"
