@@ -636,7 +636,7 @@ export class SubscriptionService implements OnModuleInit {
 
   async getAdminPayments(page = 1, limit = 20) {
     const [items, total] = await this.paymentRepo.findAndCount({
-      relations: ['teacher', 'subscription'],
+      relations: ['teacher', 'subscription', 'plan'],
       order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,

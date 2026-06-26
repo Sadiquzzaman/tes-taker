@@ -86,8 +86,22 @@ const useLogin = () => {
     return "/dashboard";
   };
 
+  const consumePendingPlanRoute = (role: LoginResponsePayload["role"]) => {
+    if (role !== "TEACHER" || typeof window === "undefined") return null;
+    const pendingPlan = localStorage.getItem("pendingPlan");
+    if (!pendingPlan) return null;
+    localStorage.removeItem("pendingPlan");
+    return `/billing?plan=${encodeURIComponent(pendingPlan)}`;
+  };
+
   const handlePostLoginRedirect = async (payload: LoginResponsePayload) => {
     const isStudent = payload?.role === "STUDENT";
+
+    const pendingPlanRoute = consumePendingPlanRoute(payload?.role);
+    if (pendingPlanRoute) {
+      push(pendingPlanRoute);
+      return;
+    }
 
     if (!isStudent || !joinInfo?.id) {
       push(getRoleHomeRoute(payload?.role));

@@ -8,6 +8,27 @@ import SidebarTestsIconSVG from "@/component/svg/SidebarTestsIconSVG";
 
 const sidebarList: SideBarList[] = [
   {
+    category: "Admin",
+    label: "Plans",
+    route: "/admin/plans",
+    role: ["ADMIN", "SUPER_ADMIN"],
+    image: <SidebarTestsIconSVG width={16} />,
+  },
+  {
+    category: "Admin",
+    label: "Payments",
+    route: "/admin/payments",
+    role: ["ADMIN", "SUPER_ADMIN"],
+    image: <SidebarResultsIconSVG width={16} />,
+  },
+  {
+    category: "Admin",
+    label: "Teachers",
+    route: "/admin/teachers",
+    role: ["ADMIN", "SUPER_ADMIN"],
+    image: <SidebarClassesIconSVG width={16} />,
+  },
+  {
     category: "Platform",
     label: "Dashboard",
     route: "/dashboard",
@@ -44,6 +65,13 @@ const sidebarList: SideBarList[] = [
     children: [],
   },
   {
+    category: "Platform",
+    label: "Billing & Plans",
+    route: "/billing",
+    role: ["TEACHER"],
+    image: <SidebarResultsIconSVG width={16} />,
+  },
+  {
     category: "System",
     label: "Account",
     route: "/account",
@@ -56,27 +84,6 @@ const sidebarList: SideBarList[] = [
     route: "/help",
     role: ["STUDENT", "TEACHER"],
     image: <SidebarHelpIconSVG width={16} />,
-  },
-  {
-    category: "Admin",
-    label: "Admin",
-    route: "/admin",
-    role: ["ADMIN", "SUPER_ADMIN"],
-    image: <SidebarDashboardIconSVG width={16} />,
-  },
-  {
-    category: "Admin",
-    label: "Plans",
-    route: "/admin/plans",
-    role: ["ADMIN", "SUPER_ADMIN"],
-    image: <SidebarTestsIconSVG width={16} />,
-  },
-  {
-    category: "Admin",
-    label: "Super Admin",
-    route: "/admin/super",
-    role: ["SUPER_ADMIN"],
-    image: <SidebarGradingIconSVG width={16} />,
   },
 ];
 

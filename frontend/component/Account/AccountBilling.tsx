@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import useGetPlans from "@/hooks/api/subscription/useGetPlans";
@@ -27,8 +28,16 @@ const AccountBilling = () => {
   const { entitlements, loading: entitlementsLoading, refetch } = useEntitlements();
   const { plans, loading: plansLoading } = useGetPlans();
   const { handleError } = useApiError();
+  const searchParams = useSearchParams();
+  const highlightSlug = searchParams.get("plan");
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("MONTHLY");
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!highlightSlug || plansLoading) return;
+    const el = document.getElementById(`plan-${highlightSlug}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightSlug, plansLoading]);
 
   const handleCheckout = async (plan: SubscriptionPlan) => {
     const amount = getPrice(plan, billingCycle);
@@ -132,7 +141,15 @@ const AccountBilling = () => {
           {plans
             .filter((plan) => getPrice(plan, billingCycle) > 0)
             .map((plan) => (
-              <div key={plan.id} className="border border-[#EFF0F3] rounded-[8px] p-4 flex flex-col gap-3">
+              <div
+                key={plan.id}
+                id={`plan-${plan.slug}`}
+                className={`border rounded-[8px] p-4 flex flex-col gap-3 ${
+                  highlightSlug && plan.slug === highlightSlug
+                    ? "border-[#49734F] ring-2 ring-[#49734F]"
+                    : "border-[#EFF0F3]"
+                }`}
+              >
                 <div>
                   <p className="font-semibold text-[#232A25]">{plan.name ?? plan.display_name}</p>
                   <p className="text-sm text-[#49734F]">৳{getPrice(plan, billingCycle).toLocaleString()}</p>

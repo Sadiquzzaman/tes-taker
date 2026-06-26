@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import useGetPlans from "@/hooks/api/subscription/useGetPlans";
 
 const formatPrice = (value: number) => {
@@ -12,7 +12,19 @@ const getPlanName = (plan: SubscriptionPlan) => plan.name ?? plan.display_name ?
 
 const LandingPricing = () => {
   const { plans, loading } = useGetPlans();
+  const router = useRouter();
   const sortedPlans = [...plans].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+  const handleSelect = (plan: SubscriptionPlan) => {
+    const isPaid = Number(plan.price_monthly) > 0;
+    // Remember the chosen paid plan so we can prompt for payment right after signup/login.
+    if (isPaid && plan.slug) {
+      localStorage.setItem("pendingPlan", plan.slug);
+    } else {
+      localStorage.removeItem("pendingPlan");
+    }
+    router.push("/signup");
+  };
 
   return (
     <section id="pricing" className="py-20 px-6 bg-[#EFF0F3]">
@@ -68,13 +80,14 @@ const LandingPricing = () => {
                     <li>Up to {plan.limits.max_students_per_exam} students per exam</li>
                   )}
                 </ul>
-                <Link
-                  href="/signup"
+                <button
+                  type="button"
+                  onClick={() => handleSelect(plan)}
                   className="w-full text-center py-2.5 rounded-[8px] bg-[#49734F] text-white text-sm font-medium hover:bg-[#3d6242] transition-colors"
                   style={{ fontFamily: "Instrument Sans, sans-serif" }}
                 >
-                  Get started
-                </Link>
+                  {Number(plan.price_monthly) > 0 ? "Select plan" : "Get started"}
+                </button>
               </div>
             ))}
           </div>

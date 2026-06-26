@@ -51,16 +51,16 @@ const routePolicies: RoutePolicy[] = [
     redirectUnauthorizedTo: "/classes",
   },
   {
-    path: "/admin/super",
-    match: "prefix",
-    allowedRoles: ["SUPER_ADMIN"],
-    redirectUnauthorizedTo: "/admin",
-  },
-  {
     path: "/admin",
     match: "prefix",
     allowedRoles: ["ADMIN", "SUPER_ADMIN"],
     redirectUnauthorizedTo: "/dashboard",
+  },
+  {
+    path: "/billing",
+    match: "prefix",
+    allowedRoles: ["TEACHER"],
+    redirectUnauthorizedTo: "/login",
   },
   {
     path: "/payment",

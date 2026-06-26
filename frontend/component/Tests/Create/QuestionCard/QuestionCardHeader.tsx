@@ -151,7 +151,7 @@ function QuestionCardHeader({
                   !canUploadImages ? (
                     <span>
                       Not in your plan. Please upgrade.{" "}
-                      <Link href="/account" className="underline text-[#49734F]">
+                      <Link href="/billing" className="underline text-[#49734F]">
                         Upgrade
                       </Link>
                     </span>
