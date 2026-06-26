@@ -1,6 +1,7 @@
 import {
   selectIsProctoringActive,
   resetProctoring,
+  setProctoringFeatures,
   setProctoringPermissionError,
   setProctoringReady,
   setProctoringSetupStarting,
@@ -32,6 +33,7 @@ const useProctoring = ({
   doubleDisplayTimeoutSeconds = PROCTORING_CONFIG.doubleDisplayTimeout,
   initialMediaStream = null,
   skipAutoSetup = false,
+  proctoringFeatures = {},
 }: UseProctoringOptions): UseProctoringResult => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
@@ -39,6 +41,17 @@ const useProctoring = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(initialMediaStream);
   const activeSetupRequestRef = useRef(0);
+
+  const featureEnabled = (key: string, defaultValue = true) =>
+    proctoringFeatures[key] !== undefined ? Boolean(proctoringFeatures[key]) : defaultValue;
+
+  useEffect(() => {
+    dispatch(
+      setProctoringFeatures({
+        enableAutoDisqualification: featureEnabled("proctoring_auto_disqualification", true),
+      }),
+    );
+  }, [dispatch, proctoringFeatures]);
 
   const stopProctoringSession = useCallback(() => {
     if (!skipAutoSetup) {
@@ -175,20 +188,39 @@ const useProctoring = ({
 
   const isMonitoringActive = isExamReady && isProctoringActive && Boolean(mediaStream);
 
-  useBrowserMonitoring(isMonitoringActive);
+  const browserMonitoringActive =
+    isMonitoringActive &&
+    (featureEnabled("proctoring_tab_switch") ||
+      featureEnabled("proctoring_fullscreen_exit") ||
+      featureEnabled("proctoring_page_refresh") ||
+      featureEnabled("proctoring_browser_change"));
+
+  useBrowserMonitoring(browserMonitoringActive);
   useHeadEyeMonitoring({
-    isActive: isMonitoringActive,
+    isActive:
+      isMonitoringActive &&
+      (featureEnabled("proctoring_no_face") ||
+        featureEnabled("proctoring_multiple_face") ||
+        featureEnabled("proctoring_looking_away") ||
+        featureEnabled("proctoring_video_monitoring")),
     videoRef,
     mediaStream,
     onMonitoringError: handleMonitoringError,
   });
-  useObjectDetection({ isActive: isMonitoringActive, videoRef, mediaStream });
-  useVoiceDetection({ isActive: isMonitoringActive, mediaStream });
-  useKeyboardMonitoring(isMonitoringActive);
-  useIdleDetection(isMonitoringActive);
-  useDevToolsDetection(isMonitoringActive);
+  useObjectDetection({
+    isActive: isMonitoringActive && (featureEnabled("proctoring_phone") || featureEnabled("proctoring_video_monitoring")),
+    videoRef,
+    mediaStream,
+  });
+  useVoiceDetection({
+    isActive: isMonitoringActive && featureEnabled("proctoring_voice"),
+    mediaStream,
+  });
+  useKeyboardMonitoring(isMonitoringActive && featureEnabled("proctoring_copy_paste"));
+  useIdleDetection(isMonitoringActive && featureEnabled("proctoring_idle"));
+  useDevToolsDetection(isMonitoringActive && featureEnabled("proctoring_devtools"));
   useDoubleDisplayMonitoring({
-    isActive: isMonitoringActive,
+    isActive: isMonitoringActive && featureEnabled("proctoring_double_display"),
     timeoutSeconds: doubleDisplayTimeoutSeconds,
   });
 

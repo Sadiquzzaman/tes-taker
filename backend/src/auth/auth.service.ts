@@ -10,6 +10,7 @@ import { SmsService } from 'src/sms/sms.service';
 import { SmsRateLimitService } from 'src/sms/sms-rate-limit.service';
 import { EmailService } from 'src/email/email.service';
 import { ClassService } from 'src/classes/class.service';
+import { SubscriptionService } from 'src/subscriptions/subscription.service';
 import { UserReponseDto } from 'src/user/dto/user-response.dto';
 import { VerifyOtpDto } from 'src/sms/dto/sms.dto';
 import { RolesEnum } from 'src/common/enums/roles.enum';
@@ -22,6 +23,7 @@ export class AuthService {
     private readonly smsRateLimitService: SmsRateLimitService,
     private readonly emailService: EmailService,
     private readonly classService: ClassService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async signUp(registerUserDto: RegisterUserDto) {
@@ -105,6 +107,14 @@ export class AuthService {
     }
 
     await this.userService.verifyUserByPhone(phone);
+
+    if (user.role === RolesEnum.TEACHER) {
+      try {
+        await this.subscriptionService.provisionFreePlan(user.id, user.full_name ?? 'Teacher');
+      } catch (error) {
+        console.error('Failed to provision free subscription:', error);
+      }
+    }
 
     // Handle class invitation if provided (classInvitationToken is actually classId)
     if (classInvitationToken) {

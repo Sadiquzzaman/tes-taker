@@ -5,6 +5,9 @@ import { useToast } from "@/component/Toast/ToastContext";
 import { clearPendingFocusQuestionId, updateQuestionImage, updateQuestionText } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useRef, type ChangeEvent } from "react";
+import useEntitlements from "@/hooks/api/subscription/useEntitlements";
+import Tooltip from "@/Ui/Tooltip";
+import Link from "next/link";
 import { QUESTION_BUILDER_GAPS, readImageFileAsDataUrl, resizeTextarea } from "./shared";
 
 function QuestionCardHeader({
@@ -23,6 +26,8 @@ function QuestionCardHeader({
 }: QuestionCardHeaderProps) {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
+  const { hasFeature } = useEntitlements();
+  const canUploadImages = hasFeature("allow_question_images");
   const questionInputRef = useRef<HTMLTextAreaElement>(null);
   const questionImageInputRef = useRef<HTMLInputElement>(null);
 
@@ -141,14 +146,29 @@ function QuestionCardHeader({
           />
           {!questionImage ? (
             <div className={`flex items-center ${QUESTION_BUILDER_GAPS.headerImageActions}`}>
-              <button
-                type="button"
-                title="Upload question image"
-                onClick={() => questionImageInputRef.current?.click()}
-                aria-label="Upload question image"
+              <Tooltip
+                content={
+                  !canUploadImages ? (
+                    <span>
+                      Not in your plan. Please upgrade.{" "}
+                      <Link href="/account" className="underline text-[#49734F]">
+                        Upgrade
+                      </Link>
+                    </span>
+                  ) : null
+                }
               >
-                <UploadImageIconSVG />
-              </button>
+                <button
+                  type="button"
+                  title="Upload question image"
+                  onClick={() => canUploadImages && questionImageInputRef.current?.click()}
+                  disabled={!canUploadImages}
+                  className={!canUploadImages ? "opacity-50 cursor-not-allowed" : ""}
+                  aria-label="Upload question image"
+                >
+                  <UploadImageIconSVG />
+                </button>
+              </Tooltip>
             </div>
           ) : null}
         </div>

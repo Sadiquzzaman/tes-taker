@@ -1,9 +1,9 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { TeacherSubscriptionEntity } from './teacher-subscription.entity';
-import { SubscriptionPlanTypeEnum, BillingCycleEnum } from './subscription-plan.entity';
+import { SubscriptionPlanEntity, BillingCycleEnum } from './subscription-plan.entity';
 
 export enum PaymentStatusEnum {
   PENDING = 'PENDING',
@@ -39,9 +39,13 @@ export class PaymentHistoryEntity extends CustomBaseEntity {
   @JoinColumn({ name: 'subscription_id' })
   subscription?: TeacherSubscriptionEntity;
 
-  @ApiProperty({ description: 'Plan type purchased', enum: SubscriptionPlanTypeEnum })
-  @Column({ name: 'plan_type', type: 'enum', enum: SubscriptionPlanTypeEnum })
-  plan_type: SubscriptionPlanTypeEnum;
+  @ApiPropertyOptional({ description: 'Plan ID purchased' })
+  @Column({ name: 'plan_id', type: 'uuid', nullable: true })
+  plan_id?: string;
+
+  @ManyToOne(() => SubscriptionPlanEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'plan_id' })
+  plan?: SubscriptionPlanEntity;
 
   @ApiProperty({ description: 'Billing cycle', enum: BillingCycleEnum })
   @Column({ name: 'billing_cycle', type: 'enum', enum: BillingCycleEnum, nullable: true })

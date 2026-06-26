@@ -10,7 +10,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Platform",
     label: "Dashboard",
-    route: "/",
+    route: "/dashboard",
     role: ["TEACHER"],
     image: <SidebarDashboardIconSVG width={16} />,
   },
@@ -56,6 +56,27 @@ const sidebarList: SideBarList[] = [
     route: "/help",
     role: ["STUDENT", "TEACHER"],
     image: <SidebarHelpIconSVG width={16} />,
+  },
+  {
+    category: "Admin",
+    label: "Admin",
+    route: "/admin",
+    role: ["ADMIN", "SUPER_ADMIN"],
+    image: <SidebarDashboardIconSVG width={16} />,
+  },
+  {
+    category: "Admin",
+    label: "Plans",
+    route: "/admin/plans",
+    role: ["ADMIN", "SUPER_ADMIN"],
+    image: <SidebarTestsIconSVG width={16} />,
+  },
+  {
+    category: "Admin",
+    label: "Super Admin",
+    route: "/admin/super",
+    role: ["SUPER_ADMIN"],
+    image: <SidebarGradingIconSVG width={16} />,
   },
 ];
 

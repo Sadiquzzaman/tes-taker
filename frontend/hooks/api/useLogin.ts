@@ -80,11 +80,17 @@ const useLogin = () => {
     push("/join/test");
   };
 
+  const getRoleHomeRoute = (role: LoginResponsePayload["role"]) => {
+    if (role === "STUDENT") return "/classes";
+    if (role === "ADMIN" || role === "SUPER_ADMIN") return "/admin";
+    return "/dashboard";
+  };
+
   const handlePostLoginRedirect = async (payload: LoginResponsePayload) => {
     const isStudent = payload?.role === "STUDENT";
 
     if (!isStudent || !joinInfo?.id) {
-      push("/");
+      push(getRoleHomeRoute(payload?.role));
       return;
     }
 
@@ -98,7 +104,7 @@ const useLogin = () => {
       return;
     }
 
-    push("/");
+    push(getRoleHomeRoute(payload?.role));
   };
 
   const handleLoginError = (error: unknown) => {

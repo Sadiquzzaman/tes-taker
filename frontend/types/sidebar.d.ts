@@ -1,5 +1,5 @@
 interface SideBarList {
-  category: "Platform" | "System";
+  category: "Platform" | "System" | "Admin";
   label: string;
   route: string;
   role: RoleUserType[];
@@ -7,4 +7,4 @@ interface SideBarList {
   children?: SideBarList[];
 }
 
-type RoleUserType = "STUDENT" | "TEACHER";
+type RoleUserType = "STUDENT" | "TEACHER" | "ADMIN" | "SUPER_ADMIN";

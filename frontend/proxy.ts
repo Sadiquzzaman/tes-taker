@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const validRoles: RoleUserType[] = ["TEACHER", "STUDENT"];
+const validRoles: RoleUserType[] = ["TEACHER", "STUDENT", "ADMIN", "SUPER_ADMIN"];
 
 const routePolicies: RoutePolicy[] = [
   {
@@ -42,7 +42,31 @@ const routePolicies: RoutePolicy[] = [
     path: "/grading",
     match: "prefix",
     allowedRoles: ["TEACHER"],
-    redirectUnauthorizedTo: "/",
+    redirectUnauthorizedTo: "/dashboard",
+  },
+  {
+    path: "/dashboard",
+    match: "exact",
+    allowedRoles: ["TEACHER"],
+    redirectUnauthorizedTo: "/classes",
+  },
+  {
+    path: "/admin/super",
+    match: "prefix",
+    allowedRoles: ["SUPER_ADMIN"],
+    redirectUnauthorizedTo: "/admin",
+  },
+  {
+    path: "/admin",
+    match: "prefix",
+    allowedRoles: ["ADMIN", "SUPER_ADMIN"],
+    redirectUnauthorizedTo: "/dashboard",
+  },
+  {
+    path: "/payment",
+    match: "prefix",
+    allowedRoles: ["TEACHER"],
+    redirectUnauthorizedTo: "/login",
   },
   {
     path: "/tests",
@@ -58,8 +82,7 @@ const routePolicies: RoutePolicy[] = [
   {
     path: "/",
     match: "exact",
-    allowedRoles: ["TEACHER"],
-    redirectUnauthorizedTo: "/classes",
+    isPublic: true,
   },
   {
     path: "/classes",
@@ -94,7 +117,11 @@ const getRoleHomeRoute = (role: RoleUserType | null) => {
     return "/classes";
   }
 
-  return "/";
+  if (role === "ADMIN" || role === "SUPER_ADMIN") {
+    return "/admin";
+  }
+
+  return "/dashboard";
 };
 
 const createRedirectResponse = (request: NextRequest, pathname: string) => {
@@ -120,8 +147,14 @@ export function proxy(request: NextRequest) {
   }
 
   if (matchedPolicy?.isPublic) {
-    if (isAuthenticated && matchedPolicy.redirectAuthenticatedTo) {
-      return createRedirectResponse(request, matchedPolicy.redirectAuthenticatedTo);
+    if (isAuthenticated) {
+      if (pathname === "/" && role) {
+        return createRedirectResponse(request, getRoleHomeRoute(role));
+      }
+
+      if (matchedPolicy.redirectAuthenticatedTo) {
+        return createRedirectResponse(request, matchedPolicy.redirectAuthenticatedTo);
+      }
     }
 
     return NextResponse.next();

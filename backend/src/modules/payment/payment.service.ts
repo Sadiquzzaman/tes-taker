@@ -1,9 +1,11 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -19,6 +21,7 @@ import {
   SslSessionResponse,
   SslValidationResponse,
 } from './interfaces/sslcommerz.interface';
+import { SubscriptionService } from 'src/subscriptions/subscription.service';
 
 const SUCCESSFUL_VALIDATION_STATUSES = ['VALID', 'VALIDATED'];
 const HTTP_TIMEOUT_MS = 20000;
@@ -33,6 +36,8 @@ export class PaymentService {
     private readonly paymentRepo: Repository<PaymentEntity>,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
+    @Inject(forwardRef(() => SubscriptionService))
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -59,6 +64,12 @@ export class PaymentService {
       customerName: dto.customer.name,
       customerEmail: dto.customer.email,
       customerPhone: dto.customer.phone,
+      metadata: {
+        teacherId: dto.teacherId,
+        planId: dto.planId,
+        billingCycle: dto.billingCycle,
+        subscriptionId: dto.subscriptionId,
+      },
     });
     await this.paymentRepo.save(payment);
 
@@ -262,6 +273,8 @@ export class PaymentService {
       payment.paymentMethod = validation.card_type ?? payment.paymentMethod ?? null;
       await repo.save(payment);
 
+      await this.activateSubscriptionIfNeeded(payment);
+
       this.logger.log(`Payment settled successfully | tran_id=${transactionId} status=PAID`);
       return payment;
     });
@@ -410,6 +423,27 @@ export class PaymentService {
     }
 
     return config;
+  }
+
+  private async activateSubscriptionIfNeeded(payment: PaymentEntity): Promise<void> {
+    const subscriptionId = payment.metadata?.subscriptionId;
+    if (!subscriptionId) {
+      return;
+    }
+
+    try {
+      await this.subscriptionService.activateSubscriptionFromPayment(
+        subscriptionId,
+        payment.transactionId,
+        Number(payment.amount),
+        payment.sslValId ?? undefined,
+      );
+      this.logger.log(`Subscription activated | subscriptionId=${subscriptionId} tran_id=${payment.transactionId}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to activate subscription after payment | subscriptionId=${subscriptionId} error=${this.stringifyError(error)}`,
+      );
+    }
   }
 
   private stringifyError(error: unknown): string {

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsEmail,
@@ -55,4 +55,24 @@ export class InitiatePaymentDto {
   @IsOptional()
   @IsString()
   productCategory?: string;
+
+  @ApiPropertyOptional({ description: 'Teacher UUID for subscription checkout' })
+  @IsOptional()
+  @IsString()
+  teacherId?: string;
+
+  @ApiPropertyOptional({ description: 'Plan UUID for subscription checkout' })
+  @IsOptional()
+  @IsString()
+  planId?: string;
+
+  @ApiPropertyOptional({ description: 'Billing cycle for subscription checkout' })
+  @IsOptional()
+  @IsString()
+  billingCycle?: string;
+
+  @ApiPropertyOptional({ description: 'Pending subscription UUID' })
+  @IsOptional()
+  @IsString()
+  subscriptionId?: string;
 }
