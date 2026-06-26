@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import React from "react";
-import CreateActionPlusIconSVG from "../svg/CreateActionPlusIconSVG";
+import CreateTestActionButton from "@/component/Tests/CreateTestActionButton";
 import { useNameSection } from "@/hooks/Dashboard/useNameSection";
 
 const NameSection = () => {
@@ -17,12 +16,9 @@ const NameSection = () => {
         </p>
       </div>
 
-      <Link href="/tests/create" className="flex justify-end items-center gap-2 h-[40px]">
-        <button className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] sm:h-[40px] bg-[#232A25] rounded-xl font-[500] text-white font-medium text-[12px] sm:text-[14px]">
-          <CreateActionPlusIconSVG className="size-4 text-white" />
-          <span className="capitalize mb-[2px]">Create Test</span>
-        </button>
-      </Link>
+      <div className="flex justify-end items-center gap-2 h-[40px]">
+        <CreateTestActionButton />
+      </div>
     </div>
   );
 };

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import axiosReq from "@/lib/axios";
+import { useToast } from "@/component/Toast/ToastContext";
 
 type SubscriptionRow = {
   id: string;
@@ -11,7 +12,7 @@ type SubscriptionRow = {
   start_date?: string;
   end_date?: string;
   created_at?: string;
-  teacher?: { full_name?: string; email?: string; phone?: string };
+  teacher?: { full_name?: string; email?: string; phone?: string; is_active?: number };
   plan?: { name?: string };
 };
 
@@ -21,20 +22,30 @@ const formatDate = (value?: string) => {
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
 };
 
+const isTeacherActive = (value?: number) => value === 1 || value === undefined;
+
 const AdminTeachersTable = () => {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const { triggerToast } = useToast();
   const [subscriptions, setSubscriptions] = useState<SubscriptionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    axiosReq
-      .get(`${baseUrl}/subscriptions/admin/all-subscriptions`)
-      .then((res) => setSubscriptions(res.data?.payload ?? []))
-      .finally(() => setLoading(false));
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axiosReq.get(`${baseUrl}/subscriptions/admin/all-subscriptions`);
+      setSubscriptions(res.data?.payload ?? []);
+    } finally {
+      setLoading(false);
+    }
   }, [baseUrl]);
 
-  // One row per teacher: prefer the active subscription, otherwise the latest one.
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
   const teacherRows = useMemo(() => {
     const byTeacher = new Map<string, SubscriptionRow>();
     for (const sub of subscriptions) {
@@ -54,6 +65,29 @@ const AdminTeachersTable = () => {
     if (!q) return teacherRows;
     return teacherRows.filter((row) => (row.teacher?.full_name ?? "").toLowerCase().includes(q));
   }, [teacherRows, search]);
+
+  const toggleTeacherStatus = async (teacherId: string, active: boolean) => {
+    setTogglingId(teacherId);
+    try {
+      await axiosReq.patch(`${baseUrl}/subscriptions/admin/teacher/${teacherId}/status`, { active });
+      triggerToast({
+        title: active ? "Teacher enabled" : "Teacher disabled",
+        description: active
+          ? "The teacher can log in again."
+          : "The teacher can no longer log in.",
+        type: "success",
+      });
+      await loadData();
+    } catch {
+      triggerToast({
+        title: "Error",
+        description: "Failed to update teacher status.",
+        type: "error",
+      });
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   return (
     <>
@@ -84,40 +118,62 @@ const AdminTeachersTable = () => {
                 <th className="p-3">Status</th>
                 <th className="p-3">Started</th>
                 <th className="p-3">Ends</th>
+                <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-[#747775]">
+                  <td colSpan={7} className="p-6 text-center text-[#747775]">
                     Loading...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-[#747775]">
+                  <td colSpan={7} className="p-6 text-center text-[#747775]">
                     No teachers found
                   </td>
                 </tr>
               ) : (
-                filtered.map((row) => (
-                  <tr key={row.id} className="border-t border-[#EFF0F3]">
-                    <td className="p-3 text-[#232A25]">{row.teacher?.full_name ?? "—"}</td>
-                    <td className="p-3 text-[#747775]">{row.teacher?.email ?? row.teacher?.phone ?? "—"}</td>
-                    <td className="p-3 text-[#49734F]">{row.plan?.name ?? "—"}</td>
-                    <td className="p-3">
-                      <span
-                        className={`text-[12px] px-2 py-0.5 rounded-full ${
-                          row.status === "ACTIVE" ? "bg-[#EAF2EB] text-[#49734F]" : "bg-[#EFF0F3] text-[#747775]"
-                        }`}
-                      >
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="p-3">{formatDate(row.start_date ?? row.created_at)}</td>
-                    <td className="p-3">{formatDate(row.end_date)}</td>
-                  </tr>
-                ))
+                filtered.map((row) => {
+                  const teacherId = row.teacher_id ?? "";
+                  const active = isTeacherActive(row.teacher?.is_active);
+
+                  return (
+                    <tr key={row.id} className="border-t border-[#EFF0F3]">
+                      <td className="p-3 text-[#232A25]">{row.teacher?.full_name ?? "—"}</td>
+                      <td className="p-3 text-[#747775]">{row.teacher?.email ?? row.teacher?.phone ?? "—"}</td>
+                      <td className="p-3 text-[#49734F]">{row.plan?.name ?? "—"}</td>
+                      <td className="p-3">
+                        <span
+                          className={`text-[12px] px-2 py-0.5 rounded-full ${
+                            active ? "bg-[#EAF2EB] text-[#49734F]" : "bg-[#FDECEA] text-[#C0392B]"
+                          }`}
+                        >
+                          {active ? "Active" : "Disabled"}
+                        </span>
+                      </td>
+                      <td className="p-3">{formatDate(row.start_date ?? row.created_at)}</td>
+                      <td className="p-3">{formatDate(row.end_date)}</td>
+                      <td className="p-3">
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            disabled={!teacherId || togglingId === teacherId}
+                            onClick={() => void toggleTeacherStatus(teacherId, !active)}
+                            className={`px-3 py-1.5 text-xs rounded-[6px] disabled:opacity-60 ${
+                              active
+                                ? "border border-[#C0392B] text-[#C0392B]"
+                                : "bg-[#49734F] text-white"
+                            }`}
+                          >
+                            {togglingId === teacherId ? "Saving..." : active ? "Disable" : "Enable"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -35,11 +35,13 @@ import {
   CreatePlanDto,
   GrantTempAccessDto,
   ReorderPlansDto,
+  SetTeacherActiveDto,
   SubscribeByPlanIdDto,
   SubscriptionOverridesDto,
   UpdatePlanDto,
 } from './dto/plan-management.dto';
 import { PaymentMethodEnum } from './entities/payment-history.entity';
+import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 
 @Injectable()
 export class SubscriptionService implements OnModuleInit {
@@ -298,6 +300,13 @@ export class SubscriptionService implements OnModuleInit {
     return existing;
   }
 
+  private async cancelPendingSubscriptions(teacherId: string): Promise<void> {
+    await this.subscriptionRepo.update(
+      { teacher_id: teacherId, status: SubscriptionStatusEnum.PENDING },
+      { status: SubscriptionStatusEnum.CANCELLED },
+    );
+  }
+
   async subscribe(
     dto: SubscribeByPlanIdDto,
     jwtPayload: JwtPayloadInterface,
@@ -312,9 +321,16 @@ export class SubscriptionService implements OnModuleInit {
       throw new BadRequestException('This plan is currently not available');
     }
 
-    const existingSubscription = await this.cancelActiveSubscription(jwtPayload.id);
+    const activeSubscription = await this.getTeacherSubscription(jwtPayload.id);
     const { amount, endDate, startDate } = this.calculateBilling(plan, dto.billing_cycle);
     const isFree = amount === 0;
+
+    if (isFree) {
+      await this.cancelActiveSubscription(jwtPayload.id);
+    } else {
+      // Paid upgrades: keep the current ACTIVE plan until payment succeeds.
+      await this.cancelPendingSubscriptions(jwtPayload.id);
+    }
 
     const subscription = this.subscriptionRepo.create({
       teacher_id: jwtPayload.id,
@@ -324,9 +340,9 @@ export class SubscriptionService implements OnModuleInit {
       status: isFree ? SubscriptionStatusEnum.ACTIVE : SubscriptionStatusEnum.PENDING,
       start_date: startDate,
       end_date: isFree ? undefined : endDate,
-      exams_used_this_month: 0,
-      total_exams_used: existingSubscription?.total_exams_used ?? 0,
-      last_monthly_reset: new Date(),
+      exams_used_this_month: activeSubscription?.exams_used_this_month ?? 0,
+      total_exams_used: activeSubscription?.total_exams_used ?? 0,
+      last_monthly_reset: activeSubscription?.last_monthly_reset ?? new Date(),
       created_by: jwtPayload.id,
       created_user_name: jwtPayload.full_name,
       created_at: new Date(),
@@ -509,6 +525,26 @@ export class SubscriptionService implements OnModuleInit {
     });
   }
 
+  private async swapToActiveSubscription(
+    subscription: TeacherSubscriptionEntity,
+    amount: number,
+  ): Promise<TeacherSubscriptionEntity> {
+    const previousActive = await this.getTeacherSubscription(subscription.teacher_id);
+    if (previousActive && previousActive.id !== subscription.id) {
+      subscription.total_exams_used = previousActive.total_exams_used;
+      if (previousActive.plan_id === subscription.plan_id) {
+        subscription.exams_used_this_month = previousActive.exams_used_this_month;
+        subscription.last_monthly_reset = previousActive.last_monthly_reset;
+      }
+      previousActive.status = SubscriptionStatusEnum.CANCELLED;
+      await this.subscriptionRepo.save(previousActive);
+    }
+
+    subscription.status = SubscriptionStatusEnum.ACTIVE;
+    subscription.amount_paid = amount;
+    return this.subscriptionRepo.save(subscription);
+  }
+
   async activateSubscriptionFromPayment(
     subscriptionId: string,
     transactionId: string,
@@ -522,9 +558,7 @@ export class SubscriptionService implements OnModuleInit {
 
     if (!subscription) throw new NotFoundException('Subscription not found');
 
-    subscription.status = SubscriptionStatusEnum.ACTIVE;
-    subscription.amount_paid = amount;
-    await this.subscriptionRepo.save(subscription);
+    const activated = await this.swapToActiveSubscription(subscription, amount);
 
     await this.paymentRepo.save(
       this.paymentRepo.create({
@@ -542,7 +576,7 @@ export class SubscriptionService implements OnModuleInit {
       }),
     );
 
-    return subscription;
+    return activated;
   }
 
   async confirmPayment(
@@ -570,8 +604,7 @@ export class SubscriptionService implements OnModuleInit {
     await this.paymentRepo.save(payment);
 
     if (payment.subscription) {
-      payment.subscription.status = SubscriptionStatusEnum.ACTIVE;
-      await this.subscriptionRepo.save(payment.subscription);
+      await this.swapToActiveSubscription(payment.subscription, Number(payment.amount));
     }
 
     return payment;
@@ -586,12 +619,13 @@ export class SubscriptionService implements OnModuleInit {
   }
 
   async incrementExamCount(teacherId: string): Promise<void> {
-    const subscription = await this.getTeacherSubscription(teacherId);
-    if (subscription) {
-      subscription.exams_used_this_month += 1;
-      subscription.total_exams_used += 1;
-      await this.subscriptionRepo.save(subscription);
+    let subscription = await this.getTeacherSubscription(teacherId);
+    if (!subscription) {
+      subscription = await this.provisionFreePlan(teacherId);
     }
+    subscription.exams_used_this_month += 1;
+    subscription.total_exams_used += 1;
+    await this.subscriptionRepo.save(subscription);
   }
 
   async getAllSubscriptions(): Promise<TeacherSubscriptionEntity[]> {
@@ -643,5 +677,16 @@ export class SubscriptionService implements OnModuleInit {
     });
 
     return { items, total, page, limit };
+  }
+
+  async setTeacherActive(teacherId: string, active: boolean): Promise<UserEntity> {
+    const teacher = await this.userRepo.findOne({ where: { id: teacherId } });
+    if (!teacher || teacher.role !== RolesEnum.TEACHER) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    teacher.is_active = active ? ActiveStatusEnum.ACTIVE : ActiveStatusEnum.INACTIVE;
+    teacher.updated_at = new Date();
+    return this.userRepo.save(teacher);
   }
 }

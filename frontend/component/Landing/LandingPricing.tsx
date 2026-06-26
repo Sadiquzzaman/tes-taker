@@ -15,14 +15,7 @@ const LandingPricing = () => {
   const router = useRouter();
   const sortedPlans = [...plans].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
-  const handleSelect = (plan: SubscriptionPlan) => {
-    const isPaid = Number(plan.price_monthly) > 0;
-    // Remember the chosen paid plan so we can prompt for payment right after signup/login.
-    if (isPaid && plan.slug) {
-      localStorage.setItem("pendingPlan", plan.slug);
-    } else {
-      localStorage.removeItem("pendingPlan");
-    }
+  const handleSelect = () => {
     router.push("/signup");
   };
 
@@ -82,7 +75,7 @@ const LandingPricing = () => {
                 </ul>
                 <button
                   type="button"
-                  onClick={() => handleSelect(plan)}
+                  onClick={() => handleSelect()}
                   className="w-full text-center py-2.5 rounded-[8px] bg-[#49734F] text-white text-sm font-medium hover:bg-[#3d6242] transition-colors"
                   style={{ fontFamily: "Instrument Sans, sans-serif" }}
                 >

@@ -176,3 +176,9 @@ export class SubscribeByPlanIdDto {
   @IsString()
   transaction_id?: string;
 }
+
+export class SetTeacherActiveDto {
+  @ApiProperty({ description: 'Whether the teacher account is active and can log in' })
+  @IsBoolean()
+  active: boolean;
+}
