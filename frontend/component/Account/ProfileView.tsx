@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Suspense } from "react";
 import { RotatingLines } from "react-loader-spinner";
 import useProfile from "@/hooks/api/auth/useProfile";
 import ChangePasswordForm from "./ChangePasswordForm";
@@ -103,7 +104,11 @@ const ProfileView = () => {
         </div>
       </div>
 
-      {profile.role === "TEACHER" && <AccountBilling />}
+      {profile.role === "TEACHER" && (
+        <Suspense fallback={<div className="rounded-2xl border border-[#E5E5E5] bg-white p-6 animate-pulse h-40" />}>
+          <AccountBilling />
+        </Suspense>
+      )}
 
       <ChangePasswordForm />
     </div>

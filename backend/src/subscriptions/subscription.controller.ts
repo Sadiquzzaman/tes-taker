@@ -36,6 +36,7 @@ import {
   CreatePlanDto,
   GrantTempAccessDto,
   ReorderPlansDto,
+  SetTeacherActiveDto,
   SubscribeByPlanIdDto,
   SubscriptionOverridesDto,
   UpdatePlanDto,
@@ -331,6 +332,21 @@ export class SubscriptionController {
   async getTeacherPaymentHistory(@Param('teacherId', ParseUUIDPipe) teacherId: string) {
     const payload = await this.subscriptionService.getPaymentHistory(teacherId);
     return { message: 'Payment history retrieved successfully', payload };
+  }
+
+  @Patch('admin/teacher/:teacherId/status')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  async setTeacherActive(
+    @Param('teacherId', ParseUUIDPipe) teacherId: string,
+    @Body() dto: SetTeacherActiveDto,
+  ) {
+    const payload = await this.subscriptionService.setTeacherActive(teacherId, dto.active);
+    return {
+      message: dto.active ? 'Teacher enabled successfully' : 'Teacher disabled successfully',
+      payload,
+    };
   }
 
   // ========================

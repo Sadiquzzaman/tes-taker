@@ -45,41 +45,31 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
             </form>
           </div>
           <nav className="flex flex-col gap-2">
-            <p className="mt-4 px-4 pb-2 font-medium text-[13px] leading-[20px] tracking-[0.02em] text-[#747775] uppercase align-middle">
-              Platform
-            </p>
-            {sidebarList
-              .filter((element) => element.category === "Platform" && element.role.includes(role))
-              .map((element) => {
-                return (
-                  <Link href={element.route} key={element.label} className="w-full">
-                    <button
-                      className={`${activeRoute === element.route ? "bg-[#49734F] text-white" : "bg-[white] text-[#232A25] hover:bg-[#49734F] hover:text-white"} rounded-lg px-4 py-2 flex items-center gap-2 font-medium w-full`}
-                    >
-                      {element.image}
-                      {element.label}
-                    </button>
-                  </Link>
-                );
-              })}
+            {(["Platform", "System", "Admin"] as const).map((category) => {
+              const items = sidebarList.filter(
+                (element) => element.category === category && element.role.includes(role),
+              );
 
-            <p className="mt-4 px-4 pb-2 font-medium text-[13px] leading-[20px] tracking-[0.02em] text-[#747775] uppercase align-middle">
-              System
-            </p>
-            {sidebarList
-              .filter((element) => element.category === "System" && element.role.includes(role))
-              .map((element) => {
-                return (
-                  <Link href={element.route} key={element.label} className="w-full">
-                    <button
-                      className={`${activeRoute === element.route ? "bg-[#49734F] text-white" : "bg-[white] text-[#232A25] hover:bg-[#49734F] hover:text-white"} rounded-lg px-4 py-2 flex items-center gap-2 font-medium w-full`}
-                    >
-                      {element.image}
-                      {element.label}
-                    </button>
-                  </Link>
-                );
-              })}
+              if (items.length === 0) return null;
+
+              return (
+                <div key={category} className="flex flex-col gap-2">
+                  <p className="mt-4 px-4 pb-2 font-medium text-[13px] leading-[20px] tracking-[0.02em] text-[#747775] uppercase align-middle">
+                    {category}
+                  </p>
+                  {items.map((element) => (
+                    <Link href={element.route} key={element.label} className="w-full">
+                      <button
+                        className={`${activeRoute === element.route ? "bg-[#49734F] text-white" : "bg-[white] text-[#232A25] hover:bg-[#49734F] hover:text-white"} rounded-lg px-4 py-2 flex items-center gap-2 font-medium w-full`}
+                      >
+                        {element.image}
+                        {element.label}
+                      </button>
+                    </Link>
+                  ))}
+                </div>
+              );
+            })}
           </nav>
         </div>
         <div className="w-full shrink-0 border-t border-gray-200 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">

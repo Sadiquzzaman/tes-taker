@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import CreateTestActionButton from "@/component/Tests/CreateTestActionButton";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import NormalInput from "@/Ui/NormalInput";
 import { setActiveTab, setNewTestCreated, setSearchInput } from "@/lib/features/testSlice";
 import { testsTabList } from "@/utils/testsTabList";
 import FilterIconSVG from "../svg/FilterIconSVG";
 import ShareTestModal from "./ShareTestModal";
-import CreateActionPlusIconSVG from "../svg/CreateActionPlusIconSVG";
 
 interface TestsNameSectionProps {
   role: RoleUserType | undefined;
@@ -27,12 +26,7 @@ const TestsNameSection = ({ role }: TestsNameSectionProps) => {
 
         {shouldShowCreateTestButton && (
           <div className="flex justify-end items-center gap-2 h-[40px]">
-            <Link href="/tests/create">
-              <button className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] sm:h-[40px] bg-[#232A25] rounded-xl font-[500] text-white font-medium text-[12px] sm:text-[14px]">
-                <CreateActionPlusIconSVG className="size-4 text-white" />
-                <span className="capitalize mb-[2px]">Create Test</span>
-              </button>
-            </Link>
+            <CreateTestActionButton />
           </div>
         )}
       </div>

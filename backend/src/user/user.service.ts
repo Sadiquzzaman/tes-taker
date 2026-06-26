@@ -129,6 +129,10 @@ export class UserService {
       throw new UnauthorizedException('Please verify your phone number with OTP before logging in');
     }
 
+    if (user.is_active === ActiveStatusEnum.INACTIVE) {
+      throw new UnauthorizedException('Your account has been disabled. Please contact support.');
+    }
+
     // Generate token
     return await this.generateTokenForUser(user);
   }

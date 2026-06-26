@@ -26,6 +26,26 @@ export class PaymentCustomerDto {
   @IsString()
   @IsNotEmpty()
   phone: string;
+
+  @ApiPropertyOptional({ example: 'House 1, Road 1' })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @ApiPropertyOptional({ example: 'Dhaka' })
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @ApiPropertyOptional({ example: '1000' })
+  @IsOptional()
+  @IsString()
+  postcode?: string;
+
+  @ApiPropertyOptional({ example: 'Bangladesh' })
+  @IsOptional()
+  @IsString()
+  country?: string;
 }
 
 export class InitiatePaymentDto {

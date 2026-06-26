@@ -1,10 +1,5 @@
-import PageLayout from "@/component/Layout";
-import AdminDashboard from "@/component/Admin/AdminDashboard";
+import { redirect } from "next/navigation";
 
 export default function AdminPage() {
-  return (
-    <PageLayout route="/admin" subText="Admin">
-      <AdminDashboard />
-    </PageLayout>
-  );
+  redirect("/admin/plans");
 }
