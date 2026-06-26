@@ -14,6 +14,7 @@ import { StudentExamService } from './student-exam.service';
 import { ExamGradingController } from './exam-grading.controller';
 import { SmsModule } from 'src/sms/sms.module';
 import { SubjectModule } from 'src/subjects/subject.module';
+import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { SubjectModule } from 'src/subjects/subject.module';
     ]),
     SmsModule,
     SubjectModule,
+    SubscriptionModule,
   ],
   controllers: [ExamController, StudentExamController, ExamGradingController],
   providers: [ExamService, StudentExamService],

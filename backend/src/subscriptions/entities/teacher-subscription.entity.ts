@@ -1,8 +1,9 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserEntity } from 'src/user/entities/user.entity';
-import { SubscriptionPlanEntity, BillingCycleEnum, SubscriptionPlanTypeEnum } from './subscription-plan.entity';
+import { SubscriptionPlanEntity, BillingCycleEnum } from './subscription-plan.entity';
+import { PlanFeatures, PlanLimits } from '../constants/feature-catalog';
 
 export enum SubscriptionStatusEnum {
   ACTIVE = 'ACTIVE',
@@ -29,11 +30,7 @@ export class TeacherSubscriptionEntity extends CustomBaseEntity {
   @JoinColumn({ name: 'plan_id' })
   plan: SubscriptionPlanEntity;
 
-  @ApiProperty({ description: 'Plan type at time of subscription', enum: SubscriptionPlanTypeEnum })
-  @Column({ name: 'plan_type', type: 'enum', enum: SubscriptionPlanTypeEnum })
-  plan_type: SubscriptionPlanTypeEnum;
-
-  @ApiProperty({ description: 'Billing cycle', enum: BillingCycleEnum })
+  @ApiPropertyOptional({ description: 'Billing cycle', enum: BillingCycleEnum })
   @Column({ name: 'billing_cycle', type: 'enum', enum: BillingCycleEnum, nullable: true })
   billing_cycle?: BillingCycleEnum;
 
@@ -49,9 +46,17 @@ export class TeacherSubscriptionEntity extends CustomBaseEntity {
   @Column({ name: 'start_date', type: 'timestamp' })
   start_date: Date;
 
-  @ApiProperty({ description: 'Subscription end date' })
+  @ApiPropertyOptional({ description: 'Subscription end date' })
   @Column({ name: 'end_date', type: 'timestamp', nullable: true })
   end_date?: Date;
+
+  @ApiPropertyOptional({ description: 'Per-subscription feature/limit overrides (super-admin)' })
+  @Column({ name: 'overrides', type: 'jsonb', nullable: true, default: null })
+  overrides?: {
+    features?: PlanFeatures;
+    limits?: PlanLimits;
+    expires_at?: string;
+  } | null;
 
   @ApiProperty({ description: 'Number of exams used this month' })
   @Column({ name: 'exams_used_this_month', type: 'int', default: 0 })
@@ -61,7 +66,7 @@ export class TeacherSubscriptionEntity extends CustomBaseEntity {
   @Column({ name: 'total_exams_used', type: 'int', default: 0 })
   total_exams_used: number;
 
-  @ApiProperty({ description: 'Last exam count reset date' })
+  @ApiPropertyOptional({ description: 'Last exam count reset date' })
   @Column({ name: 'last_monthly_reset', type: 'timestamp', nullable: true })
   last_monthly_reset?: Date;
 }

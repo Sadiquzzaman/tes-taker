@@ -4,6 +4,7 @@ import Image from "next/image";
 import { RotatingLines } from "react-loader-spinner";
 import useProfile from "@/hooks/api/auth/useProfile";
 import ChangePasswordForm from "./ChangePasswordForm";
+import AccountBilling from "./AccountBilling";
 
 const formatDate = (value?: string) => {
   if (!value) return "—";
@@ -101,6 +102,8 @@ const ProfileView = () => {
           <InfoRow label="Member since" value={formatDate(profile.created_at)} />
         </div>
       </div>
+
+      {profile.role === "TEACHER" && <AccountBilling />}
 
       <ChangePasswordForm />
     </div>

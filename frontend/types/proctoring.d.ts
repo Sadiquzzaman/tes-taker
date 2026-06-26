@@ -56,6 +56,7 @@ interface ProctoringState extends ProctoringSummary {
   isWarningBlocking: boolean;
   activeCountdown: ProctoringCountdownState | null;
   disqualificationReason: string | null;
+  enableAutoDisqualification: boolean;
 }
 
 interface AddProctoringFlagPayload {
@@ -81,6 +82,7 @@ interface UseProctoringOptions {
   doubleDisplayTimeoutSeconds?: number;
   initialMediaStream?: MediaStream | null;
   skipAutoSetup?: boolean;
+  proctoringFeatures?: Record<string, boolean>;
 }
 
 interface UseProctoringResult {

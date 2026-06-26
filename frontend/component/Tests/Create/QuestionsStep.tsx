@@ -1,5 +1,8 @@
 import { addQuestion, finishDragging, startDragging, updateDragging } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import useEntitlements from "@/hooks/api/subscription/useEntitlements";
+import Tooltip from "@/Ui/Tooltip";
+import Link from "next/link";
 import {
   getSubjectQuestionCount,
   getSubjectTotalMarks,
@@ -56,6 +59,13 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const dragHandlePointerRef = useRef<{ element: HTMLButtonElement; pointerId: number } | null>(null);
   const [activeQuestionCategory, setActiveQuestionCategory] =
     useState<CreateTestQuestionCategory>(defaultQuestionCategory);
+  const { hasFeature } = useEntitlements();
+
+  const isCategoryEntitled = (categoryId: CreateTestQuestionCategory) => {
+    if (categoryId === "ungraded") return hasFeature("allow_ungraded_questions");
+    if (categoryId === "passage-question") return hasFeature("allow_passage_questions");
+    return true;
+  };
 
   const activeSubject = useMemo(
     () => subjects.find((subject) => subject.id === activeSubjectId) ?? subjects[0] ?? null,
@@ -483,19 +493,41 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
           <div className="flex w-fit items-center gap-2 rounded-[8px] border border-[#49734F] bg-white p-1">
             {createTestQuestionCategoryOptions.map((category) => {
               const isActive = activeQuestionCategory === category.id;
+              const entitled = isCategoryEntitled(category.id);
 
-              return (
+              const button = (
                 <button
                   key={category.id}
                   type="button"
-                  onClick={() => handleQuestionCategorySelect(category.id)}
+                  onClick={() => entitled && handleQuestionCategorySelect(category.id)}
+                  disabled={!entitled}
                   className={`flex pb-1 h-9 min-w-[79px] items-center justify-center rounded-[6px] px-4 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] transition-none ${
-                    isActive ? "bg-[#49734F] text-white" : "bg-[#EFF0F3] text-[#232A25]"
+                    isActive ? "bg-[#49734F] text-white" : entitled ? "bg-[#EFF0F3] text-[#232A25]" : "bg-[#EFF0F3] text-[#747775] opacity-60 cursor-not-allowed"
                   }`}
                 >
                   {category.label}
                 </button>
               );
+
+              if (!entitled) {
+                return (
+                  <Tooltip
+                    key={category.id}
+                    content={
+                      <span>
+                        Not in your plan. Please upgrade.{" "}
+                        <Link href="/account" className="underline text-[#49734F]">
+                          Upgrade
+                        </Link>
+                      </span>
+                    }
+                  >
+                    {button}
+                  </Tooltip>
+                );
+              }
+
+              return button;
             })}
           </div>
 

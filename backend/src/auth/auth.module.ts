@@ -5,6 +5,7 @@ import { UserModule } from 'src/user/user.module';
 import { SmsModule } from 'src/sms/sms.module';
 import { EmailModule } from 'src/email/email.module';
 import { ClassModule } from 'src/classes/class.module';
+import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -16,6 +17,7 @@ import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
     SmsModule,
     EmailModule,
     ClassModule,
+    SubscriptionModule,
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,

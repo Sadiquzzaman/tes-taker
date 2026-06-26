@@ -70,6 +70,15 @@ export class PaymentEntity {
   @Column({ name: 'validation_response', type: 'jsonb', nullable: true })
   validationResponse: Record<string, unknown> | null;
 
+  @ApiPropertyOptional({ description: 'Subscription checkout metadata' })
+  @Column({ name: 'metadata', type: 'jsonb', nullable: true })
+  metadata: {
+    teacherId?: string;
+    planId?: string;
+    billingCycle?: string;
+    subscriptionId?: string;
+  } | null;
+
   @ApiProperty({ description: 'Created timestamp' })
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

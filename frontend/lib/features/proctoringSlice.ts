@@ -20,6 +20,7 @@ const initialState: ProctoringState = {
   isWarningBlocking: false,
   activeCountdown: null,
   disqualificationReason: null,
+  enableAutoDisqualification: true,
 };
 
 const createFlagId = () => {
@@ -61,7 +62,7 @@ const addPenaltyFlag = (state: ProctoringState, payload: AddProctoringFlagPayloa
     state.isWarningBlocking = true;
   }
 
-  if (state.flags.length >= PROCTORING_CONFIG.disqualifyAfter) {
+  if (state.flags.length >= PROCTORING_CONFIG.disqualifyAfter && state.enableAutoDisqualification) {
     state.isDisqualified = true;
     state.disqualificationReason = "Maximum allowed violations exceeded.";
     state.isWarningBlocking = false;
@@ -104,6 +105,14 @@ export const proctoringSlice = createSlice({
       state.activeCountdown = action.payload;
     },
     resetProctoring: () => ({ ...initialState, flags: [] }),
+    setProctoringFeatures: (
+      state,
+      action: PayloadAction<{ enableAutoDisqualification?: boolean }>,
+    ) => {
+      if (action.payload.enableAutoDisqualification !== undefined) {
+        state.enableAutoDisqualification = action.payload.enableAutoDisqualification;
+      }
+    },
     disqualifyExam: (state, action: PayloadAction<AddProctoringFlagPayload | undefined>) => {
       if (action.payload) {
         addPenaltyFlag(state, action.payload);
@@ -129,6 +138,7 @@ export const {
   dismissProctoringWarning,
   setProctoringCountdown,
   resetProctoring,
+  setProctoringFeatures,
   disqualifyExam,
 } = proctoringSlice.actions;
 

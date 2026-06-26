@@ -30,6 +30,9 @@ import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { SmsService } from 'src/sms/sms.service';
 import { SubjectService } from 'src/subjects/subject.service';
+import { EntitlementsService } from 'src/subscriptions/entitlements.service';
+import { SubscriptionService } from 'src/subscriptions/subscription.service';
+import { FeatureKey, LimitKey } from 'src/subscriptions/constants/feature-catalog';
 import { ExamLifecycleStatusEnum, TestAudienceEnum } from './enums/exam-wizard.enums';
 import { QuestionCategoryEnum } from './enums/question.enums';
 import {
@@ -113,6 +116,8 @@ export class ExamService {
 
     private readonly smsService: SmsService,
     private readonly subjectService: SubjectService,
+    private readonly entitlementsService: EntitlementsService,
+    private readonly subscriptionService: SubscriptionService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -124,6 +129,39 @@ export class ExamService {
     jwtPayload: JwtPayloadInterface,
   ): Promise<any> {
     const { formState, subjects, publishState } = dto;
+
+    const canCreate = await this.entitlementsService.canCreateExam(jwtPayload.id);
+    if (!canCreate.allowed) {
+      throw new ForbiddenException(canCreate.reason);
+    }
+
+    for (const subj of subjects) {
+      for (const raw of subj.questions) {
+        const parsed = parseWizardQuestion(raw);
+        if (parsed.kind === 'ungraded') {
+          await this.entitlementsService.assertFeature(
+            jwtPayload.id,
+            FeatureKey.ALLOW_UNGRADED_QUESTIONS,
+            'Ungraded questions are not available on your plan. Please upgrade.',
+          );
+        }
+        if (parsed.kind === 'passage') {
+          await this.entitlementsService.assertFeature(
+            jwtPayload.id,
+            FeatureKey.ALLOW_PASSAGE_QUESTIONS,
+            'Passage questions are not available on your plan. Please upgrade.',
+          );
+        }
+        const questionImage = (raw as { image?: unknown }).image;
+        if (questionImage) {
+          await this.entitlementsService.assertFeature(
+            jwtPayload.id,
+            FeatureKey.ALLOW_QUESTION_IMAGES,
+            'Question images are not available on your plan. Please upgrade.',
+          );
+        }
+      }
+    }
 
     if (publishState.scheduleAt >= publishState.endingAt) {
       throw new BadRequestException('Start time must be before end time');
@@ -194,6 +232,29 @@ export class ExamService {
       });
       if (excludedStudents.length !== excludedIds.length) {
         throw new BadRequestException('One or more excluded student ids are invalid');
+      }
+    }
+
+    let studentCount = 0;
+    if (publishState.testAudience === TestAudienceEnum.SPECIFIC_STUDENTS) {
+      studentCount = targetStudents.length;
+    } else if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS && publishState.selectedClassId) {
+      const approvedCount = await this.classStudentRepo.count({
+        where: {
+          class_id: publishState.selectedClassId,
+          status: ClassStudentStatusEnum.JOINED,
+        },
+      });
+      studentCount = Math.max(0, approvedCount - excludedStudents.length);
+    }
+
+    if (studentCount > 0) {
+      const entitlements = await this.entitlementsService.getEntitlements(jwtPayload.id);
+      const maxStudents = entitlements.limits[LimitKey.MAX_STUDENTS_PER_EXAM] ?? 0;
+      if (maxStudents > 0 && studentCount > maxStudents) {
+        throw new ForbiddenException(
+          `This exam targets ${studentCount} students, which exceeds your plan limit of ${maxStudents}. Please upgrade.`,
+        );
       }
     }
 
@@ -334,6 +395,8 @@ export class ExamService {
           console.error('Failed to send exam notifications:', err);
         });
       }
+
+      await this.subscriptionService.incrementExamCount(jwtPayload.id);
 
       return this.formatExamResponse(reloaded, { includeCorrectAnswers: true });
     });
