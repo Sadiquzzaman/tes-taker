@@ -388,12 +388,27 @@ export class PaymentService {
     payload.append('fail_url', `${config.frontendBaseUrl}/payment/fail`);
     payload.append('cancel_url', `${config.frontendBaseUrl}/payment/cancel`);
     payload.append('ipn_url', `${config.backendBaseUrl}/api/v1/payments/ipn`);
+
+    // EMI (mandatory)
+    payload.append('emi_option', '0');
+
+    // Customer info (cus_add1/cus_city/cus_country are mandatory for the session API)
     payload.append('cus_name', dto.customer.name);
     payload.append('cus_email', dto.customer.email);
+    payload.append('cus_add1', dto.customer.address ?? 'N/A');
+    payload.append('cus_city', dto.customer.city ?? 'Dhaka');
+    payload.append('cus_postcode', dto.customer.postcode ?? '1000');
+    payload.append('cus_country', dto.customer.country ?? 'Bangladesh');
     payload.append('cus_phone', dto.customer.phone);
+
+    // Shipping (mandatory). Digital subscription => no shipping.
+    payload.append('shipping_method', 'NO');
+    payload.append('num_of_item', '1');
+
+    // Product info (mandatory)
     payload.append('product_name', dto.productName ?? 'TestTaker Order');
     payload.append('product_category', dto.productCategory ?? 'general');
-    payload.append('product_profile', 'general');
+    payload.append('product_profile', 'non-physical-goods');
     return payload;
   }
 

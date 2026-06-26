@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { AxiosError } from "axios";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import useGetPlans from "@/hooks/api/subscription/useGetPlans";
 import axiosReq from "@/lib/axios";
-import { useToast } from "@/component/Toast/ToastContext";
+import { useApiError } from "@/hooks/api/useApiError";
 
 type BillingCycle = "MONTHLY" | "HALF_YEARLY" | "YEARLY";
 
@@ -25,7 +26,7 @@ const AccountBilling = () => {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const { entitlements, loading: entitlementsLoading, refetch } = useEntitlements();
   const { plans, loading: plansLoading } = useGetPlans();
-  const { triggerToast } = useToast();
+  const { handleError } = useApiError();
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("MONTHLY");
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
@@ -67,12 +68,8 @@ const AccountBilling = () => {
       }
 
       throw new Error("No gateway URL returned");
-    } catch {
-      triggerToast({
-        title: "Checkout failed",
-        description: "Unable to start payment. Please try again.",
-        type: "error",
-      });
+    } catch (error) {
+      handleError(error as AxiosError<ApiError>);
     } finally {
       setCheckoutLoading(null);
     }
