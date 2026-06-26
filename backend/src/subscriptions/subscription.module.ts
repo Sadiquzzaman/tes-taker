@@ -7,6 +7,7 @@ import { SubscriptionService } from './subscription.service';
 import { EntitlementsService } from './entitlements.service';
 import { SubscriptionController } from './subscription.controller';
 import { UserEntity } from 'src/user/entities/user.entity';
+import { ExamEntity } from 'src/exams/entities/exam.entity';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
       TeacherSubscriptionEntity,
       PaymentHistoryEntity,
       UserEntity,
+      ExamEntity,
     ]),
   ],
   controllers: [SubscriptionController],

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThanOrEqual, Repository } from 'typeorm';
 import {
   FeatureKey,
   LimitKey,
@@ -18,6 +18,7 @@ import {
   SubscriptionStatusEnum,
   TeacherSubscriptionEntity,
 } from './entities/teacher-subscription.entity';
+import { ExamEntity } from 'src/exams/entities/exam.entity';
 
 export interface EntitlementsUsage {
   exams_used_this_month: number;
@@ -51,7 +52,32 @@ export class EntitlementsService {
 
     @InjectRepository(TeacherSubscriptionEntity)
     private readonly subscriptionRepo: Repository<TeacherSubscriptionEntity>,
+
+    @InjectRepository(ExamEntity)
+    private readonly examRepo: Repository<ExamEntity>,
   ) {}
+
+  /**
+   * Usage is derived from the actual exams a teacher has created, so the numbers
+   * always reflect reality (including exams created before counting existed).
+   */
+  async getUsageCounts(teacherId: string): Promise<EntitlementsUsage> {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const [totalUsed, monthlyUsed] = await Promise.all([
+      this.examRepo.count({ where: { created_by: teacherId } }),
+      this.examRepo.count({
+        where: { created_by: teacherId, created_at: MoreThanOrEqual(startOfMonth) },
+      }),
+    ]);
+
+    return {
+      exams_used_this_month: monthlyUsed,
+      total_exams_used: totalUsed,
+    };
+  }
 
   private async findActiveSubscription(teacherId: string): Promise<TeacherSubscriptionEntity | null> {
     const subscription = await this.subscriptionRepo.findOne({
@@ -70,26 +96,6 @@ export class EntitlementsService {
     }
 
     return subscription;
-  }
-
-  private async resetMonthlyCountIfNeeded(subscription: TeacherSubscriptionEntity): Promise<void> {
-    const now = new Date();
-    const lastReset = subscription.last_monthly_reset;
-
-    if (!lastReset) {
-      subscription.last_monthly_reset = now;
-      await this.subscriptionRepo.save(subscription);
-      return;
-    }
-
-    const monthDiff =
-      (now.getFullYear() - lastReset.getFullYear()) * 12 + (now.getMonth() - lastReset.getMonth());
-
-    if (monthDiff >= 1) {
-      subscription.exams_used_this_month = 0;
-      subscription.last_monthly_reset = now;
-      await this.subscriptionRepo.save(subscription);
-    }
   }
 
   async getEffectivePlan(teacherId: string): Promise<SubscriptionPlanEntity> {
@@ -129,6 +135,7 @@ export class EntitlementsService {
 
     const features = mergeFeatures(plan.features ?? {}, activeOverrides?.features);
     const limits = mergeLimits(plan.limits ?? {}, activeOverrides?.limits);
+    const usage = await this.getUsageCounts(teacherId);
 
     return {
       plan: {
@@ -138,10 +145,7 @@ export class EntitlementsService {
       },
       features,
       limits,
-      usage: {
-        exams_used_this_month: subscription?.exams_used_this_month ?? 0,
-        total_exams_used: subscription?.total_exams_used ?? 0,
-      },
+      usage,
       subscription: subscription
         ? {
             id: subscription.id,
@@ -202,29 +206,23 @@ export class EntitlementsService {
   }
 
   async canCreateExam(teacherId: string): Promise<{ allowed: boolean; reason?: string }> {
-    const subscription = await this.findActiveSubscription(teacherId);
     const entitlements = await this.getEntitlements(teacherId);
+    const usage = entitlements.usage;
 
     const totalLimit = entitlements.limits[LimitKey.MAX_TOTAL_EXAMS] ?? 0;
-    if (totalLimit > 0) {
-      const totalUsed = subscription?.total_exams_used ?? 0;
-      if (totalUsed >= totalLimit) {
-        return {
-          allowed: false,
-          reason: `You have reached your total exam limit (${totalLimit}). Please upgrade your plan.`,
-        };
-      }
+    if (totalLimit > 0 && usage.total_exams_used >= totalLimit) {
+      return {
+        allowed: false,
+        reason: `You have reached your total exam limit (${totalLimit}). Please upgrade your plan.`,
+      };
     }
 
     const monthlyLimit = entitlements.limits[LimitKey.MAX_EXAMS_PER_MONTH] ?? 0;
-    if (monthlyLimit > 0 && subscription) {
-      await this.resetMonthlyCountIfNeeded(subscription);
-      if (subscription.exams_used_this_month >= monthlyLimit) {
-        return {
-          allowed: false,
-          reason: `You have reached your monthly exam limit (${monthlyLimit}). Please wait until next month or upgrade your plan.`,
-        };
-      }
+    if (monthlyLimit > 0 && usage.exams_used_this_month >= monthlyLimit) {
+      return {
+        allowed: false,
+        reason: `You have reached your monthly exam limit (${monthlyLimit}). Please wait until next month or upgrade your plan.`,
+      };
     }
 
     return { allowed: true };
