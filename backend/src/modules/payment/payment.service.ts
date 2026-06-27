@@ -187,6 +187,11 @@ export class PaymentService {
     return this.markTerminal(payload.tran_id, PaymentStatusEnum.CANCELLED, payload);
   }
 
+  /** Frontend origin used to redirect the browser after a gateway callback. */
+  getFrontendBaseUrl(): string {
+    return this.configService.get<string>('FRONTEND_BASE_URL', '');
+  }
+
   async getByTransactionId(transactionId: string): Promise<PaymentEntity> {
     const payment = await this.paymentRepo.findOne({ where: { transactionId } });
     if (!payment) {
@@ -384,9 +389,11 @@ export class PaymentService {
     payload.append('total_amount', Number(dto.amount).toFixed(2));
     payload.append('currency', 'BDT');
     payload.append('tran_id', transactionId);
-    payload.append('success_url', `${config.frontendBaseUrl}/payment/success`);
-    payload.append('fail_url', `${config.frontendBaseUrl}/payment/fail`);
-    payload.append('cancel_url', `${config.frontendBaseUrl}/payment/cancel`);
+    // Settlement happens server-side: the gateway returns to the backend, which
+    // validates, updates the DB, then redirects the browser to the frontend.
+    payload.append('success_url', `${config.backendBaseUrl}/api/v1/payments/success`);
+    payload.append('fail_url', `${config.backendBaseUrl}/api/v1/payments/fail`);
+    payload.append('cancel_url', `${config.backendBaseUrl}/api/v1/payments/cancel`);
     payload.append('ipn_url', `${config.backendBaseUrl}/api/v1/payments/ipn`);
 
     // EMI (mandatory)

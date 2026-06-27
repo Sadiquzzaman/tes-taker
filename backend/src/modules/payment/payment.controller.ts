@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
+import { Body, Controller, Get, Logger, Param, Post, Req, Res } from '@nestjs/common';
+import { ApiExcludeEndpoint, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
 import { PaymentService } from './payment.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
@@ -10,6 +10,8 @@ import { SslCallbackPayload } from './interfaces/sslcommerz.interface';
 @ApiTags('Payments')
 @Controller({ path: 'payments', version: '1' })
 export class PaymentController {
+  private readonly logger = new Logger(PaymentController.name);
+
   constructor(private readonly paymentService: PaymentService) {}
 
   @Post('initiate')
@@ -53,34 +55,57 @@ export class PaymentController {
   }
 
   @Post('success')
-  @ApiOperation({
-    summary: 'Gateway success callback',
-    description:
-      'Optional server-side success handler. Always re-validates through the validation API before marking PAID.',
-  })
-  @ApiResponse({ status: 201, description: 'Success callback processed' })
-  async success(@Body() dto: SslCommerzCallbackDto, @Req() req: Request) {
+  @ApiExcludeEndpoint()
+  async success(@Body() dto: SslCommerzCallbackDto, @Req() req: Request, @Res() res: Response) {
     const payload = this.mergeCallback(dto, req);
-    const payment = await this.paymentService.handleSuccessCallback(payload);
-    return { message: 'Payment success processed', payload: payment };
+    const frontend = this.paymentService.getFrontendBaseUrl();
+    const tranId = encodeURIComponent(payload.tran_id ?? '');
+
+    try {
+      const payment = await this.paymentService.handleSuccessCallback(payload);
+      this.logger.log(`Success callback settled | tran_id=${payment.transactionId} status=${payment.status}`);
+      return res.redirect(`${frontend}/payment/success?tran_id=${encodeURIComponent(payment.transactionId)}`);
+    } catch (error) {
+      // Validation failed (or amount/tran mismatch): never show a success page.
+      this.logger.warn(
+        `Success callback rejected | tran_id=${payload.tran_id ?? 'n/a'} error=${error instanceof Error ? error.message : String(error)}`,
+      );
+      return res.redirect(`${frontend}/payment/fail?tran_id=${tranId}`);
+    }
   }
 
   @Post('fail')
-  @ApiOperation({ summary: 'Gateway fail callback' })
-  @ApiResponse({ status: 201, description: 'Fail callback processed' })
-  async fail(@Body() dto: SslCommerzCallbackDto, @Req() req: Request) {
+  @ApiExcludeEndpoint()
+  async fail(@Body() dto: SslCommerzCallbackDto, @Req() req: Request, @Res() res: Response) {
     const payload = this.mergeCallback(dto, req);
-    const payment = await this.paymentService.handleFailCallback(payload);
-    return { message: 'Payment failure processed', payload: payment };
+    const frontend = this.paymentService.getFrontendBaseUrl();
+    const tranId = encodeURIComponent(payload.tran_id ?? '');
+
+    try {
+      await this.paymentService.handleFailCallback(payload);
+    } catch (error) {
+      this.logger.warn(
+        `Fail callback could not update payment | tran_id=${payload.tran_id ?? 'n/a'} error=${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    return res.redirect(`${frontend}/payment/fail?tran_id=${tranId}`);
   }
 
   @Post('cancel')
-  @ApiOperation({ summary: 'Gateway cancel callback' })
-  @ApiResponse({ status: 201, description: 'Cancel callback processed' })
-  async cancel(@Body() dto: SslCommerzCallbackDto, @Req() req: Request) {
+  @ApiExcludeEndpoint()
+  async cancel(@Body() dto: SslCommerzCallbackDto, @Req() req: Request, @Res() res: Response) {
     const payload = this.mergeCallback(dto, req);
-    const payment = await this.paymentService.handleCancelCallback(payload);
-    return { message: 'Payment cancellation processed', payload: payment };
+    const frontend = this.paymentService.getFrontendBaseUrl();
+    const tranId = encodeURIComponent(payload.tran_id ?? '');
+
+    try {
+      await this.paymentService.handleCancelCallback(payload);
+    } catch (error) {
+      this.logger.warn(
+        `Cancel callback could not update payment | tran_id=${payload.tran_id ?? 'n/a'} error=${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    return res.redirect(`${frontend}/payment/cancel?tran_id=${tranId}`);
   }
 
   @Get(':transactionId')

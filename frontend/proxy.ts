@@ -63,10 +63,12 @@ const routePolicies: RoutePolicy[] = [
     redirectUnauthorizedTo: "/login",
   },
   {
+    // Gateway return pages. SSLCommerz redirects here from its own domain, so
+    // these must never require authentication (the auth cookie is SameSite=Lax
+    // and is not sent on the cross-site navigation).
     path: "/payment",
     match: "prefix",
-    allowedRoles: ["TEACHER"],
-    redirectUnauthorizedTo: "/login",
+    isPublic: true,
   },
   {
     path: "/tests",
