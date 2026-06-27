@@ -29,6 +29,13 @@ const sidebarList: SideBarList[] = [
     image: <SidebarClassesIconSVG width={16} />,
   },
   {
+    category: "Admin",
+    label: "Subjects",
+    route: "/admin/subjects",
+    role: ["ADMIN", "SUPER_ADMIN"],
+    image: <SidebarGradingIconSVG width={16} />,
+  },
+  {
     category: "Platform",
     label: "Dashboard",
     route: "/dashboard",
