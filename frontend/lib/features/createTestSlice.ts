@@ -13,6 +13,7 @@ import duplicateQuestionReducer from "./create-test/duplicateQuestion";
 import finishDraggingReducer from "./create-test/finishDragging";
 import goToNextStepReducer from "./create-test/goToNextStep";
 import goToPreviousStepReducer from "./create-test/goToPreviousStep";
+import hydrateFromExamReducer from "./create-test/hydrateFromExam";
 import moveQuestionReducer from "./create-test/moveQuestion";
 import removeExcludedStudentReducer from "./create-test/removeExcludedStudent";
 import removeMatchingPairReducer from "./create-test/removeMatchingPair";
@@ -48,6 +49,7 @@ export const createTestSlice = createSlice({
   initialState,
   reducers: {
     resetForm: resetFormReducer,
+    hydrateFromExam: hydrateFromExamReducer,
     goToNextStep: goToNextStepReducer,
     goToPreviousStep: goToPreviousStepReducer,
     setFormField: setFormFieldReducer,
@@ -92,6 +94,7 @@ export const createTestSlice = createSlice({
 
 export const {
   resetForm,
+  hydrateFromExam,
   addMatchingPair,
   addOption,
   addQuestion,

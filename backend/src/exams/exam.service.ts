@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, DeepPartial, Repository, In } from 'typeorm';
+import { DataSource, DeepPartial, EntityManager, Repository, In } from 'typeorm';
 import { buildResponseOptionId } from './utils/exam-option-ids.util';
 import { ExamEntity, ExamTypeEnum } from './entities/exam.entity';
 import {
@@ -28,6 +28,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
 import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities/class-student.entity';
 import { RolesEnum } from 'src/common/enums/roles.enum';
+import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { SmsService } from 'src/sms/sms.service';
 import { SubjectService } from 'src/subjects/subject.service';
 import { EntitlementsService } from 'src/subscriptions/entitlements.service';
@@ -892,6 +893,10 @@ export class ExamService {
     studentId: string,
     jwtPayload: JwtPayloadInterface,
   ): Promise<void> {
+    if (exam.is_active !== ActiveStatusEnum.ACTIVE) {
+      throw new ForbiddenException('This exam is not available');
+    }
+
     const excluded = exam.excluded_students?.some((s) => s.id === studentId);
     if (excluded) {
       throw new ForbiddenException('You have been excluded from this exam');
@@ -1025,6 +1030,7 @@ export class ExamService {
         .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
         .leftJoin('exam.excluded_students', 'excluded')
         .where('exam.class_id IN (:...classIds)', { classIds })
+        .andWhere('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
         .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId })
         .orderBy('exam.exam_start_time', 'DESC')
         .getMany();
@@ -1039,6 +1045,7 @@ export class ExamService {
         .leftJoinAndSelect('exam.primary_subject', 'primary_subject')
         .leftJoinAndSelect('exam.questionSections', 'questionSections')
         .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
+        .where('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
         .orderBy('exam.exam_start_time', 'DESC');
       const targetExams = await targetQuery.getMany();
       targetExams.forEach((e) => byId.set(e.id, e));
@@ -1304,6 +1311,7 @@ export class ExamService {
       id: exam.id,
       test_name: exam.test_name,
       status: this.computeExamLifecycleStatus(exam.exam_start_time, exam.exam_end_time),
+      is_active: exam.is_active,
       formState: {
         testName: exam.test_name ?? '',
         duration: exam.duration_minutes ?? 0,
@@ -1584,6 +1592,337 @@ export class ExamService {
     }
 
     return CORRECT_ANSWER_ENUM_BY_OPTION_INDEX.indexOf(answer);
+  }
+
+  /**
+   * Editing/disabling is only allowed while the exam has not started yet.
+   */
+  private assertExamEditableBeforeStart(exam: ExamEntity): void {
+    if (Date.now() >= new Date(exam.exam_start_time).getTime()) {
+      throw new ForbiddenException(
+        'This exam has already started; it can no longer be edited or disabled.',
+      );
+    }
+  }
+
+  /**
+   * Enable/disable an exam. Disabled exams are hidden from students and cannot be taken.
+   * Owner (or admin) only, and only before the exam start time.
+   */
+  async setExamActive(
+    id: string,
+    active: boolean,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<any> {
+    const exam = await this.findOneEntity(id);
+
+    if (
+      jwtPayload.role === RolesEnum.TEACHER &&
+      exam.created_by !== jwtPayload.id
+    ) {
+      throw new ForbiddenException('You do not have permission to update this exam');
+    }
+
+    this.assertExamEditableBeforeStart(exam);
+
+    exam.is_active = active ? ActiveStatusEnum.ACTIVE : ActiveStatusEnum.INACTIVE;
+    exam.updated_by = jwtPayload.id;
+    exam.updated_user_name = jwtPayload.full_name;
+    exam.updated_at = new Date();
+    await this.examRepo.save(exam);
+
+    return this.formatExamResponse(exam, { includeCorrectAnswers: true });
+  }
+
+  /**
+   * Replace an exam's details and questions via the wizard payload.
+   * Owner (or admin) only, and only before the exam start time.
+   */
+  async updateFromWizard(
+    id: string,
+    dto: CreateExamWizardDto,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<any> {
+    const { formState, subjects, publishState } = dto;
+
+    const existing = await this.findOneEntity(id);
+
+    if (
+      jwtPayload.role === RolesEnum.TEACHER &&
+      existing.created_by !== jwtPayload.id
+    ) {
+      throw new ForbiddenException('You do not have permission to edit this exam');
+    }
+
+    this.assertExamEditableBeforeStart(existing);
+
+    for (const subj of subjects) {
+      for (const raw of subj.questions) {
+        const parsed = parseWizardQuestion(raw);
+        if (parsed.kind === 'ungraded') {
+          await this.entitlementsService.assertFeature(
+            jwtPayload.id,
+            FeatureKey.ALLOW_UNGRADED_QUESTIONS,
+            'Ungraded questions are not available on your plan. Please upgrade.',
+          );
+        }
+        if (parsed.kind === 'passage') {
+          await this.entitlementsService.assertFeature(
+            jwtPayload.id,
+            FeatureKey.ALLOW_PASSAGE_QUESTIONS,
+            'Passage questions are not available on your plan. Please upgrade.',
+          );
+        }
+        const questionImage = (raw as { image?: unknown }).image;
+        if (questionImage) {
+          await this.entitlementsService.assertFeature(
+            jwtPayload.id,
+            FeatureKey.ALLOW_QUESTION_IMAGES,
+            'Question images are not available on your plan. Please upgrade.',
+          );
+        }
+      }
+    }
+
+    if (publishState.scheduleAt >= publishState.endingAt) {
+      throw new BadRequestException('Start time must be before end time');
+    }
+
+    if (formState.allowNegativeMarking) {
+      const v = Number(formState.negativeMarking);
+      if (
+        formState.negativeMarking === undefined ||
+        formState.negativeMarking === null ||
+        Number.isNaN(v) ||
+        v <= 0 ||
+        v > 100
+      ) {
+        throw new BadRequestException(
+          'Negative marking must be a percentage between 1 and 100 when enabled',
+        );
+      }
+    }
+
+    const subjectIds = subjects.map((s) => s.id);
+    await this.subjectService.assertSubjectsExist(subjectIds);
+
+    for (const subj of subjects) {
+      validateSubjectQuestions(subj.questions);
+    }
+
+    const { hasAutoScored, hasManual } = this.countQuestionCategories(subjects);
+    if (!hasAutoScored && !hasManual) {
+      throw new BadRequestException('Exam must include at least one question');
+    }
+
+    const primarySubjectId = subjects.length === 1 ? subjects[0].id : null;
+
+    if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS) {
+      if (!publishState.selectedClassId) {
+        throw new BadRequestException('selectedClassId is required when test audience is selected_class');
+      }
+      const cls = await this.classRepo.findOne({ where: { id: publishState.selectedClassId } });
+      if (!cls) throw new BadRequestException('Class not found');
+      if (
+        jwtPayload.role === RolesEnum.TEACHER &&
+        cls.teacher_id !== jwtPayload.id
+      ) {
+        throw new ForbiddenException('You do not own this class');
+      }
+    }
+
+    let targetStudents: UserEntity[] = [];
+    if (publishState.testAudience === TestAudienceEnum.SPECIFIC_STUDENTS) {
+      const ids = publishState.specificStudents || [];
+      if (ids.length === 0) {
+        throw new BadRequestException('specificStudents must contain at least one student id');
+      }
+      targetStudents = await this.userRepo.find({
+        where: { id: In(ids), role: RolesEnum.STUDENT },
+      });
+      if (targetStudents.length !== ids.length) {
+        throw new BadRequestException('One or more student ids are invalid');
+      }
+    }
+
+    let excludedStudents: UserEntity[] = [];
+    const excludedIds = publishState.excluded_students ?? [];
+    if (excludedIds.length > 0) {
+      excludedStudents = await this.userRepo.find({
+        where: { id: In(excludedIds), role: RolesEnum.STUDENT },
+      });
+      if (excludedStudents.length !== excludedIds.length) {
+        throw new BadRequestException('One or more excluded student ids are invalid');
+      }
+    }
+
+    let studentCount = 0;
+    if (publishState.testAudience === TestAudienceEnum.SPECIFIC_STUDENTS) {
+      studentCount = targetStudents.length;
+    } else if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS && publishState.selectedClassId) {
+      const approvedCount = await this.classStudentRepo.count({
+        where: {
+          class_id: publishState.selectedClassId,
+          status: ClassStudentStatusEnum.JOINED,
+        },
+      });
+      studentCount = Math.max(0, approvedCount - excludedStudents.length);
+    }
+
+    if (studentCount > 0) {
+      const entitlements = await this.entitlementsService.getEntitlements(jwtPayload.id);
+      const maxStudents = entitlements.limits[LimitKey.MAX_STUDENTS_PER_EXAM] ?? 0;
+      if (maxStudents > 0 && studentCount > maxStudents) {
+        throw new ForbiddenException(
+          `This exam targets ${studentCount} students, which exceeds your plan limit of ${maxStudents}. Please upgrade.`,
+        );
+      }
+    }
+
+    const examType =
+      hasAutoScored && !hasManual
+        ? ExamTypeEnum.OBJECTIVE
+        : hasManual && !hasAutoScored
+          ? ExamTypeEnum.SUBJECTIVE
+          : ExamTypeEnum.OBJECTIVE;
+
+    const negativeVal = formState.allowNegativeMarking
+      ? Number(formState.negativeMarking)
+      : undefined;
+
+    let examSubjectLabel = formState.testName.trim();
+    if (primarySubjectId) {
+      try {
+        const sub = await this.subjectService.findOne(primarySubjectId);
+        examSubjectLabel = sub.name;
+      } catch {
+        // Subject missing despite assertSubjectsExist — keep test title
+      }
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const examRepo = manager.getRepository(ExamEntity);
+      const questionRepo = manager.getRepository(ExamQuestionEntity);
+      const sectionRepo = manager.getRepository(ExamQuestionSectionEntity);
+
+      // No submissions exist before the start time, so replacing questions is safe.
+      await questionRepo.createQueryBuilder().delete().where('exam_id = :id', { id }).execute();
+      await sectionRepo.createQueryBuilder().delete().where('exam_id = :id', { id }).execute();
+
+      const examRow = await examRepo.findOne({
+        where: { id },
+        relations: ['excluded_students', 'target_students'],
+      });
+      if (!examRow) throw new NotFoundException('Exam not found');
+
+      examRow.exam_type = examType;
+      examRow.exam_kind = null;
+      examRow.test_name = formState.testName.trim();
+      examRow.primary_subject_id = primarySubjectId;
+      examRow.duration_minutes = formState.duration;
+      examRow.passing_score = formState.passingScore ?? null;
+      examRow.publish_timing = publishState.publishTiming;
+      examRow.test_audience = publishState.testAudience;
+      examRow.exam_start_time = publishState.scheduleAt;
+      examRow.exam_end_time = publishState.endingAt;
+      examRow.is_negative_marking = formState.allowNegativeMarking;
+      examRow.negative_mark_value = negativeVal ?? null;
+      examRow.subject = examSubjectLabel;
+      examRow.class_id =
+        publishState.testAudience === TestAudienceEnum.SELECTED_CLASS
+          ? publishState.selectedClassId!
+          : null;
+      examRow.excluded_students = excludedStudents;
+      examRow.target_students = targetStudents;
+      examRow.updated_by = jwtPayload.id;
+      examRow.updated_user_name = jwtPayload.full_name;
+      examRow.updated_at = new Date();
+      await examRepo.save(examRow);
+
+      await this.persistWizardSubjects(manager, id, subjects, jwtPayload);
+
+      const reloaded = await examRepo.findOne({
+        where: { id },
+        relations: [
+          'questions',
+          'questionSections',
+          'questionSections.questions',
+          'questionSections.subject',
+          'class',
+          'excluded_students',
+          'target_students',
+          'primary_subject',
+        ],
+      });
+      if (!reloaded) throw new NotFoundException('Exam not found after update');
+
+      return this.formatExamResponse(reloaded, { includeCorrectAnswers: true });
+    });
+  }
+
+  /**
+   * Create sections + questions for an exam from the wizard subjects payload.
+   */
+  private async persistWizardSubjects(
+    manager: EntityManager,
+    examId: string,
+    subjects: CreateExamWizardDto['subjects'],
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<void> {
+    const sectionRepo = manager.getRepository(ExamQuestionSectionEntity);
+    const questionRepo = manager.getRepository(ExamQuestionEntity);
+
+    let sectionOrder = 0;
+    for (const subj of subjects) {
+      const sectionPayload: DeepPartial<ExamQuestionSectionEntity> = {
+        exam_id: examId,
+        subject_id: subj.id,
+        section_type: 'mixed',
+        header_text: null,
+        instruction: null,
+        sort_order: sectionOrder++,
+        created_by: jwtPayload.id,
+        created_user_name: jwtPayload.full_name,
+        created_at: new Date(),
+      };
+      const section = sectionRepo.create(sectionPayload);
+      const savedSec = await sectionRepo.save(section);
+
+      let qOrder = 0;
+      for (const raw of subj.questions) {
+        const parsed = parseWizardQuestion(raw);
+        if (parsed.kind === 'passage') {
+          qOrder = await this.persistPassageQuestion(
+            questionRepo,
+            examId,
+            savedSec.id,
+            parsed.data,
+            qOrder,
+            jwtPayload,
+          );
+        } else if (parsed.kind === 'graded') {
+          await this.persistAutoScoredQuestion(
+            questionRepo,
+            examId,
+            savedSec.id,
+            parsed.data,
+            qOrder++,
+            jwtPayload,
+            QuestionCategoryEnum.GRADED,
+            null,
+          );
+        } else {
+          await this.persistUngradedQuestion(
+            questionRepo,
+            examId,
+            savedSec.id,
+            parsed.data,
+            qOrder++,
+            jwtPayload,
+          );
+        }
+      }
+    }
   }
 
   async updateExcludedStudents(

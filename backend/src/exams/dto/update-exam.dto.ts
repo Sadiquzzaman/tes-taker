@@ -1,8 +1,17 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsArray, IsUUID } from 'class-validator';
+import { IsArray, IsBoolean, IsUUID } from 'class-validator';
 import { CreateExamQuestionDto } from './create-exam-question.dto';
 
 export class UpdateExamQuestionDto extends PartialType(CreateExamQuestionDto) {}
+
+export class SetExamStatusDto {
+  @ApiProperty({
+    description: 'Whether the exam is active (visible to students). Set false to disable.',
+    example: true,
+  })
+  @IsBoolean()
+  active: boolean;
+}
 
 export class UpdateExcludedStudentsDto {
   @ApiProperty({

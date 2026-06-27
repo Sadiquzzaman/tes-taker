@@ -193,6 +193,7 @@ interface TeacherExamListItem {
   id: string;
   test_name: string;
   status: "ongoing" | "completed" | "pending";
+  is_active?: number;
   formState: StudentExamFormState;
   publishState: TeacherExamPublishState;
   subjects: StudentExamSubject[];
@@ -204,6 +205,22 @@ interface TeacherExamListItem {
   updated_at: string | null;
   participant_count: number;
   submitted_count: number;
+}
+
+interface TeacherExamDetails {
+  id: string;
+  test_name: string;
+  status: "ongoing" | "completed" | "pending";
+  is_active?: number;
+  formState: StudentExamFormState;
+  publishState: TeacherExamPublishState;
+  subjects: StudentExamSubject[];
+  class_id: string | null;
+  class_name: string | null;
+  created_by?: string;
+  created_user_name?: string;
+  created_at?: string;
+  updated_at?: string | null;
 }
 
 interface StudentAssignedExamListItem {

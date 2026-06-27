@@ -31,6 +31,7 @@ import {
 import { ClassEntity } from 'src/classes/entities/class.entity';
 import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities/class-student.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
+import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { SmsService } from 'src/sms/sms.service';
 import {
   StartExamDto,
@@ -239,6 +240,7 @@ export class StudentExamService {
         .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
         .leftJoin('exam.excluded_students', 'excluded')
         .where('exam.class_id IN (:...classIds)', { classIds })
+        .andWhere('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
         .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId });
 
       if (!includePast) {
@@ -255,9 +257,10 @@ export class StudentExamService {
       .leftJoinAndSelect('exam.class', 'class')
       .leftJoinAndSelect('exam.primary_subject', 'primary_subject')
       .leftJoinAndSelect('exam.questionSections', 'questionSections')
-      .leftJoinAndSelect('questionSections.subject', 'sectionSubject');
+      .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
+      .where('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE });
     if (!includePast) {
-      targetQuery = targetQuery.where('exam.exam_end_time > :now', { now });
+      targetQuery = targetQuery.andWhere('exam.exam_end_time > :now', { now });
     }
     targetQuery = targetQuery.orderBy('exam.exam_start_time', sortOrder);
     const targetExams = await targetQuery.getMany();
@@ -401,6 +404,15 @@ export class StudentExamService {
         canAccess: false,
         reason: 'Exam not found',
         reason_code: ExamAccessReasonCodeEnum.NOT_ASSIGNED,
+      };
+    }
+
+    if (exam.is_active !== ActiveStatusEnum.ACTIVE) {
+      return {
+        canAccess: false,
+        reason: 'This exam is not available',
+        reason_code: ExamAccessReasonCodeEnum.NOT_ASSIGNED,
+        exam,
       };
     }
 

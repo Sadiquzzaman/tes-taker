@@ -230,6 +230,7 @@ type SetPublishFieldPayload = {
 
 type CreateTestState = {
   currentStep: CreateTestStep;
+  editExamId: string | null;
   formState: FormState;
   subjects: SubjectItem[];
   activeSubjectId: string | null;
