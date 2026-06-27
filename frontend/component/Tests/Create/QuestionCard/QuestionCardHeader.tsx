@@ -3,11 +3,17 @@ import TrashIcon from "@/component/svg/TrashIcon";
 import UploadImageIconSVG from "@/component/svg/UploadImageIconSVG";
 import MicrophoneIconSVG from "@/component/svg/MicrophoneIconSVG";
 import { useToast } from "@/component/Toast/ToastContext";
-import { clearPendingFocusQuestionId, updateQuestionImage, updateQuestionText } from "@/lib/features/createTestSlice";
+import {
+  applySpokenQuestion,
+  clearPendingFocusQuestionId,
+  updateQuestionImage,
+  updateQuestionText,
+} from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import useSpeechRecognition, { type SpeechRecognitionLanguage } from "@/hooks/useSpeechRecognition";
+import { parseSpokenQuestion } from "@/utils/speech/parseSpokenQuestion";
 import Tooltip from "@/Ui/Tooltip";
 import Link from "next/link";
 import { QUESTION_BUILDER_GAPS, readImageFileAsDataUrl, resizeTextarea } from "./shared";
@@ -44,25 +50,37 @@ function QuestionCardHeader({
   const questionInputRef = useRef<HTMLTextAreaElement>(null);
   const questionImageInputRef = useRef<HTMLInputElement>(null);
 
-  // Keep the latest text in a ref so dictated speech always appends to the current value.
-  const questionTextRef = useRef(questionText);
-  useEffect(() => {
-    questionTextRef.current = questionText;
-  }, [questionText]);
-
-  const handleSpeechResult = useCallback(
+  // Parse the full spoken sentence (rule-based, no AI) once recording ends, then apply
+  // the question text and — for option-based subtypes — the options + correct answer.
+  const handleSpeechEnd = useCallback(
     (spokenText: string) => {
-      const existing = questionTextRef.current ?? "";
-      const needsSpace = existing.length > 0 && !/\s$/.test(existing);
-      const nextText = `${existing}${needsSpace ? " " : ""}${spokenText}`;
-      dispatch(updateQuestionText({ subjectId, questionId, text: nextText, parentPassageId }));
+      const parsed = parseSpokenQuestion(spokenText);
+
+      if (!parsed.question && parsed.options.length === 0) {
+        triggerToast({ description: "No speech detected. Please try again.", type: "error" });
+        return;
+      }
+
+      dispatch(
+        applySpokenQuestion({
+          subjectId,
+          questionId,
+          parentPassageId,
+          question: parsed.question,
+          options: parsed.options,
+          correctIndex: parsed.correctIndex,
+        }),
+      );
     },
-    [dispatch, parentPassageId, questionId, subjectId],
+    [dispatch, parentPassageId, questionId, subjectId, triggerToast],
   );
 
   const { isSupported, isListening, interimTranscript, startListening, stopListening } = useSpeechRecognition({
     lang: SPEECH_LANGUAGE,
-    onResult: handleSpeechResult,
+    // Continuous so a full question + options can be dictated without the recogniser
+    // cutting off after the first pause.
+    continuous: true,
+    onEnd: handleSpeechEnd,
     onError: (message) => triggerToast({ description: message, type: "error" }),
   });
 

@@ -90,6 +90,8 @@ export interface UseSpeechRecognitionOptions {
   interimResults?: boolean;
   /** Called once per finalized chunk of speech. */
   onResult?: (finalTranscript: string) => void;
+  /** Called once when recognition ends successfully, with the full session transcript. */
+  onEnd?: (finalTranscript: string) => void;
   /** Called with a user-friendly message whenever recognition fails. */
   onError?: (message: string) => void;
 }
@@ -111,6 +113,7 @@ const useSpeechRecognition = ({
   continuous = false,
   interimResults = true,
   onResult,
+  onEnd,
   onError,
 }: UseSpeechRecognitionOptions = {}): UseSpeechRecognitionReturn => {
   const [isSupported, setIsSupported] = useState(false);
@@ -122,22 +125,28 @@ const useSpeechRecognition = ({
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const manualStopRef = useRef(false);
   const gotFinalResultRef = useRef(false);
+  const hadErrorRef = useRef(false);
+  // Accumulates finalized text across the whole session (handles continuous mode + pauses).
+  const transcriptRef = useRef("");
   // Guards against double-starts when a user clicks the button rapidly.
   const activeRef = useRef(false);
 
   // Keep the latest callbacks without re-creating the recognition instance.
   const onResultRef = useRef(onResult);
+  const onEndRef = useRef(onEnd);
   const onErrorRef = useRef(onError);
   useEffect(() => {
     onResultRef.current = onResult;
+    onEndRef.current = onEnd;
     onErrorRef.current = onError;
-  }, [onResult, onError]);
+  }, [onResult, onEnd, onError]);
 
   useEffect(() => {
     setIsSupported(Boolean(getSpeechRecognitionConstructor()));
   }, []);
 
   const emitError = useCallback((message: string) => {
+    hadErrorRef.current = true;
     setError(message);
     setStatus("error");
     setInterimTranscript("");
@@ -180,8 +189,11 @@ const useSpeechRecognition = ({
 
     manualStopRef.current = false;
     gotFinalResultRef.current = false;
+    hadErrorRef.current = false;
+    transcriptRef.current = "";
     activeRef.current = true;
     setError(null);
+    setTranscript("");
     setInterimTranscript("");
 
     recognition.onstart = () => {
@@ -197,7 +209,8 @@ const useSpeechRecognition = ({
           const finalText = text.trim();
           if (finalText) {
             gotFinalResultRef.current = true;
-            setTranscript((previous) => (previous ? `${previous} ${finalText}` : finalText));
+            transcriptRef.current = transcriptRef.current ? `${transcriptRef.current} ${finalText}` : finalText;
+            setTranscript(transcriptRef.current);
             onResultRef.current?.(finalText);
           }
         } else {
@@ -220,18 +233,24 @@ const useSpeechRecognition = ({
       setInterimTranscript("");
       recognitionRef.current = null;
 
-      setStatus((current) => {
-        if (current === "error") {
-          return current;
-        }
-        if (!gotFinalResultRef.current && !manualStopRef.current) {
-          const message = "No speech detected. Please try again.";
-          setError(message);
-          onErrorRef.current?.(message);
-          return "error";
-        }
-        return "completed";
-      });
+      if (hadErrorRef.current) {
+        return;
+      }
+
+      if (!gotFinalResultRef.current) {
+        const message = "No speech detected. Please try again.";
+        hadErrorRef.current = true;
+        setError(message);
+        setStatus("error");
+        onErrorRef.current?.(message);
+        return;
+      }
+
+      setStatus("completed");
+      const finalText = transcriptRef.current.trim();
+      if (finalText) {
+        onEndRef.current?.(finalText);
+      }
     };
 
     recognitionRef.current = recognition;
