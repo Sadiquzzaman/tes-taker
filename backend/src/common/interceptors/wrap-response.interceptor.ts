@@ -21,13 +21,21 @@ export class WrapResponseInterceptor<T>
 {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
-      map((data) => ({
-        statusCode: context.switchToHttp().getResponse().statusCode,
-        message: data.message ?? 'successfull',
-        payload: data.payload,
-        meta: data.meta ?? undefined,
-        error: false,
-      })),
+      map((data) => {
+        const response = context.switchToHttp().getResponse();
+        // Handlers that manage the response themselves (e.g. @Res() redirects)
+        // emit no data and have already sent headers; leave them untouched.
+        if (response.headersSent || data === undefined || data === null) {
+          return data;
+        }
+        return {
+          statusCode: response.statusCode,
+          message: data.message ?? 'successfull',
+          payload: data.payload,
+          meta: data.meta ?? undefined,
+          error: false,
+        };
+      }),
     );
   }
 }
