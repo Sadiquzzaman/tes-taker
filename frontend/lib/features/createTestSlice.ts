@@ -4,6 +4,7 @@ import addMatchingPairReducer from "./create-test/addMatchingPair";
 import addOptionReducer from "./create-test/addOption";
 import addQuestionReducer from "./create-test/addQuestion";
 import addSubjectReducer from "./create-test/addSubject";
+import applySpokenQuestionReducer from "./create-test/applySpokenQuestion";
 import cancelDraggingReducer from "./create-test/cancelDragging";
 import clearPendingFocusOptionReducer from "./create-test/clearPendingFocusOption";
 import clearPendingFocusQuestionIdReducer from "./create-test/clearPendingFocusQuestionId";
@@ -59,6 +60,7 @@ export const createTestSlice = createSlice({
     removeSubject: removeSubjectReducer,
     setActiveSubjectId: setActiveSubjectIdReducer,
     addQuestion: addQuestionReducer,
+    applySpokenQuestion: applySpokenQuestionReducer,
     deleteQuestion: deleteQuestionReducer,
     duplicateQuestion: duplicateQuestionReducer,
     shuffleOptions: shuffleOptionsReducer,
@@ -98,6 +100,7 @@ export const {
   addMatchingPair,
   addOption,
   addQuestion,
+  applySpokenQuestion,
   addSubject,
   removeSubject,
   cancelDragging,
