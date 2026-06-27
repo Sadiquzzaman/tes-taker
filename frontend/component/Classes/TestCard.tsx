@@ -1,7 +1,6 @@
 import { useAppDispatch } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 import CalenderIconSVG from "../svg/CalenderIconSVG";
-import HumanAddIconSVG from "../svg/HumanAddIconSvg";
 import PlayIconSVG from "../svg/PlayIconSVG";
 import ShareIconSVG from "../svg/ShareIconSVG";
 import { setNewTestCreated } from "@/lib/features/testSlice";
@@ -41,6 +40,7 @@ const TestCard = ({
   const submissionProgress = participantCount > 0 ? (submittedCount / participantCount) * 100 : 0;
   const isStudent = role === "STUDENT";
   const isTeacher = role === "TEACHER";
+  const isExamDisabled = isTeacher && "is_active" in testData && testData.is_active === 0;
 
   // const testStatus = "pending" as "ongoing" | "completed" | "pending";
   const testStatus = testData.status;
@@ -62,7 +62,9 @@ const TestCard = ({
   };
 
   const handlePrimaryAction = () => {
-   
+    if (isTeacher) {
+      router.push(`/tests/${testData.id}`);
+    }
   };
 
   return (
@@ -74,12 +76,25 @@ const TestCard = ({
         <h2 className="text-[18px] font-[500] leading-[100%] tracking-[-0.02em] text-[#49734F]">
           {testData.test_name}
         </h2>
-        <span
-          style={{ background: statusColors[testStatus] }}
-          className={`px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] text-[${statusTextColors[testStatus]}] border border-[${statusTextColors[testStatus]}] rounded-[27px] box-border`}
-        >
-          {testStatus}
-        </span>
+        <div className="flex items-center gap-2">
+          {isTeacher && "is_active" in testData && (
+            <span
+              className={`px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] rounded-[27px] box-border border ${
+                isExamDisabled
+                  ? "text-[#B42318] border-[#B42318] bg-[#B4231815]"
+                  : "text-[#49734F] border-[#49734F] bg-[rgba(73,115,79,0.15)]"
+              }`}
+            >
+              {isExamDisabled ? "Disabled" : "Enabled"}
+            </span>
+          )}
+          <span
+            style={{ background: statusColors[testStatus] }}
+            className={`px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] text-[${statusTextColors[testStatus]}] border border-[${statusTextColors[testStatus]}] rounded-[27px] box-border`}
+          >
+            {testStatus}
+          </span>
+        </div>
       </div>
       <div className="w-full flex flex-wrap items-center justify-between gap-y-2">
         {from === "testList" && (
@@ -128,26 +143,17 @@ const TestCard = ({
         </div>
         <div className="flex items-center gap-2 text-[#747775]">
           {from === "testList" && isTeacher && (
-            <>
-              <button
-                title="Add Students"
-                className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]"
-                // onClick={() => dispatch(setOpenAddStudentModal(classItem))}
-              >
-                <HumanAddIconSVG width={16} />
-              </button>
-              <button
-                title="Share Tests"
-                className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]"
-                onClick={() => {
-                  if (isTeacherExamListItem(testData)) {
-                    dispatch(setNewTestCreated({ type: "existing", test: testData }));
-                  }
-                }}
-              >
-                <ShareIconSVG width={16} />
-              </button>
-            </>
+            <button
+              title="Share Tests"
+              className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]"
+              onClick={() => {
+                if (isTeacherExamListItem(testData)) {
+                  dispatch(setNewTestCreated({ type: "existing", test: testData }));
+                }
+              }}
+            >
+              <ShareIconSVG width={16} />
+            </button>
           )}
 
           {isStudentOngoingTest ? (
@@ -178,11 +184,13 @@ const TestCard = ({
                 e.currentTarget.style.color = statusTextColors[testStatus];
               }}
             >
-              {testStatus === "ongoing"
+              {isTeacher
                 ? "View details"
-                : testStatus === "completed"
-                  ? "View results"
-                  : "Continue marking"}
+                : testStatus === "ongoing"
+                  ? "View details"
+                  : testStatus === "completed"
+                    ? "View results"
+                    : "Continue marking"}
             </button>
           )}
         </div>

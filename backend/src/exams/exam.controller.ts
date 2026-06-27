@@ -7,10 +7,11 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from "@nestjs/common";
 import { CreateObjectiveExamDto, CreateSubjectiveExamDto } from "./dto/create-exam.dto";
-import { UpdateExcludedStudentsDto } from "./dto/update-exam.dto";
+import { SetExamStatusDto, UpdateExcludedStudentsDto } from "./dto/update-exam.dto";
 import {
   ApiBearerAuth,
   ApiBody,
@@ -176,6 +177,55 @@ export class ExamController {
     }
     const payload = await this.examService.findOne(id, jwtPayload);
     return { message: "Exam details retrieved successfully", payload };
+  }
+
+  @Put(":id")
+  @ApiBearerAuth("jwt")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({
+    summary: "Update an exam (unified wizard)",
+    description:
+      "Replace an exam's details and questions. Only the owner (or admin) may update, and only before the exam start time.",
+  })
+  @ApiBody({ type: CreateExamWizardDto })
+  @ApiParam({ name: "id", description: "Exam UUID" })
+  @ApiResponse({ status: 200, description: "Exam updated successfully" })
+  @ApiResponse({ status: 400, description: "Validation error" })
+  @ApiResponse({ status: 403, description: "Cannot edit after the exam has started" })
+  @ApiResponse({ status: 404, description: "Exam not found" })
+  async updateExam(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: CreateExamWizardDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.examService.updateFromWizard(id, dto, jwtPayload);
+    return { message: "Exam updated successfully", payload };
+  }
+
+  @Patch(":id/status")
+  @ApiBearerAuth("jwt")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({
+    summary: "Enable or disable an exam",
+    description:
+      "Disable an exam to hide it from students and block participation. Only the owner (or admin) may toggle, and only before the exam start time.",
+  })
+  @ApiParam({ name: "id", description: "Exam UUID" })
+  @ApiResponse({ status: 200, description: "Exam status updated" })
+  @ApiResponse({ status: 403, description: "Cannot change status after the exam has started" })
+  @ApiResponse({ status: 404, description: "Exam not found" })
+  async setStatus(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: SetExamStatusDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.examService.setExamActive(id, dto.active, jwtPayload);
+    return {
+      message: dto.active ? "Exam enabled successfully" : "Exam disabled successfully",
+      payload,
+    };
   }
 
   @Patch(":id/excluded-students")

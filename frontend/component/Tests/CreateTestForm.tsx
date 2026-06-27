@@ -1,7 +1,13 @@
 "use client";
 
-import { useRef } from "react";
-import { useAppSelector } from "@/lib/hooks";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { AxiosError } from "axios";
+import { RotatingLines } from "react-loader-spinner";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import axiosReq from "@/lib/axios";
+import { hydrateFromExam, resetForm } from "@/lib/features/createTestSlice";
+import { useApiError } from "@/hooks/api/useApiError";
 import CreateTestFooter from "./Create/CreateTestFooter";
 import CreateTestStepContent from "./Create/CreateTestStepContent";
 import CreateTestStepSidebar from "./Create/CreateTestStepSidebar";
@@ -12,6 +18,70 @@ const CreateTestForm = () => {
   const { currentStep, formState } = createTestState;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { handleNextStep, handlePreviousStep, isFirstStep, isSubmitting } = useCreateTestFlow(createTestState);
+
+  const dispatch = useAppDispatch();
+  const searchParams = useSearchParams();
+  const examId = searchParams.get("examId");
+  const { handleError } = useApiError();
+  const [hydrating, setHydrating] = useState(Boolean(examId));
+
+  useEffect(() => {
+    let active = true;
+
+    const loadExamForEdit = async () => {
+      if (!examId) {
+        if (createTestState.editExamId) {
+          dispatch(resetForm());
+        }
+        setHydrating(false);
+        return;
+      }
+
+      if (createTestState.editExamId === examId) {
+        setHydrating(false);
+        return;
+      }
+
+      setHydrating(true);
+      try {
+        const response = await axiosReq.get(`${process.env.NEXT_PUBLIC_BASE_URL}/exams/${examId}`);
+        if (active) {
+          dispatch(hydrateFromExam(response.data.payload));
+        }
+      } catch (error) {
+        handleError(error as AxiosError<ApiError>);
+      } finally {
+        if (active) {
+          setHydrating(false);
+        }
+      }
+    };
+
+    void loadExamForEdit();
+
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examId]);
+
+  if (hydrating) {
+    return (
+      <div className="flex min-h-[calc(100vh-96px)] items-center justify-center">
+        <RotatingLines
+          visible={true}
+          height="48"
+          width="48"
+          color="grey"
+          strokeWidth="5"
+          animationDuration="0.75"
+          ariaLabel="rotating-lines-loading"
+          wrapperStyle={{}}
+          wrapperClass=""
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-96px)] flex-col overflow-hidden lg:h-[calc(100vh-96px)]">

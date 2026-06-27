@@ -7,6 +7,7 @@ import { useAppDispatch } from "@/lib/hooks";
 import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/utils/createTestValidation";
 import { useToast } from "@/component/Toast/ToastContext";
 import useCreateTest from "@/hooks/api/tests/useCreateTest";
+import useUpdateTest from "@/hooks/api/tests/useUpdateTest";
 
 const handlePublishStateForSubmission = (publishState: PublishState) => {
   const result: PublishStateForPayload = {
@@ -27,8 +28,12 @@ const handlePublishStateForSubmission = (publishState: PublishState) => {
 const useCreateTestFlow = (createTestState: CreateTestState) => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
-  const [mutate, { loading }] = useCreateTest();
-  const { currentStep, formState, subjects, publishState } = createTestState;
+  const { currentStep, formState, subjects, publishState, editExamId } = createTestState;
+  const [createMutate, { loading: createLoading }] = useCreateTest();
+  const [updateMutate, { loading: updateLoading }] = useUpdateTest(editExamId);
+  const isEditing = Boolean(editExamId);
+  const mutate = isEditing ? updateMutate : createMutate;
+  const loading = isEditing ? updateLoading : createLoading;
 
   const handleNextStep = useCallback(async () => {
     if (currentStep === "Basic info") {

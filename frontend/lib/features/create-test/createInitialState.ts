@@ -12,6 +12,7 @@ const createInitialPublishState = (): PublishState => ({
 
 const createInitialState = (): CreateTestState => ({
   currentStep: createTestSteps[0],
+  editExamId: null,
   formState: {
     testName: "",
     duration: "",
