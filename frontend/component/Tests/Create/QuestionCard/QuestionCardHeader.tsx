@@ -1,14 +1,27 @@
 import Image from "next/image";
 import TrashIcon from "@/component/svg/TrashIcon";
 import UploadImageIconSVG from "@/component/svg/UploadImageIconSVG";
+import MicrophoneIconSVG from "@/component/svg/MicrophoneIconSVG";
 import { useToast } from "@/component/Toast/ToastContext";
 import { clearPendingFocusQuestionId, updateQuestionImage, updateQuestionText } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
-import { memo, useCallback, useEffect, useRef, type ChangeEvent } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
+import useSpeechRecognition, { type SpeechRecognitionLanguage } from "@/hooks/useSpeechRecognition";
 import Tooltip from "@/Ui/Tooltip";
 import Link from "next/link";
 import { QUESTION_BUILDER_GAPS, readImageFileAsDataUrl, resizeTextarea } from "./shared";
+
+// Configurable speech language. Future: en-US | en-GB | bn-BD (and can be promoted to a prop).
+const SPEECH_LANGUAGE: SpeechRecognitionLanguage = "en-US";
+
+const formatDuration = (totalSeconds: number) => {
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+};
 
 function QuestionCardHeader({
   activateCard,
@@ -30,6 +43,54 @@ function QuestionCardHeader({
   const canUploadImages = hasFeature("allow_question_images");
   const questionInputRef = useRef<HTMLTextAreaElement>(null);
   const questionImageInputRef = useRef<HTMLInputElement>(null);
+
+  // Keep the latest text in a ref so dictated speech always appends to the current value.
+  const questionTextRef = useRef(questionText);
+  useEffect(() => {
+    questionTextRef.current = questionText;
+  }, [questionText]);
+
+  const handleSpeechResult = useCallback(
+    (spokenText: string) => {
+      const existing = questionTextRef.current ?? "";
+      const needsSpace = existing.length > 0 && !/\s$/.test(existing);
+      const nextText = `${existing}${needsSpace ? " " : ""}${spokenText}`;
+      dispatch(updateQuestionText({ subjectId, questionId, text: nextText, parentPassageId }));
+    },
+    [dispatch, parentPassageId, questionId, subjectId],
+  );
+
+  const { isSupported, isListening, interimTranscript, startListening, stopListening } = useSpeechRecognition({
+    lang: SPEECH_LANGUAGE,
+    onResult: handleSpeechResult,
+    onError: (message) => triggerToast({ description: message, type: "error" }),
+  });
+
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  useEffect(() => {
+    if (!isListening) {
+      setRecordingSeconds(0);
+      return;
+    }
+    const intervalId = window.setInterval(() => setRecordingSeconds((value) => value + 1), 1000);
+    return () => window.clearInterval(intervalId);
+  }, [isListening]);
+
+  const handleMicClick = useCallback(() => {
+    if (!isSupported) {
+      triggerToast({
+        description: "Speech recognition is not supported in your browser.",
+        type: "error",
+      });
+      return;
+    }
+    activateCard();
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  }, [activateCard, isListening, isSupported, startListening, stopListening, triggerToast]);
 
   const handleQuestionImageChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
@@ -100,6 +161,22 @@ function QuestionCardHeader({
               rows={1}
               className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12] outline-none placeholder:text-[#747775]"
             />
+            {isListening ? (
+              <div className="flex items-center gap-2 rounded-[8px] bg-[#D24B4410] px-3 py-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D24B44] opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#D24B44]" />
+                </span>
+                <span className="text-[14px] font-[500] leading-[16px] tracking-[-0.02em] text-[#D24B44]">
+                  Recording {formatDuration(recordingSeconds)}
+                </span>
+                {interimTranscript ? (
+                  <span className="min-w-0 flex-1 truncate text-[14px] font-[400] italic leading-[16px] tracking-[-0.02em] text-[#747775]">
+                    {interimTranscript}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
             {questionImage ? (
               <div className={`flex items-center ${QUESTION_BUILDER_GAPS.headerImageActions}`}>
                 <div className="relative h-40 w-full max-w-[320px] overflow-hidden rounded-[12px] border border-[#E5E5E5] bg-white">
@@ -144,6 +221,23 @@ function QuestionCardHeader({
             onChange={handleQuestionImageChange}
             className="hidden"
           />
+          <Tooltip content={!isSupported ? "Speech recognition is not supported in your browser." : null}>
+            <button
+              type="button"
+              onClick={handleMicClick}
+              disabled={!isSupported}
+              title={isListening ? "Stop recording" : "Speak the question"}
+              aria-label={isListening ? "Stop recording" : "Speak the question"}
+              aria-pressed={isListening}
+              className={`flex h-9 w-9 items-center justify-center rounded-[8px] transition-colors duration-150 ${
+                isListening
+                  ? "animate-pulse bg-[#D24B44] text-white"
+                  : "text-[#49734F] hover:bg-[#EFF0F3]"
+              } ${!isSupported ? "cursor-not-allowed opacity-50" : ""}`}
+            >
+              <MicrophoneIconSVG />
+            </button>
+          </Tooltip>
           {!questionImage ? (
             <div className={`flex items-center ${QUESTION_BUILDER_GAPS.headerImageActions}`}>
               <Tooltip
