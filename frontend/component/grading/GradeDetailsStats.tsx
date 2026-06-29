@@ -1,16 +1,18 @@
+import { useAppSelector } from "@/lib/hooks";
 import ParticipantIconSVG from "../svg/ParticipantIconSVG";
 
-const GradeDetailsStats = ({ gradedCount, pendingCount, submissions, totalStudents }: GradeDetailsStatsProps) => {
-  const stats = [
-    { label: "Total students", value: totalStudents },
-    { label: "Submissions", value: submissions },
-    { label: "Pending", value: pendingCount },
-    { label: "Graded", value: gradedCount },
+const GradeDetailsStats = () => {
+  const gradeStats = useAppSelector((state) => state.gradeDetails.stats);
+  const statList = [
+    { label: "Total students", value: gradeStats?.total_students ?? 0 },
+    { label: "Submissions", value: gradeStats?.submissions ?? 0 },
+    { label: "Pending", value: gradeStats?.pending ?? 0 },
+    { label: "Graded", value: gradeStats?.graded ?? 0 },
   ];
 
   return (
     <div className="flex flex-wrap items-center gap-4">
-      {stats.map((stat) => (
+      {statList.map((stat) => (
         <div key={stat.label} className="flex flex-1 gap-4 rounded-[12px] bg-[#EFF0F3BF] p-4">
           <ParticipantIconSVG />
           <div className="flex flex-col gap-4">

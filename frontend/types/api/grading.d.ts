@@ -15,11 +15,21 @@ interface GradingSummaryQuery {
   search?: string;
 }
 
+interface GradingSummaryPayload {
+  exam: GradingExamSummary;
+  stats: GradingExamStats;
+  submissions: GradingSubmissionListItem[];
+}
+
 interface GradingPaginationMeta {
   page: number;
   limit: number;
   total: number;
   total_pages: number;
+}
+
+interface GradingListResponse extends ApiResponse<GradingListItem[]> {
+  meta: GradingPaginationMeta;
 }
 
 interface GradingListItem {
@@ -78,10 +88,7 @@ interface GradingSubmissionListItem {
   grading_status: SubmissionGradingStatus;
 }
 
-interface GradingSummaryResponse {
-  exam: GradingExamSummary;
-  stats: GradingExamStats;
-  submissions: GradingSubmissionListItem[];
+interface GradingSummaryResponse extends ApiResponse<GradingSummaryPayload> {
   meta: GradingPaginationMeta;
 }
 
