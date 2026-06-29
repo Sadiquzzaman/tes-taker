@@ -3,11 +3,8 @@ import GradingEditView from "./GradingEditView";
 import GradingResultView from "./GradingResultView";
 import useGradingModal from "@/hooks/grading/useGradingModal";
 
-const GradingModel = ({ openModal, setOpenModal }: GradingModelProps) => {
-  const { allQuestion, handleClose, handleExplanationChange, questionInputData } = useGradingModal(
-    setOpenModal,
-    openModal,
-  );
+const GradingModel = () => {
+  const { allQuestion, handleClose, handleExplanationChange, openModal, questionInputData } = useGradingModal();
 
   return (
     <div
@@ -38,7 +35,7 @@ const GradingModel = ({ openModal, setOpenModal }: GradingModelProps) => {
           </button>
         </div>
 
-        {openModal === "result" && <GradingResultView allQuestion={allQuestion} setOpenModal={setOpenModal} />}
+        {openModal === "result" && <GradingResultView allQuestion={allQuestion} />}
         {openModal === "edit" && (
           <GradingEditView handleExplanationChange={handleExplanationChange} questionInputData={questionInputData} />
         )}

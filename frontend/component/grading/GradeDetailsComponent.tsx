@@ -1,50 +1,47 @@
 "use client";
 
+import useGetGradeDetails from "@/hooks/api/grading/useGetGradeDetails";
 import GradingModel from "./GradingModel";
 import GradeDetailsHeader from "./GradeDetailsHeader";
 import GradeDetailsStats from "./GradeDetailsStats";
 import StudentSubmissionsTable from "./StudentSubmissionsTable";
-import useGradeDetails from "@/hooks/grading/useGradeDetails";
-import { studentList } from "@/utils/grading/gradeDetails";
+import { RotatingLines } from "react-loader-spinner";
 
 const GradeDetailsComponent = ({ classId }: { classId: string }) => {
-  const {
-    currentPage,
-    handlePageChange,
-    openModal,
-    paginatedStudents,
-    searchStudentInput,
-    setOpenModal,
-    setSearchStudentInput,
-    totalPages,
-  } = useGradeDetails(classId);
+  const { apiComplete, loading } = useGetGradeDetails(classId);
 
-  const gradedCount = studentList.filter((student) => student.status === "Graded").length;
-  const pendingCount = studentList.filter((student) => student.status === "Pending").length;
+  if (loading) {
+    return (
+      <div className="flex min-h-[calc(100vh-300px)] w-full items-center justify-center">
+        <RotatingLines
+          visible={true}
+          height="48"
+          width="48"
+          color="grey"
+          strokeWidth="5"
+          animationDuration="0.75"
+          ariaLabel="rotating-lines-loading"
+          wrapperStyle={{}}
+          wrapperClass=""
+        />
+      </div>
+    );
+  }
+
+  if (!apiComplete) {
+    return null;
+  }
 
   return (
     <>
       <div className="mb-2 flex min-h-[40px] flex-col gap-2 sm:mt-2 sm:mb-4 sm:gap-4">
-        <GradeDetailsHeader title="Grade Name" />
-        <GradeDetailsStats
-          totalStudents={studentList.length}
-          submissions={studentList.length}
-          pendingCount={pendingCount}
-          gradedCount={gradedCount}
-        />
+        <GradeDetailsHeader />
+        <GradeDetailsStats />
       </div>
 
       <div className="flex min-h-[calc(100vh-320px)] flex-col gap-6 rounded-[12px] bg-[#EFF0F3BF] p-2 sm:p-4">
-        <StudentSubmissionsTable
-          currentPage={currentPage}
-          onPageChange={handlePageChange}
-          openStudentModal={setOpenModal}
-          paginatedStudents={paginatedStudents}
-          searchStudentInput={searchStudentInput}
-          setSearchStudentInput={setSearchStudentInput}
-          totalPages={totalPages}
-        />
-        <GradingModel openModal={openModal} setOpenModal={setOpenModal} />
+        <StudentSubmissionsTable />
+        <GradingModel />
       </div>
     </>
   );

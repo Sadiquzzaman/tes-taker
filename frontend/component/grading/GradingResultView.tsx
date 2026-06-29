@@ -1,8 +1,11 @@
+import { setOpenModal } from "@/lib/features/gradeDetailsSlice";
+import { useAppDispatch } from "@/lib/hooks";
 import EditSquareIconSVG from "../svg/EditSquareIconSVG";
 import EssayGradeTemplate from "./EssayGradeTemplate";
 import ObjectiveGradeTemplate from "./ObjectiveGradeTemplate";
 
-const GradingResultView = ({ allQuestion, setOpenModal }: GradingResultViewProps) => {
+const GradingResultView = ({ allQuestion }: GradingResultViewProps) => {
+  const dispatch = useAppDispatch();
   const questionGroups = allQuestion.map((subject) => (
     <div key={subject.name} className="flex flex-col gap-4">
       {subject.questionList.map((question, questionIndex) =>
@@ -39,7 +42,7 @@ const GradingResultView = ({ allQuestion, setOpenModal }: GradingResultViewProps
           <p className="text-[20px] font-[500] leading-[20px] tracking-[-0.02em] text-[#49734F]">Score: 24</p>
           <div
             className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-[6px] bg-[#EFF0F3]"
-            onClick={() => setOpenModal("edit")}
+            onClick={() => dispatch(setOpenModal("edit"))}
           >
             <div className="text-[#747775]">
               <EditSquareIconSVG width={14} />

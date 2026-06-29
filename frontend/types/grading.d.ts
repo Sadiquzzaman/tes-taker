@@ -1,16 +1,6 @@
-type GradingStatus = "Pending" | "Graded";
-
 type GradeCardStatus = "Graded" | "GradedTests" | "NeedsGrading" | "Published";
 
 type GradingModalView = "" | "edit" | "result";
-
-interface GradingStudent {
-  name: string;
-  email: string;
-  submittedAt: string;
-  status: GradingStatus;
-  score: string | null;
-}
 
 interface GradingOption {
   id: string;
@@ -121,24 +111,8 @@ type GradingQuestionGroup = {
   questionList: GradingQuestionWithType[];
 };
 
-interface StudentSubmissionsTableProps {
-  currentPage: number;
-  onPageChange: (page: number) => void;
-  openStudentModal: (view: GradingModalView) => void;
-  paginatedStudents: GradingStudent[];
-  searchStudentInput: string;
-  setSearchStudentInput: (value: string) => void;
-  totalPages: number;
-}
-
 interface GradingResultViewProps {
   allQuestion: GradingQuestionGroup[];
-  setOpenModal: (open: GradingModalView) => void;
-}
-
-interface GradingModelProps {
-  openModal: GradingModalView;
-  setOpenModal: (open: GradingModalView) => void;
 }
 
 interface GradingEditViewProps {
@@ -146,23 +120,24 @@ interface GradingEditViewProps {
   questionInputData: GradingQuestionInputData;
 }
 
-interface GradeDetailsStatsProps {
-  totalStudents: number;
-  submissions: number;
-  pendingCount: number;
-  gradedCount: number;
-}
-
-interface GradeDetailsHeaderProps {
-  title: string;
-}
-
 interface GradeCardProps {
-  classItem: Class;
-  status?: GradeCardStatus;
+  gradeItem: GradingListItem;
 }
 
 interface GradingSliceState {
   activeTab: Tab;
+  page: number;
   searchInput: string;
+}
+
+interface GradeDetailsSliceState {
+  openModal: GradingModalView;
+  searchStudentInput: string;
+  currentPage: number;
+  totalPages: number;
+  exam: GradingExamSummary | null;
+  stats: GradingExamStats | null;
+  submissions: GradingSubmissionListItem[];
+  meta: GradingPaginationMeta | null;
+  selectedSubmission: GradingSubmissionListItem | null;
 }

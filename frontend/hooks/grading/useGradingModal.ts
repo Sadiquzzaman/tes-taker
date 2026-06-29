@@ -1,9 +1,13 @@
 "use client";
 
+import { setOpenModal } from "@/lib/features/gradeDetailsSlice";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { useEffect, useMemo, useState } from "react";
 import { template } from "@/utils/grading/gradingTemplate";
 
-const useGradingModal = (setOpenModal: (open: GradingModalView) => void, openModal: GradingModalView) => {
+const useGradingModal = () => {
+  const dispatch = useAppDispatch();
+  const { openModal } = useAppSelector((state) => state.gradeDetails);
   const [questionInputData, setQuestionInputData] = useState<GradingQuestionInputData>({});
 
   useEffect(() => {
@@ -24,7 +28,7 @@ const useGradingModal = (setOpenModal: (open: GradingModalView) => void, openMod
   }, []);
 
   const handleClose = () => {
-    setOpenModal("");
+    dispatch(setOpenModal(""));
   };
 
   const handleExplanationChange = (questionId: string, explanation: string) => {
@@ -39,6 +43,7 @@ const useGradingModal = (setOpenModal: (open: GradingModalView) => void, openMod
 
   return {
     allQuestion,
+    openModal,
     handleClose,
     handleExplanationChange,
     questionInputData,
