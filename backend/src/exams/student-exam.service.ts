@@ -68,6 +68,11 @@ import {
   getAutoScoredQuestions,
   getManualQuestions,
 } from './utils/exam-grading.util';
+import {
+  buildSubmissionQuestions,
+  persistSubmissionScores,
+  resolveSubmissionScores,
+} from './utils/submission-response.util';
 
 export type ExamAccessValidation = {
   canAccess: boolean;
@@ -833,6 +838,7 @@ export class StudentExamService {
     if (hasSubjective) {
       await this.calculateSubjectiveMaxScore(submission.id, exam);
     }
+    await this.syncSubmissionScoresFromExam(submission.id, exam);
 
     const reason = dto.reason ?? ExamFinalizeReasonEnum.MANUAL;
     let status = ExamSubmissionStatusEnum.SUBMITTED;
@@ -1127,6 +1133,7 @@ export class StudentExamService {
     if (hasSubjective) {
       await this.calculateSubjectiveMaxScore(submission.id, exam);
     }
+    await this.syncSubmissionScoresFromExam(submission.id, exam);
 
     // Update submission status
     submission.status = autoSubmit 
@@ -1284,7 +1291,13 @@ export class StudentExamService {
     let correctCount = 0;
     let wrongCount = 0;
     let totalScore = 0;
-    let maxObjective = 0;
+
+    const objectiveQs = ordered.filter(
+      (q) =>
+        q.question_type === QuestionTypeEnum.OBJECTIVE ||
+        isAutoScoredQuestion(q.category, q.sub_type),
+    );
+    const maxObjective = objectiveQs.reduce((sum, q) => sum + (q.points ?? 1), 0);
 
     for (const answer of answers) {
       const question = questionMap.get(answer.question_id);
@@ -1296,7 +1309,6 @@ export class StudentExamService {
       if (!autoScored) continue;
 
       const pts = question.points ?? 1;
-      maxObjective += pts;
 
       let isCorrect = false;
       if (isAutoScoredQuestion(question.category, question.sub_type) && question.answer_json) {
@@ -1331,11 +1343,6 @@ export class StudentExamService {
       await this.answerRepo.save(answer);
     }
 
-    const objectiveQs = ordered.filter(
-      (q) =>
-        q.question_type === QuestionTypeEnum.OBJECTIVE ||
-        isAutoScoredQuestion(q.category, q.sub_type),
-    );
     const answeredObjectiveIds = new Set(
       answers
         .filter((a) => {
@@ -1543,63 +1550,18 @@ export class StudentExamService {
       where: { submission_id: submission.id },
     });
     const answerByQuestionId = new Map(answers.map((answer) => [answer.question_id, answer]));
+    const scores = resolveSubmissionScores(exam, answers);
+    persistSubmissionScores(submission, scores);
+    submission.updated_at = new Date();
+    await this.submissionRepo.save(submission);
 
-    const manualQuestions = getManualQuestions(exam).map((question) => {
+    const questions = buildSubmissionQuestions(exam, answerByQuestionId);
+    const manualQuestions = getManualQuestions(exam);
+    const autoQuestions = getAutoScoredQuestions(exam);
+    const manualGradedCount = manualQuestions.filter((question) => {
       const answer = answerByQuestionId.get(question.id);
-      const marksObtained =
-        answer?.marks_obtained !== undefined && answer?.marks_obtained !== null
-          ? Number(answer.marks_obtained)
-          : null;
-
-      return {
-        question_id: question.id,
-        question: question.question,
-        instruction: question.instruction ?? null,
-        image_url: question.image_url ?? null,
-        points: question.points ?? question.marks_per_question ?? 0,
-        sub_type: question.sub_type,
-        sample_answer: question.sample_answer ?? this.extractSampleAnswer(question),
-        expected_word_limit: question.expected_word_limit ?? null,
-        student_answer: {
-          text_answer: answer?.text_answer ?? null,
-          word_count: answer?.word_count ?? null,
-        },
-        marks_obtained: marksObtained,
-        is_graded: marksObtained !== null,
-      };
-    });
-
-    const autoQuestions = getAutoScoredQuestions(exam).map((question) => {
-      const answer = answerByQuestionId.get(question.id);
-      const correctOptionIds = new Set(question.answer_json?.value ?? []);
-      const options = (question.options_json ?? []).map((option) => ({
-        id: option.id,
-        text: option.text,
-        is_correct: correctOptionIds.has(option.id),
-      }));
-
-      return {
-        question_id: question.id,
-        question: question.question,
-        instruction: question.instruction ?? null,
-        image_url: question.image_url ?? null,
-        points: question.points ?? 1,
-        sub_type: question.sub_type,
-        options,
-        student_selected: answer
-          ? this.resolveSubmittedAnswerValue(answer, question)
-          : null,
-        selected_answer: answer?.selected_answer ?? null,
-        text_answer: answer?.text_answer ?? null,
-        is_correct: answer?.is_correct ?? null,
-        marks_obtained:
-          answer?.marks_obtained !== undefined && answer?.marks_obtained !== null
-            ? Number(answer.marks_obtained)
-            : null,
-      };
-    });
-
-    const manualGradedCount = manualQuestions.filter((question) => question.is_graded).length;
+      return answer?.marks_obtained !== undefined && answer?.marks_obtained !== null;
+    }).length;
 
     return {
       submission: {
@@ -1611,23 +1573,23 @@ export class StudentExamService {
         phone: submission.student?.phone ?? null,
         submitted_at: submission.submitted_at ?? null,
         status: submission.status,
-        total_score: submission.total_score ?? null,
-        max_score: submission.max_score ?? null,
-        percentage: computePercentage(submission.total_score, submission.max_score),
+        total_score: scores.total_score,
+        max_score: scores.max_score,
+        percentage: scores.percentage,
         is_graded: submission.is_graded,
         grading_status: submission.is_graded
           ? SubmissionGradingStatusEnum.GRADED
           : SubmissionGradingStatusEnum.PENDING,
       },
-      manual_questions: manualQuestions,
-      auto_questions: autoQuestions,
+      questions,
       totals: {
         manual_total_count: manualQuestions.length,
         manual_graded_count: manualGradedCount,
         auto_total_count: autoQuestions.length,
-        auto_graded_count: autoQuestions.filter(
-          (question) => question.marks_obtained !== null,
-        ).length,
+        auto_graded_count: autoQuestions.filter((question) => {
+          const answer = answerByQuestionId.get(question.id);
+          return answer?.marks_obtained !== undefined && answer?.marks_obtained !== null;
+        }).length,
       },
     };
   }
@@ -1681,7 +1643,7 @@ export class StudentExamService {
       }
     }
 
-    await this.recomputeSubmissionTotalScore(submission.id);
+    await this.recomputeSubmissionTotalScore(submission.id, exam);
 
     const answers = await this.answerRepo.find({
       where: { submission_id: submission.id },
@@ -1697,11 +1659,9 @@ export class StudentExamService {
     submission.graded_by = submission.is_graded ? jwtPayload.id : null;
     submission.updated_at = new Date();
     submission.updated_by = jwtPayload.id;
+    const scores = resolveSubmissionScores(exam, answers);
+    persistSubmissionScores(submission, scores);
     await this.submissionRepo.save(submission);
-
-    const refreshedSubmission = await this.submissionRepo.findOne({
-      where: { id: submission.id },
-    });
 
     const manualGradedCount = [...manualQuestionMap.values()].filter((question) => {
       const answer = answerByQuestionId.get(question.id);
@@ -1710,14 +1670,11 @@ export class StudentExamService {
 
     return {
       submission_id: submission.id,
-      total_score: refreshedSubmission?.total_score ?? null,
-      max_score: refreshedSubmission?.max_score ?? null,
-      percentage: computePercentage(
-        refreshedSubmission?.total_score,
-        refreshedSubmission?.max_score,
-      ),
-      is_graded: refreshedSubmission?.is_graded ?? false,
-      grading_status: refreshedSubmission?.is_graded
+      total_score: scores.total_score,
+      max_score: scores.max_score,
+      percentage: scores.percentage,
+      is_graded: submission.is_graded,
+      grading_status: submission.is_graded
         ? SubmissionGradingStatusEnum.GRADED
         : SubmissionGradingStatusEnum.PENDING,
       manual_graded_count: manualGradedCount,
@@ -1785,7 +1742,33 @@ export class StudentExamService {
     return submission;
   }
 
-  private async recomputeSubmissionTotalScore(submissionId: string): Promise<void> {
+  private async syncSubmissionScoresFromExam(
+    submissionId: string,
+    exam: ExamEntity,
+  ): Promise<void> {
+    const answers = await this.answerRepo.find({
+      where: { submission_id: submissionId },
+    });
+    const scores = resolveSubmissionScores(exam, answers);
+    await this.submissionRepo.update(
+      { id: submissionId },
+      {
+        total_score: scores.total_score,
+        max_score: scores.max_score,
+        updated_at: new Date(),
+      },
+    );
+  }
+
+  private async recomputeSubmissionTotalScore(
+    submissionId: string,
+    exam?: ExamEntity,
+  ): Promise<void> {
+    if (exam) {
+      await this.syncSubmissionScoresFromExam(submissionId, exam);
+      return;
+    }
+
     const answers = await this.answerRepo.find({
       where: { submission_id: submissionId },
     });
