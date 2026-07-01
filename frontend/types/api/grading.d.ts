@@ -85,41 +85,66 @@ interface GradingSummaryResponse {
   meta: GradingPaginationMeta;
 }
 
-interface ManualGradingQuestion {
-  question_id: string;
-  question: string;
-  instruction: string | null;
+interface SubmissionOption {
+  id: string;
+  text: string;
   image_url: string | null;
-  points: number;
-  sub_type: string | null;
-  sample_answer: string | null;
-  expected_word_limit: number | null;
-  student_answer: {
-    text_answer: string | null;
-    word_count: number | null;
-  };
-  marks_obtained: number | null;
-  is_graded: boolean;
 }
 
-interface AutoGradingQuestion {
+interface SubmissionMatchingOption {
+  id: string;
+  text: string;
+  image: string | null;
+}
+
+interface SubmissionAnswerOptionId {
+  type: 'optionId';
+  correct_answer: string[];
+  student_selected: string[];
+}
+
+interface SubmissionAnswerMatchingOrdering {
+  type: 'matchingOrdering';
+  correct_answer: string[];
+  student_selected: string[];
+}
+
+interface SubmissionAnswerText {
+  type: 'text';
+  student_answer: string;
+}
+
+type SubmissionAnswer =
+  | SubmissionAnswerOptionId
+  | SubmissionAnswerMatchingOrdering
+  | SubmissionAnswerText;
+
+interface SubmissionQuestion {
   question_id: string;
   question: string;
-  instruction: string | null;
+  instruction: string;
   image_url: string | null;
   points: number;
-  sub_type: string | null;
-  options: Array<{
-    id: string;
-    text: string;
-    is_correct: boolean;
-  }>;
-  student_selected: string | null;
-  selected_answer: string | null;
-  text_answer: string | null;
+  type: string;
+  sub_type: string;
+  options?: SubmissionOption[];
+  matchingOptions?: {
+    left: SubmissionMatchingOption[];
+    right: SubmissionMatchingOption[];
+  };
+  answer: SubmissionAnswer;
   is_correct: boolean | null;
-  marks_obtained: number | null;
+  marks_obtained: number;
 }
+
+interface SubmissionPassageQuestion {
+  id: string;
+  type: 'passage-question';
+  passageText: string;
+  childQuestions: SubmissionQuestion[];
+}
+
+type SubmissionQuestionItem = SubmissionQuestion | SubmissionPassageQuestion;
 
 interface SubmissionGradingDetail {
   submission: {
@@ -131,14 +156,13 @@ interface SubmissionGradingDetail {
     phone: string | null;
     submitted_at: string | null;
     status: string;
-    total_score: number | null;
-    max_score: number | null;
-    percentage: number | null;
+    total_score: number;
+    max_score: number;
+    percentage: number;
     is_graded: boolean;
     grading_status: SubmissionGradingStatus;
   };
-  manual_questions: ManualGradingQuestion[];
-  auto_questions: AutoGradingQuestion[];
+  questions: SubmissionQuestionItem[];
   totals: {
     manual_total_count: number;
     manual_graded_count: number;
@@ -158,9 +182,9 @@ interface SaveSubmissionGradesPayload {
 
 interface SaveSubmissionGradesResponse {
   submission_id: string;
-  total_score: number | null;
-  max_score: number | null;
-  percentage: number | null;
+  total_score: number;
+  max_score: number;
+  percentage: number;
   is_graded: boolean;
   grading_status: SubmissionGradingStatus;
   manual_graded_count: number;
