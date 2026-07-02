@@ -1,28 +1,109 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import ChevronLeftIconSVG from "../svg/ChevronLeftIconSVG";
 import ChevronRightIconSVG from "../svg/ChevronRightIconSVG";
-import { useCalendar } from "@/hooks/Dashboard/useCalendar";
-import { getMonthName } from "@/utils/Dashboard/calendar";
+import { useDashboard } from "@/context/DashboardContext";
+import { getMonthName, getDaysInMonth, getPrevMonthYear, WEEK_DAYS } from "@/utils/Dashboard/calendar";
+import DashboardWidgetSkeleton from "./DashboardWidgetSkeleton";
 
 const Calendar = () => {
-  const {
-    month,
-    year,
-    yearPopupOpen,
-    setYearPopupOpen,
-    yearPopupRef,
-    today,
-    handleDecreaseMonth,
-    handleIncreaseMonth,
-    cols,
-    headers,
-    rows,
-    yearRange,
-    setYear,
-    hasTest,
-  } = useCalendar();
+  const { data, loading, calendarYear, calendarMonth, setCalendarMonth, setCalendarYear } = useDashboard();
+  const [isWide, setIsWide] = useState(false);
+  const [yearPopupOpen, setYearPopupOpen] = useState(false);
+  const yearPopupRef = useRef<HTMLDivElement>(null);
+  const [today, setToday] = useState<{ day: number; month: number; year: number } | null>(null);
+
+  const month = calendarMonth;
+  const year = calendarYear;
+
+  const eventDays = useMemo(() => {
+    const set = new Set<number>();
+    (data?.calendar_events ?? []).forEach((event) => {
+      if (event.year === year && event.month === month) {
+        set.add(event.day);
+      }
+    });
+    return set;
+  }, [data?.calendar_events, month, year]);
+
+  const hasEventsThisMonth = eventDays.size > 0;
+
+  useEffect(() => {
+    const now = new Date();
+    setToday({ day: now.getDate(), month: now.getMonth() + 1, year: now.getFullYear() });
+  }, []);
+
+  useEffect(() => {
+    const check = () => setIsWide(window.innerWidth >= 900);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (yearPopupRef.current && !yearPopupRef.current.contains(e.target as Node)) {
+        setYearPopupOpen(false);
+      }
+    };
+    if (yearPopupOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [yearPopupOpen]);
+
+  const handleDecreaseMonth = () => {
+    if (month === 1) {
+      setCalendarMonth(12);
+      setCalendarYear(year - 1);
+    } else {
+      setCalendarMonth(month - 1);
+    }
+  };
+
+  const handleIncreaseMonth = () => {
+    if (month === 12) {
+      setCalendarMonth(1);
+      setCalendarYear(year + 1);
+    } else {
+      setCalendarMonth(month + 1);
+    }
+  };
+
+  const datePerRow = isWide ? 14 : 7;
+  const firstDayOfMonth = new Date(year, month - 1, 1).getDay();
+  const daysInMonth = getDaysInMonth(month, year);
+  const prev = getPrevMonthYear(month, year);
+  const daysInPrevMonth = getDaysInMonth(prev.month, prev.year);
+  const totalCells = Math.ceil((firstDayOfMonth + daysInMonth) / datePerRow) * datePerRow;
+  const trailingDays = totalCells - (firstDayOfMonth + daysInMonth);
+
+  const calendarCells: CalendarCell[] = [];
+  for (let i = firstDayOfMonth - 1; i >= 0; i--) calendarCells.push({ day: daysInPrevMonth - i, currentMonth: false });
+  for (let i = 1; i <= daysInMonth; i++) calendarCells.push({ day: i, currentMonth: true });
+  for (let i = 1; i <= trailingDays; i++) calendarCells.push({ day: i, currentMonth: false });
+
+  const weeks: CalendarCell[][] = [];
+  for (let i = 0; i < calendarCells.length; i += 7) weeks.push(calendarCells.slice(i, i + 7));
+
+  const pairedWeeks: CalendarCell[][] = [];
+  if (isWide) {
+    for (let i = 0; i < weeks.length; i += 2) pairedWeeks.push([...(weeks[i] || []), ...(weeks[i + 1] || [])]);
+  }
+
+  const cols = isWide ? 14 : 7;
+  const headers = isWide ? [...WEEK_DAYS, ...WEEK_DAYS] : WEEK_DAYS;
+  const rows = isWide ? pairedWeeks : weeks;
+
+  const yearRange: number[] = [];
+  for (
+    let y = (today?.year || new Date().getFullYear()) - 10;
+    y <= (today?.year || new Date().getFullYear()) + 10;
+    y++
+  ) {
+    yearRange.push(y);
+  }
+
+  const hasTest = (day: number, currentMonth: boolean) => currentMonth && eventDays.has(day);
 
   return (
     <div className="p-4 bg-[#ffffff] rounded-[12px] flex flex-col text-white w-full h-full min-h-[220px]">
@@ -49,7 +130,7 @@ const Calendar = () => {
                       type="button"
                       key={y}
                       onClick={() => {
-                        setYear(y);
+                        setCalendarYear(y);
                         setYearPopupOpen(false);
                       }}
                       className={`text-[13px] py-1 rounded-lg font-[500] transition-colors
@@ -67,54 +148,68 @@ const Calendar = () => {
           </button>
         </div>
       </div>
-      <div className="mt-4" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-        {headers.map((shortName, index) => (
-          <span
-            key={index}
-            className="text-[14px] leading-[20px] text-[#747775] text-center font-[500] tracking-[-0.02em]"
-          >
-            {shortName}
-          </span>
-        ))}
-      </div>
-      <div className="mt-2 flex flex-col gap-1">
-        {rows.map((rowCells, rIdx) => (
-          <div key={rIdx} style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-            {rowCells.map((cell, cIdx) => {
-              const isToday =
-                today && cell.currentMonth && cell.day === today.day && month === today.month && year === today.year;
-              const showDot = hasTest(cell.day, month, year);
-              return (
-                <div
-                  key={cIdx}
-                  className="flex flex-col gap-1 items-center justify-center h-10 w-full"
-                  style={{
-                    fontSize: "14px",
-                    lineHeight: "20px",
-                    fontWeight: 400,
-                    borderRadius: isToday ? "10px" : undefined,
-                    background: isToday ? "#49734F" : "transparent",
-                    color: isToday ? "#ffffff" : cell.currentMonth ? "#232A25" : "#B0B4B9",
-                    textAlign: "center",
-                    verticalAlign: "middle",
-                  }}
-                >
-                  <div>{cell.day}</div>
-                  {showDot && (
-                    <div
-                      className="w-1 h-1 rounded-full"
-                      style={{
-                        background: isToday ? "white" : cell.currentMonth ? "#49734F" : "#B0B4B9",
-                      }}
-                    />
-                  )}
-                  {!showDot && <div className="w-1 h-1" />}
-                </div>
-              );
-            })}
+
+      {loading ? (
+        <div className="mt-4">
+          <DashboardWidgetSkeleton lines={6} />
+        </div>
+      ) : (
+        <>
+          <div className="mt-4" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+            {headers.map((shortName, index) => (
+              <span
+                key={index}
+                className="text-[14px] leading-[20px] text-[#747775] text-center font-[500] tracking-[-0.02em]"
+              >
+                {shortName}
+              </span>
+            ))}
           </div>
-        ))}
-      </div>
+          <div className="mt-2 flex flex-col gap-1">
+            {rows.map((rowCells, rIdx) => (
+              <div key={rIdx} style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+                {rowCells.map((cell, cIdx) => {
+                  const isToday =
+                    today && cell.currentMonth && cell.day === today.day && month === today.month && year === today.year;
+                  const showDot = hasTest(cell.day, cell.currentMonth);
+                  return (
+                    <div
+                      key={cIdx}
+                      className="flex flex-col gap-1 items-center justify-center h-10 w-full"
+                      style={{
+                        fontSize: "14px",
+                        lineHeight: "20px",
+                        fontWeight: 400,
+                        borderRadius: isToday ? "10px" : undefined,
+                        background: isToday ? "#49734F" : "transparent",
+                        color: isToday ? "#ffffff" : cell.currentMonth ? "#232A25" : "#B0B4B9",
+                        textAlign: "center",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      <div>{cell.day}</div>
+                      {showDot && (
+                        <div
+                          className="w-1 h-1 rounded-full"
+                          style={{
+                            background: isToday ? "white" : cell.currentMonth ? "#49734F" : "#B0B4B9",
+                          }}
+                        />
+                      )}
+                      {!showDot && <div className="w-1 h-1" />}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+          {!hasEventsThisMonth && (
+            <p className="mt-3 font-[400] text-[12px] leading-[16px] tracking-[-0.02em] text-[#747775] text-center">
+              No scheduled events this month.
+            </p>
+          )}
+        </>
+      )}
     </div>
   );
 };
