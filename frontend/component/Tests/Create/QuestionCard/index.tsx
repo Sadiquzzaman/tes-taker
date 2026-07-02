@@ -156,8 +156,8 @@ function QuestionCard({
               ? "border-none bg-[#FDF3E5] p-0"
               : "border-none bg-white p-0"
             : isActive
-              ? "border border-transparent bg-[#FDF3E5] p-5"
-              : "border border-[#E5E5E5] bg-white p-5"
+              ? "border border-transparent bg-[#FDF3E5] p-5 max-[600px]:p-3"
+              : "border border-[#E5E5E5] bg-white p-5 max-[600px]:p-3"
         }`}
       >
         <QuestionCardHeader

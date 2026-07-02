@@ -231,7 +231,7 @@ function QuestionCardHeader({
             ) : null}
           </div>
         </div>
-        <div className={`flex shrink-0 flex-col items-end ${QUESTION_BUILDER_GAPS.headerSide}`}>
+        <div className={`flex shrink-0 items-center ${QUESTION_BUILDER_GAPS.headerSide}`}>
           <input
             ref={questionImageInputRef}
             type="file"
