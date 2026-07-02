@@ -15,6 +15,12 @@ interface GradingSummaryQuery {
   search?: string;
 }
 
+interface FetchGradingSummaryRequest {
+  examId: string;
+  currentPage: number;
+  search: string;
+}
+
 interface GradingSummaryPayload {
   exam: GradingExamSummary;
   stats: GradingExamStats;
@@ -187,6 +193,12 @@ interface QuestionGradeInput {
 
 interface SaveSubmissionGradesPayload {
   grades: QuestionGradeInput[];
+}
+
+interface SaveSubmissionGradesRequest {
+  examId: string;
+  submissionId: string;
+  payload: SaveSubmissionGradesPayload;
 }
 
 interface SaveSubmissionGradesResponse {

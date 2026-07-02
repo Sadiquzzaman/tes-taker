@@ -1,25 +1,9 @@
 import GradedQuestionCard from "./GradedQuestionCard";
 import UngradedQuestionCard from "./UngradedQuestionCard";
 
-const GradingQuestionCard = ({
-  draft,
-  isReadOnly,
-  onExplanationChange,
-  onScoreBlur,
-  onScoreChange,
-  question,
-}: GradingModalQuestionCardProps) => {
+const GradingQuestionCard = ({ isReadOnly, question }: GradingModalQuestionCardProps) => {
   if (question.isEditable) {
-    return (
-      <UngradedQuestionCard
-        question={question}
-        draft={draft}
-        isReadOnly={isReadOnly}
-        onExplanationChange={onExplanationChange}
-        onScoreBlur={onScoreBlur}
-        onScoreChange={onScoreChange}
-      />
-    );
+    return <UngradedQuestionCard question={question} isReadOnly={isReadOnly} />;
   }
 
   return <GradedQuestionCard question={question} />;

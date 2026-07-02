@@ -81,37 +81,18 @@ interface GradingModalData {
   questionCount: number;
 }
 
-interface GradingQuestionDraft {
-  score: string;
-  explanation: string;
-}
-
-type GradingQuestionDraftMap = Record<string, GradingQuestionDraft>;
-
 interface GradingModalQuestionCardProps {
   question: GradingModalQuestion;
-  draft?: GradingQuestionDraft;
   isReadOnly: boolean;
-  onExplanationChange?: (questionId: string, explanation: string) => void;
-  onScoreBlur?: (questionId: string, maxScore: number, currentScore: number) => void;
-  onScoreChange?: (questionId: string, score: string) => void;
 }
 
 interface GradingModalQuestionListProps {
   items: GradingModalItem[];
-  drafts: GradingQuestionDraftMap;
   isReadOnly: boolean;
-  onExplanationChange?: (questionId: string, explanation: string) => void;
-  onScoreBlur?: (questionId: string, maxScore: number, currentScore: number) => void;
-  onScoreChange?: (questionId: string, score: string) => void;
 }
 
 interface GradingModalEditViewProps {
   data: GradingModalData;
-  drafts: GradingQuestionDraftMap;
-  onExplanationChange: (questionId: string, explanation: string) => void;
-  onScoreBlur: (questionId: string, maxScore: number, currentScore: number) => void;
-  onScoreChange: (questionId: string, score: string) => void;
 }
 
 interface GradingModalResultViewProps {
@@ -123,11 +104,7 @@ interface GradingModalGradedQuestionCardProps {
 }
 
 interface GradingModalUngradedQuestionCardProps extends GradingModalQuestionCardProps {
-  draft?: GradingQuestionDraft;
   isReadOnly: boolean;
-  onExplanationChange?: (questionId: string, explanation: string) => void;
-  onScoreBlur?: (questionId: string, maxScore: number, currentScore: number) => void;
-  onScoreChange?: (questionId: string, score: string) => void;
 }
 
 interface GradingModalAnswerViewProps {

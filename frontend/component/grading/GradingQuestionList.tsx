@@ -1,28 +1,11 @@
 import GradingQuestionCard from "./GradingQuestionCard";
 
-const GradingQuestionList = ({
-  drafts,
-  isReadOnly,
-  items,
-  onExplanationChange,
-  onScoreBlur,
-  onScoreChange,
-}: GradingModalQuestionListProps) => {
+const GradingQuestionList = ({ isReadOnly, items }: GradingModalQuestionListProps) => {
   return (
     <div className="flex flex-col gap-4">
       {items.map((item) => {
         if (item.kind === "question") {
-          return (
-            <GradingQuestionCard
-              key={item.id}
-              question={item.question}
-              draft={drafts[item.question.id]}
-              isReadOnly={isReadOnly}
-              onExplanationChange={onExplanationChange}
-              onScoreBlur={onScoreBlur}
-              onScoreChange={onScoreChange}
-            />
-          );
+          return <GradingQuestionCard key={item.id} question={item.question} isReadOnly={isReadOnly} />;
         }
 
         return (
@@ -31,15 +14,7 @@ const GradingQuestionList = ({
             <p className="mt-2 text-[14px] font-[400] leading-[24px] text-[#747775]">{item.passageText}</p>
             <div className="mt-4 flex flex-col gap-4">
               {item.questions.map((question) => (
-                <GradingQuestionCard
-                  key={question.id}
-                  question={question}
-                  draft={drafts[question.id]}
-                  isReadOnly={isReadOnly}
-                  onExplanationChange={onExplanationChange}
-                  onScoreBlur={onScoreBlur}
-                  onScoreChange={onScoreChange}
-                />
+                <GradingQuestionCard key={question.id} question={question} isReadOnly={isReadOnly} />
               ))}
             </div>
           </div>

@@ -1,28 +1,44 @@
 import CorrectFilledIconSVG from "../svg/CorrectFilledIconSVG";
 import QuestionFilledIconSVG from "../svg/QuestionFilledIconSVG";
+import getSubmissionGradeValidationError from "@/utils/grading/getSubmissionGradeValidationError";
+import { selectSubmissionGradingEntry, setSubmissionGradeExplanation, setSubmissionGradeScore } from "@/lib/features/gradingSubmissionSlice";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { resizeTextarea } from "@/utils/grading/resizeTextarea";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const formatScoreLabel = (value: number) => {
   return String(value);
 };
 
-const UngradedQuestionCard = ({
-  draft,
-  isReadOnly,
-  onExplanationChange,
-  onScoreBlur,
-  onScoreChange,
-  question,
-}: GradingModalUngradedQuestionCardProps) => {
+const isDecimalInput = (value: string) => {
+  return value === "" || /^-?\d*(\.\d*)?$/.test(value);
+};
+
+const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQuestionCardProps) => {
+  const dispatch = useAppDispatch();
+  const { exam, selectedSubmission } = useAppSelector((state) => state.gradeDetails);
+  const examId = exam?.id ?? null;
+  const submissionId = selectedSubmission?.submission_id ?? null;
+  const cachedEntry = useAppSelector((state) => selectSubmissionGradingEntry(state, examId, submissionId));
+  const grade = useMemo(() => {
+    return cachedEntry?.graded.find((item) => item.question_id === question.id);
+  }, [cachedEntry?.graded, question.id]);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
-  const displayedScore = draft?.score ?? formatScoreLabel(question.marksObtained);
   const showEditableControls = !isReadOnly && question.isEditable;
-  const parsedScore = Number(displayedScore);
+  const persistedScore = useMemo(() => {
+    return grade?.marks_obtained ?? question.marksObtained;
+  }, [grade?.marks_obtained, question.marksObtained]);
+  const [scoreInput, setScoreInput] = useState(formatScoreLabel(persistedScore));
+  const parsedScore = Number(scoreInput);
   const hasPositiveScore = !Number.isNaN(parsedScore) && parsedScore > 0;
   const showSuccessIcon = !isInteracting && hasPositiveScore;
   const cardStateClassName = isInteracting ? "border-transparent bg-[#ED86001A]" : "border-[#E5E5E5] bg-white";
+  const validationError = grade ? getSubmissionGradeValidationError(grade.marks_obtained, question.points) : "";
+
+  useEffect(() => {
+    setScoreInput(formatScoreLabel(persistedScore));
+  }, [persistedScore, question.id]);
 
   useEffect(() => {
     if (!showEditableControls) {
@@ -103,9 +119,63 @@ const UngradedQuestionCard = ({
               <input
                 type="text"
                 inputMode="decimal"
-                value={displayedScore}
-                onChange={(event) => onScoreChange?.(question.id, event.target.value)}
-                onBlur={() => onScoreBlur?.(question.id, question.points, question.marksObtained)}
+                value={scoreInput}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+
+                  if (!isDecimalInput(nextValue)) {
+                    return;
+                  }
+
+                  setScoreInput(nextValue);
+
+                  if (!examId || !submissionId || nextValue === "" || nextValue === "-" || nextValue === "." || nextValue === "-.") {
+                    return;
+                  }
+
+                  const parsedNextValue = Number(nextValue);
+
+                  if (Number.isNaN(parsedNextValue)) {
+                    return;
+                  }
+
+                  dispatch(
+                    setSubmissionGradeScore({
+                      examId,
+                      submissionId,
+                      questionId: question.id,
+                      marksObtained: parsedNextValue,
+                    }),
+                  );
+                }}
+                onBlur={() => {
+                  const fallbackScore = grade?.marks_obtained ?? 0;
+
+                  if (!examId || !submissionId || scoreInput === "") {
+                    setScoreInput(formatScoreLabel(fallbackScore));
+                    return;
+                  }
+
+                  const parsedCurrentScore = Number(scoreInput);
+
+                  if (Number.isNaN(parsedCurrentScore)) {
+                    setScoreInput(formatScoreLabel(fallbackScore));
+                    return;
+                  }
+
+                  const normalizedScore = Math.min(Math.max(parsedCurrentScore, 0), question.points);
+
+                  dispatch(
+                    setSubmissionGradeScore({
+                      examId,
+                      submissionId,
+                      questionId: question.id,
+                      marksObtained: normalizedScore,
+                    }),
+                  );
+
+                  setScoreInput(formatScoreLabel(normalizedScore));
+                }}
                 className="h-8 w-16 rounded-[2px] border border-[#E5E5E5] bg-white px-2 text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25] focus:outline-none"
               />
             ) : (
@@ -119,15 +189,29 @@ const UngradedQuestionCard = ({
           </p>
         </div>
 
+        {validationError ? <p className="text-[12px] font-[400] leading-4 text-[#D24B44]">{validationError}</p> : null}
+
         {showEditableControls ? (
           <div className="flex flex-col gap-2">
             <p className="text-[14px] font-[500] leading-[20px] text-[#232A25]">Explanation</p>
             <textarea
               rows={1}
-              value={draft?.explanation ?? ""}
+              value={grade?.explanation ?? ""}
               onChange={(event) => {
                 resizeTextarea(event.target);
-                onExplanationChange?.(question.id, event.target.value);
+
+                if (!examId || !submissionId) {
+                  return;
+                }
+
+                dispatch(
+                  setSubmissionGradeExplanation({
+                    examId,
+                    submissionId,
+                    questionId: question.id,
+                    explanation: event.target.value,
+                  }),
+                );
               }}
               placeholder="Write explanation"
               className="min-h-10 w-full resize-none rounded-[8px] border border-[#E5E5E5] px-2 py-[10px] text-[14px] font-[400] leading-5 text-[#232A25] placeholder:text-[#747775] focus:outline-none"
