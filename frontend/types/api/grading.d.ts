@@ -201,6 +201,10 @@ interface SaveSubmissionGradesRequest {
   payload: SaveSubmissionGradesPayload;
 }
 
+interface PublishGradeResultsRequest {
+  examId: string;
+}
+
 interface SaveSubmissionGradesResponse {
   submission_id: string;
   total_score: number;

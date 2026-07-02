@@ -8,7 +8,7 @@ import StudentSubmissionsTable from "./StudentSubmissionsTable";
 import { RotatingLines } from "react-loader-spinner";
 
 const GradeDetailsComponent = ({ classId }: { classId: string }) => {
-  const { apiComplete, loading } = useGetGradeDetails(classId);
+  const { apiComplete, fetch, loading } = useGetGradeDetails(classId);
 
   if (loading) {
     return (
@@ -35,7 +35,7 @@ const GradeDetailsComponent = ({ classId }: { classId: string }) => {
   return (
     <>
       <div className="mb-2 flex min-h-[40px] flex-col gap-2 sm:mt-2 sm:mb-4 sm:gap-4">
-        <GradeDetailsHeader />
+        <GradeDetailsHeader refetchGradeDetails={fetch} />
         <GradeDetailsStats />
       </div>
 
