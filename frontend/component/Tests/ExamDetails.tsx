@@ -24,8 +24,7 @@ const audienceLabels: Record<string, string> = {
   specific_students: "Specific students",
 };
 
-const formatDate = (value?: string | null) =>
-  value ? new Date(value).toLocaleString("en-US", formatOptions) : "N/A";
+const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleString("en-US", formatOptions) : "N/A");
 
 const countQuestions = (subjects: StudentExamSubject[]) =>
   subjects.reduce(
@@ -150,7 +149,11 @@ const ExamDetails = ({ examId }: { examId: string }) => {
     );
   }
 
-  const subjectNames = exam.subjects?.map((subject) => subject.name).filter(Boolean).join(", ") || "N/A";
+  const subjectNames =
+    exam.subjects
+      ?.map((subject) => subject.name)
+      .filter(Boolean)
+      .join(", ") || "N/A";
   const questionCount = countQuestions(exam.subjects ?? []);
   const totalMarks = sumMarks(exam.subjects ?? []);
 
@@ -231,13 +234,15 @@ const ExamDetails = ({ examId }: { examId: string }) => {
         <DetailRow label="Total marks" value={totalMarks} />
         <DetailRow
           label="Passing score"
-          value={exam.formState?.passingScore !== "" && exam.formState?.passingScore != null ? exam.formState.passingScore : "N/A"}
+          value={
+            exam.formState?.passingScore !== "" && exam.formState?.passingScore != null
+              ? exam.formState.passingScore
+              : "N/A"
+          }
         />
         <DetailRow
           label="Negative marking"
-          value={
-            exam.formState?.allowNegativeMarking ? `${exam.formState?.negativeMarking ?? 0}%` : "Disabled"
-          }
+          value={exam.formState?.allowNegativeMarking ? `${exam.formState?.negativeMarking ?? 0}%` : "Disabled"}
         />
       </div>
 
@@ -245,15 +250,11 @@ const ExamDetails = ({ examId }: { examId: string }) => {
         <h2 className="text-[18px] font-[600] leading-[24px] tracking-[-0.02em] text-[#232A25]">Subjects</h2>
         <div className="flex flex-col gap-2">
           {(exam.subjects ?? []).map((subject) => (
-            <div
-              key={subject.id}
-              className="flex items-center justify-between rounded-[8px] bg-white px-4 py-3"
-            >
+            <div key={subject.id} className="flex items-center justify-between rounded-[8px] bg-white px-4 py-3">
               <p className="text-[16px] font-[500] text-[#232A25]">{subject.name}</p>
               <p className="text-[14px] font-[400] text-[#747775]">
                 {subject.questions.reduce(
-                  (count, question) =>
-                    count + ("childQuestions" in question ? question.childQuestions.length : 1),
+                  (count, question) => count + ("childQuestions" in question ? question.childQuestions.length : 1),
                   0,
                 )}{" "}
                 questions

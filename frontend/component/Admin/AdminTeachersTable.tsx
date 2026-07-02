@@ -72,9 +72,7 @@ const AdminTeachersTable = () => {
       await axiosReq.patch(`${baseUrl}/subscriptions/admin/teacher/${teacherId}/status`, { active });
       triggerToast({
         title: active ? "Teacher enabled" : "Teacher disabled",
-        description: active
-          ? "The teacher can log in again."
-          : "The teacher can no longer log in.",
+        description: active ? "The teacher can log in again." : "The teacher can no longer log in.",
         type: "success",
       });
       await loadData();
@@ -162,9 +160,7 @@ const AdminTeachersTable = () => {
                             disabled={!teacherId || togglingId === teacherId}
                             onClick={() => void toggleTeacherStatus(teacherId, !active)}
                             className={`px-3 py-1.5 text-xs rounded-[6px] disabled:opacity-60 ${
-                              active
-                                ? "border border-[#C0392B] text-[#C0392B]"
-                                : "bg-[#49734F] text-white"
+                              active ? "border border-[#C0392B] text-[#C0392B]" : "bg-[#49734F] text-white"
                             }`}
                           >
                             {togglingId === teacherId ? "Saving..." : active ? "Disable" : "Enable"}

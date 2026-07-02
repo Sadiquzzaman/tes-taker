@@ -100,7 +100,9 @@ const TestCard = ({
         {from === "testList" && (
           <div className="w-1/2 lg:flex-1">
             <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Audience </p>
-            <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">{audienceName}</p>
+            <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
+              {audienceName}
+            </p>
           </div>
         )}
         <div className="w-1/2 lg:flex-1">
@@ -111,11 +113,15 @@ const TestCard = ({
         </div>
         <div className="w-1/2 lg:flex-1">
           <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Participants</p>
-          <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">{participantCount}</p>
+          <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
+            {participantCount}
+          </p>
         </div>
         <div className="w-1/2 lg:flex-1">
           <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Submitted</p>
-          <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">{submittedCount}</p>
+          <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
+            {submittedCount}
+          </p>
         </div>
       </div>
       <div className="w-full flex flex-col gap-4">

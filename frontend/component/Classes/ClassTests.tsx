@@ -4,7 +4,7 @@ import FileIconSVG from "../svg/FileIconSVG";
 import TestCard from "./TestCard";
 
 const classTestTabList = [
-  { name: "All", value: "all"},
+  { name: "All", value: "all" },
   { name: "Active", value: "ongoing" },
   { name: "Marking Pending", value: "pending" },
   { name: "Completed", value: "completed" },
@@ -55,11 +55,13 @@ const ClassTests = ({ testList, role }: { testList: TestListItem[]; role: RoleUs
           <TestCard key={test.id} testData={test} role={role} />
         ))}
       </div>
-      {filteredTestList.length === 0 && <div className="w-full min-h-[100px] flex items-center justify-center">
-        <div className="text-center">
-          <p className="font-[600] text-[24px] leading-[32px] tracking-[-0.04em] text-[#232A25]">Test not found</p>
+      {filteredTestList.length === 0 && (
+        <div className="w-full min-h-[100px] flex items-center justify-center">
+          <div className="text-center">
+            <p className="font-[600] text-[24px] leading-[32px] tracking-[-0.04em] text-[#232A25]">Test not found</p>
+          </div>
         </div>
-      </div>}
+      )}
     </div>
   );
 };

@@ -502,7 +502,11 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
                   onClick={() => entitled && handleQuestionCategorySelect(category.id)}
                   disabled={!entitled}
                   className={`flex pb-1 h-9 min-w-[79px] items-center justify-center rounded-[6px] px-4 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] transition-none ${
-                    isActive ? "bg-[#49734F] text-white" : entitled ? "bg-[#EFF0F3] text-[#232A25]" : "bg-[#EFF0F3] text-[#747775] opacity-60 cursor-not-allowed"
+                    isActive
+                      ? "bg-[#49734F] text-white"
+                      : entitled
+                        ? "bg-[#EFF0F3] text-[#232A25]"
+                        : "bg-[#EFF0F3] text-[#747775] opacity-60 cursor-not-allowed"
                   }`}
                 >
                   {category.label}

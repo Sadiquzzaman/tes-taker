@@ -23,10 +23,7 @@ import {
   selectExamAnswerState,
   setExamAnswerValue,
 } from "@/lib/features/studentExamAnswerSlice";
-import {
-  selectIsExamInteractionBlocked,
-  selectIsProctoringReady,
-} from "@/lib/features/proctoringSlice";
+import { selectIsExamInteractionBlocked, selectIsProctoringReady } from "@/lib/features/proctoringSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { PROCTORING_CONFIG } from "@/utils/tests/proctoringConfig";
 import {
@@ -36,10 +33,7 @@ import {
   isExamPermissionsComplete,
 } from "@/utils/tests/examSessionMedia";
 import { createInitialExamAnswerState } from "@/utils/tests/studentExamAnswers";
-import {
-  loadExamAnswersFromStorage,
-  saveExamAnswersToStorage,
-} from "@/utils/tests/examAnswerStorage";
+import { loadExamAnswersFromStorage, saveExamAnswersToStorage } from "@/utils/tests/examAnswerStorage";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { RotatingLines } from "react-loader-spinner";
@@ -188,7 +182,7 @@ export default function ParticipateTest() {
     const studentId = getStoredUserId();
     const defaults = createInitialExamAnswerState(test);
     const savedValues =
-      studentId && test.id ? loadExamAnswersFromStorage(test.id, studentId) ?? undefined : undefined;
+      studentId && test.id ? (loadExamAnswersFromStorage(test.id, studentId) ?? undefined) : undefined;
 
     dispatch(
       hydrateExamAnswers({
@@ -241,7 +235,7 @@ export default function ParticipateTest() {
         answersheet: answerState,
         reason,
         disqualification_reason:
-          reason === "disqualified" ? proctoringState.disqualificationReason ?? undefined : undefined,
+          reason === "disqualified" ? (proctoringState.disqualificationReason ?? undefined) : undefined,
       },
       onSuccess: (submitReasonValue) => {
         stopProctoringSession();

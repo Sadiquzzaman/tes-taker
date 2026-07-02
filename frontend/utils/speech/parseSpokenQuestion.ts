@@ -124,8 +124,7 @@ export const parseSpokenQuestion = (transcript: string): ParsedSpokenQuestion =>
       const valueText = cleanText(clause.replace(/^(option|answer|answers|options|is|the)\s+/i, "")).toLowerCase();
       if (valueText) {
         const byValue = parsedOptions.findIndex(
-          (option) =>
-            option.text.toLowerCase() === valueText || option.text.toLowerCase().includes(valueText),
+          (option) => option.text.toLowerCase() === valueText || option.text.toLowerCase().includes(valueText),
         );
         correctIndex = byValue >= 0 ? byValue : null;
       }

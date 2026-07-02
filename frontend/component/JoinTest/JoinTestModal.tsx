@@ -49,8 +49,8 @@ const JoinTestModal = ({ testData, testId, apiResponse, errorMessage }: JoinTest
                 description
               ) : (
                 <>
-                  Here is a small test summary and you will have <b>{apiResponse?.payload?.duration_minutes} minutes</b> to
-                  complete the test.{" "}
+                  Here is a small test summary and you will have <b>{apiResponse?.payload?.duration_minutes} minutes</b>{" "}
+                  to complete the test.{" "}
                   {testData?.test_audience === "selected_class"
                     ? "This is a private test, only Selected Students will be able to join."
                     : "This is a public test, any student will be able to join."}

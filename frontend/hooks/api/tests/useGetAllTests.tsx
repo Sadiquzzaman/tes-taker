@@ -34,9 +34,10 @@ const useGetAllTests = ({ classId = "", enabled = true, role = "TEACHER" }: UseG
     setLoading(true);
 
     return axiosReq
-      .get<ApiResponse<TeacherExamListItem[] | StudentAssignedExamListItem[]>, AxiosResponse<ApiResponse<TeacherExamListItem[] | StudentAssignedExamListItem[]>>>(
-        getTestsEndpoint({ classId, role }),
-      )
+      .get<
+        ApiResponse<TeacherExamListItem[] | StudentAssignedExamListItem[]>,
+        AxiosResponse<ApiResponse<TeacherExamListItem[] | StudentAssignedExamListItem[]>>
+      >(getTestsEndpoint({ classId, role }))
       .then(async (response) => {
         if (response.status === 200) {
           const nextTestList =

@@ -86,9 +86,7 @@ interface SubmissionGradingPassageQuestionApi {
   childQuestions: SubmissionGradingPassageChildQuestionApi[];
 }
 
-type SubmissionGradingQuestionItemApi =
-  | SubmissionGradingQuestionApi
-  | SubmissionGradingPassageQuestionApi;
+type SubmissionGradingQuestionItemApi = SubmissionGradingQuestionApi | SubmissionGradingPassageQuestionApi;
 
 interface SubmissionGradingSubmissionApi {
   submission_id: string;

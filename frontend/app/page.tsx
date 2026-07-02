@@ -126,10 +126,7 @@ export default function LandingPage() {
       <section id="proctoring" className="py-20 px-6">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <h2
-              className="text-3xl md:text-4xl text-[#232A25] mb-4"
-              style={{ fontFamily: "DM Serif Display, serif" }}
-            >
+            <h2 className="text-3xl md:text-4xl text-[#232A25] mb-4" style={{ fontFamily: "DM Serif Display, serif" }}>
               Smart proctoring, plan by plan
             </h2>
             <p className="text-[#747775] mb-6">
@@ -164,10 +161,7 @@ export default function LandingPage() {
 
       <section className="py-20 px-6">
         <div className="max-w-3xl mx-auto text-center">
-          <h2
-            className="text-3xl md:text-4xl text-[#232A25] mb-4"
-            style={{ fontFamily: "DM Serif Display, serif" }}
-          >
+          <h2 className="text-3xl md:text-4xl text-[#232A25] mb-4" style={{ fontFamily: "DM Serif Display, serif" }}>
             Ready to transform your exams?
           </h2>
           <p className="text-[#747775] mb-8">
@@ -190,7 +184,9 @@ export default function LandingPage() {
               instructor.academy
             </span>
           </div>
-          <p className="text-sm text-[#747775]">© {new Date().getFullYear()} instructor.academy. All rights reserved.</p>
+          <p className="text-sm text-[#747775]">
+            © {new Date().getFullYear()} instructor.academy. All rights reserved.
+          </p>
           <div className="flex gap-6 text-sm text-[#747775]">
             <Link href="/login" className="hover:text-[#232A25]">
               Log in

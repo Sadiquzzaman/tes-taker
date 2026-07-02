@@ -10,13 +10,7 @@ type TooltipProps = {
   placement?: "top" | "bottom";
 };
 
-const Tooltip = ({
-  content,
-  children,
-  disabled = false,
-  className = "",
-  placement = "top",
-}: TooltipProps) => {
+const Tooltip = ({ content, children, disabled = false, className = "", placement = "top" }: TooltipProps) => {
   const [visible, setVisible] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 

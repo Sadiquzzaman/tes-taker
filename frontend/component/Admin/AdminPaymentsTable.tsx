@@ -46,10 +46,7 @@ const AdminPaymentsTable = () => {
   }, [payments, search]);
 
   const totalPaid = useMemo(
-    () =>
-      filtered
-        .filter((p) => p.status === "COMPLETED")
-        .reduce((sum, p) => sum + Number(p.amount), 0),
+    () => filtered.filter((p) => p.status === "COMPLETED").reduce((sum, p) => sum + Number(p.amount), 0),
     [filtered],
   );
 

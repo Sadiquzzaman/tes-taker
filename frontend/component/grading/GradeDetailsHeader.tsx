@@ -5,16 +5,16 @@ import { useAppSelector } from "@/lib/hooks";
 import LeftArrowIconSVG from "../svg/LeftArrowIconSVG";
 
 const GradeDetailsHeader = ({ refetchGradeDetails }: { refetchGradeDetails: () => Promise<unknown> }) => {
-  const {exam, stats} = useAppSelector((state) => state.gradeDetails);
+  const { exam, stats } = useAppSelector((state) => state.gradeDetails);
   const [publishGradeResults, { loading: isPublishing }] = usePublishGradeResults();
   const isPublishDisabled = Boolean(
     !exam?.id ||
-      exam.grading_status === "PUBLISHED" ||
-      isPublishing ||
-      !stats ||
-      stats.submissions <= 0 ||
-      stats.submissions !== stats.graded ||
-      stats.pending !== 0
+    exam.grading_status === "PUBLISHED" ||
+    isPublishing ||
+    !stats ||
+    stats.submissions <= 0 ||
+    stats.submissions !== stats.graded ||
+    stats.pending !== 0,
   );
 
   const handlePublishResult = async () => {

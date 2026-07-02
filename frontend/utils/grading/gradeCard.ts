@@ -7,11 +7,11 @@ export const gradeCardStatusColors: Record<GradingStatus, string> = {
 export const gradeCardStatusTextColors: Record<GradingStatus, string> = {
   GRADED: "#49734F",
   PUBLISHED: "#49734F",
-  NEEDS_GRADING: "#ED8600"
+  NEEDS_GRADING: "#ED8600",
 };
 
 export const getGradeCardStatusLabel = (gradingStatus: GradingStatus) => {
-  if (gradingStatus === "NEEDS_GRADING") return "Needs Grading"
-  if (gradingStatus === "PUBLISHED") return "Published"
+  if (gradingStatus === "NEEDS_GRADING") return "Needs Grading";
+  if (gradingStatus === "PUBLISHED") return "Published";
   return "Graded";
 };

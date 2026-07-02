@@ -93,9 +93,7 @@ const ProfileView = () => {
                   isVerified ? "bg-[#EAF2EB] text-[#49734F]" : "bg-[#FFF4E5] text-[#B54708]"
                 }`}
               >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${isVerified ? "bg-[#49734F]" : "bg-[#B54708]"}`}
-                />
+                <span className={`h-1.5 w-1.5 rounded-full ${isVerified ? "bg-[#49734F]" : "bg-[#B54708]"}`} />
                 {isVerified ? "Verified" : "Unverified"}
               </span>
             }

@@ -248,9 +248,7 @@ function QuestionCardHeader({
               aria-label={isListening ? "Stop recording" : "Speak the question"}
               aria-pressed={isListening}
               className={`flex h-9 w-9 items-center justify-center rounded-[8px] transition-colors duration-150 ${
-                isListening
-                  ? "animate-pulse bg-[#D24B44] text-white"
-                  : "text-[#49734F] hover:bg-[#EFF0F3]"
+                isListening ? "animate-pulse bg-[#D24B44] text-white" : "text-[#49734F] hover:bg-[#EFF0F3]"
               } ${!isSupported ? "cursor-not-allowed opacity-50" : ""}`}
             >
               <MicrophoneIconSVG />

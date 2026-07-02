@@ -10,16 +10,10 @@ const ProctoringCountdownModal = () => {
     return null;
   }
 
-  const title =
-    activeCountdown.type === "screen-share" ? "Screen Share Required" : "Multiple Displays Detected";
+  const title = activeCountdown.type === "screen-share" ? "Screen Share Required" : "Multiple Displays Detected";
 
   return (
-    <CreateModal
-      open
-      onClose={() => {}}
-      maxWidthClassName="max-w-[460px]"
-      panelClassName="p-6 sm:p-7"
-    >
+    <CreateModal open onClose={() => {}} maxWidthClassName="max-w-[460px]" panelClassName="p-6 sm:p-7">
       <div className="flex flex-col items-center gap-4 text-center">
         <p className="text-[24px] font-[600] leading-7 tracking-[-0.04em] text-[#232A25]">{title}</p>
         <div className="flex size-24 items-center justify-center rounded-full border-4 border-[#F79009] text-[32px] font-[700] text-[#F79009]">

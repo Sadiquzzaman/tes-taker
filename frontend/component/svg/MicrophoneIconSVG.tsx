@@ -15,8 +15,20 @@ const MicrophoneIconSVG = ({ width = "16" }: { width?: string }) => {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M8 12.3008V14.5008" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M5.6665 14.5H10.3332" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M8 12.3008V14.5008"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5.6665 14.5H10.3332"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 };

@@ -13,7 +13,9 @@ const GradedQuestionCard = ({ question }: GradingModalGradedQuestionCardProps) =
     <div className="flex flex-col gap-6 rounded-[8px] border border-[#E5E5E5] bg-white p-5">
       <div className="flex flex-col gap-3">
         {question.instruction ? (
-          <p className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]">{question.instruction}</p>
+          <p className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]">
+            {question.instruction}
+          </p>
         ) : null}
         <div className="flex items-start gap-2 text-[#0F1A12]">
           <span className="w-4 shrink-0 text-center text-[16px] font-[500] leading-[1.25] tracking-[-0.02em]">
@@ -23,7 +25,9 @@ const GradedQuestionCard = ({ question }: GradingModalGradedQuestionCardProps) =
         </div>
       </div>
 
-      {question.imageUrl ? <img src={question.imageUrl} alt="Question" className="max-h-[240px] rounded-[8px] object-contain" /> : null}
+      {question.imageUrl ? (
+        <img src={question.imageUrl} alt="Question" className="max-h-[240px] rounded-[8px] object-contain" />
+      ) : null}
 
       <GradingAnswerView question={question} />
 
@@ -31,7 +35,9 @@ const GradedQuestionCard = ({ question }: GradingModalGradedQuestionCardProps) =
         <div className="flex items-center gap-2">
           <p className="text-[14px] font-[400] leading-[1.25] tracking-[-0.02em] text-[#232A25]">Score</p>
           <div className="flex h-8 min-w-12 items-center justify-center rounded-[2px] border border-[#E5E5E5] bg-[#EFF0F3] px-5">
-            <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25]">{formatScoreLabel(question.marksObtained)}</p>
+            <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25]">
+              {formatScoreLabel(question.marksObtained)}
+            </p>
           </div>
         </div>
 

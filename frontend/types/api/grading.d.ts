@@ -1,6 +1,6 @@
-type GradingStatus = 'NEEDS_GRADING' | 'GRADED' | 'PUBLISHED';
+type GradingStatus = "NEEDS_GRADING" | "GRADED" | "PUBLISHED";
 
-type SubmissionGradingStatus = 'PENDING' | 'GRADED';
+type SubmissionGradingStatus = "PENDING" | "GRADED";
 
 interface GradingListQuery {
   status?: GradingStatus;
@@ -44,7 +44,7 @@ interface GradingListItem {
   subject: string | null;
   class_name: string | null;
   exam_end_time: string;
-  lifecycle_status: 'pending' | 'ongoing' | 'completed';
+  lifecycle_status: "pending" | "ongoing" | "completed";
   total_participants: number;
   submitted_count: number;
   graded_count: number;
@@ -111,27 +111,24 @@ interface SubmissionMatchingOption {
 }
 
 interface SubmissionAnswerOptionId {
-  type: 'optionId';
+  type: "optionId";
   correct_answer: string[];
   student_selected: string[];
 }
 
 interface SubmissionAnswerMatchingOrdering {
-  type: 'matchingOrdering';
+  type: "matchingOrdering";
   correct_answer: string[];
   student_selected: string[];
 }
 
 interface SubmissionAnswerText {
-  type: 'text';
+  type: "text";
   student_answer: string;
   explanation?: string | null;
 }
 
-type SubmissionAnswer =
-  | SubmissionAnswerOptionId
-  | SubmissionAnswerMatchingOrdering
-  | SubmissionAnswerText;
+type SubmissionAnswer = SubmissionAnswerOptionId | SubmissionAnswerMatchingOrdering | SubmissionAnswerText;
 
 interface SubmissionQuestion {
   question_id: string;
@@ -153,7 +150,7 @@ interface SubmissionQuestion {
 
 interface SubmissionPassageQuestion {
   id: string;
-  type: 'passage-question';
+  type: "passage-question";
   passageText: string;
   childQuestions: SubmissionQuestion[];
 }
@@ -219,5 +216,5 @@ interface SaveSubmissionGradesResponse {
 interface PublishResultResponse {
   is_result_published: boolean;
   result_published_at: string;
-  grading_status: 'PUBLISHED';
+  grading_status: "PUBLISHED";
 }

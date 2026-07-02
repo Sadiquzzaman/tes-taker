@@ -50,8 +50,7 @@ const AdminSubjectsTable = () => {
     const q = search.trim().toLowerCase();
     if (!q) return subjects;
     return subjects.filter(
-      (subject) =>
-        subject.name.toLowerCase().includes(q) || (subject.code ?? "").toLowerCase().includes(q),
+      (subject) => subject.name.toLowerCase().includes(q) || (subject.code ?? "").toLowerCase().includes(q),
     );
   }, [subjects, search]);
 

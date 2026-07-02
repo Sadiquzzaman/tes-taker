@@ -17,7 +17,7 @@ const formatSubmittedAt = (value: string | null) => {
     return "N/A";
   }
 
-  return dayjs(value).format("hh:mm A")
+  return dayjs(value).format("hh:mm A");
 };
 
 const getStudentScore = (student: GradingSubmissionListItem) => {

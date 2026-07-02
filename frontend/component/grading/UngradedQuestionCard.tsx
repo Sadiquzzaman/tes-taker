@@ -1,7 +1,11 @@
 import CorrectFilledIconSVG from "../svg/CorrectFilledIconSVG";
 import QuestionFilledIconSVG from "../svg/QuestionFilledIconSVG";
 import getSubmissionGradeValidationError from "@/utils/grading/getSubmissionGradeValidationError";
-import { selectSubmissionGradingEntry, setSubmissionGradeExplanation, setSubmissionGradeScore } from "@/lib/features/gradingSubmissionSlice";
+import {
+  selectSubmissionGradingEntry,
+  setSubmissionGradeExplanation,
+  setSubmissionGradeScore,
+} from "@/lib/features/gradingSubmissionSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { resizeTextarea } from "@/utils/grading/resizeTextarea";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -92,23 +96,33 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
     >
       <div className="flex flex-col gap-3">
         {question.instruction ? (
-          <p className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]">{question.instruction}</p>
+          <p className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]">
+            {question.instruction}
+          </p>
         ) : null}
         <div className="flex items-start gap-2">
           <span className="w-4 shrink-0 text-center text-[16px] font-[500] leading-[1.25] tracking-[-0.02em] text-[#0F1A12]">
             {question.questionNumber}.
           </span>
-          <p className="flex-1 text-[16px] font-[500] leading-[1.25] tracking-[-0.02em] text-[#0F1A12]">{question.question}</p>
+          <p className="flex-1 text-[16px] font-[500] leading-[1.25] tracking-[-0.02em] text-[#0F1A12]">
+            {question.question}
+          </p>
           {isInteracting ? <QuestionFilledIconSVG width={20} /> : null}
           {!isInteracting && showSuccessIcon ? <CorrectFilledIconSVG width={20} /> : null}
         </div>
       </div>
 
-      {question.imageUrl ? <img src={question.imageUrl} alt="Question" className="max-h-[240px] rounded-[8px] object-contain" /> : null}
+      {question.imageUrl ? (
+        <img src={question.imageUrl} alt="Question" className="max-h-[240px] rounded-[8px] object-contain" />
+      ) : null}
 
       <div className="flex flex-col gap-3">
-        <p className="text-[16px] font-[600] uppercase leading-[1.25] tracking-[-0.02em] text-[#49734F]">Student Answer</p>
-        <p className="text-[16px] font-[400] leading-[1.2] tracking-[-0.02em] text-[#747775]">{question.textAnswer || "No answer submitted"}</p>
+        <p className="text-[16px] font-[600] uppercase leading-[1.25] tracking-[-0.02em] text-[#49734F]">
+          Student Answer
+        </p>
+        <p className="text-[16px] font-[400] leading-[1.2] tracking-[-0.02em] text-[#747775]">
+          {question.textAnswer || "No answer submitted"}
+        </p>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -129,7 +143,14 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
 
                   setScoreInput(nextValue);
 
-                  if (!examId || !submissionId || nextValue === "" || nextValue === "-" || nextValue === "." || nextValue === "-.") {
+                  if (
+                    !examId ||
+                    !submissionId ||
+                    nextValue === "" ||
+                    nextValue === "-" ||
+                    nextValue === "." ||
+                    nextValue === "-."
+                  ) {
                     return;
                   }
 
@@ -180,7 +201,9 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
               />
             ) : (
               <div className="flex h-8 min-w-16 items-center justify-center rounded-[2px] border border-[#E5E5E5] bg-white px-5">
-                <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25]">{formatScoreLabel(question.marksObtained)}</p>
+                <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25]">
+                  {formatScoreLabel(question.marksObtained)}
+                </p>
               </div>
             )}
           </div>

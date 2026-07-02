@@ -12,7 +12,9 @@ import { AxiosError } from "axios";
 const useGradingSubmissionFooter = () => {
   const dispatch = useAppDispatch();
   const { handleError } = useApiError();
-  const { currentPage, exam, openModal, searchStudentInput, selectedSubmission } = useAppSelector((state) => state.gradeDetails);
+  const { currentPage, exam, openModal, searchStudentInput, selectedSubmission } = useAppSelector(
+    (state) => state.gradeDetails,
+  );
   const examId = exam?.id ?? null;
   const submissionId = selectedSubmission?.submission_id ?? null;
   const cachedEntry = useAppSelector((state) => selectSubmissionGradingEntry(state, examId, submissionId));
@@ -37,7 +39,8 @@ const useGradingSubmissionFooter = () => {
     return errors;
   }, {});
 
-  const isSubmitDisabled = !data || openModal !== "edit" || grades.length === 0 || Object.keys(validationErrors).length > 0 || isSubmitting;
+  const isSubmitDisabled =
+    !data || openModal !== "edit" || grades.length === 0 || Object.keys(validationErrors).length > 0 || isSubmitting;
 
   const handleClose = () => {
     dispatch(setOpenModal(""));

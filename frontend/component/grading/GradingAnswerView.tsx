@@ -52,7 +52,7 @@ const getMatchingPairRows = (question: GradingModalQuestion) => {
 
   return matchingOptions.left.map((leftOption, index) => {
     const selectedRightOptionId = selectedPairMap.get(leftOption.id);
-    const selectedRightOption = selectedRightOptionId ? rightOptionMap.get(selectedRightOptionId) ?? null : null;
+    const selectedRightOption = selectedRightOptionId ? (rightOptionMap.get(selectedRightOptionId) ?? null) : null;
     const fallbackRightOption = fallbackRightOptions[index] ?? null;
     const rightOption = selectedRightOption ?? fallbackRightOption;
     const pairValue = selectedRightOptionId ? `${leftOption.id}::${selectedRightOptionId}` : null;
