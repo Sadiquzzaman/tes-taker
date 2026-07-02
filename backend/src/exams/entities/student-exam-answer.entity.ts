@@ -149,6 +149,12 @@ export class StudentExamAnswerEntity extends CustomBaseEntity {
   @Column({ name: 'marks_obtained', type: 'decimal', precision: 10, scale: 2, nullable: true })
   marks_obtained?: number;
 
+  @ApiPropertyOptional({
+    description: 'Teacher feedback/explanation when manually grading ungraded questions',
+  })
+  @Column({ name: 'grader_explanation', type: 'text', nullable: true })
+  grader_explanation?: string | null;
+
   @ApiPropertyOptional({ description: 'When the answer was last updated' })
   @Column({ name: 'answered_at', type: 'timestamp', nullable: true })
   answered_at?: Date;

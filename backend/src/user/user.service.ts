@@ -4,12 +4,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { RegisterUserDto } from 'src/auth/dto/register-user.dto';
 import { LoginDto } from 'src/auth/dto/login.dto';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
+import { RolesEnum } from 'src/common/enums/roles.enum';
 import { CryptoUtil } from 'src/common/utils/crypto.util';
 import { UserFilterUtil } from 'src/common/utils/user-filter.util';
 import { Repository } from 'typeorm';
 import { UserReponseDto } from './dto/user-response.dto';
 import { UserEntity } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class UserService {
@@ -82,6 +84,70 @@ export class UserService {
   async findByEmail(email: string): Promise<UserEntity | null> {
     return await this.userRepository.findOne({
       where: { email },
+    });
+  }
+
+  async findByGoogleId(googleId: string): Promise<UserEntity | null> {
+    return await this.userRepository.findOne({
+      where: { google_id: googleId },
+    });
+  }
+
+  private buildSyntheticGooglePhone(seed: string): string {
+    const digits = seed.replace(/\D/g, '').slice(-10).padStart(10, '0');
+    return `G${digits}`.slice(0, 15);
+  }
+
+  async findOrCreateGoogleUser(profile: {
+    googleId: string;
+    email: string;
+    fullName: string;
+  }): Promise<UserEntity> {
+    let user = await this.findByGoogleId(profile.googleId);
+
+    if (user) {
+      if (user.is_active === ActiveStatusEnum.INACTIVE) {
+        throw new UnauthorizedException('Your account has been disabled. Please contact support.');
+      }
+      return user;
+    }
+
+    user = await this.findByEmail(profile.email);
+    if (user) {
+      if (user.google_id && user.google_id !== profile.googleId) {
+        throw new BadRequestException('This email is linked to a different Google account');
+      }
+
+      user.google_id = profile.googleId;
+      user.full_name = user.full_name || profile.fullName;
+      user.is_otp_verified = true;
+      user.is_verified = true;
+
+      if (user.is_active === ActiveStatusEnum.INACTIVE) {
+        throw new UnauthorizedException('Your account has been disabled. Please contact support.');
+      }
+
+      return this.userRepository.save(user);
+    }
+
+    const password = await this.crypto.hashPassword(randomBytes(32).toString('hex'));
+    let phone = this.buildSyntheticGooglePhone(profile.googleId);
+    while (await this.findByPhone(phone)) {
+      phone = this.buildSyntheticGooglePhone(`${profile.googleId}-${randomBytes(4).toString('hex')}`);
+    }
+
+    return this.userRepository.save({
+      full_name: profile.fullName,
+      email: profile.email,
+      google_id: profile.googleId,
+      phone,
+      password,
+      role: RolesEnum.STUDENT,
+      is_otp_verified: true,
+      is_verified: true,
+      is_active: ActiveStatusEnum.ACTIVE,
+      refresh_token: (Math.random() * 0xfffff * 1000000).toString(16),
+      created_at: new Date(),
     });
   }
 

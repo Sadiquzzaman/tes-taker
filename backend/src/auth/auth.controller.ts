@@ -1,5 +1,7 @@
-import { Controller, Post, Body, UseGuards, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, HttpCode, HttpStatus, Query, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
+import { GoogleAuthService } from './google-auth.service';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiBody } from '@nestjs/swagger';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginDto } from './dto/login.dto';
@@ -18,7 +20,10 @@ import { VerifyOtpDto } from 'src/sms/dto/sms.dto';
   version: '1',
 })
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly googleAuthService: GoogleAuthService,
+  ) {}
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -214,6 +219,45 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto) {
     const payload = await this.authService.login(loginDto);
     return { message: 'Login successful!', payload };
+  }
+
+  @Get('google')
+  @ApiOperation({
+    summary: 'Start Google sign-in',
+    description: 'Redirects the browser to Google OAuth consent screen.',
+  })
+  @ApiResponse({ status: 302, description: 'Redirect to Google OAuth' })
+  async googleAuth(@Res() res: Response) {
+    const url = this.googleAuthService.buildAuthorizationUrl();
+    return res.redirect(url);
+  }
+
+  @Get('google/callback')
+  @ApiOperation({
+    summary: 'Google OAuth callback',
+    description: 'Handles Google redirect, creates or links the user, then redirects to the frontend with tokens.',
+  })
+  @ApiResponse({ status: 302, description: 'Redirect to frontend callback page' })
+  async googleAuthCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Query('error') error: string,
+    @Res() res: Response,
+  ) {
+    if (error) {
+      return res.redirect(
+        this.googleAuthService.buildFrontendFailureRedirect('Google sign-in was cancelled'),
+      );
+    }
+
+    try {
+      const payload = await this.googleAuthService.handleCallback(code, state);
+      return res.redirect(this.googleAuthService.buildFrontendSuccessRedirect(payload));
+    } catch (callbackError) {
+      const message =
+        callbackError instanceof Error ? callbackError.message : 'Google sign-in failed';
+      return res.redirect(this.googleAuthService.buildFrontendFailureRedirect(message));
+    }
   }
 
   @Post('forgot-password')

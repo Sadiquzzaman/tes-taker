@@ -1628,6 +1628,9 @@ export class StudentExamService {
 
       if (answer) {
         answer.marks_obtained = grade.marks_obtained;
+        if (grade.explanation !== undefined) {
+          answer.grader_explanation = grade.explanation.trim() || null;
+        }
         answer.updated_at = new Date();
         answer.updated_by = jwtPayload.id;
         await this.answerRepo.save(answer);
@@ -1636,6 +1639,7 @@ export class StudentExamService {
           submission_id: submission.id,
           question_id: grade.question_id,
           marks_obtained: grade.marks_obtained,
+          grader_explanation: grade.explanation?.trim() || null,
           created_by: jwtPayload.id,
           created_at: new Date(),
         });
