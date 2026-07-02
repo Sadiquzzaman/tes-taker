@@ -1,14 +1,12 @@
 "use client";
 
-import axiosReq from "@/lib/axios";
 import { resetGradeDetails, setGradeDetailsData } from "@/lib/features/gradeDetailsSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { AxiosError, AxiosResponse } from "axios";
+import fetchGradingSummary from "@/utils/grading/fetchGradingSummary";
+import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useApiError } from "../useApiError";
-
-const GRADING_DETAILS_LIMIT = 6;
 
 const useGetGradeDetails = (examId: string) => {
   const { currentPage, searchStudentInput } = useAppSelector((state) => state.gradeDetails);
@@ -27,23 +25,11 @@ const useGetGradeDetails = (examId: string) => {
     }
 
     setLoading(true);
-
-    const params: GradingSummaryQuery = {
-      page: currentPage,
-      limit: GRADING_DETAILS_LIMIT,
-    };
-
-    if (normalizedSearchInput) {
-      params.search = normalizedSearchInput;
-    }
-
-    return axiosReq
-      .get<GradingSummaryResponse, AxiosResponse<GradingSummaryResponse>>(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/exams/grading/${examId}`,
-        {
-          params,
-        },
-      )
+    return fetchGradingSummary({
+      examId,
+      currentPage,
+      search: normalizedSearchInput,
+    })
       .then((response) => {
         if (response.status === 200) {
           dispatch(

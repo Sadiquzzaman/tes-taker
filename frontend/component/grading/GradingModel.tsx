@@ -5,17 +5,7 @@ import useGradingModal from "@/hooks/grading/useGradingModal";
 import { RotatingLines } from "react-loader-spinner";
 
 const GradingModel = () => {
-  const {
-    data,
-    handleClose,
-    handleExplanationChange,
-    handleScoreBlur,
-    handleScoreChange,
-    loading,
-    modalTitle,
-    openModal,
-    questionDrafts,
-  } = useGradingModal();
+  const { data, handleClose, loading, modalTitle, openModal } = useGradingModal();
 
   return (
     <div
@@ -59,15 +49,7 @@ const GradingModel = () => {
         ) : null}
 
         {!loading && data && openModal === "result" ? <GradingResultView data={data} /> : null}
-        {!loading && data && openModal === "edit" ? (
-          <GradingEditView
-            data={data}
-            drafts={questionDrafts}
-            onExplanationChange={handleExplanationChange}
-            onScoreBlur={handleScoreBlur}
-            onScoreChange={handleScoreChange}
-          />
-        ) : null}
+        {!loading && data && openModal === "edit" ? <GradingEditView data={data} /> : null}
         {!loading && !data && openModal ? (
           <div className="flex min-h-[320px] items-center justify-center text-[14px] text-[#747775]">
             No submission data found.

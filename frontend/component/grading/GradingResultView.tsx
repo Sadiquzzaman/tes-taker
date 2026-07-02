@@ -10,7 +10,7 @@ const GradingResultView = ({ data }: GradingModalResultViewProps) => {
         </p>
       </div>
 
-      <GradingQuestionList items={data.items} drafts={{}} isReadOnly={true} />
+      <GradingQuestionList items={data.items} isReadOnly={true} />
     </div>
   );
 };

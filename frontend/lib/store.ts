@@ -7,6 +7,7 @@ import { gradeDetailsSlice } from "./features/gradeDetailsSlice";
 import { createTestSlice } from "./features/createTestSlice";
 import { proctoringSlice } from "./features/proctoringSlice";
 import { studentExamAnswerSlice } from "./features/studentExamAnswerSlice";
+import { gradingSubmissionSlice } from "./features/gradingSubmissionSlice";
 
 export const makeStore = () => {
   return configureStore({
@@ -19,6 +20,7 @@ export const makeStore = () => {
       createTest: createTestSlice.reducer,
       proctoring: proctoringSlice.reducer,
       studentExamAnswer: studentExamAnswerSlice.reducer,
+      gradingSubmission: gradingSubmissionSlice.reducer,
     },
   });
 };
