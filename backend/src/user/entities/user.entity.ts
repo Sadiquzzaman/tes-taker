@@ -67,4 +67,13 @@ export class UserEntity extends CustomBaseEntity {
   @Index({ unique: true })
   refresh_token: string;
 
+  @Column({
+    type: "varchar",
+    name: "google_id",
+    length: 255,
+    nullable: true,
+  })
+  @Index({ unique: true })
+  google_id: string | null;
+
 }

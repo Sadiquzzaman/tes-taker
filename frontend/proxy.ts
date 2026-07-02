@@ -22,6 +22,11 @@ const routePolicies: RoutePolicy[] = [
     isPublic: true,
   },
   {
+    path: "/auth/google/callback",
+    match: "exact",
+    isPublic: true,
+  },
+  {
     path: "/join",
     match: "prefix",
     isPublic: true,

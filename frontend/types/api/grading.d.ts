@@ -112,6 +112,7 @@ interface SubmissionAnswerMatchingOrdering {
 interface SubmissionAnswerText {
   type: 'text';
   student_answer: string;
+  explanation?: string | null;
 }
 
 type SubmissionAnswer =
@@ -174,6 +175,7 @@ interface SubmissionGradingDetail {
 interface QuestionGradeInput {
   question_id: string;
   marks_obtained: number;
+  explanation?: string;
 }
 
 interface SaveSubmissionGradesPayload {

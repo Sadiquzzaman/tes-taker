@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -24,6 +25,15 @@ export class QuestionGradeDto {
   @Min(0)
   @Type(() => Number)
   marks_obtained: number;
+
+  @ApiPropertyOptional({
+    description: 'Teacher feedback/explanation for manual (ungraded) questions',
+    maxLength: 2000,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  explanation?: string;
 }
 
 export class GradeSubmissionDto {

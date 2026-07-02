@@ -36,6 +36,7 @@ export type SubmissionAnswerResponse =
   | {
       type: 'text';
       student_answer: string;
+      explanation?: string | null;
     };
 
 export type SubmissionQuestionResponse = {
@@ -133,6 +134,7 @@ const buildSubmissionAnswer = (
     return {
       type: 'text',
       student_answer: answer?.text_answer ?? '',
+      explanation: answer?.grader_explanation ?? null,
     };
   }
 
@@ -151,6 +153,7 @@ const buildSubmissionAnswer = (
     return {
       type: 'text',
       student_answer: answer?.text_answer ?? '',
+      explanation: answer?.grader_explanation ?? null,
     };
   }
 

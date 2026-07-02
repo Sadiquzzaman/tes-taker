@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { GoogleAuthService } from './google-auth.service';
 import { UserModule } from 'src/user/user.module';
 import { SmsModule } from 'src/sms/sms.module';
 import { EmailModule } from 'src/email/email.module';
@@ -28,6 +29,6 @@ import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RefreshTokenStrategy],
+  providers: [AuthService, GoogleAuthService, JwtStrategy, RefreshTokenStrategy],
 })
 export class AuthModule {}
