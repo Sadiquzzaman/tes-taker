@@ -56,6 +56,7 @@ const useGradingSubmissionFooter = () => {
       grades: grades.map((grade) => ({
         question_id: grade.question_id,
         marks_obtained: grade.marks_obtained,
+        explanation: grade.explanation,
       })),
     };
 

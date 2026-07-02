@@ -187,6 +187,7 @@ interface SubmissionGradingDetail {
 interface QuestionGradeInput {
   question_id: string;
   marks_obtained: number;
+  explanation: string;
 }
 
 interface SaveSubmissionGradesPayload {
