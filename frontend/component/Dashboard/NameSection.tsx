@@ -12,7 +12,7 @@ const NameSection = () => {
       <div className="text-[20px] md:text-[32px] tracking-[-0.04em] flex items-center gap-0 flex-wrap mr-4">
         <p className="font-[500] text-[#232A25]">Welcome</p>
         <p className="font-[400] text-[#49734F] italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
-          {fullName || "John Doe"}
+          {fullName || "Teacher"}
         </p>
       </div>
 

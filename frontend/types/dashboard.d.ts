@@ -58,5 +58,8 @@ interface ClassesTooltipProps {
   label?: string;
   payload?: Array<{
     value?: number;
+    payload?: {
+      fullName?: string;
+    };
   }>;
 }

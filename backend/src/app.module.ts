@@ -11,6 +11,7 @@ import { SubscriptionModule } from './subscriptions/subscription.module';
 import { SubjectModule } from './subjects/subject.module';
 import { ProctoringModule } from './proctoring/proctoring.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { PaymentModule } from './modules/payment/payment.module';
     SubjectModule,
     ProctoringModule,
     PaymentModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
