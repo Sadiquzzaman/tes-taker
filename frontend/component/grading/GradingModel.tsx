@@ -2,9 +2,20 @@ import CloseIconSVG from "../svg/CloseIconSvg";
 import GradingEditView from "./GradingEditView";
 import GradingResultView from "./GradingResultView";
 import useGradingModal from "@/hooks/grading/useGradingModal";
+import { RotatingLines } from "react-loader-spinner";
 
 const GradingModel = () => {
-  const { allQuestion, handleClose, handleExplanationChange, openModal, questionInputData } = useGradingModal();
+  const {
+    data,
+    handleClose,
+    handleExplanationChange,
+    handleScoreBlur,
+    handleScoreChange,
+    loading,
+    modalTitle,
+    openModal,
+    questionDrafts,
+  } = useGradingModal();
 
   return (
     <div
@@ -27,18 +38,41 @@ const GradingModel = () => {
         role="dialog"
       >
         <div className="flex items-center justify-between">
-          <p className="text-[24px] font-[600] leading-[24px] tracking-[-0.02em] text-[#232A25]">
-            {openModal === "edit" ? "Grade Submission" : "View Result"}
-          </p>
+          <p className="text-[24px] font-[600] leading-[24px] tracking-[-0.02em] text-[#232A25]">{modalTitle}</p>
           <button onClick={handleClose} className="text-gray-500 hover:text-gray-700">
             <CloseIconSVG className="h-6 w-6" stroke="currentColor" />
           </button>
         </div>
 
-        {openModal === "result" && <GradingResultView allQuestion={allQuestion} />}
-        {openModal === "edit" && (
-          <GradingEditView handleExplanationChange={handleExplanationChange} questionInputData={questionInputData} />
-        )}
+        {loading ? (
+          <div className="flex min-h-[320px] items-center justify-center">
+            <RotatingLines
+              visible={true}
+              height="40"
+              width="40"
+              color="grey"
+              strokeWidth="5"
+              animationDuration="0.75"
+              ariaLabel="submission-grading-loading"
+            />
+          </div>
+        ) : null}
+
+        {!loading && data && openModal === "result" ? <GradingResultView data={data} /> : null}
+        {!loading && data && openModal === "edit" ? (
+          <GradingEditView
+            data={data}
+            drafts={questionDrafts}
+            onExplanationChange={handleExplanationChange}
+            onScoreBlur={handleScoreBlur}
+            onScoreChange={handleScoreChange}
+          />
+        ) : null}
+        {!loading && !data && openModal ? (
+          <div className="flex min-h-[320px] items-center justify-center text-[14px] text-[#747775]">
+            No submission data found.
+          </div>
+        ) : null}
       </div>
     </div>
   );
