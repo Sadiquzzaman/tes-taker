@@ -1,10 +1,6 @@
 import Link from "next/link";
 
-export default async function PaymentCancelPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ tran_id?: string }>;
-}) {
+export default async function PaymentCancelPage({ searchParams }: { searchParams: Promise<{ tran_id?: string }> }) {
   const { tran_id } = await searchParams;
 
   return (

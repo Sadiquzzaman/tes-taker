@@ -54,9 +54,7 @@ export default function useCreateClassForm() {
 
     const normalizedValue = normalizeStudentIdentifier(trimmed);
 
-    if (
-      createClassPayload.student_ids.some((student) => normalizeStudentIdentifier(student) === normalizedValue)
-    ) {
+    if (createClassPayload.student_ids.some((student) => normalizeStudentIdentifier(student) === normalizedValue)) {
       triggerToast({
         title: "Duplicate student",
         description: "This phone or email is already in the list.",

@@ -2,11 +2,7 @@ const STORAGE_PREFIX = "exam-answers";
 
 const buildStorageKey = (examId: string, studentId: string) => `${STORAGE_PREFIX}:${examId}:${studentId}`;
 
-export const saveExamAnswersToStorage = (
-  examId: string,
-  studentId: string,
-  values: ExamAnswerState,
-): void => {
+export const saveExamAnswersToStorage = (examId: string, studentId: string, values: ExamAnswerState): void => {
   if (typeof window === "undefined") {
     return;
   }
@@ -26,10 +22,7 @@ export const saveExamAnswersToStorage = (
   }
 };
 
-export const loadExamAnswersFromStorage = (
-  examId: string,
-  studentId: string,
-): ExamAnswerState | null => {
+export const loadExamAnswersFromStorage = (examId: string, studentId: string): ExamAnswerState | null => {
   if (typeof window === "undefined") {
     return null;
   }

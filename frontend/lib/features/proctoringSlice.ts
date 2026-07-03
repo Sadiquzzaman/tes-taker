@@ -1,9 +1,5 @@
 import { PROCTORING_CONFIG } from "@/utils/tests/proctoringConfig";
-import {
-  getProctoringFlagCount,
-  getProctoringRiskLevel,
-  PROCTORING_FLAG_POINTS,
-} from "@/utils/tests/proctoring";
+import { getProctoringFlagCount, getProctoringRiskLevel, PROCTORING_FLAG_POINTS } from "@/utils/tests/proctoring";
 import type { RootState } from "@/lib/store";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 
@@ -105,10 +101,7 @@ export const proctoringSlice = createSlice({
       state.activeCountdown = action.payload;
     },
     resetProctoring: () => ({ ...initialState, flags: [] }),
-    setProctoringFeatures: (
-      state,
-      action: PayloadAction<{ enableAutoDisqualification?: boolean }>,
-    ) => {
+    setProctoringFeatures: (state, action: PayloadAction<{ enableAutoDisqualification?: boolean }>) => {
       if (action.payload.enableAutoDisqualification !== undefined) {
         state.enableAutoDisqualification = action.payload.enableAutoDisqualification;
       }

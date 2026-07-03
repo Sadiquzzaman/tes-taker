@@ -1,6 +1,6 @@
-type GradingStatus = 'NEEDS_GRADING' | 'GRADED' | 'PUBLISHED';
+type GradingStatus = "NEEDS_GRADING" | "GRADED" | "PUBLISHED";
 
-type SubmissionGradingStatus = 'PENDING' | 'GRADED';
+type SubmissionGradingStatus = "PENDING" | "GRADED";
 
 interface GradingListQuery {
   status?: GradingStatus;
@@ -15,11 +15,27 @@ interface GradingSummaryQuery {
   search?: string;
 }
 
+interface FetchGradingSummaryRequest {
+  examId: string;
+  currentPage: number;
+  search: string;
+}
+
+interface GradingSummaryPayload {
+  exam: GradingExamSummary;
+  stats: GradingExamStats;
+  submissions: GradingSubmissionListItem[];
+}
+
 interface GradingPaginationMeta {
   page: number;
   limit: number;
   total: number;
   total_pages: number;
+}
+
+interface GradingListResponse extends ApiResponse<GradingListItem[]> {
+  meta: GradingPaginationMeta;
 }
 
 interface GradingListItem {
@@ -28,7 +44,7 @@ interface GradingListItem {
   subject: string | null;
   class_name: string | null;
   exam_end_time: string;
-  lifecycle_status: 'pending' | 'ongoing' | 'completed';
+  lifecycle_status: "pending" | "ongoing" | "completed";
   total_participants: number;
   submitted_count: number;
   graded_count: number;
@@ -78,10 +94,7 @@ interface GradingSubmissionListItem {
   grading_status: SubmissionGradingStatus;
 }
 
-interface GradingSummaryResponse {
-  exam: GradingExamSummary;
-  stats: GradingExamStats;
-  submissions: GradingSubmissionListItem[];
+interface GradingSummaryResponse extends ApiResponse<GradingSummaryPayload> {
   meta: GradingPaginationMeta;
 }
 
@@ -98,27 +111,24 @@ interface SubmissionMatchingOption {
 }
 
 interface SubmissionAnswerOptionId {
-  type: 'optionId';
+  type: "optionId";
   correct_answer: string[];
   student_selected: string[];
 }
 
 interface SubmissionAnswerMatchingOrdering {
-  type: 'matchingOrdering';
+  type: "matchingOrdering";
   correct_answer: string[];
   student_selected: string[];
 }
 
 interface SubmissionAnswerText {
-  type: 'text';
+  type: "text";
   student_answer: string;
   explanation?: string | null;
 }
 
-type SubmissionAnswer =
-  | SubmissionAnswerOptionId
-  | SubmissionAnswerMatchingOrdering
-  | SubmissionAnswerText;
+type SubmissionAnswer = SubmissionAnswerOptionId | SubmissionAnswerMatchingOrdering | SubmissionAnswerText;
 
 interface SubmissionQuestion {
   question_id: string;
@@ -140,7 +150,7 @@ interface SubmissionQuestion {
 
 interface SubmissionPassageQuestion {
   id: string;
-  type: 'passage-question';
+  type: "passage-question";
   passageText: string;
   childQuestions: SubmissionQuestion[];
 }
@@ -175,11 +185,21 @@ interface SubmissionGradingDetail {
 interface QuestionGradeInput {
   question_id: string;
   marks_obtained: number;
-  explanation?: string;
+  explanation: string;
 }
 
 interface SaveSubmissionGradesPayload {
   grades: QuestionGradeInput[];
+}
+
+interface SaveSubmissionGradesRequest {
+  examId: string;
+  submissionId: string;
+  payload: SaveSubmissionGradesPayload;
+}
+
+interface PublishGradeResultsRequest {
+  examId: string;
 }
 
 interface SaveSubmissionGradesResponse {
@@ -196,5 +216,5 @@ interface SaveSubmissionGradesResponse {
 interface PublishResultResponse {
   is_result_published: boolean;
   result_published_at: string;
-  grading_status: 'PUBLISHED';
+  grading_status: "PUBLISHED";
 }

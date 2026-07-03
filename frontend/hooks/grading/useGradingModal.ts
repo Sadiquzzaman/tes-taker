@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { template } from "@/utils/grading/gradingTemplate";
+import useGetSubmissionGradingDetail from "@/hooks/api/grading/useGetSubmissionGradingDetail";
+import { setOpenModal } from "@/lib/features/gradeDetailsSlice";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { useEffect } from "react";
 
-const useGradingModal = (setOpenModal: (open: GradingModalView) => void, openModal: GradingModalView) => {
-  const [questionInputData, setQuestionInputData] = useState<GradingQuestionInputData>({});
+const useGradingModal = () => {
+  const dispatch = useAppDispatch();
+  const { exam, openModal, selectedSubmission } = useAppSelector((state) => state.gradeDetails);
+  const examId = exam?.id ?? null;
+  const submissionId = selectedSubmission?.submission_id ?? null;
+  const { data, fetch, loading } = useGetSubmissionGradingDetail(examId, submissionId);
 
   useEffect(() => {
     document.body.style.overflow = openModal ? "hidden" : "";
@@ -14,34 +20,26 @@ const useGradingModal = (setOpenModal: (open: GradingModalView) => void, openMod
     };
   }, [openModal]);
 
-  const allQuestion = useMemo(() => {
-    return template.subjects.map((subject) => ({
-      name: subject.name,
-      questionList: subject.questionSections.flatMap((section) =>
-        section.questions.map((question) => ({ ...question, type: section.type })),
-      ) as GradingQuestionWithType[],
-    }));
-  }, []);
+  useEffect(() => {
+    if (!openModal || !examId || !submissionId) {
+      return;
+    }
+
+    void fetch();
+  }, [examId, fetch, openModal, submissionId]);
 
   const handleClose = () => {
-    setOpenModal("");
+    dispatch(setOpenModal(""));
   };
 
-  const handleExplanationChange = (questionId: string, explanation: string) => {
-    setQuestionInputData((previousValue) => ({
-      ...previousValue,
-      [questionId]: {
-        ...previousValue[questionId],
-        explanation,
-      },
-    }));
-  };
+  const modalTitle = openModal === "edit" ? "Grade Submission" : "View Result";
 
   return {
-    allQuestion,
+    data,
     handleClose,
-    handleExplanationChange,
-    questionInputData,
+    loading,
+    modalTitle,
+    openModal,
   };
 };
 

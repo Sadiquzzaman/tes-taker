@@ -137,9 +137,7 @@ const useProctoring = ({
 
     initialMediaStream.getVideoTracks().forEach((track) => {
       track.addEventListener("ended", () => {
-        dispatch(
-          setProctoringPermissionError("Camera access was revoked. Re-enable camera permissions to continue."),
-        );
+        dispatch(setProctoringPermissionError("Camera access was revoked. Re-enable camera permissions to continue."));
       });
     });
 
@@ -208,7 +206,8 @@ const useProctoring = ({
     onMonitoringError: handleMonitoringError,
   });
   useObjectDetection({
-    isActive: isMonitoringActive && (featureEnabled("proctoring_phone") || featureEnabled("proctoring_video_monitoring")),
+    isActive:
+      isMonitoringActive && (featureEnabled("proctoring_phone") || featureEnabled("proctoring_video_monitoring")),
     videoRef,
     mediaStream,
   });

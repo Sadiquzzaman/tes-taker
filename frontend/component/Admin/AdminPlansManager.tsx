@@ -150,9 +150,7 @@ const AdminPlansManager = () => {
   };
 
   const hardDelete = async (plan: SubscriptionPlan) => {
-    const ok = window.confirm(
-      `Permanently delete "${plan.name ?? plan.display_name}"? This cannot be undone.`,
-    );
+    const ok = window.confirm(`Permanently delete "${plan.name ?? plan.display_name}"? This cannot be undone.`);
     if (!ok) return;
     try {
       await axiosReq.delete(`${baseUrl}/subscriptions/admin/plans/${plan.id}`);

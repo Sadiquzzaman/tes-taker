@@ -3,13 +3,7 @@ import axiosReq from "@/lib/axios";
 import { AxiosError } from "axios";
 import { useApiError } from "@/hooks/api/useApiError";
 
-type ExamAccessReasonCode =
-  | "OK"
-  | "NOT_STARTED"
-  | "ENDED"
-  | "ALREADY_SUBMITTED"
-  | "DISQUALIFIED"
-  | "NOT_ASSIGNED";
+type ExamAccessReasonCode = "OK" | "NOT_STARTED" | "ENDED" | "ALREADY_SUBMITTED" | "DISQUALIFIED" | "NOT_ASSIGNED";
 
 interface ExamEligibilityPayload {
   eligible: boolean;

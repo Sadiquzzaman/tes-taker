@@ -13,7 +13,9 @@ import { getTeacherShareMeta } from "@/utils/tests/testListItem";
 
 const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
   const { triggerToast } = useToast();
-  const { publishTiming, scheduledAt, testAudience, className, excludedStudentsCount } = getTeacherShareMeta(testData.test);
+  const { publishTiming, scheduledAt, testAudience, className, excludedStudentsCount } = getTeacherShareMeta(
+    testData.test,
+  );
   const testLink = useMemo(() => {
     if (typeof window === "undefined" || !testData.test.id) {
       return "";
@@ -118,15 +120,14 @@ const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
 
           {testAudience === "selected_class" && (
             <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
-              Test shared with Class <span className="font-[700]">{className}</span> students.
-              Only these students will be able to join the test.
+              Test shared with Class <span className="font-[700]">{className}</span> students. Only these students will
+              be able to join the test.
             </p>
           )}
 
           {testAudience === "selected_class" && excludedStudentsCount > 0 && (
             <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
-              Total <span className="font-[700]">{excludedStudentsCount}</span> students are excluded
-              from this test.
+              Total <span className="font-[700]">{excludedStudentsCount}</span> students are excluded from this test.
             </p>
           )}
 

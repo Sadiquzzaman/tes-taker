@@ -14,9 +14,7 @@ const useProfile = () => {
     setError(false);
 
     try {
-      const response = await axiosReq.get<ApiResponse<UserProfile>>(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/auth/profile`,
-      );
+      const response = await axiosReq.get<ApiResponse<UserProfile>>(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/profile`);
       setProfile(response.data.payload);
     } catch (err) {
       setError(true);

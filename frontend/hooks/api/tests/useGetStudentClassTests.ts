@@ -29,10 +29,9 @@ const useGetStudentClassTests = ({ classId, enabled = true }: UseGetStudentClass
     setLoading(true);
 
     return axiosReq
-      .get<
-        ApiResponse<StudentAssignedExamListItem[]>,
-        AxiosResponse<ApiResponse<StudentAssignedExamListItem[]>>
-      >(`${process.env.NEXT_PUBLIC_BASE_URL}/student/exams/class/${classId}`)
+      .get<ApiResponse<StudentAssignedExamListItem[]>, AxiosResponse<ApiResponse<StudentAssignedExamListItem[]>>>(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/student/exams/class/${classId}`,
+      )
       .then(async (response) => {
         if (response.status === 200) {
           setTestList(response.data.payload);

@@ -77,8 +77,7 @@ const useExamPermissions = () => {
     }
   }, [cameraStream, syncPermissionState]);
 
-  const allPermissionsGranted =
-    permissionState.camera === "granted" && permissionState.microphone === "granted";
+  const allPermissionsGranted = permissionState.camera === "granted" && permissionState.microphone === "granted";
 
   useEffect(() => {
     pollIntervalRef.current = window.setInterval(() => {

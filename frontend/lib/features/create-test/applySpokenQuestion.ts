@@ -34,8 +34,7 @@ const applySpokenQuestion = (state: CreateTestState, action: PayloadAction<Apply
   const supportsEditableOptions = Boolean(optionRules?.canEditOptionText && !optionRules?.useFixedOptions);
   const trimmedQuestion = action.payload.question.trim();
 
-  const isStructured =
-    action.payload.options.length > 0 && supportsEditableOptions && answerMode !== "none";
+  const isStructured = action.payload.options.length > 0 && supportsEditableOptions && answerMode !== "none";
 
   if (isStructured) {
     if (trimmedQuestion) {
@@ -50,8 +49,7 @@ const applySpokenQuestion = (state: CreateTestState, action: PayloadAction<Apply
     question.matchingOptions = undefined;
 
     const correctIndex = action.payload.correctIndex;
-    const correctValue =
-      correctIndex !== null && newOptions[correctIndex] ? [newOptions[correctIndex].id] : [];
+    const correctValue = correctIndex !== null && newOptions[correctIndex] ? [newOptions[correctIndex].id] : [];
 
     question.answer = { type: "optionId", value: correctValue };
     question.showValidation = false;

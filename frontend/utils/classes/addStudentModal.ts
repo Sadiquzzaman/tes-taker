@@ -132,12 +132,7 @@ const getCsvIdentifierColumnIndex = (rows: string[][]) => {
 };
 
 export const downloadStudentCsvTemplate = () => {
-  const templateRows = [
-    "email_or_phone",
-    "01712345678",
-    "student@example.com",
-    "01798765432",
-  ];
+  const templateRows = ["email_or_phone", "01712345678", "student@example.com", "01798765432"];
 
   const csvContent = templateRows.join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });

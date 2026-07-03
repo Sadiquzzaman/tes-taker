@@ -108,8 +108,8 @@ const ForgotPasswordForm = () => {
 
             <label className="text-[#747775] font-normal text-[16px] leading-[125%] tracking-[-0.02em] mt-2">
               We've sent a 6-digit code{maskedTarget ? " to " : ""}
-              {maskedTarget && <span className="font-medium text-[#0F1A12]">{maskedTarget}</span>}. Please check your SMS
-              inbox and email.
+              {maskedTarget && <span className="font-medium text-[#0F1A12]">{maskedTarget}</span>}. Please check your
+              SMS inbox and email.
             </label>
 
             <label className="text-[#747775] font-normal text-[16px] leading-[125%] tracking-[-0.02em]">

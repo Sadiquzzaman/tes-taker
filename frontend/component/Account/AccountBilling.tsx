@@ -22,11 +22,7 @@ const getPrice = (plan: SubscriptionPlan, cycle: BillingCycle) => {
   return Number(plan.price_yearly);
 };
 
-const getPlanButtonState = (
-  plan: SubscriptionPlan,
-  currentSortOrder: number,
-  currentSlug?: string,
-) => {
+const getPlanButtonState = (plan: SubscriptionPlan, currentSortOrder: number, currentSlug?: string) => {
   const planSortOrder = plan.sort_order ?? 0;
 
   if (plan.slug === currentSlug) {
@@ -120,11 +116,7 @@ const AccountBilling = () => {
             Current plan: <strong>{entitlements?.plan?.name ?? "Free"}</strong>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void refetch()}
-          className="text-sm text-[#49734F] hover:underline"
-        >
+        <button type="button" onClick={() => void refetch()} className="text-sm text-[#49734F] hover:underline">
           Refresh usage
         </button>
       </div>
@@ -133,9 +125,7 @@ const AccountBilling = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-[#747775]">
           <div className="rounded-[8px] bg-[#EFF0F3] p-3">
             Exams this month: {entitlements.usage.exams_used_this_month}
-            {entitlements.limits?.max_exams_per_month
-              ? ` / ${entitlements.limits.max_exams_per_month}`
-              : ""}
+            {entitlements.limits?.max_exams_per_month ? ` / ${entitlements.limits.max_exams_per_month}` : ""}
           </div>
           <div className="rounded-[8px] bg-[#EFF0F3] p-3">
             Total exams used: {entitlements.usage.total_exams_used}

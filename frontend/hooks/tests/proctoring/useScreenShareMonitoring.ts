@@ -1,11 +1,7 @@
 import { addFlag, disqualifyExam, setProctoringCountdown } from "@/lib/features/proctoringSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { PROCTORING_CONFIG } from "@/utils/tests/proctoringConfig";
-import {
-  initScreenShareMonitor,
-  isScreenSharingActive,
-  subscribeScreenShare,
-} from "@/utils/tests/screenShareMonitor";
+import { initScreenShareMonitor, isScreenSharingActive, subscribeScreenShare } from "@/utils/tests/screenShareMonitor";
 import { useEffect, useRef } from "react";
 
 const POLL_INTERVAL_MS = 1000;

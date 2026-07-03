@@ -64,9 +64,7 @@ export default function PaymentSuccessContent() {
           if (result.status === "FAILED" || result.status === "CANCELLED") {
             setPhase("error");
             setMessage(
-              result.status === "CANCELLED"
-                ? "This payment was cancelled."
-                : "This payment did not go through.",
+              result.status === "CANCELLED" ? "This payment was cancelled." : "This payment did not go through.",
             );
             return;
           }
@@ -130,9 +128,7 @@ export default function PaymentSuccessContent() {
             </div>
             <div className="flex justify-between">
               <dt className="text-[#747775]">Subscription</dt>
-              <dd className="font-medium text-[#232A25]">
-                {payment.status === "PAID" ? "Activated" : "Pending"}
-              </dd>
+              <dd className="font-medium text-[#232A25]">{payment.status === "PAID" ? "Activated" : "Pending"}</dd>
             </div>
           </dl>
         )}

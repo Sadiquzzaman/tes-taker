@@ -12,9 +12,7 @@ const useEntitlements = () => {
     setError(null);
 
     try {
-      const response = await axiosReq.get<{ payload: EntitlementsPayload }>(
-        `${baseUrl}/subscriptions/my-entitlements`,
-      );
+      const response = await axiosReq.get<{ payload: EntitlementsPayload }>(`${baseUrl}/subscriptions/my-entitlements`);
       setEntitlements(response.data?.payload ?? null);
     } catch {
       setError("Failed to load entitlements");

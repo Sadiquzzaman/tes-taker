@@ -15,12 +15,7 @@ const ProctoringWarningModal = () => {
   }
 
   return (
-    <CreateModal
-      open={isOpen}
-      onClose={() => {}}
-      maxWidthClassName="max-w-[460px]"
-      panelClassName="p-6 sm:p-7"
-    >
+    <CreateModal open={isOpen} onClose={() => {}} maxWidthClassName="max-w-[460px]" panelClassName="p-6 sm:p-7">
       <div className="flex flex-col gap-5">
         <div className="flex items-start gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#FEF0C7] text-[#DC6803]">

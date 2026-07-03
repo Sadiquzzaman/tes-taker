@@ -14,12 +14,7 @@ const ProctoringDisqualificationScreen = ({ open, reason }: ProctoringDisqualifi
   }
 
   return (
-    <CreateModal
-      open={open}
-      onClose={() => {}}
-      maxWidthClassName="max-w-[520px]"
-      panelClassName="p-6 sm:p-8"
-    >
+    <CreateModal open={open} onClose={() => {}} maxWidthClassName="max-w-[520px]" panelClassName="p-6 sm:p-8">
       <div className="flex flex-col items-center gap-4 text-center">
         <div className="flex size-14 items-center justify-center rounded-full bg-[#FEE4E2] text-[#D92D20]">
           <span className="text-[24px] font-[700]">!</span>

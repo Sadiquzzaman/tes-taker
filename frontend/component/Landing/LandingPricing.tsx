@@ -23,10 +23,7 @@ const LandingPricing = () => {
     <section id="pricing" className="py-20 px-6 bg-[#EFF0F3]">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
-          <h2
-            className="text-3xl md:text-4xl text-[#232A25] mb-3"
-            style={{ fontFamily: "DM Serif Display, serif" }}
-          >
+          <h2 className="text-3xl md:text-4xl text-[#232A25] mb-3" style={{ fontFamily: "DM Serif Display, serif" }}>
             Simple, transparent pricing
           </h2>
           <p className="text-[#747775] max-w-2xl mx-auto" style={{ fontFamily: "Instrument Sans, sans-serif" }}>
@@ -47,19 +44,18 @@ const LandingPricing = () => {
                 key={plan.id}
                 className="bg-white rounded-[12px] p-6 border border-[#EFF0F3] flex flex-col shadow-sm hover:shadow-md transition-shadow"
               >
-                <h3 className="text-lg font-semibold text-[#232A25] mb-1" style={{ fontFamily: "Public Sans, sans-serif" }}>
+                <h3
+                  className="text-lg font-semibold text-[#232A25] mb-1"
+                  style={{ fontFamily: "Public Sans, sans-serif" }}
+                >
                   {getPlanName(plan)}
                 </h3>
-                {plan.description && (
-                  <p className="text-sm text-[#747775] mb-4 min-h-[40px]">{plan.description}</p>
-                )}
+                {plan.description && <p className="text-sm text-[#747775] mb-4 min-h-[40px]">{plan.description}</p>}
                 <div className="mb-4">
                   <span className="text-3xl font-bold text-[#49734F]" style={{ fontFamily: "Public Sans, sans-serif" }}>
                     {formatPrice(plan.price_monthly)}
                   </span>
-                  {plan.price_monthly > 0 && (
-                    <span className="text-sm text-[#747775] ml-1">/month</span>
-                  )}
+                  {plan.price_monthly > 0 && <span className="text-sm text-[#747775] ml-1">/month</span>}
                 </div>
                 <ul className="text-sm text-[#747775] space-y-2 mb-6 flex-1">
                   {plan.limits?.max_exams_per_month ? (
