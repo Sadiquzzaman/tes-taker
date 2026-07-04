@@ -146,6 +146,10 @@ export class AuthService {
     return await this.userService.validateUserEmailPass(loginDto);
   }
 
+  async refreshToken(refreshToken: string): Promise<UserReponseDto> {
+    return this.userService.refreshAccessToken(refreshToken);
+  }
+
   async getProfile(userId: string) {
     return await this.userService.getProfile(userId);
   }

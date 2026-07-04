@@ -8,6 +8,7 @@ import { RotatingLines } from "react-loader-spinner";
 import axiosReq from "@/lib/axios";
 import { useToast } from "@/component/Toast/ToastContext";
 import { useApiError } from "@/hooks/api/useApiError";
+import { sumExamMarks } from "@/utils/exam/examMarks";
 
 const formatOptions: Intl.DateTimeFormatOptions = {
   month: "short",
@@ -34,19 +35,6 @@ const countQuestions = (subjects: StudentExamSubject[]) =>
         (count, question) => count + ("childQuestions" in question ? question.childQuestions.length : 1),
         0,
       ),
-    0,
-  );
-
-const sumMarks = (subjects: StudentExamSubject[]) =>
-  subjects.reduce(
-    (total, subject) =>
-      total +
-      subject.questions.reduce((marks, question) => {
-        if ("childQuestions" in question) {
-          return marks + question.childQuestions.reduce((childMarks, child) => childMarks + (child.points ?? 0), 0);
-        }
-        return marks + (question.points ?? 0);
-      }, 0),
     0,
   );
 
@@ -155,7 +143,7 @@ const ExamDetails = ({ examId }: { examId: string }) => {
       .filter(Boolean)
       .join(", ") || "N/A";
   const questionCount = countQuestions(exam.subjects ?? []);
-  const totalMarks = sumMarks(exam.subjects ?? []);
+  const totalMarks = sumExamMarks(exam.subjects ?? []);
 
   return (
     <div className="mx-auto flex w-full max-w-[896px] flex-col gap-6 py-2">

@@ -73,6 +73,7 @@ import {
   persistSubmissionScores,
   resolveSubmissionScores,
 } from './utils/submission-response.util';
+import { ClassService } from 'src/classes/class.service';
 
 export type ExamAccessValidation = {
   canAccess: boolean;
@@ -108,6 +109,8 @@ export class StudentExamService {
     private readonly smsService: SmsService,
 
     private readonly dataSource: DataSource,
+
+    private readonly classService: ClassService,
   ) {}
 
   private static readonly UUID_V4_RE =
@@ -504,8 +507,9 @@ export class StudentExamService {
           exam,
         };
       }
-      const isInClass = exam.class.classStudents?.some(
-        (cs) => cs.student_id === studentId && cs.status === ClassStudentStatusEnum.JOINED,
+      const isInClass = await this.classService.resolveStudentClassMembership(
+        exam.class_id as string,
+        studentId,
       );
       if (!isInClass) {
         return {
@@ -1484,6 +1488,7 @@ export class StudentExamService {
         'exam.primary_subject',
         'exam.questionSections',
         'exam.questionSections.subject',
+        'exam.questionSections.questions',
       ],
     });
 
@@ -1500,21 +1505,16 @@ export class StudentExamService {
 
     const answers = await this.answerRepo.find({
       where: { submission_id: submission.id },
-      relations: ['question'],
     });
-
-    // Format answers with correct answers and explanations
-    const formattedAnswers = answers.map(a => ({
-      question: a.question.question,
-      question_type: a.question.question_type,
-      selected_answer: a.selected_answer,
-      correct_answer: a.question.correct_answer,
-      is_correct: a.is_correct,
-      marks_obtained: a.marks_obtained,
-      explanation: a.question.explanation,
-      text_answer: a.text_answer,
-      word_count: a.word_count,
-    }));
+    const answerByQuestionId = new Map(answers.map((answer) => [answer.question_id, answer]));
+    const scores = resolveSubmissionScores(submission.exam, answers);
+    const questions = buildSubmissionQuestions(submission.exam, answerByQuestionId);
+    const manualQuestions = getManualQuestions(submission.exam);
+    const autoQuestions = getAutoScoredQuestions(submission.exam);
+    const manualGradedCount = manualQuestions.filter((question) => {
+      const answer = answerByQuestionId.get(question.id);
+      return answer?.marks_obtained !== undefined && answer?.marks_obtained !== null;
+    }).length;
 
     return {
       exam_id: submission.exam_id,
@@ -1526,12 +1526,36 @@ export class StudentExamService {
       correct_answers: submission.correct_answers,
       wrong_answers: submission.wrong_answers,
       unanswered: submission.unanswered,
-      total_score: submission.total_score,
-      max_score: submission.max_score,
-      percentage: submission.max_score 
-        ? ((submission.total_score || 0) / submission.max_score * 100).toFixed(2) 
-        : null,
-      answers: formattedAnswers,
+      total_score: scores.total_score,
+      max_score: scores.max_score,
+      percentage: scores.percentage,
+      submission: {
+        submission_id: submission.id,
+        exam_id: submission.exam_id,
+        student_id: submission.student_id,
+        student_name: null,
+        email: null,
+        phone: null,
+        submitted_at: submission.submitted_at ?? null,
+        status: submission.status,
+        total_score: scores.total_score,
+        max_score: scores.max_score,
+        percentage: scores.percentage ?? 0,
+        is_graded: submission.is_graded,
+        grading_status: submission.is_graded
+          ? SubmissionGradingStatusEnum.GRADED
+          : SubmissionGradingStatusEnum.PENDING,
+      },
+      questions,
+      totals: {
+        manual_total_count: manualQuestions.length,
+        manual_graded_count: manualGradedCount,
+        auto_total_count: autoQuestions.length,
+        auto_graded_count: autoQuestions.filter((question) => {
+          const answer = answerByQuestionId.get(question.id);
+          return answer?.marks_obtained !== undefined && answer?.marks_obtained !== null;
+        }).length,
+      },
     };
   }
 

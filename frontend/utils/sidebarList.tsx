@@ -65,14 +65,6 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Platform",
-    label: "Results",
-    route: "/results",
-    role: ["TEACHER"],
-    image: <SidebarResultsIconSVG width={16} />,
-    children: [],
-  },
-  {
-    category: "Platform",
     label: "Billing & Plans",
     route: "/billing",
     role: ["TEACHER"],

@@ -170,7 +170,7 @@ export class UserService {
     if (loginDto.email && loginDto.email.includes('@')) {
       // Login with email
       user = await this.userRepository.findOne({
-        where: { email: loginDto.email },
+        where: { email: loginDto.email.trim().toLowerCase() },
       });
     } else if (loginDto.phone) {
       // Login with phone
@@ -266,6 +266,22 @@ export class UserService {
 
     user.password = await this.crypto.hashPassword(newPassword);
     await this.userRepository.save(user);
+  }
+
+  async refreshAccessToken(refreshToken: string): Promise<UserReponseDto> {
+    const user = await this.userRepository.findOne({
+      where: { refresh_token: refreshToken },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    if (user.is_active === ActiveStatusEnum.INACTIVE) {
+      throw new UnauthorizedException('Your account has been disabled. Please contact support.');
+    }
+
+    return this.generateTokenForUser(user);
   }
 
   async getProfile(userId: string) {

@@ -1,0 +1,9 @@
+export const PDF_WATERMARK = "powered by instructor.academy";
+export const PDF_PAGE_MARGIN = 20;
+export const PDF_LINE_HEIGHT = 6;
+export const PDF_OPTION_LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+export const PDF_LOGO_PATH = "/logo.png";
+export const PDF_BENGALI_FONT_PATH = "/fonts/NotoSansBengali-Regular.ttf";
+export const PDF_BENGALI_FONT_NAME = "NotoSansBengali";
+export const PDF_BENGALI_FONT_FILE = "NotoSansBengali-Regular.ttf";
+export const PDF_ENGLISH_FONT_NAME = "helvetica";
