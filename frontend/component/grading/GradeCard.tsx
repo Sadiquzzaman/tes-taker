@@ -1,10 +1,13 @@
+import useDownloadExamResults from "@/hooks/api/grading/useDownloadExamResults";
 import Link from "next/link";
 import DownloadIconSVG from "../svg/DownloadIconSVG";
 import RemainingIconSVG from "../svg/RemainingIconSVG";
 import ShareIconSVG from "../svg/ShareIconSVG";
 import { getGradeCardStatusLabel, gradeCardStatusColors, gradeCardStatusTextColors } from "@/utils/grading/gradeCard";
+import ButtonLoader from "../Loader/ButtonLoadder";
 
 const GradeCard = ({ gradeItem }: GradeCardProps) => {
+  const { download, loading: isDownloading } = useDownloadExamResults();
   const status = gradeItem.grading_status;
   const statusLabel = getGradeCardStatusLabel(gradeItem.grading_status);
   const statusColor = gradeCardStatusTextColors[status];
@@ -13,6 +16,14 @@ const GradeCard = ({ gradeItem }: GradeCardProps) => {
   const submittedCount = gradeItem.submitted_count;
   const gradedCount = gradeItem.graded_count;
   const pendingCount = gradeItem.pending_count;
+
+  const handleDownloadResults = async () => {
+    if (isDownloading || submittedCount <= 0) {
+      return;
+    }
+
+    await download(gradeItem.id, gradeItem.test_name || "exam-results");
+  };
 
   return (
     <div className="rounded-[8px] bg-white p-4">
@@ -66,10 +77,13 @@ const GradeCard = ({ gradeItem }: GradeCardProps) => {
               <ShareIconSVG width={16} />
             </button>
             <button
+              type="button"
               title="Download Results"
-              className="flex h-8 w-8 items-center justify-center rounded-[8px] hover:bg-[#EFF0F3]"
+              disabled={isDownloading || submittedCount <= 0}
+              onClick={handleDownloadResults}
+              className="flex h-8 w-8 items-center justify-center rounded-[8px] hover:bg-[#EFF0F3] disabled:opacity-50"
             >
-              <DownloadIconSVG width={16} />
+              {isDownloading ? <ButtonLoader show={true} w="w-4" h="h-4" /> : <DownloadIconSVG width={16} />}
             </button>
           </div>
         )}
