@@ -104,6 +104,19 @@ export const useVerifyCode = (value: string) => {
       return;
     }
 
+    let classInvitationToken: string | undefined;
+    try {
+      const joinSessionInfo = sessionStorage.getItem("joinSessionInfo");
+      if (joinSessionInfo) {
+        const parsedInfo = JSON.parse(joinSessionInfo) as { joinType?: string; id?: string };
+        if (parsedInfo.joinType === "class" && parsedInfo.id) {
+          classInvitationToken = parsedInfo.id;
+        }
+      }
+    } catch (error) {
+      console.warn("[useVerifyCode] Failed to read joinSessionInfo", error);
+    }
+
     try {
       setLoading(true);
       const response = await axios.post(
@@ -111,6 +124,7 @@ export const useVerifyCode = (value: string) => {
         {
           phone: value,
           otp: otp.join(""),
+          ...(classInvitationToken ? { classInvitationToken } : {}),
         },
         {
           headers: {

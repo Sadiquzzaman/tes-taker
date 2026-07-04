@@ -15,3 +15,19 @@ interface User {
   refresh_token: string;
   access_token: string;
 }
+
+interface AdminUserListItem {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  role: RoleUserType;
+  is_active: number;
+  is_verified: boolean;
+  is_otp_verified: boolean;
+  created_at: string;
+}
+
+interface AdminUsersListResponse extends ApiResponse<AdminUserListItem[]> {
+  meta: GradingPaginationMeta;
+}

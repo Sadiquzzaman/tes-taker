@@ -43,7 +43,14 @@ const getJoinClassById = cache(async (classId: string): Promise<JoinClassResult>
   }
 
   try {
-    const response = await fetch(`${baseUrl}/classes/${encodeURIComponent(trimmedClassId)}`, {
+    const requestUrl = `${baseUrl}/classes/${encodeURIComponent(trimmedClassId)}`;
+    console.info("[getJoinClassById] Fetching class preview", {
+      classId: trimmedClassId,
+      baseUrl,
+      requestUrl,
+    });
+
+    const response = await fetch(requestUrl, {
       method: "GET",
       headers: {
         Accept: "*/*",
@@ -57,6 +64,13 @@ const getJoinClassById = cache(async (classId: string): Promise<JoinClassResult>
       | null;
 
     if (!response.ok) {
+      console.error("[getJoinClassById] Non-OK response", {
+        classId: trimmedClassId,
+        status: response.status,
+        statusText: response.statusText,
+        responseBody,
+      });
+
       return {
         classData: null,
         apiResponse: null,
@@ -84,7 +98,13 @@ const getJoinClassById = cache(async (classId: string): Promise<JoinClassResult>
       },
       errorMessage: null,
     };
-  } catch {
+  } catch (error) {
+    console.error("[getJoinClassById] Failed to fetch class preview", {
+      classId: trimmedClassId,
+      baseUrl,
+      error: error instanceof Error ? error.message : error,
+    });
+
     return {
       classData: null,
       apiResponse: null,

@@ -37,10 +37,8 @@ export class AuthService {
       throw new BadRequestException('Phone number is required for registration');
     }
 
-    // Set default role if not provided
-    if (!registerUserDto.role) {
-      registerUserDto.role = RolesEnum.STUDENT;
-    }
+    // Self-service registration always creates a student account
+    registerUserDto.role = RolesEnum.STUDENT;
 
     // Check if user with this phone already exists
     const existingUser = await this.userService.findByPhone(registerUserDto.phone);
