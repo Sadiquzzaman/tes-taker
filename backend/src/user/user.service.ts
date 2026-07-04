@@ -15,6 +15,25 @@ import { UserEntity } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'crypto';
 
+type AdminUserListMeta = {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+};
+
+type AdminUserSummary = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  role: RolesEnum;
+  is_active: ActiveStatusEnum;
+  is_verified: boolean;
+  is_otp_verified: boolean;
+  created_at: Date;
+};
+
 @Injectable()
 export class UserService {
   constructor(
@@ -329,7 +348,9 @@ export class UserService {
     }
   }
 
-  async listUsersForAdmin(query: ListUsersQueryDto) {
+  async listUsersForAdmin(
+    query: ListUsersQueryDto,
+  ): Promise<{ users: UserEntity[]; meta: AdminUserListMeta }> {
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(50, Math.max(1, query.limit ?? 20));
     const search = query.search?.trim();
@@ -377,7 +398,11 @@ export class UserService {
     };
   }
 
-  async updateUserRole(adminId: string, userId: string, role: RolesEnum.STUDENT | RolesEnum.TEACHER) {
+  async updateUserRole(
+    adminId: string,
+    userId: string,
+    role: RolesEnum.STUDENT | RolesEnum.TEACHER,
+  ): Promise<AdminUserSummary> {
     if (adminId === userId) {
       throw new ForbiddenException('You cannot change your own role');
     }
@@ -397,7 +422,17 @@ export class UserService {
     }
 
     if (user.role === role) {
-      return user;
+      return {
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        is_active: user.is_active,
+        is_verified: user.is_verified,
+        is_otp_verified: user.is_otp_verified,
+        created_at: user.created_at,
+      };
     }
 
     user.role = role;
