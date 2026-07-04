@@ -1,5 +1,6 @@
 import { useToast } from "@/component/Toast/ToastContext";
 import apiClient from "@/lib/axios";
+import { persistAuthSession } from "@/lib/authSession";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useJoinStateManage from "../ui/useJoinStateManage";
@@ -27,18 +28,8 @@ const useLogin = () => {
     });
   };
 
-  const persistAuthSession = async (payload: LoginResponsePayload) => {
-    const setTokenResponse = await apiClient.post("/api/set-token", {
-      token: payload.access_token,
-      refreshToken: payload.refresh_token,
-      role: payload.role,
-    });
-
-    if (setTokenResponse.status !== 200) {
-      throw new Error("Failed to store auth session");
-    }
-
-    localStorage.setItem("user", JSON.stringify(payload));
+  const persistAuthSessionFromLogin = async (payload: LoginResponsePayload) => {
+    await persistAuthSession(payload);
   };
 
   const handleClassJoinAfterLogin = async (classId: string) => {
@@ -151,7 +142,7 @@ const useLogin = () => {
       const payload = response.data?.payload as LoginResponsePayload;
 
       showLoginSuccessToast(payload?.message);
-      await persistAuthSession(payload);
+      await persistAuthSessionFromLogin(payload);
       await handlePostLoginRedirect(payload);
     } catch (error) {
       handleLoginError(error);

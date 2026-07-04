@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import PageLayout from "@/component/Layout";
-import StudentResultQuestionCard from "@/component/Tests/StudentResultQuestionCard";
+import GradingQuestionList from "@/component/grading/GradingQuestionList";
 import useGetExamResult from "@/hooks/api/exam/useGetExamResult";
+import { mapStudentExamResult } from "@/utils/exam/mapStudentExamResult";
 
 const StudentExamResults = ({ examId }: { examId: string }) => {
   const { loading, error, result, refetch } = useGetExamResult(examId);
@@ -38,6 +38,7 @@ const StudentExamResults = ({ examId }: { examId: string }) => {
     return null;
   }
 
+  const gradingData = mapStudentExamResult(result);
   const totalScore = result.total_score ?? 0;
   const maxScore = result.max_score ?? 0;
 
@@ -60,7 +61,7 @@ const StudentExamResults = ({ examId }: { examId: string }) => {
             <p className="text-[20px] font-[500] leading-[24px] text-[#49734F]">
               Score: {totalScore}/{maxScore}
             </p>
-            {result.percentage ? (
+            {result.percentage != null ? (
               <p className="mt-1 text-[14px] font-[400] leading-[16px] text-[#747775]">{result.percentage}%</p>
             ) : null}
           </div>
@@ -69,10 +70,8 @@ const StudentExamResults = ({ examId }: { examId: string }) => {
 
       <div className="rounded-[12px] border border-[#E5E5E5] bg-white p-6">
         <p className="text-[20px] font-[500] leading-[20px] tracking-[-0.02em] text-[#747775]">Answer sheet</p>
-        <div className="mt-4 flex flex-col gap-4">
-          {result.answers.map((answer, index) => (
-            <StudentResultQuestionCard key={`${answer.question}-${index}`} answer={answer} questionNumber={index + 1} />
-          ))}
+        <div className="mt-4">
+          <GradingQuestionList items={gradingData.items} isReadOnly={true} />
         </div>
       </div>
     </div>

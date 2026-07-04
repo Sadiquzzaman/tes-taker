@@ -1,9 +1,11 @@
 import { useAppDispatch } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 import CalenderIconSVG from "../svg/CalenderIconSVG";
+import DownloadIconSVG from "../svg/DownloadIconSVG";
 import PlayIconSVG from "../svg/PlayIconSVG";
 import ShareIconSVG from "../svg/ShareIconSVG";
 import { setNewTestCreated } from "@/lib/features/testSlice";
+import useDownloadExamQuestions from "@/hooks/api/exam/useDownloadExamQuestions";
 import {
   getTestAudienceLabel,
   getTestCounts,
@@ -33,13 +35,16 @@ const TestCard = ({
 }) => {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const { download, loading: downloading } = useDownloadExamQuestions();
   const primarySubjectName = getTestSubjectLabel(testData);
   const audienceName = getTestAudienceLabel(testData);
   const { participantCount, submittedCount } = getTestCounts(testData);
   const { startAt, endAt } = getTestScheduleRange(testData);
-  const submissionProgress = participantCount > 0 ? (submittedCount / participantCount) * 100 : 0;
   const isStudent = role === "STUDENT";
   const isTeacher = role === "TEACHER";
+  const canStudentDownload = Boolean(endAt && Date.now() > new Date(endAt).getTime());
+  const showDownload = isTeacher || (isStudent && canStudentDownload);
+  const submissionProgress = participantCount > 0 ? (submittedCount / participantCount) * 100 : 0;
   const isExamDisabled = isTeacher && "is_active" in testData && testData.is_active === 0;
 
   // const testStatus = "pending" as "ongoing" | "completed" | "pending";
@@ -80,6 +85,11 @@ const TestCard = ({
       return "View results";
     }
     return "View details";
+  };
+
+  const handleDownload = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    void download(testData.id, testData.test_name);
   };
 
   return (
@@ -176,6 +186,18 @@ const TestCard = ({
               <ShareIconSVG width={16} />
             </button>
           )}
+
+          {showDownload ? (
+            <button
+              type="button"
+              title="Download questions"
+              disabled={downloading}
+              className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3] disabled:opacity-50"
+              onClick={handleDownload}
+            >
+              <DownloadIconSVG width={16} />
+            </button>
+          ) : null}
 
           {isStudentOngoingTest ? (
             <button

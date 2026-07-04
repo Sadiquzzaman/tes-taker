@@ -9,6 +9,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { VerifyResetOtpDto } from './dto/verify-reset-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { RefreshAuthUserDto } from './dto/refresh-auth-user.dto';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { JwtPayloadInterface } from './interfaces/jwt-payload.interface';
@@ -219,6 +220,20 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto) {
     const payload = await this.authService.login(loginDto);
     return { message: 'Login successful!', payload };
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Refresh access token',
+    description: 'Exchange a valid refresh token for a new access token and refresh token pair.',
+  })
+  @ApiBody({ type: RefreshAuthUserDto })
+  @ApiResponse({ status: 200, description: 'Token refreshed successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  async refresh(@Body() refreshAuthUserDto: RefreshAuthUserDto) {
+    const payload = await this.authService.refreshToken(refreshAuthUserDto.refreshToken);
+    return { message: 'Token refreshed successfully', payload };
   }
 
   @Get('google')

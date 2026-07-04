@@ -1,11 +1,10 @@
 import { useToast } from "@/component/Toast/ToastContext";
-import axios, { AxiosError } from "axios";
-import { useRouter } from "next/navigation";
+import { clearAuthSession } from "@/lib/authSession";
+import { AxiosError } from "axios";
 import { useCallback } from "react";
 
 export const useApiError = () => {
   const { triggerToast } = useToast();
-  const { push } = useRouter();
 
   const handleError = useCallback((error: AxiosError<ApiError>) => {
     console.log({ error });
@@ -28,12 +27,7 @@ export const useApiError = () => {
         type: "error",
       });
 
-      axios.post("/api/logout").then((response) => {
-        if (response.status === 200) {
-          localStorage.removeItem("user");
-          push("/login");
-        }
-      });
+      void clearAuthSession();
       return;
     }
 
