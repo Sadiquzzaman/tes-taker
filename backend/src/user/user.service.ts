@@ -170,7 +170,7 @@ export class UserService {
     if (loginDto.email && loginDto.email.includes('@')) {
       // Login with email
       user = await this.userRepository.findOne({
-        where: { email: loginDto.email },
+        where: { email: loginDto.email.trim().toLowerCase() },
       });
     } else if (loginDto.phone) {
       // Login with phone

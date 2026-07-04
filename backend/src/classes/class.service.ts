@@ -21,6 +21,12 @@ import { EmailService } from 'src/email/email.service';
 import { SmsService } from 'src/sms/sms.service';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
 import { randomUUID } from 'crypto';
+import {
+  emailsMatch,
+  normalizeEmail,
+  normalizePhone,
+  phonesMatch,
+} from 'src/common/utils/contact.util';
 
 @Injectable()
 export class ClassService {
@@ -314,7 +320,9 @@ export class ClassService {
       if (!trimmedContact) continue;
 
       const isEmail = trimmedContact.includes('@');
-      const isPhone = /^01[3-9]\d{8}$/.test(trimmedContact);
+      const normalizedEmail = isEmail ? normalizeEmail(trimmedContact) : null;
+      const normalizedPhone = !isEmail ? normalizePhone(trimmedContact) : null;
+      const isPhone = Boolean(normalizedPhone);
 
       if (!isEmail && !isPhone) {
         errors.push(`Invalid contact format: ${trimmedContact}`);
@@ -322,15 +330,15 @@ export class ClassService {
       }
 
       try {
-        if (isEmail) {
+        if (isEmail && normalizedEmail) {
           // Check if already invited
-          if (existingInvitedEmails.includes(trimmedContact.toLowerCase())) {
+          if (existingInvitedEmails.includes(normalizedEmail)) {
             continue;
           }
 
           // Find student by email
           const student = await this.userRepo.findOne({
-            where: { email: trimmedContact.toLowerCase() },
+            where: { email: normalizedEmail },
           });
 
           if (student) {
@@ -345,7 +353,7 @@ export class ClassService {
                   class_id: classId,
                   student_id: null,
                   status: ClassStudentStatusEnum.INVITED,
-                  invited_email: trimmedContact.toLowerCase(),
+                  invited_email: normalizedEmail,
                   invitation_token: invitationToken,
                   invited_at: new Date(),
                 })
@@ -354,14 +362,14 @@ export class ClassService {
               // Send email invitation
               try {
                 await this.emailService.sendInvitationEmail(
-                  trimmedContact.toLowerCase(),
+                  normalizedEmail,
                   invitationLink,
                   classEntity.class_name,
                   jwtPayload.full_name,
                 );
                 invited++;
               } catch (error) {
-                errors.push(`Failed to send email to ${trimmedContact}: ${error.message}`);
+                errors.push(`Failed to send email to ${normalizedEmail}: ${error.message}`);
               }
               continue;
             }
@@ -407,7 +415,7 @@ export class ClassService {
                 class_id: classId,
                 student_id: null,
                 status: ClassStudentStatusEnum.INVITED,
-                invited_email: trimmedContact.toLowerCase(),
+                invited_email: normalizedEmail,
                 invitation_token: invitationToken,
                 invited_at: new Date(),
               })
@@ -416,25 +424,25 @@ export class ClassService {
             // Send email invitation
             try {
             await this.emailService.sendInvitationEmail(
-              trimmedContact.toLowerCase(),
+              normalizedEmail,
               invitationLink,
               classEntity.class_name,
               jwtPayload.full_name,
             );
             invited++;
             } catch (error) {
-              errors.push(`Failed to send email to ${trimmedContact}: ${error.message}`);
+              errors.push(`Failed to send email to ${normalizedEmail}: ${error.message}`);
             }
           }
-        } else if (isPhone) {
+        } else if (isPhone && normalizedPhone) {
           // Check if already invited
-          if (existingInvitedPhones.includes(trimmedContact)) {
+          if (existingInvitedPhones.includes(normalizedPhone)) {
             continue;
           }
 
           // Find student by phone
           const student = await this.userRepo.findOne({
-            where: { phone: trimmedContact },
+            where: { phone: normalizedPhone },
           });
 
           if (student) {
@@ -449,7 +457,7 @@ export class ClassService {
                   class_id: classId,
                   student_id: null,
                   status: ClassStudentStatusEnum.INVITED,
-                  invited_phone: trimmedContact,
+                  invited_phone: normalizedPhone,
                   invitation_token: invitationToken,
                   invited_at: new Date(),
                 })
@@ -458,14 +466,14 @@ export class ClassService {
               // Send SMS invitation
               try {
                 const smsMessage = `You've been invited to join ${classEntity.class_name} on TestTaker. Register here: ${invitationLink}`;
-                const smsSent = await this.smsService.sendSms(trimmedContact, smsMessage);
+                const smsSent = await this.smsService.sendSms(normalizedPhone, smsMessage);
                 if (smsSent) {
                   invited++;
                 } else {
-                  errors.push(`Failed to send SMS to ${trimmedContact}`);
+                  errors.push(`Failed to send SMS to ${normalizedPhone}`);
                 }
               } catch (error) {
-                errors.push(`Failed to send SMS to ${trimmedContact}: ${error.message}`);
+                errors.push(`Failed to send SMS to ${normalizedPhone}: ${error.message}`);
               }
               continue;
             }
@@ -511,7 +519,7 @@ export class ClassService {
                 class_id: classId,
                 student_id: null,
                 status: ClassStudentStatusEnum.INVITED,
-                invited_phone: trimmedContact,
+                invited_phone: normalizedPhone,
                 invitation_token: invitationToken,
                 invited_at: new Date(),
               })
@@ -520,19 +528,19 @@ export class ClassService {
             // Send SMS invitation
             try {
             const smsMessage = `You've been invited to join ${classEntity.class_name} on TestTaker. Register here: ${invitationLink}`;
-              const smsSent = await this.smsService.sendSms(trimmedContact, smsMessage);
+              const smsSent = await this.smsService.sendSms(normalizedPhone, smsMessage);
               if (smsSent) {
             invited++;
               } else {
-                errors.push(`Failed to send SMS to ${trimmedContact}`);
+                errors.push(`Failed to send SMS to ${normalizedPhone}`);
               }
             } catch (error) {
-              errors.push(`Failed to send SMS to ${trimmedContact}: ${error.message}`);
+              errors.push(`Failed to send SMS to ${normalizedPhone}: ${error.message}`);
             }
           }
         }
       } catch (error) {
-        errors.push(`Error processing ${trimmedContact}: ${error.message}`);
+        errors.push(`Error processing ${normalizedEmail ?? normalizedPhone ?? trimmedContact}: ${error.message}`);
       }
     }
 
@@ -608,37 +616,33 @@ export class ClassService {
       where: { class_id: classId, student_id: studentId },
     });
 
-    if (existingMembership) {
-      if (existingMembership.status === ClassStudentStatusEnum.JOINED) {
-        throw new BadRequestException('You are already in this class');
-      }
-      if (existingMembership.status === ClassStudentStatusEnum.PENDING) {
-        throw new BadRequestException('You already have a pending join request for this class');
-      }
-      throw new BadRequestException('You are already associated with this class');
+    if (existingMembership?.status === ClassStudentStatusEnum.JOINED) {
+      throw new BadRequestException('You are already in this class');
     }
 
-    const email = student.email?.toLowerCase() ?? null;
-    const phone = student.phone;
-    const invitedOr = [
-      { class_id: classId, invited_phone: phone, status: ClassStudentStatusEnum.INVITED },
-      ...(email
-        ? [{ class_id: classId, invited_email: email, status: ClassStudentStatusEnum.INVITED as const }]
-        : []),
-    ];
-
-    const invitedRow = await this.classStudentRepo.findOne({
-      where: invitedOr,
-    });
+    const invitedRow = await this.findMatchingInvitedRow(classId, student);
 
     if (invitedRow) {
+      if (existingMembership && existingMembership.status === ClassStudentStatusEnum.PENDING) {
+        await this.classStudentRepo.remove(existingMembership);
+      }
+
       invitedRow.student_id = studentId;
       invitedRow.status = ClassStudentStatusEnum.JOINED;
       invitedRow.joined_at = new Date();
       invitedRow.invitation_token = null;
+      invitedRow.invited_email = null;
+      invitedRow.invited_phone = null;
       invitedRow.approved_at = new Date();
       invitedRow.approved_by = classEntity.teacher_id;
       return await this.classStudentRepo.save(invitedRow);
+    }
+
+    if (existingMembership) {
+      if (existingMembership.status === ClassStudentStatusEnum.PENDING) {
+        throw new BadRequestException('You already have a pending join request for this class');
+      }
+      throw new BadRequestException('You are already associated with this class');
     }
 
     const classStudent = this.classStudentRepo.create({
@@ -652,6 +656,76 @@ export class ClassService {
   }
 
   /**
+   * Returns true when the student is JOINED in the class.
+   * Promotes a matching INVITED row (phone or email) to JOINED when found.
+   */
+  async resolveStudentClassMembership(classId: string, studentId: string): Promise<boolean> {
+    const student = await this.userRepo.findOne({ where: { id: studentId } });
+    if (!student) {
+      return false;
+    }
+
+    const joinedMembership = await this.classStudentRepo.findOne({
+      where: {
+        class_id: classId,
+        student_id: studentId,
+        status: ClassStudentStatusEnum.JOINED,
+      },
+    });
+
+    if (joinedMembership) {
+      return true;
+    }
+
+    const invitedRow = await this.findMatchingInvitedRow(classId, student);
+    if (!invitedRow) {
+      return false;
+    }
+
+    const classEntity = await this.classRepo.findOne({ where: { id: classId } });
+    const pendingMembership = await this.classStudentRepo.findOne({
+      where: {
+        class_id: classId,
+        student_id: studentId,
+        status: ClassStudentStatusEnum.PENDING,
+      },
+    });
+
+    if (pendingMembership) {
+      await this.classStudentRepo.remove(pendingMembership);
+    }
+
+    invitedRow.student_id = studentId;
+    invitedRow.status = ClassStudentStatusEnum.JOINED;
+    invitedRow.joined_at = new Date();
+    invitedRow.invitation_token = null;
+    invitedRow.invited_email = null;
+    invitedRow.invited_phone = null;
+    invitedRow.approved_at = new Date();
+    invitedRow.approved_by = classEntity?.teacher_id ?? null;
+    await this.classStudentRepo.save(invitedRow);
+
+    return true;
+  }
+
+  private async findMatchingInvitedRow(
+    classId: string,
+    student: Pick<UserEntity, 'phone' | 'email'>,
+  ): Promise<ClassStudentEntity | null> {
+    const invitedRows = await this.classStudentRepo.find({
+      where: { class_id: classId, status: ClassStudentStatusEnum.INVITED },
+    });
+
+    return (
+      invitedRows.find(
+        (row) =>
+          phonesMatch(row.invited_phone, student.phone) ||
+          emailsMatch(row.invited_email, student.email),
+      ) ?? null
+    );
+  }
+
+  /**
    * Handle class invitation during registration
    * Uses class UUID to find matching invitation by phone/email
    */
@@ -661,31 +735,32 @@ export class ClassService {
     phone: string,
     email?: string,
   ): Promise<void> {
-    // Find invitation record for this class matching phone or email
-    const classStudent = await this.classStudentRepo.findOne({
-      where: [
-        { class_id: classId, invited_phone: phone, status: ClassStudentStatusEnum.INVITED },
-        ...(email ? [{ class_id: classId, invited_email: email.toLowerCase(), status: ClassStudentStatusEnum.INVITED }] : []),
-      ],
+    const student = await this.userRepo.findOne({ where: { id: studentId } });
+    if (!student) {
+      return;
+    }
+
+    const classStudent = await this.findMatchingInvitedRow(classId, {
+      phone: phone || student.phone,
+      email: email ?? student.email ?? undefined,
     });
 
     if (!classStudent) {
-      // No invitation found, but that's okay - student can still register
       return;
     }
 
     if (classStudent.status !== ClassStudentStatusEnum.INVITED) {
-      // Invitation already used, but that's okay
       return;
     }
 
     const cls = await this.classRepo.findOne({ where: { id: classId } });
 
-    // Update class student record — invited students join directly as JOINED
     classStudent.student_id = studentId;
     classStudent.status = ClassStudentStatusEnum.JOINED;
     classStudent.joined_at = new Date();
     classStudent.invitation_token = null;
+    classStudent.invited_email = null;
+    classStudent.invited_phone = null;
     classStudent.approved_at = new Date();
     classStudent.approved_by = cls?.teacher_id ?? null;
 

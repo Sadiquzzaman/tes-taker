@@ -43,7 +43,9 @@ const useLogin = () => {
 
   const handleClassJoinAfterLogin = async (classId: string) => {
     const response = await apiClient.post(`${baseUrl}/classes/${classId}/join`, {}).catch((error) => {
-      if (error?.response?.data?.message === "You are already in this class") {
+      const message = error?.response?.data?.message;
+
+      if (message === "You are already in this class") {
         return {
           data: {
             message: "You have successfully joined the class.",
@@ -54,27 +56,33 @@ const useLogin = () => {
           },
         };
       }
+
+      triggerToast({
+        title: "Class Join Failed",
+        description: typeof message === "string" ? message : "Unable to join this class.",
+        type: "error",
+      });
+
+      return null;
     });
+
+    if (!response) {
+      push("/classes");
+      return;
+    }
 
     triggerToast({
       title: "Class Join Successful",
-      description: response?.data?.message || "",
+      description: response.data?.message || "You have successfully joined the class.",
       type: "success",
     });
 
-    sessionStorage.setItem("classJoinResponse", JSON.stringify(response?.data?.payload));
+    sessionStorage.setItem("classJoinResponse", JSON.stringify(response.data?.payload));
     push("/join/class");
   };
 
   const handleTestJoinAfterLogin = async (testId: string) => {
     const eligibilityResponse = await apiClient.get(`${baseUrl}/student/exams/${testId}/eligibility`);
-
-    if (eligibilityResponse.data?.payload?.eligible) {
-      apiClient
-        .post(`${baseUrl}/classes/${testId}/join`, {})
-        .then(() => {})
-        .catch(() => {});
-    }
 
     sessionStorage.setItem("testJoinResponse", JSON.stringify(eligibilityResponse.data?.payload));
     push("/join/test");

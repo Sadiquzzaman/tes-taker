@@ -64,7 +64,22 @@ const TestCard = ({
   const handlePrimaryAction = () => {
     if (isTeacher) {
       router.push(`/tests/${testData.id}`);
+      return;
     }
+
+    if (testStatus === "completed") {
+      router.push(`/tests/${testData.id}/results`);
+    }
+  };
+
+  const getStudentActionLabel = () => {
+    if (testStatus === "ongoing") {
+      return "View details";
+    }
+    if (testStatus === "completed") {
+      return "View results";
+    }
+    return "View details";
   };
 
   return (
@@ -192,11 +207,7 @@ const TestCard = ({
             >
               {isTeacher
                 ? "View details"
-                : testStatus === "ongoing"
-                  ? "View details"
-                  : testStatus === "completed"
-                    ? "View results"
-                    : "Continue marking"}
+                : getStudentActionLabel()}
             </button>
           )}
         </div>

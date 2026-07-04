@@ -73,6 +73,7 @@ import {
   persistSubmissionScores,
   resolveSubmissionScores,
 } from './utils/submission-response.util';
+import { ClassService } from 'src/classes/class.service';
 
 export type ExamAccessValidation = {
   canAccess: boolean;
@@ -108,6 +109,8 @@ export class StudentExamService {
     private readonly smsService: SmsService,
 
     private readonly dataSource: DataSource,
+
+    private readonly classService: ClassService,
   ) {}
 
   private static readonly UUID_V4_RE =
@@ -504,8 +507,9 @@ export class StudentExamService {
           exam,
         };
       }
-      const isInClass = exam.class.classStudents?.some(
-        (cs) => cs.student_id === studentId && cs.status === ClassStudentStatusEnum.JOINED,
+      const isInClass = await this.classService.resolveStudentClassMembership(
+        exam.class_id as string,
+        studentId,
       );
       if (!isInClass) {
         return {

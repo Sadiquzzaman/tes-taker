@@ -179,6 +179,7 @@ function QuestionCardHeader({
               rows={1}
               className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12] outline-none placeholder:text-[#747775]"
             />
+            {/* Speech-to-text mic temporarily disabled — re-enable when dictation is stable
             {isListening ? (
               <div className="flex items-center gap-2 rounded-[8px] bg-[#D24B4410] px-3 py-2">
                 <span className="relative flex h-2.5 w-2.5">
@@ -195,6 +196,7 @@ function QuestionCardHeader({
                 ) : null}
               </div>
             ) : null}
+            */}
             {questionImage ? (
               <div className={`flex items-center ${QUESTION_BUILDER_GAPS.headerImageActions}`}>
                 <div className="relative h-40 w-full max-w-[320px] overflow-hidden rounded-[12px] border border-[#E5E5E5] bg-white">
@@ -239,6 +241,7 @@ function QuestionCardHeader({
             onChange={handleQuestionImageChange}
             className="hidden"
           />
+          {/* Speech-to-text mic temporarily disabled — re-enable when dictation is stable
           <Tooltip content={!isSupported ? "Speech recognition is not supported in your browser." : null}>
             <button
               type="button"
@@ -254,6 +257,7 @@ function QuestionCardHeader({
               <MicrophoneIconSVG />
             </button>
           </Tooltip>
+          */}
           {!questionImage ? (
             <div className={`flex items-center ${QUESTION_BUILDER_GAPS.headerImageActions}`}>
               <Tooltip
