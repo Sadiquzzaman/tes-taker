@@ -85,7 +85,7 @@ const TestList = ({ role }: TestListProps) => {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-2 sm:gap-4">
       {filteredTestList.length > 0 &&
         filteredTestList.map((test) => (
           <TestCard key={test.id} cardBackground="white" from="testList" testData={test} role={role} />
