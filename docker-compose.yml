@@ -15,7 +15,13 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - RUNNING_IN_DOCKER=true
+      - SERVER_API_URL=http://app:3000/api/v1
       - INTERNAL_API_URL=http://app:3000/api/v1
+      - NEXT_PUBLIC_BASE_URL=http://localhost:4000/api/v1
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    depends_on:
+      - app
     command: npm run dev
 
   postgres:
