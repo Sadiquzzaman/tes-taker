@@ -346,7 +346,7 @@ export class ClassService {
               // User exists but is not a student - still send invitation
               // This handles cases where phone/email belongs to a teacher or admin
               const invitationToken = randomUUID();
-              const invitationLink = `${frontendUrl}/register:${classId}`;
+              const invitationLink = `${frontendUrl}/join/class/${classId}`;
 
               await this.classStudentRepo.save(
                 this.classStudentRepo.create({
@@ -408,7 +408,7 @@ export class ClassService {
           } else {
             // Not onboarded - send invitation
             const invitationToken = randomUUID();
-            const invitationLink = `${frontendUrl}/register:${classId}`;
+            const invitationLink = `${frontendUrl}/join/class/${classId}`;
 
             await this.classStudentRepo.save(
               this.classStudentRepo.create({
@@ -450,7 +450,7 @@ export class ClassService {
               // User exists but is not a student - still send invitation
               // This handles cases where phone/email belongs to a teacher or admin
               const invitationToken = randomUUID();
-              const invitationLink = `${frontendUrl}/register:${classId}`;
+              const invitationLink = `${frontendUrl}/join/class/${classId}`;
 
               await this.classStudentRepo.save(
                 this.classStudentRepo.create({
@@ -512,7 +512,7 @@ export class ClassService {
           } else {
             // Not onboarded - send invitation
             const invitationToken = randomUUID();
-            const invitationLink = `${frontendUrl}/register:${classId}`;
+            const invitationLink = `${frontendUrl}/join/class/${classId}`;
 
             await this.classStudentRepo.save(
               this.classStudentRepo.create({

@@ -153,6 +153,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/classes", request.url));
   }
 
+  const legacyRegisterMatch = pathname.match(/^\/register:([0-9a-f-]{36})$/i);
+  if (legacyRegisterMatch) {
+    return NextResponse.redirect(new URL(`/join/class/${legacyRegisterMatch[1]}`, request.url));
+  }
+
   if (matchedPolicy?.isPublic) {
     if (isAuthenticated) {
       if (pathname === "/" && role) {

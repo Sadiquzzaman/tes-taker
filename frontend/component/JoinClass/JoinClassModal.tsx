@@ -11,7 +11,7 @@ const JoinClassModal = ({ classData, classId, apiResponse, errorMessage }: JoinC
     : `Join '${classData?.class_name ?? ""}' class by ${classData?.created_user_name ?? ""}`;
   const description = isError ? errorMessage : classData?.description || "No description available for this class.";
 
-  const handleContinue = () => {
+  const persistJoinSession = () => {
     if (!apiResponse) {
       return;
     }
@@ -25,8 +25,16 @@ const JoinClassModal = ({ classData, classId, apiResponse, errorMessage }: JoinC
         joinType: "class",
       }),
     );
+  };
 
+  const handleLogin = () => {
+    persistJoinSession();
     router.push("/login");
+  };
+
+  const handleSignUp = () => {
+    persistJoinSession();
+    router.push("/signup");
   };
 
   return (
@@ -55,13 +63,20 @@ const JoinClassModal = ({ classData, classId, apiResponse, errorMessage }: JoinC
           <>
             <div className="h-px w-full bg-[#E5E5E5]" />
 
-            <div className="flex items-center justify-end p-6">
+            <div className="flex items-center justify-end gap-3 p-6">
               <button
                 type="button"
-                onClick={handleContinue}
+                onClick={handleSignUp}
+                className="flex h-10 items-center justify-center rounded-lg border border-[#49734F] px-4 text-[14px] font-medium leading-4 tracking-[-0.02em] text-[#49734F] transition-colors hover:bg-[#49734F10]"
+              >
+                Sign Up
+              </button>
+              <button
+                type="button"
+                onClick={handleLogin}
                 className="flex h-10 items-center justify-center rounded-lg bg-[#49734F] px-4 pl-[14px] text-[14px] font-medium leading-4 tracking-[-0.02em] text-white transition-colors hover:bg-[#3f6244]"
               >
-                Continue
+                Login
               </button>
             </div>
           </>

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { getServerApiBaseUrl } from "@/lib/server/getServerApiBaseUrl";
+import { fetchServerApiJson } from "@/lib/server/fetchServerApi";
 
 const DEFAULT_ERROR_MESSAGE = "Test not found or unavailable.";
 
@@ -32,67 +32,51 @@ const getJoinTestById = cache(async (testId: string): Promise<JoinTestResult> =>
     };
   }
 
-  const baseUrl = getServerApiBaseUrl();
+  const { result, errorMessage } = await fetchServerApiJson<JoinTestApiResponse | JoinTestErrorResponse>(
+    `/exams/${encodeURIComponent(trimmedTestId)}`,
+    "getJoinTestById",
+  );
 
-  if (!baseUrl) {
+  if (!result) {
     return {
       testData: null,
       apiResponse: null,
-      errorMessage: "Test service is not configured.",
+      errorMessage: errorMessage ?? "Test service is not configured.",
     };
   }
 
-  try {
-    const response = await fetch(`${baseUrl}/exams/${encodeURIComponent(trimmedTestId)}`, {
-      method: "GET",
-      headers: {
-        Accept: "*/*",
-      },
-      cache: "no-store",
-    });
+  const responseBody = result.data;
 
-    const responseBody = (await response.json().catch(() => null)) as
-      | JoinTestApiResponse
-      | JoinTestErrorResponse
-      | null;
-
-    if (!response.ok) {
-      return {
-        testData: null,
-        apiResponse: null,
-        errorMessage: getErrorMessage(responseBody as JoinTestErrorResponse | null),
-      };
-    }
-
-    const apiResponse = responseBody as JoinTestApiSuccessResponse | null;
-    const payload = apiResponse?.payload;
-
-    if (!payload) {
-      return {
-        testData: null,
-        apiResponse: null,
-        errorMessage: DEFAULT_ERROR_MESSAGE,
-      };
-    }
-
-    return {
-      apiResponse,
-      testData: {
-        description: "",
-        test_name: payload.test_name,
-        created_user_name: payload.created_user_name,
-        duration_minutes: payload.duration_minutes,
-        test_audience: payload.test_audience,
-      },
-      errorMessage: null,
-    };
-  } catch {
+  if (!result.ok) {
     return {
       testData: null,
       apiResponse: null,
-      errorMessage: "Unable to load test details right now.",
+      errorMessage: getErrorMessage(responseBody as JoinTestErrorResponse | null),
     };
   }
+
+  const apiResponse = responseBody as JoinTestApiSuccessResponse | null;
+  const payload = apiResponse?.payload;
+
+  if (!payload) {
+    return {
+      testData: null,
+      apiResponse: null,
+      errorMessage: DEFAULT_ERROR_MESSAGE,
+    };
+  }
+
+  return {
+    apiResponse,
+    testData: {
+      description: "",
+      test_name: payload.test_name,
+      created_user_name: payload.created_user_name,
+      duration_minutes: payload.duration_minutes,
+      test_audience: payload.test_audience,
+    },
+    errorMessage: null,
+  };
 });
 
 export default getJoinTestById;

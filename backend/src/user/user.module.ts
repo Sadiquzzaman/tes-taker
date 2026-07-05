@@ -6,9 +6,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CryptoUtil } from 'src/common/utils/crypto.util';
 import { JwtService } from '@nestjs/jwt';
 import { UserFilterUtil } from 'src/common/utils/user-filter.util';
+import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity])],
+  imports: [TypeOrmModule.forFeature([UserEntity]), SubscriptionModule],
   controllers: [UserController],
   providers: [
     UserService,

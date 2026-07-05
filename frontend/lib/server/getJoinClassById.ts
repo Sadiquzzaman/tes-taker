@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
-import { getServerApiBaseUrl } from "@/lib/server/getServerApiBaseUrl";
+import { fetchServerApiJson } from "@/lib/server/fetchServerApi";
 
 const DEFAULT_ERROR_MESSAGE = "Class not found or unavailable.";
 
@@ -32,65 +32,48 @@ const getJoinClassById = cache(async (classId: string): Promise<JoinClassResult>
     };
   }
 
-  const baseUrl = getServerApiBaseUrl();
+  const { result, errorMessage } = await fetchServerApiJson<
+    JoinClassApiResponse | JoinClassErrorResponse
+  >(`/classes/${encodeURIComponent(trimmedClassId)}`, "getJoinClassById");
 
-  if (!baseUrl) {
+  if (!result) {
     return {
       classData: null,
       apiResponse: null,
-      errorMessage: "Class service is not configured.",
+      errorMessage: errorMessage ?? "Class service is not configured.",
     };
   }
 
-  try {
-    const response = await fetch(`${baseUrl}/classes/${encodeURIComponent(trimmedClassId)}`, {
-      method: "GET",
-      headers: {
-        Accept: "*/*",
-      },
-      cache: "no-store",
-    });
+  const responseBody = result.data;
 
-    const responseBody = (await response.json().catch(() => null)) as
-      | JoinClassApiResponse
-      | JoinClassErrorResponse
-      | null;
-
-    if (!response.ok) {
-      return {
-        classData: null,
-        apiResponse: null,
-        errorMessage: getErrorMessage(responseBody as JoinClassErrorResponse | null),
-      };
-    }
-
-    const apiResponse = responseBody as JoinClassApiSuccessResponse | null;
-    const payload = apiResponse?.payload;
-
-    if (!payload) {
-      return {
-        classData: null,
-        apiResponse: null,
-        errorMessage: DEFAULT_ERROR_MESSAGE,
-      };
-    }
-
-    return {
-      apiResponse,
-      classData: {
-        class_name: payload.class_name,
-        description: payload.description,
-        created_user_name: payload.created_user_name,
-      },
-      errorMessage: null,
-    };
-  } catch {
+  if (!result.ok) {
     return {
       classData: null,
       apiResponse: null,
-      errorMessage: "Unable to load class details right now.",
+      errorMessage: getErrorMessage(responseBody as JoinClassErrorResponse | null),
     };
   }
+
+  const apiResponse = responseBody as JoinClassApiSuccessResponse | null;
+  const payload = apiResponse?.payload;
+
+  if (!payload) {
+    return {
+      classData: null,
+      apiResponse: null,
+      errorMessage: DEFAULT_ERROR_MESSAGE,
+    };
+  }
+
+  return {
+    apiResponse,
+    classData: {
+      class_name: payload.class_name,
+      description: payload.description,
+      created_user_name: payload.created_user_name,
+    },
+    errorMessage: null,
+  };
 });
 
 export default getJoinClassById;

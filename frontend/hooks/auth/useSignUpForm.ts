@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { UserRoleEnum } from "@/utils/enum";
 import useRegister from "@/hooks/api/useRegister";
 import useJoinStateManage from "@/hooks/ui/useJoinStateManage";
@@ -15,7 +15,7 @@ export const useSignUpForm = () => {
     phone: "",
     password: "",
     confirm_password: "",
-    role: UserRoleEnum.TEACHER,
+    role: UserRoleEnum.STUDENT,
   });
 
   const [register, { loading }] = useRegister();
@@ -28,20 +28,6 @@ export const useSignUpForm = () => {
     confirm_password: "",
   });
   const [checkboxError, setCheckboxError] = useState("");
-
-  useEffect(() => {
-    if (joinInfo?.id) {
-      setSignUpInfo((prev) => ({
-        ...prev,
-        role: UserRoleEnum.STUDENT,
-      }));
-    } else {
-      setSignUpInfo((prev) => ({
-        ...prev,
-        role: UserRoleEnum.TEACHER,
-      }));
-    }
-  }, [joinInfo]);
 
   const handleFieldChange = <K extends keyof SignUpInfo>(field: K, value: SignUpInfo[K]) => {
     if (field === "agreed") {

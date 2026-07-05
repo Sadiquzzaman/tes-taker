@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RegisterUserDto } from 'src/auth/dto/register-user.dto';
@@ -7,11 +7,32 @@ import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { CryptoUtil } from 'src/common/utils/crypto.util';
 import { UserFilterUtil } from 'src/common/utils/user-filter.util';
-import { Repository } from 'typeorm';
+import { SubscriptionService } from 'src/subscriptions/subscription.service';
+import { Brackets, Repository } from 'typeorm';
 import { UserReponseDto } from './dto/user-response.dto';
+import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { UserEntity } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'crypto';
+
+type AdminUserListMeta = {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+};
+
+type AdminUserSummary = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  role: RolesEnum;
+  is_active: ActiveStatusEnum;
+  is_verified: boolean;
+  is_otp_verified: boolean;
+  created_at: Date;
+};
 
 @Injectable()
 export class UserService {
@@ -22,6 +43,7 @@ export class UserService {
     private readonly userFilterUtil: UserFilterUtil,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async create(registerUserDto: RegisterUserDto | any): Promise<UserEntity> {
@@ -324,5 +346,116 @@ export class UserService {
     if (user && !user.is_otp_verified) {
       await this.userRepository.remove(user);
     }
+  }
+
+  async listUsersForAdmin(
+    query: ListUsersQueryDto,
+  ): Promise<{ users: UserEntity[]; meta: AdminUserListMeta }> {
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(50, Math.max(1, query.limit ?? 20));
+    const search = query.search?.trim();
+
+    const qb = this.userRepository
+      .createQueryBuilder('user')
+      .select([
+        'user.id',
+        'user.full_name',
+        'user.email',
+        'user.phone',
+        'user.role',
+        'user.is_active',
+        'user.is_verified',
+        'user.is_otp_verified',
+        'user.created_at',
+      ])
+      .orderBy('user.created_at', 'DESC');
+
+    if (search) {
+      const term = `%${search}%`;
+      qb.andWhere(
+        new Brackets((where) => {
+          where
+            .where('user.full_name ILIKE :term', { term })
+            .orWhere('user.phone ILIKE :term', { term })
+            .orWhere('user.email ILIKE :term', { term });
+        }),
+      );
+    }
+
+    const [users, total] = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      users,
+      meta: {
+        page,
+        limit,
+        total,
+        total_pages: Math.ceil(total / limit) || 1,
+      },
+    };
+  }
+
+  async updateUserRole(
+    adminId: string,
+    userId: string,
+    role: RolesEnum.STUDENT | RolesEnum.TEACHER,
+  ): Promise<AdminUserSummary> {
+    if (adminId === userId) {
+      throw new ForbiddenException('You cannot change your own role');
+    }
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.role === RolesEnum.ADMIN || user.role === RolesEnum.SUPER_ADMIN) {
+      throw new ForbiddenException('Cannot change role for admin users');
+    }
+
+    if (user.role !== RolesEnum.STUDENT && user.role !== RolesEnum.TEACHER) {
+      throw new BadRequestException('Only student and teacher roles can be updated');
+    }
+
+    if (user.role === role) {
+      return {
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        is_active: user.is_active,
+        is_verified: user.is_verified,
+        is_otp_verified: user.is_otp_verified,
+        created_at: user.created_at,
+      };
+    }
+
+    user.role = role;
+    const savedUser = await this.userRepository.save(user);
+
+    if (role === RolesEnum.TEACHER) {
+      try {
+        await this.subscriptionService.provisionFreePlan(savedUser.id, savedUser.full_name ?? 'Teacher');
+      } catch (error) {
+        console.error('Failed to provision free subscription after role promotion:', error);
+      }
+    }
+
+    return {
+      id: savedUser.id,
+      full_name: savedUser.full_name,
+      email: savedUser.email,
+      phone: savedUser.phone,
+      role: savedUser.role,
+      is_active: savedUser.is_active,
+      is_verified: savedUser.is_verified,
+      is_otp_verified: savedUser.is_otp_verified,
+      created_at: savedUser.created_at,
+    };
   }
 }

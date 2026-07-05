@@ -30,6 +30,13 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Admin",
+    label: "Users",
+    route: "/admin/users",
+    role: ["ADMIN", "SUPER_ADMIN"],
+    image: <SidebarAccountIconSVG width={16} />,
+  },
+  {
+    category: "Admin",
     label: "Subjects",
     route: "/admin/subjects",
     role: ["ADMIN", "SUPER_ADMIN"],
