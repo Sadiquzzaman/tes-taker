@@ -19,9 +19,51 @@ import {
 } from './exams/dto/create-exam-wizard.dto';
 import { WrapResponseInterceptor } from './common/interceptors/wrap-response.interceptor';
 import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Security headers. The CSP allow-list is intentionally compatible with the
+  // browser features this platform relies on: Google OAuth, Socket.IO, the
+  // Swagger UI assets, SSLCommerz, and the client-side ML libraries
+  // (TensorFlow.js, MediaPipe) that may load from jsDelivr and use wasm/eval.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            'https://cdn.jsdelivr.net',
+            'https://accounts.google.com',
+            'https://securepay.sslcommerz.com',
+            'https://sandbox.sslcommerz.com',
+          ],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://fonts.googleapis.com'],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+          connectSrc: ["'self'", 'https:', 'wss:', 'ws:'],
+          fontSrc: ["'self'", 'data:', 'https://cdn.jsdelivr.net', 'https://fonts.gstatic.com'],
+          workerSrc: ["'self'", 'blob:'],
+          frameSrc: [
+            "'self'",
+            'https://accounts.google.com',
+            'https://securepay.sslcommerz.com',
+            'https://sandbox.sslcommerz.com',
+          ],
+          objectSrc: ["'none'"],
+        },
+      },
+      // The frontend consumes this API cross-origin; allow that while keeping
+      // other protections. COEP is disabled to avoid breaking third-party embeds.
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
+
   const clientOrigin = process.env.CLIENT_ORIGIN;
   app.enableCors(
     clientOrigin
