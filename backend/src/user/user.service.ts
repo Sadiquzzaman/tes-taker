@@ -6,6 +6,7 @@ import { LoginDto } from 'src/auth/dto/login.dto';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { CryptoUtil } from 'src/common/utils/crypto.util';
+import { RefreshTokenUtil } from 'src/common/utils/refresh-token.util';
 import { UserFilterUtil } from 'src/common/utils/user-filter.util';
 import { SubscriptionService } from 'src/subscriptions/subscription.service';
 import { Brackets, Repository } from 'typeorm';
@@ -40,6 +41,7 @@ export class UserService {
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
     private readonly crypto: CryptoUtil,
+    private readonly refreshTokenUtil: RefreshTokenUtil,
     private readonly userFilterUtil: UserFilterUtil,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -62,13 +64,15 @@ export class UserService {
     registerUserDto.password = await this.crypto.hashPassword(registerUserDto.password);
 
     const verificationToken = this.generateVerificationToken();
-    const refreshToken = (Math.random() * 0xfffff * 1000000).toString(16);
-    
+    // Store only the hash of a securely generated refresh token. It is replaced
+    // on first login, but we never persist a weak or plaintext value.
+    const refreshTokenHash = this.refreshTokenUtil.generate().hash;
+
     const userEntity = {
       ...registerUserDto,
       verification_token: verificationToken,
       is_active: registerUserDto.is_active || ActiveStatusEnum.ACTIVE,
-      refresh_token: refreshToken,
+      refresh_token: refreshTokenHash,
       is_otp_verified: registerUserDto.is_otp_verified || false,
       is_verified: registerUserDto.is_verified || false,
       created_at: new Date(),
@@ -168,7 +172,7 @@ export class UserService {
       is_otp_verified: true,
       is_verified: true,
       is_active: ActiveStatusEnum.ACTIVE,
-      refresh_token: (Math.random() * 0xfffff * 1000000).toString(16),
+      refresh_token: this.refreshTokenUtil.generate().hash,
       created_at: new Date(),
     });
   }
@@ -177,12 +181,13 @@ export class UserService {
     // Generate JWT token
     const access_token = this.generateJwtToken(user);
 
-    // Update refresh token
-    const refreshToken = (Math.random() * 0xfffff * 1000000).toString(16);
-    user.refresh_token = refreshToken;
+    // Rotate the refresh token: a new opaque token is issued to the client and
+    // only its hash is stored, so a stolen/leaked DB row cannot be replayed.
+    const { token, hash } = this.refreshTokenUtil.generate();
+    user.refresh_token = hash;
     await user.save();
 
-    return { ...user, access_token };
+    return { ...user, access_token, refresh_token: token };
   }
 
   async validateUserEmailPass(loginDto: LoginDto): Promise<UserReponseDto> {
@@ -291,8 +296,15 @@ export class UserService {
   }
 
   async refreshAccessToken(refreshToken: string): Promise<UserReponseDto> {
+    // Validate the signature/expiry before touching the database.
+    const verification = this.refreshTokenUtil.verify(refreshToken);
+    if (!verification.valid || verification.expired) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    // Look up by the stored hash — plaintext tokens are never persisted.
     const user = await this.userRepository.findOne({
-      where: { refresh_token: refreshToken },
+      where: { refresh_token: this.refreshTokenUtil.hash(refreshToken) },
     });
 
     if (!user) {
