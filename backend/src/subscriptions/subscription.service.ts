@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  Logger,
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
@@ -45,6 +46,8 @@ import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 
 @Injectable()
 export class SubscriptionService implements OnModuleInit {
+  private readonly logger = new Logger(SubscriptionService.name);
+
   constructor(
     @InjectRepository(SubscriptionPlanEntity)
     private readonly planRepo: Repository<SubscriptionPlanEntity>,
@@ -88,7 +91,7 @@ export class SubscriptionService implements OnModuleInit {
         await this.planRepo.save(this.planRepo.create(planData));
       }
     }
-    console.log('Subscription plans seeded/updated successfully');
+    this.logger.log('Subscription plans seeded/updated successfully');
   }
 
   async getAllPlans(includeHidden = false): Promise<SubscriptionPlanEntity[]> {

@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  Logger,
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
@@ -84,6 +85,8 @@ export type ExamAccessValidation = {
 
 @Injectable()
 export class StudentExamService {
+  private readonly logger = new Logger(StudentExamService.name);
+
   constructor(
     @InjectRepository(ExamEntity)
     private readonly examRepo: Repository<ExamEntity>,
@@ -201,7 +204,7 @@ export class StudentExamService {
             failed++;
           }
         } catch (error) {
-          console.error(`Failed to send notification to ${student.phone}:`, error);
+          this.logger.error(`Failed to send notification to ${student.phone}: ${error instanceof Error ? error.message : String(error)}`);
           failed++;
         }
       } else {

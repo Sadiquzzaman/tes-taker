@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RegisterUserDto } from 'src/auth/dto/register-user.dto';
@@ -37,6 +37,8 @@ type AdminUserSummary = {
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
@@ -454,7 +456,9 @@ export class UserService {
       try {
         await this.subscriptionService.provisionFreePlan(savedUser.id, savedUser.full_name ?? 'Teacher');
       } catch (error) {
-        console.error('Failed to provision free subscription after role promotion:', error);
+        this.logger.error(
+          `Failed to provision free subscription after role promotion: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 

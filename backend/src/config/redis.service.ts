@@ -46,7 +46,7 @@ export class RedisService implements OnApplicationShutdown {
         return 0;
       }
     } catch (error) {
-      console.error(`Error deleting key ${key}: ${error.message}`);
+      this.logger.error(`Error deleting key ${key}: ${(error as Error).message}`);
       throw error;
     }
   }

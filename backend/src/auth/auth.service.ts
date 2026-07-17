@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -17,6 +17,8 @@ import { RolesEnum } from 'src/common/enums/roles.enum';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly smsService: SmsService,
@@ -110,7 +112,9 @@ export class AuthService {
       try {
         await this.subscriptionService.provisionFreePlan(user.id, user.full_name ?? 'Teacher');
       } catch (error) {
-        console.error('Failed to provision free subscription:', error);
+        this.logger.error(
+          `Failed to provision free subscription: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 
@@ -125,7 +129,9 @@ export class AuthService {
         );
       } catch (error) {
         // Log error but don't fail registration
-        console.error('Failed to handle class invitation:', error);
+        this.logger.error(
+          `Failed to handle class invitation: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 
@@ -182,8 +188,11 @@ export class AuthService {
     const otp = this.smsService.generateOtp();
     await this.smsRateLimitService.storePasswordResetOtp(identifier, otp);
 
-    // Always log the OTP so it can be used during local development/testing
-    console.log(`[Password Reset OTP] identifier: ${identifier} | otp: ${otp}`);
+    // Log the OTP only outside production so it can be used during local
+    // development/testing. Never expose secrets in production logs.
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.debug(`[Password Reset OTP] identifier: ${identifier} | otp: ${otp}`);
+    }
 
     const message = `Your TestTaker password reset OTP is: ${otp}. Valid for 5 minutes.`;
 
@@ -192,7 +201,9 @@ export class AuthService {
       try {
         await this.smsService.sendSms(user.phone, message);
       } catch (error) {
-        console.error('Failed to send password reset OTP via SMS:', error);
+        this.logger.error(
+          `Failed to send password reset OTP via SMS: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 
@@ -212,7 +223,9 @@ export class AuthService {
         `;
         await this.emailService.sendEmail(user.email, 'Reset your TestTaker password', html);
       } catch (error) {
-        console.error('Failed to send password reset OTP via email:', error);
+        this.logger.error(
+          `Failed to send password reset OTP via email: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 
