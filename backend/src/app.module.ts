@@ -17,6 +17,7 @@ import { ProctoringModule } from './proctoring/proctoring.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { HealthModule } from './health/health.module';
     PaymentModule,
     DashboardModule,
     HealthModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [
