@@ -31,10 +31,38 @@ directly. Put NGINX/Caddy in front to terminate TLS for the frontend/backend.
 
 ## 3. Run database migrations
 
+The production image only contains compiled files under `/app/dist`, so
+migrations run against the **compiled** data source (`dist/src/data-source.js`)
+using the plain TypeORM CLI — **no ts-node, no `src/` required**.
+
+Run migrations as a one-off container **before** the backend starts:
+
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production exec backend \
-  node ./node_modules/typeorm/cli.js migration:run -d ./dist/src/data-source.js
+docker compose -f docker-compose.prod.yml --env-file .env.production \
+  run --rm backend pnpm migration:run:prod
 ```
+
+Then start (or restart) the stack:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+```
+
+Other production migration commands (run the same way with `run --rm backend`):
+
+| Command                      | Purpose                          |
+| ---------------------------- | -------------------------------- |
+| `pnpm migration:run:prod`    | Apply pending migrations         |
+| `pnpm migration:revert:prod` | Revert the last migration        |
+| `pnpm migration:show:prod`   | List applied/pending migrations  |
+
+> Migrations are **authored** in development (`pnpm migration:generate` /
+> `migration:create`, which use `src/data-source.ts` via ts-node) and
+> **applied** in production with the `:prod` commands above.
+>
+> Alternatively, set `DATABASE_MIGRATIONS_RUN=true` to have the backend apply
+> pending migrations automatically on boot (prefer the explicit one-off step
+> for predictable deploys).
 
 ## 4. pgAdmin 4 (database admin UI)
 

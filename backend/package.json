@@ -12,7 +12,12 @@
     "migration:create": "typeorm-ts-node-commonjs migration:create ./src/migrations/Migration",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d ./src/data-source.ts ./src/migrations/Migration",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d ./src/data-source.ts",
-    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d ./src/data-source.ts"
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d ./src/data-source.ts",
+    "migration:show": "typeorm-ts-node-commonjs migration:show -d ./src/data-source.ts",
+    "typeorm:prod": "typeorm -d dist/src/data-source.js",
+    "migration:run:prod": "typeorm migration:run -d dist/src/data-source.js",
+    "migration:revert:prod": "typeorm migration:revert -d dist/src/data-source.js",
+    "migration:show:prod": "typeorm migration:show -d dist/src/data-source.js"
   },
   "keywords": [],
   "author": "",
