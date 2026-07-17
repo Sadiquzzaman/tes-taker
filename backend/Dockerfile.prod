@@ -1,0 +1,49 @@
+# syntax=docker/dockerfile:1
+
+# ---------------------------------------------------------------------------
+# Stage 1: build the NestJS application
+# ---------------------------------------------------------------------------
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# pnpm is the package manager for the backend.
+RUN npm install -g pnpm@9
+
+# Install all dependencies (including dev) needed to compile TypeScript.
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+RUN pnpm build
+
+# ---------------------------------------------------------------------------
+# Stage 2: minimal production runtime
+# ---------------------------------------------------------------------------
+FROM node:20-alpine AS runtime
+
+ENV NODE_ENV=production
+
+WORKDIR /app
+
+RUN npm install -g pnpm@9
+
+# Install production dependencies only, then trim the pnpm store to keep the
+# image small.
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile && pnpm store prune
+
+# Copy the compiled output from the builder stage.
+COPY --from=builder /app/dist ./dist
+
+# Run as the unprivileged built-in "node" user.
+USER node
+
+EXPOSE 3000
+
+# Uses the rich /api/health endpoint; a 503 (degraded) marks the container
+# unhealthy so orchestrators can react.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
+
+CMD ["node", "dist/src/main.js"]
