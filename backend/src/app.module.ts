@@ -13,6 +13,7 @@ import { SubjectModule } from './subjects/subject.module';
 import { ProctoringModule } from './proctoring/proctoring.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ProctoringModule,
     PaymentModule,
     DashboardModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

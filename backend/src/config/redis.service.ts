@@ -32,6 +32,11 @@ export class RedisService implements OnApplicationShutdown {
     return await this.client.get(key);
   }
 
+  async ping(): Promise<boolean> {
+    const result = await this.client.ping();
+    return result === 'PONG';
+  }
+
   async del(key: string) {
     try {
       if (await this.client.exists(key)) {
