@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../config/redis.service';
 
 @Injectable()
 export class SmsRateLimitService {
+  private readonly logger = new Logger(SmsRateLimitService.name);
+
   constructor(private readonly redisService: RedisService) {}
 
   private getSmsAttemptKey(phoneNumber: string): string {
@@ -65,7 +67,7 @@ export class SmsRateLimitService {
         remainingAttempts: 3 - attemptCount 
       };
     } catch (error) {
-      console.error('Redis error in canSendSms:', error);
+      this.logger.error('Redis error in canSendSms:', error);
       // If Redis fails, allow SMS (fail open)
       return { canSend: true, remainingAttempts: 3 };
     }
@@ -79,7 +81,7 @@ export class SmsRateLimitService {
       
       await this.redisService.set(key, (attemptCount + 1).toString(), 3600); // 1 hour TTL
     } catch (error) {
-      console.error('Redis error in recordSmsAttempt:', error);
+      this.logger.error('Redis error in recordSmsAttempt:', error);
     }
   }
 
@@ -88,7 +90,7 @@ export class SmsRateLimitService {
       const key = this.getOtpKey(phoneNumber);
       await this.redisService.set(key, otp, 300); // 5 minutes TTL
     } catch (error) {
-      console.error('Redis error in storeOtp:', error);
+      this.logger.error('Redis error in storeOtp:', error);
     }
   }
 
@@ -97,7 +99,7 @@ export class SmsRateLimitService {
       const key = this.getOtpKey(phoneNumber);
       return await this.redisService.get(key);
     } catch (error) {
-      console.error('Redis error in getOtp:', error);
+      this.logger.error('Redis error in getOtp:', error);
       return null;
     }
   }
@@ -107,7 +109,7 @@ export class SmsRateLimitService {
       const key = this.getOtpKey(phoneNumber);
       await this.redisService.del(key);
     } catch (error) {
-      console.error('Redis error in removeOtp:', error);
+      this.logger.error('Redis error in removeOtp:', error);
     }
   }
 
@@ -115,7 +117,7 @@ export class SmsRateLimitService {
     try {
       await this.redisService.set(this.getPasswordResetOtpKey(identifier), otp, 300); // 5 minutes TTL
     } catch (error) {
-      console.error('Redis error in storePasswordResetOtp:', error);
+      this.logger.error('Redis error in storePasswordResetOtp:', error);
     }
   }
 
@@ -123,7 +125,7 @@ export class SmsRateLimitService {
     try {
       return await this.redisService.get(this.getPasswordResetOtpKey(identifier));
     } catch (error) {
-      console.error('Redis error in getPasswordResetOtp:', error);
+      this.logger.error('Redis error in getPasswordResetOtp:', error);
       return null;
     }
   }
@@ -132,7 +134,7 @@ export class SmsRateLimitService {
     try {
       await this.redisService.del(this.getPasswordResetOtpKey(identifier));
     } catch (error) {
-      console.error('Redis error in removePasswordResetOtp:', error);
+      this.logger.error('Redis error in removePasswordResetOtp:', error);
     }
   }
 
@@ -151,7 +153,7 @@ export class SmsRateLimitService {
         }
       }
     } catch (error) {
-      console.error('Redis error in resetSmsCache:', error);
+      this.logger.error('Redis error in resetSmsCache:', error);
     }
   }
 
@@ -175,7 +177,7 @@ export class SmsRateLimitService {
         remainingAttempts: Math.max(0, 3 - attemptCount),
       };
     } catch (error) {
-      console.error('Redis error in getSmsStatus:', error);
+      this.logger.error('Redis error in getSmsStatus:', error);
       return {
         attempts: 0,
         isBlocked: false,

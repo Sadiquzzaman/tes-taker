@@ -1,9 +1,10 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BrevoClient } from '@getbrevo/brevo';
 
 @Injectable()
 export class EmailService {
+  private readonly logger = new Logger(EmailService.name);
   private brevoClient: BrevoClient;
   private fromEmail: string;
   private fromName: string;
@@ -21,17 +22,16 @@ export class EmailService {
       this.brevoClient = new BrevoClient({
         apiKey: brevoApiKey,
       });
-      console.log('Email service initialized with Brevo API (Free: 300 emails/day)');
+      this.logger.log('Email service initialized with Brevo API');
     } else {
-      console.warn('Email service: BREVO_API_KEY not found. Please configure Brevo API key.');
-      console.warn('Sign up for free at: https://www.brevo.com/ (300 emails/day free)');
+      this.logger.warn('BREVO_API_KEY not found. Please configure the Brevo API key.');
       // Fallback: try to initialize with nodemailer if SMTP is configured
       const emailUser = this.configService.get<string>('EMAIL_USER');
       const emailPassword = this.configService.get<string>('EMAIL_PASSWORD');
       if (emailUser && emailPassword) {
-        console.warn('Falling back to SMTP (nodemailer). Consider using Brevo for better reliability.');
+        this.logger.warn('Falling back to SMTP (nodemailer). Consider using Brevo for better reliability.');
       } else {
-        console.error('Email service not configured. Please set BREVO_API_KEY in your .env file');
+        this.logger.error('Email service not configured. Please set BREVO_API_KEY.');
       }
     }
   }
@@ -78,18 +78,22 @@ export class EmailService {
         to: [{ email }],
       });
 
-      console.log('Email sent via Brevo:', result.messageId);
+      this.logger.log(`Invitation email sent via Brevo (messageId: ${result.messageId})`);
       return true;
     } catch (error) {
-      console.error('Failed to send email:', error);
-      throw new BadRequestException(`Failed to send email: ${error.message}`);
+      this.logger.error(
+        `Failed to send email: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new BadRequestException(
+        `Failed to send email: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
   async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
     try {
       if (!this.useBrevo || !this.brevoClient) {
-        console.error('Email service not configured. Please set BREVO_API_KEY in your .env file');
+        this.logger.error('Email service not configured. Please set BREVO_API_KEY.');
         return false;
       }
 
@@ -100,10 +104,12 @@ export class EmailService {
         to: [{ email: to }],
       });
 
-      console.log('Email sent via Brevo:', result.messageId);
+      this.logger.log(`Email sent via Brevo (messageId: ${result.messageId})`);
       return true;
     } catch (error) {
-      console.error('Failed to send email:', error);
+      this.logger.error(
+        `Failed to send email: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return false;
     }
   }

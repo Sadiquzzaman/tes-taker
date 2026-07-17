@@ -41,6 +41,11 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 .env.local
+.env.production
+
+# Local file storage (STORAGE_DRIVER=local)
+/uploads
+/uploads/**
 
 # temp directory
 .temp

@@ -189,7 +189,10 @@ export class PaymentService {
 
   /** Frontend origin used to redirect the browser after a gateway callback. */
   getFrontendBaseUrl(): string {
-    return this.configService.get<string>('FRONTEND_BASE_URL', '');
+    return (
+      this.configService.get<string>('FRONTEND_BASE_URL') ||
+      this.configService.get<string>('FRONTEND_URL', '')
+    );
   }
 
   async getByTransactionId(transactionId: string): Promise<PaymentEntity> {
@@ -432,7 +435,11 @@ export class PaymentService {
       sessionApi: this.configService.get<string>('SSL_SESSION_API', ''),
       validationApi: this.configService.get<string>('SSL_VALIDATION_API', ''),
       backendBaseUrl: this.configService.get<string>('BACKEND_BASE_URL', ''),
-      frontendBaseUrl: this.configService.get<string>('FRONTEND_BASE_URL', ''),
+      // Prefer FRONTEND_BASE_URL; fall back to FRONTEND_URL so a single public
+      // frontend URL is enough for both invitations and payment redirects.
+      frontendBaseUrl:
+        this.configService.get<string>('FRONTEND_BASE_URL') ||
+        this.configService.get<string>('FRONTEND_URL', ''),
     };
 
     const missing = Object.entries(config)

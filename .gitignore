@@ -1,0 +1,15 @@
+# Never commit real environment files (templates are allowed).
+.env
+.env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.test
+.env.test.local
+
+# OS / editor
+.DS_Store
+.idea
+.vscode
+*.log

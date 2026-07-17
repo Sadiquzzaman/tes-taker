@@ -1,12 +1,24 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnApplicationShutdown } from '@nestjs/common';
 import { RedisClient } from './redis.types';
 
 @Injectable()
-export class RedisService {
+export class RedisService implements OnApplicationShutdown {
+  private readonly logger = new Logger(RedisService.name);
+
   public constructor(
     @Inject('REDIS_CLIENT')
     private readonly client: RedisClient,
   ) {}
+
+  async onApplicationShutdown(signal?: string): Promise<void> {
+    try {
+      // quit() waits for pending commands to finish before closing the socket.
+      await this.client.quit();
+      this.logger.log(`Redis connection closed gracefully (signal: ${signal ?? 'n/a'})`);
+    } catch (error) {
+      this.logger.error(`Error closing Redis connection: ${(error as Error).message}`);
+    }
+  }
 
   async set(key: string, value: string, expirationSeconds?: number) {
     if (expirationSeconds) {
@@ -20,6 +32,11 @@ export class RedisService {
     return await this.client.get(key);
   }
 
+  async ping(): Promise<boolean> {
+    const result = await this.client.ping();
+    return result === 'PONG';
+  }
+
   async del(key: string) {
     try {
       if (await this.client.exists(key)) {
@@ -29,7 +46,7 @@ export class RedisService {
         return 0;
       }
     } catch (error) {
-      console.error(`Error deleting key ${key}: ${error.message}`);
+      this.logger.error(`Error deleting key ${key}: ${(error as Error).message}`);
       throw error;
     }
   }

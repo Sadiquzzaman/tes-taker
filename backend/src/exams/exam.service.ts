@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  Logger,
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
@@ -96,6 +97,8 @@ type ExamSubjectResponse = {
 
 @Injectable()
 export class ExamService {
+  private readonly logger = new Logger(ExamService.name);
+
   constructor(
     @InjectRepository(ExamEntity)
     private readonly examRepo: Repository<ExamEntity>,
@@ -388,12 +391,12 @@ export class ExamService {
         publishState.selectedClassId
       ) {
         this.sendExamNotifications(reloaded.id).catch((err) => {
-          console.error('Failed to send exam notifications:', err);
+          this.logger.error(`Failed to send exam notifications: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
       if (publishState.testAudience === TestAudienceEnum.SPECIFIC_STUDENTS) {
         this.sendExamNotificationsToTargets(reloaded.id).catch((err) => {
-          console.error('Failed to send exam notifications:', err);
+          this.logger.error(`Failed to send exam notifications: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
 
@@ -629,7 +632,7 @@ export class ExamService {
 
     if (dto.class_id) {
       this.sendExamNotifications(savedExam.id).catch((err) => {
-        console.error('Failed to send exam notifications:', err);
+        this.logger.error(`Failed to send exam notifications: ${err instanceof Error ? err.message : String(err)}`);
       });
     }
 
@@ -696,7 +699,7 @@ export class ExamService {
 
     if (dto.class_id) {
       this.sendExamNotifications(savedExam.id).catch((err) => {
-        console.error('Failed to send exam notifications:', err);
+        this.logger.error(`Failed to send exam notifications: ${err instanceof Error ? err.message : String(err)}`);
       });
     }
 
@@ -765,7 +768,7 @@ export class ExamService {
           if (result) sent++;
           else failed++;
         } catch (error) {
-          console.error(`Failed to send notification to ${student.phone}:`, error);
+          this.logger.error(`Failed to send notification to ${student.phone}: ${error instanceof Error ? error.message : String(error)}`);
           failed++;
         }
       } else {

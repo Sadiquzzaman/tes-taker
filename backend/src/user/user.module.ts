@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CryptoUtil } from 'src/common/utils/crypto.util';
 import { JwtService } from '@nestjs/jwt';
 import { UserFilterUtil } from 'src/common/utils/user-filter.util';
+import { RefreshTokenUtil } from 'src/common/utils/refresh-token.util';
 import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 
 @Module({
@@ -16,6 +17,7 @@ import { SubscriptionModule } from 'src/subscriptions/subscription.module';
     CryptoUtil,
     JwtService,
     UserFilterUtil,
+    RefreshTokenUtil,
   ],
   exports: [UserService],
 })

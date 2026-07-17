@@ -7,7 +7,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { JwtService } from '@nestjs/jwt';
-import { HttpException } from '@nestjs/common';
+import { HttpException, Logger, OnApplicationShutdown } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { ProctoringStoreService } from './proctoring-store.service';
 import { ExamService } from '../exams/exam.service';
@@ -37,7 +37,9 @@ const clientOrigin = process.env.CLIENT_ORIGIN ?? true;
     credentials: true,
   },
 })
-export class ProctoringGateway implements OnGatewayDisconnect {
+export class ProctoringGateway implements OnGatewayDisconnect, OnApplicationShutdown {
+  private readonly logger = new Logger(ProctoringGateway.name);
+
   @WebSocketServer()
   server!: Server;
 
@@ -46,6 +48,15 @@ export class ProctoringGateway implements OnGatewayDisconnect {
     private readonly examService: ExamService,
     private readonly jwtService: JwtService,
   ) {}
+
+  onApplicationShutdown(signal?: string): void {
+    // Proactively disconnect connected clients so the Socket.IO server can
+    // release its handles during a graceful shutdown.
+    if (this.server) {
+      this.server.disconnectSockets(true);
+      this.logger.log(`Socket.IO connections closed gracefully (signal: ${signal ?? 'n/a'})`);
+    }
+  }
 
   private resolveToken(client: Socket, payload?: { token?: string }): string | null {
     const fromPayload = payload?.token;

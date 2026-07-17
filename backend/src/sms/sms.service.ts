@@ -1,10 +1,12 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { SmsRateLimitService } from './sms-rate-limit.service';
 
 @Injectable()
 export class SmsService {
+  private readonly logger = new Logger(SmsService.name);
+
   constructor(
     private readonly configService: ConfigService,
     private readonly smsRateLimitService: SmsRateLimitService,
@@ -41,14 +43,15 @@ export class SmsService {
 
       const response = await axios.post(url);
 
-      console.log(response.data);
-      
-      
+      this.logger.debug(`BulkSMS response: ${JSON.stringify(response.data)}`);
+
       // Check if SMS was sent successfully
       // The API response format may vary, adjust according to bulksmsbd documentation
       return response.status === 200;
     } catch (error) {
-      console.error('SMS sending failed:', error);
+      this.logger.error(
+        `SMS sending failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return false;
     }
   }
@@ -70,8 +73,11 @@ export class SmsService {
 
     // Generate OTP
     const otp = this.generateOtp();
-    console.log({otp});
-    
+    // Never log OTPs in production.
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.debug(`Generated OTP: ${otp}`);
+    }
+
     
     // Send SMS
     const smsMessage = `Your OTP is: ${otp}. Valid for 5 minutes.`;
