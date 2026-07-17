@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Logger, Param, Post, Req, Res } from '@nestjs/common';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { ApiExcludeEndpoint, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { PaymentService } from './payment.service';
@@ -15,6 +16,7 @@ export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
   @Post('initiate')
+  @Throttle({ default: { ttl: 60000, limit: 15 } })
   @ApiOperation({
     summary: 'Initiate a payment',
     description:
@@ -42,6 +44,7 @@ export class PaymentController {
   }
 
   @Post('ipn')
+  @SkipThrottle()
   @ApiOperation({
     summary: 'SSLCommerz IPN handler',
     description:
@@ -55,6 +58,7 @@ export class PaymentController {
   }
 
   @Post('success')
+  @SkipThrottle()
   @ApiExcludeEndpoint()
   async success(@Body() dto: SslCommerzCallbackDto, @Req() req: Request, @Res() res: Response) {
     const payload = this.mergeCallback(dto, req);
@@ -75,6 +79,7 @@ export class PaymentController {
   }
 
   @Post('fail')
+  @SkipThrottle()
   @ApiExcludeEndpoint()
   async fail(@Body() dto: SslCommerzCallbackDto, @Req() req: Request, @Res() res: Response) {
     const payload = this.mergeCallback(dto, req);
@@ -92,6 +97,7 @@ export class PaymentController {
   }
 
   @Post('cancel')
+  @SkipThrottle()
   @ApiExcludeEndpoint()
   async cancel(@Body() dto: SslCommerzCallbackDto, @Req() req: Request, @Res() res: Response) {
     const payload = this.mergeCallback(dto, req);

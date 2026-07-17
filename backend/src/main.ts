@@ -24,6 +24,13 @@ import helmet from 'helmet';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // When deployed behind a reverse proxy (NGINX/Hetzner load balancer), trust
+  // the X-Forwarded-* headers so req.ip reflects the real client. This keeps
+  // rate limiting and secure-cookie handling accurate. Enable via TRUST_PROXY.
+  if (process.env.TRUST_PROXY === 'true') {
+    app.set('trust proxy', 1);
+  }
+
   // Security headers. The CSP allow-list is intentionally compatible with the
   // browser features this platform relies on: Google OAuth, Socket.IO, the
   // Swagger UI assets, SSLCommerz, and the client-side ML libraries

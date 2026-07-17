@@ -1,4 +1,5 @@
 import { Controller, Get, HttpCode, HttpStatus, ServiceUnavailableException } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -8,6 +9,7 @@ type DependencyStatus = 'up' | 'down';
 
 @ApiTags('Health')
 @Controller()
+@SkipThrottle()
 export class HealthController {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
