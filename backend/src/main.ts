@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import {
   CreateExamWizardDto,
@@ -82,7 +82,13 @@ async function bootstrap() {
   //use custom made global handlers to use in app
   app.useGlobalInterceptors(new WrapResponseInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
-  
-  await app.listen(process.env.APP_PORT || 3000);
+
+  // Listen for SIGTERM/SIGINT and run onModuleDestroy / onApplicationShutdown
+  // hooks so PostgreSQL, Redis, Socket.IO and the HTTP server close cleanly.
+  app.enableShutdownHooks();
+
+  const port = process.env.APP_PORT || 3000;
+  await app.listen(port);
+  Logger.log(`Application is running on port ${port}`, 'Bootstrap');
 }
 bootstrap();
