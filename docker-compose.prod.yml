@@ -1,0 +1,180 @@
+# Production compose for Hetzner (or any single-host Docker deployment).
+#
+# Usage:
+#   1. Copy .env.production.example → .env.production and fill in real values.
+#   2. docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Do NOT use this file for local development — keep using docker-compose.yml.
+
+name: tasktaker-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tasktaker-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - tasktaker-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    # Not published to the host — only reachable on the internal network.
+    expose:
+      - "5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: tasktaker-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - tasktaker-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # Not published to the host — only reachable on the internal network.
+    expose:
+      - "6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: tasktaker-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      APP_PORT: 3000
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_DB: ${DATABASE_DB}
+      DATABASE_SYNCRONIZE: ${DATABASE_SYNCRONIZE:-false}
+      DATABASE_LOGGING: ${DATABASE_LOGGING:-false}
+      DATABASE_MIGRATIONS_RUN: ${DATABASE_MIGRATIONS_RUN:-false}
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB:-0}
+
+      JWT_SECRET: ${JWT_SECRET}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-${JWT_SECRET}}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-30}
+
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN}
+      FRONTEND_URL: ${FRONTEND_URL}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-${FRONTEND_URL}}
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL}
+
+      THROTTLE_TTL: ${THROTTLE_TTL:-60000}
+      THROTTLE_LIMIT: ${THROTTLE_LIMIT:-300}
+
+      BULKSMS_API_KEY: ${BULKSMS_API_KEY:-}
+      BULKSMS_SENDER_ID: ${BULKSMS_SENDER_ID:-}
+
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-TestTaker}
+
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-}
+
+      SSL_STORE_ID: ${SSL_STORE_ID:-}
+      SSL_STORE_PASSWORD: ${SSL_STORE_PASSWORD:-}
+      SSL_SESSION_API: ${SSL_SESSION_API:-}
+      SSL_VALIDATION_API: ${SSL_VALIDATION_API:-}
+
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      STORAGE_LOCAL_PATH: ${STORAGE_LOCAL_PATH:-./uploads}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_S3_REGION: ${AWS_S3_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+    ports:
+      # Bind to loopback only — put a reverse proxy (NGINX/Caddy) in front.
+      - "127.0.0.1:${BACKEND_HOST_PORT:-4000}:3000"
+    networks:
+      - tasktaker-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+    container_name: tasktaker-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      RUNNING_IN_DOCKER: "true"
+      # Server-side SSR calls the backend over the Docker network.
+      SERVER_API_URL: http://backend:3000/api/v1
+      NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+    ports:
+      # Bind to loopback only — put a reverse proxy (NGINX/Caddy) in front.
+      - "127.0.0.1:${FRONTEND_HOST_PORT:-3000}:3000"
+    networks:
+      - tasktaker-internal
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:3000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  tasktaker-internal:
+    driver: bridge
+    # Internal network only — postgres and redis never leave the host.
+    # Frontend and backend are published on 127.0.0.1 so a host reverse proxy
+    # can terminate TLS in front of them.

@@ -1,15 +1,19 @@
+# Browser-facing API URL (baked into the client bundle at build time).
+# Production: set to your public API URL, e.g. https://api.example.com/api/v1
 NEXT_PUBLIC_BASE_URL=http://localhost:4000/api/v1
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Server-side API URL for Next.js SSR (join/class preview, etc.).
 # Local dev: use localhost (same as NEXT_PUBLIC_BASE_URL).
-# Docker: set SERVER_API_URL=http://app:3000/api/v1 in docker-compose.
+# Docker (dev compose): set SERVER_API_URL=http://app:3000/api/v1
+# Docker (prod compose): set automatically to http://backend:3000/api/v1
 SERVER_API_URL=http://localhost:4000/api/v1
 
 # Legacy aliases — prefer SERVER_API_URL above.
 # INTERNAL_API_URL=http://app:3000/api/v1
 # NEXT_PUBLIC_URL=http://localhost:4000/api/v1
 
+# Proctoring thresholds (client-side)
 NEXT_PUBLIC_ENABLE_FLAGGING=true
 NEXT_PUBLIC_GREEN_LIMIT=5
 NEXT_PUBLIC_LIGHT_GREEN_LIMIT=10
