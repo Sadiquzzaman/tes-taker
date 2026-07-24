@@ -1,5 +1,8 @@
 import axios from "axios";
 
+const SESSION_SET_TOKEN_PATH = "/session/set-token";
+const SESSION_LOGOUT_PATH = "/session/logout";
+
 const clearAuthSession = async () => {
   if (typeof window === "undefined") {
     return;
@@ -8,7 +11,8 @@ const clearAuthSession = async () => {
   localStorage.removeItem("user");
 
   try {
-    await axios.post("/api/logout");
+    // Same-origin Next.js route (not the Nest /api prefix).
+    await axios.post(SESSION_LOGOUT_PATH);
   } catch {
     // Ignore logout API failures while clearing local session.
   }
@@ -34,7 +38,8 @@ const getStoredUser = (): LoginResponsePayload | null => {
 };
 
 const persistAuthSession = async (payload: LoginResponsePayload) => {
-  const setTokenResponse = await axios.post("/api/set-token", {
+  // Must hit the Next.js frontend origin — never NEXT_PUBLIC_BASE_URL (Nest).
+  const setTokenResponse = await axios.post(SESSION_SET_TOKEN_PATH, {
     token: payload.access_token,
     refreshToken: payload.refresh_token,
     role: payload.role,

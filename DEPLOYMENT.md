@@ -29,6 +29,28 @@ Services:
 All ports are bound to `127.0.0.1`, so nothing is reachable from the internet
 directly. Put NGINX/Caddy in front to terminate TLS for the frontend/backend.
 
+### Reverse proxy routing (auth cookies)
+
+Session cookie helpers live on the **frontend** (Next.js), not Nest:
+
+- `POST /session/set-token` — sets `token`, `refreshToken`, `role` httpOnly cookies
+- `POST /session/logout` — clears those cookies
+
+Example for beta:
+
+| Host | Forward to |
+| ---- | ---------- |
+| `https://beta.instructor.academy` | Next.js (`127.0.0.1:3000`), including `/session/*` |
+| `https://api-beta.instructor.academy` | Nest (`127.0.0.1:4000`), usually with `/api` prefix |
+
+Do **not** proxy `/session/*` (or leftover `/api/set-token` / `/api/logout`) from the
+frontend host to Nest. Nest’s global prefix is `/api`; forwarding all `/api` on the
+frontend host to Nest causes login to succeed while cookie setup returns **404**.
+
+`NEXT_PUBLIC_BASE_URL` must be the Nest API root (e.g.
+`https://api-beta.instructor.academy/api/v1`). Cookie calls use same-origin
+relative paths on the frontend host and must not use that base URL.
+
 ## 3. Run database migrations
 
 The production image only contains compiled files under `/app/dist`, so
