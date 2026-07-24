@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
 
 /**
- * Legacy path kept for local/dev compatibility.
- * Prefer POST /session/set-token — production reverse proxies often forward
- * /api/* to the Nest backend, which does not implement this route (404).
+ * Next.js route handler that stores auth cookies for proxy/middleware.
+ *
+ * IMPORTANT: This lives under /session/* (not /api/*) so production reverse
+ * proxies that forward /api to the Nest backend cannot intercept it.
  */
 export async function POST(req: Request) {
   const { token, refreshToken, role } = await req.json();

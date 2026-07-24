@@ -1,6 +1,6 @@
 import { useRouter } from "next/navigation";
 import { useToast } from "@/component/Toast/ToastContext";
-import axios from "@/lib/axios";
+import axios from "axios";
 
 export const useSidebarLogout = () => {
   const { push } = useRouter();
@@ -8,7 +8,8 @@ export const useSidebarLogout = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await axios.post("/api/logout");
+      // Same-origin Next.js session route (not Nest /api).
+      const response = await axios.post("/session/logout");
 
       if (response.status !== 200) {
         throw new Error("Logout failed");

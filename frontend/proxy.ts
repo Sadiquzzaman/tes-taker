@@ -184,5 +184,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/|favicon.ico|api/|assets/).*)"],
+  // Exclude Next.js internals, static assets, Nest-colliding /api stubs, and
+  // the /session cookie routes (set-token / logout must stay reachable
+  // without an auth cookie already present).
+  matcher: ["/((?!_next/|favicon.ico|api/|session/|assets/).*)"],
 };
