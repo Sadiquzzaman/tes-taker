@@ -43,7 +43,7 @@ interface StudentExamStandardQuestion extends StudentExamQuestionBase {
 
 interface StudentExamPassageChildQuestion extends StudentExamQuestionBase {
   type: "passage-question";
-  subType: StudentExamAutoScoredSubType;
+  subType: StudentExamQuestionSubType;
   text: string;
   options?: StudentExamOption[];
   matchingOptions?: {

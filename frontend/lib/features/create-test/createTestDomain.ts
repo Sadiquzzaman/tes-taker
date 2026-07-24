@@ -129,7 +129,7 @@ export const createQuestion = (questionType: CreateTestQuestionCategory, subType
   const optionRules = getCreateTestQuestionOptionRules(questionType, subType);
   const answer = createQuestionAnswer(questionType, subType);
 
-  if (questionType === "ungraded") {
+  if (questionType === "ungraded" || (questionType === "passage-question" && subType === CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID)) {
     return {
       id: createId(),
       type: questionType,

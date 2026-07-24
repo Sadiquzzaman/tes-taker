@@ -64,6 +64,21 @@ Other production migration commands (run the same way with `run --rm backend`):
 > pending migrations automatically on boot (prefer the explicit one-off step
 > for predictable deploys).
 
+### Default admin seed
+
+On first boot, if no `ADMIN` / `SUPER_ADMIN` user exists, the backend seeds one
+from environment variables:
+
+| Variable         | Dev default (if unset)     |
+| ---------------- | -------------------------- |
+| `ADMIN_NAME`     | `Admin`                    |
+| `ADMIN_EMAIL`    | `admin@testtaker.local`    |
+| `ADMIN_PASSWORD` | `Admin@12345`              |
+| `ADMIN_PHONE`    | `ADMIN00000001`            |
+
+Set strong values in `.env.production` before the first production boot.
+The seed never creates a second admin if one already exists.
+
 ## 4. pgAdmin 4 (database admin UI)
 
 pgAdmin is deliberately **not exposed publicly**. It listens only on

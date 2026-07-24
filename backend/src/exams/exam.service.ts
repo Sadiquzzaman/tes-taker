@@ -416,10 +416,18 @@ export class ExamService {
     for (const subj of subjects) {
       for (const raw of subj.questions) {
         const parsed = parseWizardQuestion(raw);
-        if (parsed.kind === 'passage' || parsed.kind === 'graded') {
+        if (parsed.kind === 'graded') {
           hasAutoScored = true;
-        } else {
+        } else if (parsed.kind === 'ungraded') {
           hasManual = true;
+        } else if (parsed.kind === 'passage') {
+          for (const child of parsed.data.childQuestions) {
+            if (child.subType === 'essay') {
+              hasManual = true;
+            } else {
+              hasAutoScored = true;
+            }
+          }
         }
       }
     }
@@ -458,19 +466,69 @@ export class ExamService {
 
     let childOrder = 0;
     for (const child of passage.childQuestions) {
-      await this.persistAutoScoredQuestion(
-        questionRepo,
-        examId,
-        sectionId,
-        child,
-        childOrder++,
-        jwtPayload,
-        QuestionCategoryEnum.PASSAGE,
-        savedParent.id,
-      );
+      if (child.subType === 'essay') {
+        await this.persistPassageEssayChild(
+          questionRepo,
+          examId,
+          sectionId,
+          child,
+          childOrder++,
+          jwtPayload,
+          savedParent.id,
+        );
+      } else {
+        await this.persistAutoScoredQuestion(
+          questionRepo,
+          examId,
+          sectionId,
+          child,
+          childOrder++,
+          jwtPayload,
+          QuestionCategoryEnum.PASSAGE,
+          savedParent.id,
+        );
+      }
     }
 
     return sortOrder + 1;
+  }
+
+  private async persistPassageEssayChild(
+    questionRepo: Repository<ExamQuestionEntity>,
+    examId: string,
+    sectionId: string,
+    q: WizardChildQuestionDto,
+    sortOrder: number,
+    jwtPayload: JwtPayloadInterface,
+    parentId: string,
+  ): Promise<void> {
+    const points = normalizePoints(q.points);
+    const answerJson = mapAnswerForStorage(q.answer);
+
+    const payload: DeepPartial<ExamQuestionEntity> = {
+      id: resolveQuestionId(q.id),
+      section_id: sectionId,
+      exam: { id: examId } as ExamEntity,
+      sort_order: sortOrder,
+      question_type: QuestionTypeEnum.SUBJECTIVE,
+      category: QuestionCategoryEnum.PASSAGE,
+      sub_type: q.subType,
+      parent_id: parentId,
+      passage_text: null,
+      question: q.text.trim(),
+      image_url: null,
+      points,
+      marks_per_question: points,
+      instruction: q.instruction?.trim() ? q.instruction.trim().slice(0, 500) : null,
+      answer_json: answerJson,
+      sample_answer: answerJson?.value?.join('\n') ?? undefined,
+      created_by: jwtPayload.id,
+      created_user_name: jwtPayload.full_name,
+      created_at: new Date(),
+    };
+
+    const row = questionRepo.create(payload);
+    await questionRepo.save(row);
   }
 
   private async persistAutoScoredQuestion(
@@ -1475,6 +1533,23 @@ export class ExamService {
     question: ExamQuestionEntity,
     includeCorrectAnswers: boolean,
   ): ExamQuestionResponse {
+    if (question.sub_type === 'essay' || question.question_type === QuestionTypeEnum.SUBJECTIVE) {
+      const base: ExamQuestionResponse = {
+        id: question.id,
+        type: QuestionCategoryEnum.PASSAGE,
+        subType: question.sub_type,
+        text: question.question,
+        instruction: question.instruction ?? null,
+        image: null,
+        points: question.points ?? question.marks_per_question ?? null,
+        showValidation: false,
+      };
+      if (includeCorrectAnswers && question.answer_json) {
+        base.answer = question.answer_json;
+      }
+      return base;
+    }
+
     const base = this.formatAutoScoredQuestionResponse(question, includeCorrectAnswers);
     return {
       ...base,

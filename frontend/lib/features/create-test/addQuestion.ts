@@ -7,7 +7,6 @@ import {
   focusPassage,
   focusQuestion,
   getFirstInvalidQuestion,
-  isPassageQuestionItem,
   showQuestionValidationErrors,
   syncSubjectType,
 } from "./createTestDomain";
@@ -36,19 +35,19 @@ const addQuestion = (state: CreateTestState, action: PayloadAction<SubjectQuesti
   }
 
   if (action.payload.questionType === "passage-question") {
+    // Only append children to the focused passage. When none is focused, create
+    // a new Passage / CQ block so a subject can hold multiple shared contexts.
     const activePassage = state.activePassageId ? findPassageById(subject.questions, state.activePassageId) : null;
-    const existingPassage =
-      activePassage ?? subject.questions.find((question) => isPassageQuestionItem(question)) ?? null;
     const nextChildQuestion = createQuestion("passage-question", action.payload.subType);
 
     if (!nextChildQuestion) {
       return;
     }
 
-    if (existingPassage) {
-      existingPassage.childQuestions.push(nextChildQuestion);
+    if (activePassage) {
+      activePassage.childQuestions.push(nextChildQuestion);
       syncSubjectType(subject);
-      focusQuestion(state, subject.id, nextChildQuestion.id, existingPassage.id);
+      focusQuestion(state, subject.id, nextChildQuestion.id, activePassage.id);
       return;
     }
 

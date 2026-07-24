@@ -83,7 +83,7 @@ function PassageQuestionBlock({
         >
           <div className={`flex items-start justify-between ${QUESTION_BUILDER_GAPS.passageHeaderRow}`}>
             <p className="max-w-[420px] text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
-              Read the passage below and answer the following questions
+              Read the passage / CQ below and answer the following questions
             </p>
             <button
               type="button"

@@ -1,5 +1,12 @@
 const MATCHING_SUB_TYPE: StudentExamAutoScoredSubType = "matching-ordering";
 const MULTI_SELECT_SUB_TYPE: StudentExamAutoScoredSubType = "multiple-response";
+const AUTO_SCORED_SUB_TYPES: StudentExamAutoScoredSubType[] = [
+  "multiple-choice",
+  "multiple-response",
+  "true-false",
+  "fill-in-the-blanks",
+  "matching-ordering",
+];
 
 const getInputMode = (
   questionType: StudentExamQuestionType,
@@ -24,6 +31,11 @@ const getInputMode = (
   return "single-select";
 };
 
+const isAutoScoredViewQuestion = (
+  questionType: StudentExamQuestionType,
+  subType: StudentExamQuestionSubType,
+) => questionType !== "ungraded" && AUTO_SCORED_SUB_TYPES.includes(subType as StudentExamAutoScoredSubType);
+
 const buildViewQuestion = (
   question: StudentExamStandardQuestion | StudentExamPassageChildQuestion,
   questionNumber: number,
@@ -39,7 +51,7 @@ const buildViewQuestion = (
   points: question.points,
   showValidation: question.showValidation,
   inputMode: getInputMode(question.type, question.subType),
-  isAutoScored: question.type !== "ungraded",
+  isAutoScored: isAutoScoredViewQuestion(question.type, question.subType),
   questionNumber,
 });
 
