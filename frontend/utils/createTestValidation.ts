@@ -4,7 +4,9 @@ import {
   getCreateTestQuestionAnswerMode,
   getCreateTestQuestionOptionRules,
   getCreateTestQuestionSubtype,
+  isCreateTestAutoScoredSubType,
   isCreateTestObjectiveCategory,
+  isCreateTestPassageManualSubType,
 } from "@/utils/createTestOptions";
 
 const hasTextOrImage = (text: string, image: string | null | undefined) => Boolean(text.trim() || image);
@@ -129,8 +131,10 @@ export const getQuestionValidationErrors = (question: QuestionItem): string[] =>
 
   if (isMatchingOrdering) {
     errors.push(...getMatchingOrderingValidationErrors(question));
-  } else if (isCreateTestObjectiveCategory(question.type)) {
+  } else if (isCreateTestObjectiveCategory(question.type) && isCreateTestAutoScoredSubType(question.subType)) {
     errors.push(...getSubtypeOptionValidationErrors(question));
+  } else if (isCreateTestPassageManualSubType(question.subType)) {
+    // Essay under Passage / CQ only needs text + points (validated above).
   }
 
   return errors;

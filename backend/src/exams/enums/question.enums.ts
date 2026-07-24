@@ -21,6 +21,18 @@ export const MANUAL_SUB_TYPES = ['true-false', 'essay', 'fill-in-the-gaps'] as c
 
 export type ManualSubType = (typeof MANUAL_SUB_TYPES)[number];
 
+/**
+ * Subtypes allowed as Passage / CQ children.
+ * Includes all auto-scored types plus Essay so Creative Questions can be built
+ * from a shared passage stimulus without a dedicated CQ entity.
+ */
+export const PASSAGE_CHILD_SUB_TYPES = [
+  ...AUTO_SCORED_SUB_TYPES,
+  'essay',
+] as const;
+
+export type PassageChildSubType = (typeof PASSAGE_CHILD_SUB_TYPES)[number];
+
 export type QuestionSubType = AutoScoredSubType | ManualSubType;
 
 export enum AnswerValueTypeEnum {

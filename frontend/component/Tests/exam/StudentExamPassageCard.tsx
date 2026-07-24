@@ -25,7 +25,7 @@ const StudentExamPassageCard = ({
     <div className="flex flex-col gap-4">
       <div className="rounded-[8px] px-2 py-2">
         <p className="text-[20px] font-[500] leading-[1.1] tracking-[-0.02em] text-[#232A25]">
-          Read the passage below and answer the following questions ({questionRange})
+          Read the passage / CQ below and answer the following questions ({questionRange})
         </p>
         <p className="mt-3 text-[16px] leading-[1.2] tracking-[-0.02em] text-[#0F1A12]">{item.passageText}</p>
       </div>
