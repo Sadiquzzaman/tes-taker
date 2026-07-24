@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RegisterUserDto } from 'src/auth/dto/register-user.dto';
@@ -9,7 +9,7 @@ import { CryptoUtil } from 'src/common/utils/crypto.util';
 import { RefreshTokenUtil } from 'src/common/utils/refresh-token.util';
 import { UserFilterUtil } from 'src/common/utils/user-filter.util';
 import { SubscriptionService } from 'src/subscriptions/subscription.service';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import { UserReponseDto } from './dto/user-response.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { UserEntity } from './entities/user.entity';
@@ -36,7 +36,7 @@ type AdminUserSummary = {
 };
 
 @Injectable()
-export class UserService {
+export class UserService implements OnModuleInit {
   private readonly logger = new Logger(UserService.name);
 
   constructor(
@@ -49,6 +49,79 @@ export class UserService {
     private readonly configService: ConfigService,
     private readonly subscriptionService: SubscriptionService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.seedDefaultAdminIfMissing();
+  }
+
+  /**
+   * Ensures at least one ADMIN exists after boot.
+   * Env: ADMIN_NAME, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_PHONE
+   * Dev defaults (only when env vars are missing):
+   *   name=Admin, email=admin@testtaker.local, password=Admin@12345, phone=ADMIN00000001
+   */
+  private async seedDefaultAdminIfMissing(): Promise<void> {
+    const existingAdmin = await this.userRepository.findOne({
+      where: {
+        role: In([RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN]),
+      },
+    });
+
+    if (existingAdmin) {
+      return;
+    }
+
+    const fullName = this.configService.get<string>('ADMIN_NAME')?.trim() || 'Admin';
+    const email =
+      this.configService.get<string>('ADMIN_EMAIL')?.trim().toLowerCase() || 'admin@testtaker.local';
+    const password = this.configService.get<string>('ADMIN_PASSWORD') || 'Admin@12345';
+    const phone = this.configService.get<string>('ADMIN_PHONE')?.trim() || 'ADMIN00000001';
+
+    const existingByEmail = await this.findByEmail(email);
+    if (existingByEmail) {
+      existingByEmail.role = RolesEnum.ADMIN;
+      existingByEmail.is_otp_verified = true;
+      existingByEmail.is_verified = true;
+      existingByEmail.is_active = ActiveStatusEnum.ACTIVE;
+      await this.userRepository.save(existingByEmail);
+      this.logger.log(`Promoted existing user ${email} to ADMIN (no admin was present)`);
+      return;
+    }
+
+    const existingByPhone = await this.findByPhone(phone);
+    if (existingByPhone) {
+      existingByPhone.role = RolesEnum.ADMIN;
+      existingByPhone.is_otp_verified = true;
+      existingByPhone.is_verified = true;
+      existingByPhone.is_active = ActiveStatusEnum.ACTIVE;
+      if (!existingByPhone.email) {
+        existingByPhone.email = email;
+      }
+      await this.userRepository.save(existingByPhone);
+      this.logger.log(`Promoted existing user with phone ${phone} to ADMIN (no admin was present)`);
+      return;
+    }
+
+    const hashedPassword = await this.crypto.hashPassword(password);
+    const refreshTokenHash = this.refreshTokenUtil.generate().hash;
+
+    await this.userRepository.save({
+      full_name: fullName,
+      email,
+      phone,
+      password: hashedPassword,
+      role: RolesEnum.ADMIN,
+      is_otp_verified: true,
+      is_verified: true,
+      is_active: ActiveStatusEnum.ACTIVE,
+      refresh_token: refreshTokenHash,
+      created_at: new Date(),
+    });
+
+    this.logger.warn(
+      `Seeded default ADMIN user (${email}). Change ADMIN_PASSWORD immediately in production.`,
+    );
+  }
 
   async create(registerUserDto: RegisterUserDto | any): Promise<UserEntity> {
     // Check for duplicate email if provided
