@@ -1,26 +1,29 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
-import { useRef, type ChangeEvent } from "react";
+import { useEffect, useReducer, type ReactNode } from "react";
 
 type RichTextToolbarProps = {
   editor: Editor | null;
-  onRequestImageUpload?: () => void;
   allowImages?: boolean;
+  onRequestImageUpload?: () => void;
+  onOpenMath?: () => void;
+  onOpenGeometry?: () => void;
+  onOpenChemistry?: () => void;
 };
 
-const ToolbarButton = ({
+const IconButton = ({
   active,
   disabled,
-  label,
   onClick,
   title,
+  children,
 }: {
   active?: boolean;
   disabled?: boolean;
-  label: string;
   onClick: () => void;
   title: string;
+  children: ReactNode;
 }) => (
   <button
     type="button"
@@ -29,17 +32,37 @@ const ToolbarButton = ({
     disabled={disabled}
     onMouseDown={(event) => event.preventDefault()}
     onClick={onClick}
-    className={`rounded-[4px] px-1.5 py-1 text-[12px] font-[600] leading-none tracking-[-0.02em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-      active ? "bg-[#49734F] text-white" : "bg-transparent text-[#232A25] hover:bg-[#E8EDE9]"
-    }`}
+    className={`rte-tb-btn ${active ? "is-active" : ""}`}
   >
-    {label}
+    {children}
   </button>
 );
 
-const RichTextToolbar = ({ editor, onRequestImageUpload, allowImages = true }: RichTextToolbarProps) => {
-  const colorInputRef = useRef<HTMLInputElement>(null);
-  const highlightInputRef = useRef<HTMLInputElement>(null);
+const Divider = () => <span className="rte-tb-divider" />;
+
+const RichTextToolbar = ({
+  editor,
+  allowImages = true,
+  onRequestImageUpload,
+  onOpenMath,
+  onOpenGeometry,
+  onOpenChemistry,
+}: RichTextToolbarProps) => {
+  const [, forceRender] = useReducer((value: number) => value + 1, 0);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    const refresh = () => forceRender();
+    editor.on("selectionUpdate", refresh);
+    editor.on("transaction", refresh);
+    return () => {
+      editor.off("selectionUpdate", refresh);
+      editor.off("transaction", refresh);
+    };
+  }, [editor]);
 
   if (!editor) {
     return null;
@@ -48,158 +71,225 @@ const RichTextToolbar = ({ editor, onRequestImageUpload, allowImages = true }: R
   const insertLink = () => {
     const previous = editor.getAttributes("link").href as string | undefined;
     const url = window.prompt("Enter link URL", previous ?? "https://");
-
     if (url === null) {
       return;
     }
-
     if (!url.trim()) {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
       return;
     }
-
     editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run();
   };
 
-  const insertMath = (display: boolean) => {
-    const existing = editor.isActive("mathFormula")
-      ? (editor.getAttributes("mathFormula").latex as string | undefined)
-      : "";
-    const latex = window.prompt(
-      display ? "Enter block LaTeX equation" : "Enter inline LaTeX equation",
-      existing || (display ? "\\frac{a}{b}" : "x^2"),
-    );
-
-    if (latex === null) {
-      return;
-    }
-
-    const trimmed = latex.trim();
-    if (!trimmed) {
-      return;
-    }
-
-    if (editor.isActive("mathFormula")) {
-      editor.chain().focus().updateMathFormula({ latex: trimmed, display }).run();
-      return;
-    }
-
-    editor.chain().focus().insertMathFormula({ latex: trimmed, display }).run();
-  };
-
-  const handleColorChange = (event: ChangeEvent<HTMLInputElement>) => {
-    editor.chain().focus().setColor(event.target.value).run();
-  };
-
-  const handleHighlightChange = (event: ChangeEvent<HTMLInputElement>) => {
-    editor.chain().focus().toggleHighlight({ color: event.target.value }).run();
-  };
-
   return (
-    <div className="flex flex-wrap items-center gap-1 border-b border-[#E5E5E5] bg-[#F7F8F7] px-2 py-1.5">
-      <ToolbarButton
-        title="Bold (Ctrl+B)"
-        label="B"
-        active={editor.isActive("bold")}
-        onClick={() => editor.chain().focus().toggleBold().run()}
-      />
-      <ToolbarButton
-        title="Italic (Ctrl+I)"
-        label="I"
-        active={editor.isActive("italic")}
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-      />
-      <ToolbarButton
-        title="Underline (Ctrl+U)"
-        label="U"
-        active={editor.isActive("underline")}
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-      />
-      <span className="mx-0.5 h-4 w-px bg-[#D6D7D4]" />
-      <ToolbarButton
-        title="Heading 1"
-        label="H1"
-        active={editor.isActive("heading", { level: 1 })}
-        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-      />
-      <ToolbarButton
-        title="Heading 2"
-        label="H2"
-        active={editor.isActive("heading", { level: 2 })}
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-      />
-      <ToolbarButton
-        title="Heading 3"
-        label="H3"
-        active={editor.isActive("heading", { level: 3 })}
-        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-      />
-      <span className="mx-0.5 h-4 w-px bg-[#D6D7D4]" />
-      <ToolbarButton
-        title="Bullet list"
-        label="• List"
-        active={editor.isActive("bulletList")}
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-      />
-      <ToolbarButton
-        title="Ordered / nested list"
-        label="1. List"
-        active={editor.isActive("orderedList")}
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-      />
-      <ToolbarButton
-        title="Quote"
-        label="Quote"
-        active={editor.isActive("blockquote")}
-        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-      />
-      <span className="mx-0.5 h-4 w-px bg-[#D6D7D4]" />
-      <label className="flex cursor-pointer items-center gap-1 rounded-[4px] px-1.5 py-1 text-[12px] font-[600] text-[#232A25] hover:bg-[#E8EDE9]">
-        Color
-        <input
-          ref={colorInputRef}
-          type="color"
-          defaultValue="#232A25"
-          onChange={handleColorChange}
-          className="h-4 w-4 cursor-pointer border-0 bg-transparent p-0"
-          title="Text color"
-        />
-      </label>
-      <label className="flex cursor-pointer items-center gap-1 rounded-[4px] px-1.5 py-1 text-[12px] font-[600] text-[#232A25] hover:bg-[#E8EDE9]">
-        Highlight
-        <input
-          ref={highlightInputRef}
-          type="color"
-          defaultValue="#FFE08A"
-          onChange={handleHighlightChange}
-          className="h-4 w-4 cursor-pointer border-0 bg-transparent p-0"
-          title="Highlight color"
-        />
-      </label>
-      <span className="mx-0.5 h-4 w-px bg-[#D6D7D4]" />
-      <ToolbarButton title="Link" label="Link" active={editor.isActive("link")} onClick={insertLink} />
-      <ToolbarButton
-        title="Insert table"
-        label="Table"
-        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-      />
-      <ToolbarButton
-        title="Upload image"
-        label="Image"
-        disabled={!allowImages}
-        onClick={() => onRequestImageUpload?.()}
-      />
-      <span className="mx-0.5 h-4 w-px bg-[#D6D7D4]" />
-      <ToolbarButton title="Inline equation" label="∑" onClick={() => insertMath(false)} />
-      <ToolbarButton title="Block equation" label="∑□" onClick={() => insertMath(true)} />
-      <ToolbarButton
-        title="Geometry placeholder"
-        label="Geo"
-        onClick={() => editor.chain().focus().insertGeometryPlaceholder().run()}
-      />
-      <span className="mx-0.5 h-4 w-px bg-[#D6D7D4]" />
-      <ToolbarButton title="Undo" label="Undo" onClick={() => editor.chain().focus().undo().run()} />
-      <ToolbarButton title="Redo" label="Redo" onClick={() => editor.chain().focus().redo().run()} />
+    <div className="rte-toolbar" role="toolbar" aria-label="Formatting">
+      <div className="rte-tb-group">
+        <select
+          className="rte-tb-select"
+          aria-label="Text style"
+          value={
+            editor.isActive("heading", { level: 1 })
+              ? "h1"
+              : editor.isActive("heading", { level: 2 })
+                ? "h2"
+                : editor.isActive("heading", { level: 3 })
+                  ? "h3"
+                  : editor.isActive("heading", { level: 4 })
+                    ? "h4"
+                    : "p"
+          }
+          onChange={(event) => {
+            const value = event.target.value;
+            const chain = editor.chain().focus();
+            if (value === "p") {
+              chain.setParagraph().run();
+              return;
+            }
+            const level = Number(value.replace("h", "")) as 1 | 2 | 3 | 4;
+            chain.toggleHeading({ level }).run();
+          }}
+        >
+          <option value="p">Paragraph</option>
+          <option value="h1">Heading 1</option>
+          <option value="h2">Heading 2</option>
+          <option value="h3">Heading 3</option>
+          <option value="h4">Heading 4</option>
+        </select>
+      </div>
+
+      <Divider />
+
+      <div className="rte-tb-group">
+        <IconButton title="Bold (Ctrl+B)" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+          <strong>B</strong>
+        </IconButton>
+        <IconButton title="Italic (Ctrl+I)" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+          <em>I</em>
+        </IconButton>
+        <IconButton
+          title="Underline (Ctrl+U)"
+          active={editor.isActive("underline")}
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+        >
+          <span className="underline">U</span>
+        </IconButton>
+        <IconButton title="Strikethrough" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>
+          <span className="line-through">S</span>
+        </IconButton>
+        <IconButton
+          title="Superscript"
+          active={editor.isActive("superscript")}
+          onClick={() => editor.chain().focus().toggleSuperscript().run()}
+        >
+          X²
+        </IconButton>
+        <IconButton title="Subscript" active={editor.isActive("subscript")} onClick={() => editor.chain().focus().toggleSubscript().run()}>
+          X₂
+        </IconButton>
+      </div>
+
+      <Divider />
+
+      <div className="rte-tb-group">
+        <label className="rte-tb-color" title="Text color">
+          <span>A</span>
+          <input
+            type="color"
+            defaultValue="#232A25"
+            onChange={(event) => editor.chain().focus().setColor(event.target.value).run()}
+          />
+        </label>
+        <label className="rte-tb-color" title="Highlight / background">
+          <span>🖍</span>
+          <input
+            type="color"
+            defaultValue="#FFE08A"
+            onChange={(event) => editor.chain().focus().toggleHighlight({ color: event.target.value }).run()}
+          />
+        </label>
+      </div>
+
+      <Divider />
+
+      <div className="rte-tb-group">
+        <IconButton
+          title="Bullet list"
+          active={editor.isActive("bulletList")}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+        >
+          ••
+        </IconButton>
+        <IconButton
+          title="Ordered / nested list"
+          active={editor.isActive("orderedList")}
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        >
+          1.
+        </IconButton>
+        <IconButton title="Task list" active={editor.isActive("taskList")} onClick={() => editor.chain().focus().toggleTaskList().run()}>
+          ☑
+        </IconButton>
+        <IconButton
+          title="Quote"
+          active={editor.isActive("blockquote")}
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        >
+          ❝
+        </IconButton>
+        <IconButton title="Horizontal line" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
+          ―
+        </IconButton>
+      </div>
+
+      <Divider />
+
+      <div className="rte-tb-group">
+        <IconButton
+          title="Align left"
+          active={editor.isActive({ textAlign: "left" })}
+          onClick={() => editor.chain().focus().setTextAlign("left").run()}
+        >
+          ☰
+        </IconButton>
+        <IconButton
+          title="Align center"
+          active={editor.isActive({ textAlign: "center" })}
+          onClick={() => editor.chain().focus().setTextAlign("center").run()}
+        >
+          ≡
+        </IconButton>
+        <IconButton
+          title="Align right"
+          active={editor.isActive({ textAlign: "right" })}
+          onClick={() => editor.chain().focus().setTextAlign("right").run()}
+        >
+          ☷
+        </IconButton>
+        <IconButton
+          title="Justify"
+          active={editor.isActive({ textAlign: "justify" })}
+          onClick={() => editor.chain().focus().setTextAlign("justify").run()}
+        >
+          ≣
+        </IconButton>
+      </div>
+
+      <Divider />
+
+      <div className="rte-tb-group">
+        <IconButton title="Link" active={editor.isActive("link")} onClick={insertLink}>
+          🔗
+        </IconButton>
+        <IconButton
+          title="Insert table"
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+        >
+          ▦
+        </IconButton>
+        <IconButton title="Add column" disabled={!editor.can().addColumnAfter()} onClick={() => editor.chain().focus().addColumnAfter().run()}>
+          Col+
+        </IconButton>
+        <IconButton title="Add row" disabled={!editor.can().addRowAfter()} onClick={() => editor.chain().focus().addRowAfter().run()}>
+          Row+
+        </IconButton>
+        <IconButton title="Merge cells" disabled={!editor.can().mergeCells()} onClick={() => editor.chain().focus().mergeCells().run()}>
+          Merge
+        </IconButton>
+        <IconButton title="Split cell" disabled={!editor.can().splitCell()} onClick={() => editor.chain().focus().splitCell().run()}>
+          Split
+        </IconButton>
+        <IconButton title="Delete table" disabled={!editor.can().deleteTable()} onClick={() => editor.chain().focus().deleteTable().run()}>
+          ⌫▦
+        </IconButton>
+        <IconButton title="Upload image" disabled={!allowImages} onClick={() => onRequestImageUpload?.()}>
+          🖼
+        </IconButton>
+      </div>
+
+      <Divider />
+
+      <div className="rte-tb-group">
+        <IconButton title="Equation (MathLive)" onClick={() => onOpenMath?.()}>
+          ∑
+        </IconButton>
+        <IconButton title="Geometry (GeoGebra)" onClick={() => onOpenGeometry?.()}>
+          △
+        </IconButton>
+        <IconButton title="Chemistry (Kekule)" onClick={() => onOpenChemistry?.()}>
+          ⚗
+        </IconButton>
+      </div>
+
+      <Divider />
+
+      <div className="rte-tb-group">
+        <IconButton title="Undo (Ctrl+Z)" onClick={() => editor.chain().focus().undo().run()}>
+          ↶
+        </IconButton>
+        <IconButton title="Redo (Ctrl+Y)" onClick={() => editor.chain().focus().redo().run()}>
+          ↷
+        </IconButton>
+      </div>
     </div>
   );
 };

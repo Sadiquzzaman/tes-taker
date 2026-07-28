@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  transpilePackages: ["mathlive", "kekule"],
 };
 
 export default nextConfig;

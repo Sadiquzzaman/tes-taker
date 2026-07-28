@@ -44,8 +44,21 @@ const RichTextContent = ({ html, className = "" }: RichTextContentProps) => {
     }
 
     const clean = DOMPurify.sanitize(html, {
-      ADD_ATTR: ["data-type", "data-latex", "data-display", "style", "class", "target", "rel"],
-      ADD_TAGS: ["span", "div"],
+      ADD_ATTR: [
+        "data-type",
+        "data-latex",
+        "data-display",
+        "data-align",
+        "data-kind",
+        "style",
+        "class",
+        "target",
+        "rel",
+        "width",
+        "colspan",
+        "rowspan",
+      ],
+      ADD_TAGS: ["span", "div", "img", "table", "thead", "tbody", "tr", "th", "td", "colgroup", "col"],
     });
 
     return renderMathInHtml(clean);
@@ -55,12 +68,7 @@ const RichTextContent = ({ html, className = "" }: RichTextContentProps) => {
     return null;
   }
 
-  return (
-    <div
-      className={`rte-content rte-readonly ${className}`.trim()}
-      dangerouslySetInnerHTML={{ __html: sanitized }}
-    />
-  );
+  return <div className={`rte-content rte-readonly ${className}`.trim()} dangerouslySetInnerHTML={{ __html: sanitized }} />;
 };
 
 export default RichTextContent;

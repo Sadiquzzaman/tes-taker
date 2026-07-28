@@ -1,4 +1,6 @@
 import { mergeAttributes, Node } from "@tiptap/core";
+import { ReactNodeViewRenderer } from "@tiptap/react";
+import MathFormulaView from "../node-views/MathFormulaView";
 
 export type MathNodeAttrs = {
   latex: string;
@@ -20,15 +22,14 @@ export const MathFormula = Node.create({
   inline: true,
   atom: true,
   selectable: true,
+  draggable: true,
 
   addAttributes() {
     return {
       latex: {
         default: "",
         parseHTML: (element) => element.getAttribute("data-latex") ?? "",
-        renderHTML: (attributes) => ({
-          "data-latex": attributes.latex,
-        }),
+        renderHTML: (attributes) => ({ "data-latex": attributes.latex }),
       },
       display: {
         default: false,
@@ -51,8 +52,12 @@ export const MathFormula = Node.create({
         "data-type": "math",
         class: HTMLAttributes.display ? "rte-math rte-math-block" : "rte-math rte-math-inline",
       }),
-      HTMLAttributes.latex || "\\emptyset",
+      0,
     ];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(MathFormulaView);
   },
 
   addCommands() {
@@ -60,10 +65,7 @@ export const MathFormula = Node.create({
       insertMathFormula:
         (attrs) =>
         ({ commands }) =>
-          commands.insertContent({
-            type: this.name,
-            attrs,
-          }),
+          commands.insertContent({ type: this.name, attrs }),
       updateMathFormula:
         (attrs) =>
         ({ commands }) =>
