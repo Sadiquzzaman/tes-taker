@@ -10,6 +10,7 @@ import { useToast } from "../Toast/ToastContext";
 import { useMemo } from "react";
 import dayjs from "dayjs";
 import { getTeacherShareMeta } from "@/utils/tests/testListItem";
+import { buildTestJoinLink } from "@/utils/frontendAppUrl";
 
 const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
   const { triggerToast } = useToast();
@@ -17,11 +18,11 @@ const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
     testData.test,
   );
   const testLink = useMemo(() => {
-    if (typeof window === "undefined" || !testData.test.id) {
+    if (!testData.test.id) {
       return "";
     }
 
-    return `${window.location.origin}/join/test/${testData.test.id}`;
+    return buildTestJoinLink(testData.test.id);
   }, [testData.test.id]);
 
   const handleClose = () => {

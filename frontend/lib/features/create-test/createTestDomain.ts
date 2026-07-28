@@ -293,13 +293,26 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
   }
 
   if (answerInputMode === "correct-answer") {
+    const migratedLegacy =
+      legacyQuestion.answer?.type === "optionId" && legacyQuestion.options?.length
+        ? ({
+            ...legacyQuestion,
+            answer: {
+              type: "text" as const,
+              value: legacyQuestion.answer.value
+                .map((optionId) => legacyQuestion.options?.find((option) => option.id === optionId)?.text ?? "")
+                .filter(Boolean),
+            },
+          } as LegacyQuestionItem)
+        : legacyQuestion;
+
     return {
       ...question,
       type: nextType,
       subType: nextSubType,
       matchingOptions: undefined,
       options: undefined,
-      answer: normalizeTextAnswer(legacyQuestion, supportsAlternativeAnswers),
+      answer: normalizeTextAnswer(migratedLegacy, supportsAlternativeAnswers),
     };
   }
 

@@ -44,6 +44,8 @@ const StudentExamSection = ({
                 negativeMarkValue={negativeMarkValue}
                 onAnswerChange={onAnswerChange}
                 onMatchingChange={onMatchingChange}
+                subjectName={section.subjectName ?? section.title}
+                subjectCode={section.subjectCode}
               />
             );
           }

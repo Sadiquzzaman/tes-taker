@@ -1,4 +1,4 @@
-import NotmalTextFeild from "@/Ui/NotmalTextFeild";
+import { RichTextEditor } from "@/component/RichTextEditor";
 import { updateQuestionInstruction } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo } from "react";
@@ -15,23 +15,23 @@ function QuestionCardInstruction({
   return (
     <div className={`flex flex-col ${QUESTION_BUILDER_GAPS.instruction}`}>
       <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">Instruction</p>
-      <NotmalTextFeild
-        rows={1}
-        maxRows={4}
+      <RichTextEditor
         value={instruction}
-        onChange={(event) =>
+        onChange={(html) =>
           dispatch(
             updateQuestionInstruction({
               subjectId,
               questionId,
-              instruction: event.target.value,
+              instruction: html,
               parentPassageId,
             }),
           )
         }
         placeholder="Add instruction (optional)"
-        parentClassName="rounded-[8px] border-[#E5E5E5] bg-white px-3 py-2"
-        inputClassName="text-[14px] font-[400] leading-[20px] text-[#232A25] placeholder:text-[#747775]"
+        minHeightClassName="min-h-[40px]"
+        allowImages={false}
+        className="border-[#E5E5E5] bg-white"
+        editorClassName="text-[14px]"
       />
     </div>
   );

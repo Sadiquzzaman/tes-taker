@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setOpenShareClassModal } from "@/lib/features/classSlice";
 import { useToast } from "@/component/Toast/ToastContext";
+import { buildClassJoinLink } from "@/utils/frontendAppUrl";
 
 export default function useShareClass() {
   const { openShareClassModal: classData } = useAppSelector((state) => state.class);
@@ -11,11 +12,8 @@ export default function useShareClass() {
   const [classLink, setClassLink] = useState("");
 
   useEffect(() => {
-    if (typeof window !== "undefined" && classData?.id) {
-      const href = window.location.href;
-      const baseUrl = href.split("/classes")[0];
-      const link = `${baseUrl}/join/class/${classData.id}`;
-      setClassLink(link);
+    if (classData?.id) {
+      setClassLink(buildClassJoinLink(classData.id));
     }
   }, [classData]);
 

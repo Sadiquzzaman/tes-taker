@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { randomBytes } from 'crypto';
 import { UserService } from 'src/user/user.service';
+import { resolveFrontendUrl } from 'src/common/utils/frontend-url.util';
 
 type GoogleTokenResponse = {
   access_token?: string;
@@ -63,7 +64,7 @@ export class GoogleAuthService {
   }
 
   private getFrontendUrl(): string {
-    return this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    return resolveFrontendUrl(this.configService);
   }
 
   private createStateToken(): string {

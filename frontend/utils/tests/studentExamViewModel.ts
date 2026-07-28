@@ -24,7 +24,7 @@ const getInputMode = (
     return "multi-select";
   }
 
-  if (subType === "essay" || subType === "fill-in-the-gaps") {
+  if (subType === "essay" || subType === "fill-in-the-gaps" || subType === "fill-in-the-blanks") {
     return "text";
   }
 
@@ -121,6 +121,8 @@ export const buildStudentExamViewModel = (exam: StudentExamDetails): StudentExam
     return {
       id: subject.id,
       title: subject.name,
+      subjectName: subject.name,
+      subjectCode: subject.code ?? undefined,
       questionCount: items.reduce((count, item) => {
         if (item.kind === "passage") {
           return count + item.questions.length;

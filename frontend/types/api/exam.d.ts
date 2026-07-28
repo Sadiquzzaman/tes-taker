@@ -101,6 +101,8 @@ type StudentExamViewItem = StudentExamSingleQuestionItem | StudentExamPassageIte
 interface StudentExamViewSection {
   id: string;
   title: string;
+  subjectName?: string;
+  subjectCode?: string;
   questionCount: number;
   items: StudentExamViewItem[];
 }

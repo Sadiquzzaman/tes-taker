@@ -274,6 +274,8 @@ type PassageQuestionBlockProps = {
   passage: PassageQuestionItem;
   questionStartNumber: number;
   subjectId: string;
+  subjectName?: string;
+  subjectCode?: string;
   setBlockRef: (node: HTMLDivElement | null) => void;
   setQuestionRef: (questionId: string, node: HTMLDivElement | null) => void;
   isActive: boolean;

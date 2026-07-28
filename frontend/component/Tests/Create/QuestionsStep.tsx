@@ -337,6 +337,8 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
           passage={question}
           questionStartNumber={questionStartNumber}
           subjectId={activeSubject!.id}
+          subjectName={activeSubject?.name}
+          subjectCode={activeSubject?.value}
           setBlockRef={(node) => {
             itemRefs.current[question.id] = node;
           }}
@@ -414,6 +416,8 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
               <PassageQuestionBlock
                 scrollContainerRef={scrollContainerRef}
                 subjectId={draggedSubject.id}
+                subjectName={draggedSubject.name}
+                subjectCode={draggedSubject.value}
                 passage={draggedQuestion}
                 questionStartNumber={questionNumber}
                 isActive

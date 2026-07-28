@@ -1,0 +1,143 @@
+.rte-content {
+  color: #0f1a12;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+}
+
+.rte-content p {
+  margin: 0 0 0.35em;
+}
+
+.rte-content p:last-child {
+  margin-bottom: 0;
+}
+
+.rte-content h1,
+.rte-content h2,
+.rte-content h3 {
+  color: #0f1a12;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin: 0.4em 0 0.25em;
+}
+
+.rte-content h1 {
+  font-size: 1.35em;
+}
+
+.rte-content h2 {
+  font-size: 1.2em;
+}
+
+.rte-content h3 {
+  font-size: 1.05em;
+}
+
+.rte-content ul,
+.rte-content ol {
+  margin: 0.25em 0 0.35em;
+  padding-left: 1.35em;
+}
+
+.rte-content ul {
+  list-style: disc;
+}
+
+.rte-content ol {
+  list-style: decimal;
+}
+
+.rte-content li {
+  margin: 0.15em 0;
+}
+
+.rte-content blockquote {
+  border-left: 3px solid #49734f;
+  color: #4a524c;
+  margin: 0.4em 0;
+  padding-left: 0.75em;
+}
+
+.rte-content .rte-link {
+  color: #2765ec;
+  text-decoration: underline;
+}
+
+.rte-content .rte-image {
+  display: block;
+  max-height: 280px;
+  max-width: 100%;
+  margin: 0.5em 0;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.rte-content .rte-table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  width: 100%;
+}
+
+.rte-content .rte-table td,
+.rte-content .rte-table th {
+  border: 1px solid #d6d7d4;
+  min-width: 60px;
+  padding: 0.35em 0.5em;
+  vertical-align: top;
+}
+
+.rte-content .rte-table th {
+  background: #f7f8f7;
+  font-weight: 600;
+}
+
+.rte-content .rte-math-inline {
+  display: inline-block;
+  margin: 0 0.15em;
+  vertical-align: middle;
+}
+
+.rte-content .rte-math-block {
+  display: block;
+  margin: 0.6em 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.rte-geometry-placeholder {
+  border: 1px dashed #49734f;
+  border-radius: 8px;
+  background: #f3f7f4;
+  color: #232a25;
+  margin: 0.5em 0;
+  padding: 0.75em 0.9em;
+}
+
+.rte-geometry-placeholder__label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.rte-geometry-placeholder__hint {
+  display: block;
+  margin-top: 0.25em;
+  color: #747775;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.rte-content p.is-editor-empty:first-child::before {
+  color: #747775;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.rte-readonly .rte-geometry-placeholder {
+  pointer-events: none;
+}

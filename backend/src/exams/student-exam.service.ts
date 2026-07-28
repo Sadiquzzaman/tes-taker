@@ -968,7 +968,11 @@ export class StudentExamService {
         }
 
         if (isAutoScoredQuestion(question.category, question.sub_type)) {
-          if (question.sub_type === 'multiple-response' || question.sub_type === 'matching-ordering') {
+          if (
+            question.sub_type === 'multiple-response' ||
+            question.sub_type === 'matching-ordering' ||
+            question.sub_type === 'fill-in-the-blanks'
+          ) {
             await this.upsertTextAnswer(answerRepo, subRow.id, questionId, trimmed, studentId);
             continue;
           }

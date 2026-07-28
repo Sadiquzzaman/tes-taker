@@ -1,4 +1,5 @@
 import type { jsPDF } from "jspdf";
+import { getPlainTextFromHtml } from "@/utils/richText";
 import { getSectionMessageParts, type PdfSectionMessageKey } from "./pdfSectionMessages";
 import { ensureSpace, getContentWidth, PDF_LINE_HEIGHT, PDF_PAGE_MARGIN } from "./pdfLayout";
 import { PDF_OPTION_LABELS } from "./pdfConstants";
@@ -60,14 +61,22 @@ export const renderQuestionBlock = async (
   if (question.instruction) {
     cursorY = ensureSpace(doc, cursorY, PDF_LINE_HEIGHT * 2);
     doc.setFontSize(10);
-    cursorY = await renderPdfTextBlock(doc, question.instruction, PDF_PAGE_MARGIN, cursorY, contentWidth, PDF_LINE_HEIGHT, {
-      fontSize: 10,
-      style: "normal",
-    });
+    cursorY = await renderPdfTextBlock(
+      doc,
+      getPlainTextFromHtml(question.instruction),
+      PDF_PAGE_MARGIN,
+      cursorY,
+      contentWidth,
+      PDF_LINE_HEIGHT,
+      {
+        fontSize: 10,
+        style: "normal",
+      },
+    );
     cursorY += 2;
   }
 
-  const questionText = `${questionNumber}. ${question.text}`;
+  const questionText = `${questionNumber}. ${getPlainTextFromHtml(question.text)}`;
   cursorY = ensureSpace(doc, cursorY, PDF_LINE_HEIGHT * 2);
   doc.setFontSize(11);
   cursorY = await renderPdfTextBlock(doc, questionText, PDF_PAGE_MARGIN, cursorY, contentWidth, PDF_LINE_HEIGHT + 1, {
@@ -144,9 +153,17 @@ export const renderPassageBlock = async (
   let cursorY = y;
 
   doc.setFontSize(10);
-  cursorY = await renderPdfTextBlock(doc, passage.passageText, PDF_PAGE_MARGIN, cursorY, contentWidth, PDF_LINE_HEIGHT, {
-    fontSize: 10,
-  });
+  cursorY = await renderPdfTextBlock(
+    doc,
+    getPlainTextFromHtml(passage.passageText),
+    PDF_PAGE_MARGIN,
+    cursorY,
+    contentWidth,
+    PDF_LINE_HEIGHT,
+    {
+      fontSize: 10,
+    },
+  );
   cursorY += 6;
 
   let questionNumber = startQuestionNumber;

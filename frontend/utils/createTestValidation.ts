@@ -8,8 +8,10 @@ import {
   isCreateTestObjectiveCategory,
   isCreateTestPassageManualSubType,
 } from "@/utils/createTestOptions";
+import { getPlainTextFromHtml, hasRichTextContent } from "@/utils/richText";
 
-const hasTextOrImage = (text: string, image: string | null | undefined) => Boolean(text.trim() || image);
+const hasTextOrImage = (text: string, image: string | null | undefined) =>
+  hasRichTextContent(text, image);
 const isPassageQuestionItem = (question: RootQuestionItem): question is PassageQuestionItem =>
   "childQuestions" in question;
 
@@ -115,7 +117,7 @@ export const getQuestionValidationErrors = (question: QuestionItem): string[] =>
     isCreateTestObjectiveCategory(question.type) &&
     question.subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
 
-  if (isMatchingOrdering && !question.text.trim()) {
+  if (isMatchingOrdering && !getPlainTextFromHtml(question.text)) {
     errors.push("Add a question title.");
   } else if (!hasTextOrImage(question.text, question.image)) {
     errors.push("Add a question title or question image.");
@@ -143,7 +145,7 @@ export const getQuestionValidationErrors = (question: QuestionItem): string[] =>
 export const getPassageValidationErrors = (question: PassageQuestionItem): string[] => {
   const errors: string[] = [];
 
-  if (!question.passageText.trim()) {
+  if (!hasRichTextContent(question.passageText)) {
     errors.push("Add passage text.");
   }
 

@@ -1,4 +1,5 @@
 import StudentExamMatchingOrderInput from "@/component/Tests/exam/StudentExamMatchingOrderInput";
+import { RichTextContent } from "@/component/RichTextEditor";
 import NotmalTextFeild from "@/Ui/NotmalTextFeild";
 import { toggleMultiSelectAnswer } from "@/utils/tests/studentExamAnswers";
 
@@ -29,13 +30,18 @@ const StudentExamQuestionCard = ({
 
   return (
     <article className="flex w-full flex-col gap-3 rounded-[8px] bg-white p-4">
-      {question.instruction ? <div className="text-[14px] leading-5 text-[#49734F]">{question.instruction}</div> : null}
+      {question.instruction ? (
+        <RichTextContent html={question.instruction} className="text-[14px] leading-5 text-[#49734F]" />
+      ) : null}
 
       <div className="flex min-w-0 gap-2">
         <span className="w-4 shrink-0 text-center text-[16px] font-[500] leading-5 text-[#0F1A12]">
           {question.questionNumber}.
         </span>
-        <p className="text-[16px] font-[500] leading-5 tracking-[-0.02em] text-[#0F1A12]">{question.text}</p>
+        <RichTextContent
+          html={question.text}
+          className="min-w-0 flex-1 text-[16px] font-[500] leading-5 tracking-[-0.02em] text-[#0F1A12]"
+        />
       </div>
 
       {question.inputMode === "text" ? (

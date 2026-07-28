@@ -1,6 +1,6 @@
-import NotmalTextFeild from "@/Ui/NotmalTextFeild";
 import DragHandleIcon from "@/component/svg/DragHandleIcon";
 import TrashIcon from "@/component/svg/TrashIcon";
+import { RichTextEditor } from "@/component/RichTextEditor";
 import {
   clearPendingFocusQuestionId,
   deleteQuestion,
@@ -8,16 +8,20 @@ import {
   updatePassageText,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
+import { getPassageInstructionLabel } from "@/utils/richText";
 import { memo, useCallback, useEffect, useRef } from "react";
 import QuestionCard from "./QuestionCard";
 import QuestionCardValidation from "./QuestionCard/QuestionCardValidation";
 import { QUESTION_BUILDER_GAPS } from "./QuestionCard/shared";
+import { hasRichTextContent } from "@/utils/richText";
 
 function PassageQuestionBlock({
   scrollContainerRef,
   passage,
   questionStartNumber,
   subjectId,
+  subjectName,
+  subjectCode,
   setBlockRef,
   setQuestionRef,
   isActive,
@@ -31,11 +35,13 @@ function PassageQuestionBlock({
   onDragHandlePointerDown,
 }: PassageQuestionBlockProps) {
   const dispatch = useAppDispatch();
-  const passageTextareaRef = useRef<HTMLTextAreaElement>(null);
   const blockRef = useRef<HTMLDivElement>(null);
+  const didAutoFocusRef = useRef(false);
   const shouldAutoFocusPassage =
     pendingFocusQuestion?.parentPassageId === passage.id && pendingFocusQuestion.questionId === null;
-  const passageErrors = passage.showValidation && !passage.passageText.trim() ? ["Add passage text."] : [];
+  const passageErrors =
+    passage.showValidation && !hasRichTextContent(passage.passageText) ? ["Add passage text."] : [];
+  const instructionLabel = getPassageInstructionLabel(subjectName, subjectCode);
 
   const activatePassage = useCallback(() => {
     dispatch(
@@ -47,11 +53,11 @@ function PassageQuestionBlock({
   }, [dispatch, passage.id]);
 
   useEffect(() => {
-    if (!shouldAutoFocusPassage || !passageTextareaRef.current) {
+    if (!shouldAutoFocusPassage || didAutoFocusRef.current) {
       return;
     }
 
-    passageTextareaRef.current.focus();
+    didAutoFocusRef.current = true;
     requestAnimationFrame(() => {
       blockRef.current?.scrollIntoView({
         behavior: "smooth",
@@ -82,8 +88,8 @@ function PassageQuestionBlock({
           onPointerDown={isDragOverlay ? undefined : activatePassage}
         >
           <div className={`flex items-start justify-between ${QUESTION_BUILDER_GAPS.passageHeaderRow}`}>
-            <p className="max-w-[420px] text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
-              Read the passage / CQ below and answer the following questions
+            <p className="max-w-[480px] text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+              {instructionLabel}
             </p>
             <button
               type="button"
@@ -94,25 +100,22 @@ function PassageQuestionBlock({
               <TrashIcon />
             </button>
           </div>
-          <NotmalTextFeild
+          <RichTextEditor
             value={passage.passageText}
-            onChange={(event) =>
+            onChange={(html) =>
               dispatch(
                 updatePassageText({
                   subjectId,
                   passageId: passage.id,
-                  passageText: event.target.value,
+                  passageText: html,
                 }),
               )
             }
-            setTextareaRef={(element) => {
-              passageTextareaRef.current = element;
-            }}
-            placeholder="Write your passage here..."
-            rows={3}
             onFocus={activatePassage}
-            parentClassName="min-h-0 rounded-[8px] border-transparent bg-transparent px-0 py-0"
-            inputClassName="text-[16px] font-[400] leading-[24px] text-[#232A25] placeholder:text-[#747775]"
+            placeholder="Write your passage here..."
+            autoFocus={shouldAutoFocusPassage}
+            minHeightClassName="min-h-[96px]"
+            className="border-[#E5E5E5] bg-white"
           />
           <QuestionCardValidation showValidation={passage.showValidation} validationErrors={passageErrors} />
         </div>

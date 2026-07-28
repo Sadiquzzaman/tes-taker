@@ -142,6 +142,17 @@ function validateAutoScoredQuestion(
     return;
   }
 
+  if (q.subType === 'fill-in-the-blanks') {
+    if (!q.answer || q.answer.type !== AnswerValueTypeEnum.TEXT) {
+      throw new BadRequestException(`${label} fill-in-the-blanks requires answer.type "text"`);
+    }
+    const values = (q.answer.value ?? []).map((value) => value.trim()).filter(Boolean);
+    if (!values.length) {
+      throw new BadRequestException(`${label} fill-in-the-blanks requires at least one expected answer`);
+    }
+    return;
+  }
+
   const options = q.options ?? [];
   const minOpts = q.subType === 'true-false' ? 3 : 3;
   const maxOpts = q.subType === 'true-false' ? 3 : 5;
@@ -353,6 +364,11 @@ export function scoreStudentAnswer(
     const submitted = trimmed.split('|').map((s) => s.trim()).filter(Boolean).sort();
     const correct = [...expected.value].sort();
     return submitted.length === correct.length && submitted.every((v, i) => v === correct[i]);
+  }
+
+  if (expected.type === AnswerValueTypeEnum.TEXT) {
+    const normalized = trimmed.toLowerCase();
+    return expected.value.some((value) => value.trim().toLowerCase() === normalized);
   }
 
   return false;
