@@ -160,6 +160,13 @@ function QuestionCard({
               : "border border-[#E5E5E5] bg-white p-5 max-[600px]:p-3"
         }`}
       >
+        <QuestionCardInstruction
+          instruction={question.instruction ?? ""}
+          parentPassageId={parentPassageId}
+          questionId={question.id}
+          subjectId={subjectId}
+        />
+
         <QuestionCardHeader
           activateCard={activateCard}
           cardRef={cardRef}
@@ -240,13 +247,6 @@ function QuestionCard({
           questionSubType={question.subType}
           questionId={question.id}
           questionType={question.type}
-          subjectId={subjectId}
-        />
-
-        <QuestionCardInstruction
-          instruction={question.instruction ?? ""}
-          parentPassageId={parentPassageId}
-          questionId={question.id}
           subjectId={subjectId}
         />
       </div>

@@ -50,6 +50,7 @@ const RichTextContent = ({ html, className = "" }: RichTextContentProps) => {
         "data-display",
         "data-align",
         "data-kind",
+        "data-caption",
         "style",
         "class",
         "target",
@@ -58,7 +59,21 @@ const RichTextContent = ({ html, className = "" }: RichTextContentProps) => {
         "colspan",
         "rowspan",
       ],
-      ADD_TAGS: ["span", "div", "img", "table", "thead", "tbody", "tr", "th", "td", "colgroup", "col"],
+      ADD_TAGS: [
+        "span",
+        "div",
+        "img",
+        "figure",
+        "figcaption",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "colgroup",
+        "col",
+      ],
     });
 
     return renderMathInHtml(clean);

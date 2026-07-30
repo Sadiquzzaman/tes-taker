@@ -9,6 +9,7 @@ export type ResizableImageAttrs = {
   width?: string | null;
   align?: "left" | "center" | "right";
   kind?: "image" | "geometry" | "chemistry";
+  caption?: string;
 };
 
 declare module "@tiptap/core" {
@@ -46,20 +47,35 @@ export const ResizableImage = Node.create({
         parseHTML: (element) => element.getAttribute("data-kind") || "image",
         renderHTML: (attributes) => ({ "data-kind": attributes.kind }),
       },
+      caption: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-caption") || "",
+        renderHTML: (attributes) => (attributes.caption ? { "data-caption": attributes.caption } : {}),
+      },
     };
   },
 
   parseHTML() {
     return [
+      { tag: "figure[data-type='resizable-image']" },
       { tag: 'img[src][data-kind]' },
       { tag: "img[src]" },
     ];
   },
 
   renderHTML({ HTMLAttributes }) {
+    const { caption, ...imgAttrs } = HTMLAttributes as ResizableImageAttrs & Record<string, unknown>;
+    if (caption) {
+      return [
+        "figure",
+        { "data-type": "resizable-image", "data-align": imgAttrs.align, "data-kind": imgAttrs.kind, "data-caption": caption },
+        ["img", mergeAttributes(imgAttrs, { class: "rte-image" })],
+        ["figcaption", {}, String(caption)],
+      ];
+    }
     return [
       "img",
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(imgAttrs, {
         class: "rte-image",
       }),
     ];

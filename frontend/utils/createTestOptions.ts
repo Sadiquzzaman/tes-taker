@@ -13,6 +13,7 @@ export const CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID = "multiple-choice";
 export const CREATE_TEST_GRADED_MULTIPLE_RESPONSE_SUBTYPE_ID = "multiple-response";
 export const CREATE_TEST_GRADED_TRUE_FALSE_SUBTYPE_ID = "true-false";
 export const CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID = "fill-in-the-blanks";
+export const CREATE_TEST_GRADED_ANSWER_BOX_SUBTYPE_ID = "answer-box";
 export const CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID = "matching-ordering";
 export const CREATE_TEST_PASSAGE_HYBRID_SUBTYPE_ID = "hybrid-question";
 export const CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID = "essay";
@@ -105,6 +106,17 @@ const createObjectiveQuestionTabs = (): CreateTestQuestionSubtypeOption[] => [
     headerPayload: "Write your question here (Use ______ for blank spot)",
   },
   {
+    id: CREATE_TEST_GRADED_ANSWER_BOX_SUBTYPE_ID,
+    label: "Answer Box",
+    isSupported: true,
+    answerMode: "none",
+    answerInputMode: "correct-answer",
+    answerInputPlaceholder: "Enter expected answer",
+    supportsAlternativeAnswers: true,
+    optionRules: null,
+    headerPayload: "Write your question here — students type their answer in a text box",
+  },
+  {
     id: CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
     label: "Matching/ Ordering",
     isSupported: true,
@@ -190,6 +202,7 @@ export const isCreateTestAutoScoredSubType = (subType: string) =>
   subType === CREATE_TEST_GRADED_MULTIPLE_RESPONSE_SUBTYPE_ID ||
   subType === CREATE_TEST_GRADED_TRUE_FALSE_SUBTYPE_ID ||
   subType === CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID ||
+  subType === CREATE_TEST_GRADED_ANSWER_BOX_SUBTYPE_ID ||
   subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
 
 /** Essay (and similar) children under Passage / CQ that need manual grading */

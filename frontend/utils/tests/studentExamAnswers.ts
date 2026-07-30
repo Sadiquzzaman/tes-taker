@@ -1,14 +1,25 @@
 export const createInitialExamAnswerState = (exam: StudentExamDetails): ExamAnswerState => {
+  const isTextAnswerSubtype = (subType: string) =>
+    subType === "fill-in-the-blanks" ||
+    subType === "answer-box" ||
+    subType === "essay" ||
+    subType === "fill-in-the-gaps";
+
   return exam.subjects.reduce<ExamAnswerState>((answerState, subject) => {
     subject.questions.forEach((question) => {
       if (question.type === "passage-question") {
         question.childQuestions.forEach((childQuestion) => {
-          answerState[childQuestion.id] = [];
+          answerState[childQuestion.id] = isTextAnswerSubtype(childQuestion.subType) ? "" : [];
         });
         return;
       }
 
-      answerState[question.id] = question.type === "ungraded" ? "" : [];
+      if (question.type === "ungraded" || isTextAnswerSubtype(question.subType)) {
+        answerState[question.id] = "";
+        return;
+      }
+
+      answerState[question.id] = [];
     });
 
     return answerState;

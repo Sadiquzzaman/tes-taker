@@ -30,6 +30,7 @@ function QuestionCardInstruction({
         placeholder="Add instruction (optional)"
         minHeightClassName="min-h-[40px]"
         allowImages={false}
+        variant="lite"
         className="border-[#E5E5E5] bg-white"
         editorClassName="text-[14px]"
       />

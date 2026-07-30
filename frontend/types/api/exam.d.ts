@@ -16,6 +16,7 @@ type StudentExamAutoScoredSubType =
   | "multiple-response"
   | "true-false"
   | "fill-in-the-blanks"
+  | "answer-box"
   | "matching-ordering";
 type StudentExamManualSubType = "true-false" | "essay" | "fill-in-the-gaps";
 type StudentExamQuestionSubType = StudentExamAutoScoredSubType | StudentExamManualSubType;

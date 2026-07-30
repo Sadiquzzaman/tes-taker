@@ -9,6 +9,7 @@ const ResizableImageView = ({ node, updateAttributes, selected }: NodeViewProps)
   const width = (node.attrs.width as string | null) || undefined;
   const align = (node.attrs.align as "left" | "center" | "right") || "center";
   const kind = (node.attrs.kind as string) || "image";
+  const caption = (node.attrs.caption as string) || "";
 
   const startResize = useCallback(
     (event: React.PointerEvent<HTMLSpanElement>) => {
@@ -47,7 +48,7 @@ const ResizableImageView = ({ node, updateAttributes, selected }: NodeViewProps)
         <img
           ref={imgRef}
           src={node.attrs.src as string}
-          alt={(node.attrs.alt as string) || ""}
+          alt={(node.attrs.alt as string) || caption || ""}
           title={(node.attrs.title as string) || ""}
           className="rte-image"
           draggable={false}
@@ -56,6 +57,21 @@ const ResizableImageView = ({ node, updateAttributes, selected }: NodeViewProps)
           <span className="rte-image-handle" onPointerDown={startResize} title="Drag to resize" />
         ) : null}
       </div>
+      {caption || selected ? (
+        <figcaption className="rte-image-caption">
+          {selected ? (
+            <input
+              type="text"
+              value={caption}
+              placeholder="Add a caption"
+              onMouseDown={(event) => event.stopPropagation()}
+              onChange={(event) => updateAttributes({ caption: event.target.value })}
+            />
+          ) : (
+            caption
+          )}
+        </figcaption>
+      ) : null}
       {selected ? (
         <div className="rte-image-align-bar">
           {(["left", "center", "right"] as const).map((value) => (

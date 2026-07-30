@@ -5,6 +5,7 @@ const AUTO_SCORED_SUB_TYPES: StudentExamAutoScoredSubType[] = [
   "multiple-response",
   "true-false",
   "fill-in-the-blanks",
+  "answer-box",
   "matching-ordering",
 ];
 
@@ -24,7 +25,12 @@ const getInputMode = (
     return "multi-select";
   }
 
-  if (subType === "essay" || subType === "fill-in-the-gaps" || subType === "fill-in-the-blanks") {
+  if (
+    subType === "essay" ||
+    subType === "fill-in-the-gaps" ||
+    subType === "fill-in-the-blanks" ||
+    subType === "answer-box"
+  ) {
     return "text";
   }
 
