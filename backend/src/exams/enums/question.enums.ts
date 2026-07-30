@@ -11,6 +11,7 @@ export const AUTO_SCORED_SUB_TYPES = [
   'multiple-response',
   'true-false',
   'fill-in-the-blanks',
+  'answer-box',
   'matching-ordering',
 ] as const;
 
