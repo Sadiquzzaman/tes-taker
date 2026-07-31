@@ -5,6 +5,7 @@ import { RichTextEditor } from "@/component/RichTextEditor";
 import { useToast } from "@/component/Toast/ToastContext";
 import {
   clearPendingFocusQuestionId,
+  applyParsedQuestion,
   updateQuestionImage,
   updateQuestionText,
 } from "@/lib/features/createTestSlice";
@@ -13,6 +14,7 @@ import { memo, useCallback, useEffect, useRef, type ChangeEvent } from "react";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import Tooltip from "@/Ui/Tooltip";
 import Link from "next/link";
+import type { ParsedPastedQuestion } from "@/utils/exam/parsePastedQuestion";
 import { QUESTION_BUILDER_GAPS, readImageFileAsDataUrl } from "./shared";
 
 function QuestionCardHeader({
@@ -78,6 +80,31 @@ function QuestionCardHeader({
     [triggerToast, validateImageFile],
   );
 
+  const handleStructuredPaste = useCallback(
+    (parsed: ParsedPastedQuestion) => {
+      dispatch(
+        applyParsedQuestion({
+          subjectId,
+          questionId,
+          parentPassageId,
+          question: parsed.question,
+          options: parsed.options,
+          correctIndex: parsed.correctIndex,
+          explanation: parsed.explanation,
+        }),
+      );
+      activateCard();
+      triggerToast({
+        description:
+          parsed.options.length > 0
+            ? "Question, options, and answer were detected from your paste."
+            : "Question text was detected from your paste.",
+        type: "success",
+      });
+    },
+    [activateCard, dispatch, parentPassageId, questionId, subjectId, triggerToast],
+  );
+
   useEffect(() => {
     if (!shouldAutoFocus || didAutoFocusRef.current) {
       return;
@@ -115,6 +142,8 @@ function QuestionCardHeader({
               autoFocus={shouldAutoFocus}
               allowImages={canUploadImages}
               onImageFile={canUploadImages ? handleInlineImageUpload : undefined}
+              enableStructuredPaste
+              onStructuredPaste={handleStructuredPaste}
               minHeightClassName="min-h-[48px]"
               className="border-[#E5E5E5] bg-white"
             />

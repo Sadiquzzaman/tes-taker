@@ -14,7 +14,12 @@ const getInputMode = (
     return "multi-select";
   }
 
-  return subType === "essay" || subType === "fill-in-the-gaps" ? "text" : "single-select";
+  return subType === "essay" ||
+    subType === "fill-in-the-gaps" ||
+    subType === "fill-in-the-blanks" ||
+    subType === "answer-box"
+    ? "text"
+    : "single-select";
 };
 
 const normalizeOptionList = (options?: SubmissionGradingOptionApi[]): GradingModalOption[] => {

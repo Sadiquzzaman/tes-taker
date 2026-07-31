@@ -971,7 +971,8 @@ export class StudentExamService {
           if (
             question.sub_type === 'multiple-response' ||
             question.sub_type === 'matching-ordering' ||
-            question.sub_type === 'fill-in-the-blanks'
+            question.sub_type === 'fill-in-the-blanks' ||
+            question.sub_type === 'answer-box'
           ) {
             await this.upsertTextAnswer(answerRepo, subRow.id, questionId, trimmed, studentId);
             continue;

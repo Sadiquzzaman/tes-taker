@@ -5,6 +5,7 @@ type SubmissionGradingAutoSubType =
   | "multiple-response"
   | "true-false"
   | "fill-in-the-blanks"
+  | "answer-box"
   | "matching-ordering";
 
 type SubmissionGradingManualSubType = "true-false" | "essay" | "fill-in-the-gaps";

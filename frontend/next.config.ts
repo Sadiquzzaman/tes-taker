@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  transpilePackages: ["mathlive", "kekule"],
+  transpilePackages: ["mathlive", "kekule", "@excalidraw/excalidraw"],
 };
 
 export default nextConfig;

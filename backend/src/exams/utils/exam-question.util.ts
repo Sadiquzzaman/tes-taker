@@ -142,13 +142,13 @@ function validateAutoScoredQuestion(
     return;
   }
 
-  if (q.subType === 'fill-in-the-blanks') {
+  if (q.subType === 'fill-in-the-blanks' || q.subType === 'answer-box') {
     if (!q.answer || q.answer.type !== AnswerValueTypeEnum.TEXT) {
-      throw new BadRequestException(`${label} fill-in-the-blanks requires answer.type "text"`);
+      throw new BadRequestException(`${label} ${q.subType} requires answer.type "text"`);
     }
     const values = (q.answer.value ?? []).map((value) => value.trim()).filter(Boolean);
     if (!values.length) {
-      throw new BadRequestException(`${label} fill-in-the-blanks requires at least one expected answer`);
+      throw new BadRequestException(`${label} ${q.subType} requires at least one expected answer`);
     }
     return;
   }

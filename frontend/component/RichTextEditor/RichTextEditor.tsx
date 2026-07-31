@@ -1,15 +1,21 @@
 "use client";
 
 import { EditorContent, useEditor } from "@tiptap/react";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { normalizeRichTextHtml } from "@/utils/richText";
+import { parsePastedQuestion, pastedLooksStructured, type ParsedPastedQuestion } from "@/utils/exam/parsePastedQuestion";
 import { createRichTextExtensions } from "./extensions";
 import type { MathOpenDetail } from "./node-views/MathFormulaView";
-import GeoGebraModal from "./modals/GeoGebraModal";
-import KekuleModal from "./modals/KekuleModal";
-import MathLiveModal from "./modals/MathLiveModal";
 import RichTextToolbar from "./RichTextToolbar";
 import "./richTextEditor.css";
+
+const MathLiveModal = dynamic(() => import("./modals/MathLiveModal"), { ssr: false });
+const GeoGebraModal = dynamic(() => import("./modals/GeoGebraModal"), { ssr: false });
+const KekuleModal = dynamic(() => import("./modals/KekuleModal"), { ssr: false });
+const ExcalidrawModal = dynamic(() => import("./modals/ExcalidrawModal"), { ssr: false });
+const GraphModal = dynamic(() => import("./modals/GraphModal"), { ssr: false });
+const OcrModal = dynamic(() => import("./modals/OcrModal"), { ssr: false });
 
 type RichTextEditorProps = {
   value: string;
@@ -23,6 +29,9 @@ type RichTextEditorProps = {
   onImageFile?: (file: File) => Promise<string | null>;
   autoFocus?: boolean;
   editorRef?: (editor: ReturnType<typeof useEditor> | null) => void;
+  variant?: "full" | "lite";
+  enableStructuredPaste?: boolean;
+  onStructuredPaste?: (parsed: ParsedPastedQuestion) => void;
 };
 
 type MathModalState = {
@@ -44,11 +53,16 @@ const RichTextEditor = ({
   onImageFile,
   autoFocus = false,
   editorRef,
+  variant = "full",
+  enableStructuredPaste = false,
+  onStructuredPaste,
 }: RichTextEditorProps) => {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const lastEmittedHtml = useRef(value);
   const onImageFileRef = useRef(onImageFile);
   const allowImagesRef = useRef(allowImages);
+  const enableStructuredPasteRef = useRef(enableStructuredPaste);
+  const onStructuredPasteRef = useRef(onStructuredPaste);
   const [mathModal, setMathModal] = useState<MathModalState>({
     open: false,
     latex: "",
@@ -57,11 +71,16 @@ const RichTextEditor = ({
   });
   const [geometryOpen, setGeometryOpen] = useState(false);
   const [chemistryOpen, setChemistryOpen] = useState(false);
+  const [drawingOpen, setDrawingOpen] = useState(false);
+  const [graphOpen, setGraphOpen] = useState(false);
+  const [ocrOpen, setOcrOpen] = useState(false);
 
   useEffect(() => {
     onImageFileRef.current = onImageFile;
     allowImagesRef.current = allowImages;
-  }, [allowImages, onImageFile]);
+    enableStructuredPasteRef.current = enableStructuredPaste;
+    onStructuredPasteRef.current = onStructuredPaste;
+  }, [allowImages, enableStructuredPaste, onImageFile, onStructuredPaste]);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -79,7 +98,26 @@ const RichTextEditor = ({
         },
       },
       handlePaste: (_view, event) => {
-        const items = event.clipboardData?.items;
+        const clipboard = event.clipboardData;
+        if (!clipboard) {
+          return false;
+        }
+
+        if (enableStructuredPasteRef.current && onStructuredPasteRef.current) {
+          const html = clipboard.getData("text/html");
+          const plain = clipboard.getData("text/plain");
+          const source = html || plain;
+          if (source) {
+            const parsed = parsePastedQuestion(source);
+            if (pastedLooksStructured(parsed)) {
+              event.preventDefault();
+              onStructuredPasteRef.current(parsed);
+              return true;
+            }
+          }
+        }
+
+        const items = clipboard.items;
         if (!items || !allowImagesRef.current || !onImageFileRef.current) {
           return false;
         }
@@ -95,7 +133,6 @@ const RichTextEditor = ({
           }
         }
 
-        // Prefer HTML paste from Word/Docs when no image files are present.
         if (!imageFiles.length) {
           return false;
         }
@@ -141,7 +178,11 @@ const RichTextEditor = ({
         })();
         return true;
       },
-      transformPastedHTML: (html) => html,
+      transformPastedHTML: (html) =>
+        html
+          .replace(/<!--\[if[\s\S]*?<!\[endif\]-->/gi, "")
+          .replace(/<!--[\s\S]*?-->/g, "")
+          .replace(/<\/?(meta|link|xml|o:p|w:[^>\s]+)[^>]*>/gi, ""),
     },
     onUpdate: ({ editor: currentEditor }) => {
       const html = normalizeRichTextHtml(currentEditor.getHTML());
@@ -151,7 +192,7 @@ const RichTextEditor = ({
   });
 
   const insertImage = useCallback(
-    (src: string, kind: "image" | "geometry" | "chemistry" = "image") => {
+    (src: string, kind: "image" | "geometry" | "chemistry" | "drawing" | "graph" = "image") => {
       if (!editor) {
         return;
       }
@@ -160,9 +201,10 @@ const RichTextEditor = ({
         .focus()
         .setResizableImage({
           src,
-          kind,
+          kind: kind === "drawing" || kind === "graph" ? "geometry" : kind,
           align: "center",
-          width: kind === "image" ? "320px" : "420px",
+          width: kind === "image" ? "320px" : "480px",
+          caption: "",
         })
         .run();
     },
@@ -254,6 +296,8 @@ const RichTextEditor = ({
     event.preventDefault();
   };
 
+  const isFull = variant === "full";
+
   return (
     <div
       className={`rte-shell overflow-hidden rounded-[8px] border border-[#E5E5E5] bg-white ${className}`.trim()}
@@ -261,61 +305,108 @@ const RichTextEditor = ({
     >
       <RichTextToolbar
         editor={editor}
+        variant={variant}
         allowImages={allowImages && Boolean(onImageFile)}
         onRequestImageUpload={() => imageInputRef.current?.click()}
         onOpenMath={() => setMathModal({ open: true, latex: "", display: false, pos: null })}
+        onOpenDrawing={() => setDrawingOpen(true)}
         onOpenGeometry={() => setGeometryOpen(true)}
+        onOpenGraph={() => setGraphOpen(true)}
         onOpenChemistry={() => setChemistryOpen(true)}
+        onOpenOcr={() => setOcrOpen(true)}
       />
       <div className="px-3 py-2">
         <EditorContent editor={editor} />
       </div>
       <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageSelected} />
 
-      <MathLiveModal
-        open={mathModal.open}
-        initialLatex={mathModal.latex}
-        initialDisplay={mathModal.display}
-        onClose={() => setMathModal((current) => ({ ...current, open: false }))}
-        onInsert={({ latex, display }) => {
-          if (!editor) {
-            return;
-          }
+      {isFull && mathModal.open ? (
+        <MathLiveModal
+          open={mathModal.open}
+          initialLatex={mathModal.latex}
+          initialDisplay={mathModal.display}
+          onClose={() => setMathModal((current) => ({ ...current, open: false }))}
+          onInsert={({ latex, display }) => {
+            if (!editor) {
+              return;
+            }
 
-          if (typeof mathModal.pos === "number") {
-            editor
-              .chain()
-              .focus()
-              .command(({ tr }) => {
-                tr.setNodeMarkup(mathModal.pos as number, undefined, { latex, display });
-                return true;
-              })
-              .run();
-          } else {
-            editor.chain().focus().insertMathFormula({ latex, display }).run();
-          }
+            if (typeof mathModal.pos === "number") {
+              editor
+                .chain()
+                .focus()
+                .command(({ tr }) => {
+                  tr.setNodeMarkup(mathModal.pos as number, undefined, { latex, display });
+                  return true;
+                })
+                .run();
+            } else {
+              editor.chain().focus().insertMathFormula({ latex, display }).run();
+            }
 
-          setMathModal({ open: false, latex: "", display: false, pos: null });
-        }}
-      />
+            setMathModal({ open: false, latex: "", display: false, pos: null });
+          }}
+        />
+      ) : null}
 
-      <GeoGebraModal
-        open={geometryOpen}
-        onClose={() => setGeometryOpen(false)}
-        onInsert={(dataUrl) => {
-          insertImage(dataUrl, "geometry");
-          setGeometryOpen(false);
-        }}
-      />
+      {isFull && geometryOpen ? (
+        <GeoGebraModal
+          open={geometryOpen}
+          onClose={() => setGeometryOpen(false)}
+          onInsert={(dataUrl) => {
+            insertImage(dataUrl, "geometry");
+            setGeometryOpen(false);
+          }}
+        />
+      ) : null}
 
-      <KekuleModal
-        open={chemistryOpen}
-        onClose={() => setChemistryOpen(false)}
-        onInsert={(dataUrl) => {
-          insertImage(dataUrl, "chemistry");
-          setChemistryOpen(false);
-        }}
-      />
+      {isFull && chemistryOpen ? (
+        <KekuleModal
+          open={chemistryOpen}
+          onClose={() => setChemistryOpen(false)}
+          onInsert={(dataUrl) => {
+            insertImage(dataUrl, "chemistry");
+            setChemistryOpen(false);
+          }}
+        />
+      ) : null}
+
+      {isFull && drawingOpen ? (
+        <ExcalidrawModal
+          open={drawingOpen}
+          onClose={() => setDrawingOpen(false)}
+          onInsert={(dataUrl) => {
+            insertImage(dataUrl, "drawing");
+            setDrawingOpen(false);
+          }}
+        />
+      ) : null}
+
+      {isFull && graphOpen ? (
+        <GraphModal
+          open={graphOpen}
+          onClose={() => setGraphOpen(false)}
+          onInsert={(dataUrl) => {
+            insertImage(dataUrl, "graph");
+            setGraphOpen(false);
+          }}
+        />
+      ) : null}
+
+      {isFull && ocrOpen ? (
+        <OcrModal
+          open={ocrOpen}
+          onClose={() => setOcrOpen(false)}
+          onParsed={(parsed) => {
+            onStructuredPaste?.(parsed);
+            if (parsed.question && editor && !onStructuredPaste) {
+              const html = parsed.question.includes("<") ? parsed.question : `<p>${parsed.question}</p>`;
+              editor.commands.setContent(html);
+            }
+            setOcrOpen(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 };

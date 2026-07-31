@@ -5,11 +5,15 @@ import { useEffect, useReducer, type ReactNode } from "react";
 
 type RichTextToolbarProps = {
   editor: Editor | null;
+  variant?: "full" | "lite";
   allowImages?: boolean;
   onRequestImageUpload?: () => void;
   onOpenMath?: () => void;
+  onOpenDrawing?: () => void;
   onOpenGeometry?: () => void;
+  onOpenGraph?: () => void;
   onOpenChemistry?: () => void;
+  onOpenOcr?: () => void;
 };
 
 const IconButton = ({
@@ -38,15 +42,24 @@ const IconButton = ({
   </button>
 );
 
-const Divider = () => <span className="rte-tb-divider" />;
+const ToolbarGroup = ({ label, children }: { label: string; children: ReactNode }) => (
+  <div className="rte-tb-section" data-label={label}>
+    <span className="rte-tb-section-label">{label}</span>
+    <div className="rte-tb-group">{children}</div>
+  </div>
+);
 
 const RichTextToolbar = ({
   editor,
+  variant = "full",
   allowImages = true,
   onRequestImageUpload,
   onOpenMath,
+  onOpenDrawing,
   onOpenGeometry,
+  onOpenGraph,
   onOpenChemistry,
+  onOpenOcr,
 }: RichTextToolbarProps) => {
   const [, forceRender] = useReducer((value: number) => value + 1, 0);
 
@@ -81,45 +94,55 @@ const RichTextToolbar = ({
     editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run();
   };
 
-  return (
-    <div className="rte-toolbar" role="toolbar" aria-label="Formatting">
-      <div className="rte-tb-group">
-        <select
-          className="rte-tb-select"
-          aria-label="Text style"
-          value={
-            editor.isActive("heading", { level: 1 })
-              ? "h1"
-              : editor.isActive("heading", { level: 2 })
-                ? "h2"
-                : editor.isActive("heading", { level: 3 })
-                  ? "h3"
-                  : editor.isActive("heading", { level: 4 })
-                    ? "h4"
-                    : "p"
-          }
-          onChange={(event) => {
-            const value = event.target.value;
-            const chain = editor.chain().focus();
-            if (value === "p") {
-              chain.setParagraph().run();
-              return;
-            }
-            const level = Number(value.replace("h", "")) as 1 | 2 | 3 | 4;
-            chain.toggleHeading({ level }).run();
-          }}
-        >
-          <option value="p">Paragraph</option>
-          <option value="h1">Heading 1</option>
-          <option value="h2">Heading 2</option>
-          <option value="h3">Heading 3</option>
-          <option value="h4">Heading 4</option>
-        </select>
+  if (variant === "lite") {
+    return (
+      <div className="rte-toolbar rte-toolbar--lite" role="toolbar" aria-label="Instruction formatting">
+        <ToolbarGroup label="Formatting">
+          <IconButton title="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+            <strong>B</strong>
+          </IconButton>
+          <IconButton title="Italic" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+            <em>I</em>
+          </IconButton>
+          <IconButton
+            title="Underline"
+            active={editor.isActive("underline")}
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+          >
+            <span className="underline">U</span>
+          </IconButton>
+        </ToolbarGroup>
+        <ToolbarGroup label="Lists">
+          <IconButton
+            title="Bullet list"
+            active={editor.isActive("bulletList")}
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+          >
+            ••
+          </IconButton>
+          <IconButton
+            title="Numbered list"
+            active={editor.isActive("orderedList")}
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          >
+            1.
+          </IconButton>
+        </ToolbarGroup>
+        <ToolbarGroup label="History">
+          <IconButton title="Undo" onClick={() => editor.chain().focus().undo().run()}>
+            ↶
+          </IconButton>
+          <IconButton title="Redo" onClick={() => editor.chain().focus().redo().run()}>
+            ↷
+          </IconButton>
+        </ToolbarGroup>
       </div>
+    );
+  }
 
-      <Divider />
-
-      <div className="rte-tb-group">
+  return (
+    <div className="rte-toolbar" role="toolbar" aria-label="Question editor">
+      <ToolbarGroup label="Formatting">
         <IconButton title="Bold (Ctrl+B)" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
           <strong>B</strong>
         </IconButton>
@@ -146,32 +169,52 @@ const RichTextToolbar = ({
         <IconButton title="Subscript" active={editor.isActive("subscript")} onClick={() => editor.chain().focus().toggleSubscript().run()}>
           X₂
         </IconButton>
-      </div>
-
-      <Divider />
-
-      <div className="rte-tb-group">
         <label className="rte-tb-color" title="Text color">
           <span>A</span>
-          <input
-            type="color"
-            defaultValue="#232A25"
-            onChange={(event) => editor.chain().focus().setColor(event.target.value).run()}
-          />
+          <input type="color" defaultValue="#232A25" onChange={(event) => editor.chain().focus().setColor(event.target.value).run()} />
         </label>
-        <label className="rte-tb-color" title="Highlight / background">
-          <span>🖍</span>
+        <label className="rte-tb-color" title="Highlight">
+          <span>H</span>
           <input
             type="color"
             defaultValue="#FFE08A"
             onChange={(event) => editor.chain().focus().toggleHighlight({ color: event.target.value }).run()}
           />
         </label>
-      </div>
+      </ToolbarGroup>
 
-      <Divider />
-
-      <div className="rte-tb-group">
+      <ToolbarGroup label="Paragraph">
+        <select
+          className="rte-tb-select"
+          aria-label="Text style"
+          value={
+            editor.isActive("heading", { level: 1 })
+              ? "h1"
+              : editor.isActive("heading", { level: 2 })
+                ? "h2"
+                : editor.isActive("heading", { level: 3 })
+                  ? "h3"
+                  : editor.isActive("heading", { level: 4 })
+                    ? "h4"
+                    : "p"
+          }
+          onChange={(event) => {
+            const value = event.target.value;
+            const chain = editor.chain().focus();
+            if (value === "p") {
+              chain.setParagraph().run();
+              return;
+            }
+            const level = Number(value.replace("h", "")) as 1 | 2 | 3 | 4;
+            chain.toggleHeading({ level }).run();
+          }}
+        >
+          <option value="p">Normal</option>
+          <option value="h1">Heading 1</option>
+          <option value="h2">Heading 2</option>
+          <option value="h3">Heading 3</option>
+          <option value="h4">Heading 4</option>
+        </select>
         <IconButton
           title="Bullet list"
           active={editor.isActive("bulletList")}
@@ -180,7 +223,7 @@ const RichTextToolbar = ({
           ••
         </IconButton>
         <IconButton
-          title="Ordered / nested list"
+          title="Numbered list"
           active={editor.isActive("orderedList")}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         >
@@ -196,14 +239,6 @@ const RichTextToolbar = ({
         >
           ❝
         </IconButton>
-        <IconButton title="Horizontal line" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
-          ―
-        </IconButton>
-      </div>
-
-      <Divider />
-
-      <div className="rte-tb-group">
         <IconButton
           title="Align left"
           active={editor.isActive({ textAlign: "left" })}
@@ -232,11 +267,9 @@ const RichTextToolbar = ({
         >
           ≣
         </IconButton>
-      </div>
+      </ToolbarGroup>
 
-      <Divider />
-
-      <div className="rte-tb-group">
+      <ToolbarGroup label="Insert">
         <IconButton title="Link" active={editor.isActive("link")} onClick={insertLink}>
           🔗
         </IconButton>
@@ -252,44 +285,52 @@ const RichTextToolbar = ({
         <IconButton title="Add row" disabled={!editor.can().addRowAfter()} onClick={() => editor.chain().focus().addRowAfter().run()}>
           Row+
         </IconButton>
-        <IconButton title="Merge cells" disabled={!editor.can().mergeCells()} onClick={() => editor.chain().focus().mergeCells().run()}>
-          Merge
-        </IconButton>
-        <IconButton title="Split cell" disabled={!editor.can().splitCell()} onClick={() => editor.chain().focus().splitCell().run()}>
-          Split
-        </IconButton>
         <IconButton title="Delete table" disabled={!editor.can().deleteTable()} onClick={() => editor.chain().focus().deleteTable().run()}>
           ⌫▦
         </IconButton>
-        <IconButton title="Upload image" disabled={!allowImages} onClick={() => onRequestImageUpload?.()}>
-          🖼
+        <IconButton title="Horizontal line" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
+          ―
         </IconButton>
-      </div>
+      </ToolbarGroup>
 
-      <Divider />
-
-      <div className="rte-tb-group">
+      <ToolbarGroup label="Math">
         <IconButton title="Equation (MathLive)" onClick={() => onOpenMath?.()}>
           ∑
+        </IconButton>
+      </ToolbarGroup>
+
+      <ToolbarGroup label="Drawing">
+        <IconButton title="Draw (Excalidraw)" onClick={() => onOpenDrawing?.()}>
+          ✏
         </IconButton>
         <IconButton title="Geometry (GeoGebra)" onClick={() => onOpenGeometry?.()}>
           △
         </IconButton>
+        <IconButton title="Graphs" onClick={() => onOpenGraph?.()}>
+          ƒ
+        </IconButton>
         <IconButton title="Chemistry (Kekule)" onClick={() => onOpenChemistry?.()}>
           ⚗
         </IconButton>
-      </div>
+      </ToolbarGroup>
 
-      <Divider />
+      <ToolbarGroup label="Media">
+        <IconButton title="Upload image" disabled={!allowImages} onClick={() => onRequestImageUpload?.()}>
+          🖼
+        </IconButton>
+        <IconButton title="OCR from image" onClick={() => onOpenOcr?.()}>
+          OCR
+        </IconButton>
+      </ToolbarGroup>
 
-      <div className="rte-tb-group">
+      <ToolbarGroup label="History">
         <IconButton title="Undo (Ctrl+Z)" onClick={() => editor.chain().focus().undo().run()}>
           ↶
         </IconButton>
         <IconButton title="Redo (Ctrl+Y)" onClick={() => editor.chain().focus().redo().run()}>
           ↷
         </IconButton>
-      </div>
+      </ToolbarGroup>
     </div>
   );
 };

@@ -1,9 +1,9 @@
 import type { jsPDF } from "jspdf";
-import { getPlainTextFromHtml } from "@/utils/richText";
 import { getSectionMessageParts, type PdfSectionMessageKey } from "./pdfSectionMessages";
 import { ensureSpace, getContentWidth, PDF_LINE_HEIGHT, PDF_PAGE_MARGIN } from "./pdfLayout";
 import { PDF_OPTION_LABELS } from "./pdfConstants";
 import { renderPdfTextBlock, setPdfLatinFont, wrapLatinText } from "./renderPdfText";
+import { renderPdfRichHtml } from "./renderPdfRichHtml";
 
 type RenderableQuestion = StudentExamStandardQuestion | StudentExamPassageChildQuestion;
 
@@ -61,9 +61,9 @@ export const renderQuestionBlock = async (
   if (question.instruction) {
     cursorY = ensureSpace(doc, cursorY, PDF_LINE_HEIGHT * 2);
     doc.setFontSize(10);
-    cursorY = await renderPdfTextBlock(
+    cursorY = await renderPdfRichHtml(
       doc,
-      getPlainTextFromHtml(question.instruction),
+      question.instruction,
       PDF_PAGE_MARGIN,
       cursorY,
       contentWidth,
@@ -76,12 +76,12 @@ export const renderQuestionBlock = async (
     cursorY += 2;
   }
 
-  const questionText = `${questionNumber}. ${getPlainTextFromHtml(question.text)}`;
   cursorY = ensureSpace(doc, cursorY, PDF_LINE_HEIGHT * 2);
   doc.setFontSize(11);
-  cursorY = await renderPdfTextBlock(doc, questionText, PDF_PAGE_MARGIN, cursorY, contentWidth, PDF_LINE_HEIGHT + 1, {
+  cursorY = await renderPdfRichHtml(doc, question.text, PDF_PAGE_MARGIN, cursorY, contentWidth, PDF_LINE_HEIGHT + 1, {
     fontSize: 11,
     style: "bold",
+    prefix: `${questionNumber}. `,
   });
   cursorY += 3;
 
@@ -90,8 +90,8 @@ export const renderQuestionBlock = async (
     return cursorY + 4;
   }
 
-  if (subType === "fill-in-the-blanks") {
-    cursorY = renderBlankAnswerSpace(doc, cursorY, 1);
+  if (subType === "fill-in-the-blanks" || subType === "answer-box") {
+    cursorY = renderBlankAnswerSpace(doc, cursorY, subType === "answer-box" ? 3 : 1);
     return cursorY + 4;
   }
 
@@ -99,11 +99,19 @@ export const renderQuestionBlock = async (
     doc.setFontSize(10);
     for (const [index, option] of question.options.entries()) {
       const label = PDF_OPTION_LABELS[index] ?? String(index + 1);
-      const optionText = `${label}. ${option.text}`;
       cursorY = ensureSpace(doc, cursorY, PDF_LINE_HEIGHT * 2);
-      cursorY = await renderPdfTextBlock(doc, optionText, PDF_PAGE_MARGIN + 8, cursorY, contentWidth - 10, PDF_LINE_HEIGHT, {
-        fontSize: 10,
-      });
+      cursorY = await renderPdfRichHtml(
+        doc,
+        option.text,
+        PDF_PAGE_MARGIN + 8,
+        cursorY,
+        contentWidth - 10,
+        PDF_LINE_HEIGHT,
+        {
+          fontSize: 10,
+          prefix: `${label}. `,
+        },
+      );
       cursorY += 1;
     }
   }
@@ -122,18 +130,27 @@ export const renderQuestionBlock = async (
     const columnWidth = contentWidth / 2 - 12;
 
     for (let i = 0; i < rowCount; i += 1) {
-      const leftText = `${i + 1}. ${leftItems[i]?.text ?? ""}`;
-      const rightText = `${i + 1}. ${rightItems[i]?.text ?? ""}`;
+      const leftText = leftItems[i]?.text ?? "";
+      const rightText = rightItems[i]?.text ?? "";
 
       cursorY = ensureSpace(doc, cursorY, PDF_LINE_HEIGHT * 3);
-      const leftEndY = await renderPdfTextBlock(doc, leftText, PDF_PAGE_MARGIN + 8, cursorY, columnWidth, PDF_LINE_HEIGHT);
-      const rightEndY = await renderPdfTextBlock(
+      const leftEndY = await renderPdfRichHtml(
+        doc,
+        leftText,
+        PDF_PAGE_MARGIN + 8,
+        cursorY,
+        columnWidth,
+        PDF_LINE_HEIGHT,
+        { prefix: `${i + 1}. ` },
+      );
+      const rightEndY = await renderPdfRichHtml(
         doc,
         rightText,
         PDF_PAGE_MARGIN + contentWidth / 2,
         cursorY,
         columnWidth,
         PDF_LINE_HEIGHT,
+        { prefix: `${i + 1}. ` },
       );
       cursorY = Math.max(leftEndY, rightEndY) + 1;
     }
@@ -146,24 +163,20 @@ export const renderPassageBlock = async (
   doc: jsPDF,
   passage: StudentExamPassageQuestion,
   y: number,
-  renderChild: (question: StudentExamPassageChildQuestion, questionNumber: number, startY: number) => Promise<number>,
+  renderChild: (
+    question: StudentExamPassageChildQuestion,
+    questionNumber: number,
+    startY: number,
+  ) => Promise<number>,
   startQuestionNumber: number,
 ): Promise<{ y: number; nextQuestionNumber: number }> => {
   const contentWidth = getContentWidth(doc);
   let cursorY = y;
 
   doc.setFontSize(10);
-  cursorY = await renderPdfTextBlock(
-    doc,
-    getPlainTextFromHtml(passage.passageText),
-    PDF_PAGE_MARGIN,
-    cursorY,
-    contentWidth,
-    PDF_LINE_HEIGHT,
-    {
-      fontSize: 10,
-    },
-  );
+  cursorY = await renderPdfRichHtml(doc, passage.passageText, PDF_PAGE_MARGIN, cursorY, contentWidth, PDF_LINE_HEIGHT, {
+    fontSize: 10,
+  });
   cursorY += 6;
 
   let questionNumber = startQuestionNumber;
