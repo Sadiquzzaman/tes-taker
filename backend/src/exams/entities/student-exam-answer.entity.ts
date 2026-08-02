@@ -81,6 +81,16 @@ export class StudentExamSubmissionEntity extends CustomBaseEntity {
   @Column({ name: 'tab_switch_count', type: 'int', default: 0 })
   tab_switch_count: number;
 
+  @ApiPropertyOptional({
+    description: 'Structured JSON array of proctoring violation events',
+  })
+  @Column({ name: 'proctoring_events_json', type: 'text', nullable: true })
+  proctoring_events_json?: string | null;
+
+  @ApiPropertyOptional({ description: 'Reason when status is DISQUALIFIED' })
+  @Column({ name: 'disqualification_reason', type: 'varchar', length: 500, nullable: true })
+  disqualification_reason?: string | null;
+
   @ApiPropertyOptional({ description: 'IP address of submission' })
   @Column({ name: 'ip_address', type: 'varchar', length: 45, nullable: true })
   ip_address?: string;

@@ -13,6 +13,13 @@ export const FINALIZED_SUBMISSION_STATUSES = [
   ExamSubmissionStatusEnum.AUTO_SUBMITTED,
 ];
 
+/** Includes disqualified so teachers can review proctoring outcomes. */
+export const TEACHER_VISIBLE_SUBMISSION_STATUSES = [
+  ExamSubmissionStatusEnum.SUBMITTED,
+  ExamSubmissionStatusEnum.AUTO_SUBMITTED,
+  ExamSubmissionStatusEnum.DISQUALIFIED,
+];
+
 export function getOrderedQuestions(exam: ExamEntity): ExamQuestionEntity[] {
   let ordered: ExamQuestionEntity[];
   if (exam.questionSections?.length) {

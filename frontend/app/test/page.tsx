@@ -236,6 +236,13 @@ export default function ParticipateTest() {
         reason,
         disqualification_reason:
           reason === "disqualified" ? (proctoringState.disqualificationReason ?? undefined) : undefined,
+        proctoring_events: (proctoringState.flags ?? []).map((flag) => ({
+          id: flag.id,
+          type: flag.type,
+          message: flag.message,
+          points: flag.points,
+          timestamp: flag.timestamp,
+        })),
       },
       onSuccess: (submitReasonValue) => {
         stopProctoringSession();
