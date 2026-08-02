@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getPassageValidationErrors, getQuestionValidationErrors } from "@/utils/createTestValidation";
 import {
   CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
+  CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID,
   CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
   CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
   getCreateTestQuestionAnswerInputMode,
@@ -235,8 +236,10 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
   const legacyQuestion = question as LegacyQuestionItem;
   const rawType = question.type as string;
   const nextType = rawType === "objective" ? "graded" : rawType === "essay" ? "ungraded" : question.type;
+  const remappedSubType =
+    question.subType === "answer-box" ? CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID : question.subType;
   const nextSubType =
-    question.subType ??
+    remappedSubType ??
     (nextType === "graded"
       ? CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID
       : nextType === "ungraded"

@@ -139,15 +139,15 @@ const GeoGebraModalBody = ({ onClose, onInsert }: Omit<GeoGebraModalProps, "open
   };
 
   return (
-    <div className="rte-modal-backdrop" role="dialog" aria-modal="true" aria-label="Geometry editor">
-      <div className="rte-modal rte-modal--wide">
-        <div className="rte-modal__header">
-          <h3>Geometry</h3>
+    <div className="rte-editor-overlay" role="dialog" aria-modal="true" aria-label="Insert geometry figure">
+      <div className="rte-inline-panel rte-inline-panel--tool">
+        <div className="rte-inline-panel__header">
+          <h3>Insert geometry figure</h3>
           <button type="button" className="rte-modal__close" onClick={onClose} aria-label="Close">
             ×
           </button>
         </div>
-        <p className="rte-modal__hint">Draw with GeoGebra tools, then insert the figure into your question.</p>
+        <p className="rte-modal__hint">Build a figure, then insert it into the question without leaving the editor.</p>
         {error ? <p className="rte-modal__error">{error}</p> : null}
         <div id={containerId} className="rte-geogebra-host" />
         <div className="rte-modal__actions">
