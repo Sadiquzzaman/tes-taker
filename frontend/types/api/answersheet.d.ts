@@ -23,6 +23,13 @@ interface SubmitAnswersheetPayload {
   answersheet: AnswersheetMap;
   reason?: ExamSubmitReason;
   disqualification_reason?: string;
+  proctoring_events?: Array<{
+    id?: string;
+    type: string;
+    message?: string;
+    points?: number;
+    timestamp?: string;
+  }>;
 }
 
 interface SubmitAnswersheetRequest {

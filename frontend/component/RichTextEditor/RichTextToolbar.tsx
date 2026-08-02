@@ -13,7 +13,6 @@ type RichTextToolbarProps = {
   onOpenGeometry?: () => void;
   onOpenGraph?: () => void;
   onOpenChemistry?: () => void;
-  onOpenOcr?: () => void;
 };
 
 const IconButton = ({
@@ -59,7 +58,6 @@ const RichTextToolbar = ({
   onOpenGeometry,
   onOpenGraph,
   onOpenChemistry,
-  onOpenOcr,
 }: RichTextToolbarProps) => {
   const [, forceRender] = useReducer((value: number) => value + 1, 0);
 
@@ -67,7 +65,6 @@ const RichTextToolbar = ({
     if (!editor) {
       return;
     }
-
     const refresh = () => forceRender();
     editor.on("selectionUpdate", refresh);
     editor.on("transaction", refresh);
@@ -112,22 +109,6 @@ const RichTextToolbar = ({
             <span className="underline">U</span>
           </IconButton>
         </ToolbarGroup>
-        <ToolbarGroup label="Lists">
-          <IconButton
-            title="Bullet list"
-            active={editor.isActive("bulletList")}
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-          >
-            ••
-          </IconButton>
-          <IconButton
-            title="Numbered list"
-            active={editor.isActive("orderedList")}
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          >
-            1.
-          </IconButton>
-        </ToolbarGroup>
         <ToolbarGroup label="History">
           <IconButton title="Undo" onClick={() => editor.chain().focus().undo().run()}>
             ↶
@@ -140,17 +121,19 @@ const RichTextToolbar = ({
     );
   }
 
+  const inTable = editor.isActive("table");
+
   return (
     <div className="rte-toolbar" role="toolbar" aria-label="Question editor">
       <ToolbarGroup label="Formatting">
-        <IconButton title="Bold (Ctrl+B)" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+        <IconButton title="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
           <strong>B</strong>
         </IconButton>
-        <IconButton title="Italic (Ctrl+I)" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+        <IconButton title="Italic" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
           <em>I</em>
         </IconButton>
         <IconButton
-          title="Underline (Ctrl+U)"
+          title="Underline"
           active={editor.isActive("underline")}
           onClick={() => editor.chain().focus().toggleUnderline().run()}
         >
@@ -169,18 +152,6 @@ const RichTextToolbar = ({
         <IconButton title="Subscript" active={editor.isActive("subscript")} onClick={() => editor.chain().focus().toggleSubscript().run()}>
           X₂
         </IconButton>
-        <label className="rte-tb-color" title="Text color">
-          <span>A</span>
-          <input type="color" defaultValue="#232A25" onChange={(event) => editor.chain().focus().setColor(event.target.value).run()} />
-        </label>
-        <label className="rte-tb-color" title="Highlight">
-          <span>H</span>
-          <input
-            type="color"
-            defaultValue="#FFE08A"
-            onChange={(event) => editor.chain().focus().toggleHighlight({ color: event.target.value }).run()}
-          />
-        </label>
       </ToolbarGroup>
 
       <ToolbarGroup label="Paragraph">
@@ -229,16 +200,6 @@ const RichTextToolbar = ({
         >
           1.
         </IconButton>
-        <IconButton title="Task list" active={editor.isActive("taskList")} onClick={() => editor.chain().focus().toggleTaskList().run()}>
-          ☑
-        </IconButton>
-        <IconButton
-          title="Quote"
-          active={editor.isActive("blockquote")}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        >
-          ❝
-        </IconButton>
         <IconButton
           title="Align left"
           active={editor.isActive({ textAlign: "left" })}
@@ -260,12 +221,35 @@ const RichTextToolbar = ({
         >
           ☷
         </IconButton>
+      </ToolbarGroup>
+
+      <ToolbarGroup label="Table">
         <IconButton
-          title="Justify"
-          active={editor.isActive({ textAlign: "justify" })}
-          onClick={() => editor.chain().focus().setTextAlign("justify").run()}
+          title="Insert table"
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
         >
-          ≣
+          ▦
+        </IconButton>
+        <IconButton title="Add column" disabled={!inTable || !editor.can().addColumnAfter()} onClick={() => editor.chain().focus().addColumnAfter().run()}>
+          Col+
+        </IconButton>
+        <IconButton title="Delete column" disabled={!inTable || !editor.can().deleteColumn()} onClick={() => editor.chain().focus().deleteColumn().run()}>
+          Col−
+        </IconButton>
+        <IconButton title="Add row" disabled={!inTable || !editor.can().addRowAfter()} onClick={() => editor.chain().focus().addRowAfter().run()}>
+          Row+
+        </IconButton>
+        <IconButton title="Delete row" disabled={!inTable || !editor.can().deleteRow()} onClick={() => editor.chain().focus().deleteRow().run()}>
+          Row−
+        </IconButton>
+        <IconButton title="Merge cells" disabled={!inTable || !editor.can().mergeCells()} onClick={() => editor.chain().focus().mergeCells().run()}>
+          Merge
+        </IconButton>
+        <IconButton title="Split cell" disabled={!inTable || !editor.can().splitCell()} onClick={() => editor.chain().focus().splitCell().run()}>
+          Split
+        </IconButton>
+        <IconButton title="Delete table" disabled={!inTable || !editor.can().deleteTable()} onClick={() => editor.chain().focus().deleteTable().run()}>
+          ⌫▦
         </IconButton>
       </ToolbarGroup>
 
@@ -273,61 +257,34 @@ const RichTextToolbar = ({
         <IconButton title="Link" active={editor.isActive("link")} onClick={insertLink}>
           🔗
         </IconButton>
-        <IconButton
-          title="Insert table"
-          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-        >
-          ▦
+        <IconButton title="Equation" onClick={() => onOpenMath?.()}>
+          ∑
         </IconButton>
-        <IconButton title="Add column" disabled={!editor.can().addColumnAfter()} onClick={() => editor.chain().focus().addColumnAfter().run()}>
-          Col+
+        <IconButton title="Graph" onClick={() => onOpenGraph?.()}>
+          ƒ
         </IconButton>
-        <IconButton title="Add row" disabled={!editor.can().addRowAfter()} onClick={() => editor.chain().focus().addRowAfter().run()}>
-          Row+
+        <IconButton title="Drawing" onClick={() => onOpenDrawing?.()}>
+          ✏
         </IconButton>
-        <IconButton title="Delete table" disabled={!editor.can().deleteTable()} onClick={() => editor.chain().focus().deleteTable().run()}>
-          ⌫▦
+        <IconButton title="Insert geometry figure" onClick={() => onOpenGeometry?.()}>
+          △
+        </IconButton>
+        <IconButton title="Insert chemistry figure" onClick={() => onOpenChemistry?.()}>
+          ⚗
+        </IconButton>
+        <IconButton title="Upload image" disabled={!allowImages} onClick={() => onRequestImageUpload?.()}>
+          🖼
         </IconButton>
         <IconButton title="Horizontal line" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
           ―
         </IconButton>
       </ToolbarGroup>
 
-      <ToolbarGroup label="Math">
-        <IconButton title="Equation (MathLive)" onClick={() => onOpenMath?.()}>
-          ∑
-        </IconButton>
-      </ToolbarGroup>
-
-      <ToolbarGroup label="Drawing">
-        <IconButton title="Draw (Excalidraw)" onClick={() => onOpenDrawing?.()}>
-          ✏
-        </IconButton>
-        <IconButton title="Geometry (GeoGebra)" onClick={() => onOpenGeometry?.()}>
-          △
-        </IconButton>
-        <IconButton title="Graphs" onClick={() => onOpenGraph?.()}>
-          ƒ
-        </IconButton>
-        <IconButton title="Chemistry (Kekule)" onClick={() => onOpenChemistry?.()}>
-          ⚗
-        </IconButton>
-      </ToolbarGroup>
-
-      <ToolbarGroup label="Media">
-        <IconButton title="Upload image" disabled={!allowImages} onClick={() => onRequestImageUpload?.()}>
-          🖼
-        </IconButton>
-        <IconButton title="OCR from image" onClick={() => onOpenOcr?.()}>
-          OCR
-        </IconButton>
-      </ToolbarGroup>
-
       <ToolbarGroup label="History">
-        <IconButton title="Undo (Ctrl+Z)" onClick={() => editor.chain().focus().undo().run()}>
+        <IconButton title="Undo" onClick={() => editor.chain().focus().undo().run()}>
           ↶
         </IconButton>
-        <IconButton title="Redo (Ctrl+Y)" onClick={() => editor.chain().focus().redo().run()}>
+        <IconButton title="Redo" onClick={() => editor.chain().focus().redo().run()}>
           ↷
         </IconButton>
       </ToolbarGroup>

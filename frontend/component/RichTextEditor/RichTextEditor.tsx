@@ -5,6 +5,11 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { normalizeRichTextHtml } from "@/utils/richText";
 import { parsePastedQuestion, pastedLooksStructured, type ParsedPastedQuestion } from "@/utils/exam/parsePastedQuestion";
+import {
+  createDefaultGraphDefinition,
+  parseGraphDefinition,
+  type GraphDefinition,
+} from "@/utils/exam/graph/graphTypes";
 import { createRichTextExtensions } from "./extensions";
 import type { MathOpenDetail } from "./node-views/MathFormulaView";
 import RichTextToolbar from "./RichTextToolbar";
@@ -14,8 +19,7 @@ const MathLiveModal = dynamic(() => import("./modals/MathLiveModal"), { ssr: fal
 const GeoGebraModal = dynamic(() => import("./modals/GeoGebraModal"), { ssr: false });
 const KekuleModal = dynamic(() => import("./modals/KekuleModal"), { ssr: false });
 const ExcalidrawModal = dynamic(() => import("./modals/ExcalidrawModal"), { ssr: false });
-const GraphModal = dynamic(() => import("./modals/GraphModal"), { ssr: false });
-const OcrModal = dynamic(() => import("./modals/OcrModal"), { ssr: false });
+const GraphPanel = dynamic(() => import("./panels/GraphPanel"), { ssr: false });
 
 type RichTextEditorProps = {
   value: string;
@@ -38,6 +42,12 @@ type MathModalState = {
   open: boolean;
   latex: string;
   display: boolean;
+  pos: number | null;
+};
+
+type GraphPanelState = {
+  open: boolean;
+  definition: GraphDefinition | null;
   pos: number | null;
 };
 
@@ -72,8 +82,11 @@ const RichTextEditor = ({
   const [geometryOpen, setGeometryOpen] = useState(false);
   const [chemistryOpen, setChemistryOpen] = useState(false);
   const [drawingOpen, setDrawingOpen] = useState(false);
-  const [graphOpen, setGraphOpen] = useState(false);
-  const [ocrOpen, setOcrOpen] = useState(false);
+  const [graphPanel, setGraphPanel] = useState<GraphPanelState>({
+    open: false,
+    definition: null,
+    pos: null,
+  });
 
   useEffect(() => {
     onImageFileRef.current = onImageFile;
@@ -192,7 +205,7 @@ const RichTextEditor = ({
   });
 
   const insertImage = useCallback(
-    (src: string, kind: "image" | "geometry" | "chemistry" | "drawing" | "graph" = "image") => {
+    (src: string, kind: "image" | "geometry" | "chemistry" | "drawing" = "image") => {
       if (!editor) {
         return;
       }
@@ -201,7 +214,7 @@ const RichTextEditor = ({
         .focus()
         .setResizableImage({
           src,
-          kind: kind === "drawing" || kind === "graph" ? "geometry" : kind,
+          kind: kind === "drawing" ? "geometry" : kind,
           align: "center",
           width: kind === "image" ? "320px" : "480px",
           caption: "",
@@ -209,6 +222,21 @@ const RichTextEditor = ({
         .run();
     },
     [editor],
+  );
+
+  const saveGraph = useCallback(
+    (definition: GraphDefinition) => {
+      if (!editor) {
+        return;
+      }
+      if (typeof graphPanel.pos === "number") {
+        editor.chain().focus().updateEditorGraphAtPos(graphPanel.pos, definition, null).run();
+      } else {
+        editor.chain().focus().setEditorGraph(definition, null).run();
+      }
+      setGraphPanel({ open: false, definition: null, pos: null });
+    },
+    [editor, graphPanel.pos],
   );
 
   useEffect(() => {
@@ -263,11 +291,25 @@ const RichTextEditor = ({
       insertImage(detail.src, detail.kind ?? "image");
     };
 
+    const onEditGraph = (event: Event) => {
+      const detail = (event as CustomEvent<{ definitionJson: string; pos: number | null }>).detail;
+      if (!detail) {
+        return;
+      }
+      setGraphPanel({
+        open: true,
+        definition: parseGraphDefinition(detail.definitionJson) ?? createDefaultGraphDefinition(),
+        pos: detail.pos,
+      });
+    };
+
     window.addEventListener("rte:open-math", onOpenMath as EventListener);
     window.addEventListener("rte:insert-image", onInsertImage as EventListener);
+    window.addEventListener("rte:edit-graph", onEditGraph as EventListener);
     return () => {
       window.removeEventListener("rte:open-math", onOpenMath as EventListener);
       window.removeEventListener("rte:insert-image", onInsertImage as EventListener);
+      window.removeEventListener("rte:edit-graph", onEditGraph as EventListener);
     };
   }, [insertImage]);
 
@@ -311,13 +353,25 @@ const RichTextEditor = ({
         onOpenMath={() => setMathModal({ open: true, latex: "", display: false, pos: null })}
         onOpenDrawing={() => setDrawingOpen(true)}
         onOpenGeometry={() => setGeometryOpen(true)}
-        onOpenGraph={() => setGraphOpen(true)}
+        onOpenGraph={() =>
+          setGraphPanel({ open: true, definition: createDefaultGraphDefinition("coordinate"), pos: null })
+        }
         onOpenChemistry={() => setChemistryOpen(true)}
-        onOpenOcr={() => setOcrOpen(true)}
       />
       <div className="px-3 py-2">
         <EditorContent editor={editor} />
       </div>
+
+      {isFull && graphPanel.open ? (
+        <GraphPanel
+          key={`graph-${graphPanel.pos ?? "new"}-${graphPanel.definition?.kind ?? "function"}`}
+          open={graphPanel.open}
+          initialDefinition={graphPanel.definition}
+          onClose={() => setGraphPanel({ open: false, definition: null, pos: null })}
+          onSave={saveGraph}
+        />
+      ) : null}
+
       <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageSelected} />
 
       {isFull && mathModal.open ? (
@@ -378,32 +432,6 @@ const RichTextEditor = ({
           onInsert={(dataUrl) => {
             insertImage(dataUrl, "drawing");
             setDrawingOpen(false);
-          }}
-        />
-      ) : null}
-
-      {isFull && graphOpen ? (
-        <GraphModal
-          open={graphOpen}
-          onClose={() => setGraphOpen(false)}
-          onInsert={(dataUrl) => {
-            insertImage(dataUrl, "graph");
-            setGraphOpen(false);
-          }}
-        />
-      ) : null}
-
-      {isFull && ocrOpen ? (
-        <OcrModal
-          open={ocrOpen}
-          onClose={() => setOcrOpen(false)}
-          onParsed={(parsed) => {
-            onStructuredPaste?.(parsed);
-            if (parsed.question && editor && !onStructuredPaste) {
-              const html = parsed.question.includes("<") ? parsed.question : `<p>${parsed.question}</p>`;
-              editor.commands.setContent(html);
-            }
-            setOcrOpen(false);
           }}
         />
       ) : null}

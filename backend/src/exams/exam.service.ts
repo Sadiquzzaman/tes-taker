@@ -64,6 +64,7 @@ import {
   computePercentage,
   examHasManualQuestions,
   FINALIZED_SUBMISSION_STATUSES,
+  TEACHER_VISIBLE_SUBMISSION_STATUSES,
 } from './utils/exam-grading.util';
 
 type ExamListMetrics = {
@@ -2150,7 +2151,7 @@ export class ExamService {
       .leftJoinAndSelect('submission.student', 'student')
       .where('submission.exam_id = :examId', { examId })
       .andWhere('submission.status IN (:...statuses)', {
-        statuses: FINALIZED_SUBMISSION_STATUSES,
+        statuses: TEACHER_VISIBLE_SUBMISSION_STATUSES,
       })
       .orderBy('submission.submitted_at', 'DESC');
 
@@ -2168,6 +2169,9 @@ export class ExamService {
       .getManyAndCount();
 
     const gradingStatus = computeGradingStatus(exam, hasManualQuestions, stat.submitted_submissions);
+    const { parseProctoringEvents, summarizeProctoringEvents } = await import(
+      './utils/proctoring-events.util'
+    );
 
     return {
       exam: {
@@ -2191,22 +2195,32 @@ export class ExamService {
         pending: stat.pending_count,
         average_percentage: stat.average_percentage,
       },
-      submissions: submissions.map((submission) => ({
-        submission_id: submission.id,
-        student_id: submission.student_id,
-        student_name: submission.student?.full_name ?? null,
-        email: submission.student?.email ?? null,
-        phone: submission.student?.phone ?? null,
-        submitted_at: submission.submitted_at ?? null,
-        status: submission.status,
-        total_score: submission.total_score ?? null,
-        max_score: submission.max_score ?? null,
-        percentage: computePercentage(submission.total_score, submission.max_score),
-        is_graded: submission.is_graded,
-        grading_status: submission.is_graded
-          ? SubmissionGradingStatusEnum.GRADED
-          : SubmissionGradingStatusEnum.PENDING,
-      })),
+      submissions: submissions.map((submission) => {
+        const events = parseProctoringEvents(submission.proctoring_events_json);
+        const summary = summarizeProctoringEvents(events);
+        return {
+          submission_id: submission.id,
+          student_id: submission.student_id,
+          student_name: submission.student?.full_name ?? null,
+          email: submission.student?.email ?? null,
+          phone: submission.student?.phone ?? null,
+          submitted_at: submission.submitted_at ?? null,
+          started_at: submission.started_at ?? null,
+          status: submission.status,
+          total_score: submission.total_score ?? null,
+          max_score: submission.max_score ?? null,
+          percentage: computePercentage(submission.total_score, submission.max_score),
+          is_graded: submission.is_graded,
+          grading_status: submission.is_graded
+            ? SubmissionGradingStatusEnum.GRADED
+            : SubmissionGradingStatusEnum.PENDING,
+          browser_switch_count: submission.browser_switch_count ?? 0,
+          tab_switch_count: submission.tab_switch_count ?? 0,
+          disqualification_reason: submission.disqualification_reason ?? null,
+          proctoring_summary: summary,
+          proctoring_events: events,
+        };
+      }),
       meta: {
         page,
         limit,
@@ -2322,5 +2336,103 @@ export class ExamService {
     }
 
     return out;
+  }
+
+  /**
+   * Full class roster for an exam: every assigned student with status + proctoring summary.
+   */
+  async getExamClassRoster(
+    examId: string,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<Record<string, unknown>> {
+    await this.assertTeacherCanMonitorExam(examId, jwtPayload);
+
+    const exam = await this.examRepo.findOne({
+      where: { id: examId },
+      relations: ['class', 'class.classStudents', 'class.classStudents.student', 'excluded_students'],
+    });
+    if (!exam) {
+      throw new NotFoundException('Exam not found');
+    }
+
+    const excludedIds = new Set((exam.excluded_students || []).map((student) => student.id));
+    const classStudents = (exam.class?.classStudents || [])
+      .map((row) => row.student)
+      .filter((student): student is UserEntity => {
+        if (!student) {
+          return false;
+        }
+        return !excludedIds.has(student.id);
+      });
+
+    const submissions = await this.submissionRepo.find({
+      where: { exam_id: examId },
+    });
+    const byStudent = new Map(submissions.map((submission) => [submission.student_id, submission]));
+    const { parseProctoringEvents, summarizeProctoringEvents } = await import(
+      './utils/proctoring-events.util'
+    );
+
+    const counts = {
+      not_started: 0,
+      in_progress: 0,
+      submitted: 0,
+      auto_submitted: 0,
+      disqualified: 0,
+    };
+
+    const students = classStudents.map((student) => {
+      const submission = byStudent.get(student.id);
+      const status = submission?.status ?? ExamSubmissionStatusEnum.NOT_STARTED;
+      if (status === ExamSubmissionStatusEnum.NOT_STARTED) counts.not_started += 1;
+      else if (status === ExamSubmissionStatusEnum.IN_PROGRESS) counts.in_progress += 1;
+      else if (status === ExamSubmissionStatusEnum.SUBMITTED) counts.submitted += 1;
+      else if (status === ExamSubmissionStatusEnum.AUTO_SUBMITTED) counts.auto_submitted += 1;
+      else if (status === ExamSubmissionStatusEnum.DISQUALIFIED) counts.disqualified += 1;
+
+      const events = parseProctoringEvents(submission?.proctoring_events_json);
+      const summary = summarizeProctoringEvents(events);
+      const durationSeconds =
+        submission?.started_at && submission?.submitted_at
+          ? Math.max(
+              0,
+              Math.round(
+                (new Date(submission.submitted_at).getTime() - new Date(submission.started_at).getTime()) /
+                  1000,
+              ),
+            )
+          : null;
+
+      return {
+        student_id: student.id,
+        student_name: student.full_name ?? null,
+        email: student.email ?? null,
+        phone: student.phone ?? null,
+        status,
+        started_at: submission?.started_at ?? null,
+        submitted_at: submission?.submitted_at ?? null,
+        duration_seconds: durationSeconds,
+        total_score: submission?.total_score ?? null,
+        max_score: submission?.max_score ?? null,
+        is_graded: submission?.is_graded ?? false,
+        browser_switch_count: submission?.browser_switch_count ?? 0,
+        tab_switch_count: submission?.tab_switch_count ?? 0,
+        disqualification_reason: submission?.disqualification_reason ?? null,
+        proctoring_summary: summary,
+        proctoring_events: events,
+        submission_id: submission?.id ?? null,
+      };
+    });
+
+    return {
+      exam: {
+        id: exam.id,
+        test_name: exam.test_name,
+        class_id: exam.class?.id ?? null,
+        class_name: exam.class?.class_name ?? null,
+      },
+      counts,
+      students,
+    };
   }
 }

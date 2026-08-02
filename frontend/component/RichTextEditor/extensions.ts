@@ -16,6 +16,7 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import Typography from "@tiptap/extension-typography";
 import Underline from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
+import { EditorGraph } from "./extensions/EditorGraph";
 import { MathFormula } from "./extensions/MathFormula";
 import { ResizableImage } from "./extensions/ResizableImage";
 
@@ -58,6 +59,7 @@ export const createRichTextExtensions = (placeholder: string) => [
   TableRow,
   TableHeader,
   TableCell,
+  EditorGraph,
   Typography,
   Placeholder.configure({
     placeholder,

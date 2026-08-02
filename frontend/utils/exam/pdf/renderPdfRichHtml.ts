@@ -35,6 +35,23 @@ const prepareHtmlForPdf = (html: string): string => {
     }
   });
 
+  container.querySelectorAll('[data-type="editor-graph"]').forEach((node) => {
+    const preview = node.getAttribute("data-preview");
+    const kind = node.getAttribute("data-graph") || "";
+    if (preview) {
+      node.innerHTML = `<img src="${preview}" alt="Graph" style="max-width:100%;height:auto;" />`;
+      return;
+    }
+    let label = "Graph";
+    try {
+      const parsed = JSON.parse(kind) as { kind?: string; title?: string };
+      label = parsed.title || parsed.kind || "Graph";
+    } catch {
+      // keep default
+    }
+    node.innerHTML = `<p><em>[${label}]</em></p>`;
+  });
+
   container.querySelectorAll("img").forEach((img) => {
     img.style.maxWidth = "100%";
     img.style.height = "auto";

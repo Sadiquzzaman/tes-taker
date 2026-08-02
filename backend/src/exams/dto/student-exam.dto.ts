@@ -112,6 +112,20 @@ export class SubmitAnswerSheetDto {
   @IsString()
   @MaxLength(500)
   disqualification_reason?: string;
+
+  @ApiPropertyOptional({
+    description: 'Optional array of proctoring violation events from the client session',
+    type: 'array',
+  })
+  @IsOptional()
+  @IsArray()
+  proctoring_events?: Array<{
+    id?: string;
+    type: string;
+    message?: string;
+    points?: number;
+    timestamp?: string;
+  }>;
 }
 
 export class SubmitExamDto {
@@ -140,7 +154,6 @@ export class SubmitExamDto {
 export class ReportViolationDto {
   @ApiProperty({ 
     description: 'Type of violation',
-    enum: ['BROWSER_SWITCH', 'TAB_SWITCH', 'COPY_PASTE', 'RIGHT_CLICK', 'OTHER'],
     example: 'TAB_SWITCH'
   })
   @IsString()
@@ -151,6 +164,17 @@ export class ReportViolationDto {
   @IsOptional()
   @IsString()
   details?: string;
+
+  @ApiPropertyOptional({ description: 'Optional penalty points for this event' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  points?: number;
+
+  @ApiPropertyOptional({ description: 'Client event timestamp ISO string' })
+  @IsOptional()
+  @IsString()
+  timestamp?: string;
 }
 
 export class GetUpcomingExamsQueryDto {

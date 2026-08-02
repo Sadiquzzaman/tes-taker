@@ -78,15 +78,17 @@ const StudentSubmissionsTable = () => {
               <th className="p-2 whitespace-nowrap">Student</th>
               <th className="p-2 whitespace-nowrap">Email/Phone</th>
               <th className="p-2 text-center whitespace-nowrap">Submitted At</th>
-              <th className="p-2 text-center whitespace-nowrap">Status</th>
+              <th className="p-2 text-center whitespace-nowrap">Exam Status</th>
+              <th className="p-2 text-center whitespace-nowrap">Grading</th>
               <th className="p-2 text-center whitespace-nowrap">Score</th>
+              <th className="p-2 text-center whitespace-nowrap">Violations</th>
               <th className="p-2 text-center whitespace-nowrap">Action</th>
             </tr>
           </thead>
           <tbody>
             {submissions.length === 0 && (
               <tr className="h-16 border-b border-[#EFF0F3] text-center text-[14px] font-[400] text-[#747775]">
-                <td colSpan={6}>No submissions found</td>
+                <td colSpan={8}>No submissions found</td>
               </tr>
             )}
 
@@ -98,6 +100,9 @@ const StudentSubmissionsTable = () => {
                 <td className="p-2 whitespace-nowrap">{student.student_name || "Anonymous"}</td>
                 <td className="p-2 whitespace-nowrap">{student.email || student.phone || "N/A"}</td>
                 <td className="p-2 text-center whitespace-nowrap">{formatSubmittedAt(student.submitted_at)}</td>
+                <td className="p-2 text-center whitespace-nowrap" title={student.disqualification_reason ?? undefined}>
+                  {student.status}
+                </td>
                 <td className="p-2 text-center whitespace-nowrap">
                   <span
                     className="rounded-[27px] border px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em]"
@@ -111,6 +116,9 @@ const StudentSubmissionsTable = () => {
                   </span>
                 </td>
                 <td className="p-2 text-center whitespace-nowrap">{getStudentScore(student)}</td>
+                <td className="p-2 text-center whitespace-nowrap">
+                  {student.proctoring_summary?.total_violations ?? 0}
+                </td>
                 <td className="p-2 text-center whitespace-nowrap">
                   <button
                     style={{ backgroundColor: statusTextColors[student.grading_status] }}

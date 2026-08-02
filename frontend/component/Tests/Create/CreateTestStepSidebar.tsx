@@ -1,7 +1,10 @@
 import BlackTickIconSVG from "@/component/svg/BlackTickIconSVG";
 import createTestSteps from "@/lib/features/create-test/createTestSteps";
+import { setCurrentStep } from "@/lib/features/createTestSlice";
+import { useAppDispatch } from "@/lib/hooks";
 
 const CreateTestStepSidebar = ({ currentStep }: CreateTestStepSidebarProps) => {
+  const dispatch = useAppDispatch();
   const currentStepIndex = createTestSteps.indexOf(currentStep);
   const progressWidth = `${(currentStepIndex / (createTestSteps.length - 1)) * 100}%`;
 
@@ -26,7 +29,12 @@ const CreateTestStepSidebar = ({ currentStep }: CreateTestStepSidebarProps) => {
             const isCompleted = index < currentStepIndex;
 
             return (
-              <label key={step} className="flex items-center gap-2">
+              <button
+                key={step}
+                type="button"
+                onClick={() => dispatch(setCurrentStep(step))}
+                className="flex items-center gap-2 text-left transition-opacity hover:opacity-80"
+              >
                 {isCompleted ? (
                   <BlackTickIconSVG />
                 ) : (
@@ -48,7 +56,7 @@ const CreateTestStepSidebar = ({ currentStep }: CreateTestStepSidebarProps) => {
                 >
                   {step}
                 </span>
-              </label>
+              </button>
             );
           })}
         </div>

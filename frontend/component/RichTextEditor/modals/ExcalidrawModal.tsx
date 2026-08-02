@@ -63,10 +63,10 @@ const ExcalidrawModalBody = ({ onClose, onInsert }: Omit<ExcalidrawModalProps, "
   }, [onInsert]);
 
   return (
-    <div className="rte-modal-backdrop" role="dialog" aria-modal="true" aria-label="Drawing editor">
-      <div className="rte-modal rte-modal--wide">
-        <div className="rte-modal__header">
-          <h3>Drawing</h3>
+    <div className="rte-editor-overlay" role="dialog" aria-modal="true" aria-label="Insert drawing">
+      <div className="rte-inline-panel rte-inline-panel--tool">
+        <div className="rte-inline-panel__header">
+          <h3>Insert drawing</h3>
           <button type="button" className="rte-modal__close" onClick={onClose} aria-label="Close">
             ×
           </button>

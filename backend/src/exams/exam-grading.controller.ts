@@ -63,6 +63,28 @@ export class ExamGradingController {
     };
   }
 
+  @Get(':examId/roster')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({
+    summary: 'Get class roster status for an exam',
+    description:
+      'Returns every assigned class student with submission status, scores, and persisted proctoring events.',
+  })
+  @ApiParam({ name: 'examId', description: 'Exam UUID' })
+  @ApiResponse({ status: 200, description: 'Exam roster retrieved successfully' })
+  async getExamClassRoster(
+    @Param('examId', ParseUUIDPipe) examId: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.examService.getExamClassRoster(examId, jwtPayload);
+    return {
+      message: 'Exam roster retrieved successfully',
+      payload,
+    };
+  }
+
   @Get(':examId')
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)

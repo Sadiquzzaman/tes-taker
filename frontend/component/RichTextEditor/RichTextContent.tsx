@@ -2,7 +2,9 @@
 
 import DOMPurify from "dompurify";
 import katex from "katex";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { parseGraphDefinition } from "@/utils/exam/graph/graphTypes";
 import "katex/dist/katex.min.css";
 import "./richTextEditor.css";
 
@@ -38,6 +40,9 @@ const renderMathInHtml = (html: string): string => {
 };
 
 const RichTextContent = ({ html, className = "" }: RichTextContentProps) => {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const rootsRef = useRef<Root[]>([]);
+
   const sanitized = useMemo(() => {
     if (!html) {
       return "";
@@ -51,6 +56,8 @@ const RichTextContent = ({ html, className = "" }: RichTextContentProps) => {
         "data-align",
         "data-kind",
         "data-caption",
+        "data-graph",
+        "data-preview",
         "style",
         "class",
         "target",
@@ -79,11 +86,51 @@ const RichTextContent = ({ html, className = "" }: RichTextContentProps) => {
     return renderMathInHtml(clean);
   }, [html]);
 
+  useEffect(() => {
+    const host = hostRef.current;
+    rootsRef.current.forEach((root) => root.unmount());
+    rootsRef.current = [];
+    if (!host) {
+      return;
+    }
+
+    const nodes = host.querySelectorAll<HTMLElement>('[data-type="editor-graph"]');
+    void (async () => {
+      const GraphRenderer = (await import("./graph/GraphRenderer")).default;
+      const React = await import("react");
+      nodes.forEach((node) => {
+        const definition = parseGraphDefinition(node.getAttribute("data-graph"));
+        const preview = node.getAttribute("data-preview");
+        if (!definition) {
+          if (preview) {
+            node.innerHTML = `<img src="${preview}" alt="Graph" style="max-width:100%;height:auto;" />`;
+          }
+          return;
+        }
+        node.innerHTML = "";
+        const root = createRoot(node);
+        rootsRef.current.push(root);
+        root.render(React.createElement(GraphRenderer, { definition }));
+      });
+    })();
+
+    return () => {
+      rootsRef.current.forEach((root) => root.unmount());
+      rootsRef.current = [];
+    };
+  }, [sanitized]);
+
   if (!sanitized) {
     return null;
   }
 
-  return <div className={`rte-content rte-readonly ${className}`.trim()} dangerouslySetInnerHTML={{ __html: sanitized }} />;
+  return (
+    <div
+      ref={hostRef}
+      className={`rte-content rte-readonly ${className}`.trim()}
+      dangerouslySetInnerHTML={{ __html: sanitized }}
+    />
+  );
 };
 
 export default RichTextContent;

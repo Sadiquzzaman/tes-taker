@@ -86,12 +86,28 @@ interface GradingSubmissionListItem {
   email: string | null;
   phone: string | null;
   submitted_at: string | null;
+  started_at?: string | null;
   status: string;
   total_score: number | null;
   max_score: number | null;
   percentage: number | null;
   is_graded: boolean;
   grading_status: SubmissionGradingStatus;
+  browser_switch_count?: number;
+  tab_switch_count?: number;
+  disqualification_reason?: string | null;
+  proctoring_summary?: {
+    total_violations: number;
+    total_red_flag_points: number;
+    counts_by_type: Record<string, number>;
+  };
+  proctoring_events?: Array<{
+    id: string;
+    type: string;
+    message: string;
+    points?: number;
+    timestamp: string;
+  }>;
 }
 
 interface GradingSummaryResponse extends ApiResponse<GradingSummaryPayload> {
