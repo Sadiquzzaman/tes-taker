@@ -8,6 +8,7 @@ const BUCKET_ORDER: Array<{ type: "graded" | "ungraded"; subType: StudentExamQue
   { type: "graded", subType: "true-false", messageKey: "trueFalse" },
   { type: "ungraded", subType: "true-false", messageKey: "trueFalse" },
   { type: "graded", subType: "fill-in-the-blanks", messageKey: "fillInGaps" },
+  { type: "graded", subType: "answer-box", messageKey: "fillInGaps" },
   { type: "ungraded", subType: "fill-in-the-gaps", messageKey: "fillInGaps" },
   { type: "graded", subType: "matching-ordering", messageKey: "matching" },
   { type: "ungraded", subType: "essay", messageKey: null },

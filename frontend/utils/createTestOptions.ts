@@ -13,6 +13,8 @@ export const CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID = "multiple-choice";
 export const CREATE_TEST_GRADED_MULTIPLE_RESPONSE_SUBTYPE_ID = "multiple-response";
 export const CREATE_TEST_GRADED_TRUE_FALSE_SUBTYPE_ID = "true-false";
 export const CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID = "fill-in-the-blanks";
+/** Legacy subtype kept for hydrating older exams only — not offered in the builder. */
+export const CREATE_TEST_GRADED_ANSWER_BOX_SUBTYPE_ID = "answer-box";
 export const CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID = "matching-ordering";
 export const CREATE_TEST_PASSAGE_HYBRID_SUBTYPE_ID = "hybrid-question";
 export const CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID = "essay";
@@ -97,9 +99,11 @@ const createObjectiveQuestionTabs = (): CreateTestQuestionSubtypeOption[] => [
     id: CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID,
     label: "Fill in the Blanks",
     isSupported: true,
-    answerMode: "single",
-    answerInputMode: "none",
-    optionRules: createVariableOptionRules(),
+    answerMode: "none",
+    answerInputMode: "correct-answer",
+    answerInputPlaceholder: "Enter expected answer",
+    supportsAlternativeAnswers: true,
+    optionRules: null,
     headerPayload: "Write your question here (Use ______ for blank spot)",
   },
   {
@@ -154,7 +158,7 @@ export const createTestQuestionCategoryOptions: CreateTestQuestionCategoryOption
   },
   {
     id: "passage-question",
-    label: "Passage Question",
+    label: "Passage / CQ",
     tabs: [
       // {
       //   id: CREATE_TEST_PASSAGE_HYBRID_SUBTYPE_ID,
@@ -166,12 +170,34 @@ export const createTestQuestionCategoryOptions: CreateTestQuestionCategoryOption
       //   headerPayload: "Write your question here",
       // },
       ...createObjectiveQuestionTabs(),
+      {
+        id: CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
+        label: "Essay",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "none",
+        optionRules: null,
+        headerPayload: "Write your question here (e.g. ক / খ / গ / ঘ)",
+      },
     ],
   },
 ];
 
 export const isCreateTestObjectiveCategory = (categoryId: CreateTestQuestionCategory) =>
   categoryId === "graded" || categoryId === "passage-question";
+
+/** Auto-scored subtypes under graded or Passage / CQ */
+export const isCreateTestAutoScoredSubType = (subType: string) =>
+  subType === CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID ||
+  subType === CREATE_TEST_GRADED_MULTIPLE_RESPONSE_SUBTYPE_ID ||
+  subType === CREATE_TEST_GRADED_TRUE_FALSE_SUBTYPE_ID ||
+  subType === CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID ||
+  subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID ||
+  /* legacy exams */ subType === CREATE_TEST_GRADED_ANSWER_BOX_SUBTYPE_ID;
+
+/** Essay (and similar) children under Passage / CQ that need manual grading */
+export const isCreateTestPassageManualSubType = (subType: string) =>
+  subType === CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID;
 
 export const getCreateTestQuestionSubtype = (categoryId: CreateTestQuestionCategory, subtypeId: string) => {
   for (const category of createTestQuestionCategoryOptions) {

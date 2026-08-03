@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getPassageValidationErrors, getQuestionValidationErrors } from "@/utils/createTestValidation";
 import {
   CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
+  CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID,
   CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
   CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
   getCreateTestQuestionAnswerInputMode,
@@ -129,7 +130,7 @@ export const createQuestion = (questionType: CreateTestQuestionCategory, subType
   const optionRules = getCreateTestQuestionOptionRules(questionType, subType);
   const answer = createQuestionAnswer(questionType, subType);
 
-  if (questionType === "ungraded") {
+  if (questionType === "ungraded" || (questionType === "passage-question" && subType === CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID)) {
     return {
       id: createId(),
       type: questionType,
@@ -235,8 +236,10 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
   const legacyQuestion = question as LegacyQuestionItem;
   const rawType = question.type as string;
   const nextType = rawType === "objective" ? "graded" : rawType === "essay" ? "ungraded" : question.type;
+  const remappedSubType =
+    question.subType === "answer-box" ? CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID : question.subType;
   const nextSubType =
-    question.subType ??
+    remappedSubType ??
     (nextType === "graded"
       ? CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID
       : nextType === "ungraded"
@@ -293,13 +296,26 @@ const normalizeQuestion = (question: QuestionItem): QuestionItem => {
   }
 
   if (answerInputMode === "correct-answer") {
+    const migratedLegacy =
+      legacyQuestion.answer?.type === "optionId" && legacyQuestion.options?.length
+        ? ({
+            ...legacyQuestion,
+            answer: {
+              type: "text" as const,
+              value: legacyQuestion.answer.value
+                .map((optionId) => legacyQuestion.options?.find((option) => option.id === optionId)?.text ?? "")
+                .filter(Boolean),
+            },
+          } as LegacyQuestionItem)
+        : legacyQuestion;
+
     return {
       ...question,
       type: nextType,
       subType: nextSubType,
       matchingOptions: undefined,
       options: undefined,
-      answer: normalizeTextAnswer(legacyQuestion, supportsAlternativeAnswers),
+      answer: normalizeTextAnswer(migratedLegacy, supportsAlternativeAnswers),
     };
   }
 

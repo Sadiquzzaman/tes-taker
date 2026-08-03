@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
@@ -12,18 +12,18 @@ import {
 import DropDownComponent from "@/Ui/DropDownComponent";
 import TagInput from "@/Ui/TagInput";
 import { testAudienceOptions } from "@/utils/createTestOptions";
+import { buildTestJoinLink, getFrontendAppUrl } from "@/utils/frontendAppUrl";
 import useGetAllClass from "@/hooks/api/class/useGetAllClass";
 import PublishSchedule from "./PublishSchedule";
 import { useToast } from "@/component/Toast/ToastContext";
 import AddStudentIconSVG from "@/component/svg/AddStudentIconSVG";
 import PublishCopyIconSVG from "@/component/svg/PublishCopyIconSVG";
 
-const JOIN_LINK = "app.testaker.com/join/class/ABCD1234";
-
 const PublishStep = () => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
   const publishState = useAppSelector((state) => (state.createTest as CreateTestState).publishState);
+  const editExamId = useAppSelector((state) => (state.createTest as CreateTestState).editExamId);
   const { classList } = useGetAllClass();
 
   const [studentInput, setStudentInput] = useState("");
@@ -31,12 +31,31 @@ const PublishStep = () => {
 
   const classOptions = classList.map((c) => ({ label: c.class_name, value: c.id }));
 
+  const joinLink = useMemo(() => {
+    if (editExamId) {
+      return buildTestJoinLink(editExamId);
+    }
+
+    return `${getFrontendAppUrl()}/join/test/<id-after-publish>`;
+  }, [editExamId]);
+
+  const canCopyJoinLink = Boolean(editExamId);
+
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(JOIN_LINK).then(() => {
+    if (!canCopyJoinLink) {
+      triggerToast({
+        title: "Link unavailable",
+        description: "Publish or save the test first to get a shareable join link.",
+        type: "error",
+      });
+      return;
+    }
+
+    navigator.clipboard.writeText(joinLink).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, []);
+  }, [canCopyJoinLink, joinLink, triggerToast]);
 
   const handleAddStudent = useCallback(() => {
     const trimmed = studentInput.trim();
@@ -67,7 +86,7 @@ const PublishStep = () => {
       dispatch(addExcludedStudent(trimmed));
       setStudentInput("");
     }
-  }, [studentInput, dispatch]);
+  }, [studentInput, dispatch, triggerToast]);
 
   const handleRemoveStudent = useCallback(
     (index: number) => {
@@ -199,18 +218,23 @@ const PublishStep = () => {
             <div className="flex flex-col gap-2">
               <p className="text-[14px] font-[600] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Test Join Link</p>
               <div className="flex items-center justify-between rounded-[6px] bg-[#EFF0F3]/75 px-3 py-[6px]">
-                <span className="text-[16px] font-[400] leading-5 tracking-[-0.02em] text-[#2765EC]">{JOIN_LINK}</span>
+                <span className="break-all text-[16px] font-[400] leading-5 tracking-[-0.02em] text-[#2765EC]">
+                  {joinLink}
+                </span>
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="flex items-center gap-[6px] rounded-[8px] bg-[#232A25] px-3 py-2 text-[14px] font-[500] leading-4 tracking-[-0.02em] capitalize text-white"
+                  disabled={!canCopyJoinLink}
+                  className="flex shrink-0 items-center gap-[6px] rounded-[8px] bg-[#232A25] px-3 py-2 text-[14px] font-[500] leading-4 tracking-[-0.02em] capitalize text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <PublishCopyIconSVG width={14} />
                   {copied ? "Copied!" : "Copy"}
                 </button>
               </div>
               <p className="text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
-                You can copy the link now or later to share with your students.
+                {canCopyJoinLink
+                  ? "You can copy the link now or later to share with your students."
+                  : "A shareable join link will be available after you publish this test."}
               </p>
             </div>
           )}

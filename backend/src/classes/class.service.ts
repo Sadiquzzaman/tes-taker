@@ -27,6 +27,7 @@ import {
   normalizePhone,
   phonesMatch,
 } from 'src/common/utils/contact.util';
+import { resolveFrontendUrl } from 'src/common/utils/frontend-url.util';
 
 @Injectable()
 export class ClassService {
@@ -293,7 +294,7 @@ export class ClassService {
     errors: string[];
   }> {
     const classEntity = await this.findOne(classId, jwtPayload);
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    const frontendUrl = resolveFrontendUrl(this.configService);
 
     let added = 0;
     let invited = 0;
@@ -584,8 +585,8 @@ export class ClassService {
     jwtPayload: JwtPayloadInterface,
   ): Promise<string> {
     await this.findOne(classId, jwtPayload);
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
-    return `${frontendUrl}/classes/${classId}/join`;
+    const frontendUrl = resolveFrontendUrl(this.configService);
+    return `${frontendUrl}/join/class/${classId}`;
   }
 
   /**

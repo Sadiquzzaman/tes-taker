@@ -111,8 +111,8 @@ export class ExamQuestionEntity extends CustomBaseEntity {
   @Column({ name: 'points', type: 'float', nullable: true })
   points: number | null;
 
-  @ApiPropertyOptional({ description: 'Per-question instructions (max 500 chars)' })
-  @Column({ name: 'instruction', type: 'varchar', length: 500, nullable: true })
+  @ApiPropertyOptional({ description: 'Per-question instructions (rich text HTML)' })
+  @Column({ name: 'instruction', type: 'text', nullable: true })
   instruction: string | null;
 
   @ApiPropertyOptional({ description: '0-based index of correct option for objective questions' })

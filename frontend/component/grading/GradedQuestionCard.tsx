@@ -1,6 +1,7 @@
 import CorrectFilledIconSVG from "../svg/CorrectFilledIconSVG";
 import IncorrectFilledIconSVG from "../svg/IncorrectFilledIconSVG";
 import GradingAnswerView from "./GradingAnswerView";
+import { RichTextContent } from "@/component/RichTextEditor";
 
 const formatScoreLabel = (value: number) => {
   return String(value);
@@ -13,15 +14,19 @@ const GradedQuestionCard = ({ question }: GradingModalGradedQuestionCardProps) =
     <div className="flex flex-col gap-6 rounded-[8px] border border-[#E5E5E5] bg-white p-5">
       <div className="flex flex-col gap-3">
         {question.instruction ? (
-          <p className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]">
-            {question.instruction}
-          </p>
+          <RichTextContent
+            html={question.instruction}
+            className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]"
+          />
         ) : null}
         <div className="flex items-start gap-2 text-[#0F1A12]">
           <span className="w-4 shrink-0 text-center text-[16px] font-[500] leading-[1.25] tracking-[-0.02em]">
             {question.questionNumber}.
           </span>
-          <p className="flex-1 text-[16px] font-[500] leading-[1.25] tracking-[-0.02em]">{question.question}</p>
+          <RichTextContent
+            html={question.question}
+            className="flex-1 text-[16px] font-[500] leading-[1.25] tracking-[-0.02em]"
+          />
         </div>
       </div>
 

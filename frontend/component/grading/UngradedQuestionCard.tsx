@@ -9,6 +9,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { resizeTextarea } from "@/utils/grading/resizeTextarea";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { RichTextContent } from "@/component/RichTextEditor";
 
 const formatScoreLabel = (value: number) => {
   return String(value);
@@ -96,17 +97,19 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
     >
       <div className="flex flex-col gap-3">
         {question.instruction ? (
-          <p className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]">
-            {question.instruction}
-          </p>
+          <RichTextContent
+            html={question.instruction}
+            className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]"
+          />
         ) : null}
         <div className="flex items-start gap-2">
           <span className="w-4 shrink-0 text-center text-[16px] font-[500] leading-[1.25] tracking-[-0.02em] text-[#0F1A12]">
             {question.questionNumber}.
           </span>
-          <p className="flex-1 text-[16px] font-[500] leading-[1.25] tracking-[-0.02em] text-[#0F1A12]">
-            {question.question}
-          </p>
+          <RichTextContent
+            html={question.question}
+            className="flex-1 text-[16px] font-[500] leading-[1.25] tracking-[-0.02em] text-[#0F1A12]"
+          />
           {isInteracting ? <QuestionFilledIconSVG width={20} /> : null}
           {!isInteracting && showSuccessIcon ? <CorrectFilledIconSVG width={20} /> : null}
         </div>

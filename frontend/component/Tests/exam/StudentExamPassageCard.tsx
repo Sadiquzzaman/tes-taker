@@ -1,4 +1,6 @@
 import StudentExamQuestionCard from "@/component/Tests/exam/StudentExamQuestionCard";
+import { RichTextContent } from "@/component/RichTextEditor";
+import { getPassageInstructionLabel } from "@/utils/richText";
 
 interface StudentExamPassageCardProps {
   item: StudentExamPassageItem;
@@ -8,6 +10,8 @@ interface StudentExamPassageCardProps {
   negativeMarkValue: number;
   onAnswerChange: (questionId: string, value: ExamAnswerValue) => void;
   onMatchingChange: (questionId: string, value: string[]) => void;
+  subjectName?: string;
+  subjectCode?: string;
 }
 
 const StudentExamPassageCard = ({
@@ -18,16 +22,22 @@ const StudentExamPassageCard = ({
   negativeMarkValue,
   onAnswerChange,
   onMatchingChange,
+  subjectName,
+  subjectCode,
 }: StudentExamPassageCardProps) => {
   const questionRange = `${item.questions[0]?.questionNumber ?? 0}-${item.questions[item.questions.length - 1]?.questionNumber ?? 0}`;
+  const instructionLabel = getPassageInstructionLabel(subjectName, subjectCode);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-[8px] px-2 py-2">
         <p className="text-[20px] font-[500] leading-[1.1] tracking-[-0.02em] text-[#232A25]">
-          Read the passage below and answer the following questions ({questionRange})
+          {instructionLabel} ({questionRange})
         </p>
-        <p className="mt-3 text-[16px] leading-[1.2] tracking-[-0.02em] text-[#0F1A12]">{item.passageText}</p>
+        <RichTextContent
+          html={item.passageText}
+          className="mt-3 text-[16px] leading-[1.35] tracking-[-0.02em] text-[#0F1A12]"
+        />
       </div>
 
       <div className="flex flex-col gap-4">

@@ -4,7 +4,9 @@ import addMatchingPairReducer from "./create-test/addMatchingPair";
 import addOptionReducer from "./create-test/addOption";
 import addQuestionReducer from "./create-test/addQuestion";
 import addSubjectReducer from "./create-test/addSubject";
+import applyParsedQuestionReducer from "./create-test/applyParsedQuestion";
 import applySpokenQuestionReducer from "./create-test/applySpokenQuestion";
+import changeQuestionSubtypeReducer from "./create-test/changeQuestionSubtype";
 import cancelDraggingReducer from "./create-test/cancelDragging";
 import clearPendingFocusOptionReducer from "./create-test/clearPendingFocusOption";
 import clearPendingFocusQuestionIdReducer from "./create-test/clearPendingFocusQuestionId";
@@ -24,6 +26,7 @@ import resetFormReducer from "./create-test/resetForm";
 import selectCorrectOptionReducer from "./create-test/selectCorrectOption";
 import setActiveQuestionIdReducer from "./create-test/setActiveQuestionId";
 import setActiveSubjectIdReducer from "./create-test/setActiveSubjectId";
+import setCurrentStepReducer from "./create-test/setCurrentStep";
 import setFormFieldReducer from "./create-test/setFormField";
 import setPublishFieldReducer from "./create-test/setPublishField";
 import setPublishTimingReducer from "./create-test/setPublishTiming";
@@ -53,6 +56,8 @@ export const createTestSlice = createSlice({
     hydrateFromExam: hydrateFromExamReducer,
     goToNextStep: goToNextStepReducer,
     goToPreviousStep: goToPreviousStepReducer,
+    setCurrentStep: setCurrentStepReducer,
+    changeQuestionSubtype: changeQuestionSubtypeReducer,
     setFormField: setFormFieldReducer,
     setSingleSubject: setSingleSubjectReducer,
     addMatchingPair: addMatchingPairReducer,
@@ -60,6 +65,7 @@ export const createTestSlice = createSlice({
     removeSubject: removeSubjectReducer,
     setActiveSubjectId: setActiveSubjectIdReducer,
     addQuestion: addQuestionReducer,
+    applyParsedQuestion: applyParsedQuestionReducer,
     applySpokenQuestion: applySpokenQuestionReducer,
     deleteQuestion: deleteQuestionReducer,
     duplicateQuestion: duplicateQuestionReducer,
@@ -101,6 +107,9 @@ export const {
   addOption,
   addQuestion,
   applySpokenQuestion,
+  applyParsedQuestion,
+  changeQuestionSubtype,
+  setCurrentStep,
   addSubject,
   removeSubject,
   cancelDragging,

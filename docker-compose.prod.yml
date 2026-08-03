@@ -4,6 +4,7 @@
 #   1. Copy .env.production.example → .env.production and fill in real values.
 #   2. docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 #
+# See DEPLOYMENT.md for full steps, migrations, and how to reach pgAdmin.
 # Do NOT use this file for local development — keep using docker-compose.yml.
 
 name: tasktaker-prod
@@ -81,6 +82,11 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-${JWT_SECRET}}
       REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-30}
+
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_PHONE: ${ADMIN_PHONE:-ADMIN00000001}
 
       CLIENT_ORIGIN: ${CLIENT_ORIGIN}
       FRONTEND_URL: ${FRONTEND_URL}
@@ -168,9 +174,29 @@ services:
       retries: 3
       start_period: 40s
 
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: tasktaker-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - tasktaker-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      # Never exposed publicly — bound to loopback only. Reach it via an SSH
+      # tunnel or a reverse proxy (see deployment docs).
+      - "127.0.0.1:5050:80"
+
 volumes:
   postgres_data:
   redis_data:
+  pgadmin_data:
 
 networks:
   tasktaker-internal:

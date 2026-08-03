@@ -20,6 +20,7 @@ import { PublishTimingEnum, TestAudienceEnum } from '../enums/exam-wizard.enums'
 import {
   AUTO_SCORED_SUB_TYPES,
   MANUAL_SUB_TYPES,
+  PASSAGE_CHILD_SUB_TYPES,
   QuestionCategoryEnum,
 } from '../enums/question.enums';
 
@@ -98,11 +99,12 @@ export class WizardChildQuestionDto {
   type: QuestionCategoryEnum.PASSAGE;
 
   @ApiProperty({
-    enum: [...AUTO_SCORED_SUB_TYPES],
+    enum: [...PASSAGE_CHILD_SUB_TYPES],
     example: 'multiple-choice',
+    description: 'Auto-scored subtypes or essay (for Passage / CQ creative questions)',
   })
-  @IsIn([...AUTO_SCORED_SUB_TYPES])
-  subType: (typeof AUTO_SCORED_SUB_TYPES)[number];
+  @IsIn([...PASSAGE_CHILD_SUB_TYPES])
+  subType: (typeof PASSAGE_CHILD_SUB_TYPES)[number];
 
   @ApiProperty()
   @IsString()
@@ -132,10 +134,14 @@ export class WizardChildQuestionDto {
   @Type(() => WizardMatchingOptionsDto)
   matchingOptions?: WizardMatchingOptionsDto;
 
-  @ApiProperty({ type: WizardAnswerDto })
+  @ApiPropertyOptional({
+    type: WizardAnswerDto,
+    description: 'Required for auto-scored children; optional sample answer for essay',
+  })
+  @IsOptional()
   @ValidateNested()
   @Type(() => WizardAnswerDto)
-  answer: WizardAnswerDto;
+  answer?: WizardAnswerDto;
 
   @ApiProperty({ minimum: 0 })
   @IsNumber()
@@ -173,7 +179,7 @@ export class WizardPassageQuestionDto {
 
   @ApiProperty({
     type: [WizardChildQuestionDto],
-    description: 'Auto-scored questions based on the passage',
+    description: 'Questions based on the passage (auto-scored and/or essay for CQ)',
   })
   @IsArray()
   @ArrayMinSize(1)

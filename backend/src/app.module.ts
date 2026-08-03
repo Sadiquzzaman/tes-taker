@@ -18,6 +18,7 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
 import { StorageModule } from './storage/storage.module';
+import { TeacherRequestModule } from './teacher-requests/teacher-request.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { StorageModule } from './storage/storage.module';
     DashboardModule,
     HealthModule,
     StorageModule,
+    TeacherRequestModule,
   ],
   controllers: [AppController],
   providers: [

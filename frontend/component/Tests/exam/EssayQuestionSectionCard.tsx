@@ -1,4 +1,5 @@
 import NotmalTextFeild from "@/Ui/NotmalTextFeild";
+import { RichTextContent } from "@/component/RichTextEditor";
 
 const EssayQuestionSectionCard = ({
   section,
@@ -31,14 +32,17 @@ const EssayQuestionSectionCard = ({
             {question.instruction ? (
               <div className="flex items-start gap-2 rounded-[6px] bg-white">
                 <span className="mt-[2px] text-[16px] leading-[125%] text-[#49734f]">•</span>
-                <p className="text-[14px] font-[400] text-[#49734f]">{question.instruction}</p>
+                <RichTextContent html={question.instruction} className="text-[14px] font-[400] text-[#49734f]" />
               </div>
             ) : null}
 
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-2">
                 <span className="text-[16px] font-[500] leading-[125%] text-[#0F1A12]">{index + 1}.</span>
-                <p className="text-[16px] font-[500] leading-[125%] text-[#0F1A12]">{question.text}</p>
+                <RichTextContent
+                  html={question.text}
+                  className="min-w-0 text-[16px] font-[500] leading-[125%] text-[#0F1A12]"
+                />
               </div>
               <span className="shrink-0 text-[14px] font-[400] leading-[16px] text-[#747775]">
                 Points: {question.points}

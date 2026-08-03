@@ -1,4 +1,5 @@
 import GradingQuestionCard from "./GradingQuestionCard";
+import { RichTextContent } from "@/component/RichTextEditor";
 
 const GradingQuestionList = ({ isReadOnly, items }: GradingModalQuestionListProps) => {
   return (
@@ -11,7 +12,10 @@ const GradingQuestionList = ({ isReadOnly, items }: GradingModalQuestionListProp
         return (
           <div key={item.id} className="rounded-[8px] border border-[#E5E5E5] bg-[#F8F9FA] p-4">
             <p className="text-[16px] font-[600] leading-[24px] text-[#232A25]">Passage</p>
-            <p className="mt-2 text-[14px] font-[400] leading-[24px] text-[#747775]">{item.passageText}</p>
+            <RichTextContent
+              html={item.passageText}
+              className="mt-2 text-[14px] font-[400] leading-[24px] text-[#747775]"
+            />
             <div className="mt-4 flex flex-col gap-4">
               {item.questions.map((question) => (
                 <GradingQuestionCard key={question.id} question={question} isReadOnly={isReadOnly} />

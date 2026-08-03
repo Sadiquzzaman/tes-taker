@@ -3,6 +3,7 @@ import {
   AUTO_SCORED_SUB_TYPES,
   AnswerValueTypeEnum,
   MANUAL_SUB_TYPES,
+  PASSAGE_CHILD_SUB_TYPES,
   QuestionCategoryEnum,
 } from '../enums/question.enums';
 import {
@@ -73,8 +74,36 @@ function validatePassageQuestion(q: WizardPassageQuestionDto): void {
     throw new BadRequestException('Passage questions require at least one child question');
   }
   for (const child of q.childQuestions) {
-    validateAutoScoredQuestion(child, 'passage child');
+    validatePassageChildQuestion(child);
   }
+}
+
+function validatePassageChildQuestion(child: WizardChildQuestionDto): void {
+  if (!PASSAGE_CHILD_SUB_TYPES.includes(child.subType as (typeof PASSAGE_CHILD_SUB_TYPES)[number])) {
+    throw new BadRequestException(`Invalid subType for passage child question: ${child.subType}`);
+  }
+
+  if (child.subType === 'essay') {
+    if (!child.text?.trim()) {
+      throw new BadRequestException('Each passage child question requires text');
+    }
+    normalizePoints(child.points);
+    if (child.answer) {
+      if (child.answer.type !== AnswerValueTypeEnum.TEXT) {
+        throw new BadRequestException('Passage essay sample answers must use type "text"');
+      }
+      if (!Array.isArray(child.answer.value) || child.answer.value.length === 0) {
+        throw new BadRequestException('Passage essay sample answers require at least one text value');
+      }
+    }
+    return;
+  }
+
+  if (!child.answer) {
+    throw new BadRequestException('Auto-scored passage child questions require an answer');
+  }
+
+  validateAutoScoredQuestion(child as WizardGradedQuestionDto | WizardChildQuestionDto, 'passage child');
 }
 
 function validateUngradedQuestion(q: WizardUngradedQuestionDto): void {
@@ -103,13 +132,24 @@ function validateAutoScoredQuestion(
   if (!q.text?.trim()) {
     throw new BadRequestException(`Each ${label} question requires text`);
   }
-  if (!AUTO_SCORED_SUB_TYPES.includes(q.subType)) {
+  if (!AUTO_SCORED_SUB_TYPES.includes(q.subType as (typeof AUTO_SCORED_SUB_TYPES)[number])) {
     throw new BadRequestException(`Invalid subType for ${label} question: ${q.subType}`);
   }
   normalizePoints(q.points);
 
   if (q.subType === 'matching-ordering') {
     validateMatchingQuestion(q, label);
+    return;
+  }
+
+  if (q.subType === 'fill-in-the-blanks' || q.subType === 'answer-box') {
+    if (!q.answer || q.answer.type !== AnswerValueTypeEnum.TEXT) {
+      throw new BadRequestException(`${label} ${q.subType} requires answer.type "text"`);
+    }
+    const values = (q.answer.value ?? []).map((value) => value.trim()).filter(Boolean);
+    if (!values.length) {
+      throw new BadRequestException(`${label} ${q.subType} requires at least one expected answer`);
+    }
     return;
   }
 
@@ -324,6 +364,11 @@ export function scoreStudentAnswer(
     const submitted = trimmed.split('|').map((s) => s.trim()).filter(Boolean).sort();
     const correct = [...expected.value].sort();
     return submitted.length === correct.length && submitted.every((v, i) => v === correct[i]);
+  }
+
+  if (expected.type === AnswerValueTypeEnum.TEXT) {
+    const normalized = trimmed.toLowerCase();
+    return expected.value.some((value) => value.trim().toLowerCase() === normalized);
   }
 
   return false;

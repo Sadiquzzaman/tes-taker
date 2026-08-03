@@ -46,4 +46,9 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
 
+# Database migrations run against the COMPILED data source (no ts-node/src):
+#   pnpm migration:run:prod      -> typeorm -d dist/src/data-source.js
+# Typically executed as a one-off before the app starts, e.g.:
+#   docker compose -f docker-compose.prod.yml --env-file .env.production \
+#     run --rm backend pnpm migration:run:prod
 CMD ["node", "dist/src/main.js"]

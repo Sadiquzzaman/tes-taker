@@ -4,15 +4,18 @@ import TrashIcon from "@/component/svg/TrashIcon";
 import TriangleDownFilledIconSVG from "@/component/svg/TriangleDownFilledIconSVG";
 import TriangleUpFilledIconSVG from "@/component/svg/TriangleUpFilledIconSVG";
 import {
+  changeQuestionSubtype,
   deleteQuestion,
   duplicateQuestion,
   shuffleOptions,
   updateQuestionPoints,
 } from "@/lib/features/createTestSlice";
-import { useAppDispatch } from "@/lib/hooks";
+import { previewQuestionSubtypeConversion } from "@/lib/features/create-test/changeQuestionSubtype";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
   CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
+  createTestQuestionCategoryOptions,
   isCreateTestObjectiveCategory,
 } from "@/utils/createTestOptions";
 import { memo, useCallback, type ReactNode } from "react";
@@ -30,9 +33,28 @@ function QuestionCardFooter({
   subjectId,
 }: QuestionCardFooterProps) {
   const dispatch = useAppDispatch();
+  const subjects = useAppSelector((state) => state.createTest.subjects);
   const isMatchingOrdering =
     isCreateTestObjectiveCategory(questionType) && questionSubType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
+  const subtypeOptions =
+    createTestQuestionCategoryOptions.find((category) => category.id === questionType)?.tabs.filter((tab) => tab.isSupported) ??
+    [];
   let pointsLabel: ReactNode = "Points";
+
+  const findQuestion = () => {
+    const subject = subjects.find((item) => item.id === subjectId);
+    if (!subject) {
+      return null;
+    }
+    if (parentPassageId) {
+      const passage = subject.questions.find((item) => item.id === parentPassageId);
+      if (passage && "childQuestions" in passage) {
+        return passage.childQuestions.find((child) => child.id === questionId) ?? null;
+      }
+      return null;
+    }
+    return subject.questions.find((item) => item.id === questionId) ?? null;
+  };
 
   if (questionType === "ungraded" && questionSubType === CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID) {
     pointsLabel = "Max Points";
@@ -62,7 +84,43 @@ function QuestionCardFooter({
 
   return (
     <div className={`flex items-center justify-between ${QUESTION_BUILDER_GAPS.footerOuter}`}>
-      <div className={`flex items-center ${QUESTION_BUILDER_GAPS.footerGroup}`}>
+      <div className={`flex flex-wrap items-center ${QUESTION_BUILDER_GAPS.footerGroup}`}>
+        <label className="flex items-center gap-2 text-[14px] text-[#232A25]">
+          <span>Type</span>
+          <select
+            className="h-8 rounded-[6px] border border-[#E5E5E5] bg-white px-2 text-[13px]"
+            value={questionSubType}
+            onChange={(event) => {
+              const nextSubType = event.target.value;
+              if (nextSubType === questionSubType) {
+                return;
+              }
+              const question = findQuestion();
+              if (!question || !("text" in question)) {
+                return;
+              }
+              const preview = previewQuestionSubtypeConversion(question as QuestionItem, nextSubType);
+              if (preview.warningMessage && !window.confirm(preview.warningMessage)) {
+                event.target.value = questionSubType;
+                return;
+              }
+              dispatch(
+                changeQuestionSubtype({
+                  subjectId,
+                  questionId,
+                  parentPassageId,
+                  nextSubType,
+                }),
+              );
+            }}
+          >
+            {subtypeOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">{pointsLabel}</p>
         <div className="flex items-center justify-between border border-[#E5E5E5] bg-white">
           <input

@@ -1,7 +1,7 @@
 "use client";
 
 import { useToast } from "@/component/Toast/ToastContext";
-import apiClient from "@/lib/axios";
+import { persistAuthSession } from "@/lib/authSession";
 import { RotatingLines } from "react-loader-spinner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
@@ -53,19 +53,9 @@ const GoogleCallbackContent = () => {
           role,
           access_token: accessToken,
           refresh_token: refreshToken ?? "",
-        };
+        } as LoginResponsePayload;
 
-        const setTokenResponse = await apiClient.post("/api/set-token", {
-          token: accessToken,
-          refreshToken: refreshToken ?? "",
-          role,
-        });
-
-        if (setTokenResponse.status !== 200) {
-          throw new Error("Failed to store auth session");
-        }
-
-        localStorage.setItem("user", JSON.stringify(payload));
+        await persistAuthSession(payload);
 
         triggerToast({
           title: "Login Successful",

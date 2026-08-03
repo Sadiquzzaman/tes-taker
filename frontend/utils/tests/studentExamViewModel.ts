@@ -1,5 +1,13 @@
 const MATCHING_SUB_TYPE: StudentExamAutoScoredSubType = "matching-ordering";
 const MULTI_SELECT_SUB_TYPE: StudentExamAutoScoredSubType = "multiple-response";
+const AUTO_SCORED_SUB_TYPES: StudentExamAutoScoredSubType[] = [
+  "multiple-choice",
+  "multiple-response",
+  "true-false",
+  "fill-in-the-blanks",
+  "answer-box",
+  "matching-ordering",
+];
 
 const getInputMode = (
   questionType: StudentExamQuestionType,
@@ -17,12 +25,22 @@ const getInputMode = (
     return "multi-select";
   }
 
-  if (subType === "essay" || subType === "fill-in-the-gaps") {
+  if (
+    subType === "essay" ||
+    subType === "fill-in-the-gaps" ||
+    subType === "fill-in-the-blanks" ||
+    subType === "answer-box"
+  ) {
     return "text";
   }
 
   return "single-select";
 };
+
+const isAutoScoredViewQuestion = (
+  questionType: StudentExamQuestionType,
+  subType: StudentExamQuestionSubType,
+) => questionType !== "ungraded" && AUTO_SCORED_SUB_TYPES.includes(subType as StudentExamAutoScoredSubType);
 
 const buildViewQuestion = (
   question: StudentExamStandardQuestion | StudentExamPassageChildQuestion,
@@ -39,7 +57,7 @@ const buildViewQuestion = (
   points: question.points,
   showValidation: question.showValidation,
   inputMode: getInputMode(question.type, question.subType),
-  isAutoScored: question.type !== "ungraded",
+  isAutoScored: isAutoScoredViewQuestion(question.type, question.subType),
   questionNumber,
 });
 
@@ -109,6 +127,8 @@ export const buildStudentExamViewModel = (exam: StudentExamDetails): StudentExam
     return {
       id: subject.id,
       title: subject.name,
+      subjectName: subject.name,
+      subjectCode: subject.code ?? undefined,
       questionCount: items.reduce((count, item) => {
         if (item.kind === "passage") {
           return count + item.questions.length;

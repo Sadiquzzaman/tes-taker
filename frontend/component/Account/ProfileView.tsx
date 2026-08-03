@@ -6,6 +6,7 @@ import { RotatingLines } from "react-loader-spinner";
 import useProfile from "@/hooks/api/auth/useProfile";
 import ChangePasswordForm from "./ChangePasswordForm";
 import AccountBilling from "./AccountBilling";
+import TeacherRequestPanel from "./TeacherRequestPanel";
 
 const formatDate = (value?: string) => {
   if (!value) return "—";
@@ -101,6 +102,8 @@ const ProfileView = () => {
           <InfoRow label="Member since" value={formatDate(profile.created_at)} />
         </div>
       </div>
+
+      {profile.role === "STUDENT" && <TeacherRequestPanel />}
 
       {profile.role === "TEACHER" && (
         <Suspense fallback={<div className="rounded-2xl border border-[#E5E5E5] bg-white p-6 animate-pulse h-40" />}>

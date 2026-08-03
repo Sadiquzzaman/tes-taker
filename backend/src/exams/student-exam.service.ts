@@ -858,6 +858,25 @@ export class StudentExamService {
     submission.status = status;
     submission.submitted_at = new Date();
     submission.updated_at = new Date();
+    if (status === ExamSubmissionStatusEnum.DISQUALIFIED) {
+      submission.disqualification_reason =
+        dto.disqualification_reason?.trim() || 'Exam session disqualified.';
+    }
+    if (Array.isArray(dto.proctoring_events) && dto.proctoring_events.length) {
+      const { serializeProctoringEvents, parseProctoringEvents } = await import(
+        './utils/proctoring-events.util'
+      );
+      const existing = parseProctoringEvents(submission.proctoring_events_json);
+      const incoming = dto.proctoring_events.map((event, index) => ({
+        id: event.id || `client-${index}-${Date.now()}`,
+        type: event.type,
+        message: event.message || event.type,
+        points: Number(event.points ?? 0),
+        timestamp: event.timestamp || new Date().toISOString(),
+        source: 'client' as const,
+      }));
+      submission.proctoring_events_json = serializeProctoringEvents([...existing, ...incoming]);
+    }
     this.applySubmissionGradingState(submission, exam);
     await this.submissionRepo.save(submission);
 
@@ -968,7 +987,12 @@ export class StudentExamService {
         }
 
         if (isAutoScoredQuestion(question.category, question.sub_type)) {
-          if (question.sub_type === 'multiple-response' || question.sub_type === 'matching-ordering') {
+          if (
+            question.sub_type === 'multiple-response' ||
+            question.sub_type === 'matching-ordering' ||
+            question.sub_type === 'fill-in-the-blanks' ||
+            question.sub_type === 'answer-box'
+          ) {
             await this.upsertTextAnswer(answerRepo, subRow.id, questionId, trimmed, studentId);
             continue;
           }
@@ -1439,12 +1463,25 @@ export class StudentExamService {
 
     switch (dto.violation_type) {
       case 'BROWSER_SWITCH':
+      case 'browser-switch':
+      case 'window-blur':
         submission.browser_switch_count += 1;
         break;
       case 'TAB_SWITCH':
+      case 'tab-switch':
         submission.tab_switch_count += 1;
         break;
     }
+
+    const { appendProctoringEvent } = await import('./utils/proctoring-events.util');
+    submission.proctoring_events_json = appendProctoringEvent(submission.proctoring_events_json, {
+      id: `rest-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: dto.violation_type,
+      message: dto.details || dto.violation_type,
+      points: Number(dto.points ?? 0),
+      timestamp: dto.timestamp || new Date().toISOString(),
+      source: 'rest',
+    });
 
     await this.submissionRepo.save(submission);
   }
@@ -1766,8 +1803,12 @@ export class StudentExamService {
       throw new NotFoundException('Submission not found');
     }
 
-    if (!FINALIZED_SUBMISSION_STATUSES.includes(submission.status)) {
-      throw new BadRequestException('Only submitted exams can be graded');
+    const reviewable = [
+      ...FINALIZED_SUBMISSION_STATUSES,
+      ExamSubmissionStatusEnum.DISQUALIFIED,
+    ];
+    if (!reviewable.includes(submission.status)) {
+      throw new BadRequestException('Only submitted or disqualified exams can be reviewed');
     }
 
     return submission;

@@ -64,6 +64,7 @@ import {
   computePercentage,
   examHasManualQuestions,
   FINALIZED_SUBMISSION_STATUSES,
+  TEACHER_VISIBLE_SUBMISSION_STATUSES,
 } from './utils/exam-grading.util';
 
 type ExamListMetrics = {
@@ -416,10 +417,18 @@ export class ExamService {
     for (const subj of subjects) {
       for (const raw of subj.questions) {
         const parsed = parseWizardQuestion(raw);
-        if (parsed.kind === 'passage' || parsed.kind === 'graded') {
+        if (parsed.kind === 'graded') {
           hasAutoScored = true;
-        } else {
+        } else if (parsed.kind === 'ungraded') {
           hasManual = true;
+        } else if (parsed.kind === 'passage') {
+          for (const child of parsed.data.childQuestions) {
+            if (child.subType === 'essay') {
+              hasManual = true;
+            } else {
+              hasAutoScored = true;
+            }
+          }
         }
       }
     }
@@ -458,19 +467,69 @@ export class ExamService {
 
     let childOrder = 0;
     for (const child of passage.childQuestions) {
-      await this.persistAutoScoredQuestion(
-        questionRepo,
-        examId,
-        sectionId,
-        child,
-        childOrder++,
-        jwtPayload,
-        QuestionCategoryEnum.PASSAGE,
-        savedParent.id,
-      );
+      if (child.subType === 'essay') {
+        await this.persistPassageEssayChild(
+          questionRepo,
+          examId,
+          sectionId,
+          child,
+          childOrder++,
+          jwtPayload,
+          savedParent.id,
+        );
+      } else {
+        await this.persistAutoScoredQuestion(
+          questionRepo,
+          examId,
+          sectionId,
+          child,
+          childOrder++,
+          jwtPayload,
+          QuestionCategoryEnum.PASSAGE,
+          savedParent.id,
+        );
+      }
     }
 
     return sortOrder + 1;
+  }
+
+  private async persistPassageEssayChild(
+    questionRepo: Repository<ExamQuestionEntity>,
+    examId: string,
+    sectionId: string,
+    q: WizardChildQuestionDto,
+    sortOrder: number,
+    jwtPayload: JwtPayloadInterface,
+    parentId: string,
+  ): Promise<void> {
+    const points = normalizePoints(q.points);
+    const answerJson = mapAnswerForStorage(q.answer);
+
+    const payload: DeepPartial<ExamQuestionEntity> = {
+      id: resolveQuestionId(q.id),
+      section_id: sectionId,
+      exam: { id: examId } as ExamEntity,
+      sort_order: sortOrder,
+      question_type: QuestionTypeEnum.SUBJECTIVE,
+      category: QuestionCategoryEnum.PASSAGE,
+      sub_type: q.subType,
+      parent_id: parentId,
+      passage_text: null,
+      question: q.text.trim(),
+      image_url: null,
+      points,
+      marks_per_question: points,
+      instruction: q.instruction?.trim() ? q.instruction.trim() : null,
+      answer_json: answerJson,
+      sample_answer: answerJson?.value?.join('\n') ?? undefined,
+      created_by: jwtPayload.id,
+      created_user_name: jwtPayload.full_name,
+      created_at: new Date(),
+    };
+
+    const row = questionRepo.create(payload);
+    await questionRepo.save(row);
   }
 
   private async persistAutoScoredQuestion(
@@ -502,7 +561,7 @@ export class ExamService {
       question: q.text.trim(),
       image_url: null,
       points,
-      instruction: q.instruction?.trim() ? q.instruction.trim().slice(0, 500) : null,
+      instruction: q.instruction?.trim() ? q.instruction.trim() : null,
       options_json: options.length ? options : null,
       matching_options_json: matchingOptions,
       answer_json: answerJson,
@@ -550,7 +609,7 @@ export class ExamService {
       image_url: null,
       points,
       marks_per_question: points,
-      instruction: q.instruction?.trim() ? q.instruction.trim().slice(0, 500) : null,
+      instruction: q.instruction?.trim() ? q.instruction.trim() : null,
       answer_json: answerJson,
       sample_answer: answerJson?.value?.join('\n'),
       created_by: jwtPayload.id,
@@ -1475,6 +1534,23 @@ export class ExamService {
     question: ExamQuestionEntity,
     includeCorrectAnswers: boolean,
   ): ExamQuestionResponse {
+    if (question.sub_type === 'essay' || question.question_type === QuestionTypeEnum.SUBJECTIVE) {
+      const base: ExamQuestionResponse = {
+        id: question.id,
+        type: QuestionCategoryEnum.PASSAGE,
+        subType: question.sub_type,
+        text: question.question,
+        instruction: question.instruction ?? null,
+        image: null,
+        points: question.points ?? question.marks_per_question ?? null,
+        showValidation: false,
+      };
+      if (includeCorrectAnswers && question.answer_json) {
+        base.answer = question.answer_json;
+      }
+      return base;
+    }
+
     const base = this.formatAutoScoredQuestionResponse(question, includeCorrectAnswers);
     return {
       ...base,
@@ -2075,7 +2151,7 @@ export class ExamService {
       .leftJoinAndSelect('submission.student', 'student')
       .where('submission.exam_id = :examId', { examId })
       .andWhere('submission.status IN (:...statuses)', {
-        statuses: FINALIZED_SUBMISSION_STATUSES,
+        statuses: TEACHER_VISIBLE_SUBMISSION_STATUSES,
       })
       .orderBy('submission.submitted_at', 'DESC');
 
@@ -2093,6 +2169,9 @@ export class ExamService {
       .getManyAndCount();
 
     const gradingStatus = computeGradingStatus(exam, hasManualQuestions, stat.submitted_submissions);
+    const { parseProctoringEvents, summarizeProctoringEvents } = await import(
+      './utils/proctoring-events.util'
+    );
 
     return {
       exam: {
@@ -2116,22 +2195,32 @@ export class ExamService {
         pending: stat.pending_count,
         average_percentage: stat.average_percentage,
       },
-      submissions: submissions.map((submission) => ({
-        submission_id: submission.id,
-        student_id: submission.student_id,
-        student_name: submission.student?.full_name ?? null,
-        email: submission.student?.email ?? null,
-        phone: submission.student?.phone ?? null,
-        submitted_at: submission.submitted_at ?? null,
-        status: submission.status,
-        total_score: submission.total_score ?? null,
-        max_score: submission.max_score ?? null,
-        percentage: computePercentage(submission.total_score, submission.max_score),
-        is_graded: submission.is_graded,
-        grading_status: submission.is_graded
-          ? SubmissionGradingStatusEnum.GRADED
-          : SubmissionGradingStatusEnum.PENDING,
-      })),
+      submissions: submissions.map((submission) => {
+        const events = parseProctoringEvents(submission.proctoring_events_json);
+        const summary = summarizeProctoringEvents(events);
+        return {
+          submission_id: submission.id,
+          student_id: submission.student_id,
+          student_name: submission.student?.full_name ?? null,
+          email: submission.student?.email ?? null,
+          phone: submission.student?.phone ?? null,
+          submitted_at: submission.submitted_at ?? null,
+          started_at: submission.started_at ?? null,
+          status: submission.status,
+          total_score: submission.total_score ?? null,
+          max_score: submission.max_score ?? null,
+          percentage: computePercentage(submission.total_score, submission.max_score),
+          is_graded: submission.is_graded,
+          grading_status: submission.is_graded
+            ? SubmissionGradingStatusEnum.GRADED
+            : SubmissionGradingStatusEnum.PENDING,
+          browser_switch_count: submission.browser_switch_count ?? 0,
+          tab_switch_count: submission.tab_switch_count ?? 0,
+          disqualification_reason: submission.disqualification_reason ?? null,
+          proctoring_summary: summary,
+          proctoring_events: events,
+        };
+      }),
       meta: {
         page,
         limit,
@@ -2247,5 +2336,103 @@ export class ExamService {
     }
 
     return out;
+  }
+
+  /**
+   * Full class roster for an exam: every assigned student with status + proctoring summary.
+   */
+  async getExamClassRoster(
+    examId: string,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<Record<string, unknown>> {
+    await this.assertTeacherCanMonitorExam(examId, jwtPayload);
+
+    const exam = await this.examRepo.findOne({
+      where: { id: examId },
+      relations: ['class', 'class.classStudents', 'class.classStudents.student', 'excluded_students'],
+    });
+    if (!exam) {
+      throw new NotFoundException('Exam not found');
+    }
+
+    const excludedIds = new Set((exam.excluded_students || []).map((student) => student.id));
+    const classStudents = (exam.class?.classStudents || [])
+      .map((row) => row.student)
+      .filter((student): student is UserEntity => {
+        if (!student) {
+          return false;
+        }
+        return !excludedIds.has(student.id);
+      });
+
+    const submissions = await this.submissionRepo.find({
+      where: { exam_id: examId },
+    });
+    const byStudent = new Map(submissions.map((submission) => [submission.student_id, submission]));
+    const { parseProctoringEvents, summarizeProctoringEvents } = await import(
+      './utils/proctoring-events.util'
+    );
+
+    const counts = {
+      not_started: 0,
+      in_progress: 0,
+      submitted: 0,
+      auto_submitted: 0,
+      disqualified: 0,
+    };
+
+    const students = classStudents.map((student) => {
+      const submission = byStudent.get(student.id);
+      const status = submission?.status ?? ExamSubmissionStatusEnum.NOT_STARTED;
+      if (status === ExamSubmissionStatusEnum.NOT_STARTED) counts.not_started += 1;
+      else if (status === ExamSubmissionStatusEnum.IN_PROGRESS) counts.in_progress += 1;
+      else if (status === ExamSubmissionStatusEnum.SUBMITTED) counts.submitted += 1;
+      else if (status === ExamSubmissionStatusEnum.AUTO_SUBMITTED) counts.auto_submitted += 1;
+      else if (status === ExamSubmissionStatusEnum.DISQUALIFIED) counts.disqualified += 1;
+
+      const events = parseProctoringEvents(submission?.proctoring_events_json);
+      const summary = summarizeProctoringEvents(events);
+      const durationSeconds =
+        submission?.started_at && submission?.submitted_at
+          ? Math.max(
+              0,
+              Math.round(
+                (new Date(submission.submitted_at).getTime() - new Date(submission.started_at).getTime()) /
+                  1000,
+              ),
+            )
+          : null;
+
+      return {
+        student_id: student.id,
+        student_name: student.full_name ?? null,
+        email: student.email ?? null,
+        phone: student.phone ?? null,
+        status,
+        started_at: submission?.started_at ?? null,
+        submitted_at: submission?.submitted_at ?? null,
+        duration_seconds: durationSeconds,
+        total_score: submission?.total_score ?? null,
+        max_score: submission?.max_score ?? null,
+        is_graded: submission?.is_graded ?? false,
+        browser_switch_count: submission?.browser_switch_count ?? 0,
+        tab_switch_count: submission?.tab_switch_count ?? 0,
+        disqualification_reason: submission?.disqualification_reason ?? null,
+        proctoring_summary: summary,
+        proctoring_events: events,
+        submission_id: submission?.id ?? null,
+      };
+    });
+
+    return {
+      exam: {
+        id: exam.id,
+        test_name: exam.test_name,
+        class_id: exam.class?.id ?? null,
+        class_name: exam.class?.class_name ?? null,
+      },
+      counts,
+      students,
+    };
   }
 }

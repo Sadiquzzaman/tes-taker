@@ -16,6 +16,7 @@ type StudentExamAutoScoredSubType =
   | "multiple-response"
   | "true-false"
   | "fill-in-the-blanks"
+  | "answer-box"
   | "matching-ordering";
 type StudentExamManualSubType = "true-false" | "essay" | "fill-in-the-gaps";
 type StudentExamQuestionSubType = StudentExamAutoScoredSubType | StudentExamManualSubType;
@@ -43,7 +44,7 @@ interface StudentExamStandardQuestion extends StudentExamQuestionBase {
 
 interface StudentExamPassageChildQuestion extends StudentExamQuestionBase {
   type: "passage-question";
-  subType: StudentExamAutoScoredSubType;
+  subType: StudentExamQuestionSubType;
   text: string;
   options?: StudentExamOption[];
   matchingOptions?: {
@@ -101,6 +102,8 @@ type StudentExamViewItem = StudentExamSingleQuestionItem | StudentExamPassageIte
 interface StudentExamViewSection {
   id: string;
   title: string;
+  subjectName?: string;
+  subjectCode?: string;
   questionCount: number;
   items: StudentExamViewItem[];
 }

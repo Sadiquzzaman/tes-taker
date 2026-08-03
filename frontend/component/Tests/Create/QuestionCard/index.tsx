@@ -160,6 +160,13 @@ function QuestionCard({
               : "border border-[#E5E5E5] bg-white p-5 max-[600px]:p-3"
         }`}
       >
+        <QuestionCardInstruction
+          instruction={question.instruction ?? ""}
+          parentPassageId={parentPassageId}
+          questionId={question.id}
+          subjectId={subjectId}
+        />
+
         <QuestionCardHeader
           activateCard={activateCard}
           cardRef={cardRef}
@@ -215,15 +222,18 @@ function QuestionCard({
         ) : null}
 
         {hasTextAnswerEditor ? (
-          <QuestionCardTextAnswer
-            answerValues={question.answer?.type === "text" ? answerValues : []}
-            activateCard={activateCard}
-            placeholder={answerInputPlaceholder}
-            parentPassageId={parentPassageId}
-            questionId={question.id}
-            showAlternativeAnswerInput={showAlternativeAnswerInput}
-            subjectId={subjectId}
-          />
+          <div className="flex flex-col gap-2">
+            <p className="text-[14px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">Correct answer</p>
+            <QuestionCardTextAnswer
+              answerValues={question.answer?.type === "text" ? answerValues : []}
+              activateCard={activateCard}
+              placeholder={answerInputPlaceholder}
+              parentPassageId={parentPassageId}
+              questionId={question.id}
+              showAlternativeAnswerInput={showAlternativeAnswerInput}
+              subjectId={subjectId}
+            />
+          </div>
         ) : null}
 
         <QuestionCardValidation showValidation={question.showValidation} validationErrors={validationErrors} />
@@ -237,13 +247,6 @@ function QuestionCard({
           questionSubType={question.subType}
           questionId={question.id}
           questionType={question.type}
-          subjectId={subjectId}
-        />
-
-        <QuestionCardInstruction
-          instruction={question.instruction ?? ""}
-          parentPassageId={parentPassageId}
-          questionId={question.id}
           subjectId={subjectId}
         />
       </div>

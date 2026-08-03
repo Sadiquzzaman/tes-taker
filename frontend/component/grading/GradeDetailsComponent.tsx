@@ -5,6 +5,7 @@ import GradingModel from "./GradingModel";
 import GradeDetailsHeader from "./GradeDetailsHeader";
 import GradeDetailsStats from "./GradeDetailsStats";
 import StudentSubmissionsTable from "./StudentSubmissionsTable";
+import ExamClassRosterPanel from "./ExamClassRosterPanel";
 import { RotatingLines } from "react-loader-spinner";
 
 const GradeDetailsComponent = ({ classId }: { classId: string }) => {
@@ -40,6 +41,7 @@ const GradeDetailsComponent = ({ classId }: { classId: string }) => {
       </div>
 
       <div className="flex min-h-[calc(100vh-320px)] min-w-0 flex-col gap-6 rounded-[12px] bg-[#EFF0F3BF] p-2 sm:p-4">
+        <ExamClassRosterPanel examId={classId} />
         <StudentSubmissionsTable />
         <GradingModel />
       </div>
