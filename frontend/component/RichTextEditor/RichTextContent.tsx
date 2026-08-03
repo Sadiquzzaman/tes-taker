@@ -65,6 +65,7 @@ const RichTextContent = ({ html, className = "" }: RichTextContentProps) => {
         "width",
         "colspan",
         "rowspan",
+        "colwidth",
       ],
       ADD_TAGS: [
         "span",

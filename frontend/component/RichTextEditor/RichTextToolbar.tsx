@@ -230,25 +230,74 @@ const RichTextToolbar = ({
         >
           ▦
         </IconButton>
-        <IconButton title="Add column" disabled={!inTable || !editor.can().addColumnAfter()} onClick={() => editor.chain().focus().addColumnAfter().run()}>
-          Col+
+        <IconButton
+          title="Add column before"
+          disabled={!inTable || !editor.can().addColumnBefore()}
+          onClick={() => editor.chain().focus().addColumnBefore().run()}
+        >
+          ←Col
         </IconButton>
-        <IconButton title="Delete column" disabled={!inTable || !editor.can().deleteColumn()} onClick={() => editor.chain().focus().deleteColumn().run()}>
+        <IconButton
+          title="Add column after"
+          disabled={!inTable || !editor.can().addColumnAfter()}
+          onClick={() => editor.chain().focus().addColumnAfter().run()}
+        >
+          Col→
+        </IconButton>
+        <IconButton
+          title="Delete column"
+          disabled={!inTable || !editor.can().deleteColumn()}
+          onClick={() => editor.chain().focus().deleteColumn().run()}
+        >
           Col−
         </IconButton>
-        <IconButton title="Add row" disabled={!inTable || !editor.can().addRowAfter()} onClick={() => editor.chain().focus().addRowAfter().run()}>
-          Row+
+        <IconButton
+          title="Add row before"
+          disabled={!inTable || !editor.can().addRowBefore()}
+          onClick={() => editor.chain().focus().addRowBefore().run()}
+        >
+          ↑Row
         </IconButton>
-        <IconButton title="Delete row" disabled={!inTable || !editor.can().deleteRow()} onClick={() => editor.chain().focus().deleteRow().run()}>
+        <IconButton
+          title="Add row after"
+          disabled={!inTable || !editor.can().addRowAfter()}
+          onClick={() => editor.chain().focus().addRowAfter().run()}
+        >
+          Row↓
+        </IconButton>
+        <IconButton
+          title="Delete row"
+          disabled={!inTable || !editor.can().deleteRow()}
+          onClick={() => editor.chain().focus().deleteRow().run()}
+        >
           Row−
         </IconButton>
-        <IconButton title="Merge cells" disabled={!inTable || !editor.can().mergeCells()} onClick={() => editor.chain().focus().mergeCells().run()}>
+        <IconButton
+          title="Toggle header row"
+          disabled={!inTable || !editor.can().toggleHeaderRow()}
+          onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+        >
+          Hdr
+        </IconButton>
+        <IconButton
+          title="Merge cells"
+          disabled={!inTable || !editor.can().mergeCells()}
+          onClick={() => editor.chain().focus().mergeCells().run()}
+        >
           Merge
         </IconButton>
-        <IconButton title="Split cell" disabled={!inTable || !editor.can().splitCell()} onClick={() => editor.chain().focus().splitCell().run()}>
+        <IconButton
+          title="Split cell"
+          disabled={!inTable || !editor.can().splitCell()}
+          onClick={() => editor.chain().focus().splitCell().run()}
+        >
           Split
         </IconButton>
-        <IconButton title="Delete table" disabled={!inTable || !editor.can().deleteTable()} onClick={() => editor.chain().focus().deleteTable().run()}>
+        <IconButton
+          title="Delete table"
+          disabled={!inTable || !editor.can().deleteTable()}
+          onClick={() => editor.chain().focus().deleteTable().run()}
+        >
           ⌫▦
         </IconButton>
       </ToolbarGroup>

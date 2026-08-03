@@ -73,6 +73,7 @@ const RichTextEditor = ({
   const allowImagesRef = useRef(allowImages);
   const enableStructuredPasteRef = useRef(enableStructuredPaste);
   const onStructuredPasteRef = useRef(onStructuredPaste);
+  const editorInstanceRef = useRef<ReturnType<typeof useEditor>>(null);
   const [mathModal, setMathModal] = useState<MathModalState>({
     open: false,
     latex: "",
@@ -116,8 +117,15 @@ const RichTextEditor = ({
           return false;
         }
 
+        const pastedHtml = clipboard.getData("text/html");
+        if (pastedHtml && /<table\b/i.test(pastedHtml)) {
+          queueMicrotask(() => {
+            editorInstanceRef.current?.commands.fixTables();
+          });
+        }
+
         if (enableStructuredPasteRef.current && onStructuredPasteRef.current) {
-          const html = clipboard.getData("text/html");
+          const html = pastedHtml;
           const plain = clipboard.getData("text/plain");
           const source = html || plain;
           if (source) {
@@ -240,6 +248,7 @@ const RichTextEditor = ({
   );
 
   useEffect(() => {
+    editorInstanceRef.current = editor;
     editorRef?.(editor);
   }, [editor, editorRef]);
 
@@ -342,7 +351,7 @@ const RichTextEditor = ({
 
   return (
     <div
-      className={`rte-shell overflow-hidden rounded-[8px] border border-[#E5E5E5] bg-white ${className}`.trim()}
+      className={`rte-shell rounded-[8px] border border-[#E5E5E5] bg-white ${className}`.trim()}
       onDragOver={handleDragOver}
     >
       <RichTextToolbar
@@ -358,7 +367,7 @@ const RichTextEditor = ({
         }
         onOpenChemistry={() => setChemistryOpen(true)}
       />
-      <div className="px-3 py-2">
+      <div className="overflow-x-auto px-3 py-2">
         <EditorContent editor={editor} />
       </div>
 
