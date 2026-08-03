@@ -18,13 +18,19 @@ export const getPlainTextFromHtml = (value: string): string => {
     .trim();
 };
 
+/** Non-text nodes that still count as real editor content (empty tables, graphs, etc.). */
+const hasStructuralRichContent = (html: string): boolean =>
+  /<img\b/i.test(html) ||
+  /<table\b/i.test(html) ||
+  /data-type=["'](?:math|geometry|editor-graph)/i.test(html);
+
 /** Tiptap empty docs often serialize as `<p></p>` — treat as empty string. */
 export const normalizeRichTextHtml = (html: string): string => {
   if (!html) {
     return "";
   }
 
-  if (!getPlainTextFromHtml(html) && !/<img\b/i.test(html) && !/data-type=["'](?:math|geometry)/i.test(html)) {
+  if (!getPlainTextFromHtml(html) && !hasStructuralRichContent(html)) {
     return "";
   }
 
@@ -32,7 +38,7 @@ export const normalizeRichTextHtml = (html: string): string => {
 };
 
 export const hasRichTextContent = (html: string, image?: string | null): boolean =>
-  Boolean(getPlainTextFromHtml(html) || image || /<img\b/i.test(html) || /data-type=["'](?:math|geometry)/i.test(html));
+  Boolean(getPlainTextFromHtml(html) || image || hasStructuralRichContent(html));
 
 export const PASSAGE_INSTRUCTION_EN =
   "Read the passage / CQ below and answer the following questions";

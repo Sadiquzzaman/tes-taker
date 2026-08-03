@@ -276,9 +276,14 @@
   color: #49734f;
 }
 
+.rte-content .tableWrapper {
+  overflow-x: auto;
+  margin: 0.55em 0;
+}
+
 .rte-content .rte-table {
   border-collapse: collapse;
-  margin: 0.55em 0;
+  margin: 0;
   width: 100%;
   table-layout: fixed;
   overflow: hidden;
@@ -288,14 +293,28 @@
 .rte-content .rte-table th {
   border: 1px solid #d6d7d4;
   min-width: 60px;
+  min-height: 1.6em;
   padding: 0.4em 0.55em;
   vertical-align: top;
   position: relative;
+  box-sizing: border-box;
 }
 
 .rte-content .rte-table th {
   background: #f7f8f7;
   font-weight: 600;
+}
+
+.rte-content .rte-table .selectedCell::after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(73, 115, 79, 0.18);
+  pointer-events: none;
 }
 
 .rte-content .column-resize-handle {
@@ -305,7 +324,13 @@
   bottom: 0;
   width: 4px;
   background: #49734f;
+  z-index: 20;
   pointer-events: none;
+}
+
+.rte-content.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
 }
 
 .rte-math-node {
@@ -655,14 +680,4 @@
 .rte-graph-fallback-img {
   max-width: 100%;
   height: auto;
-}
-
-.rte-content .column-resize-handle {
-  position: absolute;
-  right: -2px;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: #49734f;
-  cursor: col-resize;
 }
