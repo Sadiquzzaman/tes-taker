@@ -276,36 +276,79 @@
   color: #49734f;
 }
 
-.rte-content .tableWrapper {
-  overflow-x: auto;
-  margin: 0.55em 0;
+/* TipTap / ProseMirror tables — Word-like visible grid (Tailwind preflight zeroes borders). */
+.rte-content,
+.ProseMirror {
+  --default-cell-min-width: 120px;
 }
 
-.rte-content .rte-table {
-  border-collapse: collapse;
-  margin: 0;
+.rte-content .tableWrapper,
+.ProseMirror .tableWrapper {
+  display: block;
   width: 100%;
+  margin: 0.65em 0;
+  overflow-x: auto;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.rte-content table,
+.ProseMirror table,
+.rte-content .rte-table {
+  border-collapse: collapse !important;
+  border-spacing: 0;
+  margin: 0;
+  width: 100% !important;
+  min-width: 100%;
   table-layout: fixed;
   overflow: hidden;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
-.rte-content .rte-table td,
-.rte-content .rte-table th {
-  border: 1px solid #d6d7d4;
-  min-width: 60px;
-  min-height: 1.6em;
-  padding: 0.4em 0.55em;
+.rte-content table col,
+.ProseMirror table col {
+  min-width: var(--default-cell-min-width);
+}
+
+.rte-content table td,
+.rte-content table th,
+.ProseMirror table td,
+.ProseMirror table th,
+.rte-content .rte-table-cell,
+.rte-content .rte-table-header {
+  border: 1px solid #b8bcb8 !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: #b8bcb8 !important;
+  min-width: var(--default-cell-min-width);
+  height: 2.25em;
+  padding: 8px 10px !important;
   vertical-align: top;
   position: relative;
   box-sizing: border-box;
+  background-clip: padding-box;
 }
 
-.rte-content .rte-table th {
-  background: #f7f8f7;
+.rte-content table th,
+.ProseMirror table th,
+.rte-content .rte-table-header {
+  background-color: #f3f5f3 !important;
   font-weight: 600;
+  text-align: left;
 }
 
-.rte-content .rte-table .selectedCell::after {
+.rte-content table td > *,
+.rte-content table th > *,
+.ProseMirror table td > *,
+.ProseMirror table th > * {
+  margin-top: 0;
+  margin-bottom: 0;
+  min-height: 1.25em;
+}
+
+.rte-content table .selectedCell::after,
+.ProseMirror table .selectedCell::after {
   z-index: 2;
   position: absolute;
   content: "";
@@ -317,18 +360,20 @@
   pointer-events: none;
 }
 
-.rte-content .column-resize-handle {
+.rte-content .column-resize-handle,
+.ProseMirror .column-resize-handle {
   position: absolute;
   right: -2px;
   top: 0;
   bottom: 0;
-  width: 4px;
-  background: #49734f;
+  width: 5px;
+  background-color: #49734f;
   z-index: 20;
   pointer-events: none;
 }
 
-.rte-content.resize-cursor {
+.rte-content.resize-cursor,
+.ProseMirror.resize-cursor {
   cursor: ew-resize;
   cursor: col-resize;
 }

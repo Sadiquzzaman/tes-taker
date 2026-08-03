@@ -52,13 +52,26 @@ export const createRichTextExtensions = (placeholder: string) => [
   Table.configure({
     resizable: true,
     allowTableNodeSelection: true,
+    cellMinWidth: 120,
+    handleWidth: 6,
     HTMLAttributes: {
       class: "rte-table",
     },
   }),
   TableRow,
-  TableHeader,
-  TableCell,
+  TableHeader.configure({
+    HTMLAttributes: {
+      class: "rte-table-header",
+      style:
+        "border: 1px solid #b8bcb8; padding: 8px 10px; vertical-align: top; min-width: 120px; background-color: #f3f5f3; font-weight: 600;",
+    },
+  }),
+  TableCell.configure({
+    HTMLAttributes: {
+      class: "rte-table-cell",
+      style: "border: 1px solid #b8bcb8; padding: 8px 10px; vertical-align: top; min-width: 120px;",
+    },
+  }),
   EditorGraph,
   Typography,
   Placeholder.configure({

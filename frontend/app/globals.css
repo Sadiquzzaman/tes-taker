@@ -23,3 +23,29 @@ a {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* TipTap tables: restore borders after Tailwind preflight (border: 0). */
+.rte-content table,
+.ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.rte-content table td,
+.rte-content table th,
+.ProseMirror table td,
+.ProseMirror table th {
+  border: 1px solid #b8bcb8;
+  padding: 8px 10px;
+  min-width: 120px;
+  vertical-align: top;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.rte-content table th,
+.ProseMirror table th {
+  background-color: #f3f5f3;
+  font-weight: 600;
+}
