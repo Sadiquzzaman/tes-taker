@@ -574,10 +574,27 @@
   background: #fff;
 }
 
-.rte-inline-panel--fixed .rte-excalidraw-host {
+.rte-tldraw-host {
+  position: relative;
+  width: 100%;
+  height: min(520px, 58vh);
+  min-height: 360px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.rte-tldraw-host .tl-container {
+  position: absolute;
+  inset: 0;
+}
+
+.rte-inline-panel--fixed .rte-excalidraw-host,
+.rte-inline-panel--fixed .rte-tldraw-host {
   flex: 1 1 auto;
   height: auto;
-  min-height: 320px;
+  min-height: 360px;
 }
 
 .rte-graph-host {

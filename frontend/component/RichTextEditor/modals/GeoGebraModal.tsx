@@ -8,14 +8,14 @@ type GeoGebraModalProps = {
   onInsert: (dataUrl: string) => void;
 };
 
-/** Geometry figure inserter — simple draw canvas (replaces heavy GeoGebra embed). */
 const GeoGebraModal = ({ open, onClose, onInsert }: GeoGebraModalProps) => (
   <SketchFigureModal
     open={open}
     title="Insert geometry figure"
-    hint="Sketch triangles, circles, angles, or coordinate diagrams with shapes and lines. Or upload an image of a figure."
+    hint="Upload a figure, or draw shapes, lines, and angles on the canvas."
     insertLabel="Insert figure"
     allowUpload
+    defaultMode="upload"
     onClose={onClose}
     onInsert={onInsert}
   />
