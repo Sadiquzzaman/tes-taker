@@ -2,23 +2,22 @@
 
 import SketchFigureModal from "./SketchFigureModal";
 
-type KekuleModalProps = {
+type ChemistryFigureModalProps = {
   open: boolean;
   onClose: () => void;
   onInsert: (dataUrl: string) => void;
 };
 
-const KekuleModal = ({ open, onClose, onInsert }: KekuleModalProps) => (
+const ChemistryFigureModal = ({ open, onClose, onInsert }: ChemistryFigureModalProps) => (
   <SketchFigureModal
     open={open}
+    mode="chemistry"
     title="Insert chemistry figure"
-    hint="Upload a structure image, or sketch bonds and formulas on the canvas."
+    hint="Tap reaction arrows, rings, and common labels, then sketch freely. Or upload a structure photo from a textbook."
     insertLabel="Insert structure"
-    allowUpload
-    defaultMode="upload"
     onClose={onClose}
     onInsert={onInsert}
   />
 );
 
-export default KekuleModal;
+export default ChemistryFigureModal;

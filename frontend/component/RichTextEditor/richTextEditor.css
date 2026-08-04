@@ -528,15 +528,6 @@
   width: 100%;
 }
 
-.rte-geogebra-host,
-.rte-kekule-host {
-  min-height: 420px;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f7f8f7;
-}
-
 .rte-readonly .rte-image-handle,
 .rte-readonly .rte-image-align-bar {
   display: none;
@@ -566,23 +557,16 @@
   overflow: auto;
 }
 
-.rte-excalidraw-host {
-  height: min(520px, 60vh);
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #fff;
-}
-
 .rte-tldraw-host {
   position: relative;
   width: 100%;
-  height: min(520px, 58vh);
-  min-height: 360px;
+  height: min(480px, 55vh);
+  min-height: 420px;
   border: 1px solid #e5e5e5;
   border-radius: 8px;
   overflow: hidden;
-  background: #fff;
+  background: #f8f9f8;
+  flex: 0 0 auto;
 }
 
 .rte-tldraw-host .tl-container {
@@ -590,11 +574,14 @@
   inset: 0;
 }
 
-.rte-inline-panel--fixed .rte-excalidraw-host,
-.rte-inline-panel--fixed .rte-tldraw-host {
-  flex: 1 1 auto;
-  height: auto;
-  min-height: 360px;
+.rte-tldraw-host.is-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 
 .rte-graph-host {
@@ -700,8 +687,7 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(15, 26, 18, 0.35);
-  backdrop-filter: blur(3px);
+  background: rgba(15, 26, 18, 0.4);
   overflow: auto;
 }
 
@@ -748,6 +734,37 @@
   gap: 8px;
   margin: 0 0 10px;
   flex-shrink: 0;
+}
+
+.rte-figure-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+  flex-shrink: 0;
+}
+
+.rte-figure-palette__btn {
+  border: 1px solid #d6d7d4;
+  background: #fff;
+  border-radius: 8px;
+  color: #232a25;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  min-height: 32px;
+  padding: 6px 10px;
+}
+
+.rte-figure-palette__btn:hover {
+  border-color: #49734f;
+  background: #f4f7f4;
+}
+
+.rte-figure-palette__btn.is-active {
+  border-color: #49734f;
+  background: #e8ede9;
+  color: #49734f;
 }
 
 .rte-upload-panel {

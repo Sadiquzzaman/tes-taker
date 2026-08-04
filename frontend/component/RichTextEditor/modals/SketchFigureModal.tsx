@@ -5,14 +5,22 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "reac
 import { createPortal } from "react-dom";
 import type { Editor } from "tldraw";
 import "tldraw/tldraw.css";
+import {
+  applyCadLiteDefaults,
+  applyChemistryDefaults,
+  CHEMISTRY_PALETTE,
+  GEOMETRY_PALETTE,
+  type FigurePaletteItem,
+} from "./figurePalettes";
+
+type FigureMode = "geometry" | "chemistry";
 
 type SketchFigureModalProps = {
   open: boolean;
+  mode: FigureMode;
   title: string;
   hint: string;
   insertLabel: string;
-  allowUpload?: boolean;
-  defaultMode?: "draw" | "upload";
   onClose: () => void;
   onInsert: (dataUrl: string) => void;
 };
@@ -30,20 +38,31 @@ const readFileAsDataUrl = (file: File): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
+const refreshViewport = (editor: Editor, host: HTMLElement | null) => {
+  if (!host) {
+    return;
+  }
+  editor.updateViewportScreenBounds(host, true);
+};
+
 const SketchFigureModalBody = ({
+  mode,
   title,
   hint,
   insertLabel,
-  allowUpload = false,
-  defaultMode = "draw",
   onClose,
   onInsert,
 }: Omit<SketchFigureModalProps, "open">) => {
   const editorRef = useRef<Editor | null>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<"draw" | "upload">(allowUpload ? defaultMode : "draw");
+  const [view, setView] = useState<"draw" | "upload">("draw");
+  const [activeStamp, setActiveStamp] = useState<string | null>(null);
+  const [editorReady, setEditorReady] = useState(false);
+
+  const palette: FigurePaletteItem[] = mode === "geometry" ? GEOMETRY_PALETTE : CHEMISTRY_PALETTE;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -54,6 +73,51 @@ const SketchFigureModalBody = ({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    const editor = editorRef.current;
+    if (!host || !editor || !editorReady) {
+      return;
+    }
+
+    const sync = () => refreshViewport(editor, host);
+    sync();
+    const observer = new ResizeObserver(() => sync());
+    observer.observe(host);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [editorReady, view]);
+
+  const handleMount = useCallback(
+    (editor: Editor) => {
+      editorRef.current = editor;
+      if (mode === "geometry") {
+        applyCadLiteDefaults(editor);
+      } else {
+        applyChemistryDefaults(editor);
+      }
+      setEditorReady(true);
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => refreshViewport(editor, hostRef.current));
+      });
+    },
+    [mode],
+  );
+
+  const handlePaletteClick = (item: FigurePaletteItem) => {
+    const editor = editorRef.current;
+    if (!editor) {
+      setError("Canvas is not ready yet.");
+      return;
+    }
+    setError("");
+    setActiveStamp(item.id);
+    setView("draw");
+    item.run(editor);
+  };
 
   const handleInsertDrawing = useCallback(async () => {
     const editor = editorRef.current;
@@ -67,7 +131,7 @@ const SketchFigureModalBody = ({
     try {
       const shapeIds = [...editor.getCurrentPageShapeIds()];
       if (!shapeIds.length) {
-        throw new Error("Draw something first, or switch to Upload image.");
+        throw new Error("Draw or stamp something first, or switch to Upload image.");
       }
 
       const { blob } = await editor.toImage(shapeIds, {
@@ -135,37 +199,50 @@ const SketchFigureModalBody = ({
         </div>
         <p className="rte-modal__hint">{hint}</p>
 
-        {allowUpload ? (
-          <div className="rte-modal__chips" role="tablist" aria-label="Insert method">
-            <button
-              type="button"
-              className={`rte-modal__chip ${mode === "upload" ? "is-active" : ""}`}
-              onClick={() => setMode("upload")}
-            >
-              Upload image
-            </button>
-            <button
-              type="button"
-              className={`rte-modal__chip ${mode === "draw" ? "is-active" : ""}`}
-              onClick={() => setMode("draw")}
-            >
-              Draw
-            </button>
+        <div className="rte-modal__chips" role="tablist" aria-label="Insert method">
+          <button
+            type="button"
+            className={`rte-modal__chip ${view === "draw" ? "is-active" : ""}`}
+            onClick={() => setView("draw")}
+          >
+            Draw
+          </button>
+          <button
+            type="button"
+            className={`rte-modal__chip ${view === "upload" ? "is-active" : ""}`}
+            onClick={() => setView("upload")}
+          >
+            Upload image
+          </button>
+        </div>
+
+        {view === "draw" ? (
+          <div className="rte-figure-palette" role="toolbar" aria-label={`${mode} tools`}>
+            {palette.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                title={item.title}
+                className={`rte-figure-palette__btn ${activeStamp === item.id ? "is-active" : ""}`}
+                onClick={() => handlePaletteClick(item)}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
         ) : null}
 
         {error ? <p className="rte-modal__error">{error}</p> : null}
 
         <div className="rte-inline-panel__body">
-          {mode === "draw" ? (
-            <div className="rte-tldraw-host">
-              <Tldraw
-                onMount={(editor) => {
-                  editorRef.current = editor;
-                }}
-              />
-            </div>
-          ) : (
+          <div
+            ref={hostRef}
+            className={`rte-tldraw-host ${view === "draw" ? "" : "is-hidden"}`.trim()}
+            aria-hidden={view !== "draw"}
+          >
+            <Tldraw onMount={handleMount} />
+          </div>
+          {view === "upload" ? (
             <div className="rte-upload-panel">
               <p className="rte-modal__hint">
                 Fastest option: upload a photo or screenshot of the figure from a textbook or worksheet.
@@ -186,14 +263,14 @@ const SketchFigureModalBody = ({
                 onChange={(event) => void handleUpload(event)}
               />
             </div>
-          )}
+          ) : null}
         </div>
 
         <div className="rte-modal__actions rte-modal__actions--sticky">
           <button type="button" className="rte-modal__ghost" onClick={onClose} disabled={busy}>
             Cancel
           </button>
-          {mode === "draw" ? (
+          {view === "draw" ? (
             <button
               type="button"
               className="rte-modal__primary"
@@ -223,7 +300,7 @@ const SketchFigureModal = ({ open, ...rest }: SketchFigureModalProps) => {
     return null;
   }
 
-  return createPortal(<SketchFigureModalBody key={`${rest.title}-session`} {...rest} />, document.body);
+  return createPortal(<SketchFigureModalBody key={`${rest.mode}-session`} {...rest} />, document.body);
 };
 
 export default SketchFigureModal;

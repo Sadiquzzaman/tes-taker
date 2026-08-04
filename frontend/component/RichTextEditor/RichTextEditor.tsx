@@ -16,9 +16,8 @@ import RichTextToolbar from "./RichTextToolbar";
 import "./richTextEditor.css";
 
 const MathLiveModal = dynamic(() => import("./modals/MathLiveModal"), { ssr: false });
-const GeoGebraModal = dynamic(() => import("./modals/GeoGebraModal"), { ssr: false });
-const KekuleModal = dynamic(() => import("./modals/KekuleModal"), { ssr: false });
-const ExcalidrawModal = dynamic(() => import("./modals/ExcalidrawModal"), { ssr: false });
+const GeoGebraModal = dynamic(() => import("./modals/GeometryFigureModal"), { ssr: false });
+const KekuleModal = dynamic(() => import("./modals/ChemistryFigureModal"), { ssr: false });
 const GraphPanel = dynamic(() => import("./panels/GraphPanel"), { ssr: false });
 
 type RichTextEditorProps = {
@@ -82,7 +81,6 @@ const RichTextEditor = ({
   });
   const [geometryOpen, setGeometryOpen] = useState(false);
   const [chemistryOpen, setChemistryOpen] = useState(false);
-  const [drawingOpen, setDrawingOpen] = useState(false);
   const [graphPanel, setGraphPanel] = useState<GraphPanelState>({
     open: false,
     definition: null,
@@ -213,7 +211,7 @@ const RichTextEditor = ({
   });
 
   const insertImage = useCallback(
-    (src: string, kind: "image" | "geometry" | "chemistry" | "drawing" = "image") => {
+    (src: string, kind: "image" | "geometry" | "chemistry" = "image") => {
       if (!editor) {
         return;
       }
@@ -222,7 +220,7 @@ const RichTextEditor = ({
         .focus()
         .setResizableImage({
           src,
-          kind: kind === "drawing" ? "geometry" : kind,
+          kind,
           align: "center",
           width: kind === "image" ? "320px" : "480px",
           caption: "",
@@ -360,7 +358,6 @@ const RichTextEditor = ({
         allowImages={allowImages && Boolean(onImageFile)}
         onRequestImageUpload={() => imageInputRef.current?.click()}
         onOpenMath={() => setMathModal({ open: true, latex: "", display: false, pos: null })}
-        onOpenDrawing={() => setDrawingOpen(true)}
         onOpenGeometry={() => setGeometryOpen(true)}
         onOpenGraph={() =>
           setGraphPanel({ open: true, definition: createDefaultGraphDefinition("coordinate"), pos: null })
@@ -430,17 +427,6 @@ const RichTextEditor = ({
           onInsert={(dataUrl) => {
             insertImage(dataUrl, "chemistry");
             setChemistryOpen(false);
-          }}
-        />
-      ) : null}
-
-      {isFull && drawingOpen ? (
-        <ExcalidrawModal
-          open={drawingOpen}
-          onClose={() => setDrawingOpen(false)}
-          onInsert={(dataUrl) => {
-            insertImage(dataUrl, "drawing");
-            setDrawingOpen(false);
           }}
         />
       ) : null}
