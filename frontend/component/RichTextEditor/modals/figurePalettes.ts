@@ -228,14 +228,6 @@ const insertAxes = (editor: Editor) => {
   });
 };
 
-export const promptAndInsertEquation = (editor: Editor, placeholder: string) => {
-  const value = window.prompt("Type equation / formula / reaction:", placeholder);
-  if (!value?.trim()) {
-    return;
-  }
-  insertTextStamp(editor, value.trim(), "m");
-};
-
 export const applyCadLiteDefaults = (editor: Editor) => {
   editor.updateInstanceState({ isGridMode: true });
   editor.user.updateUserPreferences({ isSnapMode: true });
@@ -257,13 +249,7 @@ export const GEOMETRY_GROUPS: FigurePaletteGroup[] = [
       { id: "line", label: "Line", title: "Straight line", run: (e) => e.setCurrentTool("line") },
       { id: "draw", label: "Pen", title: "Freehand", run: (e) => e.setCurrentTool("draw") },
       { id: "arrow-tool", label: "Arrow", title: "Draw arrow / vector", run: (e) => e.setCurrentTool("arrow") },
-      { id: "text", label: "Text", title: "Add text / equation", run: (e) => e.setCurrentTool("text") },
-      {
-        id: "eq-custom",
-        label: "Eq…",
-        title: "Type a geometry equation or expression",
-        run: (e) => promptAndInsertEquation(e, "a² + b² = c²"),
-      },
+      { id: "text", label: "Text", title: "Add free text", run: (e) => e.setCurrentTool("text") },
     ],
   },
   {
@@ -332,13 +318,7 @@ export const CHEMISTRY_GROUPS: FigurePaletteGroup[] = [
       { id: "select", label: "Select", title: "Select and move", run: (e) => e.setCurrentTool("select") },
       { id: "line", label: "Line", title: "Bond / line tool", run: (e) => e.setCurrentTool("line") },
       { id: "arrow-tool", label: "Arrow", title: "Draw reaction arrow", run: (e) => e.setCurrentTool("arrow") },
-      { id: "text", label: "Text", title: "Add formula text", run: (e) => e.setCurrentTool("text") },
-      {
-        id: "eq-custom",
-        label: "Eq…",
-        title: "Type a full chemical equation",
-        run: (e) => promptAndInsertEquation(e, "2H₂ + O₂ → 2H₂O"),
-      },
+      { id: "text", label: "Text", title: "Add free text", run: (e) => e.setCurrentTool("text") },
     ],
   },
   {

@@ -10,8 +10,10 @@ import {
   applyChemistryDefaults,
   CHEMISTRY_GROUPS,
   GEOMETRY_GROUPS,
+  insertTextStamp,
   type FigurePaletteItem,
 } from "./figurePalettes";
+import { formatEquationText } from "./formatEquationText";
 
 type FigureMode = "geometry" | "chemistry";
 
@@ -61,8 +63,40 @@ const SketchFigureModalBody = ({
   const [view, setView] = useState<"draw" | "upload">("draw");
   const [activeStamp, setActiveStamp] = useState<string | null>(null);
   const [editorReady, setEditorReady] = useState(false);
+  const [equationDraft, setEquationDraft] = useState("");
+  const equationInputRef = useRef<HTMLInputElement>(null);
 
   const groups = mode === "geometry" ? GEOMETRY_GROUPS : CHEMISTRY_GROUPS;
+  const equationPreview = formatEquationText(equationDraft);
+  const equationPlaceholder =
+    mode === "chemistry" ? "Type normally: 2H2 + O2 -> 2H2O" : "Type normally: a^2 + b^2 = c^2";
+  const equationHelpers =
+    mode === "chemistry"
+      ? ["->", "<=>", "+", "H2O", "CO2", "H+", "OH-", "e-"]
+      : ["^2", "^3", "->", "π", "√", "∠", "90", "cm"];
+
+  const appendHelper = (token: string) => {
+    setEquationDraft((current) => `${current}${current && !current.endsWith(" ") ? " " : ""}${token}`);
+    equationInputRef.current?.focus();
+  };
+
+  const handleAddEquation = () => {
+    const editor = editorRef.current;
+    const formatted = formatEquationText(equationDraft).trim();
+    if (!editor) {
+      setError("Canvas is not ready yet.");
+      return;
+    }
+    if (!formatted) {
+      setError("Type an equation first (example: 2H2 + O2 -> 2H2O).");
+      return;
+    }
+    setError("");
+    setView("draw");
+    insertTextStamp(editor, formatted, "m");
+    setEquationDraft("");
+    equationInputRef.current?.focus();
+  };
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -217,26 +251,75 @@ const SketchFigureModalBody = ({
         </div>
 
         {view === "draw" ? (
-          <div className="rte-figure-palette" aria-label={`${mode} tools`}>
-            {groups.map((group) => (
-              <div key={group.id} className="rte-figure-palette__group">
-                <span className="rte-figure-palette__group-label">{group.label}</span>
-                <div className="rte-figure-palette__row" role="toolbar" aria-label={group.label}>
-                  {group.items.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      title={item.title}
-                      className={`rte-figure-palette__btn ${activeStamp === item.id ? "is-active" : ""}`}
-                      onClick={() => handlePaletteClick(item)}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
+          <>
+            <div className="rte-equation-bar">
+              <label className="rte-equation-bar__label" htmlFor="rte-equation-input">
+                Equation
+              </label>
+              <p className="rte-equation-bar__help">
+                Type normal keyboard numbers. Bottom numbers (subscripts) are added automatically — e.g.{" "}
+                <code>H2O</code> becomes <strong>H₂O</strong>, <code>-&gt;</code> becomes <strong>→</strong>.
+              </p>
+              <div className="rte-equation-bar__row">
+                <input
+                  id="rte-equation-input"
+                  ref={equationInputRef}
+                  className="rte-equation-bar__input"
+                  value={equationDraft}
+                  placeholder={equationPlaceholder}
+                  onChange={(event) => setEquationDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handleAddEquation();
+                    }
+                  }}
+                />
+                <button type="button" className="rte-modal__primary" onClick={handleAddEquation}>
+                  Add to canvas
+                </button>
               </div>
-            ))}
-          </div>
+              <div className="rte-equation-bar__helpers" aria-label="Quick inserts">
+                {equationHelpers.map((token) => (
+                  <button
+                    key={token}
+                    type="button"
+                    className="rte-figure-palette__btn"
+                    title={`Insert ${token}`}
+                    onClick={() => appendHelper(token)}
+                  >
+                    {token}
+                  </button>
+                ))}
+              </div>
+              {equationDraft.trim() ? (
+                <p className="rte-equation-bar__preview">
+                  Preview: <span>{equationPreview}</span>
+                </p>
+              ) : null}
+            </div>
+
+            <div className="rte-figure-palette" aria-label={`${mode} tools`}>
+              {groups.map((group) => (
+                <div key={group.id} className="rte-figure-palette__group">
+                  <span className="rte-figure-palette__group-label">{group.label}</span>
+                  <div className="rte-figure-palette__row" role="toolbar" aria-label={group.label}>
+                    {group.items.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        title={item.title}
+                        className={`rte-figure-palette__btn ${activeStamp === item.id ? "is-active" : ""}`}
+                        onClick={() => handlePaletteClick(item)}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         ) : null}
 
         {error ? <p className="rte-modal__error">{error}</p> : null}
