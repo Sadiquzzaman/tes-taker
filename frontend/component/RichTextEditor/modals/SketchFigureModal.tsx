@@ -8,8 +8,8 @@ import "tldraw/tldraw.css";
 import {
   applyCadLiteDefaults,
   applyChemistryDefaults,
-  CHEMISTRY_PALETTE,
-  GEOMETRY_PALETTE,
+  CHEMISTRY_GROUPS,
+  GEOMETRY_GROUPS,
   type FigurePaletteItem,
 } from "./figurePalettes";
 
@@ -62,7 +62,7 @@ const SketchFigureModalBody = ({
   const [activeStamp, setActiveStamp] = useState<string | null>(null);
   const [editorReady, setEditorReady] = useState(false);
 
-  const palette: FigurePaletteItem[] = mode === "geometry" ? GEOMETRY_PALETTE : CHEMISTRY_PALETTE;
+  const groups = mode === "geometry" ? GEOMETRY_GROUPS : CHEMISTRY_GROUPS;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -217,17 +217,24 @@ const SketchFigureModalBody = ({
         </div>
 
         {view === "draw" ? (
-          <div className="rte-figure-palette" role="toolbar" aria-label={`${mode} tools`}>
-            {palette.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                title={item.title}
-                className={`rte-figure-palette__btn ${activeStamp === item.id ? "is-active" : ""}`}
-                onClick={() => handlePaletteClick(item)}
-              >
-                {item.label}
-              </button>
+          <div className="rte-figure-palette" aria-label={`${mode} tools`}>
+            {groups.map((group) => (
+              <div key={group.id} className="rte-figure-palette__group">
+                <span className="rte-figure-palette__group-label">{group.label}</span>
+                <div className="rte-figure-palette__row" role="toolbar" aria-label={group.label}>
+                  {group.items.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      title={item.title}
+                      className={`rte-figure-palette__btn ${activeStamp === item.id ? "is-active" : ""}`}
+                      onClick={() => handlePaletteClick(item)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         ) : null}
