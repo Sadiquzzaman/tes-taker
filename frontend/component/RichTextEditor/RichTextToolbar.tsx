@@ -9,7 +9,6 @@ type RichTextToolbarProps = {
   allowImages?: boolean;
   onRequestImageUpload?: () => void;
   onOpenMath?: () => void;
-  onOpenDrawing?: () => void;
   onOpenGeometry?: () => void;
   onOpenGraph?: () => void;
   onOpenChemistry?: () => void;
@@ -54,7 +53,6 @@ const RichTextToolbar = ({
   allowImages = true,
   onRequestImageUpload,
   onOpenMath,
-  onOpenDrawing,
   onOpenGeometry,
   onOpenGraph,
   onOpenChemistry,
@@ -311,9 +309,6 @@ const RichTextToolbar = ({
         </IconButton>
         <IconButton title="Graph" onClick={() => onOpenGraph?.()}>
           ƒ
-        </IconButton>
-        <IconButton title="Drawing" onClick={() => onOpenDrawing?.()}>
-          ✏
         </IconButton>
         <IconButton title="Insert geometry figure" onClick={() => onOpenGeometry?.()}>
           △

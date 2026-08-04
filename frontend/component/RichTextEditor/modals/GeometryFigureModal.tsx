@@ -2,23 +2,22 @@
 
 import SketchFigureModal from "./SketchFigureModal";
 
-type GeoGebraModalProps = {
+type GeometryFigureModalProps = {
   open: boolean;
   onClose: () => void;
   onInsert: (dataUrl: string) => void;
 };
 
-const GeoGebraModal = ({ open, onClose, onInsert }: GeoGebraModalProps) => (
+const GeometryFigureModal = ({ open, onClose, onInsert }: GeometryFigureModalProps) => (
   <SketchFigureModal
     open={open}
+    mode="geometry"
     title="Insert geometry figure"
-    hint="Upload a figure, or draw shapes, lines, and angles on the canvas."
+    hint="Use the Equation box for formulas (type a^2 for a²). Shape tools and labels are below."
     insertLabel="Insert figure"
-    allowUpload
-    defaultMode="upload"
     onClose={onClose}
     onInsert={onInsert}
   />
 );
 
-export default GeoGebraModal;
+export default GeometryFigureModal;
