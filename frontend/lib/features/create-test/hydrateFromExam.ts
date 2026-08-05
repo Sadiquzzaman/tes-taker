@@ -39,7 +39,7 @@ const mapGradedQuestion = (question: ApiQuestion, subjectId?: string): QuestionI
       }
     : undefined,
   answer: question.answer ? { type: question.answer.type, value: [...question.answer.value] } : undefined,
-  points: Number(question.points ?? 2),
+  points: Number(question.points ?? 1),
   subjectId: question.subjectId ?? subjectId,
   showValidation: false,
 });
@@ -52,7 +52,7 @@ const mapUngradedQuestion = (question: ApiQuestion, subjectId?: string): Questio
   instruction: question.instruction ?? "",
   image: null,
   answer: undefined,
-  points: Number(question.points ?? 2),
+  points: Number(question.points ?? 1),
   subjectId: question.subjectId ?? subjectId,
   showValidation: false,
 });
@@ -144,6 +144,7 @@ const hydrateFromExam = (_state: CreateTestState, action: PayloadAction<TeacherE
       passingScore: toStringOrEmpty(exam.formState?.passingScore),
       allowNegativeMarking: Boolean(exam.formState?.allowNegativeMarking),
       negativeMarking: toStringOrEmpty(exam.formState?.negativeMarking),
+      isModelTest: Boolean((exam.formState as { isModelTest?: boolean } | undefined)?.isModelTest),
     },
     subjects,
     questionOrder,

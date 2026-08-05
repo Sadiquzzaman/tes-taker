@@ -4,6 +4,7 @@ type FormState = {
   passingScore: string;
   allowNegativeMarking: boolean;
   negativeMarking: string;
+  isModelTest: boolean;
 };
 
 type BasicInfoErrors = {

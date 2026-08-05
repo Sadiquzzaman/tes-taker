@@ -35,7 +35,7 @@ import { SubjectService } from 'src/subjects/subject.service';
 import { EntitlementsService } from 'src/subscriptions/entitlements.service';
 import { SubscriptionService } from 'src/subscriptions/subscription.service';
 import { FeatureKey, LimitKey } from 'src/subscriptions/constants/feature-catalog';
-import { ExamLifecycleStatusEnum, TestAudienceEnum } from './enums/exam-wizard.enums';
+import { ExamLifecycleStatusEnum, ExamKindEnum, TestAudienceEnum } from './enums/exam-wizard.enums';
 import { QuestionCategoryEnum } from './enums/question.enums';
 import {
   mapAnswerForStorage,
@@ -194,12 +194,15 @@ export class ExamService {
       validateSubjectQuestions(subj.questions);
     }
 
+    this.assertWizardSubjectAndPassingRules(formState, subjects);
+
     const { hasAutoScored, hasManual } = this.countQuestionCategories(subjects);
     if (!hasAutoScored && !hasManual) {
       throw new BadRequestException('Exam must include at least one question');
     }
 
-    const primarySubjectId = subjects.length === 1 ? subjects[0].id : null;
+    const isModelTest = Boolean(formState.isModelTest);
+    const primarySubjectId = isModelTest ? null : subjects[0].id;
 
     if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS) {
       if (!publishState.selectedClassId) {
@@ -289,7 +292,8 @@ export class ExamService {
 
       const examPayload: DeepPartial<ExamEntity> = {
         exam_type: examType,
-        exam_kind: null,
+        exam_kind: isModelTest ? ExamKindEnum.MODEL : ExamKindEnum.HYBRID,
+        is_model_test: isModelTest,
         test_name: formState.testName.trim(),
         primary_subject_id: primarySubjectId,
         duration_minutes: formState.duration,
@@ -388,6 +392,48 @@ export class ExamService {
     }
 
     return { hasAutoScored, hasManual };
+  }
+
+  private assertWizardSubjectAndPassingRules(
+    formState: CreateExamWizardDto['formState'],
+    subjects: CreateExamWizardDto['subjects'],
+  ): void {
+    const isModelTest = Boolean(formState.isModelTest);
+
+    if (!isModelTest && subjects.length !== 1) {
+      throw new BadRequestException('Non-model tests must include exactly one subject');
+    }
+
+    if (isModelTest && subjects.length < 1) {
+      throw new BadRequestException('Model tests must include at least one subject');
+    }
+
+    const totalMarks = subjects.reduce((sum, subject) => {
+      return (
+        sum +
+        subject.questions.reduce((questionSum, raw) => {
+          const parsed = parseWizardQuestion(raw);
+          if (parsed.kind === 'passage') {
+            return (
+              questionSum +
+              parsed.data.childQuestions.reduce((childSum, child) => childSum + Number(child.points ?? 0), 0)
+            );
+          }
+          return questionSum + Number(parsed.data.points ?? 0);
+        }, 0)
+      );
+    }, 0);
+
+    const passingScore =
+      formState.passingScore === undefined || formState.passingScore === null
+        ? null
+        : Number(formState.passingScore);
+
+    if (passingScore !== null && !Number.isNaN(passingScore) && totalMarks < passingScore) {
+      throw new BadRequestException(
+        `Total marks (${totalMarks}) cannot be less than the passing score (${passingScore}). Add more questions or reduce the passing score.`,
+      );
+    }
   }
 
   private async persistPassageQuestion(
@@ -1344,6 +1390,7 @@ export class ExamService {
         passingScore: exam.passing_score ?? '',
         allowNegativeMarking: exam.is_negative_marking,
         negativeMarking: exam.negative_mark_value ?? '',
+        isModelTest: Boolean(exam.is_model_test),
         allowScreenShare: exam.allow_screen_share ?? false,
         screenShareDisqualifySeconds: exam.screen_share_disqualify_seconds ?? 15,
       },
@@ -1792,12 +1839,15 @@ export class ExamService {
       validateSubjectQuestions(subj.questions);
     }
 
+    this.assertWizardSubjectAndPassingRules(formState, subjects);
+
     const { hasAutoScored, hasManual } = this.countQuestionCategories(subjects);
     if (!hasAutoScored && !hasManual) {
       throw new BadRequestException('Exam must include at least one question');
     }
 
-    const primarySubjectId = subjects.length === 1 ? subjects[0].id : null;
+    const isModelTest = Boolean(formState.isModelTest);
+    const primarySubjectId = isModelTest ? null : subjects[0].id;
 
     if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS) {
       if (!publishState.selectedClassId) {
@@ -1898,7 +1948,8 @@ export class ExamService {
       if (!examRow) throw new NotFoundException('Exam not found');
 
       examRow.exam_type = examType;
-      examRow.exam_kind = null;
+      examRow.exam_kind = isModelTest ? ExamKindEnum.MODEL : ExamKindEnum.HYBRID;
+      examRow.is_model_test = isModelTest;
       examRow.test_name = formState.testName.trim();
       examRow.primary_subject_id = primarySubjectId;
       examRow.duration_minutes = formState.duration;

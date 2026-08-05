@@ -139,7 +139,7 @@ export const createQuestion = (questionType: CreateTestQuestionCategory, subType
       instruction: "",
       image: null,
       answer: undefined,
-      points: 2,
+      points: 1,
       showValidation: false,
     };
   }
@@ -162,7 +162,7 @@ export const createQuestion = (questionType: CreateTestQuestionCategory, subType
       },
       answer,
       options: undefined,
-      points: 2,
+      points: 1,
       showValidation: false,
     };
   }
@@ -180,7 +180,7 @@ export const createQuestion = (questionType: CreateTestQuestionCategory, subType
         ? createOptionsFromTemplates(optionRules.fixedOptions)
         : []
       : [],
-    points: 2,
+    points: 1,
     showValidation: false,
   };
 

@@ -19,6 +19,7 @@ const createInitialState = (): CreateTestState => ({
     passingScore: "",
     allowNegativeMarking: false,
     negativeMarking: "",
+    isModelTest: false,
   },
   subjects: [],
   questionOrder: [],

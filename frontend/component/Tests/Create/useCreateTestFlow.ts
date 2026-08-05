@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { goToNextStep, goToPreviousStep, setQuestionValidationState } from "@/lib/features/createTestSlice";
+import { getSubjectTotalMarks } from "@/lib/features/create-test/createTestDomain";
 import { useAppDispatch } from "@/lib/hooks";
 import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/utils/createTestValidation";
 import { useToast } from "@/component/Toast/ToastContext";
@@ -41,6 +42,11 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
         return;
       }
 
+      if (!formState.isModelTest && subjects.length === 0) {
+        triggerToast({ description: "Please select a subject", type: "error" });
+        return;
+      }
+
       if (!formState.duration) {
         triggerToast({ description: "Please enter a duration", type: "error" });
         return;
@@ -60,12 +66,31 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
         return;
       }
 
+      if (!formState.isModelTest && subjectsWithQuestions.length !== 1) {
+        triggerToast({ description: "Non-model tests must use exactly one subject", type: "error" });
+        return;
+      }
+
       const questionWithoutSubject = subjectsWithQuestions.some((subject) =>
         subject.questions.some((question) => !question.id || !subject.id),
       );
 
       if (questionWithoutSubject) {
         triggerToast({ description: "Every question must have a subject", type: "error" });
+        return;
+      }
+
+      const totalMarks = subjectsWithQuestions.reduce(
+        (sum, subject) => sum + getSubjectTotalMarks(subject),
+        0,
+      );
+      const passingScore = formState.passingScore.trim() ? Number(formState.passingScore) : null;
+
+      if (passingScore !== null && !Number.isNaN(passingScore) && totalMarks < passingScore) {
+        triggerToast({
+          description: `Total marks (${totalMarks}) cannot be less than the passing score (${passingScore}). Add more questions or reduce the passing score.`,
+          type: "error",
+        });
         return;
       }
 

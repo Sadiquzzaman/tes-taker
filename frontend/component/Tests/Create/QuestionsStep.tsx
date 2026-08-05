@@ -58,7 +58,9 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     pendingFocusQuestion,
     pendingFocusOption,
     dragState,
+    formState,
   } = createTestState;
+  const isModelTest = formState.isModelTest;
   const questionsContainerRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dragStateRef = useRef<DragState | null>(null);
@@ -496,14 +498,16 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         </div>
         <div className="w-full border-b border-[#E5E5E5]" />
 
-        <QuestionSubjectTabs
-          subjects={subjects}
-          activeSubjectId={activeSubject?.id ?? null}
-          availableSubjectOptions={availableSubjectOptions}
-          onSelectSubject={(subjectId) => dispatch(setActiveSubjectId(subjectId))}
-          onAddSubject={(subject) => dispatch(addSubject(subject))}
-          onRemoveSubject={(subjectId) => dispatch(removeSubject(subjectId))}
-        />
+        {isModelTest ? (
+          <QuestionSubjectTabs
+            subjects={subjects}
+            activeSubjectId={activeSubject?.id ?? null}
+            availableSubjectOptions={availableSubjectOptions}
+            onSelectSubject={(subjectId) => dispatch(setActiveSubjectId(subjectId))}
+            onAddSubject={(subject) => dispatch(addSubject(subject))}
+            onRemoveSubject={(subjectId) => dispatch(removeSubject(subjectId))}
+          />
+        ) : null}
 
         <div className="flex w-full max-w-[564px] items-center justify-between gap-6">
           <div className="flex items-center gap-1">

@@ -1,16 +1,75 @@
-import { setFormField } from "@/lib/features/createTestSlice";
-import { useAppDispatch } from "@/lib/hooks";
+import { setFormField, setSingleSubject } from "@/lib/features/createTestSlice";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import DropDownComponent from "@/Ui/DropDownComponent";
 import NormalInput from "@/Ui/NormalInput";
-import { memo, useCallback } from "react";
+import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
+import { memo, useCallback, useMemo } from "react";
 
 const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
   const dispatch = useAppDispatch();
+  const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
+  const subjectCatalog = useAppSelector((state) => state.subject.subjects);
+  const { subjects, activeSubjectId } = createTestState;
+  useGetAllSubject();
 
   const updateField = useCallback(
     (field: keyof FormState, value: FormState[keyof FormState]) => {
       dispatch(setFormField({ field, value }));
     },
     [dispatch],
+  );
+
+  const subjectOptions = useMemo(() => {
+    const catalogSubjectOptions = subjectCatalog.map((subject) => ({
+      label: subject.name,
+      value: subject.value,
+      id: subject.id,
+    }));
+    const stateSubjectOptions = subjects.map((subject) => ({
+      label: subject.name,
+      value: subject.value,
+      id: subject.id,
+    }));
+
+    return [...catalogSubjectOptions, ...stateSubjectOptions].filter(
+      (option, index, options) => options.findIndex((item) => item.id === option.id) === index,
+    );
+  }, [subjectCatalog, subjects]);
+
+  const selectedSubjectValue = useMemo(() => {
+    const activeSubject = subjects.find((subject) => subject.id === activeSubjectId) ?? subjects[0] ?? null;
+    return activeSubject?.value ?? "";
+  }, [activeSubjectId, subjects]);
+
+  const handleSubjectChange = useCallback(
+    (value: string) => {
+      const selectedSubject = subjectOptions.find((subject) => subject.value === value);
+      if (!selectedSubject) {
+        return;
+      }
+      dispatch(setSingleSubject(selectedSubject));
+    },
+    [dispatch, subjectOptions],
+  );
+
+  const handleModelTestChange = useCallback(
+    (checked: boolean) => {
+      dispatch(setFormField({ field: "isModelTest", value: checked }));
+      if (!checked) {
+        const keepSubject =
+          subjects.find((subject) => subject.id === activeSubjectId) ?? subjects[0] ?? null;
+        if (keepSubject) {
+          dispatch(
+            setSingleSubject({
+              id: keepSubject.id,
+              label: keepSubject.name,
+              value: keepSubject.value,
+            }),
+          );
+        }
+      }
+    },
+    [activeSubjectId, dispatch, subjects],
   );
 
   return (
@@ -31,6 +90,32 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
           afterIcon={null}
         />
       </div>
+
+      <label className="flex items-center gap-2 py-1">
+        <input
+          type="checkbox"
+          checked={formState.isModelTest}
+          onChange={(e) => handleModelTestChange(e.target.checked)}
+          className="h-5 w-5 rounded border-[#747775] text-[#49734F] focus:ring-0"
+        />
+        <span className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">
+          Is model test?
+        </span>
+      </label>
+
+      {!formState.isModelTest ? (
+        <div className="flex flex-col gap-2">
+          <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Subject</label>
+          <DropDownComponent
+            placeholder="Select subject"
+            value={selectedSubjectValue}
+            handleChange={handleSubjectChange}
+            isSearchable={true}
+            maxOuputInDropdownList={5}
+            list={subjectOptions.map(({ label, value }) => ({ label, value }))}
+          />
+        </div>
+      ) : null}
 
       <div className="flex w-full flex-col gap-2">
         <p className="text-[15px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Duration</p>

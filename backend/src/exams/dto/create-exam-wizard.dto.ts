@@ -360,6 +360,10 @@ export class WizardFormStateDto {
   @Min(0)
   passingScore?: number;
 
+  @ApiProperty({ description: 'Whether this is a multi-subject model test' })
+  @IsBoolean()
+  isModelTest: boolean;
+
   @ApiProperty()
   @IsBoolean()
   allowNegativeMarking: boolean;

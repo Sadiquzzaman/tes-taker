@@ -36,6 +36,7 @@ function QuestionCardFooter({
 }: QuestionCardFooterProps) {
   const dispatch = useAppDispatch();
   const subjects = useAppSelector((state) => state.createTest.subjects);
+  const isModelTest = useAppSelector((state) => state.createTest.formState.isModelTest);
   const subjectCatalog = useAppSelector((state) => state.subject.subjects);
   useGetAllSubject();
 
@@ -45,7 +46,7 @@ function QuestionCardFooter({
     createTestQuestionCategoryOptions.find((category) => category.id === questionType)?.tabs.filter((tab) => tab.isSupported) ??
     [];
   let pointsLabel: ReactNode = "Points";
-  const showSubjectPicker = !parentPassageId;
+  const showSubjectPicker = isModelTest && !parentPassageId;
 
   const subjectOptions = useMemo(() => {
     const catalogSubjectOptions = subjectCatalog.map((subject) => ({

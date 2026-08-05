@@ -160,6 +160,7 @@ interface StudentExamFormState {
   passingScore: number | string;
   allowNegativeMarking: boolean;
   negativeMarking: number | string;
+  isModelTest?: boolean;
   allowScreenShare: boolean;
   screenShareDisqualifySeconds: number;
 }
