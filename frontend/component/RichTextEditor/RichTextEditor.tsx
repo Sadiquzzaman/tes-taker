@@ -215,17 +215,34 @@ const RichTextEditor = ({
       if (!editor) {
         return;
       }
-      editor
-        .chain()
-        .focus()
-        .setResizableImage({
-          src,
-          kind,
-          align: "center",
-          width: kind === "image" ? "320px" : "480px",
-          caption: "",
-        })
-        .run();
+
+      const apply = (width: string) => {
+        editor
+          .chain()
+          .focus()
+          .setResizableImage({
+            src,
+            kind,
+            align: "center",
+            width,
+            caption: "",
+          })
+          .run();
+      };
+
+      if (kind === "image") {
+        apply("320px");
+        return;
+      }
+
+      const image = new window.Image();
+      image.onload = () => {
+        const natural = image.naturalWidth || 240;
+        const display = Math.min(320, Math.max(180, Math.round(natural)));
+        apply(`${display}px`);
+      };
+      image.onerror = () => apply("240px");
+      image.src = src;
     },
     [editor],
   );
