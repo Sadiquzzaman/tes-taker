@@ -140,6 +140,14 @@ export class ExamService {
       throw new ForbiddenException(canCreate.reason);
     }
 
+    if (formState.isModelTest) {
+      await this.entitlementsService.assertFeature(
+        jwtPayload.id,
+        FeatureKey.ALLOW_MODEL_TESTS,
+        'Model tests are not available on your plan. Please upgrade to Pro.',
+      );
+    }
+
     for (const subj of subjects) {
       for (const raw of subj.questions) {
         const parsed = parseWizardQuestion(raw);
@@ -1784,6 +1792,14 @@ export class ExamService {
     }
 
     this.assertExamEditableBeforeStart(existing);
+
+    if (formState.isModelTest) {
+      await this.entitlementsService.assertFeature(
+        jwtPayload.id,
+        FeatureKey.ALLOW_MODEL_TESTS,
+        'Model tests are not available on your plan. Please upgrade to Pro.',
+      );
+    }
 
     for (const subj of subjects) {
       for (const raw of subj.questions) {

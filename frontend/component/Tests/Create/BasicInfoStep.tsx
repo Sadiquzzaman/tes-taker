@@ -2,14 +2,19 @@ import { setFormField, setSingleSubject } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import DropDownComponent from "@/Ui/DropDownComponent";
 import NormalInput from "@/Ui/NormalInput";
+import Tooltip from "@/Ui/Tooltip";
 import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
-import { memo, useCallback, useMemo } from "react";
+import useEntitlements from "@/hooks/api/subscription/useEntitlements";
+import Link from "next/link";
+import { memo, useCallback, useEffect, useMemo } from "react";
 
 const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
   const dispatch = useAppDispatch();
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
   const subjectCatalog = useAppSelector((state) => state.subject.subjects);
   const { subjects, activeSubjectId } = createTestState;
+  const { hasFeature } = useEntitlements();
+  const canCreateModelTests = hasFeature("allow_model_tests");
   useGetAllSubject();
 
   const updateField = useCallback(
@@ -18,6 +23,12 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
     },
     [dispatch],
   );
+
+  useEffect(() => {
+    if (!canCreateModelTests && formState.isModelTest) {
+      dispatch(setFormField({ field: "isModelTest", value: false }));
+    }
+  }, [canCreateModelTests, dispatch, formState.isModelTest]);
 
   const subjectOptions = useMemo(() => {
     const catalogSubjectOptions = subjectCatalog.map((subject) => ({
@@ -54,6 +65,9 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
 
   const handleModelTestChange = useCallback(
     (checked: boolean) => {
+      if (checked && !canCreateModelTests) {
+        return;
+      }
       dispatch(setFormField({ field: "isModelTest", value: checked }));
       if (!checked) {
         const keepSubject =
@@ -69,7 +83,24 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
         }
       }
     },
-    [activeSubjectId, dispatch, subjects],
+    [activeSubjectId, canCreateModelTests, dispatch, subjects],
+  );
+
+  const modelTestCheckbox = (
+    <label
+      className={`flex items-center gap-2 py-1 ${canCreateModelTests ? "" : "cursor-not-allowed opacity-60"}`}
+    >
+      <input
+        type="checkbox"
+        checked={formState.isModelTest}
+        disabled={!canCreateModelTests}
+        onChange={(e) => handleModelTestChange(e.target.checked)}
+        className="h-5 w-5 rounded border-[#747775] text-[#49734F] focus:ring-0 disabled:cursor-not-allowed"
+      />
+      <span className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">
+        Is model test?
+      </span>
+    </label>
   );
 
   return (
@@ -91,17 +122,22 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
         />
       </div>
 
-      <label className="flex items-center gap-2 py-1">
-        <input
-          type="checkbox"
-          checked={formState.isModelTest}
-          onChange={(e) => handleModelTestChange(e.target.checked)}
-          className="h-5 w-5 rounded border-[#747775] text-[#49734F] focus:ring-0"
-        />
-        <span className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">
-          Is model test?
-        </span>
-      </label>
+      {canCreateModelTests ? (
+        modelTestCheckbox
+      ) : (
+        <Tooltip
+          content={
+            <span>
+              Model tests are available on Pro.{" "}
+              <Link href="/billing" className="underline text-[#49734F]">
+                Upgrade
+              </Link>
+            </span>
+          }
+        >
+          {modelTestCheckbox}
+        </Tooltip>
+      )}
 
       {!formState.isModelTest ? (
         <div className="flex flex-col gap-2">

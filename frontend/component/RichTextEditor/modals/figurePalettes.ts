@@ -28,7 +28,12 @@ const setGeoTool = (editor: Editor, geo: TLGeoShapeGeoStyle) => {
   editor.setCurrentTool("geo");
 };
 
-export const insertTextStamp = (editor: Editor, text: string, size: "s" | "m" | "l" = "s") => {
+export const insertTextStamp = (
+  editor: Editor,
+  text: string,
+  size: "s" | "m" | "l" = "s",
+  options?: { select?: boolean },
+) => {
   const id = createShapeId();
   const { x, y } = placeAtViewportCenter(editor, Math.max(48, text.length * 10), 28);
   editor.createShape({
@@ -44,11 +49,24 @@ export const insertTextStamp = (editor: Editor, text: string, size: "s" | "m" | 
     },
   });
   editor.setCurrentTool("select");
-  editor.select(id);
-  try {
-    editor.zoomToSelection({ animation: { duration: 120 } });
-  } catch {
-    // older/newer tldraw builds may not support zoom options
+
+  const shouldSelect = options?.select !== false;
+  if (shouldSelect) {
+    editor.select(id);
+    try {
+      editor.zoomToSelection({ animation: { duration: 120 } });
+    } catch {
+      // older/newer tldraw builds may not support zoom options
+    }
+  } else {
+    // Keep equation/helper inputs usable — selecting text steals keyboard focus.
+    editor.selectNone();
+    try {
+      // Exit any accidental text-edit mode if the runtime supports it.
+      (editor as Editor & { setEditingShape?: (shape: null) => void }).setEditingShape?.(null);
+    } catch {
+      // ignore
+    }
   }
   return id;
 };
