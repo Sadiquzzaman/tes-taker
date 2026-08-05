@@ -9,6 +9,7 @@ export class AddSubjectIdToExamQuestions1754200000000 implements MigrationInterf
       ADD COLUMN IF NOT EXISTS "subject_id" uuid NULL
     `);
 
+    // 1) Wizard exams: question inherits subject from its section (exam subject bucket)
     await queryRunner.query(`
       UPDATE "exam_questions" q
       SET "subject_id" = s."subject_id"
@@ -17,6 +18,7 @@ export class AddSubjectIdToExamQuestions1754200000000 implements MigrationInterf
         AND q."subject_id" IS NULL
     `);
 
+    // 2) Single-subject / hybrid exams: use exam.primary_subject_id
     await queryRunner.query(`
       UPDATE "exam_questions" q
       SET "subject_id" = e."primary_subject_id"
@@ -26,10 +28,34 @@ export class AddSubjectIdToExamQuestions1754200000000 implements MigrationInterf
         AND e."primary_subject_id" IS NOT NULL
     `);
 
+    // 3) Legacy rows: match exams.subject text label to subjects.name / subjects.code
     await queryRunner.query(`
-      DELETE FROM "exam_questions"
+      UPDATE "exam_questions" q
+      SET "subject_id" = sub."id"
+      FROM "exams" e
+      INNER JOIN "subjects" sub
+        ON (
+          lower(trim(sub."name")) = lower(trim(e."subject"))
+          OR lower(trim(COALESCE(sub."code", ''))) = lower(trim(e."subject"))
+        )
+      WHERE q."exam_id" = e."id"
+        AND q."subject_id" IS NULL
+        AND e."subject" IS NOT NULL
+        AND trim(e."subject") <> ''
+    `);
+
+    const unresolved = await queryRunner.query(`
+      SELECT COUNT(*)::int AS count
+      FROM "exam_questions"
       WHERE "subject_id" IS NULL
     `);
+    const unresolvedCount = Number(unresolved?.[0]?.count ?? 0);
+    if (unresolvedCount > 0) {
+      throw new Error(
+        `Cannot set exam_questions.subject_id NOT NULL: ${unresolvedCount} question(s) have no resolvable subject. ` +
+          `Backfill failed for rows missing section.subject_id, exam.primary_subject_id, and a matching subjects.name/code for exams.subject.`,
+      );
+    }
 
     await queryRunner.query(`
       ALTER TABLE "exam_questions"
