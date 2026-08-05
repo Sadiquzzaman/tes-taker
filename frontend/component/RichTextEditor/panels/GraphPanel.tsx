@@ -10,6 +10,7 @@ import {
   type GraphDefinition,
   type GraphKind,
 } from "@/utils/exam/graph/graphTypes";
+import { parseLocaleNumber } from "@/utils/exam/graph/normalizeIndicDigits";
 import GraphRenderer from "../graph/GraphRenderer";
 
 type GraphPanelProps = {
@@ -24,6 +25,7 @@ const GraphPanel = ({ open, initialDefinition, onClose, onSave }: GraphPanelProp
     () => initialDefinition ?? createDefaultGraphDefinition("function"),
   );
   const [datasetText, setDatasetText] = useState("");
+  const [datasetError, setDatasetError] = useState("");
 
   const recommendations = useMemo(() => {
     const parsed = parseDatasetText(datasetText);
@@ -49,8 +51,21 @@ const GraphPanel = ({ open, initialDefinition, onClose, onSave }: GraphPanelProp
     }));
   };
 
+  const setAxisNumber = (key: "xMin" | "xMax" | "yMin" | "yMax", raw: string) => {
+    const parsed = parseLocaleNumber(raw);
+    setDefinition((current) => ({
+      ...current,
+      [key]: Number.isFinite(parsed) ? parsed : current[key],
+    }));
+  };
+
   const applyDataset = (kind?: GraphKind) => {
     const parsed = parseDatasetText(datasetText);
+    if (parsed.errors.length && !parsed.values.length && !parsed.points.length && !parsed.categories.length) {
+      setDatasetError(parsed.errors[0]);
+      return;
+    }
+    setDatasetError(parsed.errors[0] ?? "");
     const nextKind = kind ?? recommendations[0]?.kind ?? "bar";
     setDefinition({
       ...createDefaultGraphDefinition(nextKind),
@@ -108,33 +123,33 @@ const GraphPanel = ({ open, initialDefinition, onClose, onSave }: GraphPanelProp
           <label className="rte-modal__field">
             <span>x min</span>
             <input
-              type="number"
+              inputMode="decimal"
               value={definition.xMin ?? -10}
-              onChange={(event) => setDefinition((current) => ({ ...current, xMin: Number(event.target.value) }))}
+              onChange={(event) => setAxisNumber("xMin", event.target.value)}
             />
           </label>
           <label className="rte-modal__field">
             <span>x max</span>
             <input
-              type="number"
+              inputMode="decimal"
               value={definition.xMax ?? 10}
-              onChange={(event) => setDefinition((current) => ({ ...current, xMax: Number(event.target.value) }))}
+              onChange={(event) => setAxisNumber("xMax", event.target.value)}
             />
           </label>
           <label className="rte-modal__field">
             <span>y min</span>
             <input
-              type="number"
+              inputMode="decimal"
               value={definition.yMin ?? -10}
-              onChange={(event) => setDefinition((current) => ({ ...current, yMin: Number(event.target.value) }))}
+              onChange={(event) => setAxisNumber("yMin", event.target.value)}
             />
           </label>
           <label className="rte-modal__field">
             <span>y max</span>
             <input
-              type="number"
+              inputMode="decimal"
               value={definition.yMax ?? 10}
-              onChange={(event) => setDefinition((current) => ({ ...current, yMax: Number(event.target.value) }))}
+              onChange={(event) => setAxisNumber("yMax", event.target.value)}
             />
           </label>
         </div>
@@ -147,10 +162,14 @@ const GraphPanel = ({ open, initialDefinition, onClose, onSave }: GraphPanelProp
             <textarea
               rows={5}
               value={datasetText}
-              onChange={(event) => setDatasetText(event.target.value)}
-              placeholder={"Math,12\nScience,19\nEnglish,8"}
+              onChange={(event) => {
+                setDatasetText(event.target.value);
+                setDatasetError("");
+              }}
+              placeholder={"গণিত,১২\nScience,19\nEnglish,8"}
             />
           </label>
+          {datasetError ? <p className="rte-modal__error">{datasetError}</p> : null}
           {datasetText.trim() ? (
             <div className="rte-ocr-summary">
               <p>

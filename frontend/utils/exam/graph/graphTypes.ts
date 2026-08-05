@@ -3,6 +3,8 @@
  * New chart kinds can be registered without changing the TipTap node shape.
  */
 
+import { normalizeIndicDigits, parseLocaleNumber } from "./normalizeIndicDigits";
+
 export type GraphKind =
   | "function"
   | "coordinate"
@@ -304,6 +306,7 @@ export const parseDatasetText = (raw: string): {
   values: number[];
   points: GraphSeriesPoint[];
   looksLikeTime: boolean;
+  errors: string[];
 } => {
   const lines = raw
     .split(/\n+/)
@@ -313,12 +316,13 @@ export const parseDatasetText = (raw: string): {
   const categories: string[] = [];
   const values: number[] = [];
   const points: GraphSeriesPoint[] = [];
+  const errors: string[] = [];
 
   for (const line of lines) {
     const parts = line.split(/[,;\t|]+/).map((part) => part.trim()).filter(Boolean);
     if (parts.length >= 2) {
-      const y = Number(parts[1]);
-      const xNum = Number(parts[0]);
+      const y = parseLocaleNumber(parts[1]);
+      const xNum = parseLocaleNumber(parts[0]);
       if (Number.isFinite(xNum) && Number.isFinite(y)) {
         points.push({ x: xNum, y });
         continue;
@@ -326,15 +330,24 @@ export const parseDatasetText = (raw: string): {
       if (Number.isFinite(y)) {
         categories.push(parts[0]);
         values.push(y);
+        continue;
       }
-    } else if (parts.length === 1 && Number.isFinite(Number(parts[0]))) {
-      values.push(Number(parts[0]));
+      errors.push(`Could not read numbers in: "${line}" (use 12 or ১২)`);
+    } else if (parts.length === 1) {
+      const only = parseLocaleNumber(parts[0]);
+      if (Number.isFinite(only)) {
+        values.push(only);
+      } else {
+        errors.push(`Could not read number in: "${line}"`);
+      }
     }
   }
 
   const looksLikeTime = categories.some((c) =>
-    /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4}|q[1-4]/i.test(c),
+    /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4}|q[1-4]|জানু|ফেব্রু|মার্চ|এপ্রিল|মে|জুন|জুল|আগস্ট|সেপ্ট|অক্টো|নভে|ডিসে/i.test(
+      normalizeIndicDigits(c),
+    ),
   );
 
-  return { categories, values, points, looksLikeTime };
+  return { categories, values, points, looksLikeTime, errors };
 };
