@@ -6,10 +6,12 @@ import {
   deleteQuestion,
   setActiveQuestionId,
   updatePassageText,
+  updatePassageAudioUrl,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { getPassageInstructionLabel } from "@/utils/richText";
 import { memo, useCallback, useEffect, useRef } from "react";
+import NormalInput from "@/Ui/NormalInput";
 import QuestionCard from "./QuestionCard";
 import QuestionCardValidation from "./QuestionCard/QuestionCardValidation";
 import { QUESTION_BUILDER_GAPS } from "./QuestionCard/shared";
@@ -117,6 +119,30 @@ function PassageQuestionBlock({
             minHeightClassName="min-h-[96px]"
             className="border-[#E5E5E5] bg-white"
           />
+          {subjectName?.toLowerCase().includes("listening") ||
+          subjectCode?.toLowerCase().includes("listening") ? (
+            <div className="flex flex-col gap-2 mt-2">
+              <label className="text-[14px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+                Audio URL (optional)
+              </label>
+              <NormalInput
+                value={passage.audioUrl ?? ""}
+                onChange={(e) =>
+                  dispatch(
+                    updatePassageAudioUrl({
+                      subjectId,
+                      passageId: passage.id,
+                      audioUrl: e.target.value,
+                    }),
+                  )
+                }
+                parentClassName="h-[40px] w-full rounded-[6px] border-[#E5E5E5]"
+                inputClassName="px-2 text-[14px] font-[400] leading-[125%] placeholder:text-[#747775]"
+                placeholder="https://example.com/audio.mp3"
+                afterIcon={null}
+              />
+            </div>
+          ) : null}
           <QuestionCardValidation showValidation={passage.showValidation} validationErrors={passageErrors} />
         </div>
 

@@ -2,6 +2,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import createInitialState from "./createInitialState";
 import { createSubject } from "./createTestDomain";
 import { syncQuestionOrder } from "./moveQuestionToSubject";
+import { isCreateTestIeltsManualSubType } from "@/utils/createTestOptions";
 
 type ApiOption = { id: string; text: string; image?: string | null };
 
@@ -13,16 +14,31 @@ type ApiQuestion = {
   instruction?: string | null;
   points?: number | null;
   subjectId?: string | null;
+  moduleKey?: string | null;
   sortOrder?: number | null;
   options?: ApiOption[];
   matchingOptions?: { left: ApiOption[]; right: ApiOption[] };
   answer?: { type: QuestionAnswerType; value: string[] };
   passageText?: string;
   childQuestions?: ApiQuestion[];
+  audioUrl?: string | null;
+  timeLimitSeconds?: number | null;
+  wordLimit?: number | null;
+  mediaMeta?: Record<string, unknown> | null;
+  title?: string | null;
+  imageUrl?: string | null;
 };
 
 const mapOptions = (options?: ApiOption[]): QuestionOption[] | undefined =>
   options?.map((option) => ({ id: option.id, text: option.text ?? "", image: null }));
+
+const mapMediaFields = (question: ApiQuestion) => ({
+  audioUrl: question.audioUrl ?? undefined,
+  timeLimitSeconds: question.timeLimitSeconds ?? undefined,
+  wordLimit: question.wordLimit ?? (question.mediaMeta?.wordLimit as number | undefined),
+  mediaMeta: question.mediaMeta ?? undefined,
+  moduleKey: question.moduleKey ?? undefined,
+});
 
 const mapGradedQuestion = (question: ApiQuestion, subjectId?: string): QuestionItem => ({
   id: question.id,
@@ -42,6 +58,7 @@ const mapGradedQuestion = (question: ApiQuestion, subjectId?: string): QuestionI
   points: Number(question.points ?? 1),
   subjectId: question.subjectId ?? subjectId,
   showValidation: false,
+  ...mapMediaFields(question),
 });
 
 const mapUngradedQuestion = (question: ApiQuestion, subjectId?: string): QuestionItem => ({
@@ -55,7 +72,51 @@ const mapUngradedQuestion = (question: ApiQuestion, subjectId?: string): Questio
   points: Number(question.points ?? 1),
   subjectId: question.subjectId ?? subjectId,
   showValidation: false,
+  ...mapMediaFields(question),
 });
+
+const mapIeltsQuestion = (question: ApiQuestion, subjectId?: string): QuestionItem => ({
+  id: question.id,
+  type: "ielts",
+  subType: question.subType ?? "",
+  text: question.text ?? "",
+  instruction: question.instruction ?? "",
+  image: null,
+  options: mapOptions(question.options),
+  matchingOptions: question.matchingOptions
+    ? {
+        left: mapOptions(question.matchingOptions.left) ?? [],
+        right: mapOptions(question.matchingOptions.right) ?? [],
+      }
+    : undefined,
+  answer:
+    question.answer && !isCreateTestIeltsManualSubType(question.subType ?? "")
+      ? { type: question.answer.type, value: [...question.answer.value] }
+      : undefined,
+  points: Number(question.points ?? 1),
+  subjectId: question.subjectId ?? subjectId,
+  showValidation: false,
+  ...mapMediaFields(question),
+});
+
+const mapPassageChild = (question: ApiQuestion, subjectId?: string): QuestionItem => {
+  if (question.subType === "essay" || question.type === "ungraded") {
+    return {
+      ...mapUngradedQuestion(question, subjectId),
+      type: "passage-question" as CreateTestQuestionCategory,
+      subType: question.subType ?? "essay",
+    };
+  }
+
+  if (question.type === "ielts") {
+    return mapIeltsQuestion(question, subjectId);
+  }
+
+  return {
+    ...mapGradedQuestion(question, subjectId),
+    type: "passage-question" as CreateTestQuestionCategory,
+  };
+};
 
 const mapRootQuestion = (question: ApiQuestion, subjectId?: string): RootQuestionItem => {
   if (question.type === "passage-question" || Array.isArray(question.childQuestions)) {
@@ -63,10 +124,18 @@ const mapRootQuestion = (question: ApiQuestion, subjectId?: string): RootQuestio
       id: question.id,
       type: "passage-question",
       passageText: question.passageText ?? "",
-      childQuestions: (question.childQuestions ?? []).map((child) => mapGradedQuestion(child, subjectId)),
+      childQuestions: (question.childQuestions ?? []).map((child) => mapPassageChild(child, subjectId)),
       subjectId: question.subjectId ?? subjectId,
       showValidation: false,
+      audioUrl: question.audioUrl ?? undefined,
+      title: question.title ?? undefined,
+      instruction: question.instruction ?? undefined,
+      imageUrl: question.imageUrl ?? undefined,
     };
+  }
+
+  if (question.type === "ielts") {
+    return mapIeltsQuestion(question, subjectId);
   }
 
   if (question.type === "ungraded") {
@@ -86,9 +155,17 @@ const toStringOrEmpty = (value: number | string | null | undefined): string => {
 const hydrateFromExam = (_state: CreateTestState, action: PayloadAction<TeacherExamDetails>): CreateTestState => {
   const exam = action.payload;
   const initial = createInitialState();
+  const examCategory =
+    exam.formState?.examCategory ?? exam.exam_category ?? ("academic" as const);
 
-  const flatWithOrder: { subjectId: string; subjectName: string; subjectCode: string; question: ApiQuestion; sortOrder: number }[] =
-    [];
+  const flatWithOrder: {
+    subjectId: string;
+    subjectName: string;
+    subjectCode: string;
+    moduleKey?: string;
+    question: ApiQuestion;
+    sortOrder: number;
+  }[] = [];
 
   for (const subject of exam.subjects ?? []) {
     for (const question of (subject.questions ?? []) as unknown as ApiQuestion[]) {
@@ -96,6 +173,7 @@ const hydrateFromExam = (_state: CreateTestState, action: PayloadAction<TeacherE
         subjectId: subject.id,
         subjectName: subject.name ?? "",
         subjectCode: subject.code ?? subject.id,
+        moduleKey: subject.moduleKey ?? (subject.id.startsWith("ielts.") ? subject.id : undefined),
         question,
         sortOrder: Number(question.sortOrder ?? 0),
       });
@@ -112,13 +190,13 @@ const hydrateFromExam = (_state: CreateTestState, action: PayloadAction<TeacherE
         id: entry.subjectId,
         name: entry.subjectName,
         value: entry.subjectCode,
+        moduleKey: entry.moduleKey,
       });
       subjectsById.set(entry.subjectId, subject);
     }
     subject.questions.push(mapRootQuestion(entry.question, entry.subjectId));
   }
 
-  // Preserve subject tabs that had no questions after grouping
   for (const subject of exam.subjects ?? []) {
     if (!subjectsById.has(subject.id)) {
       subjectsById.set(
@@ -127,6 +205,7 @@ const hydrateFromExam = (_state: CreateTestState, action: PayloadAction<TeacherE
           id: subject.id,
           name: subject.name ?? "",
           value: subject.code ?? subject.id,
+          moduleKey: subject.moduleKey ?? (subject.id.startsWith("ielts.") ? subject.id : undefined),
         }),
       );
     }
@@ -144,7 +223,8 @@ const hydrateFromExam = (_state: CreateTestState, action: PayloadAction<TeacherE
       passingScore: toStringOrEmpty(exam.formState?.passingScore),
       allowNegativeMarking: Boolean(exam.formState?.allowNegativeMarking),
       negativeMarking: toStringOrEmpty(exam.formState?.negativeMarking),
-      isModelTest: Boolean((exam.formState as { isModelTest?: boolean } | undefined)?.isModelTest),
+      isModelTest: examCategory === "ielts" ? false : Boolean(exam.formState?.isModelTest),
+      examCategory,
     },
     subjects,
     questionOrder,

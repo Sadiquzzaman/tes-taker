@@ -42,8 +42,13 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
         return;
       }
 
-      if (!formState.isModelTest && subjects.length === 0) {
+      if (!formState.isModelTest && formState.examCategory !== "ielts" && subjects.length === 0) {
         triggerToast({ description: "Please select a subject", type: "error" });
+        return;
+      }
+
+      if (formState.examCategory === "ielts" && subjects.length === 0) {
+        triggerToast({ description: "Please select at least one IELTS module", type: "error" });
         return;
       }
 
@@ -66,7 +71,11 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
         return;
       }
 
-      if (!formState.isModelTest && subjectsWithQuestions.length !== 1) {
+      if (
+        !formState.isModelTest &&
+        formState.examCategory !== "ielts" &&
+        subjectsWithQuestions.length !== 1
+      ) {
         triggerToast({ description: "Non-model tests must use exactly one subject", type: "error" });
         return;
       }
@@ -132,7 +141,13 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
 
       await mutate({
         formState,
-        subjects: subjects.filter((subject) => getSubjectQuestionCount(subject) > 0),
+        subjects: subjects
+          .filter((subject) => getSubjectQuestionCount(subject) > 0)
+          .map((subject) => ({
+            ...subject,
+            moduleKey: subject.moduleKey ?? (subject.id.startsWith("ielts.") ? subject.id : undefined),
+            name: subject.name,
+          })),
         questionOrder:
           questionOrder.length > 0
             ? questionOrder

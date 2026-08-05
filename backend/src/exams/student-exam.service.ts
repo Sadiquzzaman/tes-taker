@@ -986,7 +986,12 @@ export class StudentExamService {
             question.sub_type === 'multiple-response' ||
             question.sub_type === 'matching-ordering' ||
             question.sub_type === 'fill-in-the-blanks' ||
-            question.sub_type === 'answer-box'
+            question.sub_type === 'answer-box' ||
+            question.sub_type === 'sentence-completion' ||
+            question.sub_type === 'summary-completion' ||
+            question.sub_type === 'table-completion' ||
+            question.sub_type === 'diagram-label' ||
+            question.sub_type === 'short-answer'
           ) {
             await this.upsertTextAnswer(answerRepo, subRow.id, questionId, trimmed, studentId);
             continue;
@@ -1041,6 +1046,49 @@ export class StudentExamService {
             await answerRepo.save(row);
           }
         } else {
+          const isSpeaking =
+            typeof question.sub_type === 'string' && question.sub_type.startsWith('speaking-part-');
+          const looksLikeMedia =
+            trimmed.startsWith('data:audio') ||
+            trimmed.startsWith('/uploads/') ||
+            trimmed.startsWith('http://') ||
+            trimmed.startsWith('https://');
+
+          if (isSpeaking || looksLikeMedia) {
+            if (value.length > 5_000_000) {
+              throw new BadRequestException(
+                `Recording for question ${questionId} exceeds the maximum allowed size`,
+              );
+            }
+            const existing = await answerRepo.findOne({
+              where: { submission_id: subRow.id, question_id: questionId },
+            });
+            if (existing) {
+              await answerRepo.update(
+                { id: existing.id },
+                {
+                  media_url: value,
+                  text_answer: null,
+                  selected_answer: null,
+                  word_count: null,
+                  answered_at: new Date(),
+                  updated_at: new Date(),
+                } as object,
+              );
+            } else {
+              const row = answerRepo.create({
+                submission_id: subRow.id,
+                question_id: questionId,
+                media_url: value,
+                answered_at: new Date(),
+                created_by: studentId,
+                created_at: new Date(),
+              });
+              await answerRepo.save(row);
+            }
+            continue;
+          }
+
           if (value.length > 10000) {
             throw new BadRequestException(
               `Essay answer for question ${questionId} exceeds 10000 characters`,
@@ -1059,6 +1107,7 @@ export class StudentExamService {
               {
                 text_answer: value,
                 selected_answer: null,
+                media_url: null,
                 word_count: wordCount,
                 answered_at: new Date(),
                 updated_at: new Date(),

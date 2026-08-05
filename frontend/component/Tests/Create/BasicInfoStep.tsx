@@ -1,4 +1,4 @@
-import { setFormField, setSingleSubject } from "@/lib/features/createTestSlice";
+import { addSubject, removeSubject, setFormField, setSingleSubject } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import DropDownComponent from "@/Ui/DropDownComponent";
 import NormalInput from "@/Ui/NormalInput";
@@ -7,6 +7,7 @@ import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import Link from "next/link";
 import { memo, useCallback, useEffect, useMemo } from "react";
+import { EXAM_CATEGORIES, IELTS_MODULES } from "@/constants/examCategory";
 
 const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
   const dispatch = useAppDispatch();
@@ -86,6 +87,61 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
     [activeSubjectId, canCreateModelTests, dispatch, subjects],
   );
 
+  const handleExamCategoryChange = useCallback(
+    (category: "academic" | "ielts") => {
+      dispatch(setFormField({ field: "examCategory", value: category }));
+      if (category === "ielts") {
+        // Clear academic subjects and seed Reading module
+        dispatch(
+          setSingleSubject({
+            id: IELTS_MODULES[0].id,
+            label: IELTS_MODULES[0].label,
+            value: IELTS_MODULES[0].value,
+          }),
+        );
+      } else {
+        // Switching back to academic - clear IELTS modules
+        const firstAcademicSubject = subjectCatalog[0];
+        if (firstAcademicSubject) {
+          dispatch(
+            setSingleSubject({
+              id: firstAcademicSubject.id,
+              label: firstAcademicSubject.name,
+              value: firstAcademicSubject.value,
+            }),
+          );
+        }
+      }
+    },
+    [dispatch, subjectCatalog],
+  );
+
+  const handleIeltsModuleToggle = useCallback(
+    (module: typeof IELTS_MODULES[0], isChecked: boolean) => {
+      if (isChecked) {
+        dispatch(
+          addSubject({
+            id: module.id,
+            label: module.label,
+            value: module.value,
+          }),
+        );
+        return;
+      }
+
+      const ieltsSubjects = subjects.filter((s) => s.id.startsWith("ielts."));
+      if (ieltsSubjects.length <= 1) {
+        return;
+      }
+      dispatch(removeSubject(module.id));
+    },
+    [dispatch, subjects],
+  );
+
+  const selectedIeltsModules = useMemo(() => {
+    return new Set(subjects.filter((s) => s.id.startsWith("ielts.")).map((s) => s.id));
+  }, [subjects]);
+
   const modelTestCheckbox = (
     <label
       className={`flex items-center gap-2 py-1 ${canCreateModelTests ? "" : "cursor-not-allowed opacity-60"}`}
@@ -122,36 +178,82 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
         />
       </div>
 
-      {canCreateModelTests ? (
-        modelTestCheckbox
-      ) : (
-        <Tooltip
-          content={
-            <span>
-              Model tests are available on Pro.{" "}
-              <Link href="/billing" className="underline text-[#49734F]">
-                Upgrade
-              </Link>
-            </span>
-          }
-        >
-          {modelTestCheckbox}
-        </Tooltip>
-      )}
-
-      {!formState.isModelTest ? (
-        <div className="flex flex-col gap-2">
-          <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Subject</label>
-          <DropDownComponent
-            placeholder="Select subject"
-            value={selectedSubjectValue}
-            handleChange={handleSubjectChange}
-            isSearchable={true}
-            maxOuputInDropdownList={5}
-            list={subjectOptions.map(({ label, value }) => ({ label, value }))}
-          />
+      <div className="flex w-full flex-col gap-2">
+        <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Exam Category</label>
+        <div className="flex gap-3">
+          {EXAM_CATEGORIES.map((cat) => (
+            <label key={cat.value} className="flex items-center gap-2 py-1 cursor-pointer">
+              <input
+                type="radio"
+                name="examCategory"
+                value={cat.value}
+                checked={formState.examCategory === cat.value}
+                onChange={() => handleExamCategoryChange(cat.value)}
+                className="h-4 w-4 border-[#747775] text-[#49734F] focus:ring-0"
+              />
+              <span className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">
+                {cat.label}
+              </span>
+            </label>
+          ))}
         </div>
-      ) : null}
+      </div>
+
+      {formState.examCategory === "ielts" ? (
+        <div className="flex flex-col gap-2">
+          <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+            IELTS Modules (select at least one)
+          </label>
+          <div className="flex flex-col gap-2">
+            {IELTS_MODULES.map((module) => (
+              <label key={module.id} className="flex items-center gap-2 py-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedIeltsModules.has(module.id)}
+                  onChange={(e) => handleIeltsModuleToggle(module, e.target.checked)}
+                  className="h-5 w-5 rounded border-[#747775] text-[#49734F] focus:ring-0"
+                />
+                <span className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">
+                  {module.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          {canCreateModelTests ? (
+            modelTestCheckbox
+          ) : (
+            <Tooltip
+              content={
+                <span>
+                  Model tests are available on Pro.{" "}
+                  <Link href="/billing" className="underline text-[#49734F]">
+                    Upgrade
+                  </Link>
+                </span>
+              }
+            >
+              {modelTestCheckbox}
+            </Tooltip>
+          )}
+
+          {!formState.isModelTest ? (
+            <div className="flex flex-col gap-2">
+              <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Subject</label>
+              <DropDownComponent
+                placeholder="Select subject"
+                value={selectedSubjectValue}
+                handleChange={handleSubjectChange}
+                isSearchable={true}
+                maxOuputInDropdownList={5}
+                list={subjectOptions.map(({ label, value }) => ({ label, value }))}
+              />
+            </div>
+          ) : null}
+        </>
+      )}
 
       <div className="flex w-full flex-col gap-2">
         <p className="text-[15px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Duration</p>

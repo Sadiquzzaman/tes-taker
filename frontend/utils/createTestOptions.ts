@@ -67,6 +67,12 @@ const createTrueFalseOptionTemplates = (): CreateTestQuestionFixedOptionTemplate
   { image: null, text: "Not Given" },
 ];
 
+const createYesNoNotGivenOptionTemplates = (): CreateTestQuestionFixedOptionTemplate[] => [
+  { image: null, text: "Yes" },
+  { image: null, text: "No" },
+  { image: null, text: "Not Given" },
+];
+
 const createObjectiveQuestionTabs = (): CreateTestQuestionSubtypeOption[] => [
   {
     id: CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
@@ -181,23 +187,200 @@ export const createTestQuestionCategoryOptions: CreateTestQuestionCategoryOption
       },
     ],
   },
+  {
+    id: "ielts",
+    label: "IELTS",
+    tabs: [
+      {
+        id: CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
+        label: "Multiple Choice",
+        isSupported: true,
+        answerMode: "single",
+        answerInputMode: "none",
+        optionRules: createVariableOptionRules(),
+        headerPayload: "Write your question here",
+      },
+      {
+        id: CREATE_TEST_GRADED_MULTIPLE_RESPONSE_SUBTYPE_ID,
+        label: "Multiple Response",
+        isSupported: true,
+        answerMode: "multiple",
+        answerInputMode: "none",
+        optionRules: createVariableOptionRules(),
+        headerPayload: "Write your question here",
+      },
+      {
+        id: CREATE_TEST_GRADED_TRUE_FALSE_SUBTYPE_ID,
+        label: "True / False / Not Given",
+        isSupported: true,
+        answerMode: "single",
+        answerInputMode: "none",
+        optionRules: createFixedOptionRules(createTrueFalseOptionTemplates()),
+        headerPayload: "Write your question here",
+      },
+      {
+        id: "yes-no-not-given",
+        label: "Yes / No / Not Given",
+        isSupported: true,
+        answerMode: "single",
+        answerInputMode: "none",
+        optionRules: createFixedOptionRules(createYesNoNotGivenOptionTemplates()),
+        headerPayload: "Write your question here",
+      },
+      {
+        id: CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
+        label: "Matching / Ordering",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "none",
+        optionRules: createMatchingOrderingOptionRules(),
+        headerPayload: "Write your question here",
+      },
+      {
+        id: CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID,
+        label: "Fill in the Blanks",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "correct-answer",
+        answerInputPlaceholder: "Enter expected answer",
+        supportsAlternativeAnswers: true,
+        optionRules: null,
+        headerPayload: "Write your question here (Use ______ for blank spot)",
+      },
+      {
+        id: "sentence-completion",
+        label: "Sentence Completion",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "correct-answer",
+        answerInputPlaceholder: "Enter expected answer",
+        supportsAlternativeAnswers: true,
+        optionRules: null,
+        headerPayload: "Write your question here",
+      },
+      {
+        id: "summary-completion",
+        label: "Summary Completion",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "correct-answer",
+        answerInputPlaceholder: "Enter expected answer",
+        supportsAlternativeAnswers: true,
+        optionRules: null,
+        headerPayload: "Write summary instruction here",
+      },
+      {
+        id: "table-completion",
+        label: "Table Completion",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "correct-answer",
+        answerInputPlaceholder: "Enter expected answer",
+        supportsAlternativeAnswers: true,
+        optionRules: null,
+        headerPayload: "Write table instruction here",
+      },
+      {
+        id: "diagram-label",
+        label: "Diagram Label",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "correct-answer",
+        answerInputPlaceholder: "Enter expected answer",
+        supportsAlternativeAnswers: true,
+        optionRules: null,
+        headerPayload: "Write diagram instruction here",
+      },
+      {
+        id: "short-answer",
+        label: "Short Answer",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "correct-answer",
+        answerInputPlaceholder: "Enter expected answer",
+        supportsAlternativeAnswers: true,
+        optionRules: null,
+        headerPayload: "Write your question here",
+      },
+      {
+        id: "writing-task-1",
+        label: "Writing Task 1",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "none",
+        optionRules: null,
+        headerPayload: "Write task 1 prompt here",
+      },
+      {
+        id: "writing-task-2",
+        label: "Writing Task 2",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "none",
+        optionRules: null,
+        headerPayload: "Write task 2 prompt here",
+      },
+      {
+        id: "speaking-part-1",
+        label: "Speaking Part 1",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "none",
+        optionRules: null,
+        headerPayload: "Write speaking part 1 prompt here",
+      },
+      {
+        id: "speaking-part-2",
+        label: "Speaking Part 2",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "none",
+        optionRules: null,
+        headerPayload: "Write speaking part 2 prompt here",
+      },
+      {
+        id: "speaking-part-3",
+        label: "Speaking Part 3",
+        isSupported: true,
+        answerMode: "none",
+        answerInputMode: "none",
+        optionRules: null,
+        headerPayload: "Write speaking part 3 prompt here",
+      },
+    ],
+  },
 ];
 
 export const isCreateTestObjectiveCategory = (categoryId: CreateTestQuestionCategory) =>
-  categoryId === "graded" || categoryId === "passage-question";
+  categoryId === "graded" || categoryId === "passage-question" || categoryId === "ielts";
 
-/** Auto-scored subtypes under graded or Passage / CQ */
+/** Auto-scored subtypes under graded, Passage / CQ, or IELTS */
 export const isCreateTestAutoScoredSubType = (subType: string) =>
   subType === CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID ||
   subType === CREATE_TEST_GRADED_MULTIPLE_RESPONSE_SUBTYPE_ID ||
   subType === CREATE_TEST_GRADED_TRUE_FALSE_SUBTYPE_ID ||
+  subType === "true-false-not-given" ||
   subType === CREATE_TEST_GRADED_FILL_IN_THE_BLANKS_SUBTYPE_ID ||
   subType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID ||
+  subType === "yes-no-not-given" ||
+  subType === "sentence-completion" ||
+  subType === "summary-completion" ||
+  subType === "table-completion" ||
+  subType === "diagram-label" ||
+  subType === "short-answer" ||
   /* legacy exams */ subType === CREATE_TEST_GRADED_ANSWER_BOX_SUBTYPE_ID;
 
-/** Essay (and similar) children under Passage / CQ that need manual grading */
+/** Essay (and similar) children under Passage / CQ or IELTS that need manual grading */
 export const isCreateTestPassageManualSubType = (subType: string) =>
   subType === CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID;
+
+/** IELTS writing and speaking subtypes that need manual grading */
+export const isCreateTestIeltsManualSubType = (subType: string) =>
+  subType === "writing-task-1" ||
+  subType === "writing-task-2" ||
+  subType === "speaking-part-1" ||
+  subType === "speaking-part-2" ||
+  subType === "speaking-part-3";
 
 export const getCreateTestQuestionSubtype = (categoryId: CreateTestQuestionCategory, subtypeId: string) => {
   for (const category of createTestQuestionCategoryOptions) {

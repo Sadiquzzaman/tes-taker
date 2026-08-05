@@ -49,13 +49,17 @@ export class ExamQuestionEntity extends CustomBaseEntity {
   @JoinColumn({ name: 'section_id' })
   section: ExamQuestionSectionEntity | null;
 
-  @ApiProperty({ description: 'Subject this question belongs to' })
-  @Column({ name: 'subject_id', type: 'uuid' })
-  subject_id: string;
+  @ApiPropertyOptional({ description: 'Subject this question belongs to (Academic)' })
+  @Column({ name: 'subject_id', type: 'uuid', nullable: true })
+  subject_id: string | null;
 
-  @ManyToOne(() => SubjectEntity, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => SubjectEntity, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'subject_id' })
-  subject: SubjectEntity;
+  subject: SubjectEntity | null;
+
+  @ApiPropertyOptional({ description: 'Namespaced module key (e.g. ielts.reading)' })
+  @Column({ name: 'module_key', type: 'varchar', length: 60, nullable: true })
+  module_key: string | null;
 
   @ApiProperty({ description: 'Order within section or legacy exam', default: 0 })
   @Column({ name: 'sort_order', type: 'int', default: 0 })
@@ -115,6 +119,20 @@ export class ExamQuestionEntity extends CustomBaseEntity {
   @ApiPropertyOptional({ description: 'Optional image URL for the question' })
   @Column({ name: 'image_url', type: 'varchar', length: 2048, nullable: true })
   image_url: string | null;
+
+  @ApiPropertyOptional({ description: 'Optional audio URL (Listening module)' })
+  @Column({ name: 'audio_url', type: 'varchar', length: 2048, nullable: true })
+  audio_url: string | null;
+
+  @ApiPropertyOptional({ description: 'Per-question or task time limit in seconds' })
+  @Column({ name: 'time_limit_seconds', type: 'int', nullable: true })
+  time_limit_seconds: number | null;
+
+  @ApiPropertyOptional({
+    description: 'Extensible media/meta payload (cue card, timestamps, speaking part, etc.)',
+  })
+  @Column({ name: 'media_meta_json', type: 'jsonb', nullable: true })
+  media_meta_json: Record<string, unknown> | null;
 
   @ApiPropertyOptional({ description: 'Marks for this question (MCQ and essay)' })
   @Column({ name: 'points', type: 'float', nullable: true })

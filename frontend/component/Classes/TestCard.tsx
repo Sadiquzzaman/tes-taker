@@ -8,6 +8,7 @@ import { setNewTestCreated } from "@/lib/features/testSlice";
 import useDownloadExamQuestions from "@/hooks/api/exam/useDownloadExamQuestions";
 import {
   getTestAudienceLabel,
+  getTestCategoryLabel,
   getTestCounts,
   getTestScheduleRange,
   getTestSubjectLabel,
@@ -37,6 +38,7 @@ const TestCard = ({
   const router = useRouter();
   const { download, loading: downloading } = useDownloadExamQuestions();
   const primarySubjectName = getTestSubjectLabel(testData);
+  const categoryLabel = getTestCategoryLabel(testData);
   const audienceName = getTestAudienceLabel(testData);
   const { participantCount, submittedCount } = getTestCounts(testData);
   const { startAt, endAt } = getTestScheduleRange(testData);
@@ -102,6 +104,11 @@ const TestCard = ({
           {testData.test_name}
         </h2>
         <div className="flex items-center gap-2">
+          {categoryLabel ? (
+            <span className="rounded-[27px] border border-[#49734F] bg-[rgba(73,115,79,0.12)] px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] text-[#49734F]">
+              {categoryLabel}
+            </span>
+          ) : null}
           {isTeacher && "is_active" in testData && (
             <span
               className={`px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] rounded-[27px] box-border border ${
@@ -131,7 +138,9 @@ const TestCard = ({
           </div>
         )}
         <div className="w-1/2 lg:flex-1">
-          <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Subject</p>
+          <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">
+            {categoryLabel === "IELTS" ? "Modules" : "Subject"}
+          </p>
           <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
             {primarySubjectName}
           </p>

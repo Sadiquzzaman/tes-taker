@@ -23,6 +23,7 @@ import {
   WizardGradedQuestionDto,
   WizardPassageQuestionDto,
   WizardUngradedQuestionDto,
+  WizardIeltsQuestionDto,
 } from './dto/create-exam-wizard.dto';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { UserEntity } from 'src/user/entities/user.entity';
@@ -36,7 +37,8 @@ import { EntitlementsService } from 'src/subscriptions/entitlements.service';
 import { SubscriptionService } from 'src/subscriptions/subscription.service';
 import { FeatureKey, LimitKey } from 'src/subscriptions/constants/feature-catalog';
 import { ExamLifecycleStatusEnum, ExamKindEnum, TestAudienceEnum } from './enums/exam-wizard.enums';
-import { QuestionCategoryEnum } from './enums/question.enums';
+import { QuestionCategoryEnum, IELTS_MANUAL_SUB_TYPES } from './enums/question.enums';
+import { ExamCategoryEnum, getModuleLabel, isValidModuleKeyForCategory } from './enums/exam-category.enum';
 import {
   mapAnswerForStorage,
   mapMatchingForStorage,
@@ -86,6 +88,7 @@ type StudentAssignedExamListItem = {
   status: ExamLifecycleStatusEnum;
   participant_count: number;
   submitted_count: number;
+  exam_category: string | null;
 };
 
 type ExamQuestionResponse = Record<string, unknown>;
@@ -93,6 +96,7 @@ type ExamSubjectResponse = {
   id: string | null;
   name: string | null;
   code: string | null;
+  moduleKey?: string | null;
   questions: ExamQuestionResponse[];
 };
 
@@ -195,8 +199,19 @@ export class ExamService {
       }
     }
 
-    const subjectIds = subjects.map((s) => s.id);
-    await this.subjectService.assertSubjectsExist(subjectIds);
+    const examCategory = formState.examCategory ?? ExamCategoryEnum.ACADEMIC;
+
+    if (examCategory === ExamCategoryEnum.ACADEMIC) {
+      const subjectIds = subjects.map((s) => s.id);
+      await this.subjectService.assertSubjectsExist(subjectIds);
+    } else if (examCategory === ExamCategoryEnum.IELTS) {
+      for (const subj of subjects) {
+        const moduleKey = subj.moduleKey ?? subj.id;
+        if (!isValidModuleKeyForCategory(examCategory, moduleKey)) {
+          throw new BadRequestException(`Invalid module key "${moduleKey}" for ${examCategory} exam`);
+        }
+      }
+    }
 
     for (const subj of subjects) {
       validateSubjectQuestions(subj.questions);
@@ -209,8 +224,9 @@ export class ExamService {
       throw new BadRequestException('Exam must include at least one question');
     }
 
-    const isModelTest = Boolean(formState.isModelTest);
-    const primarySubjectId = isModelTest ? null : subjects[0].id;
+    const isModelTest =
+      examCategory === ExamCategoryEnum.IELTS ? false : Boolean(formState.isModelTest);
+    const primarySubjectId = examCategory === ExamCategoryEnum.IELTS ? null : (isModelTest ? null : subjects[0].id);
 
     if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS) {
       if (!publishState.selectedClassId) {
@@ -286,7 +302,9 @@ export class ExamService {
       : undefined;
 
     let examSubjectLabel = formState.testName.trim();
-    if (primarySubjectId) {
+    if (examCategory === ExamCategoryEnum.IELTS) {
+      examSubjectLabel = formState.testName.trim() || 'IELTS';
+    } else if (primarySubjectId) {
       try {
         const sub = await this.subjectService.findOne(primarySubjectId);
         examSubjectLabel = sub.name;
@@ -313,6 +331,7 @@ export class ExamService {
         is_negative_marking: formState.allowNegativeMarking,
         negative_mark_value: negativeVal ?? null,
         subject: examSubjectLabel,
+        exam_category: examCategory,
         class_id:
           publishState.testAudience === TestAudienceEnum.SELECTED_CLASS
             ? publishState.selectedClassId!
@@ -395,6 +414,13 @@ export class ExamService {
               hasAutoScored = true;
             }
           }
+        } else if (parsed.kind === 'ielts') {
+          const subType = parsed.data.subType;
+          if (subType.startsWith('writing-task-') || subType.startsWith('speaking-part-')) {
+            hasManual = true;
+          } else {
+            hasAutoScored = true;
+          }
         }
       }
     }
@@ -407,13 +433,20 @@ export class ExamService {
     subjects: CreateExamWizardDto['subjects'],
   ): void {
     const isModelTest = Boolean(formState.isModelTest);
+    const examCategory = formState.examCategory ?? ExamCategoryEnum.ACADEMIC;
 
-    if (!isModelTest && subjects.length !== 1) {
-      throw new BadRequestException('Non-model tests must include exactly one subject');
-    }
+    if (examCategory === ExamCategoryEnum.IELTS) {
+      if (subjects.length < 1) {
+        throw new BadRequestException('IELTS exams must include at least one module');
+      }
+    } else {
+      if (!isModelTest && subjects.length !== 1) {
+        throw new BadRequestException('Non-model tests must include exactly one subject');
+      }
 
-    if (isModelTest && subjects.length < 1) {
-      throw new BadRequestException('Model tests must include at least one subject');
+      if (isModelTest && subjects.length < 1) {
+        throw new BadRequestException('Model tests must include at least one subject');
+      }
     }
 
     const totalMarks = subjects.reduce((sum, subject) => {
@@ -448,7 +481,8 @@ export class ExamService {
     questionRepo: Repository<ExamQuestionEntity>,
     examId: string,
     sectionId: string,
-    subjectId: string,
+    subjectId: string | null,
+    moduleKey: string | null,
     passage: WizardPassageQuestionDto,
     sortOrder: number,
     jwtPayload: JwtPayloadInterface,
@@ -457,6 +491,7 @@ export class ExamService {
       id: resolveQuestionId(passage.id),
       section_id: sectionId,
       subject_id: subjectId,
+      module_key: moduleKey,
       exam: { id: examId } as ExamEntity,
       sort_order: sortOrder,
       question_type: QuestionTypeEnum.SUBJECTIVE,
@@ -465,9 +500,11 @@ export class ExamService {
       parent_id: null,
       passage_text: passage.passageText.trim(),
       question: passage.passageText.trim().slice(0, 500),
-      image_url: null,
+      image_url: passage.imageUrl?.trim() || null,
+      audio_url: passage.audioUrl?.trim() || null,
       points: null,
-      instruction: null,
+      instruction: passage.instruction?.trim() || passage.title?.trim() || null,
+      media_meta_json: passage.title ? { title: passage.title } : null,
       created_by: jwtPayload.id,
       created_user_name: jwtPayload.full_name,
       created_at: new Date(),
@@ -483,6 +520,7 @@ export class ExamService {
           examId,
           sectionId,
           subjectId,
+          moduleKey,
           child,
           childOrder++,
           jwtPayload,
@@ -494,6 +532,7 @@ export class ExamService {
           examId,
           sectionId,
           subjectId,
+          moduleKey,
           child,
           childOrder++,
           jwtPayload,
@@ -510,7 +549,8 @@ export class ExamService {
     questionRepo: Repository<ExamQuestionEntity>,
     examId: string,
     sectionId: string,
-    subjectId: string,
+    subjectId: string | null,
+    moduleKey: string | null,
     q: WizardChildQuestionDto,
     sortOrder: number,
     jwtPayload: JwtPayloadInterface,
@@ -518,11 +558,13 @@ export class ExamService {
   ): Promise<void> {
     const points = normalizePoints(q.points);
     const answerJson = mapAnswerForStorage(q.answer);
+    const wordLimit = q.mediaMeta?.wordLimit ?? null;
 
     const payload: DeepPartial<ExamQuestionEntity> = {
       id: resolveQuestionId(q.id),
       section_id: sectionId,
       subject_id: subjectId,
+      module_key: moduleKey,
       exam: { id: examId } as ExamEntity,
       sort_order: sortOrder,
       question_type: QuestionTypeEnum.SUBJECTIVE,
@@ -532,6 +574,9 @@ export class ExamService {
       passage_text: null,
       question: q.text.trim(),
       image_url: null,
+      audio_url: q.audioUrl?.trim() || null,
+      time_limit_seconds: q.timeLimitSeconds ?? null,
+      media_meta_json: q.mediaMeta ?? (wordLimit ? { wordLimit } : null),
       points,
       marks_per_question: points,
       instruction: q.instruction?.trim() ? q.instruction.trim() : null,
@@ -550,11 +595,12 @@ export class ExamService {
     questionRepo: Repository<ExamQuestionEntity>,
     examId: string,
     sectionId: string,
-    subjectId: string,
-    q: WizardGradedQuestionDto | WizardChildQuestionDto,
+    subjectId: string | null,
+    moduleKey: string | null,
+    q: WizardGradedQuestionDto | WizardChildQuestionDto | WizardIeltsQuestionDto,
     sortOrder: number,
     jwtPayload: JwtPayloadInterface,
-    category: QuestionCategoryEnum.GRADED | QuestionCategoryEnum.PASSAGE,
+    category: QuestionCategoryEnum.GRADED | QuestionCategoryEnum.PASSAGE | QuestionCategoryEnum.IELTS,
     parentId: string | null,
   ): Promise<void> {
     const points = normalizePoints(q.points);
@@ -567,6 +613,7 @@ export class ExamService {
       id: resolveQuestionId(q.id),
       section_id: sectionId,
       subject_id: subjectId,
+      module_key: moduleKey,
       exam: { id: examId } as ExamEntity,
       sort_order: sortOrder,
       question_type: QuestionTypeEnum.OBJECTIVE,
@@ -576,6 +623,9 @@ export class ExamService {
       passage_text: null,
       question: q.text.trim(),
       image_url: null,
+      audio_url: q.audioUrl?.trim() || null,
+      time_limit_seconds: q.timeLimitSeconds ?? null,
+      media_meta_json: q.mediaMeta ?? null,
       points,
       instruction: q.instruction?.trim() ? q.instruction.trim() : null,
       options_json: options.length ? options : null,
@@ -604,27 +654,34 @@ export class ExamService {
     questionRepo: Repository<ExamQuestionEntity>,
     examId: string,
     sectionId: string,
-    subjectId: string,
-    q: WizardUngradedQuestionDto,
+    subjectId: string | null,
+    moduleKey: string | null,
+    q: WizardUngradedQuestionDto | WizardIeltsQuestionDto,
     sortOrder: number,
     jwtPayload: JwtPayloadInterface,
+    category?: QuestionCategoryEnum.UNGRADED | QuestionCategoryEnum.IELTS,
   ): Promise<void> {
     const points = normalizePoints(q.points);
     const answerJson = mapAnswerForStorage(q.answer);
+    const wordLimit = (q as WizardUngradedQuestionDto).wordLimit ?? (q.mediaMeta as any)?.wordLimit ?? null;
 
     const payload: DeepPartial<ExamQuestionEntity> = {
       id: resolveQuestionId(q.id),
       section_id: sectionId,
       subject_id: subjectId,
+      module_key: moduleKey,
       exam: { id: examId } as ExamEntity,
       sort_order: sortOrder,
       question_type: QuestionTypeEnum.SUBJECTIVE,
-      category: QuestionCategoryEnum.UNGRADED,
+      category: category ?? QuestionCategoryEnum.UNGRADED,
       sub_type: q.subType,
       parent_id: null,
       passage_text: null,
       question: q.text.trim(),
       image_url: null,
+      audio_url: q.audioUrl?.trim() || null,
+      time_limit_seconds: q.timeLimitSeconds ?? null,
+      media_meta_json: q.mediaMeta ?? (wordLimit ? { wordLimit } : null),
       points,
       marks_per_question: points,
       instruction: q.instruction?.trim() ? q.instruction.trim() : null,
@@ -1156,7 +1213,19 @@ export class ExamService {
       status: this.computeExamLifecycleStatus(exam.exam_start_time, exam.exam_end_time),
       participant_count: metrics.get(exam.id)!.participant_count,
       submitted_count: metrics.get(exam.id)!.submitted_count,
+      exam_category: exam.exam_category ?? ExamCategoryEnum.ACADEMIC,
     }));
+  }
+
+  /** Resolve module key from wizard subject block (explicit field or namespaced id). */
+  private resolveWizardModuleKey(subj: CreateExamWizardDto['subjects'][number]): string | null {
+    if (subj.moduleKey) {
+      return subj.moduleKey;
+    }
+    if (typeof subj.id === 'string' && subj.id.startsWith('ielts.')) {
+      return subj.id;
+    }
+    return null;
   }
 
   /**
@@ -1392,6 +1461,7 @@ export class ExamService {
       test_name: exam.test_name,
       status: this.computeExamLifecycleStatus(exam.exam_start_time, exam.exam_end_time),
       is_active: exam.is_active,
+      exam_category: exam.exam_category,
       formState: {
         testName: exam.test_name ?? '',
         duration: exam.duration_minutes ?? 0,
@@ -1401,6 +1471,7 @@ export class ExamService {
         isModelTest: Boolean(exam.is_model_test),
         allowScreenShare: exam.allow_screen_share ?? false,
         screenShareDisqualifySeconds: exam.screen_share_disqualify_seconds ?? 15,
+        examCategory: exam.exam_category ?? ExamCategoryEnum.ACADEMIC,
       },
       publishState: {
         publishTiming: exam.publish_timing,
@@ -1469,20 +1540,40 @@ export class ExamService {
 
     const allRootQuestions: ExamQuestionEntity[] = [];
     const childrenByParent = new Map<string, ExamQuestionEntity[]>();
-    const subjectMetaById = new Map<string, { id: string | null; name: string | null; code: string | null }>();
+    const subjectMetaById = new Map<string, { id: string | null; name: string | null; code: string | null; moduleKey?: string | null }>();
 
     for (const section of sections) {
-      const sectionSubject = section.subject ?? null;
-      if (sectionSubject?.id && !subjectMetaById.has(sectionSubject.id)) {
-        subjectMetaById.set(sectionSubject.id, {
-          id: sectionSubject.id,
-          name: sectionSubject.name ?? null,
-          code: sectionSubject.code ?? null,
-        });
+      if (section.module_key) {
+        if (!subjectMetaById.has(section.module_key)) {
+          subjectMetaById.set(section.module_key, {
+            id: section.module_key,
+            name: section.header_text || getModuleLabel(section.module_key),
+            code: section.module_key,
+            moduleKey: section.module_key,
+          });
+        }
+      } else {
+        const sectionSubject = section.subject ?? null;
+        if (sectionSubject?.id && !subjectMetaById.has(sectionSubject.id)) {
+          subjectMetaById.set(sectionSubject.id, {
+            id: sectionSubject.id,
+            name: sectionSubject.name ?? null,
+            code: sectionSubject.code ?? null,
+          });
+        }
       }
 
       for (const q of section.questions || []) {
-        if (q.subject_id && q.subject && !subjectMetaById.has(q.subject_id)) {
+        if (q.module_key) {
+          if (!subjectMetaById.has(q.module_key)) {
+            subjectMetaById.set(q.module_key, {
+              id: q.module_key,
+              name: getModuleLabel(q.module_key),
+              code: q.module_key,
+              moduleKey: q.module_key,
+            });
+          }
+        } else if (q.subject_id && q.subject && !subjectMetaById.has(q.subject_id)) {
           subjectMetaById.set(q.subject_id, {
             id: q.subject.id,
             name: q.subject.name ?? null,
@@ -1503,31 +1594,39 @@ export class ExamService {
 
     const grouped = new Map<string, ExamSubjectResponse>();
     for (const q of allRootQuestions) {
-      const subjectId = q.subject_id ?? q.section?.subject_id ?? exam.primary_subject?.id ?? `legacy:${exam.id}`;
+      const groupKey = q.module_key ?? q.subject_id ?? q.section?.module_key ?? q.section?.subject_id ?? exam.primary_subject?.id ?? `legacy:${exam.id}`;
       const meta =
-        subjectMetaById.get(subjectId) ??
-        (q.section?.subject
+        subjectMetaById.get(groupKey) ??
+        (q.section?.module_key
           ? {
-              id: q.section.subject.id,
-              name: q.section.subject.name ?? null,
-              code: q.section.subject.code ?? null,
+              id: q.section.module_key,
+              name: getModuleLabel(q.section.module_key),
+              code: q.section.module_key,
+              moduleKey: q.section.module_key,
             }
-          : {
-              id: exam.primary_subject?.id ?? null,
-              name: exam.primary_subject?.name ?? exam.subject ?? null,
-              code: exam.primary_subject?.code ?? null,
-            });
+          : q.section?.subject
+            ? {
+                id: q.section.subject.id,
+                name: q.section.subject.name ?? null,
+                code: q.section.subject.code ?? null,
+              }
+            : {
+                id: exam.primary_subject?.id ?? null,
+                name: exam.primary_subject?.name ?? exam.subject ?? null,
+                code: exam.primary_subject?.code ?? null,
+              });
 
-      if (!grouped.has(subjectId)) {
-        grouped.set(subjectId, {
+      if (!grouped.has(groupKey)) {
+        grouped.set(groupKey, {
           id: meta.id,
           name: meta.name,
           code: meta.code,
+          moduleKey: meta.moduleKey,
           questions: [],
         });
       }
 
-      grouped.get(subjectId)!.questions.push(
+      grouped.get(groupKey)!.questions.push(
         this.formatQuestionResponse(q, includeCorrectAnswers, childrenByParent),
       );
     }
@@ -1544,7 +1643,11 @@ export class ExamService {
     const withMeta = (response: ExamQuestionResponse): ExamQuestionResponse => ({
       ...response,
       subjectId: question.subject_id ?? null,
+      moduleKey: question.module_key ?? null,
       sortOrder: question.sort_order ?? 0,
+      audioUrl: question.audio_url ?? undefined,
+      timeLimitSeconds: question.time_limit_seconds ?? undefined,
+      mediaMeta: question.media_meta_json ?? undefined,
     });
 
     if (question.category === QuestionCategoryEnum.PASSAGE && !question.parent_id) {
@@ -1552,10 +1655,14 @@ export class ExamService {
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((child) => this.formatPassageChildResponse(child, includeCorrectAnswers));
 
+      const title = question.media_meta_json?.title ?? question.instruction ?? null;
       return withMeta({
         id: question.id,
         type: QuestionCategoryEnum.PASSAGE,
         passageText: question.passage_text ?? question.question,
+        title,
+        instruction: title !== question.instruction ? question.instruction : null,
+        imageUrl: question.image_url ?? undefined,
         childQuestions: children,
         showValidation: false,
       });
@@ -1570,8 +1677,36 @@ export class ExamService {
         instruction: question.instruction ?? null,
         image: null,
         points: question.points ?? question.marks_per_question ?? null,
+        wordLimit: question.media_meta_json?.wordLimit ?? undefined,
         showValidation: false,
       };
+      if (includeCorrectAnswers && question.answer_json) {
+        base.answer = question.answer_json;
+      }
+      return withMeta(base);
+    }
+
+    if (question.category === QuestionCategoryEnum.IELTS) {
+      const base: ExamQuestionResponse = {
+        id: question.id,
+        type: QuestionCategoryEnum.IELTS,
+        subType: question.sub_type,
+        text: question.question,
+        instruction: question.instruction ?? null,
+        image: null,
+        points: question.points ?? question.marks_per_question ?? null,
+        wordLimit: question.media_meta_json?.wordLimit ?? undefined,
+        showValidation: false,
+      };
+      if (question.question_type === QuestionTypeEnum.OBJECTIVE && question.options_json?.length) {
+        base.options = question.options_json.map((o) => ({ id: o.id, text: o.text, image: null }));
+      }
+      if (question.matching_options_json) {
+        base.matchingOptions = {
+          left: question.matching_options_json.left.map((o) => ({ ...o, image: null })),
+          right: question.matching_options_json.right.map((o) => ({ ...o, image: null })),
+        };
+      }
       if (includeCorrectAnswers && question.answer_json) {
         base.answer = question.answer_json;
       }
@@ -1600,6 +1735,10 @@ export class ExamService {
         text: question.question,
         instruction: question.instruction ?? null,
         image: null,
+        audioUrl: question.audio_url ?? undefined,
+        timeLimitSeconds: question.time_limit_seconds ?? undefined,
+        mediaMeta: question.media_meta_json ?? undefined,
+        wordLimit: question.media_meta_json?.wordLimit ?? undefined,
         points: question.points ?? question.marks_per_question ?? null,
         showValidation: false,
       };
@@ -1613,6 +1752,9 @@ export class ExamService {
     return {
       ...base,
       type: QuestionCategoryEnum.PASSAGE,
+      audioUrl: question.audio_url ?? undefined,
+      timeLimitSeconds: question.time_limit_seconds ?? undefined,
+      mediaMeta: question.media_meta_json ?? undefined,
     };
   }
 
@@ -1848,8 +1990,19 @@ export class ExamService {
       }
     }
 
-    const subjectIds = subjects.map((s) => s.id);
-    await this.subjectService.assertSubjectsExist(subjectIds);
+    const examCategory = formState.examCategory ?? ExamCategoryEnum.ACADEMIC;
+
+    if (examCategory === ExamCategoryEnum.ACADEMIC) {
+      const subjectIds = subjects.map((s) => s.id);
+      await this.subjectService.assertSubjectsExist(subjectIds);
+    } else if (examCategory === ExamCategoryEnum.IELTS) {
+      for (const subj of subjects) {
+        const moduleKey = subj.moduleKey ?? subj.id;
+        if (!isValidModuleKeyForCategory(examCategory, moduleKey)) {
+          throw new BadRequestException(`Invalid module key "${moduleKey}" for ${examCategory} exam`);
+        }
+      }
+    }
 
     for (const subj of subjects) {
       validateSubjectQuestions(subj.questions);
@@ -1862,8 +2015,9 @@ export class ExamService {
       throw new BadRequestException('Exam must include at least one question');
     }
 
-    const isModelTest = Boolean(formState.isModelTest);
-    const primarySubjectId = isModelTest ? null : subjects[0].id;
+    const isModelTest =
+      examCategory === ExamCategoryEnum.IELTS ? false : Boolean(formState.isModelTest);
+    const primarySubjectId = examCategory === ExamCategoryEnum.IELTS ? null : (isModelTest ? null : subjects[0].id);
 
     if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS) {
       if (!publishState.selectedClassId) {
@@ -1939,7 +2093,9 @@ export class ExamService {
       : undefined;
 
     let examSubjectLabel = formState.testName.trim();
-    if (primarySubjectId) {
+    if (examCategory === ExamCategoryEnum.IELTS) {
+      examSubjectLabel = formState.testName.trim() || 'IELTS';
+    } else if (primarySubjectId) {
       try {
         const sub = await this.subjectService.findOne(primarySubjectId);
         examSubjectLabel = sub.name;
@@ -1977,6 +2133,7 @@ export class ExamService {
       examRow.is_negative_marking = formState.allowNegativeMarking;
       examRow.negative_mark_value = negativeVal ?? null;
       examRow.subject = examSubjectLabel;
+      examRow.exam_category = examCategory;
       examRow.class_id =
         publishState.testAudience === TestAudienceEnum.SELECTED_CLASS
           ? publishState.selectedClassId!
@@ -2023,14 +2180,19 @@ export class ExamService {
     const sectionRepo = manager.getRepository(ExamQuestionSectionEntity);
     const questionRepo = manager.getRepository(ExamQuestionEntity);
 
-    const sectionBySubjectId = new Map<string, ExamQuestionSectionEntity>();
+    const sectionByKey = new Map<string, ExamQuestionSectionEntity>();
     let sectionOrder = 0;
     for (const subj of subjects) {
+      const moduleKey = this.resolveWizardModuleKey(subj);
+      const isModule = Boolean(moduleKey);
+      const flatKey = moduleKey || subj.id;
+
       const sectionPayload: DeepPartial<ExamQuestionSectionEntity> = {
         exam_id: examId,
-        subject_id: subj.id,
+        subject_id: isModule ? null : subj.id,
+        module_key: moduleKey,
         section_type: 'mixed',
-        header_text: null,
+        header_text: isModule ? (subj.name || getModuleLabel(moduleKey!)) : null,
         instruction: null,
         sort_order: sectionOrder++,
         created_by: jwtPayload.id,
@@ -2039,21 +2201,27 @@ export class ExamService {
       };
       const section = sectionRepo.create(sectionPayload);
       const savedSec = await sectionRepo.save(section);
-      sectionBySubjectId.set(subj.id, savedSec);
+      sectionByKey.set(flatKey, savedSec);
     }
 
     type FlatWizardQuestion = {
-      subjectId: string;
+      flatKey: string;
+      subjectId: string | null;
+      moduleKey: string | null;
       questionId: string;
       raw: CreateExamWizardDto['subjects'][number]['questions'][number];
     };
 
     const flat: FlatWizardQuestion[] = [];
     for (const subj of subjects) {
+      const moduleKey = this.resolveWizardModuleKey(subj);
+      const flatKey = moduleKey || subj.id;
+      const subjectId = moduleKey ? null : subj.id;
+
       for (const raw of subj.questions) {
         const questionId =
           typeof (raw as { id?: unknown }).id === 'string' ? (raw as { id: string }).id : '';
-        flat.push({ subjectId: subj.id, questionId, raw });
+        flat.push({ flatKey, subjectId, moduleKey, questionId, raw });
       }
     }
 
@@ -2068,7 +2236,7 @@ export class ExamService {
 
     let globalOrder = 0;
     for (const item of flat) {
-      const savedSec = sectionBySubjectId.get(item.subjectId);
+      const savedSec = sectionByKey.get(item.flatKey);
       if (!savedSec) {
         continue;
       }
@@ -2080,6 +2248,7 @@ export class ExamService {
           examId,
           savedSec.id,
           item.subjectId,
+          item.moduleKey,
           parsed.data,
           globalOrder,
           jwtPayload,
@@ -2090,18 +2259,48 @@ export class ExamService {
           examId,
           savedSec.id,
           item.subjectId,
+          item.moduleKey,
           parsed.data,
           globalOrder++,
           jwtPayload,
           QuestionCategoryEnum.GRADED,
           null,
         );
+      } else if (parsed.kind === 'ielts') {
+        const isManual = (IELTS_MANUAL_SUB_TYPES as readonly string[]).includes(parsed.data.subType);
+        if (isManual) {
+          await this.persistUngradedQuestion(
+            questionRepo,
+            examId,
+            savedSec.id,
+            item.subjectId,
+            item.moduleKey,
+            parsed.data,
+            globalOrder++,
+            jwtPayload,
+            QuestionCategoryEnum.IELTS,
+          );
+        } else {
+          await this.persistAutoScoredQuestion(
+            questionRepo,
+            examId,
+            savedSec.id,
+            item.subjectId,
+            item.moduleKey,
+            parsed.data,
+            globalOrder++,
+            jwtPayload,
+            QuestionCategoryEnum.IELTS,
+            null,
+          );
+        }
       } else {
         await this.persistUngradedQuestion(
           questionRepo,
           examId,
           savedSec.id,
           item.subjectId,
+          item.moduleKey,
           parsed.data,
           globalOrder++,
           jwtPayload,

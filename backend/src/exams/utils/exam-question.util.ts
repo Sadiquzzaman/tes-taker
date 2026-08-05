@@ -2,6 +2,8 @@ import { BadRequestException } from '@nestjs/common';
 import {
   AUTO_SCORED_SUB_TYPES,
   AnswerValueTypeEnum,
+  IELTS_AUTO_SUB_TYPES,
+  IELTS_MANUAL_SUB_TYPES,
   MANUAL_SUB_TYPES,
   PASSAGE_CHILD_SUB_TYPES,
   QuestionCategoryEnum,
@@ -10,6 +12,7 @@ import {
   WizardAnswerDto,
   WizardChildQuestionDto,
   WizardGradedQuestionDto,
+  WizardIeltsQuestionDto,
   WizardMatchingOptionsDto,
   WizardOptionDto,
   WizardPassageQuestionDto,
@@ -22,7 +25,8 @@ const UUID_V4_RE =
 export type ParsedWizardQuestion =
   | { kind: 'passage'; data: WizardPassageQuestionDto }
   | { kind: 'graded'; data: WizardGradedQuestionDto }
-  | { kind: 'ungraded'; data: WizardUngradedQuestionDto };
+  | { kind: 'ungraded'; data: WizardUngradedQuestionDto }
+  | { kind: 'ielts'; data: WizardIeltsQuestionDto };
 
 export function parseWizardQuestion(raw: unknown): ParsedWizardQuestion {
   const q = (raw ?? {}) as Record<string, unknown>;
@@ -46,6 +50,10 @@ export function parseWizardQuestion(raw: unknown): ParsedWizardQuestion {
     return { kind: 'ungraded', data: q as unknown as WizardUngradedQuestionDto };
   }
 
+  if (type === QuestionCategoryEnum.IELTS) {
+    return { kind: 'ielts', data: q as unknown as WizardIeltsQuestionDto };
+  }
+
   throw new BadRequestException(`Unknown question type: ${type}`);
 }
 
@@ -60,10 +68,42 @@ export function validateSubjectQuestions(questions: unknown[]): void {
       validatePassageQuestion(parsed.data);
     } else if (parsed.kind === 'graded') {
       validateAutoScoredQuestion(parsed.data, 'graded');
+    } else if (parsed.kind === 'ielts') {
+      validateIeltsQuestion(parsed.data);
     } else {
       validateUngradedQuestion(parsed.data);
     }
   }
+}
+
+function isIeltsManualSubType(subType: string): boolean {
+  return (IELTS_MANUAL_SUB_TYPES as readonly string[]).includes(subType);
+}
+
+function validateIeltsQuestion(q: WizardIeltsQuestionDto): void {
+  if (!q.text?.trim()) {
+    throw new BadRequestException('Each IELTS question requires text');
+  }
+  normalizePoints(q.points);
+
+  if (isIeltsManualSubType(q.subType)) {
+    if (q.answer) {
+      if (q.answer.type !== AnswerValueTypeEnum.TEXT) {
+        throw new BadRequestException('IELTS writing/speaking sample answers must use type "text"');
+      }
+    }
+    return;
+  }
+
+  if (!(IELTS_AUTO_SUB_TYPES as readonly string[]).includes(q.subType)) {
+    throw new BadRequestException(`Invalid IELTS subType: ${q.subType}`);
+  }
+
+  if (!q.answer) {
+    throw new BadRequestException('Auto-scored IELTS questions require an answer');
+  }
+
+  validateAutoScoredQuestion(q as unknown as WizardGradedQuestionDto, 'ielts');
 }
 
 function validatePassageQuestion(q: WizardPassageQuestionDto): void {
@@ -110,7 +150,7 @@ function validateUngradedQuestion(q: WizardUngradedQuestionDto): void {
   if (!q.text?.trim()) {
     throw new BadRequestException('Each question requires text');
   }
-  if (!MANUAL_SUB_TYPES.includes(q.subType)) {
+  if (!MANUAL_SUB_TYPES.includes(q.subType as (typeof MANUAL_SUB_TYPES)[number])) {
     throw new BadRequestException(`Invalid ungraded subType: ${q.subType}`);
   }
   normalizePoints(q.points);
@@ -126,7 +166,7 @@ function validateUngradedQuestion(q: WizardUngradedQuestionDto): void {
 }
 
 function validateAutoScoredQuestion(
-  q: WizardGradedQuestionDto | WizardChildQuestionDto,
+  q: WizardGradedQuestionDto | WizardChildQuestionDto | WizardIeltsQuestionDto,
   label: string,
 ): void {
   if (!q.text?.trim()) {
@@ -142,7 +182,17 @@ function validateAutoScoredQuestion(
     return;
   }
 
-  if (q.subType === 'fill-in-the-blanks' || q.subType === 'answer-box') {
+  const textAnswerSubTypes = new Set([
+    'fill-in-the-blanks',
+    'answer-box',
+    'sentence-completion',
+    'summary-completion',
+    'table-completion',
+    'diagram-label',
+    'short-answer',
+  ]);
+
+  if (textAnswerSubTypes.has(q.subType)) {
     if (!q.answer || q.answer.type !== AnswerValueTypeEnum.TEXT) {
       throw new BadRequestException(`${label} ${q.subType} requires answer.type "text"`);
     }
@@ -154,8 +204,9 @@ function validateAutoScoredQuestion(
   }
 
   const options = q.options ?? [];
-  const minOpts = q.subType === 'true-false' ? 3 : 3;
-  const maxOpts = q.subType === 'true-false' ? 3 : 5;
+  const fixedThreeOptionSubTypes = new Set(['true-false', 'true-false-not-given', 'yes-no-not-given']);
+  const minOpts = fixedThreeOptionSubTypes.has(q.subType) ? 3 : 3;
+  const maxOpts = fixedThreeOptionSubTypes.has(q.subType) ? 3 : 5;
 
   if (options.length < minOpts || options.length > maxOpts) {
     throw new BadRequestException(
@@ -192,7 +243,7 @@ function validateAutoScoredQuestion(
 }
 
 function validateMatchingQuestion(
-  q: WizardGradedQuestionDto | WizardChildQuestionDto,
+  q: WizardGradedQuestionDto | WizardChildQuestionDto | WizardIeltsQuestionDto,
   label: string,
 ): void {
   const matching = q.matchingOptions;
@@ -320,6 +371,14 @@ export function isAutoScoredQuestion(category: QuestionCategoryEnum | null, subT
     return false;
   }
   if (category === QuestionCategoryEnum.UNGRADED) {
+    return false;
+  }
+  // IELTS writing/speaking tasks are always manual
+  if (
+    subType === 'writing-task-1' ||
+    subType === 'writing-task-2' ||
+    subType.startsWith('speaking-part-')
+  ) {
     return false;
   }
   return AUTO_SCORED_SUB_TYPES.includes(subType as (typeof AUTO_SCORED_SUB_TYPES)[number]);

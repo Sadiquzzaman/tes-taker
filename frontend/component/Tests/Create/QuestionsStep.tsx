@@ -46,7 +46,6 @@ const getQuestionCardOffset = (questionIndex: number, dragState: DragState | nul
 const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
-  const defaultQuestionCategory = createTestQuestionCategoryOptions[0].id;
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
   const subjectCatalog = useAppSelector((state) => state.subject.subjects);
   useGetAllSubject();
@@ -61,6 +60,8 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     formState,
   } = createTestState;
   const isModelTest = formState.isModelTest;
+  const examCategory = formState.examCategory ?? "academic";
+  const defaultQuestionCategory = examCategory === "ielts" ? "ielts" : createTestQuestionCategoryOptions[0].id;
   const questionsContainerRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dragStateRef = useRef<DragState | null>(null);
@@ -72,8 +73,18 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const isCategoryEntitled = (categoryId: CreateTestQuestionCategory) => {
     if (categoryId === "ungraded") return hasFeature("allow_ungraded_questions");
     if (categoryId === "passage-question") return hasFeature("allow_passage_questions");
+    if (categoryId === "ielts") return true; // Always allowed when IELTS exam category selected
     return true;
   };
+
+  // Update active question category when exam category changes
+  useEffect(() => {
+    if (examCategory === "ielts" && activeQuestionCategory !== "ielts" && activeQuestionCategory !== "passage-question") {
+      setActiveQuestionCategory("ielts");
+    } else if (examCategory === "academic" && activeQuestionCategory === "ielts") {
+      setActiveQuestionCategory("graded");
+    }
+  }, [examCategory, activeQuestionCategory]);
 
   const activeSubject = useMemo(
     () => subjects.find((subject) => subject.id === activeSubjectId) ?? subjects[0] ?? null,
@@ -498,7 +509,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         </div>
         <div className="w-full border-b border-[#E5E5E5]" />
 
-        {isModelTest ? (
+        {isModelTest || examCategory === "ielts" ? (
           <QuestionSubjectTabs
             subjects={subjects}
             activeSubjectId={activeSubject?.id ?? null}
@@ -533,48 +544,56 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
 
         <div className="flex flex-col gap-1">
           <div className="flex w-fit items-center gap-2 rounded-[8px] border border-[#49734F] bg-white p-1">
-            {createTestQuestionCategoryOptions.map((category) => {
-              const isActive = activeQuestionCategory === category.id;
-              const entitled = isCategoryEntitled(category.id);
+            {createTestQuestionCategoryOptions
+              .filter((category) => {
+                // Filter based on exam category
+                if (examCategory === "ielts") {
+                  return category.id === "ielts" || category.id === "passage-question";
+                }
+                return category.id !== "ielts";
+              })
+              .map((category) => {
+                const isActive = activeQuestionCategory === category.id;
+                const entitled = isCategoryEntitled(category.id);
 
-              const button = (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => entitled && handleQuestionCategorySelect(category.id)}
-                  disabled={!entitled}
-                  className={`flex pb-1 h-9 min-w-[79px] items-center justify-center rounded-[6px] px-4 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] transition-none ${
-                    isActive
-                      ? "bg-[#49734F] text-white"
-                      : entitled
-                        ? "bg-[#EFF0F3] text-[#232A25]"
-                        : "bg-[#EFF0F3] text-[#747775] opacity-60 cursor-not-allowed"
-                  }`}
-                >
-                  {category.label}
-                </button>
-              );
-
-              if (!entitled) {
-                return (
-                  <Tooltip
+                const button = (
+                  <button
                     key={category.id}
-                    content={
-                      <span>
-                        Not in your plan. Please upgrade.{" "}
-                        <Link href="/billing" className="underline text-[#49734F]">
-                          Upgrade
-                        </Link>
-                      </span>
-                    }
+                    type="button"
+                    onClick={() => entitled && handleQuestionCategorySelect(category.id)}
+                    disabled={!entitled}
+                    className={`flex pb-1 h-9 min-w-[79px] items-center justify-center rounded-[6px] px-4 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] transition-none ${
+                      isActive
+                        ? "bg-[#49734F] text-white"
+                        : entitled
+                          ? "bg-[#EFF0F3] text-[#232A25]"
+                          : "bg-[#EFF0F3] text-[#747775] opacity-60 cursor-not-allowed"
+                    }`}
                   >
-                    {button}
-                  </Tooltip>
+                    {category.label}
+                  </button>
                 );
-              }
 
-              return button;
-            })}
+                if (!entitled) {
+                  return (
+                    <Tooltip
+                      key={category.id}
+                      content={
+                        <span>
+                          Not in your plan. Please upgrade.{" "}
+                          <Link href="/billing" className="underline text-[#49734F]">
+                            Upgrade
+                          </Link>
+                        </span>
+                      }
+                    >
+                      {button}
+                    </Tooltip>
+                  );
+                }
+
+                return button;
+              })}
           </div>
 
           <div className="flex w-full flex-wrap items-center gap-1 overflow-x-auto rounded-[6px] bg-[#49734F] p-1">

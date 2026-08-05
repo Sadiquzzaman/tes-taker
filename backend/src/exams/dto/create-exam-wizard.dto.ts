@@ -13,12 +13,14 @@ import {
   Min,
   ValidateNested,
   ArrayMinSize,
-  ArrayMaxSize,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { PublishTimingEnum, TestAudienceEnum } from '../enums/exam-wizard.enums';
+import { ExamCategoryEnum } from '../enums/exam-category.enum';
 import {
   AUTO_SCORED_SUB_TYPES,
+  IELTS_AUTO_SUB_TYPES,
+  IELTS_MANUAL_SUB_TYPES,
   MANUAL_SUB_TYPES,
   PASSAGE_CHILD_SUB_TYPES,
   QuestionCategoryEnum,
@@ -121,6 +123,23 @@ export class WizardChildQuestionDto {
   @IsOptional()
   image?: unknown | null;
 
+  @ApiPropertyOptional({ description: 'Audio URL for listening stems' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  audioUrl?: string | null;
+
+  @ApiPropertyOptional({ description: 'Per-question / task time limit (seconds)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  timeLimitSeconds?: number | null;
+
+  @ApiPropertyOptional({ description: 'Extensible media metadata (cue card, timestamps, etc.)' })
+  @IsOptional()
+  mediaMeta?: Record<string, unknown> | null;
+
   @ApiPropertyOptional({ type: [WizardOptionDto] })
   @IsOptional()
   @IsArray()
@@ -177,6 +196,30 @@ export class WizardPassageQuestionDto {
   @IsNotEmpty()
   passageText: string;
 
+  @ApiPropertyOptional({ description: 'Optional passage title (IELTS Reading)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  title?: string | null;
+
+  @ApiPropertyOptional({ description: 'Optional passage instructions' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  instruction?: string | null;
+
+  @ApiPropertyOptional({ description: 'Optional passage image URL' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  imageUrl?: string | null;
+
+  @ApiPropertyOptional({ description: 'Optional audio URL (Listening)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  audioUrl?: string | null;
+
   @ApiProperty({
     type: [WizardChildQuestionDto],
     description: 'Questions based on the passage (auto-scored and/or essay for CQ)',
@@ -227,6 +270,23 @@ export class WizardGradedQuestionDto {
   @ApiPropertyOptional({ description: 'Ignored by backend' })
   @IsOptional()
   image?: unknown | null;
+
+  @ApiPropertyOptional({ description: 'Audio URL for listening stems' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  audioUrl?: string | null;
+
+  @ApiPropertyOptional({ description: 'Per-question / task time limit (seconds)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  timeLimitSeconds?: number | null;
+
+  @ApiPropertyOptional({ description: 'Extensible media metadata' })
+  @IsOptional()
+  mediaMeta?: Record<string, unknown> | null;
 
   @ApiPropertyOptional({ type: [WizardOptionDto] })
   @IsOptional()
@@ -293,6 +353,30 @@ export class WizardUngradedQuestionDto {
   @IsOptional()
   image?: unknown | null;
 
+  @ApiPropertyOptional({ description: 'Audio URL (speaking cue / listening)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  audioUrl?: string | null;
+
+  @ApiPropertyOptional({ description: 'Per-question / task time limit (seconds)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  timeLimitSeconds?: number | null;
+
+  @ApiPropertyOptional({ description: 'Suggested word limit (writing tasks)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  wordLimit?: number | null;
+
+  @ApiPropertyOptional({ description: 'Extensible media metadata (cue card, etc.)' })
+  @IsOptional()
+  mediaMeta?: Record<string, unknown> | null;
+
   @ApiPropertyOptional({ type: WizardAnswerDto, description: 'Sample answers for manual grading' })
   @IsOptional()
   @ValidateNested()
@@ -311,25 +395,136 @@ export class WizardUngradedQuestionDto {
   showValidation?: boolean;
 }
 
+/** Flat IELTS builder questions (auto-scored or writing/speaking tasks). */
+export class WizardIeltsQuestionDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID('4')
+  id?: string;
+
+  @ApiProperty({
+    enum: QuestionCategoryEnum,
+    example: QuestionCategoryEnum.IELTS,
+  })
+  @IsIn([QuestionCategoryEnum.IELTS])
+  type: QuestionCategoryEnum.IELTS;
+
+  @ApiProperty({
+    enum: [...IELTS_AUTO_SUB_TYPES, ...IELTS_MANUAL_SUB_TYPES],
+    example: 'multiple-choice',
+  })
+  @IsIn([...IELTS_AUTO_SUB_TYPES, ...IELTS_MANUAL_SUB_TYPES])
+  subType: (typeof IELTS_AUTO_SUB_TYPES)[number] | (typeof IELTS_MANUAL_SUB_TYPES)[number];
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  text: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  instruction?: string;
+
+  @ApiPropertyOptional({ description: 'Ignored by backend' })
+  @IsOptional()
+  image?: unknown | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  audioUrl?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  timeLimitSeconds?: number | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  wordLimit?: number | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  mediaMeta?: Record<string, unknown> | null;
+
+  @ApiPropertyOptional({ type: [WizardOptionDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => WizardOptionDto)
+  options?: WizardOptionDto[];
+
+  @ApiPropertyOptional({ type: WizardMatchingOptionsDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WizardMatchingOptionsDto)
+  matchingOptions?: WizardMatchingOptionsDto;
+
+  @ApiPropertyOptional({ type: WizardAnswerDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WizardAnswerDto)
+  answer?: WizardAnswerDto;
+
+  @ApiProperty({ minimum: 0 })
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  points: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  showValidation?: boolean;
+}
+
 export type WizardQuestionDto =
   | WizardGradedQuestionDto
   | WizardUngradedQuestionDto
-  | WizardPassageQuestionDto;
+  | WizardPassageQuestionDto
+  | WizardIeltsQuestionDto;
 
 export class WizardSubjectBlockDto {
-  @ApiProperty({ description: 'Subject UUID from GET /v1/subjects', format: 'uuid' })
-  @IsUUID('4')
+  @ApiProperty({
+    description:
+      'Subject UUID (Academic) or namespaced module key (IELTS, e.g. ielts.reading). When moduleKey is set, this should match moduleKey.',
+  })
+  @IsString()
+  @IsNotEmpty()
   id: string;
+
+  @ApiPropertyOptional({
+    description: 'Namespaced module key for non-academic categories (e.g. ielts.reading)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  moduleKey?: string;
+
+  @ApiPropertyOptional({ description: 'Display name for the subject/module block' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  name?: string;
 
   @ApiProperty({
     description:
-      'Flat question list. Each item is graded, ungraded, or a passage block (see Schemas below).',
+      'Flat question list. Each item is graded, ungraded, passage, or IELTS (see Schemas below).',
     type: 'array',
     items: {
       oneOf: [
         { $ref: getSchemaPath(WizardGradedQuestionDto) },
         { $ref: getSchemaPath(WizardUngradedQuestionDto) },
         { $ref: getSchemaPath(WizardPassageQuestionDto) },
+        { $ref: getSchemaPath(WizardIeltsQuestionDto) },
       ],
     },
   })
@@ -344,6 +539,15 @@ export class WizardFormStateDto {
   @IsNotEmpty()
   @MaxLength(200)
   testName: string;
+
+  @ApiPropertyOptional({
+    enum: ExamCategoryEnum,
+    description: 'Exam product category (defaults to academic for backwards compatibility)',
+    default: ExamCategoryEnum.ACADEMIC,
+  })
+  @IsOptional()
+  @IsIn(Object.values(ExamCategoryEnum))
+  examCategory?: ExamCategoryEnum;
 
   @ApiProperty({ description: 'Duration in minutes', example: '40' })
   @Transform(({ value }) => (value === '' || value === undefined ? NaN : Number(value)))
@@ -454,6 +658,7 @@ export class WizardPublishStateDto {
   WizardPassageQuestionDto,
   WizardGradedQuestionDto,
   WizardUngradedQuestionDto,
+  WizardIeltsQuestionDto,
   WizardSubjectBlockDto,
   WizardFormStateDto,
   WizardPublishStateDto,

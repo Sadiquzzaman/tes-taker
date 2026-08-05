@@ -15,6 +15,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ExamKindEnum, PublishTimingEnum, TestAudienceEnum } from '../enums/exam-wizard.enums';
+import { ExamCategoryEnum } from '../enums/exam-category.enum';
 
 export enum ExamTypeEnum {
   OBJECTIVE = 'OBJECTIVE',
@@ -26,6 +27,13 @@ export class ExamEntity extends CustomBaseEntity {
   @ApiProperty({ description: 'Legacy coarse type (OBJECTIVE / SUBJECTIVE)', enum: ExamTypeEnum })
   @Column({ name: 'exam_type', type: 'enum', enum: ExamTypeEnum, default: ExamTypeEnum.OBJECTIVE })
   exam_type: ExamTypeEnum;
+
+  @ApiProperty({
+    description: 'Product category: academic | ielts (extensible for toefl/gre/…)',
+    enum: ExamCategoryEnum,
+  })
+  @Column({ name: 'exam_category', type: 'varchar', length: 30, default: ExamCategoryEnum.ACADEMIC })
+  exam_category: ExamCategoryEnum;
 
   @ApiPropertyOptional({
     description: 'Wizard exam kind: hybrid | model (legacy rows may still read mcq | essay)',

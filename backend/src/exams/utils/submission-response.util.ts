@@ -36,6 +36,7 @@ export type SubmissionAnswerResponse =
   | {
       type: 'text';
       student_answer: string;
+      media_url?: string | null;
       explanation?: string | null;
     };
 
@@ -130,10 +131,15 @@ const buildSubmissionAnswer = (
   question: ExamQuestionEntity,
   answer: StudentExamAnswerEntity | undefined,
 ): SubmissionAnswerResponse => {
-  if (question.category === QuestionCategoryEnum.UNGRADED) {
+  if (
+    question.category === QuestionCategoryEnum.UNGRADED ||
+    (question.category === QuestionCategoryEnum.IELTS &&
+      !isAutoScoredQuestion(question.category, question.sub_type))
+  ) {
     return {
       type: 'text',
-      student_answer: answer?.text_answer ?? '',
+      student_answer: answer?.text_answer ?? answer?.media_url ?? '',
+      media_url: answer?.media_url ?? null,
       explanation: answer?.grader_explanation ?? null,
     };
   }
@@ -152,8 +158,27 @@ const buildSubmissionAnswer = (
   ) {
     return {
       type: 'text',
-      student_answer: answer?.text_answer ?? '',
+      student_answer: answer?.text_answer ?? answer?.media_url ?? '',
+      media_url: answer?.media_url ?? null,
       explanation: answer?.grader_explanation ?? null,
+    };
+  }
+
+  // Text auto-scored subtypes (fill-in, completion, short-answer, etc.)
+  if (
+    question.answer_json?.type === AnswerValueTypeEnum.TEXT ||
+    question.sub_type === 'fill-in-the-blanks' ||
+    question.sub_type === 'answer-box' ||
+    question.sub_type === 'sentence-completion' ||
+    question.sub_type === 'summary-completion' ||
+    question.sub_type === 'table-completion' ||
+    question.sub_type === 'diagram-label' ||
+    question.sub_type === 'short-answer'
+  ) {
+    return {
+      type: 'optionId',
+      correct_answer: [...(question.answer_json?.value ?? [])],
+      student_selected: resolveStudentSelected(answer, question),
     };
   }
 

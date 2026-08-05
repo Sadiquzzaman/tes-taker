@@ -2,6 +2,25 @@ const getInputMode = (
   questionType: SubmissionGradingQuestionType,
   subType: SubmissionGradingQuestionSubType,
 ): GradingModalInputMode => {
+  if (
+    subType === "speaking-part-1" ||
+    subType === "speaking-part-2" ||
+    subType === "speaking-part-3"
+  ) {
+    return "audio";
+  }
+
+  if (questionType === "ungraded" || questionType === "ielts") {
+    if (
+      subType === "writing-task-1" ||
+      subType === "writing-task-2" ||
+      subType === "essay" ||
+      subType === "fill-in-the-gaps"
+    ) {
+      return "text";
+    }
+  }
+
   if (questionType === "ungraded") {
     return "text";
   }
@@ -17,9 +36,37 @@ const getInputMode = (
   return subType === "essay" ||
     subType === "fill-in-the-gaps" ||
     subType === "fill-in-the-blanks" ||
-    subType === "answer-box"
+    subType === "answer-box" ||
+    subType === "sentence-completion" ||
+    subType === "summary-completion" ||
+    subType === "table-completion" ||
+    subType === "diagram-label" ||
+    subType === "short-answer" ||
+    subType === "writing-task-1" ||
+    subType === "writing-task-2"
     ? "text"
     : "single-select";
+};
+
+const isManualGradingQuestion = (
+  questionType: SubmissionGradingQuestionType,
+  subType: SubmissionGradingQuestionSubType,
+  isPassageChild: boolean,
+) => {
+  if (isPassageChild && subType === "essay") {
+    return true;
+  }
+  if (questionType === "ungraded") {
+    return true;
+  }
+  if (questionType === "ielts") {
+    return (
+      subType === "writing-task-1" ||
+      subType === "writing-task-2" ||
+      subType.startsWith("speaking-part-")
+    );
+  }
+  return false;
 };
 
 const normalizeOptionList = (options?: SubmissionGradingOptionApi[]): GradingModalOption[] => {
@@ -96,7 +143,11 @@ const buildQuestion = (
     correctAnswerValues,
     selectedAnswerValues,
     textAnswer: question.answer.type === "text" ? question.answer.student_answer : "",
-    isEditable: question.type === "ungraded" && !isPassageChild,
+    mediaUrl:
+      "media_url" in question.answer
+        ? (question.answer as { media_url?: string | null }).media_url ?? null
+        : null,
+    isEditable: isManualGradingQuestion(question.type, question.sub_type, isPassageChild),
     isPassageChild,
   };
 };
