@@ -34,6 +34,10 @@ export class ExamEntity extends CustomBaseEntity {
   @Column({ name: 'exam_kind', type: 'varchar', length: 20, nullable: true })
   exam_kind: ExamKindEnum | null;
 
+  @ApiProperty({ description: 'Whether this exam is a multi-subject model test' })
+  @Column({ name: 'is_model_test', type: 'boolean', default: false })
+  is_model_test: boolean;
+
   @ApiPropertyOptional({ description: 'Display title for the test' })
   @Column({ name: 'test_name', type: 'varchar', length: 200, nullable: true })
   test_name: string | null;

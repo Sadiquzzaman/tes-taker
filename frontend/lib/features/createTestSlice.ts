@@ -4,6 +4,9 @@ import addMatchingPairReducer from "./create-test/addMatchingPair";
 import addOptionReducer from "./create-test/addOption";
 import addQuestionReducer from "./create-test/addQuestion";
 import addSubjectReducer from "./create-test/addSubject";
+import applyGlobalQuestionOrderReducer, {
+  moveGlobalQuestion as moveGlobalQuestionReducer,
+} from "./create-test/applyGlobalQuestionOrder";
 import applyParsedQuestionReducer from "./create-test/applyParsedQuestion";
 import applySpokenQuestionReducer from "./create-test/applySpokenQuestion";
 import changeQuestionSubtypeReducer from "./create-test/changeQuestionSubtype";
@@ -18,6 +21,7 @@ import goToNextStepReducer from "./create-test/goToNextStep";
 import goToPreviousStepReducer from "./create-test/goToPreviousStep";
 import hydrateFromExamReducer from "./create-test/hydrateFromExam";
 import moveQuestionReducer from "./create-test/moveQuestion";
+import moveQuestionToSubjectReducer from "./create-test/moveQuestionToSubject";
 import removeExcludedStudentReducer from "./create-test/removeExcludedStudent";
 import removeMatchingPairReducer from "./create-test/removeMatchingPair";
 import removeOptionReducer from "./create-test/removeOption";
@@ -45,8 +49,16 @@ import updateQuestionImageReducer from "./create-test/updateQuestionImage";
 import updateQuestionInstructionReducer from "./create-test/updateQuestionInstruction";
 import updateQuestionPointsReducer from "./create-test/updateQuestionPoints";
 import updateQuestionTextReducer from "./create-test/updateQuestionText";
+import { syncQuestionOrder } from "./create-test/moveQuestionToSubject";
 
 const initialState: CreateTestState = createInitialState();
+
+const withQuestionOrderSync =
+  <A>(reducer: (state: CreateTestState, action: A) => void) =>
+  (state: CreateTestState, action: A) => {
+    reducer(state, action);
+    syncQuestionOrder(state);
+  };
 
 export const createTestSlice = createSlice({
   name: "createTestSlice",
@@ -59,16 +71,16 @@ export const createTestSlice = createSlice({
     setCurrentStep: setCurrentStepReducer,
     changeQuestionSubtype: changeQuestionSubtypeReducer,
     setFormField: setFormFieldReducer,
-    setSingleSubject: setSingleSubjectReducer,
+    setSingleSubject: withQuestionOrderSync(setSingleSubjectReducer),
     addMatchingPair: addMatchingPairReducer,
-    addSubject: addSubjectReducer,
-    removeSubject: removeSubjectReducer,
+    addSubject: withQuestionOrderSync(addSubjectReducer),
+    removeSubject: withQuestionOrderSync(removeSubjectReducer),
     setActiveSubjectId: setActiveSubjectIdReducer,
-    addQuestion: addQuestionReducer,
-    applyParsedQuestion: applyParsedQuestionReducer,
-    applySpokenQuestion: applySpokenQuestionReducer,
-    deleteQuestion: deleteQuestionReducer,
-    duplicateQuestion: duplicateQuestionReducer,
+    addQuestion: withQuestionOrderSync(addQuestionReducer),
+    applyParsedQuestion: withQuestionOrderSync(applyParsedQuestionReducer),
+    applySpokenQuestion: withQuestionOrderSync(applySpokenQuestionReducer),
+    deleteQuestion: withQuestionOrderSync(deleteQuestionReducer),
+    duplicateQuestion: withQuestionOrderSync(duplicateQuestionReducer),
     shuffleOptions: shuffleOptionsReducer,
     updateQuestionText: updateQuestionTextReducer,
     updateQuestionInstruction: updateQuestionInstructionReducer,
@@ -84,13 +96,19 @@ export const createTestSlice = createSlice({
     addOption: addOptionReducer,
     updateQuestionPoints: updateQuestionPointsReducer,
     setQuestionValidationState: setQuestionValidationStateReducer,
-    moveQuestion: moveQuestionReducer,
+    moveQuestion: withQuestionOrderSync(moveQuestionReducer),
+    moveQuestionToSubject: moveQuestionToSubjectReducer,
+    applyGlobalQuestionOrder: applyGlobalQuestionOrderReducer,
+    moveGlobalQuestion: moveGlobalQuestionReducer,
     setActiveQuestionId: setActiveQuestionIdReducer,
     clearPendingFocusQuestionId: clearPendingFocusQuestionIdReducer,
     clearPendingFocusOption: clearPendingFocusOptionReducer,
     startDragging: startDraggingReducer,
     updateDragging: updateDraggingReducer,
-    finishDragging: finishDraggingReducer,
+    finishDragging: (state) => {
+      finishDraggingReducer(state);
+      syncQuestionOrder(state);
+    },
     cancelDragging: cancelDraggingReducer,
     setPublishTiming: setPublishTimingReducer,
     setPublishField: setPublishFieldReducer,
@@ -121,6 +139,9 @@ export const {
   goToNextStep,
   goToPreviousStep,
   moveQuestion,
+  moveQuestionToSubject,
+  applyGlobalQuestionOrder,
+  moveGlobalQuestion,
   removeMatchingPair,
   removeOption,
   selectCorrectOption,

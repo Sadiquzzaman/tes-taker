@@ -28,10 +28,16 @@ const setGeoTool = (editor: Editor, geo: TLGeoShapeGeoStyle) => {
   editor.setCurrentTool("geo");
 };
 
-export const insertTextStamp = (editor: Editor, text: string, size: "s" | "m" | "l" = "m") => {
+export const insertTextStamp = (
+  editor: Editor,
+  text: string,
+  size: "s" | "m" | "l" = "s",
+  options?: { select?: boolean },
+) => {
+  const id = createShapeId();
   const { x, y } = placeAtViewportCenter(editor, Math.max(48, text.length * 10), 28);
   editor.createShape({
-    id: createShapeId(),
+    id,
     type: "text",
     x,
     y,
@@ -42,6 +48,27 @@ export const insertTextStamp = (editor: Editor, text: string, size: "s" | "m" | 
       font: "sans",
     },
   });
+  editor.setCurrentTool("select");
+
+  const shouldSelect = options?.select !== false;
+  if (shouldSelect) {
+    editor.select(id);
+    try {
+      editor.zoomToSelection({ animation: { duration: 120 } });
+    } catch {
+      // older/newer tldraw builds may not support zoom options
+    }
+  } else {
+    // Keep equation/helper inputs usable — selecting text steals keyboard focus.
+    editor.selectNone();
+    try {
+      // Exit any accidental text-edit mode if the runtime supports it.
+      (editor as Editor & { setEditingShape?: (shape: null) => void }).setEditingShape?.(null);
+    } catch {
+      // ignore
+    }
+  }
+  return id;
 };
 
 const insertGeoStamp = (editor: Editor, geo: TLGeoShapeGeoStyle, width: number, height: number) => {
@@ -237,7 +264,7 @@ export const applyCadLiteDefaults = (editor: Editor) => {
 export const applyChemistryDefaults = (editor: Editor) => {
   editor.updateInstanceState({ isGridMode: false });
   editor.user.updateUserPreferences({ isSnapMode: true });
-  editor.setCurrentTool("draw");
+  editor.setCurrentTool("select");
 };
 
 export const GEOMETRY_GROUPS: FigurePaletteGroup[] = [

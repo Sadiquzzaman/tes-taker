@@ -93,9 +93,16 @@ const SketchFigureModalBody = ({
     }
     setError("");
     setView("draw");
-    insertTextStamp(editor, formatted, "m");
+    const host = hostRef.current;
+    if (host) {
+      refreshViewport(editor, host);
+    }
+    insertTextStamp(editor, formatted, "s", { select: false });
     setEquationDraft("");
-    equationInputRef.current?.focus();
+    // Restore focus after tldraw finishes handling the new shape.
+    window.requestAnimationFrame(() => {
+      equationInputRef.current?.focus();
+    });
   };
 
   useEffect(() => {
@@ -150,7 +157,20 @@ const SketchFigureModalBody = ({
     setError("");
     setActiveStamp(item.id);
     setView("draw");
+    const host = hostRef.current;
+    if (host) {
+      refreshViewport(editor, host);
+    }
     item.run(editor);
+    const ids = [...editor.getSelectedShapeIds()];
+    if (ids.length) {
+      editor.setCurrentTool("select");
+      try {
+        editor.zoomToSelection({ animation: { duration: 120 } });
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const handleInsertDrawing = useCallback(async () => {
@@ -171,8 +191,9 @@ const SketchFigureModalBody = ({
       const { blob } = await editor.toImage(shapeIds, {
         format: "png",
         background: true,
-        padding: 16,
-        scale: 2,
+        padding: 48,
+        scale: 1,
+        pixelRatio: 1,
       });
 
       const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -252,7 +273,11 @@ const SketchFigureModalBody = ({
 
         {view === "draw" ? (
           <>
-            <div className="rte-equation-bar">
+            <div
+              className="rte-equation-bar"
+              onPointerDown={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
               <label className="rte-equation-bar__label" htmlFor="rte-equation-input">
                 Equation
               </label>
@@ -269,6 +294,7 @@ const SketchFigureModalBody = ({
                   placeholder={equationPlaceholder}
                   onChange={(event) => setEquationDraft(event.target.value)}
                   onKeyDown={(event) => {
+                    event.stopPropagation();
                     if (event.key === "Enter") {
                       event.preventDefault();
                       handleAddEquation();

@@ -76,16 +76,47 @@ export interface ResetPasswordErrors {
   confirm_password?: string;
 }
 
+export interface ChangePasswordErrors {
+  current_password?: string;
+  new_password?: string;
+  confirm_password?: string;
+}
+
+/**
+ * Returns the first failed password complexity rule, or "" if valid.
+ * Order: length → uppercase → lowercase → number → special.
+ */
+export const getPasswordComplexityError = (password: string, label = "Password"): string => {
+  if (!password) {
+    return `Please enter a ${label.toLowerCase()}`;
+  }
+  if (password.length < 8) {
+    return `${label} must be at least 8 characters.`;
+  }
+  if (!/[A-Z]/.test(password)) {
+    return `${label} must include at least one uppercase letter.`;
+  }
+  if (!/[a-z]/.test(password)) {
+    return `${label} must include at least one lowercase letter.`;
+  }
+  if (!/[0-9]/.test(password)) {
+    return `${label} must include at least one number.`;
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return `${label} must include at least one special character.`;
+  }
+  return "";
+};
+
 /**
  * Validates the new password and confirmation during a password reset.
  */
 export const validateResetPassword = (password: string, confirmPassword: string): ResetPasswordErrors => {
   const errors: ResetPasswordErrors = {};
+  const complexity = getPasswordComplexityError(password);
 
-  if (!password) {
-    errors.password = "Please enter a password";
-  } else if (password.length < 8) {
-    errors.password = "Password must be at least 8 characters.";
+  if (complexity) {
+    errors.password = complexity;
   } else if (!confirmPassword) {
     errors.confirm_password = "Please confirm your password";
   } else if (password !== confirmPassword) {
@@ -94,12 +125,6 @@ export const validateResetPassword = (password: string, confirmPassword: string)
 
   return errors;
 };
-
-export interface ChangePasswordErrors {
-  current_password?: string;
-  new_password?: string;
-  confirm_password?: string;
-}
 
 /**
  * Validates the change-password form for a logged-in user.
@@ -110,13 +135,12 @@ export const validateChangePassword = (
   confirmPassword: string,
 ): ChangePasswordErrors => {
   const errors: ChangePasswordErrors = {};
+  const complexity = getPasswordComplexityError(newPassword, "New password");
 
   if (!currentPassword) {
     errors.current_password = "Please enter your current password";
-  } else if (!newPassword) {
-    errors.new_password = "Please enter a new password";
-  } else if (newPassword.length < 8) {
-    errors.new_password = "New password must be at least 8 characters.";
+  } else if (complexity) {
+    errors.new_password = complexity;
   } else if (newPassword === currentPassword) {
     errors.new_password = "New password must be different from the current password";
   } else if (!confirmPassword) {
@@ -134,6 +158,7 @@ export const validateChangePassword = (
 export const validateSignUpForm = (signUpInfo: SignUpInfo): SignUpErrors => {
   const errors: SignUpErrors = {};
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const complexity = getPasswordComplexityError(signUpInfo.password);
 
   if (!signUpInfo.full_name) {
     errors.full_name = "Please enter your full name";
@@ -143,10 +168,8 @@ export const validateSignUpForm = (signUpInfo: SignUpInfo): SignUpErrors => {
     errors.phone = "Please enter a valid 11-digit phone number";
   } else if (signUpInfo.email && !emailRegex.test(signUpInfo.email)) {
     errors.email = "It looks like the email you entered is invalid!";
-  } else if (!signUpInfo.password) {
-    errors.password = "Please enter a password";
-  } else if (signUpInfo.password.length < 8) {
-    errors.password = "Password must be at least 8 characters.";
+  } else if (complexity) {
+    errors.password = complexity;
   } else if (!signUpInfo.confirm_password) {
     errors.confirm_password = "Please confirm your password";
   } else if (signUpInfo.password !== signUpInfo.confirm_password) {

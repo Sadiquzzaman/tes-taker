@@ -3,6 +3,7 @@ import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { ExamEntity } from './exam.entity';
 import { ExamQuestionSectionEntity } from './exam-question-section.entity';
+import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { QuestionCategoryEnum } from '../enums/question.enums';
 
@@ -47,6 +48,14 @@ export class ExamQuestionEntity extends CustomBaseEntity {
   })
   @JoinColumn({ name: 'section_id' })
   section: ExamQuestionSectionEntity | null;
+
+  @ApiProperty({ description: 'Subject this question belongs to' })
+  @Column({ name: 'subject_id', type: 'uuid' })
+  subject_id: string;
+
+  @ManyToOne(() => SubjectEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'subject_id' })
+  subject: SubjectEntity;
 
   @ApiProperty({ description: 'Order within section or legacy exam', default: 0 })
   @Column({ name: 'sort_order', type: 'int', default: 0 })
