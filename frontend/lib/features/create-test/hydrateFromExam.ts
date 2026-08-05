@@ -1,6 +1,7 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import createInitialState from "./createInitialState";
 import { createSubject } from "./createTestDomain";
+import { syncQuestionOrder } from "./moveQuestionToSubject";
 
 type ApiOption = { id: string; text: string; image?: string | null };
 
@@ -11,6 +12,8 @@ type ApiQuestion = {
   text?: string;
   instruction?: string | null;
   points?: number | null;
+  subjectId?: string | null;
+  sortOrder?: number | null;
   options?: ApiOption[];
   matchingOptions?: { left: ApiOption[]; right: ApiOption[] };
   answer?: { type: QuestionAnswerType; value: string[] };
@@ -21,7 +24,7 @@ type ApiQuestion = {
 const mapOptions = (options?: ApiOption[]): QuestionOption[] | undefined =>
   options?.map((option) => ({ id: option.id, text: option.text ?? "", image: null }));
 
-const mapGradedQuestion = (question: ApiQuestion): QuestionItem => ({
+const mapGradedQuestion = (question: ApiQuestion, subjectId?: string): QuestionItem => ({
   id: question.id,
   type: "graded",
   subType: question.subType ?? "",
@@ -37,10 +40,11 @@ const mapGradedQuestion = (question: ApiQuestion): QuestionItem => ({
     : undefined,
   answer: question.answer ? { type: question.answer.type, value: [...question.answer.value] } : undefined,
   points: Number(question.points ?? 2),
+  subjectId: question.subjectId ?? subjectId,
   showValidation: false,
 });
 
-const mapUngradedQuestion = (question: ApiQuestion): QuestionItem => ({
+const mapUngradedQuestion = (question: ApiQuestion, subjectId?: string): QuestionItem => ({
   id: question.id,
   type: "ungraded",
   subType: question.subType ?? "",
@@ -49,25 +53,27 @@ const mapUngradedQuestion = (question: ApiQuestion): QuestionItem => ({
   image: null,
   answer: undefined,
   points: Number(question.points ?? 2),
+  subjectId: question.subjectId ?? subjectId,
   showValidation: false,
 });
 
-const mapRootQuestion = (question: ApiQuestion): RootQuestionItem => {
+const mapRootQuestion = (question: ApiQuestion, subjectId?: string): RootQuestionItem => {
   if (question.type === "passage-question" || Array.isArray(question.childQuestions)) {
     return {
       id: question.id,
       type: "passage-question",
       passageText: question.passageText ?? "",
-      childQuestions: (question.childQuestions ?? []).map(mapGradedQuestion),
+      childQuestions: (question.childQuestions ?? []).map((child) => mapGradedQuestion(child, subjectId)),
+      subjectId: question.subjectId ?? subjectId,
       showValidation: false,
     };
   }
 
   if (question.type === "ungraded") {
-    return mapUngradedQuestion(question);
+    return mapUngradedQuestion(question, subjectId);
   }
 
-  return mapGradedQuestion(question);
+  return mapGradedQuestion(question, subjectId);
 };
 
 const toStringOrEmpty = (value: number | string | null | undefined): string => {
@@ -81,18 +87,55 @@ const hydrateFromExam = (_state: CreateTestState, action: PayloadAction<TeacherE
   const exam = action.payload;
   const initial = createInitialState();
 
-  const subjects = (exam.subjects ?? []).map((subject) =>
-    createSubject(
-      {
-        id: subject.id,
-        name: subject.name ?? "",
-        value: subject.code ?? subject.id,
-      },
-      ((subject.questions ?? []) as unknown as ApiQuestion[]).map(mapRootQuestion),
-    ),
-  );
+  const flatWithOrder: { subjectId: string; subjectName: string; subjectCode: string; question: ApiQuestion; sortOrder: number }[] =
+    [];
 
-  return {
+  for (const subject of exam.subjects ?? []) {
+    for (const question of (subject.questions ?? []) as unknown as ApiQuestion[]) {
+      flatWithOrder.push({
+        subjectId: subject.id,
+        subjectName: subject.name ?? "",
+        subjectCode: subject.code ?? subject.id,
+        question,
+        sortOrder: Number(question.sortOrder ?? 0),
+      });
+    }
+  }
+
+  flatWithOrder.sort((a, b) => a.sortOrder - b.sortOrder);
+
+  const subjectsById = new Map<string, SubjectItem>();
+  for (const entry of flatWithOrder) {
+    let subject = subjectsById.get(entry.subjectId);
+    if (!subject) {
+      subject = createSubject({
+        id: entry.subjectId,
+        name: entry.subjectName,
+        value: entry.subjectCode,
+      });
+      subjectsById.set(entry.subjectId, subject);
+    }
+    subject.questions.push(mapRootQuestion(entry.question, entry.subjectId));
+  }
+
+  // Preserve subject tabs that had no questions after grouping
+  for (const subject of exam.subjects ?? []) {
+    if (!subjectsById.has(subject.id)) {
+      subjectsById.set(
+        subject.id,
+        createSubject({
+          id: subject.id,
+          name: subject.name ?? "",
+          value: subject.code ?? subject.id,
+        }),
+      );
+    }
+  }
+
+  const subjects = Array.from(subjectsById.values());
+  const questionOrder = flatWithOrder.map((entry) => entry.question.id);
+
+  const nextState: CreateTestState = {
     ...initial,
     editExamId: exam.id,
     formState: {
@@ -103,6 +146,7 @@ const hydrateFromExam = (_state: CreateTestState, action: PayloadAction<TeacherE
       negativeMarking: toStringOrEmpty(exam.formState?.negativeMarking),
     },
     subjects,
+    questionOrder,
     activeSubjectId: subjects[0]?.id ?? null,
     publishState: {
       publishTiming: exam.publishState?.publishTiming === "later" ? "later" : "immediately",
@@ -117,6 +161,9 @@ const hydrateFromExam = (_state: CreateTestState, action: PayloadAction<TeacherE
       excluded_students: exam.publishState?.excluded_students ?? [],
     },
   };
+
+  syncQuestionOrder(nextState);
+  return nextState;
 };
 
 export default hydrateFromExam;

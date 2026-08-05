@@ -7,18 +7,20 @@ import {
   changeQuestionSubtype,
   deleteQuestion,
   duplicateQuestion,
+  moveQuestionToSubject,
   shuffleOptions,
   updateQuestionPoints,
 } from "@/lib/features/createTestSlice";
 import { previewQuestionSubtypeConversion } from "@/lib/features/create-test/changeQuestionSubtype";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
 import {
   CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID,
   CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
   createTestQuestionCategoryOptions,
   isCreateTestObjectiveCategory,
 } from "@/utils/createTestOptions";
-import { memo, useCallback, type ReactNode } from "react";
+import { memo, useCallback, useMemo, type ReactNode } from "react";
 import { QUESTION_BUILDER_GAPS } from "./shared";
 
 function QuestionCardFooter({
@@ -34,12 +36,33 @@ function QuestionCardFooter({
 }: QuestionCardFooterProps) {
   const dispatch = useAppDispatch();
   const subjects = useAppSelector((state) => state.createTest.subjects);
+  const subjectCatalog = useAppSelector((state) => state.subject.subjects);
+  useGetAllSubject();
+
   const isMatchingOrdering =
     isCreateTestObjectiveCategory(questionType) && questionSubType === CREATE_TEST_GRADED_MATCHING_ORDERING_SUBTYPE_ID;
   const subtypeOptions =
     createTestQuestionCategoryOptions.find((category) => category.id === questionType)?.tabs.filter((tab) => tab.isSupported) ??
     [];
   let pointsLabel: ReactNode = "Points";
+  const showSubjectPicker = !parentPassageId;
+
+  const subjectOptions = useMemo(() => {
+    const catalogSubjectOptions = subjectCatalog.map((subject) => ({
+      label: subject.name,
+      value: subject.value,
+      id: subject.id,
+    }));
+    const stateSubjectOptions = subjects.map((subject) => ({
+      label: subject.name,
+      value: subject.value,
+      id: subject.id,
+    }));
+
+    return [...catalogSubjectOptions, ...stateSubjectOptions].filter(
+      (option, index, options) => options.findIndex((item) => item.id === option.id) === index,
+    );
+  }, [subjectCatalog, subjects]);
 
   const findQuestion = () => {
     const subject = subjects.find((item) => item.id === subjectId);
@@ -82,6 +105,26 @@ function QuestionCardFooter({
     [dispatch, parentPassageId, questionId, subjectId],
   );
 
+  const handleSubjectChange = useCallback(
+    (nextSubjectId: string) => {
+      if (!nextSubjectId || nextSubjectId === subjectId) {
+        return;
+      }
+      const selected = subjectOptions.find((option) => option.id === nextSubjectId);
+      if (!selected) {
+        return;
+      }
+      dispatch(
+        moveQuestionToSubject({
+          sourceSubjectId: subjectId,
+          targetSubject: selected,
+          questionId,
+        }),
+      );
+    },
+    [dispatch, questionId, subjectId, subjectOptions],
+  );
+
   return (
     <div className={`flex items-center justify-between ${QUESTION_BUILDER_GAPS.footerOuter}`}>
       <div className={`flex flex-wrap items-center ${QUESTION_BUILDER_GAPS.footerGroup}`}>
@@ -121,6 +164,22 @@ function QuestionCardFooter({
             ))}
           </select>
         </label>
+        {showSubjectPicker ? (
+          <label className="flex items-center gap-2 text-[14px] text-[#232A25]">
+            <span>Subject</span>
+            <select
+              className="h-8 max-w-[160px] rounded-[6px] border border-[#E5E5E5] bg-white px-2 text-[13px]"
+              value={subjectId}
+              onChange={(event) => handleSubjectChange(event.target.value)}
+            >
+              {subjectOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">{pointsLabel}</p>
         <div className="flex items-center justify-between border border-[#E5E5E5] bg-white">
           <input
@@ -199,7 +258,7 @@ function QuestionCardFooter({
           <button
             type="button"
             onClick={() => dispatch(deleteQuestion({ subjectId, questionId, parentPassageId }))}
-            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#D24B44] transition-colors duration-150 hover:bg-[#D24B44] hover:text-[#FFFFFF]"
+            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#232A25] transition-colors duration-150 hover:bg-[#49734F] hover:text-[#FFFFFF]"
             aria-label="Delete question"
           >
             <TrashIcon />

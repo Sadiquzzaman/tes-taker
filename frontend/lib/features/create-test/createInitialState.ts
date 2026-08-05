@@ -21,6 +21,7 @@ const createInitialState = (): CreateTestState => ({
     negativeMarking: "",
   },
   subjects: [],
+  questionOrder: [],
   activeSubjectId: null,
   activeQuestionId: null,
   activePassageId: null,

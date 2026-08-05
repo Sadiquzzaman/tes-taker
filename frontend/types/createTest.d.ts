@@ -91,6 +91,7 @@ type QuestionItem = {
   options?: QuestionOption[];
   answer?: QuestionAnswer;
   points: number;
+  subjectId?: string;
   showValidation: boolean;
 };
 
@@ -99,6 +100,7 @@ type PassageQuestionItem = {
   type: "passage-question";
   passageText: string;
   childQuestions: QuestionItem[];
+  subjectId?: string;
   showValidation: boolean;
 };
 
@@ -132,7 +134,7 @@ type BasicInfoStepProps = {
   formState: FormState;
 };
 
-type CreateTestStep = "Basic info" | "Questions" | "Review" | "Publish";
+type CreateTestStep = "Basic info" | "Questions" | "Review" | "Reorder" | "Publish";
 
 type PendingFocusQuestion = {
   subjectId: string;
@@ -233,6 +235,7 @@ type CreateTestState = {
   editExamId: string | null;
   formState: FormState;
   subjects: SubjectItem[];
+  questionOrder: string[];
   activeSubjectId: string | null;
   activeQuestionId: string | null;
   activePassageId: string | null;
@@ -464,6 +467,7 @@ type CreateTestSubmissionSubjectItem = Omit<SubjectItem, "type" | "questions"> &
 interface CreateTestPayload {
   formState: FormState;
   subjects: SubjectItem[];
+  questionOrder?: string[];
   publishState: PublishStateForPayload;
 }
 

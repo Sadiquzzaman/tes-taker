@@ -1,6 +1,7 @@
-import { addQuestion, finishDragging, startDragging, updateDragging } from "@/lib/features/createTestSlice";
+import { addQuestion, addSubject, finishDragging, removeSubject, setActiveSubjectId, startDragging, updateDragging } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
+import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
 import Tooltip from "@/Ui/Tooltip";
 import Link from "next/link";
 import {
@@ -12,6 +13,8 @@ import { createTestQuestionCategoryOptions, isCreateTestQuestionCreationSupporte
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PassageQuestionBlock from "./PassageQuestionBlock";
 import QuestionCard from "./QuestionCard";
+import QuestionSubjectTabs from "./QuestionSubjectTabs";
+import { useToast } from "@/component/Toast/ToastContext";
 
 const QUESTION_CARD_GAP = 16;
 
@@ -42,8 +45,11 @@ const getQuestionCardOffset = (questionIndex: number, dragState: DragState | nul
 
 const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const dispatch = useAppDispatch();
+  const { triggerToast } = useToast();
   const defaultQuestionCategory = createTestQuestionCategoryOptions[0].id;
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
+  const subjectCatalog = useAppSelector((state) => state.subject.subjects);
+  useGetAllSubject();
   const {
     subjects,
     activeSubjectId,
@@ -300,7 +306,15 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
 
   const handleMakeQuestion = useCallback(
     (subType: string) => {
-      if (!activeSubject || !isCreateTestQuestionCreationSupported(activeQuestionCategory, subType)) {
+      if (!activeSubject) {
+        triggerToast({
+          description: "Please add a subject before creating questions",
+          type: "error",
+        });
+        return;
+      }
+
+      if (!isCreateTestQuestionCreationSupported(activeQuestionCategory, subType)) {
         return;
       }
 
@@ -312,8 +326,19 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         }),
       );
     },
-    [activeQuestionCategory, activeSubject, dispatch],
+    [activeQuestionCategory, activeSubject, dispatch, triggerToast],
   );
+
+  const availableSubjectOptions = useMemo(() => {
+    const selectedIds = new Set(subjects.map((subject) => subject.id));
+    return subjectCatalog
+      .filter((subject) => !selectedIds.has(subject.id))
+      .map((subject) => ({
+        id: subject.id,
+        label: subject.name,
+        value: subject.value,
+      }));
+  }, [subjectCatalog, subjects]);
 
   let nextQuestionNumber = 1;
   const renderedRootQuestions = questions.map((question, questionIndex) => {
@@ -470,6 +495,15 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
           </div>
         </div>
         <div className="w-full border-b border-[#E5E5E5]" />
+
+        <QuestionSubjectTabs
+          subjects={subjects}
+          activeSubjectId={activeSubject?.id ?? null}
+          availableSubjectOptions={availableSubjectOptions}
+          onSelectSubject={(subjectId) => dispatch(setActiveSubjectId(subjectId))}
+          onAddSubject={(subject) => dispatch(addSubject(subject))}
+          onRemoveSubject={(subjectId) => dispatch(removeSubject(subjectId))}
+        />
 
         <div className="flex w-full max-w-[564px] items-center justify-between gap-6">
           <div className="flex items-center gap-1">

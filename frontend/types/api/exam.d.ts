@@ -28,6 +28,8 @@ interface StudentExamQuestionBase {
   image: string | null;
   points: number;
   showValidation: boolean;
+  subjectId?: string | null;
+  sortOrder?: number;
 }
 
 interface StudentExamStandardQuestion extends StudentExamQuestionBase {
@@ -66,6 +68,8 @@ interface StudentExamPassageQuestion {
   passageText: string;
   childQuestions: StudentExamPassageChildQuestion[];
   showValidation: boolean;
+  subjectId?: string | null;
+  sortOrder?: number;
 }
 
 type StudentExamSubjectQuestion = StudentExamStandardQuestion | StudentExamPassageQuestion;

@@ -286,8 +286,6 @@ export class ExamService {
 
     return this.dataSource.transaction(async (manager) => {
       const examRepo = manager.getRepository(ExamEntity);
-      const sectionRepo = manager.getRepository(ExamQuestionSectionEntity);
-      const questionRepo = manager.getRepository(ExamQuestionEntity);
 
       const examPayload: DeepPartial<ExamEntity> = {
         exam_type: examType,
@@ -320,57 +318,13 @@ export class ExamService {
         savedExam = await examRepo.save(savedExam);
       }
 
-      let sectionOrder = 0;
-      for (const subj of subjects) {
-        const sectionPayload: DeepPartial<ExamQuestionSectionEntity> = {
-          exam_id: savedExam.id,
-          subject_id: subj.id,
-          section_type: 'mixed',
-          header_text: null,
-          instruction: null,
-          sort_order: sectionOrder++,
-          created_by: jwtPayload.id,
-          created_user_name: jwtPayload.full_name,
-          created_at: new Date(),
-        };
-        const section = sectionRepo.create(sectionPayload);
-        const savedSec = await sectionRepo.save(section);
-
-        let qOrder = 0;
-        for (const raw of subj.questions) {
-          const parsed = parseWizardQuestion(raw);
-          if (parsed.kind === 'passage') {
-            qOrder = await this.persistPassageQuestion(
-              questionRepo,
-              savedExam.id,
-              savedSec.id,
-              parsed.data,
-              qOrder,
-              jwtPayload,
-            );
-          } else if (parsed.kind === 'graded') {
-            await this.persistAutoScoredQuestion(
-              questionRepo,
-              savedExam.id,
-              savedSec.id,
-              parsed.data,
-              qOrder++,
-              jwtPayload,
-              QuestionCategoryEnum.GRADED,
-              null,
-            );
-          } else {
-            await this.persistUngradedQuestion(
-              questionRepo,
-              savedExam.id,
-              savedSec.id,
-              parsed.data,
-              qOrder++,
-              jwtPayload,
-            );
-          }
-        }
-      }
+      await this.persistWizardSubjects(
+        manager,
+        savedExam.id,
+        subjects,
+        jwtPayload,
+        dto.questionOrder,
+      );
 
       const reloaded = await examRepo.findOne({
         where: { id: savedExam.id },
@@ -440,6 +394,7 @@ export class ExamService {
     questionRepo: Repository<ExamQuestionEntity>,
     examId: string,
     sectionId: string,
+    subjectId: string,
     passage: WizardPassageQuestionDto,
     sortOrder: number,
     jwtPayload: JwtPayloadInterface,
@@ -447,6 +402,7 @@ export class ExamService {
     const parentPayload: DeepPartial<ExamQuestionEntity> = {
       id: resolveQuestionId(passage.id),
       section_id: sectionId,
+      subject_id: subjectId,
       exam: { id: examId } as ExamEntity,
       sort_order: sortOrder,
       question_type: QuestionTypeEnum.SUBJECTIVE,
@@ -472,6 +428,7 @@ export class ExamService {
           questionRepo,
           examId,
           sectionId,
+          subjectId,
           child,
           childOrder++,
           jwtPayload,
@@ -482,6 +439,7 @@ export class ExamService {
           questionRepo,
           examId,
           sectionId,
+          subjectId,
           child,
           childOrder++,
           jwtPayload,
@@ -498,6 +456,7 @@ export class ExamService {
     questionRepo: Repository<ExamQuestionEntity>,
     examId: string,
     sectionId: string,
+    subjectId: string,
     q: WizardChildQuestionDto,
     sortOrder: number,
     jwtPayload: JwtPayloadInterface,
@@ -509,6 +468,7 @@ export class ExamService {
     const payload: DeepPartial<ExamQuestionEntity> = {
       id: resolveQuestionId(q.id),
       section_id: sectionId,
+      subject_id: subjectId,
       exam: { id: examId } as ExamEntity,
       sort_order: sortOrder,
       question_type: QuestionTypeEnum.SUBJECTIVE,
@@ -536,6 +496,7 @@ export class ExamService {
     questionRepo: Repository<ExamQuestionEntity>,
     examId: string,
     sectionId: string,
+    subjectId: string,
     q: WizardGradedQuestionDto | WizardChildQuestionDto,
     sortOrder: number,
     jwtPayload: JwtPayloadInterface,
@@ -551,6 +512,7 @@ export class ExamService {
     const payload: DeepPartial<ExamQuestionEntity> = {
       id: resolveQuestionId(q.id),
       section_id: sectionId,
+      subject_id: subjectId,
       exam: { id: examId } as ExamEntity,
       sort_order: sortOrder,
       question_type: QuestionTypeEnum.OBJECTIVE,
@@ -588,6 +550,7 @@ export class ExamService {
     questionRepo: Repository<ExamQuestionEntity>,
     examId: string,
     sectionId: string,
+    subjectId: string,
     q: WizardUngradedQuestionDto,
     sortOrder: number,
     jwtPayload: JwtPayloadInterface,
@@ -598,6 +561,7 @@ export class ExamService {
     const payload: DeepPartial<ExamQuestionEntity> = {
       id: resolveQuestionId(q.id),
       section_id: sectionId,
+      subject_id: subjectId,
       exam: { id: examId } as ExamEntity,
       sort_order: sortOrder,
       question_type: QuestionTypeEnum.SUBJECTIVE,
@@ -1448,39 +1412,72 @@ export class ExamService {
       ];
     }
 
-    const grouped = new Map<string, ExamSubjectResponse>();
+    const allRootQuestions: ExamQuestionEntity[] = [];
+    const childrenByParent = new Map<string, ExamQuestionEntity[]>();
+    const subjectMetaById = new Map<string, { id: string | null; name: string | null; code: string | null }>();
+
     for (const section of sections) {
-      const subject = section.subject ?? null;
-      const key = subject?.id ?? `legacy:${exam.id}`;
-      if (!grouped.has(key)) {
-        grouped.set(key, {
-          id: subject?.id ?? exam.primary_subject?.id ?? null,
-          name: subject?.name ?? exam.primary_subject?.name ?? exam.subject ?? null,
-          code: subject?.code ?? exam.primary_subject?.code ?? null,
-          questions: [],
+      const sectionSubject = section.subject ?? null;
+      if (sectionSubject?.id && !subjectMetaById.has(sectionSubject.id)) {
+        subjectMetaById.set(sectionSubject.id, {
+          id: sectionSubject.id,
+          name: sectionSubject.name ?? null,
+          code: sectionSubject.code ?? null,
         });
       }
 
-      const allQuestions = [...(section.questions || [])].sort((a, b) => a.sort_order - b.sort_order);
-      const childrenByParent = new Map<string, ExamQuestionEntity[]>();
-      for (const q of allQuestions) {
+      for (const q of section.questions || []) {
+        if (q.subject_id && q.subject && !subjectMetaById.has(q.subject_id)) {
+          subjectMetaById.set(q.subject_id, {
+            id: q.subject.id,
+            name: q.subject.name ?? null,
+            code: q.subject.code ?? null,
+          });
+        }
         if (q.parent_id) {
           const list = childrenByParent.get(q.parent_id) ?? [];
           list.push(q);
           childrenByParent.set(q.parent_id, list);
+        } else {
+          allRootQuestions.push(q);
         }
-      }
-
-      for (const q of allQuestions) {
-        if (q.parent_id) {
-          continue;
-        }
-        grouped.get(key)!.questions.push(
-          this.formatQuestionResponse(q, includeCorrectAnswers, childrenByParent),
-        );
       }
     }
 
+    allRootQuestions.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+    const grouped = new Map<string, ExamSubjectResponse>();
+    for (const q of allRootQuestions) {
+      const subjectId = q.subject_id ?? q.section?.subject_id ?? exam.primary_subject?.id ?? `legacy:${exam.id}`;
+      const meta =
+        subjectMetaById.get(subjectId) ??
+        (q.section?.subject
+          ? {
+              id: q.section.subject.id,
+              name: q.section.subject.name ?? null,
+              code: q.section.subject.code ?? null,
+            }
+          : {
+              id: exam.primary_subject?.id ?? null,
+              name: exam.primary_subject?.name ?? exam.subject ?? null,
+              code: exam.primary_subject?.code ?? null,
+            });
+
+      if (!grouped.has(subjectId)) {
+        grouped.set(subjectId, {
+          id: meta.id,
+          name: meta.name,
+          code: meta.code,
+          questions: [],
+        });
+      }
+
+      grouped.get(subjectId)!.questions.push(
+        this.formatQuestionResponse(q, includeCorrectAnswers, childrenByParent),
+      );
+    }
+
+    // Preserve exam-wide order: subjects ordered by first question's sort_order
     return Array.from(grouped.values());
   }
 
@@ -1489,18 +1486,24 @@ export class ExamService {
     includeCorrectAnswers: boolean,
     childrenByParent?: Map<string, ExamQuestionEntity[]>,
   ): ExamQuestionResponse {
+    const withMeta = (response: ExamQuestionResponse): ExamQuestionResponse => ({
+      ...response,
+      subjectId: question.subject_id ?? null,
+      sortOrder: question.sort_order ?? 0,
+    });
+
     if (question.category === QuestionCategoryEnum.PASSAGE && !question.parent_id) {
       const children = (childrenByParent?.get(question.id) ?? [])
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((child) => this.formatPassageChildResponse(child, includeCorrectAnswers));
 
-      return {
+      return withMeta({
         id: question.id,
         type: QuestionCategoryEnum.PASSAGE,
         passageText: question.passage_text ?? question.question,
         childQuestions: children,
         showValidation: false,
-      };
+      });
     }
 
     if (question.category === QuestionCategoryEnum.UNGRADED) {
@@ -1517,17 +1520,17 @@ export class ExamService {
       if (includeCorrectAnswers && question.answer_json) {
         base.answer = question.answer_json;
       }
-      return base;
+      return withMeta(base);
     }
 
     if (
       question.category === QuestionCategoryEnum.GRADED ||
       (question.category === QuestionCategoryEnum.PASSAGE && question.parent_id)
     ) {
-      return this.formatAutoScoredQuestionResponse(question, includeCorrectAnswers);
+      return withMeta(this.formatAutoScoredQuestionResponse(question, includeCorrectAnswers));
     }
 
-    return this.formatLegacyQuestionResponse(question, includeCorrectAnswers);
+    return withMeta(this.formatLegacyQuestionResponse(question, includeCorrectAnswers));
   }
 
   private formatPassageChildResponse(
@@ -1918,7 +1921,7 @@ export class ExamService {
       examRow.updated_at = new Date();
       await examRepo.save(examRow);
 
-      await this.persistWizardSubjects(manager, id, subjects, jwtPayload);
+      await this.persistWizardSubjects(manager, id, subjects, jwtPayload, dto.questionOrder);
 
       const reloaded = await examRepo.findOne({
         where: { id },
@@ -1941,16 +1944,19 @@ export class ExamService {
 
   /**
    * Create sections + questions for an exam from the wizard subjects payload.
+   * Uses exam-wide contiguous sort_order (respecting optional questionOrder).
    */
   private async persistWizardSubjects(
     manager: EntityManager,
     examId: string,
     subjects: CreateExamWizardDto['subjects'],
     jwtPayload: JwtPayloadInterface,
+    questionOrder?: string[],
   ): Promise<void> {
     const sectionRepo = manager.getRepository(ExamQuestionSectionEntity);
     const questionRepo = manager.getRepository(ExamQuestionEntity);
 
+    const sectionBySubjectId = new Map<string, ExamQuestionSectionEntity>();
     let sectionOrder = 0;
     for (const subj of subjects) {
       const sectionPayload: DeepPartial<ExamQuestionSectionEntity> = {
@@ -1966,40 +1972,73 @@ export class ExamService {
       };
       const section = sectionRepo.create(sectionPayload);
       const savedSec = await sectionRepo.save(section);
+      sectionBySubjectId.set(subj.id, savedSec);
+    }
 
-      let qOrder = 0;
+    type FlatWizardQuestion = {
+      subjectId: string;
+      questionId: string;
+      raw: CreateExamWizardDto['subjects'][number]['questions'][number];
+    };
+
+    const flat: FlatWizardQuestion[] = [];
+    for (const subj of subjects) {
       for (const raw of subj.questions) {
-        const parsed = parseWizardQuestion(raw);
-        if (parsed.kind === 'passage') {
-          qOrder = await this.persistPassageQuestion(
-            questionRepo,
-            examId,
-            savedSec.id,
-            parsed.data,
-            qOrder,
-            jwtPayload,
-          );
-        } else if (parsed.kind === 'graded') {
-          await this.persistAutoScoredQuestion(
-            questionRepo,
-            examId,
-            savedSec.id,
-            parsed.data,
-            qOrder++,
-            jwtPayload,
-            QuestionCategoryEnum.GRADED,
-            null,
-          );
-        } else {
-          await this.persistUngradedQuestion(
-            questionRepo,
-            examId,
-            savedSec.id,
-            parsed.data,
-            qOrder++,
-            jwtPayload,
-          );
-        }
+        const questionId =
+          typeof (raw as { id?: unknown }).id === 'string' ? (raw as { id: string }).id : '';
+        flat.push({ subjectId: subj.id, questionId, raw });
+      }
+    }
+
+    if (questionOrder?.length) {
+      const orderMap = new Map(questionOrder.map((id, index) => [id, index]));
+      flat.sort((a, b) => {
+        const aOrder = orderMap.has(a.questionId) ? orderMap.get(a.questionId)! : Number.MAX_SAFE_INTEGER;
+        const bOrder = orderMap.has(b.questionId) ? orderMap.get(b.questionId)! : Number.MAX_SAFE_INTEGER;
+        return aOrder - bOrder;
+      });
+    }
+
+    let globalOrder = 0;
+    for (const item of flat) {
+      const savedSec = sectionBySubjectId.get(item.subjectId);
+      if (!savedSec) {
+        continue;
+      }
+
+      const parsed = parseWizardQuestion(item.raw);
+      if (parsed.kind === 'passage') {
+        globalOrder = await this.persistPassageQuestion(
+          questionRepo,
+          examId,
+          savedSec.id,
+          item.subjectId,
+          parsed.data,
+          globalOrder,
+          jwtPayload,
+        );
+      } else if (parsed.kind === 'graded') {
+        await this.persistAutoScoredQuestion(
+          questionRepo,
+          examId,
+          savedSec.id,
+          item.subjectId,
+          parsed.data,
+          globalOrder++,
+          jwtPayload,
+          QuestionCategoryEnum.GRADED,
+          null,
+        );
+      } else {
+        await this.persistUngradedQuestion(
+          questionRepo,
+          examId,
+          savedSec.id,
+          item.subjectId,
+          parsed.data,
+          globalOrder++,
+          jwtPayload,
+        );
       }
     }
   }

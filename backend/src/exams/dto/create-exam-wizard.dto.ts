@@ -475,6 +475,15 @@ export class CreateExamWizardDto {
   @Type(() => WizardSubjectBlockDto)
   subjects: WizardSubjectBlockDto[];
 
+  @ApiPropertyOptional({
+    description: 'Optional exam-wide root question order (overrides subject-array order for sort_order)',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  questionOrder?: string[];
+
   @ApiProperty({ type: WizardPublishStateDto })
   @ValidateNested()
   @Type(() => WizardPublishStateDto)

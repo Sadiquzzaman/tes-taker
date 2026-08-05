@@ -23,21 +23,14 @@ export const TEACHER_VISIBLE_SUBMISSION_STATUSES = [
 export function getOrderedQuestions(exam: ExamEntity): ExamQuestionEntity[] {
   let ordered: ExamQuestionEntity[];
   if (exam.questionSections?.length) {
-    const sections = [...exam.questionSections].sort((a, b) => a.sort_order - b.sort_order);
-    ordered = [];
-    for (const section of sections) {
-      const questions = [...(section.questions || [])].sort((a, b) => a.sort_order - b.sort_order);
-      ordered.push(...questions);
-    }
+    ordered = exam.questionSections.flatMap((section) => section.questions || []);
   } else {
-    ordered = [...(exam.questions || [])].sort(
-      (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
-    );
+    ordered = [...(exam.questions || [])];
   }
 
-  return ordered.filter(
-    (question) => !(question.category === QuestionCategoryEnum.PASSAGE && !question.parent_id),
-  );
+  return ordered
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .filter((question) => !(question.category === QuestionCategoryEnum.PASSAGE && !question.parent_id));
 }
 
 export function isManualGradingQuestion(question: ExamQuestionEntity): boolean {

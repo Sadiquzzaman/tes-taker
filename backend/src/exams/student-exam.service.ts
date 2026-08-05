@@ -123,23 +123,18 @@ export class StudentExamService {
     return StudentExamService.UUID_V4_RE.test(value);
   }
 
-  /** Flatten scorable questions; wizard exams use sections; legacy uses exam.questions only */
+  /** Flatten scorable questions; wizard exams use exam-wide sort_order */
   private getOrderedQuestions(exam: ExamEntity): ExamQuestionEntity[] {
     let ordered: ExamQuestionEntity[];
     if (exam.questionSections?.length) {
-      const sections = [...exam.questionSections].sort((a, b) => a.sort_order - b.sort_order);
-      ordered = [];
-      for (const s of sections) {
-        const qs = [...(s.questions || [])].sort((a, b) => a.sort_order - b.sort_order);
-        ordered.push(...qs);
-      }
+      ordered = exam.questionSections.flatMap((s) => s.questions || []);
     } else {
-      ordered = [...(exam.questions || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      ordered = [...(exam.questions || [])];
     }
 
-    return ordered.filter(
-      (q) => !(q.category === QuestionCategoryEnum.PASSAGE && !q.parent_id),
-    );
+    return ordered
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      .filter((q) => !(q.category === QuestionCategoryEnum.PASSAGE && !q.parent_id));
   }
 
   // ========================
