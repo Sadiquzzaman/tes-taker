@@ -47,8 +47,11 @@
     "function-plot": "^1.25.4",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
+    "jsxgraph": "^1.13.1",
     "katex": "^0.18.1",
-    "kekule": "^1.0.4",
+    "ketcher-core": "^3.17.2",
+    "ketcher-react": "^3.17.2",
+    "ketcher-standalone": "^3.17.2",
     "mathlive": "^0.110.0",
     "next": "^16.1.7",
     "prettier": "^3.8.1",
@@ -58,7 +61,6 @@
     "react-redux": "^9.2.0",
     "recharts": "^3.7.0",
     "socket.io-client": "^4.8.3",
-    "tldraw": "^5.1.1",
     "uuid": "^14.0.0"
   },
   "devDependencies": {

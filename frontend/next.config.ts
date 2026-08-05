@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  transpilePackages: ["mathlive", "kekule", "tldraw"],
+  transpilePackages: ["mathlive", "jsxgraph", "ketcher-react", "ketcher-core", "ketcher-standalone"],
 };
 
 export default nextConfig;

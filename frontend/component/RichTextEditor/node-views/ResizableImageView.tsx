@@ -3,13 +3,14 @@
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import { useCallback, useRef, useState } from "react";
 
-const ResizableImageView = ({ node, updateAttributes, selected }: NodeViewProps) => {
+const ResizableImageView = ({ node, updateAttributes, selected, getPos }: NodeViewProps) => {
   const imgRef = useRef<HTMLImageElement>(null);
   const [isResizing, setIsResizing] = useState(false);
   const width = (node.attrs.width as string | null) || undefined;
   const align = (node.attrs.align as "left" | "center" | "right") || "center";
   const kind = (node.attrs.kind as string) || "image";
   const caption = (node.attrs.caption as string) || "";
+  const isEditableFigure = kind === "geometry" || kind === "chemistry";
 
   const startResize = useCallback(
     (event: React.PointerEvent<HTMLSpanElement>) => {
@@ -35,6 +36,21 @@ const ResizableImageView = ({ node, updateAttributes, selected }: NodeViewProps)
     },
     [updateAttributes],
   );
+
+  const openFigureEditor = () => {
+    const pos = typeof getPos === "function" ? getPos() : null;
+    window.dispatchEvent(
+      new CustomEvent("rte:edit-figure", {
+        detail: {
+          kind,
+          figureJson: (node.attrs.figureJson as string | null) || null,
+          mol: (node.attrs.mol as string | null) || null,
+          smiles: (node.attrs.smiles as string | null) || null,
+          pos: typeof pos === "number" ? pos : null,
+        },
+      }),
+    );
+  };
 
   return (
     <NodeViewWrapper
@@ -85,6 +101,16 @@ const ResizableImageView = ({ node, updateAttributes, selected }: NodeViewProps)
               {value}
             </button>
           ))}
+          {isEditableFigure ? (
+            <button
+              type="button"
+              className="is-active"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={openFigureEditor}
+            >
+              Edit
+            </button>
+          ) : null}
         </div>
       ) : null}
     </NodeViewWrapper>
