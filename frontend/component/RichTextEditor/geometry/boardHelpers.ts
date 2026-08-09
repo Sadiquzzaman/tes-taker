@@ -11,6 +11,9 @@ export type JxgPoint = {
   setName?: (name: string) => void;
   moveTo?: (coords: number[], time?: number) => void;
   setPosition?: (method: unknown, coords: number[]) => void;
+  isDraggable?: boolean;
+  visProp?: { fixed?: boolean };
+  parents?: unknown[];
 };
 
 export type JxgText = {
@@ -26,6 +29,7 @@ export type JxgCircle = {
   elType?: string;
   id?: string;
   center?: JxgPoint;
+  point2?: JxgPoint;
   Radius?: () => number;
   setAttribute?: (attrs: Record<string, unknown>) => void;
 };
@@ -459,6 +463,115 @@ export const movePointTo = (board: BoardLike, point: JxgPoint, x: number, y: num
   board.update();
 };
 
+/** Free construction points teachers can drag (not midpoints / dependent corners). */
+export const isFreeDragPoint = (p: unknown): p is JxgPoint => {
+  if (!isPoint(p) || typeof p.X !== "function" || typeof p.Y !== "function") {
+    return false;
+  }
+  if (p.elType !== "point") {
+    return false;
+  }
+  if (p.visProp?.fixed) {
+    return false;
+  }
+  if (p.isDraggable === false) {
+    return false;
+  }
+  return true;
+};
+
+const pushUniquePoint = (list: JxgPoint[], point: JxgPoint | undefined | null) => {
+  if (!point || list.includes(point)) {
+    return;
+  }
+  list.push(point);
+};
+
+/**
+ * Anchor points to translate when the teacher drags a whole shape.
+ * Dependent points (rectangle side corners, midpoints) are skipped — they follow free parents.
+ */
+export const getShapeDragPoints = (sel: SelectableObject): JxgPoint[] => {
+  const out: JxgPoint[] = [];
+
+  if (sel.kind === "circle" && isCircle(sel.el)) {
+    const center = sel.el.center as JxgPoint | undefined;
+    if (center && isFreeDragPoint(center)) {
+      pushUniquePoint(out, center);
+    } else if (center) {
+      const parents = (center as JxgPoint & { parents?: unknown[] }).parents || [];
+      parents.forEach((parent) => {
+        if (isFreeDragPoint(parent)) {
+          pushUniquePoint(out, parent);
+        }
+      });
+    }
+    if (sel.el.point2 && isFreeDragPoint(sel.el.point2)) {
+      pushUniquePoint(out, sel.el.point2);
+    }
+    return out;
+  }
+
+  if (sel.kind === "segment" || sel.kind === "line") {
+    const line = sel.el as JxgLine;
+    if (isFreeDragPoint(line.point1)) {
+      pushUniquePoint(out, line.point1);
+    }
+    if (isFreeDragPoint(line.point2)) {
+      pushUniquePoint(out, line.point2);
+    }
+    return out;
+  }
+
+  if (sel.kind === "polygon") {
+    const verts = (sel.el as { vertices?: JxgPoint[] }).vertices || [];
+    verts.forEach((v) => {
+      if (isFreeDragPoint(v)) {
+        pushUniquePoint(out, v);
+      }
+    });
+    return out;
+  }
+
+  if (sel.kind === "point" && isFreeDragPoint(sel.el)) {
+    pushUniquePoint(out, sel.el);
+  }
+
+  if (sel.kind === "text" && isText(sel.el) && typeof sel.el.X === "function" && typeof sel.el.Y === "function") {
+    // Text is moved via setAttribute / setPosition on the text element itself
+    return [];
+  }
+
+  return out;
+};
+
+export const translatePoints = (board: BoardLike, points: JxgPoint[], dx: number, dy: number) => {
+  if (!dx && !dy) {
+    return;
+  }
+  points.forEach((point) => {
+    if (typeof point.X !== "function" || typeof point.Y !== "function") {
+      return;
+    }
+    movePointTo(board, point, point.X() + dx, point.Y() + dy);
+  });
+};
+
+export const moveTextTo = (board: BoardLike, text: JxgText, x: number, y: number) => {
+  const anyText = text as JxgText & {
+    setPosition?: (method: unknown, coords: number[]) => void;
+    moveTo?: (coords: number[], time?: number) => void;
+  };
+  if (typeof anyText.setPosition === "function") {
+    anyText.setPosition(1, [x, y]);
+  } else if (typeof anyText.moveTo === "function") {
+    anyText.moveTo([x, y], 0);
+  } else {
+    text.setAttribute?.({ anchorX: "middle", anchorY: "middle" });
+  }
+  board.update();
+};
+
 export const userCoordsToBoardPixels = (
   board: BoardLike,
   host: HTMLElement,
@@ -474,10 +587,10 @@ export const userCoordsToBoardPixels = (
   return { left, top };
 };
 
-export type DragShapeTool = "circle" | "rectangle" | "square";
+export type DragShapeTool = "circle" | "rectangle" | "square" | "segment";
 
 export const isDragShapeTool = (tool: string, circleMode?: string): boolean => {
-  if (tool === "rectangle" || tool === "square") {
+  if (tool === "rectangle" || tool === "square" || tool === "segment" || tool === "constructionLine") {
     return true;
   }
   return tool === "circle" && circleMode === "drag";
@@ -494,18 +607,29 @@ const HANDLE_ATTRS = {
 };
 
 /**
- * Drag creation:
+ * Drag creation (Word-like):
+ * - segment: press–drag a short line (use for radius / diameter / diagonal)
  * - circle (drag mode): press = center, drag = radius
  * - rectangle / square: corner → opposite corner
  */
 export const startDragShape = (
   board: BoardLike,
-  tool: DragShapeTool,
+  tool: DragShapeTool | "constructionLine",
   x: number,
   y: number,
   style: StrokeStyle,
   usedNames: Set<string>,
+  opts?: { dashed?: boolean; snapStart?: JxgPoint | null },
 ): { start: JxgPoint; end: JxgPoint; shape: unknown } => {
+  if (tool === "segment" || tool === "constructionLine") {
+    const start = opts?.snapStart && isPoint(opts.snapStart) ? opts.snapStart : (board.create("point", [x, y], HANDLE_ATTRS) as JxgPoint);
+    const sx = typeof start.X === "function" ? start.X() : x;
+    const sy = typeof start.Y === "function" ? start.Y() : y;
+    const end = board.create("point", [sx + 0.02, sy - 0.02], HANDLE_ATTRS) as JxgPoint;
+    const shape = board.create("segment", [start, end], lineStyle(style, Boolean(opts?.dashed)));
+    return { start, end, shape };
+  }
+
   if (tool === "circle") {
     const center = createLabeledPoint(board, x, y, usedNames);
     const end = board.create("point", [x + 0.02, y - 0.02], HANDLE_ATTRS) as JxgPoint;

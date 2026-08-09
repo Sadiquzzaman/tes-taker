@@ -12,8 +12,6 @@ import {
   type GeometryDocumentV1,
 } from "@/utils/figures/figureTypes";
 import {
-  addDiameterToCircle,
-  addRadiusToCircle,
   applySelectionHighlight,
   clearSelectionHighlight,
   collectPointNames,
@@ -22,18 +20,20 @@ import {
   exportBoardSvg,
   findNearestPoint,
   findSelectableAt,
+  getShapeDragPoints,
   isCircle,
   isDragShapeTool,
   isPoint,
   isText,
   lineStyle,
   movePointTo,
+  moveTextTo,
   resolvePointAt,
   revealCircleCenter,
   startDragShape,
+  translatePoints,
   userCoordsToBoardPixels,
   type BoardLike,
-  type JxgCircle,
   type JxgPoint,
   type JxgText,
   type SelectableObject,
@@ -77,6 +77,15 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
   const selectedRef = useRef<SelectableObject | null>(null);
   const boardHostRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ end: JxgPoint; pointerId: number } | null>(null);
+  const shapeMoveRef = useRef<{
+    pointerId: number;
+    lastX: number;
+    lastY: number;
+    moved: boolean;
+    points: JxgPoint[];
+    text?: JxgText;
+  } | null>(null);
+  const pointDragPendingRef = useRef(false);
   const textInputRef = useRef<HTMLInputElement | null>(null);
   const styleRef = useRef<StrokeStyle>({ strokeColor: "#1f2933", strokeWidth: 2.5, dash: 0 });
 
@@ -395,7 +404,6 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
       if (!board || !sel) {
         return;
       }
-      const s = styleRef.current;
       try {
         if (action === "delete") {
           handleDeleteSelected();
@@ -422,38 +430,10 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
           openTextEditor(cx, cy + 0.4, "");
           return;
         }
-        if (sel.kind === "circle" && isCircle(sel.el)) {
-          if (action === "radius") {
-            addRadiusToCircle(board, sel.el as JxgCircle, s, usedNamesRef.current);
-            pushHistory();
-            return;
-          }
-          if (action === "diameter") {
-            addDiameterToCircle(board, sel.el as JxgCircle, s, usedNamesRef.current);
-            pushHistory();
-            return;
-          }
-          if (action === "center") {
-            revealCircleCenter(board, sel.el as JxgCircle, usedNamesRef.current);
-            pushHistory();
-            return;
-          }
-          if (action === "chord") {
-            setPendingCtx("chord");
-            setTool("chord");
-            setStep("await_point_1");
-            setError("");
-            clearPending();
-            return;
-          }
-          if (action === "tangent") {
-            setPendingCtx("tangent");
-            setTool("tangent");
-            setStep("await_point_1");
-            setError("");
-            clearPending();
-            return;
-          }
+        if (sel.kind === "circle" && isCircle(sel.el) && action === "center") {
+          revealCircleCenter(board, sel.el, usedNamesRef.current);
+          pushHistory();
+          return;
         }
         if (sel.kind === "segment") {
           const line = sel.el as { point1?: JxgPoint; point2?: JxgPoint };
@@ -477,49 +457,12 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
             pushHistory();
             return;
           }
-          if (action === "perpBisector" && line.point1 && line.point2) {
-            board.create("perpendicularbisector", [line.point1, line.point2], lineStyle(s, true));
-            pushHistory();
-            return;
-          }
-          if (action === "perpendicular") {
-            setPendingCtx("perpendicular");
-            setTool("perpendicular");
-            if (line.point1 && line.point2) {
-              pointsRef.current = [line.point1, line.point2];
-              setStep("await_point_3");
-            } else {
-              setStep("await_point_1");
-            }
-            setError("");
-            return;
-          }
-        }
-        if (sel.kind === "line" && (action === "perpendicular" || action === "parallel")) {
-          const line = sel.el as { point1?: JxgPoint; point2?: JxgPoint };
-          setPendingCtx(action);
-          setTool(action);
-          if (line.point1 && line.point2) {
-            pointsRef.current = [line.point1, line.point2];
-            setStep("await_point_3");
-          } else {
-            setStep("await_point_1");
-          }
-          setError("");
-          return;
-        }
-        if (action === "angle") {
-          setTool("angle");
-          setStep("await_point_1");
-          clearPending();
-          setTab("construct");
-          return;
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not run that action.");
       }
     },
-    [clearPending, handleDeleteSelected, pushHistory],
+    [handleDeleteSelected, pushHistory],
   );
 
   const readBoardCoords = (event: MouseEvent | TouchEvent | PointerEvent): [number, number] | null => {
@@ -548,8 +491,15 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);
         try {
-          const dragTool = tool === "circle" ? "circle" : (tool as "rectangle" | "square");
-          const { end } = startDragShape(board, dragTool, x, y, s, usedNamesRef.current);
+          const snapStart = tool === "segment" || tool === "constructionLine" ? findNearestPoint(board, x, y) : null;
+          const sx = snapStart?.X?.() ?? x;
+          const sy = snapStart?.Y?.() ?? y;
+          const dragTool =
+            tool === "constructionLine" ? "constructionLine" : tool === "circle" ? "circle" : (tool as "rectangle" | "square" | "segment");
+          const { end } = startDragShape(board, dragTool, sx, sy, s, usedNamesRef.current, {
+            dashed: tool === "constructionLine" || dashed,
+            snapStart,
+          });
           dragRef.current = { end, pointerId: event.pointerId };
           setStep("await_point_2");
           setError("");
@@ -560,23 +510,56 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
         return;
       }
 
-      event.preventDefault();
-
       try {
         if (tool === "select" || tool === "delete") {
           const hit = findSelectableAt(board, x, y);
           if (hit) {
             setSelection(hit);
             if (tool === "delete") {
+              event.preventDefault();
               handleDeleteSelected();
-            } else if (hit.kind === "text" && isText(hit.el)) {
-              // double-intent: single tap selects; use contextual Edit, or second quick path
+              return;
             }
+            // Let JSXGraph drag individual points natively.
+            if (hit.kind === "point") {
+              pointDragPendingRef.current = true;
+              return;
+            }
+            // Whole-shape / text drag (Word-like move).
+            if (hit.kind === "text" && isText(hit.el)) {
+              event.preventDefault();
+              event.currentTarget.setPointerCapture(event.pointerId);
+              shapeMoveRef.current = {
+                pointerId: event.pointerId,
+                lastX: x,
+                lastY: y,
+                moved: false,
+                points: [],
+                text: hit.el,
+              };
+              return;
+            }
+            const points = getShapeDragPoints(hit);
+            if (points.length === 0) {
+              return;
+            }
+            event.preventDefault();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            shapeMoveRef.current = {
+              pointerId: event.pointerId,
+              lastX: x,
+              lastY: y,
+              moved: false,
+              points,
+            };
             return;
           }
+          event.preventDefault();
           clearSelection();
           return;
         }
+
+        event.preventDefault();
 
         if (tool === "text") {
           const hit = findSelectableAt(board, x, y);
@@ -853,16 +836,39 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
   );
 
   const handlePointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
     const board = boardRef.current;
-    if (!drag || !board || drag.pointerId !== event.pointerId) {
+    if (!board) {
       return;
     }
-    event.preventDefault();
     const pair = readBoardCoords(event.nativeEvent);
     if (!pair) {
       return;
     }
+
+    const shapeMove = shapeMoveRef.current;
+    if (shapeMove && shapeMove.pointerId === event.pointerId) {
+      event.preventDefault();
+      const [x, y] = pair;
+      const dx = x - shapeMove.lastX;
+      const dy = y - shapeMove.lastY;
+      if (dx || dy) {
+        if (shapeMove.text && typeof shapeMove.text.X === "function" && typeof shapeMove.text.Y === "function") {
+          moveTextTo(board, shapeMove.text, shapeMove.text.X() + dx, shapeMove.text.Y() + dy);
+        } else {
+          translatePoints(board, shapeMove.points, dx, dy);
+        }
+        shapeMove.lastX = x;
+        shapeMove.lastY = y;
+        shapeMove.moved = true;
+      }
+      return;
+    }
+
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) {
+      return;
+    }
+    event.preventDefault();
     const near = findNearestPoint(board, pair[0], pair[1]);
     if (near && near !== drag.end && typeof near.X === "function" && typeof near.Y === "function") {
       movePointTo(board, drag.end, near.X(), near.Y());
@@ -873,6 +879,27 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
 
   const handlePointerUp = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      if (pointDragPendingRef.current) {
+        pointDragPendingRef.current = false;
+        // Point was moved by JSXGraph — snapshot after the gesture.
+        window.setTimeout(() => pushHistory(), 0);
+      }
+
+      const shapeMove = shapeMoveRef.current;
+      if (shapeMove && shapeMove.pointerId === event.pointerId) {
+        event.preventDefault();
+        try {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        } catch {
+          // ignore
+        }
+        if (shapeMove.moved) {
+          pushHistory();
+        }
+        shapeMoveRef.current = null;
+        return;
+      }
+
       const drag = dragRef.current;
       if (!drag || drag.pointerId !== event.pointerId) {
         return;
@@ -886,7 +913,7 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
       dragRef.current = null;
       completeTool();
     },
-    [completeTool],
+    [completeTool, pushHistory],
   );
 
   const finishPolygon = () => {
@@ -980,7 +1007,7 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
         <header className="geo-workspace__header">
           <div className="geo-workspace__header-copy">
             <h2>Geometry</h2>
-            <p>Draw shapes, then tap Done to put the figure in your question.</p>
+            <p>Drag shapes to move them. Use Segment to draw radius, diameter, or diagonal like a line in Word.</p>
           </div>
           <div className="geo-workspace__header-actions">
             <button type="button" className="rte-modal__ghost chem-btn" onClick={onClose} disabled={busy}>

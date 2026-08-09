@@ -56,7 +56,12 @@ export type GeometryToolDef = {
 export const DRAW_TOOLS: GeometryToolDef[] = [
   { id: "select", label: "Select", title: "Select and edit objects", afterComplete: "select" },
   { id: "point", label: "Point", title: "Place a labeled point", afterComplete: "repeat" },
-  { id: "segment", label: "Segment", title: "Short line between two points", afterComplete: "repeat" },
+  {
+    id: "segment",
+    label: "Segment",
+    title: "Drag a short line — radius, diameter, diagonal, or any side",
+    afterComplete: "repeat",
+  },
   { id: "line", label: "Line", title: "Infinite line through two points", afterComplete: "repeat" },
   { id: "ray", label: "Ray", title: "Ray from a start point", afterComplete: "repeat" },
   { id: "text", label: "Text", title: "Type a label or measurement on the figure", afterComplete: "select" },
@@ -129,11 +134,7 @@ export const contextualActionsFor = (kind: SelectableKind): ContextualAction[] =
   switch (kind) {
     case "circle":
       return [
-        { id: "radius", label: "Radius", title: "Add a radius from the center" },
-        { id: "diameter", label: "Diameter", title: "Add a diameter through the center" },
         { id: "center", label: "Center", title: "Show / label the center" },
-        { id: "chord", label: "Chord", title: "Draw a chord (tap two points on the circle)" },
-        { id: "tangent", label: "Tangent", title: "Draw a tangent at a point on the circle" },
         { id: "label", label: "Label", title: "Add text near this circle" },
         { id: "delete", label: "Delete", title: "Delete this circle" },
       ];
@@ -141,22 +142,17 @@ export const contextualActionsFor = (kind: SelectableKind): ContextualAction[] =
       return [
         { id: "length", label: "Length", title: "Add a length label (e.g. 5 cm)" },
         { id: "midpoint", label: "Midpoint", title: "Create the midpoint" },
-        { id: "perpendicular", label: "Perp", title: "Perpendicular through a point" },
-        { id: "perpBisector", label: "Bisector", title: "Perpendicular bisector" },
         { id: "label", label: "Label", title: "Add text near this segment" },
         { id: "delete", label: "Delete", title: "Delete this segment" },
       ];
     case "line":
       return [
-        { id: "perpendicular", label: "Perp", title: "Perpendicular through a point" },
-        { id: "parallel", label: "Parallel", title: "Parallel through a point" },
         { id: "label", label: "Label", title: "Add text near this line" },
         { id: "delete", label: "Delete", title: "Delete this line" },
       ];
     case "polygon":
       return [
         { id: "label", label: "Label", title: "Add a label" },
-        { id: "angle", label: "Angle", title: "Mark an angle" },
         { id: "delete", label: "Delete", title: "Delete this shape" },
       ];
     case "point":
@@ -207,21 +203,25 @@ export const instructionFor = (
 
   if (tool === "select") {
     return opts?.hasSelection
-      ? "Use the actions below for the selected object — or tap empty space to deselect."
-      : "Tap an object to select it. Drag points to move. Choose a tool above to draw.";
+      ? "Drag the shape to move it. Drag a green point to reshape. Or use the actions below."
+      : "Tap a shape to select it, then drag to move. Drag green points to reshape.";
   }
 
   switch (tool) {
     case "point":
       return "Tap the board to place a point.";
     case "segment":
-      return step === "await_point_2" ? "Tap the other end of the segment." : "Tap the first end of the segment.";
+      return step === "await_point_2"
+        ? "Keep dragging — release to finish. Snap to a center or corner for radius / diagonal."
+        : "Press and drag to draw a short line (radius, diameter, diagonal, or side).";
     case "line":
       return step === "await_point_2" ? "Tap the second point of the line." : "Tap the first point of the line.";
     case "ray":
       return step === "await_point_2" ? "Tap a point the ray should pass through." : "Tap where the ray starts.";
     case "constructionLine":
-      return step === "await_point_2" ? "Tap the second point." : "Tap the first point of the dashed line.";
+      return step === "await_point_2"
+        ? "Keep dragging — release to finish the dashed line."
+        : "Press and drag to draw a dashed line.";
     case "circle":
       if (circleMode === "diameter") {
         return step === "await_point_2"
