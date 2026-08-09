@@ -832,7 +832,7 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
         setStep(initialStepFor(tool, circleMode));
       }
     },
-    [circleMode, clearPending, clearSelection, completeTool, handleDeleteSelected, pushHistory, setSelection, strokeColor, textOpen, tool],
+    [circleMode, clearPending, clearSelection, completeTool, dashed, handleDeleteSelected, pushHistory, setSelection, strokeColor, textOpen, tool],
   );
 
   const handlePointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
