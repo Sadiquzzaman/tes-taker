@@ -1,3 +1,6 @@
+import type { SelectableKind } from "./toolCatalog";
+import { nextPointName } from "./toolCatalog";
+
 export type JxgPoint = {
   elType?: string;
   name?: string;
@@ -6,6 +9,8 @@ export type JxgPoint = {
   Y?: () => number;
   setAttribute?: (attrs: Record<string, unknown>) => void;
   setName?: (name: string) => void;
+  moveTo?: (coords: number[], time?: number) => void;
+  setPosition?: (method: unknown, coords: number[]) => void;
 };
 
 export type JxgText = {
@@ -15,6 +20,28 @@ export type JxgText = {
   setAttribute?: (attrs: Record<string, unknown>) => void;
   X?: () => number;
   Y?: () => number;
+};
+
+export type JxgCircle = {
+  elType?: string;
+  id?: string;
+  center?: JxgPoint;
+  Radius?: () => number;
+  setAttribute?: (attrs: Record<string, unknown>) => void;
+};
+
+export type JxgLine = {
+  elType?: string;
+  id?: string;
+  point1?: JxgPoint;
+  point2?: JxgPoint;
+  setAttribute?: (attrs: Record<string, unknown>) => void;
+};
+
+export type SelectableObject = {
+  kind: SelectableKind;
+  el: unknown;
+  label: string;
 };
 
 export type BoardLike = {
@@ -32,6 +59,8 @@ export type BoardLike = {
 };
 
 const POINT_TYPES = new Set(["point", "glider", "midpoint", "intersection"]);
+const LINE_TYPES = new Set(["line", "segment", "arrow", "axis"]);
+const POLY_TYPES = new Set(["polygon"]);
 
 export const isPoint = (el: unknown): el is JxgPoint => {
   const type = (el as JxgPoint)?.elType;
@@ -40,17 +69,32 @@ export const isPoint = (el: unknown): el is JxgPoint => {
 
 export const isText = (el: unknown): el is JxgText => (el as JxgText)?.elType === "text";
 
+export const isCircle = (el: unknown): el is JxgCircle => (el as JxgCircle)?.elType === "circle";
+
+export const isSegment = (el: unknown): el is JxgLine => (el as JxgLine)?.elType === "segment";
+
+export const isLineLike = (el: unknown): el is JxgLine => {
+  const type = (el as JxgLine)?.elType;
+  return Boolean(type && LINE_TYPES.has(type));
+};
+
+export const isPolygon = (el: unknown): boolean => {
+  const type = (el as { elType?: string })?.elType;
+  return Boolean(type && POLY_TYPES.has(type));
+};
+
+export const isAngle = (el: unknown): boolean => (el as { elType?: string })?.elType === "angle";
+
 export const collectPointNames = (board: BoardLike): Set<string> => {
   const names = new Set<string>();
   (board.objectsList || []).forEach((obj) => {
-    if (isPoint(obj) && obj.name && /^[A-Z]$|^P\d+$/.test(obj.name)) {
+    if (isPoint(obj) && obj.name && /^[A-Z]$|^P\d+$|^O$|^M$/.test(obj.name)) {
       names.add(obj.name);
     }
   });
   return names;
 };
 
-/** Snap radius in user coordinates (~ board units). */
 export const SNAP_RADIUS = 0.55;
 
 export const findNearestPoint = (board: BoardLike, x: number, y: number, radius = SNAP_RADIUS): JxgPoint | null => {
@@ -60,9 +104,7 @@ export const findNearestPoint = (board: BoardLike, x: number, y: number, radius 
     if (!isPoint(obj) || typeof obj.X !== "function" || typeof obj.Y !== "function") {
       continue;
     }
-    const dx = obj.X() - x;
-    const dy = obj.Y() - y;
-    const dist = Math.hypot(dx, dy);
+    const dist = Math.hypot(obj.X() - x, obj.Y() - y);
     if (dist <= bestDist) {
       best = obj;
       bestDist = dist;
@@ -87,6 +129,124 @@ export const findNearestText = (board: BoardLike, x: number, y: number, radius =
   return best;
 };
 
+const pointToSegmentDist = (px: number, py: number, a: JxgPoint, b: JxgPoint): number => {
+  const ax = a.X?.() ?? 0;
+  const ay = a.Y?.() ?? 0;
+  const bx = b.X?.() ?? 0;
+  const by = b.Y?.() ?? 0;
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  if (len2 < 1e-9) {
+    return Math.hypot(px - ax, py - ay);
+  }
+  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+};
+
+/** Hit-test for teacher selection (points → text → segments → circles → polygons). */
+export const findSelectableAt = (board: BoardLike, x: number, y: number): SelectableObject | null => {
+  const nearPoint = findNearestPoint(board, x, y, 0.65);
+  if (nearPoint) {
+    return { kind: "point", el: nearPoint, label: nearPoint.name || "Point" };
+  }
+
+  const nearText = findNearestText(board, x, y, 1.0);
+  if (nearText) {
+    return { kind: "text", el: nearText, label: nearText.plaintext || "Text" };
+  }
+
+  let bestSeg: SelectableObject | null = null;
+  let bestSegDist = 0.35;
+  let bestCircle: SelectableObject | null = null;
+  let bestCircleDist = 0.4;
+  let bestPoly: SelectableObject | null = null;
+  let bestPolyDist = 0.4;
+  let bestAngle: SelectableObject | null = null;
+
+  for (const obj of board.objectsList || []) {
+    if (isSegment(obj) && obj.point1 && obj.point2) {
+      const d = pointToSegmentDist(x, y, obj.point1, obj.point2);
+      if (d < bestSegDist) {
+        bestSegDist = d;
+        const n1 = obj.point1.name || "";
+        const n2 = obj.point2.name || "";
+        bestSeg = { kind: "segment", el: obj, label: n1 && n2 ? `Segment ${n1}${n2}` : "Segment" };
+      }
+      continue;
+    }
+    if (isLineLike(obj) && obj.point1 && obj.point2) {
+      const d = pointToSegmentDist(x, y, obj.point1, obj.point2);
+      if (d < bestSegDist) {
+        bestSegDist = d;
+        bestSeg = { kind: "line", el: obj, label: "Line" };
+      }
+    } else if (isCircle(obj) && obj.center && typeof obj.Radius === "function") {
+      const cx = obj.center.X?.() ?? 0;
+      const cy = obj.center.Y?.() ?? 0;
+      const r = obj.Radius();
+      const d = Math.abs(Math.hypot(x - cx, y - cy) - r);
+      if (d < bestCircleDist) {
+        bestCircleDist = d;
+        bestCircle = { kind: "circle", el: obj, label: "Circle" };
+      }
+    } else if (isPolygon(obj)) {
+      const verts = (obj as { vertices?: JxgPoint[] }).vertices || [];
+      for (let i = 0; i < verts.length; i += 1) {
+        const a = verts[i];
+        const b = verts[(i + 1) % verts.length];
+        if (!a || !b) {
+          continue;
+        }
+        const d = pointToSegmentDist(x, y, a, b);
+        if (d < bestPolyDist) {
+          bestPolyDist = d;
+          bestPoly = { kind: "polygon", el: obj, label: "Shape" };
+        }
+      }
+    } else if (isAngle(obj)) {
+      const center = (obj as { point2?: JxgPoint }).point2;
+      if (center && typeof center.X === "function" && typeof center.Y === "function") {
+        const d = Math.hypot(center.X() - x, center.Y() - y);
+        if (d < 1.2) {
+          bestAngle = { kind: "angle", el: obj, label: "Angle" };
+        }
+      }
+    }
+  }
+
+  return bestSeg || bestCircle || bestPoly || bestAngle;
+};
+
+export const clearSelectionHighlight = (el: unknown) => {
+  const obj = el as { setAttribute?: (a: Record<string, unknown>) => void; elType?: string };
+  if (!obj?.setAttribute) {
+    return;
+  }
+  if (obj.elType === "point" || obj.elType === "glider" || obj.elType === "midpoint" || obj.elType === "intersection") {
+    obj.setAttribute({ strokeColor: "#2f4d34", fillColor: "#49734f", size: 4 });
+  } else if (obj.elType === "text") {
+    obj.setAttribute({ strokeColor: "#0f1a12", cssStyle: "" });
+  } else {
+    obj.setAttribute({ strokeColor: "#1f2933", highlight: false });
+  }
+};
+
+export const applySelectionHighlight = (el: unknown) => {
+  const obj = el as { setAttribute?: (a: Record<string, unknown>) => void; elType?: string };
+  if (!obj?.setAttribute) {
+    return;
+  }
+  if (obj.elType === "point" || obj.elType === "glider" || obj.elType === "midpoint" || obj.elType === "intersection") {
+    obj.setAttribute({ strokeColor: "#c0392b", fillColor: "#e74c3c", size: 5 });
+  } else if (obj.elType === "text") {
+    obj.setAttribute({ strokeColor: "#c0392b" });
+  } else {
+    obj.setAttribute({ strokeColor: "#c0392b", strokeWidth: 3 });
+  }
+};
+
 export const createLabeledPoint = (
   board: BoardLike,
   x: number,
@@ -94,21 +254,7 @@ export const createLabeledPoint = (
   usedNames: Set<string>,
   preferredName?: string,
 ): JxgPoint => {
-  const name =
-    preferredName ||
-    (() => {
-      for (let i = 0; i < 26; i += 1) {
-        const candidate = String.fromCharCode(65 + i);
-        if (!usedNames.has(candidate)) {
-          return candidate;
-        }
-      }
-      let n = 1;
-      while (usedNames.has(`P${n}`)) {
-        n += 1;
-      }
-      return `P${n}`;
-    })();
+  const name = preferredName || nextPointName(usedNames);
   usedNames.add(name);
   return board.create("point", [x, y], {
     name,
@@ -122,7 +268,6 @@ export const createLabeledPoint = (
   }) as JxgPoint;
 };
 
-/** Resolve tap to existing nearby point or create a new labeled point. */
 export const resolvePointAt = (
   board: BoardLike,
   x: number,
@@ -148,20 +293,16 @@ export const lineStyle = (style: StrokeStyle, dashed = false) => ({
   dash: dashed ? 2 : style.dash,
 });
 
-/**
- * Axis-aligned rectangle from opposite corners A and C.
- * B and D are dependent so moving A/C keeps a true rectangle.
- */
 export const createConstrainedRectangle = (board: BoardLike, a: JxgPoint, c: JxgPoint, style: StrokeStyle) => {
   const b = board.create(
     "point",
     [() => (typeof c.X === "function" ? c.X() : 0), () => (typeof a.Y === "function" ? a.Y() : 0)],
-    { name: "", size: 3, fillColor: "#49734f", strokeColor: "#2f4d34", label: { visible: false } },
+    { name: "", size: 3, fillColor: "#49734f", strokeColor: "#2f4d34", label: { visible: false }, withLabel: false },
   );
   const d = board.create(
     "point",
     [() => (typeof a.X === "function" ? a.X() : 0), () => (typeof c.Y === "function" ? c.Y() : 0)],
-    { name: "", size: 3, fillColor: "#49734f", strokeColor: "#2f4d34", label: { visible: false } },
+    { name: "", size: 3, fillColor: "#49734f", strokeColor: "#2f4d34", label: { visible: false }, withLabel: false },
   );
   return board.create("polygon", [a, b, c, d], {
     borders: lineStyle(style),
@@ -171,56 +312,130 @@ export const createConstrainedRectangle = (board: BoardLike, a: JxgPoint, c: Jxg
   });
 };
 
+/** Circle from center + radius point (true geometric circle). */
+export const createCircleCenterRadius = (
+  board: BoardLike,
+  center: JxgPoint,
+  rim: JxgPoint,
+  style: StrokeStyle,
+) => board.create("circle", [center, rim], lineStyle(style));
+
 /**
- * Square from adjacent corners A → B (side AB).
- * C and D are constructed by rotating AB 90° so sides stay equal and perpendicular.
+ * Circle by diameter AB: center = midpoint, radius = AB/2.
+ * Returns { center, circle }.
  */
-export const createConstrainedSquare = (board: BoardLike, a: JxgPoint, b: JxgPoint, style: StrokeStyle) => {
-  const c = board.create(
-    "point",
-    [
-      () => {
-        const ay = a.Y?.() ?? 0;
-        const bx = b.X?.() ?? 0;
-        const by = b.Y?.() ?? 0;
-        const dy = by - ay;
-        return bx - dy;
-      },
-      () => {
-        const ax = a.X?.() ?? 0;
-        const bx = b.X?.() ?? 0;
-        const by = b.Y?.() ?? 0;
-        const dx = bx - ax;
-        return by + dx;
-      },
-    ],
-    { name: "", size: 3, fillColor: "#49734f", strokeColor: "#2f4d34", label: { visible: false } },
-  );
-  const d = board.create(
-    "point",
-    [
-      () => {
-        const ax = a.X?.() ?? 0;
-        const ay = a.Y?.() ?? 0;
-        const by = b.Y?.() ?? 0;
-        const dy = by - ay;
-        return ax - dy;
-      },
-      () => {
-        const ax = a.X?.() ?? 0;
-        const ay = a.Y?.() ?? 0;
-        const bx = b.X?.() ?? 0;
-        const dx = bx - ax;
-        return ay + dx;
-      },
-    ],
-    { name: "", size: 3, fillColor: "#49734f", strokeColor: "#2f4d34", label: { visible: false } },
-  );
-  return board.create("polygon", [a, b, c, d], {
-    borders: lineStyle(style),
+export const createCircleByDiameter = (
+  board: BoardLike,
+  a: JxgPoint,
+  b: JxgPoint,
+  style: StrokeStyle,
+  usedNames: Set<string>,
+) => {
+  const name = nextPointName(usedNames);
+  usedNames.add(name);
+  const center = board.create("midpoint", [a, b], {
+    name,
+    size: 4,
     fillColor: "#49734f",
-    fillOpacity: 0.08,
-  });
+    strokeColor: "#2f4d34",
+    label: { offset: [10, 10], fontSize: 16 },
+  }) as JxgPoint;
+  const circle = board.create("circle", [center, a], lineStyle(style));
+  board.create("segment", [a, b], { ...lineStyle(style), dash: 2 });
+  return { center, circle };
+};
+
+/** Add a radius segment from circle center toward a default direction. */
+export const addRadiusToCircle = (
+  board: BoardLike,
+  circle: JxgCircle,
+  style: StrokeStyle,
+  usedNames: Set<string>,
+) => {
+  const center = circle.center;
+  if (!center || typeof circle.Radius !== "function") {
+    throw new Error("Select a circle first.");
+  }
+  const r = circle.Radius();
+  const cx = center.X?.() ?? 0;
+  const cy = center.Y?.() ?? 0;
+  const gName = nextPointName(usedNames);
+  usedNames.add(gName);
+  const glider = board.create("glider", [cx + r, cy, circle], {
+    name: gName,
+    size: 4,
+    fillColor: "#49734f",
+    label: { offset: [10, 10], fontSize: 16 },
+  }) as JxgPoint;
+  return board.create("segment", [center, glider], lineStyle(style));
+};
+
+/** Add a diameter through the center in a default orientation. */
+export const addDiameterToCircle = (
+  board: BoardLike,
+  circle: JxgCircle,
+  style: StrokeStyle,
+  usedNames: Set<string>,
+) => {
+  const center = circle.center;
+  if (!center || typeof circle.Radius !== "function") {
+    throw new Error("Select a circle first.");
+  }
+  const r = circle.Radius();
+  const cx = center.X?.() ?? 0;
+  const cy = center.Y?.() ?? 0;
+  const n1 = nextPointName(usedNames);
+  usedNames.add(n1);
+  const n2 = nextPointName(usedNames);
+  usedNames.add(n2);
+  const a = board.create("glider", [cx + r, cy, circle], {
+    name: n1,
+    size: 4,
+    fillColor: "#49734f",
+    label: { offset: [10, 10], fontSize: 16 },
+  }) as JxgPoint;
+  const b = board.create(
+    "point",
+    [() => 2 * (center.X?.() ?? 0) - (a.X?.() ?? 0), () => 2 * (center.Y?.() ?? 0) - (a.Y?.() ?? 0)],
+    {
+      name: n2,
+      size: 4,
+      fillColor: "#49734f",
+      label: { offset: [10, 10], fontSize: 16 },
+    },
+  ) as JxgPoint;
+  return board.create("segment", [a, b], lineStyle(style));
+};
+
+/** Ensure the circle center is a labeled, visible point. */
+export const revealCircleCenter = (board: BoardLike, circle: JxgCircle, usedNames: Set<string>) => {
+  const center = circle.center;
+  if (!center) {
+    throw new Error("Select a circle first.");
+  }
+  if (!center.name || center.name === "") {
+    const name = nextPointName(usedNames);
+    usedNames.add(name);
+    center.setName?.(name);
+    center.setAttribute?.({
+      visible: true,
+      size: 4,
+      fillColor: "#49734f",
+      withLabel: true,
+      label: { visible: true, offset: [10, 10], fontSize: 16 },
+    });
+  } else {
+    center.setAttribute?.({
+      visible: true,
+      withLabel: true,
+      label: { visible: true, offset: [10, 10], fontSize: 16 },
+    });
+    if (center.name) {
+      usedNames.add(center.name);
+    }
+  }
+  board.update();
+  return center;
 };
 
 export const exportBoardSvg = (board: BoardLike): string | null => {
@@ -233,4 +448,99 @@ export const exportBoardSvg = (board: BoardLike): string | null => {
     clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   }
   return new XMLSerializer().serializeToString(clone);
+};
+
+export const movePointTo = (board: BoardLike, point: JxgPoint, x: number, y: number) => {
+  if (typeof point.setPosition === "function") {
+    point.setPosition(1, [x, y]);
+  } else if (typeof point.moveTo === "function") {
+    point.moveTo([x, y], 0);
+  }
+  board.update();
+};
+
+export const userCoordsToBoardPixels = (
+  board: BoardLike,
+  host: HTMLElement,
+  x: number,
+  y: number,
+): { left: number; top: number } => {
+  const bb = board.getBoundingBox();
+  const [xMin, yMax, xMax, yMin] = bb;
+  const width = host.clientWidth || 1;
+  const height = host.clientHeight || 1;
+  const left = ((x - xMin) / (xMax - xMin || 1)) * width;
+  const top = ((yMax - y) / (yMax - yMin || 1)) * height;
+  return { left, top };
+};
+
+export type DragShapeTool = "circle" | "rectangle" | "square";
+
+export const isDragShapeTool = (tool: string, circleMode?: string): boolean => {
+  if (tool === "rectangle" || tool === "square") {
+    return true;
+  }
+  return tool === "circle" && circleMode === "drag";
+};
+
+const HANDLE_ATTRS = {
+  name: "",
+  size: 3,
+  fillColor: "#49734f",
+  strokeColor: "#2f4d34",
+  label: { visible: false },
+  showInfobox: false,
+  withLabel: false,
+};
+
+/**
+ * Drag creation:
+ * - circle (drag mode): press = center, drag = radius
+ * - rectangle / square: corner → opposite corner
+ */
+export const startDragShape = (
+  board: BoardLike,
+  tool: DragShapeTool,
+  x: number,
+  y: number,
+  style: StrokeStyle,
+  usedNames: Set<string>,
+): { start: JxgPoint; end: JxgPoint; shape: unknown } => {
+  if (tool === "circle") {
+    const center = createLabeledPoint(board, x, y, usedNames);
+    const end = board.create("point", [x + 0.02, y - 0.02], HANDLE_ATTRS) as JxgPoint;
+    const shape = board.create("circle", [center, end], lineStyle(style));
+    return { start: center, end, shape };
+  }
+
+  const start = board.create("point", [x, y], HANDLE_ATTRS) as JxgPoint;
+  const end = board.create("point", [x + 0.02, y - 0.02], HANDLE_ATTRS) as JxgPoint;
+
+  if (tool === "rectangle") {
+    return { start, end, shape: createConstrainedRectangle(board, start, end, style) };
+  }
+
+  const sideEnd = board.create(
+    "point",
+    [
+      () => {
+        const ax = start.X?.() ?? 0;
+        const ay = start.Y?.() ?? 0;
+        const bx = end.X?.() ?? 0;
+        const by = end.Y?.() ?? 0;
+        const side = Math.max(Math.abs(bx - ax), Math.abs(by - ay));
+        return ax + Math.sign(bx - ax || 1) * side;
+      },
+      () => {
+        const ax = start.X?.() ?? 0;
+        const ay = start.Y?.() ?? 0;
+        const bx = end.X?.() ?? 0;
+        const by = end.Y?.() ?? 0;
+        const side = Math.max(Math.abs(bx - ax), Math.abs(by - ay));
+        return ay + Math.sign(by - ay || 1) * side;
+      },
+    ],
+    { visible: false, name: "", withLabel: false },
+  ) as JxgPoint;
+  return { start, end, shape: createConstrainedRectangle(board, start, sideEnd, style) };
 };

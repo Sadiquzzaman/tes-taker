@@ -1,3 +1,8 @@
+/**
+ * Teacher-facing tool catalog for the Geometry Workspace.
+ * JSXGraph stays an internal engine — these IDs drive friendly UX only.
+ */
+
 export type GeometryToolId =
   | "select"
   | "point"
@@ -26,7 +31,8 @@ export type GeometryToolId =
   | "angleLabel"
   | "delete";
 
-export type GeometryCategoryId = "basic" | "shapes" | "build" | "measure";
+/** How a circle is created when Circle is active. */
+export type CircleCreateMode = "centerRadius" | "diameter" | "drag";
 
 export type ToolStep =
   | "idle"
@@ -34,108 +40,202 @@ export type ToolStep =
   | "await_point_2"
   | "await_point_3"
   | "await_point_4"
-  | "await_line"
-  | "await_circle"
   | "await_text_place"
   | "await_text_input"
   | "await_polygon_more"
-  | "complete";
+  | "await_circle_mode";
 
 export type GeometryToolDef = {
   id: GeometryToolId;
   label: string;
   title: string;
-  /** After completion: stay on tool or return to select */
   afterComplete: "repeat" | "select";
 };
 
-export type GeometryCategory = {
-  id: GeometryCategoryId;
-  label: string;
-  tools: GeometryToolDef[];
-};
-
-export const GEOMETRY_CATEGORIES: GeometryCategory[] = [
-  {
-    id: "basic",
-    label: "Basic",
-    tools: [
-      { id: "select", label: "Select", title: "Select, move, or delete", afterComplete: "select" },
-      { id: "point", label: "Point", title: "Place a labeled point", afterComplete: "repeat" },
-      { id: "segment", label: "Segment", title: "Line segment between two points", afterComplete: "repeat" },
-      { id: "line", label: "Line", title: "Infinite line through two points", afterComplete: "repeat" },
-      { id: "ray", label: "Ray", title: "Ray from first point through second", afterComplete: "repeat" },
-      { id: "constructionLine", label: "Dashed", title: "Dashed construction line", afterComplete: "repeat" },
-      { id: "circle", label: "Circle", title: "Circle from center + radius point", afterComplete: "repeat" },
-      { id: "arc", label: "Arc", title: "Arc: center, start, end", afterComplete: "repeat" },
-    ],
-  },
-  {
-    id: "shapes",
-    label: "Shapes",
-    tools: [
-      { id: "triangle", label: "Triangle", title: "Triangle from 3 points", afterComplete: "select" },
-      { id: "rectangle", label: "Rectangle", title: "True rectangle from opposite corners", afterComplete: "select" },
-      { id: "square", label: "Square", title: "True square from one side", afterComplete: "select" },
-      { id: "polygon", label: "Polygon", title: "Polygon — tap corners, then Finish", afterComplete: "select" },
-    ],
-  },
-  {
-    id: "build",
-    label: "Build",
-    tools: [
-      { id: "parallel", label: "Parallel", title: "Parallel through a point", afterComplete: "select" },
-      { id: "perpendicular", label: "Perp", title: "Perpendicular through a point", afterComplete: "select" },
-      { id: "midpoint", label: "Midpoint", title: "Midpoint of a segment", afterComplete: "select" },
-      { id: "perpBisector", label: "Perp bisector", title: "Perpendicular bisector of a segment", afterComplete: "select" },
-      { id: "angleBisector", label: "Bisector", title: "Angle bisector", afterComplete: "select" },
-      { id: "intersection", label: "Intersect", title: "Intersection of two lines", afterComplete: "select" },
-      { id: "tangent", label: "Tangent", title: "Tangent to circle at a point", afterComplete: "select" },
-      { id: "chord", label: "Chord", title: "Chord of a circle", afterComplete: "select" },
-    ],
-  },
-  {
-    id: "measure",
-    label: "Labels",
-    tools: [
-      { id: "text", label: "Text", title: "Add or edit text", afterComplete: "select" },
-      { id: "length", label: "Length", title: "Length / measurement label", afterComplete: "select" },
-      { id: "angle", label: "Angle", title: "Angle mark", afterComplete: "select" },
-      { id: "rightAngle", label: "Right ∠", title: "Right-angle square mark", afterComplete: "select" },
-      { id: "angleLabel", label: "° Text", title: "Custom angle value label", afterComplete: "select" },
-      { id: "delete", label: "Delete", title: "Delete selected object", afterComplete: "select" },
-    ],
-  },
+/** Primary “Draw” strip — keep short and obvious. */
+export const DRAW_TOOLS: GeometryToolDef[] = [
+  { id: "select", label: "Select", title: "Select and edit objects", afterComplete: "select" },
+  { id: "point", label: "Point", title: "Place a labeled point", afterComplete: "repeat" },
+  { id: "segment", label: "Segment", title: "Short line between two points", afterComplete: "repeat" },
+  { id: "line", label: "Line", title: "Infinite line through two points", afterComplete: "repeat" },
+  { id: "ray", label: "Ray", title: "Ray from a start point", afterComplete: "repeat" },
+  { id: "text", label: "Text", title: "Type a label or measurement on the figure", afterComplete: "select" },
 ];
 
-export const findTool = (id: GeometryToolId): GeometryToolDef => {
-  for (const cat of GEOMETRY_CATEGORIES) {
-    const found = cat.tools.find((t) => t.id === id);
-    if (found) {
-      return found;
-    }
-  }
-  return GEOMETRY_CATEGORIES[0].tools[0];
+/** Shape creation strip. */
+export const SHAPE_TOOLS: GeometryToolDef[] = [
+  { id: "circle", label: "Circle", title: "Draw a circle", afterComplete: "select" },
+  { id: "triangle", label: "Triangle", title: "Triangle from three corners", afterComplete: "select" },
+  { id: "rectangle", label: "Rectangle", title: "Drag a true rectangle", afterComplete: "select" },
+  { id: "square", label: "Square", title: "Drag a true square", afterComplete: "select" },
+  { id: "polygon", label: "Polygon", title: "Tap corners, then Finish", afterComplete: "select" },
+  { id: "arc", label: "Arc", title: "Arc from center + two points", afterComplete: "select" },
+];
+
+/** Construction tools — secondary strip (not the main default view). */
+export const CONSTRUCT_TOOLS: GeometryToolDef[] = [
+  { id: "perpendicular", label: "Perp", title: "Perpendicular through a point", afterComplete: "select" },
+  { id: "parallel", label: "Parallel", title: "Parallel through a point", afterComplete: "select" },
+  { id: "midpoint", label: "Midpoint", title: "Midpoint of a segment", afterComplete: "select" },
+  { id: "perpBisector", label: "Perp bisector", title: "Perpendicular bisector", afterComplete: "select" },
+  { id: "angleBisector", label: "Bisector", title: "Angle bisector", afterComplete: "select" },
+  { id: "intersection", label: "Intersect", title: "Intersection of two lines", afterComplete: "select" },
+  { id: "angle", label: "Angle", title: "Mark an angle", afterComplete: "select" },
+  { id: "rightAngle", label: "Right ∠", title: "Right-angle mark", afterComplete: "select" },
+  { id: "constructionLine", label: "Dashed", title: "Dashed construction segment", afterComplete: "repeat" },
+  { id: "tangent", label: "Tangent", title: "Tangent to a circle", afterComplete: "select" },
+  { id: "chord", label: "Chord", title: "Chord of a circle", afterComplete: "select" },
+];
+
+export type ToolbarTab = "draw" | "shapes" | "construct";
+
+export const TOOLBAR_TABS: { id: ToolbarTab; label: string }[] = [
+  { id: "draw", label: "Draw" },
+  { id: "shapes", label: "Shapes" },
+  { id: "construct", label: "Construct" },
+];
+
+export const CIRCLE_MODES: { id: CircleCreateMode; label: string; title: string }[] = [
+  { id: "centerRadius", label: "Center + radius", title: "Tap center, then a point on the circle" },
+  { id: "diameter", label: "Diameter", title: "Tap two endpoints of the diameter" },
+  { id: "drag", label: "Drag", title: "Press the center and drag to set the radius" },
+];
+
+export type SelectableKind = "point" | "text" | "circle" | "segment" | "line" | "polygon" | "angle" | "other";
+
+export type ContextualActionId =
+  | "radius"
+  | "diameter"
+  | "center"
+  | "chord"
+  | "tangent"
+  | "label"
+  | "length"
+  | "midpoint"
+  | "perpendicular"
+  | "parallel"
+  | "perpBisector"
+  | "angle"
+  | "editText"
+  | "delete";
+
+export type ContextualAction = {
+  id: ContextualActionId;
+  label: string;
+  title: string;
 };
 
-export const instructionFor = (tool: GeometryToolId, step: ToolStep, polygonCount = 0): string => {
-  switch (tool) {
-    case "select":
-      return "Tap an object to select it. Drag points to move. Use Delete to remove.";
-    case "point":
-      return "Tap the board to place a point (or tap near an existing point to reuse it).";
-    case "segment":
-      return step === "await_point_2" ? "Now tap the second point (or an existing point)." : "Tap the first point of the segment.";
-    case "line":
-      return step === "await_point_2" ? "Now tap the second point." : "Tap the first point of the line.";
-    case "ray":
-      return step === "await_point_2" ? "Now tap a point the ray should pass through." : "Tap where the ray starts.";
-    case "constructionLine":
-      return step === "await_point_2" ? "Now tap the second point." : "Tap the first point of the dashed line.";
+export const contextualActionsFor = (kind: SelectableKind): ContextualAction[] => {
+  switch (kind) {
     case "circle":
+      return [
+        { id: "radius", label: "Radius", title: "Add a radius from the center" },
+        { id: "diameter", label: "Diameter", title: "Add a diameter through the center" },
+        { id: "center", label: "Center", title: "Show / label the center" },
+        { id: "chord", label: "Chord", title: "Draw a chord (tap two points on the circle)" },
+        { id: "tangent", label: "Tangent", title: "Draw a tangent at a point on the circle" },
+        { id: "label", label: "Label", title: "Add text near this circle" },
+        { id: "delete", label: "Delete", title: "Delete this circle" },
+      ];
+    case "segment":
+      return [
+        { id: "length", label: "Length", title: "Add a length label (e.g. 5 cm)" },
+        { id: "midpoint", label: "Midpoint", title: "Create the midpoint" },
+        { id: "perpendicular", label: "Perp", title: "Perpendicular through a point" },
+        { id: "perpBisector", label: "Bisector", title: "Perpendicular bisector" },
+        { id: "label", label: "Label", title: "Add text near this segment" },
+        { id: "delete", label: "Delete", title: "Delete this segment" },
+      ];
+    case "line":
+      return [
+        { id: "perpendicular", label: "Perp", title: "Perpendicular through a point" },
+        { id: "parallel", label: "Parallel", title: "Parallel through a point" },
+        { id: "label", label: "Label", title: "Add text near this line" },
+        { id: "delete", label: "Delete", title: "Delete this line" },
+      ];
+    case "polygon":
+      return [
+        { id: "label", label: "Label", title: "Add a label" },
+        { id: "angle", label: "Angle", title: "Mark an angle" },
+        { id: "delete", label: "Delete", title: "Delete this shape" },
+      ];
+    case "point":
+      return [
+        { id: "label", label: "Rename", title: "Change the point label" },
+        { id: "delete", label: "Delete", title: "Delete this point" },
+      ];
+    case "text":
+      return [
+        { id: "editText", label: "Edit", title: "Edit this text" },
+        { id: "delete", label: "Delete", title: "Delete this text" },
+      ];
+    case "angle":
+      return [
+        { id: "label", label: "Label", title: "Add a degree / custom label" },
+        { id: "delete", label: "Delete", title: "Delete this angle mark" },
+      ];
+    default:
+      return [
+        { id: "label", label: "Label", title: "Add text" },
+        { id: "delete", label: "Delete", title: "Delete" },
+      ];
+  }
+};
+
+export const findTool = (id: GeometryToolId): GeometryToolDef => {
+  const all = [...DRAW_TOOLS, ...SHAPE_TOOLS, ...CONSTRUCT_TOOLS];
+  return all.find((t) => t.id === id) ?? DRAW_TOOLS[0];
+};
+
+export const toolsForTab = (tab: ToolbarTab): GeometryToolDef[] => {
+  if (tab === "shapes") {
+    return SHAPE_TOOLS;
+  }
+  if (tab === "construct") {
+    return CONSTRUCT_TOOLS;
+  }
+  return DRAW_TOOLS;
+};
+
+export const instructionFor = (
+  tool: GeometryToolId,
+  step: ToolStep,
+  opts?: { circleMode?: CircleCreateMode; polygonCount?: number; hasSelection?: boolean },
+): string => {
+  const circleMode = opts?.circleMode ?? "centerRadius";
+  const polygonCount = opts?.polygonCount ?? 0;
+
+  if (tool === "select") {
+    return opts?.hasSelection
+      ? "Use the actions below for the selected object — or tap empty space to deselect."
+      : "Tap an object to select it. Drag points to move. Choose a tool above to draw.";
+  }
+
+  switch (tool) {
+    case "point":
+      return "Tap the board to place a point.";
+    case "segment":
+      return step === "await_point_2" ? "Tap the other end of the segment." : "Tap the first end of the segment.";
+    case "line":
+      return step === "await_point_2" ? "Tap the second point of the line." : "Tap the first point of the line.";
+    case "ray":
+      return step === "await_point_2" ? "Tap a point the ray should pass through." : "Tap where the ray starts.";
+    case "constructionLine":
+      return step === "await_point_2" ? "Tap the second point." : "Tap the first point of the dashed line.";
+    case "circle":
+      if (circleMode === "diameter") {
+        return step === "await_point_2"
+          ? "Tap the other end of the diameter."
+          : "Tap one end of the diameter.";
+      }
+      if (circleMode === "drag") {
+        return step === "await_point_2"
+          ? "Keep dragging to set the radius — release to finish."
+          : "Press where the center should be, then drag.";
+      }
       return step === "await_point_2"
-        ? "Now tap a point on the circle (this sets the radius)."
-        : "Tap the center of the circle.";
+        ? "Tap a point on the circle to set the radius."
+        : "Tap where the center of the circle should be.";
     case "arc":
       if (step === "await_point_2") {
         return "Tap where the arc starts.";
@@ -154,23 +254,23 @@ export const instructionFor = (tool: GeometryToolId, step: ToolStep, polygonCoun
       return "Tap the first corner of the triangle.";
     case "rectangle":
       return step === "await_point_2"
-        ? "Now tap the opposite corner. A true rectangle will be created."
-        : "Tap the first corner of the rectangle.";
+        ? "Keep dragging — release to finish the rectangle."
+        : "Press and drag from one corner to the opposite corner.";
     case "square":
       return step === "await_point_2"
-        ? "Now tap the next corner along one side. A true square will be created."
-        : "Tap the first corner of the square.";
+        ? "Keep dragging — release to finish the square."
+        : "Press and drag to draw a square.";
     case "polygon":
       if (step === "await_polygon_more") {
-        return `Corners: ${polygonCount}. Tap another corner, or press Finish polygon.`;
+        return `Corners: ${polygonCount}. Tap another corner, or tap Finish.`;
       }
       return "Tap the first corner of the polygon.";
     case "parallel":
       if (step === "await_point_2") {
-        return "Tap the second point of the guide line (or use an existing line’s points).";
+        return "Tap the second point of the guide line.";
       }
       if (step === "await_point_3") {
-        return "Tap the point the parallel line should pass through.";
+        return "Tap the point the parallel should pass through.";
       }
       return "Tap the first point of the guide line.";
     case "perpendicular":
@@ -182,17 +282,21 @@ export const instructionFor = (tool: GeometryToolId, step: ToolStep, polygonCoun
       }
       return "Tap the first point of the guide line.";
     case "midpoint":
-      return step === "await_point_2" ? "Tap the other end of the segment." : "Tap one end of the segment.";
     case "perpBisector":
-      return step === "await_point_2" ? "Tap the other end of the segment." : "Tap one end of the segment.";
+    case "chord":
+    case "length":
+      return step === "await_point_2" ? "Tap the other end." : "Tap one end of the segment.";
     case "angleBisector":
+    case "angle":
+    case "rightAngle":
+    case "angleLabel":
       if (step === "await_point_2") {
         return "Tap the vertex.";
       }
       if (step === "await_point_3") {
-        return "Tap a point on the other ray.";
+        return "Tap the third point.";
       }
-      return "Tap a point on the first ray.";
+      return "Tap the first point of the angle.";
     case "intersection":
       if (step === "await_point_2") {
         return "Tap the second point of line 1.";
@@ -206,30 +310,14 @@ export const instructionFor = (tool: GeometryToolId, step: ToolStep, polygonCoun
       return "Tap the first point of line 1.";
     case "tangent":
       return step === "await_point_2"
-        ? "Tap a point on the circle (tangent at that point)."
-        : "Tap the center of the circle (or first place the circle).";
-    case "chord":
-      return step === "await_point_2" ? "Tap the second point on the circle." : "Tap the first point on the circle.";
-    case "angle":
-    case "rightAngle":
-    case "angleLabel":
-      if (step === "await_point_2") {
-        return "Tap the vertex.";
-      }
-      if (step === "await_point_3") {
-        return "Tap the third point.";
-      }
-      return "Tap the first point of the angle.";
+        ? "Tap a point on the circle."
+        : "Tap the center of the circle.";
     case "text":
       return step === "await_text_input"
-        ? "Type your text below, then tap Done."
+        ? "Type your text, then tap Done."
         : "Tap where the text should appear.";
-    case "length":
-      return step === "await_point_2"
-        ? "Tap the other end, then enter the measurement text."
-        : "Tap one end of the side to label.";
     case "delete":
-      return "Tap an object to select it, then tap Delete again — or use Select + Delete.";
+      return "Tap an object to delete it.";
     default:
       return "Choose a tool to begin.";
   }
@@ -249,12 +337,15 @@ export const nextPointName = (used: Set<string>): string => {
   return `P${n}`;
 };
 
-export const initialStepFor = (tool: GeometryToolId): ToolStep => {
+export const initialStepFor = (tool: GeometryToolId, circleMode?: CircleCreateMode): ToolStep => {
   if (tool === "select" || tool === "delete") {
     return "idle";
   }
   if (tool === "text") {
     return "await_text_place";
+  }
+  if (tool === "circle" && circleMode === "drag") {
+    return "await_point_1";
   }
   return "await_point_1";
 };
