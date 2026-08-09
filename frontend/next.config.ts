@@ -7,9 +7,8 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  // Keep transpile list lean — Ketcher is already prebuilt and is huge (~200MB).
-  // Transpiling it made `next dev` appear stuck on unrelated routes like /dashboard.
-  transpilePackages: ["mathlive", "tldraw"],
+  // Keep transpile list lean. Ketcher / JSXGraph are loaded only when modals open.
+  transpilePackages: ["mathlive"],
   serverExternalPackages: ["ketcher-standalone"],
 };
 

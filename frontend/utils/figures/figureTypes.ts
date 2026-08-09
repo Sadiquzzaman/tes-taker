@@ -1,5 +1,15 @@
 export type FigureKind = "geometry" | "chemistry";
 
+export type GeometryDocumentV1 = {
+  version: 1;
+  kind: "geometry";
+  boundingBox: [number, number, number, number];
+  axis: boolean;
+  grid: boolean;
+  /** JessieCode snapshot for re-editing in JSXGraph */
+  jessieCode: string;
+};
+
 export type ChemistryDocumentV1 = {
   version: 1;
   kind: "chemistry";
@@ -10,11 +20,11 @@ export type ChemistryDocumentV1 = {
   rxn?: string;
 };
 
-export type FigureDocument = ChemistryDocumentV1;
+export type FigureDocument = GeometryDocumentV1 | ChemistryDocumentV1;
 
 export type FigureInsertPayload = {
   src: string;
-  kind: "chemistry";
+  kind: FigureKind;
   figureJson: string;
   figureFormat: "svg" | "png";
   mol?: string | null;
@@ -32,13 +42,18 @@ export const parseFigureDocument = (raw: string | null | undefined): FigureDocum
     if (!parsed || typeof parsed !== "object" || !("version" in parsed) || !("kind" in parsed)) {
       return null;
     }
-    if (parsed.kind !== "chemistry") {
+    if (parsed.kind !== "geometry" && parsed.kind !== "chemistry") {
       return null;
     }
     return parsed;
   } catch {
     return null;
   }
+};
+
+export const svgToDataUrl = (svg: string): string => {
+  const trimmed = svg.trim().startsWith("<svg") ? svg.trim() : `<svg xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(trimmed)}`;
 };
 
 export const blobToDataUrl = (blob: Blob): Promise<string> =>

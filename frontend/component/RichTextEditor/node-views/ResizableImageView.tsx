@@ -11,6 +11,8 @@ const ResizableImageView = ({ node, updateAttributes, selected, getPos, deleteNo
   const kind = (node.attrs.kind as string) || "image";
   const caption = (node.attrs.caption as string) || "";
   const isChemistry = kind === "chemistry";
+  const isGeometry = kind === "geometry";
+  const isEditableFigure = isChemistry || isGeometry;
 
   const startResize = useCallback(
     (event: React.PointerEvent<HTMLSpanElement>) => {
@@ -64,7 +66,11 @@ const ResizableImageView = ({ node, updateAttributes, selected, getPos, deleteNo
         <img
           ref={imgRef}
           src={node.attrs.src as string}
-          alt={(node.attrs.alt as string) || caption || (isChemistry ? "Chemical structure" : "")}
+          alt={
+            (node.attrs.alt as string) ||
+            caption ||
+            (isChemistry ? "Chemical structure" : isGeometry ? "Geometry figure" : "")
+          }
           title={(node.attrs.title as string) || ""}
           className="rte-image"
           draggable={false}
@@ -101,7 +107,7 @@ const ResizableImageView = ({ node, updateAttributes, selected, getPos, deleteNo
               {value}
             </button>
           ))}
-          {isChemistry ? (
+          {isEditableFigure ? (
             <>
               <button
                 type="button"
@@ -109,7 +115,7 @@ const ResizableImageView = ({ node, updateAttributes, selected, getPos, deleteNo
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={openFigureEditor}
               >
-                Edit structure
+                {isChemistry ? "Edit structure" : "Edit figure"}
               </button>
               <button
                 type="button"

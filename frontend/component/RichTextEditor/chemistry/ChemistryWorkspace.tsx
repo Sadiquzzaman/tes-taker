@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { normalizeRichTextHtml } from "@/utils/richText";
 import type { FigureInsertPayload } from "@/utils/figures/figureTypes";
-import { createRichTextExtensions } from "../extensions";
+import { createChemistryRichTextExtensions } from "../extensions";
 import ChemistryKeyboard from "./ChemistryKeyboard";
 
 const KetcherStructureDialog = dynamic(() => import("./KetcherStructureDialog"), { ssr: false });
@@ -39,7 +39,7 @@ const ChemistryWorkspace = ({ open, onClose, onSave, initialHtml = "" }: Chemist
   const editor = useEditor(
     {
       immediatelyRender: false,
-      extensions: createRichTextExtensions("Write your chemistry question here…"),
+      extensions: createChemistryRichTextExtensions("Write your chemistry question here…"),
       content: initialHtml || "",
       editorProps: {
         attributes: {
