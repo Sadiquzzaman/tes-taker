@@ -20,7 +20,7 @@ import RichTextToolbar from "./RichTextToolbar";
 import "./richTextEditor.css";
 
 const MathLiveModal = dynamic(() => import("./modals/MathLiveModal"), { ssr: false });
-const GeometryFigureModal = dynamic(() => import("./modals/GeometryFigureModal"), { ssr: false });
+const GeometryFigureModal = dynamic(() => import("./geometry/GeometryWorkspace"), { ssr: false });
 const ChemistryWorkspace = dynamic(() => import("./chemistry/ChemistryWorkspace"), { ssr: false });
 const KetcherStructureDialog = dynamic(() => import("./chemistry/KetcherStructureDialog"), { ssr: false });
 const GraphPanel = dynamic(() => import("./panels/GraphPanel"), { ssr: false });
