@@ -7,7 +7,9 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  transpilePackages: ["mathlive", "kekule", "tldraw"],
+  // Keep transpile list lean. Ketcher / JSXGraph are loaded only when modals open.
+  transpilePackages: ["mathlive"],
+  serverExternalPackages: ["ketcher-standalone"],
 };
 
 export default nextConfig;

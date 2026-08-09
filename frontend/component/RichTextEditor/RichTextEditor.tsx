@@ -10,14 +10,19 @@ import {
   parseGraphDefinition,
   type GraphDefinition,
 } from "@/utils/exam/graph/graphTypes";
+import {
+  serializeFigureDocument,
+  type FigureInsertPayload,
+} from "@/utils/figures/figureTypes";
 import { createRichTextExtensions } from "./extensions";
 import type { MathOpenDetail } from "./node-views/MathFormulaView";
 import RichTextToolbar from "./RichTextToolbar";
 import "./richTextEditor.css";
 
 const MathLiveModal = dynamic(() => import("./modals/MathLiveModal"), { ssr: false });
-const GeoGebraModal = dynamic(() => import("./modals/GeometryFigureModal"), { ssr: false });
-const KekuleModal = dynamic(() => import("./modals/ChemistryFigureModal"), { ssr: false });
+const GeometryFigureModal = dynamic(() => import("./modals/GeometryFigureModal"), { ssr: false });
+const ChemistryWorkspace = dynamic(() => import("./chemistry/ChemistryWorkspace"), { ssr: false });
+const KetcherStructureDialog = dynamic(() => import("./chemistry/KetcherStructureDialog"), { ssr: false });
 const GraphPanel = dynamic(() => import("./panels/GraphPanel"), { ssr: false });
 
 type RichTextEditorProps = {
@@ -79,8 +84,13 @@ const RichTextEditor = ({
     display: false,
     pos: null,
   });
-  const [geometryOpen, setGeometryOpen] = useState(false);
-  const [chemistryOpen, setChemistryOpen] = useState(false);
+  const [chemistryWorkspaceOpen, setChemistryWorkspaceOpen] = useState(false);
+  const [figureEdit, setFigureEdit] = useState<{
+    open: boolean;
+    kind: "geometry" | "chemistry" | null;
+    pos: number | null;
+    figureJson: string | null;
+  }>({ open: false, kind: null, pos: null, figureJson: null });
   const [graphPanel, setGraphPanel] = useState<GraphPanelState>({
     open: false,
     definition: null,
@@ -247,6 +257,51 @@ const RichTextEditor = ({
     [editor],
   );
 
+  const insertFigure = useCallback(
+    (payload: FigureInsertPayload) => {
+      if (!editor) {
+        return;
+      }
+      const attrs = {
+        src: payload.src,
+        kind: payload.kind,
+        align: "center" as const,
+        caption: "",
+        figureJson: payload.figureJson,
+        figureFormat: payload.figureFormat,
+        mol: payload.mol ?? null,
+        smiles: payload.smiles ?? null,
+      };
+      const apply = (width: string) => {
+        if (typeof figureEdit.pos === "number" && figureEdit.kind === payload.kind) {
+          editor.chain().focus().updateResizableImageAtPos(figureEdit.pos, { ...attrs, width }).run();
+        } else {
+          editor.chain().focus().setResizableImage({ ...attrs, width }).run();
+        }
+        setFigureEdit({ open: false, kind: null, pos: null, figureJson: null });
+      };
+      const image = new window.Image();
+      image.onload = () => {
+        const natural = image.naturalWidth || 240;
+        apply(`${Math.min(320, Math.max(180, Math.round(natural)))}px`);
+      };
+      image.onerror = () => apply("240px");
+      image.src = payload.src;
+    },
+    [editor, figureEdit.kind, figureEdit.pos],
+  );
+
+  const saveChemistryWorkspace = useCallback(
+    (html: string) => {
+      if (!editor || !html.trim()) {
+        return;
+      }
+      editor.chain().focus().insertContent(html).run();
+      setChemistryWorkspaceOpen(false);
+    },
+    [editor],
+  );
+
   const saveGraph = useCallback(
     (definition: GraphDefinition) => {
       if (!editor) {
@@ -327,15 +382,46 @@ const RichTextEditor = ({
       });
     };
 
+    const onEditFigure = (event: Event) => {
+      const detail = (
+        event as CustomEvent<{
+          kind: "geometry" | "chemistry";
+          figureJson: string | null;
+          mol: string | null;
+          smiles: string | null;
+          pos: number | null;
+        }>
+      ).detail;
+      if (!detail || (detail.kind !== "chemistry" && detail.kind !== "geometry")) {
+        return;
+      }
+      // Chemistry Workspace handles its own structure edits.
+      if (chemistryWorkspaceOpen && detail.kind === "chemistry") {
+        return;
+      }
+      let figureJson = detail.figureJson;
+      if (!figureJson && detail.kind === "chemistry" && (detail.mol || detail.smiles)) {
+        figureJson = serializeFigureDocument({
+          version: 1,
+          kind: "chemistry",
+          mol: detail.mol || undefined,
+          smiles: detail.smiles || undefined,
+        });
+      }
+      setFigureEdit({ open: true, kind: detail.kind, pos: detail.pos, figureJson });
+    };
+
     window.addEventListener("rte:open-math", onOpenMath as EventListener);
     window.addEventListener("rte:insert-image", onInsertImage as EventListener);
     window.addEventListener("rte:edit-graph", onEditGraph as EventListener);
+    window.addEventListener("rte:edit-figure", onEditFigure as EventListener);
     return () => {
       window.removeEventListener("rte:open-math", onOpenMath as EventListener);
       window.removeEventListener("rte:insert-image", onInsertImage as EventListener);
       window.removeEventListener("rte:edit-graph", onEditGraph as EventListener);
+      window.removeEventListener("rte:edit-figure", onEditFigure as EventListener);
     };
-  }, [insertImage]);
+  }, [chemistryWorkspaceOpen, insertImage]);
 
   const handleImageSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -375,11 +461,11 @@ const RichTextEditor = ({
         allowImages={allowImages && Boolean(onImageFile)}
         onRequestImageUpload={() => imageInputRef.current?.click()}
         onOpenMath={() => setMathModal({ open: true, latex: "", display: false, pos: null })}
-        onOpenGeometry={() => setGeometryOpen(true)}
+        onOpenGeometry={() => setFigureEdit({ open: true, kind: "geometry", pos: null, figureJson: null })}
         onOpenGraph={() =>
           setGraphPanel({ open: true, definition: createDefaultGraphDefinition("coordinate"), pos: null })
         }
-        onOpenChemistry={() => setChemistryOpen(true)}
+        onOpenChemistry={() => setChemistryWorkspaceOpen(true)}
       />
       <div className="overflow-x-auto px-3 py-2">
         <EditorContent editor={editor} />
@@ -426,25 +512,32 @@ const RichTextEditor = ({
         />
       ) : null}
 
-      {isFull && geometryOpen ? (
-        <GeoGebraModal
-          open={geometryOpen}
-          onClose={() => setGeometryOpen(false)}
-          onInsert={(dataUrl) => {
-            insertImage(dataUrl, "geometry");
-            setGeometryOpen(false);
-          }}
+      {isFull && figureEdit.open && figureEdit.kind === "geometry" ? (
+        <GeometryFigureModal
+          key={`geo-${figureEdit.pos ?? "new"}`}
+          open
+          initialDocumentJson={figureEdit.figureJson}
+          onClose={() => setFigureEdit({ open: false, kind: null, pos: null, figureJson: null })}
+          onInsert={insertFigure}
         />
       ) : null}
 
-      {isFull && chemistryOpen ? (
-        <KekuleModal
-          open={chemistryOpen}
-          onClose={() => setChemistryOpen(false)}
-          onInsert={(dataUrl) => {
-            insertImage(dataUrl, "chemistry");
-            setChemistryOpen(false);
-          }}
+      {isFull && chemistryWorkspaceOpen ? (
+        <ChemistryWorkspace
+          key="chemistry-workspace"
+          open={chemistryWorkspaceOpen}
+          onClose={() => setChemistryWorkspaceOpen(false)}
+          onSave={saveChemistryWorkspace}
+        />
+      ) : null}
+
+      {isFull && figureEdit.open && figureEdit.kind === "chemistry" && !chemistryWorkspaceOpen ? (
+        <KetcherStructureDialog
+          key={`struct-${figureEdit.pos ?? "new"}`}
+          open
+          initialDocumentJson={figureEdit.figureJson}
+          onClose={() => setFigureEdit({ open: false, kind: null, pos: null, figureJson: null })}
+          onInsert={insertFigure}
         />
       ) : null}
     </div>

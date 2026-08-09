@@ -313,7 +313,7 @@ const RichTextToolbar = ({
         <IconButton title="Insert geometry figure" onClick={() => onOpenGeometry?.()}>
           △
         </IconButton>
-        <IconButton title="Insert chemistry figure" onClick={() => onOpenChemistry?.()}>
+        <IconButton title="Chemistry" onClick={() => onOpenChemistry?.()}>
           ⚗
         </IconButton>
         <IconButton title="Upload image" disabled={!allowImages} onClick={() => onRequestImageUpload?.()}>
