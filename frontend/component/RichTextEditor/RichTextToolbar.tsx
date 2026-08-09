@@ -310,7 +310,7 @@ const RichTextToolbar = ({
         <IconButton title="Graph" onClick={() => onOpenGraph?.()}>
           ƒ
         </IconButton>
-        <IconButton title="Insert geometry figure" onClick={() => onOpenGeometry?.()}>
+        <IconButton title="Geometry" onClick={() => onOpenGeometry?.()}>
           △
         </IconButton>
         <IconButton title="Chemistry" onClick={() => onOpenChemistry?.()}>
