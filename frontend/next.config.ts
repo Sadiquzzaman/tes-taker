@@ -7,7 +7,10 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  transpilePackages: ["mathlive", "kekule", "tldraw", "ketcher-react", "ketcher-core", "ketcher-standalone"],
+  // Keep transpile list lean — Ketcher is already prebuilt and is huge (~200MB).
+  // Transpiling it made `next dev` appear stuck on unrelated routes like /dashboard.
+  transpilePackages: ["mathlive", "tldraw"],
+  serverExternalPackages: ["ketcher-standalone"],
 };
 
 export default nextConfig;

@@ -1,10 +1,8 @@
 "use client";
 
-import { Editor } from "ketcher-react";
-import type { Ketcher } from "ketcher-core";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import "ketcher-react/dist/index.css";
 import {
   blobToDataUrl,
   parseFigureDocument,
@@ -12,6 +10,21 @@ import {
   type ChemistryDocumentV1,
   type FigureInsertPayload,
 } from "@/utils/figures/figureTypes";
+
+/** Minimal Ketcher API surface — avoids importing ketcher-core in this shell module. */
+type KetcherApi = {
+  setMolecule: (struct: string) => Promise<void | undefined>;
+  getKet: () => Promise<string>;
+  getMolfile: () => Promise<string>;
+  getSmiles: () => Promise<string>;
+  getRxn: () => Promise<string>;
+  generateImage: (data: string, options?: { outputFormat: "svg" | "png" }) => Promise<Blob>;
+};
+
+const KetcherStructureEditor = dynamic(() => import("./KetcherStructureEditor"), {
+  ssr: false,
+  loading: () => <p className="rte-modal__hint">Loading drawing tool…</p>,
+});
 
 type KetcherStructureDialogProps = {
   open: boolean;
@@ -26,7 +39,7 @@ const KetcherStructureDialog = ({
   onInsert,
   initialDocumentJson,
 }: KetcherStructureDialogProps) => {
-  const ketcherRef = useRef<Ketcher | null>(null);
+  const ketcherRef = useRef<KetcherApi | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
@@ -64,7 +77,7 @@ const KetcherStructureDialog = ({
   }, [open]);
 
   const loadInitial = useCallback(
-    async (ketcher: Ketcher) => {
+    async (ketcher: KetcherApi) => {
       const parsed = parseFigureDocument(initialDocumentJson);
       if (!parsed || parsed.kind !== "chemistry") {
         return;
@@ -83,7 +96,7 @@ const KetcherStructureDialog = ({
   );
 
   const handleInit = useCallback(
-    (ketcher: Ketcher) => {
+    (ketcher: KetcherApi) => {
       ketcherRef.current = ketcher;
       setReady(true);
       void loadInitial(ketcher);
@@ -165,12 +178,10 @@ const KetcherStructureDialog = ({
 
         <div className="rte-ketcher-host">
           {structServiceProvider ? (
-            <Editor
-              staticResourcesUrl=""
+            <KetcherStructureEditor
               structServiceProvider={structServiceProvider}
-              errorHandler={(message) => setError(String(message))}
               onInit={handleInit}
-              disableMacromoleculesEditor
+              onError={setError}
             />
           ) : null}
         </div>
