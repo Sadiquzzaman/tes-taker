@@ -3,13 +3,14 @@
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import { useCallback, useRef, useState } from "react";
 
-const ResizableImageView = ({ node, updateAttributes, selected }: NodeViewProps) => {
+const ResizableImageView = ({ node, updateAttributes, selected, getPos, deleteNode }: NodeViewProps) => {
   const imgRef = useRef<HTMLImageElement>(null);
   const [isResizing, setIsResizing] = useState(false);
   const width = (node.attrs.width as string | null) || undefined;
   const align = (node.attrs.align as "left" | "center" | "right") || "center";
   const kind = (node.attrs.kind as string) || "image";
   const caption = (node.attrs.caption as string) || "";
+  const isChemistry = kind === "chemistry";
 
   const startResize = useCallback(
     (event: React.PointerEvent<HTMLSpanElement>) => {
@@ -36,6 +37,21 @@ const ResizableImageView = ({ node, updateAttributes, selected }: NodeViewProps)
     [updateAttributes],
   );
 
+  const openFigureEditor = () => {
+    const pos = typeof getPos === "function" ? getPos() : null;
+    window.dispatchEvent(
+      new CustomEvent("rte:edit-figure", {
+        detail: {
+          kind,
+          figureJson: (node.attrs.figureJson as string | null) || null,
+          mol: (node.attrs.mol as string | null) || null,
+          smiles: (node.attrs.smiles as string | null) || null,
+          pos: typeof pos === "number" ? pos : null,
+        },
+      }),
+    );
+  };
+
   return (
     <NodeViewWrapper
       as="div"
@@ -48,7 +64,7 @@ const ResizableImageView = ({ node, updateAttributes, selected }: NodeViewProps)
         <img
           ref={imgRef}
           src={node.attrs.src as string}
-          alt={(node.attrs.alt as string) || caption || ""}
+          alt={(node.attrs.alt as string) || caption || (isChemistry ? "Chemical structure" : "")}
           title={(node.attrs.title as string) || ""}
           className="rte-image"
           draggable={false}
@@ -85,6 +101,25 @@ const ResizableImageView = ({ node, updateAttributes, selected }: NodeViewProps)
               {value}
             </button>
           ))}
+          {isChemistry ? (
+            <>
+              <button
+                type="button"
+                className="is-active"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={openFigureEditor}
+              >
+                Edit structure
+              </button>
+              <button
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => deleteNode()}
+              >
+                Remove
+              </button>
+            </>
+          ) : null}
         </div>
       ) : null}
     </NodeViewWrapper>
