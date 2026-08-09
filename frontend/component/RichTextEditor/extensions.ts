@@ -20,12 +20,30 @@ import { EditorGraph } from "./extensions/EditorGraph";
 import { MathFormula } from "./extensions/MathFormula";
 import { ResizableImage } from "./extensions/ResizableImage";
 
+const linkExtension = Link.configure({
+  openOnClick: false,
+  autolink: true,
+  linkOnPaste: true,
+  HTMLAttributes: {
+    class: "rte-link",
+    rel: "noopener noreferrer nofollow",
+  },
+});
+
+/**
+ * TipTap 3 StarterKit already ships link / underline / gapcursor.
+ * Disable those copies so we can configure them once ourselves.
+ */
 export const createRichTextExtensions = (placeholder: string) => [
   StarterKit.configure({
     heading: { levels: [1, 2, 3, 4] },
     bulletList: { keepMarks: true, keepAttributes: true },
     orderedList: { keepMarks: true, keepAttributes: true },
     horizontalRule: {},
+    // TipTap 3 StarterKit already includes these — keep one configured copy below.
+    gapcursor: false,
+    link: false,
+    underline: false,
   }),
   Gapcursor,
   Underline,
@@ -39,15 +57,7 @@ export const createRichTextExtensions = (placeholder: string) => [
   }),
   TaskList,
   TaskItem.configure({ nested: true }),
-  Link.configure({
-    openOnClick: false,
-    autolink: true,
-    linkOnPaste: true,
-    HTMLAttributes: {
-      class: "rte-link",
-      rel: "noopener noreferrer nofollow",
-    },
-  }),
+  linkExtension,
   ResizableImage,
   Table.configure({
     resizable: true,
@@ -78,4 +88,25 @@ export const createRichTextExtensions = (placeholder: string) => [
     placeholder,
   }),
   MathFormula,
+];
+
+/** Lean TipTap set for the Chemistry Workspace (faster to load than the full editor). */
+export const createChemistryRichTextExtensions = (placeholder: string) => [
+  StarterKit.configure({
+    heading: false,
+    codeBlock: false,
+    blockquote: false,
+    horizontalRule: false,
+    gapcursor: false,
+    link: false,
+    underline: false,
+  }),
+  Gapcursor,
+  Underline,
+  Subscript,
+  Superscript,
+  TextStyle,
+  linkExtension,
+  ResizableImage,
+  Placeholder.configure({ placeholder }),
 ];

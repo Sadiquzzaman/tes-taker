@@ -528,15 +528,6 @@
   width: 100%;
 }
 
-.rte-geogebra-host,
-.rte-kekule-host {
-  min-height: 420px;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f7f8f7;
-}
-
 .rte-readonly .rte-image-handle,
 .rte-readonly .rte-image-align-bar {
   display: none;
@@ -566,35 +557,49 @@
   overflow: auto;
 }
 
-.rte-excalidraw-host {
-  height: min(520px, 60vh);
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #fff;
-}
-
-.rte-tldraw-host {
+.rte-jsxgraph-host {
   position: relative;
   width: 100%;
-  height: min(520px, 58vh);
-  min-height: 360px;
+  height: min(480px, 55vh);
+  min-height: 420px;
   border: 1px solid #e5e5e5;
   border-radius: 8px;
   overflow: hidden;
-  background: #fff;
+  background: #f8f9f8;
+  flex: 0 0 auto;
 }
 
-.rte-tldraw-host .tl-container {
-  position: absolute;
-  inset: 0;
+.rte-figure-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 10px;
+  flex-shrink: 0;
 }
 
-.rte-inline-panel--fixed .rte-excalidraw-host,
-.rte-inline-panel--fixed .rte-tldraw-host {
-  flex: 1 1 auto;
-  height: auto;
-  min-height: 360px;
+.rte-figure-toolbar__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rte-figure-toolbar__label {
+  color: #747775;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rte-figure-controls {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.rte-figure-modal {
+  display: flex;
+  flex-direction: column;
 }
 
 .rte-graph-host {
@@ -700,8 +705,7 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(15, 26, 18, 0.35);
-  backdrop-filter: blur(3px);
+  background: rgba(15, 26, 18, 0.4);
   overflow: auto;
 }
 
@@ -748,6 +752,126 @@
   gap: 8px;
   margin: 0 0 10px;
   flex-shrink: 0;
+}
+
+.rte-equation-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 10px;
+  border: 1px solid #dce3dd;
+  border-radius: 10px;
+  background: #f7faf7;
+  flex-shrink: 0;
+}
+
+.rte-equation-bar__label {
+  color: #0f1a12;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rte-equation-bar__help {
+  margin: 0;
+  color: #747775;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.rte-equation-bar__help code {
+  border-radius: 4px;
+  background: #eef2ee;
+  padding: 1px 4px;
+  font-size: 11px;
+}
+
+.rte-equation-bar__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.rte-equation-bar__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid #d6d7d4;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: #232a25;
+  background: #fff;
+}
+
+.rte-equation-bar__helpers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rte-equation-bar__preview {
+  margin: 0;
+  color: #49734f;
+  font-size: 13px;
+}
+
+.rte-equation-bar__preview span {
+  font-weight: 600;
+  color: #0f1a12;
+}
+
+.rte-figure-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 10px;
+  flex-shrink: 0;
+  max-height: 140px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.rte-figure-palette__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rte-figure-palette__group-label {
+  color: #747775;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rte-figure-palette__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rte-figure-palette__btn {
+  border: 1px solid #d6d7d4;
+  background: #fff;
+  border-radius: 8px;
+  color: #232a25;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  min-height: 30px;
+  padding: 5px 9px;
+}
+
+.rte-figure-palette__btn:hover {
+  border-color: #49734f;
+  background: #f4f7f4;
+}
+
+.rte-figure-palette__btn.is-active {
+  border-color: #49734f;
+  background: #e8ede9;
+  color: #49734f;
 }
 
 .rte-upload-panel {
@@ -812,4 +936,197 @@
 .rte-graph-fallback-img {
   max-width: 100%;
   height: auto;
+}
+
+/* —— Unified Chemistry Workspace (mobile-first) —— */
+
+.chem-workspace-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: #f4f6f4;
+  display: flex;
+  flex-direction: column;
+}
+
+.chem-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  background: #fff;
+  box-shadow: 0 0 0 1px #e5e5e5;
+}
+
+.chem-workspace__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #e5e5e5;
+  flex-shrink: 0;
+}
+
+.chem-workspace__header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f1a12;
+}
+
+.chem-workspace__header p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #5f6761;
+}
+
+.chem-workspace__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chem-workspace__editor-shell {
+  border: 1px solid #d6d7d4;
+  border-radius: 10px;
+  background: #fff;
+  min-height: 180px;
+  padding: 10px 12px;
+}
+
+.chem-workspace__editor {
+  min-height: 160px;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.chem-workspace__footer {
+  flex-shrink: 0;
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #e5e5e5;
+  background: #fff;
+}
+
+.chem-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.chem-actions .chem-btn {
+  flex: 1 1 0;
+}
+
+.chem-btn {
+  min-height: 48px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 12px 16px;
+  touch-action: manipulation;
+}
+
+.chem-btn--primary {
+  background: #49734f;
+  border-color: #49734f;
+  color: #fff;
+}
+
+.chem-btn--structure {
+  width: 100%;
+  border: 2px dashed #49734f;
+  background: #f4f7f4;
+  color: #2f4d34;
+}
+
+.chem-btn--structure:active {
+  background: #e8ede9;
+}
+
+.chem-keyboard {
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #f8f9f8;
+  padding: 10px;
+}
+
+.chem-keyboard__hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #5f6761;
+}
+
+.chem-keyboard__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.chem-keyboard__key {
+  min-height: 48px;
+  border: 1px solid #d6d7d4;
+  border-radius: 10px;
+  background: #fff;
+  color: #232a25;
+  font-size: 18px;
+  font-weight: 600;
+  touch-action: manipulation;
+}
+
+.chem-keyboard__key.is-active {
+  background: #49734f;
+  border-color: #49734f;
+  color: #fff;
+}
+
+.rte-ketcher-host {
+  position: relative;
+  width: 100%;
+  height: min(560px, 58vh);
+  min-height: 360px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.rte-ketcher-host .Ketcher-root,
+.rte-ketcher-host > div {
+  height: 100%;
+  min-height: 100%;
+}
+
+.rte-figure-modal--ketcher {
+  width: min(960px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+}
+
+.chem-ketcher-backdrop {
+  z-index: 1300;
+}
+
+@media (max-width: 640px) {
+  .chem-keyboard__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .chem-workspace__header h2 {
+    font-size: 1.15rem;
+  }
+
+  .rte-ketcher-host {
+    height: min(480px, 52vh);
+    min-height: 300px;
+  }
 }

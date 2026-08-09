@@ -9,12 +9,11 @@ import {
   MaxLength, 
   Matches, 
   IsEnum, 
-  ValidateIf,
-  MinLength,
   IsOptional
 } from 'class-validator';
 import { Exclude, Transform } from 'class-transformer';
 import { RolesEnum } from 'src/common/enums/roles.enum';
+import { IsStrongPassword } from 'src/common/decorators/is-strong-password.decorator';
 
 export class RegisterUserDto {
   @ApiProperty({ 
@@ -50,21 +49,21 @@ export class RegisterUserDto {
   phone: string;
 
   @ApiProperty({ 
-    description: 'User password (minimum 8 characters)',
-    example: 'StrongPass123',
+    description: 'User password (min 8 chars, upper, lower, number, special)',
+    example: 'StrongPass123!',
     minLength: 8,
     maxLength: 100
   })
   @Exclude({ toPlainOnly: true })
   @IsNotEmpty({ message: 'Password must be non empty' })
   @IsString({ message: 'Password must be a string' })
-  @MinLength(8, { message: 'Password must be at least 8 characters' })
+  @IsStrongPassword('Password')
   @MaxLength(100, { message: 'Maximum 100 characters supported' })
   password: string;
 
   @ApiProperty({ 
     description: 'Confirm password (must match password)',
-    example: 'StrongPass123'
+    example: 'StrongPass123!'
   })
   @IsNotEmpty({ message: 'Confirm password must be non empty' })
   @IsString({ message: 'Confirm password must be a string' })

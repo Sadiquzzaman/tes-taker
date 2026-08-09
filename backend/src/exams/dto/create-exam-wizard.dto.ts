@@ -360,6 +360,10 @@ export class WizardFormStateDto {
   @Min(0)
   passingScore?: number;
 
+  @ApiProperty({ description: 'Whether this is a multi-subject model test' })
+  @IsBoolean()
+  isModelTest: boolean;
+
   @ApiProperty()
   @IsBoolean()
   allowNegativeMarking: boolean;
@@ -474,6 +478,15 @@ export class CreateExamWizardDto {
   @ValidateNested({ each: true })
   @Type(() => WizardSubjectBlockDto)
   subjects: WizardSubjectBlockDto[];
+
+  @ApiPropertyOptional({
+    description: 'Optional exam-wide root question order (overrides subject-array order for sort_order)',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  questionOrder?: string[];
 
   @ApiProperty({ type: WizardPublishStateDto })
   @ValidateNested()

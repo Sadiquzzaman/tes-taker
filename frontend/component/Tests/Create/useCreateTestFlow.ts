@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { goToNextStep, goToPreviousStep, setQuestionValidationState } from "@/lib/features/createTestSlice";
-import { isPassageQuestionItem } from "@/lib/features/create-test/createTestDomain";
+import { getSubjectTotalMarks } from "@/lib/features/create-test/createTestDomain";
 import { useAppDispatch } from "@/lib/hooks";
 import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/utils/createTestValidation";
 import { useToast } from "@/component/Toast/ToastContext";
@@ -28,7 +28,7 @@ const handlePublishStateForSubmission = (publishState: PublishState) => {
 const useCreateTestFlow = (createTestState: CreateTestState) => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
-  const { currentStep, formState, subjects, publishState, editExamId } = createTestState;
+  const { currentStep, formState, subjects, questionOrder, publishState, editExamId } = createTestState;
   const [createMutate, { loading: createLoading }] = useCreateTest();
   const [updateMutate, { loading: updateLoading }] = useUpdateTest(editExamId);
   const isEditing = Boolean(editExamId);
@@ -42,7 +42,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
         return;
       }
 
-      if (subjects.length === 0) {
+      if (!formState.isModelTest && subjects.length === 0) {
         triggerToast({ description: "Please select a subject", type: "error" });
         return;
       }
@@ -59,22 +59,42 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
     }
 
     if (currentStep === "Questions") {
-      if (subjects.length === 0) {
-        triggerToast({ description: "Please add at least one subject before continuing", type: "error" });
+      const subjectsWithQuestions = subjects.filter((subject) => getSubjectQuestionCount(subject) > 0);
+
+      if (subjectsWithQuestions.length === 0) {
+        triggerToast({ description: "Please add at least one question before continuing", type: "error" });
         return;
       }
 
-      const subjectWithoutQuestions = subjects.find((subject) => getSubjectQuestionCount(subject) === 0);
+      if (!formState.isModelTest && subjectsWithQuestions.length !== 1) {
+        triggerToast({ description: "Non-model tests must use exactly one subject", type: "error" });
+        return;
+      }
 
-      if (subjectWithoutQuestions) {
+      const questionWithoutSubject = subjectsWithQuestions.some((subject) =>
+        subject.questions.some((question) => !question.id || !subject.id),
+      );
+
+      if (questionWithoutSubject) {
+        triggerToast({ description: "Every question must have a subject", type: "error" });
+        return;
+      }
+
+      const totalMarks = subjectsWithQuestions.reduce(
+        (sum, subject) => sum + getSubjectTotalMarks(subject),
+        0,
+      );
+      const passingScore = formState.passingScore.trim() ? Number(formState.passingScore) : null;
+
+      if (passingScore !== null && !Number.isNaN(passingScore) && totalMarks < passingScore) {
         triggerToast({
-          description: `Please add at least one question for ${subjectWithoutQuestions.name} before continuing`,
+          description: `Total marks (${totalMarks}) cannot be less than the passing score (${passingScore}). Add more questions or reduce the passing score.`,
           type: "error",
         });
         return;
       }
 
-      const validationFailures = collectQuestionValidationFailures(subjects);
+      const validationFailures = collectQuestionValidationFailures(subjectsWithQuestions);
 
       dispatch(
         setQuestionValidationState(
@@ -112,14 +132,18 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
 
       await mutate({
         formState,
-        subjects,
+        subjects: subjects.filter((subject) => getSubjectQuestionCount(subject) > 0),
+        questionOrder:
+          questionOrder.length > 0
+            ? questionOrder
+            : subjects.flatMap((subject) => subject.questions.map((question) => question.id)),
         publishState: handlePublishStateForSubmission(publishState),
       });
       return;
     }
 
     dispatch(goToNextStep());
-  }, [currentStep, dispatch, formState, mutate, publishState, subjects, triggerToast]);
+  }, [currentStep, dispatch, formState, mutate, publishState, questionOrder, subjects, triggerToast]);
 
   const handlePreviousStep = useCallback(() => {
     dispatch(goToPreviousStep());

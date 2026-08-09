@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { IsStrongPassword } from 'src/common/decorators/is-strong-password.decorator';
 
 export class ResetPasswordDto {
   @ApiProperty({
@@ -23,20 +24,20 @@ export class ResetPasswordDto {
   otp: string;
 
   @ApiProperty({
-    description: 'New password (minimum 8 characters)',
-    example: 'StrongPass123',
+    description: 'New password (min 8 chars, upper, lower, number, special)',
+    example: 'StrongPass123!',
     minLength: 8,
     maxLength: 100,
   })
   @IsNotEmpty({ message: 'Password must be non empty' })
   @IsString({ message: 'Password must be a string' })
-  @MinLength(8, { message: 'Password must be at least 8 characters' })
+  @IsStrongPassword('Password')
   @MaxLength(100, { message: 'Maximum 100 characters supported' })
   password: string;
 
   @ApiProperty({
     description: 'Confirm password (must match password)',
-    example: 'StrongPass123',
+    example: 'StrongPass123!',
   })
   @IsNotEmpty({ message: 'Confirm password must be non empty' })
   @IsString({ message: 'Confirm password must be a string' })

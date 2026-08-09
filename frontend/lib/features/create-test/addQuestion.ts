@@ -44,6 +44,8 @@ const addQuestion = (state: CreateTestState, action: PayloadAction<SubjectQuesti
       return;
     }
 
+    nextChildQuestion.subjectId = subject.id;
+
     if (activePassage) {
       activePassage.childQuestions.push(nextChildQuestion);
       syncSubjectType(subject);
@@ -57,6 +59,11 @@ const addQuestion = (state: CreateTestState, action: PayloadAction<SubjectQuesti
       return;
     }
 
+    nextPassage.subjectId = subject.id;
+    nextPassage.childQuestions.forEach((child) => {
+      child.subjectId = subject.id;
+    });
+
     subject.questions.push(nextPassage);
     syncSubjectType(subject);
     focusPassage(state, subject.id, nextPassage.id);
@@ -69,6 +76,7 @@ const addQuestion = (state: CreateTestState, action: PayloadAction<SubjectQuesti
     return;
   }
 
+  nextQuestion.subjectId = subject.id;
   subject.questions.push(nextQuestion);
   syncSubjectType(subject);
   focusQuestion(state, subject.id, nextQuestion.id);

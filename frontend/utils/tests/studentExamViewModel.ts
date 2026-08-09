@@ -94,51 +94,63 @@ export const buildStudentExamViewModel = (exam: StudentExamDetails): StudentExam
   let totalMarks = 0;
   let totalQuestions = 0;
 
-  const sections = exam.subjects.map<StudentExamViewSection>((subject) => {
-    const items = subject.questions.map<StudentExamViewItem>((question) => {
-      totalMarks += getQuestionPoints(question);
-      totalQuestions += getQuestionCount(question);
+  const flatEntries = exam.subjects
+    .flatMap((subject) =>
+      subject.questions.map((question) => ({
+        subject,
+        question,
+        sortOrder: question.sortOrder ?? 0,
+      })),
+    )
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 
-      if (question.type === "passage-question") {
-        const questions = question.childQuestions.map((childQuestion) => {
-          const nextQuestion = buildViewQuestion(childQuestion, questionNumber);
-          questionNumber += 1;
-          return nextQuestion;
-        });
+  const items = flatEntries.map<StudentExamViewItem>(({ question }) => {
+    totalMarks += getQuestionPoints(question);
+    totalQuestions += getQuestionCount(question);
 
-        return {
-          id: question.id,
-          kind: "passage",
-          passageText: question.passageText,
-          questions,
-        };
-      }
-
-      const nextQuestion = buildViewQuestion(question, questionNumber);
-      questionNumber += 1;
+    if (question.type === "passage-question") {
+      const questions = question.childQuestions.map((childQuestion) => {
+        const nextQuestion = buildViewQuestion(childQuestion, questionNumber);
+        questionNumber += 1;
+        return nextQuestion;
+      });
 
       return {
         id: question.id,
-        kind: "single",
-        question: nextQuestion,
+        kind: "passage",
+        passageText: question.passageText,
+        questions,
       };
-    });
+    }
+
+    const nextQuestion = buildViewQuestion(question, questionNumber);
+    questionNumber += 1;
 
     return {
-      id: subject.id,
-      title: subject.name,
-      subjectName: subject.name,
-      subjectCode: subject.code ?? undefined,
-      questionCount: items.reduce((count, item) => {
-        if (item.kind === "passage") {
-          return count + item.questions.length;
-        }
-
-        return count + 1;
-      }, 0),
-      items,
+      id: question.id,
+      kind: "single",
+      question: nextQuestion,
     };
   });
+
+  const sections: StudentExamViewSection[] =
+    items.length === 0
+      ? []
+      : [
+          {
+            id: exam.subjects[0]?.id ?? exam.id,
+            title: buildSubjectSummary(exam.subjects),
+            subjectName: buildSubjectSummary(exam.subjects),
+            subjectCode: exam.subjects.length === 1 ? (exam.subjects[0].code ?? undefined) : undefined,
+            questionCount: items.reduce((count, item) => {
+              if (item.kind === "passage") {
+                return count + item.questions.length;
+              }
+              return count + 1;
+            }, 0),
+            items,
+          },
+        ];
 
   return {
     summary: {
