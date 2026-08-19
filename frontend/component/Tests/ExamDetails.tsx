@@ -9,6 +9,7 @@ import axiosReq from "@/lib/axios";
 import { useToast } from "@/component/Toast/ToastContext";
 import { useApiError } from "@/hooks/api/useApiError";
 import { sumExamMarks } from "@/utils/exam/examMarks";
+import { getStoredUser } from "@/lib/authSession";
 
 const formatOptions: Intl.DateTimeFormatOptions = {
   month: "short",
@@ -81,6 +82,8 @@ const ExamDetails = ({ examId }: { examId: string }) => {
     }
     return Date.now() < new Date(startAt).getTime();
   }, [startAt]);
+
+  const canGradeTest = Boolean(exam?.created_by) && exam?.created_by === getStoredUser()?.id;
 
   const handleToggleStatus = useCallback(async () => {
     if (!exam) {
@@ -171,6 +174,14 @@ const ExamDetails = ({ examId }: { examId: string }) => {
 
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2">
+              {canGradeTest && (
+                <Link
+                  href={`/grading/details/${exam.id}`}
+                  className="rounded-[8px] bg-[#232A25] px-4 py-2 text-[14px] font-[500] text-white hover:bg-[#3f6244]"
+                >
+                  Grade Test
+                </Link>
+              )}
               <Link
                 href={canModify ? `/tests/create?examId=${exam.id}` : "#"}
                 aria-disabled={!canModify}

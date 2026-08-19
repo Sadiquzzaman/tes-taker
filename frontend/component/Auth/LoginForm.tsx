@@ -7,7 +7,7 @@ import ButtonLoader from "../Loader/ButtonLoadder";
 import ContinueWithGoogle from "./ContinueWithGoogle";
 
 const LoginForm = () => {
-  const { loginInfo, formError, loading, joinInfo, handleFieldChange, handleLoginSendCode } = useLoginForm();
+  const { loginInfo, formError, loading, joinInfo, handleFieldChange, handleSubmit } = useLoginForm();
 
   return (
     <>
@@ -17,6 +17,7 @@ const LoginForm = () => {
             {joinInfo.headerText}
           </h4>
         )}
+
         <div className="flex flex-row justify-between items-center mb-2">
           <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
             Login
@@ -26,14 +27,16 @@ const LoginForm = () => {
             <div className="w-4 h-1 rounded-[2px] bg-[#E5E5E5]" />
           </div>
         </div>
+
         <div className="flex flex-col gap-4">
           <AuthInput
             value={loginInfo.identifier}
             onChange={(e) => handleFieldChange("identifier", e.target.value)}
             formError={formError.identifier}
-            placeholder="Enter email or phone"
+            placeholder="Email or 01XXXXXXXXX"
             label="Email or phone"
           />
+
           <AuthInput
             value={loginInfo.password}
             onChange={(e) => handleFieldChange("password", e.target.value)}
@@ -42,18 +45,20 @@ const LoginForm = () => {
             placeholder="Enter password"
             label="Password"
           />
+
           <div className="flex justify-end -mt-2">
             <Link href="/forgot-password" className="text-[#49734F] text-[14px] font-medium underline">
               Forgot password?
             </Link>
           </div>
+
           <button
-            onClick={handleLoginSendCode}
+            onClick={handleSubmit}
             className="w-full mt-4 bg-[#49734F] text-white py-3 rounded-lg font-medium mb-4 hover:bg-green-800 transition flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-gray-400"
             disabled={loading}
           >
             <ButtonLoader show={loading} w="w-4" h="h-4" mr="mr-2" />
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "Logging in..." : "Sign in"}
           </button>
         </div>
 
@@ -64,9 +69,10 @@ const LoginForm = () => {
         </div>
         <ContinueWithGoogle />
       </div>
+
       <p className="mt-10 text-center text-[#747775] text-[16px]">
-        Don't have an account?{" "}
-        <Link href={"/signup"} className="text-[#232A25] font-medium underline">
+        Don&apos;t have an account?{" "}
+        <Link href="/signup" className="text-[#232A25] font-medium underline">
           Sign Up
         </Link>
       </p>

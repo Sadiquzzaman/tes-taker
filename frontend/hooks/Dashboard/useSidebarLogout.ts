@@ -1,6 +1,7 @@
 import { useRouter } from "next/navigation";
 import { useToast } from "@/component/Toast/ToastContext";
 import axios from "axios";
+import { clearStoredWorkspace } from "@/lib/workspace";
 
 export const useSidebarLogout = () => {
   const { push } = useRouter();
@@ -16,6 +17,7 @@ export const useSidebarLogout = () => {
       }
 
       localStorage.removeItem("user");
+      clearStoredWorkspace();
       push("/login");
       triggerToast({
         title: "Logout successful",

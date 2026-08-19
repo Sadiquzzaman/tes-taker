@@ -9,18 +9,28 @@ const SignUpInfoForm = ({
   loading,
   handleFieldChange,
   handleSignUp,
+  onBackToChoice,
 }: SignUpInfoFormProps) => {
   return (
     <div className="w-full max-w-[420px] mx-auto flex flex-col gap-8">
       <div className="flex flex-row justify-between items-center mb-2">
         <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
-          Sign Up
+          Student Sign Up
         </h2>
         <div className="flex gap-0.5 ml-2">
           <div className="w-4 h-1 rounded-[2px] bg-[#49734F]" />
           <div className="w-4 h-1 rounded-[2px] bg-[#E5E5E5]" />
         </div>
       </div>
+      {onBackToChoice && (
+        <button
+          type="button"
+          onClick={onBackToChoice}
+          className="text-left text-[#49734F] text-[14px] font-medium underline -mt-4"
+        >
+          Back to account type
+        </button>
+      )}
       <div className="flex flex-col gap-3">
         <AuthInput
           value={signUpInfo.full_name}
@@ -59,13 +69,6 @@ const SignUpInfoForm = ({
           formError={formError.email}
           placeholder="Enter email address"
           label="Email (Optional)"
-        />
-        <AuthInput
-          value={signUpInfo.organization}
-          onChange={(e) => handleFieldChange("organization", e.target.value)}
-          formError={formError.organization}
-          placeholder="e.g., ABC Studies"
-          label="Organization / school name (Optional)"
         />
 
         <div className="flex flex-row items-center gap-2 py-2">

@@ -19,10 +19,13 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
 import { StorageModule } from './storage/storage.module';
 import { TeacherRequestModule } from './teacher-requests/teacher-request.module';
+import { OrganizationsModule } from './organizations/organization.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    CommonModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [
@@ -54,6 +57,7 @@ import { TeacherRequestModule } from './teacher-requests/teacher-request.module'
     HealthModule,
     StorageModule,
     TeacherRequestModule,
+    OrganizationsModule,
   ],
   controllers: [AppController],
   providers: [

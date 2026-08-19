@@ -2,21 +2,33 @@
 
 import Link from "next/link";
 import useSignUpForm from "@/hooks/auth/useSignUpForm";
+import SignUpChoice from "./SignUpChoice";
 import SignUpInfoForm from "./SignUpInfoForm";
 import VerifyCode from "./VerifyCode";
 
 const SignUpForm = () => {
-  const { joinInfo, view, signUpInfo, formError, checkboxError, loading, handleFieldChange, handleSignUp } =
-    useSignUpForm();
+  const {
+    joinInfo,
+    view,
+    setView,
+    signUpInfo,
+    formError,
+    checkboxError,
+    loading,
+    handleFieldChange,
+    handleSignUp,
+  } = useSignUpForm();
 
   return (
     <>
-      {joinInfo?.id && (
+      {joinInfo?.id && view !== "choice" && (
         <h4 className="mb-8 text-center text-[16px] font-semibold text-[#49734F] leading-[19px] tracking-[-0.02em] capitalize">
           {joinInfo.headerText}
         </h4>
       )}
-      {view === "signup" ? (
+      {view === "choice" ? (
+        <SignUpChoice onSelectStudent={() => setView("signup")} />
+      ) : view === "signup" ? (
         <SignUpInfoForm
           signUpInfo={signUpInfo}
           formError={formError}
@@ -24,6 +36,7 @@ const SignUpForm = () => {
           loading={loading}
           handleFieldChange={handleFieldChange}
           handleSignUp={handleSignUp}
+          onBackToChoice={() => setView("choice")}
         />
       ) : (
         <VerifyCode value={signUpInfo.phone} />

@@ -4,13 +4,23 @@ import useRegister from "@/hooks/api/useRegister";
 import useJoinStateManage from "@/hooks/ui/useJoinStateManage";
 import { validateSignUpForm } from "@/utils/auth/validation";
 
+const hasJoinSession = () => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  try {
+    return Boolean(sessionStorage.getItem("joinSessionInfo"));
+  } catch {
+    return false;
+  }
+};
+
 export const useSignUpForm = () => {
   const { joinInfo } = useJoinStateManage("signup");
-  const [view, setView] = useState<SignUpPageView>("signup");
+  const [view, setView] = useState<SignUpPageView>(hasJoinSession() ? "signup" : "choice");
   const [signUpInfo, setSignUpInfo] = useState<SignUpInfo>({
     full_name: "",
     email: "",
-    organization: "",
     agreed: false,
     phone: "",
     password: "",
@@ -22,7 +32,6 @@ export const useSignUpForm = () => {
   const [formError, setFormError] = useState({
     full_name: "",
     email: "",
-    organization: "",
     phone: "",
     password: "",
     confirm_password: "",
@@ -44,7 +53,6 @@ export const useSignUpForm = () => {
     setFormError({
       full_name: errors.full_name || "",
       email: errors.email || "",
-      organization: "",
       phone: errors.phone || "",
       password: errors.password || "",
       confirm_password: errors.confirm_password || "",

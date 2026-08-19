@@ -13,37 +13,7 @@ export interface SignUpErrors {
 }
 
 /**
- * Validates login form inputs sequentially, matching original logic.
- */
-export const validateLoginForm = (loginInfo: LoginInfo): LoginErrors => {
-  const errors: LoginErrors = {};
-  const value = loginInfo.identifier.trim();
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const bdPhoneRegex = /^01[3-9]\d{8}$/;
-  const isEmail = value.includes("@");
-  const isPhone = /^\d+$/.test(value);
-
-  if (!value) {
-    errors.identifier = "Please enter email or phone number";
-  } else if (isPhone && value.length !== 11) {
-    errors.identifier = "Phone number must be 11 digits";
-  } else if (isPhone && !bdPhoneRegex.test(value)) {
-    errors.identifier = "Invalid Bangladeshi phone number";
-  } else if (isEmail && !emailRegex.test(value)) {
-    errors.identifier = "Invalid email address";
-  } else if (!isEmail && !isPhone) {
-    errors.identifier = "Enter a valid email or phone number";
-  } else if (!loginInfo.password) {
-    errors.password = "Please enter a password";
-  } else if (loginInfo.password.length < 8) {
-    errors.password = "Password must be at least 8 characters.";
-  }
-
-  return errors;
-};
-
-/**
- * Validates the forgot-password identifier (email or phone number).
+ * Validates the forgot-password / login identifier (email or phone number).
  */
 export const validateForgotIdentifier = (identifier: string): string => {
   const value = identifier.trim();
@@ -69,6 +39,59 @@ export const validateForgotIdentifier = (identifier: string): string => {
   }
 
   return "";
+};
+
+/**
+ * Validates email-or-phone + password login.
+ */
+export const validateLoginForm = (loginInfo: LoginInfo): LoginErrors => {
+  const errors: LoginErrors = {};
+  const identifierError = validateForgotIdentifier(loginInfo.identifier);
+
+  if (identifierError) {
+    errors.identifier = identifierError;
+  } else if (!loginInfo.password) {
+    errors.password = "Please enter a password";
+  } else if (loginInfo.password.length < 8) {
+    errors.password = "Password must be at least 8 characters.";
+  }
+
+  return errors;
+};
+
+export interface OrganizationLoginErrors {
+  organization_number?: string;
+  phone?: string;
+  password?: string;
+}
+
+export const validateOrganizationLoginForm = (
+  info: OrganizationLoginInfo,
+): OrganizationLoginErrors => {
+  const errors: OrganizationLoginErrors = {};
+  const orgNumber = info.organization_number.trim();
+  const phone = info.phone.trim();
+  const bdPhoneRegex = /^01[3-9]\d{8}$/;
+
+  if (!orgNumber) {
+    errors.organization_number = "Please enter organization number";
+  } else if (!/^\d{6,}$/.test(orgNumber)) {
+    errors.organization_number = "Organization number must be at least 6 digits";
+  }
+
+  if (!phone) {
+    errors.phone = "Please enter phone number";
+  } else if (!bdPhoneRegex.test(phone)) {
+    errors.phone = "Invalid Bangladeshi phone number";
+  }
+
+  if (!info.password) {
+    errors.password = "Please enter a password";
+  } else if (info.password.length < 8) {
+    errors.password = "Password must be at least 8 characters.";
+  }
+
+  return errors;
 };
 
 export interface ResetPasswordErrors {
@@ -175,6 +198,43 @@ export const validateSignUpForm = (signUpInfo: SignUpInfo): SignUpErrors => {
   } else if (signUpInfo.password !== signUpInfo.confirm_password) {
     errors.confirm_password = "Password and Confirm password do not match";
   } else if (!signUpInfo.agreed) {
+    errors.checkboxError = "You must agree to the Terms of Service and Privacy Policy";
+  }
+
+  return errors;
+};
+
+export interface OrganizationSignUpErrors extends SignUpErrors {
+  organization_name?: string;
+}
+
+/**
+ * Validates organization registration form.
+ */
+export const validateOrganizationSignUpForm = (
+  info: OrganizationRegisterInfo,
+): OrganizationSignUpErrors => {
+  const errors: OrganizationSignUpErrors = {};
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const complexity = getPasswordComplexityError(info.password);
+
+  if (!info.organization_name.trim()) {
+    errors.organization_name = "Please enter your organization or school name";
+  } else if (!info.full_name) {
+    errors.full_name = "Please enter your full name";
+  } else if (!info.phone) {
+    errors.phone = "Please enter a phone number";
+  } else if (info.phone.length !== 11) {
+    errors.phone = "Please enter a valid 11-digit phone number";
+  } else if (info.email && !emailRegex.test(info.email)) {
+    errors.email = "It looks like the email you entered is invalid!";
+  } else if (complexity) {
+    errors.password = complexity;
+  } else if (!info.confirm_password) {
+    errors.confirm_password = "Please confirm your password";
+  } else if (info.password !== info.confirm_password) {
+    errors.confirm_password = "Password and Confirm password do not match";
+  } else if (!info.agreed) {
     errors.checkboxError = "You must agree to the Terms of Service and Privacy Policy";
   }
 

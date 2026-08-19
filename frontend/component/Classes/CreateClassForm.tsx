@@ -25,7 +25,9 @@ const CreateClassForm = () => {
     handleCsvUpload,
     handleDownloadTemplate,
     handleCreateClass,
+    isIndividual,
   } = useCreateClassForm();
+  const classesHref = isIndividual ? "/classes" : "/organization/classes";
 
   return (
     <>
@@ -128,7 +130,7 @@ const CreateClassForm = () => {
       </div>
       <div className="flex justify-end items-center gap-2 sm:gap-4 mt-6">
         <Link
-          href="/classes"
+          href={classesHref}
           className={`px-4 h-10 flex items-center justify-center rounded-[8px] text-[14px] font-[500] leading-[16px] tracking-[-0.02em] ${
             loading ? "bg-[#747775]" : "bg-[#EFF0F3]"
           } text-[#232A25]`}

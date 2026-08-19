@@ -8,13 +8,11 @@ const routePolicies: RoutePolicy[] = [
     path: "/login",
     match: "exact",
     isPublic: true,
-    // redirectAuthenticatedTo: "/",
   },
   {
     path: "/signup",
-    match: "exact",
+    match: "prefix",
     isPublic: true,
-    // redirectAuthenticatedTo: "/",
   },
   {
     path: "/forgot-password",
@@ -27,33 +25,61 @@ const routePolicies: RoutePolicy[] = [
     isPublic: true,
   },
   {
-    path: "/join",
-    match: "prefix",
-    isPublic: true,
-  },
-  {
-    path: "/classes/create",
+    path: "/select-context",
     match: "exact",
-    allowedRoles: ["TEACHER"],
-    redirectUnauthorizedTo: "/classes",
-  },
-  {
-    path: "/tests/create",
-    match: "exact",
-    allowedRoles: ["TEACHER"],
-    redirectUnauthorizedTo: "/tests",
-  },
-  {
-    path: "/grading",
-    match: "prefix",
-    allowedRoles: ["TEACHER"],
+    allowedRoles: ["TEACHER", "STUDENT", "ADMIN", "SUPER_ADMIN"],
     redirectUnauthorizedTo: "/dashboard",
   },
   {
     path: "/dashboard",
     match: "exact",
-    allowedRoles: ["TEACHER"],
+    allowedRoles: ["TEACHER", "STUDENT"],
     redirectUnauthorizedTo: "/classes",
+  },
+  {
+    path: "/join",
+    match: "prefix",
+    isPublic: true,
+  },
+  {
+    path: "/organization",
+    match: "prefix",
+    allowedRoles: ["TEACHER"],
+    allowedSessionModes: ["organization"],
+    redirectUnauthorizedTo: "/dashboard",
+  },
+  {
+    path: "/classes/create",
+    match: "exact",
+    allowedRoles: ["TEACHER"],
+    redirectUnauthorizedTo: "/organization",
+  },
+  {
+    path: "/tests/create",
+    match: "exact",
+    allowedRoles: ["TEACHER"],
+    blockedMemberRoles: ["ASSISTANT", "STUDENT"],
+    redirectUnauthorizedTo: "/organization",
+  },
+  {
+    path: "/grading",
+    match: "prefix",
+    allowedRoles: ["TEACHER"],
+    blockedMemberRoles: ["ASSISTANT", "STUDENT"],
+    redirectUnauthorizedTo: "/organization",
+  },
+  {
+    path: "/billing",
+    match: "prefix",
+    allowedRoles: ["TEACHER"],
+    blockedSessionModes: ["organization"],
+    redirectUnauthorizedTo: "/organization",
+  },
+  {
+    path: "/admin/organizations",
+    match: "prefix",
+    allowedRoles: ["ADMIN", "SUPER_ADMIN"],
+    redirectUnauthorizedTo: "/admin",
   },
   {
     path: "/admin",
@@ -62,15 +88,6 @@ const routePolicies: RoutePolicy[] = [
     redirectUnauthorizedTo: "/dashboard",
   },
   {
-    path: "/billing",
-    match: "prefix",
-    allowedRoles: ["TEACHER"],
-    redirectUnauthorizedTo: "/login",
-  },
-  {
-    // Gateway return pages. SSLCommerz redirects here from its own domain, so
-    // these must never require authentication (the auth cookie is SameSite=Lax
-    // and is not sent on the cross-site navigation).
     path: "/payment",
     match: "prefix",
     isPublic: true,
@@ -119,9 +136,20 @@ const matchesPolicy = (pathname: string, policy: RoutePolicy) => {
   return pathname === policy.path;
 };
 
-const getRoleHomeRoute = (role: RoleUserType | null) => {
-  if (role === "STUDENT") {
-    return "/classes";
+const getRoleHomeRoute = (
+  role: RoleUserType | null,
+  sessionMode: string | null,
+  memberRole?: string | null,
+) => {
+  if (role === "STUDENT" || memberRole === "STUDENT") {
+    return "/dashboard";
+  }
+
+  if (sessionMode === "organization") {
+    if (memberRole === "TEACHER" || memberRole === "ASSISTANT") {
+      return "/organization/classes";
+    }
+    return "/organization";
   }
 
   if (role === "ADMIN" || role === "SUPER_ADMIN") {
@@ -141,6 +169,8 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get("token")?.value ?? null;
   const roleValue = request.cookies.get("role")?.value;
   const role = isValidRole(roleValue) ? roleValue : null;
+  const sessionMode = request.cookies.get("session_mode")?.value ?? "individual";
+  const memberRole = request.cookies.get("member_role")?.value ?? null;
   const { pathname } = request.nextUrl;
   const matchedPolicy = routePolicies.find((policy) => matchesPolicy(pathname, policy));
   const isAuthenticated = Boolean(token);
@@ -161,7 +191,7 @@ export function proxy(request: NextRequest) {
   if (matchedPolicy?.isPublic) {
     if (isAuthenticated) {
       if (pathname === "/" && role) {
-        return createRedirectResponse(request, getRoleHomeRoute(role));
+        return createRedirectResponse(request, getRoleHomeRoute(role, sessionMode, memberRole));
       }
 
       if (matchedPolicy.redirectAuthenticatedTo) {
@@ -177,15 +207,48 @@ export function proxy(request: NextRequest) {
   }
 
   if (matchedPolicy?.allowedRoles && !matchedPolicy.allowedRoles.includes(role)) {
-    return createRedirectResponse(request, matchedPolicy.redirectUnauthorizedTo ?? getRoleHomeRoute(role));
+    return createRedirectResponse(
+      request,
+      matchedPolicy.redirectUnauthorizedTo ?? getRoleHomeRoute(role, sessionMode, memberRole),
+    );
+  }
+
+  if (
+    matchedPolicy?.allowedSessionModes &&
+    !matchedPolicy.allowedSessionModes.includes(sessionMode as "individual" | "organization")
+  ) {
+    return createRedirectResponse(
+      request,
+      sessionMode === "organization"
+        ? getRoleHomeRoute(role, sessionMode, memberRole)
+        : "/dashboard",
+    );
+  }
+
+  if (
+    matchedPolicy?.blockedSessionModes &&
+    matchedPolicy.blockedSessionModes.includes(sessionMode as "individual" | "organization")
+  ) {
+    return createRedirectResponse(
+      request,
+      matchedPolicy.redirectUnauthorizedTo ?? getRoleHomeRoute(role, sessionMode, memberRole),
+    );
+  }
+
+  if (
+    matchedPolicy?.blockedMemberRoles &&
+    memberRole &&
+    matchedPolicy.blockedMemberRoles.includes(memberRole as OrganizationMemberRole)
+  ) {
+    return createRedirectResponse(
+      request,
+      matchedPolicy.redirectUnauthorizedTo ?? getRoleHomeRoute(role, sessionMode, memberRole),
+    );
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  // Exclude Next.js internals, static assets, Nest-colliding /api stubs, and
-  // the /session cookie routes (set-token / logout must stay reachable
-  // without an auth cookie already present).
   matcher: ["/((?!_next/|favicon.ico|api/|session/|assets/).*)"],
 };

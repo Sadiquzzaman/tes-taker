@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import axiosReq from "@/lib/axios";
 import { AxiosError } from "axios";
 import { useApiError } from "@/hooks/api/useApiError";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 
 type ExamAccessReasonCode = "OK" | "NOT_STARTED" | "ENDED" | "ALREADY_SUBMITTED" | "DISQUALIFIED" | "NOT_ASSIGNED";
 
@@ -39,6 +40,7 @@ export const mapReasonCodeToMessageVariant = (reasonCode?: ExamAccessReasonCode)
 
 const useExamEligibility = (examId: string | null, enabled = true) => {
   const { handleError } = useApiError();
+  const { workspace, sessionMode, contextType, organizationId } = useWorkspace();
   const [loading, setLoading] = useState(false);
   const [checked, setChecked] = useState(false);
   const [eligibility, setEligibility] = useState<ExamEligibilityPayload | null>(null);
@@ -69,7 +71,7 @@ const useExamEligibility = (examId: string | null, enabled = true) => {
     } finally {
       setLoading(false);
     }
-  }, [examId, handleError]);
+  }, [contextType, examId, handleError, organizationId, sessionMode, workspace]);
 
   useEffect(() => {
     if (!enabled || !examId) {

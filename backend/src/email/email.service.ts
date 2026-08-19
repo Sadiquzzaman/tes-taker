@@ -90,6 +90,37 @@ export class EmailService {
     }
   }
 
+  async sendOrganizationInvitationEmail(
+    email: string,
+    invitationLink: string,
+    organizationName: string,
+    roleLabel: string,
+    inviterName?: string,
+  ): Promise<boolean> {
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">You've been invited to join an organization</h2>
+        <p>Hello,</p>
+        <p>${inviterName || 'An administrator'} invited you to join
+          <strong>${organizationName}</strong> as <strong>${roleLabel}</strong> on TestTaker.</p>
+        <p>Register or sign in with this email (or your phone) to accept:</p>
+        <p style="margin: 30px 0;">
+          <a href="${invitationLink}"
+             style="background-color: #49734F; color: white; padding: 12px 24px;
+                    text-decoration: none; border-radius: 5px; display: inline-block;">
+            Join Organization
+          </a>
+        </p>
+        <p style="color: #666; word-break: break-all;">${invitationLink}</p>
+        <p style="margin-top: 30px; color: #666; font-size: 12px;">
+          This invitation link will expire in 7 days.
+        </p>
+      </div>
+    `;
+
+    return this.sendEmail(email, `Invitation to join ${organizationName} on TestTaker`, html);
+  }
+
   async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
     try {
       if (!this.useBrevo || !this.brevoClient) {

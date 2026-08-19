@@ -4,9 +4,11 @@ import { AxiosError, AxiosResponse } from "axios";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApiError } from "../useApiError";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 
 const useGetStudentClassById = ({ id, enabled = true }: { id: string; enabled?: boolean }) => {
   const { handleError } = useApiError();
+  const { workspace, sessionMode, contextType, organizationId } = useWorkspace();
   const router = useRouter();
   const { triggerToast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -58,7 +60,7 @@ const useGetStudentClassById = ({ id, enabled = true }: { id: string; enabled?: 
         setLoading(false);
         setApiComplete(true);
       });
-  }, [enabled, handleError, id, router, triggerToast]);
+  }, [contextType, enabled, handleError, id, organizationId, router, sessionMode, triggerToast, workspace]);
 
   useEffect(() => {
     if (!enabled) {

@@ -15,6 +15,7 @@ import { SetExamStatusDto, UpdateExcludedStudentsDto } from "./dto/update-exam.d
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiHeader,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -30,8 +31,16 @@ import { UserPayload } from "src/common/decorators/user-payload.decorator";
 import { ExamService } from "./exam.service";
 import { CreateExamWizardDto } from "./dto/create-exam-wizard.dto";
 import { CREATE_EXAM_WIZARD_EXAMPLE } from "./dto/create-exam-wizard.swagger";
+import { OrganizationContextGuard } from "src/organizations/guards/organization-context.guard";
+import { OrgContext } from "src/organizations/decorators/org-context.decorator";
+import { OrgContext as OrgContextType } from "src/organizations/interfaces/org-context.interface";
 
 @ApiTags("Exams")
+@ApiHeader({
+  name: "X-Organization-Id",
+  required: false,
+  description: "Organization workspace context. Empty = individual teacher workspace.",
+})
 @Controller({
   path: "exams",
   version: "1",
@@ -41,12 +50,12 @@ export class ExamController {
 
   @Post()
   @ApiBearerAuth("jwt")
-  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @UseGuards(AuthGuard("jwt"), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: "Create exam (unified wizard)",
     description:
-      "Create a test with graded, ungraded, and passage questions under subject blocks. Ignores client-only fields (currentStep, showValidation, image). When testAudience is `specific_students`, each specificStudents item may contain one UUID or a comma-separated list. When testAudience is `selected_class`, optional excluded_students may be supplied.",
+      "Create a test with graded, ungraded, and passage questions under subject blocks. Ignores client-only fields (currentStep, showValidation, image). When testAudience is `specific_students`, each specificStudents item may contain one UUID or a comma-separated list. When testAudience is `selected_class`, optional excluded_students may be supplied. With X-Organization-Id, the exam is scoped to that organization.",
   })
   @ApiBody({
     type: CreateExamWizardDto,
@@ -67,14 +76,15 @@ export class ExamController {
   async createExam(
     @Body() dto: CreateExamWizardDto,
     @UserPayload() jwtPayload: JwtPayloadInterface,
+    @OrgContext() orgContext: OrgContextType | null,
   ) {
-    const payload = await this.examService.createFromWizard(dto, jwtPayload);
+    const payload = await this.examService.createFromWizard(dto, jwtPayload, orgContext);
     return { message: "Exam created successfully", payload };
   }
 
   @Post("objective")
   @ApiBearerAuth("jwt")
-  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @UseGuards(AuthGuard("jwt"), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     deprecated: true,
@@ -96,7 +106,7 @@ export class ExamController {
 
   @Post("subjective")
   @ApiBearerAuth("jwt")
-  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @UseGuards(AuthGuard("jwt"), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     deprecated: true,
@@ -118,21 +128,25 @@ export class ExamController {
 
   @Get()
   @ApiBearerAuth("jwt")
-  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @UseGuards(AuthGuard("jwt"), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: "Get all exams",
-    description: "Get all exams created by the logged-in teacher",
+    description:
+      "Individual workspace: exams created by the teacher with no organization. Organization workspace: org exams (OWNER/ADMIN see all; teachers see own).",
   })
   @ApiResponse({ status: 200, description: "List of exams" })
-  async findAll(@UserPayload() jwtPayload: JwtPayloadInterface) {
-    const payload = await this.examService.findAll(jwtPayload);
+  async findAll(
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+    @OrgContext() orgContext: OrgContextType | null,
+  ) {
+    const payload = await this.examService.findAll(jwtPayload, orgContext);
     return { message: "Exams retrieved successfully", payload };
   }
 
   @Get("class/:classId")
   @ApiBearerAuth("jwt")
-  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @UseGuards(AuthGuard("jwt"), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: "Get exams by class",
@@ -150,13 +164,13 @@ export class ExamController {
 
   @Get(":id")
   @ApiBearerAuth("jwt")
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard, OrganizationContextGuard)
   @ApiOperation({
     summary: "Get exam by ID",
     description:
       "No token: public summary only (id, test_name, created_user_name, duration_minutes, test_audience, status). " +
       "Student token: wizard-shaped exam with questions (no answers) after exam_start_time when audience rules pass. " +
-      "Teacher token: full wizard-shaped exam with correct answers when this teacher owns the exam. " +
+      "Teacher token: full wizard-shaped exam with correct answers when this teacher owns the exam (or org OWNER/ADMIN can monitor). " +
       "Admin/super_admin: full details for any exam.",
   })
   @ApiParam({ name: "id", description: "Exam UUID" })
@@ -166,6 +180,7 @@ export class ExamController {
   async findOne(
     @Param("id", ParseUUIDPipe) id: string,
     @UserPayload() jwtPayload?: JwtPayloadInterface,
+    @OrgContext() orgContext?: OrgContextType | null,
   ) {
     if (!jwtPayload) {
       const payload = await this.examService.findOnePublicSummary(id);
@@ -175,18 +190,18 @@ export class ExamController {
       const payload = await this.examService.findOneForStudent(id, jwtPayload);
       return { message: "Exam retrieved successfully", payload };
     }
-    const payload = await this.examService.findOne(id, jwtPayload);
+    const payload = await this.examService.findOne(id, jwtPayload, orgContext);
     return { message: "Exam details retrieved successfully", payload };
   }
 
   @Put(":id")
   @ApiBearerAuth("jwt")
-  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @UseGuards(AuthGuard("jwt"), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: "Update an exam (unified wizard)",
     description:
-      "Replace an exam's details and questions. Only the owner (or admin) may update, and only before the exam start time.",
+      "Replace an exam's details and questions. Only the creator may update (org OWNER/ADMIN cannot edit others' exams), and only before the exam start time.",
   })
   @ApiBody({ type: CreateExamWizardDto })
   @ApiParam({ name: "id", description: "Exam UUID" })
@@ -198,14 +213,15 @@ export class ExamController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: CreateExamWizardDto,
     @UserPayload() jwtPayload: JwtPayloadInterface,
+    @OrgContext() orgContext: OrgContextType | null,
   ) {
-    const payload = await this.examService.updateFromWizard(id, dto, jwtPayload);
+    const payload = await this.examService.updateFromWizard(id, dto, jwtPayload, orgContext);
     return { message: "Exam updated successfully", payload };
   }
 
   @Patch(":id/status")
   @ApiBearerAuth("jwt")
-  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @UseGuards(AuthGuard("jwt"), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: "Enable or disable an exam",
@@ -230,7 +246,7 @@ export class ExamController {
 
   @Patch(":id/excluded-students")
   @ApiBearerAuth("jwt")
-  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @UseGuards(AuthGuard("jwt"), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: "Update excluded students",
@@ -243,18 +259,24 @@ export class ExamController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdateExcludedStudentsDto,
     @UserPayload() jwtPayload: JwtPayloadInterface,
+    @OrgContext() orgContext: OrgContextType | null,
   ) {
-    const payload = await this.examService.updateExcludedStudents(id, dto.student_ids, jwtPayload);
+    const payload = await this.examService.updateExcludedStudents(
+      id,
+      dto.student_ids,
+      jwtPayload,
+      orgContext,
+    );
     return { message: "Excluded students updated successfully", payload };
   }
 
   @Delete(":id")
   @ApiBearerAuth("jwt")
-  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @UseGuards(AuthGuard("jwt"), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: "Delete an exam",
-    description: "Permanently delete an exam and all its questions",
+    description: "Permanently delete an exam and all its questions. Only the creator may delete.",
   })
   @ApiParam({ name: "id", description: "Exam UUID" })
   @ApiResponse({ status: 200, description: "Exam deleted successfully" })
@@ -263,8 +285,9 @@ export class ExamController {
   async delete(
     @Param("id", ParseUUIDPipe) id: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
+    @OrgContext() orgContext: OrgContextType | null,
   ) {
-    await this.examService.delete(id, jwtPayload);
+    await this.examService.delete(id, jwtPayload, orgContext);
     return { message: "Exam deleted successfully" };
   }
 }

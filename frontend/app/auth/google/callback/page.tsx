@@ -2,6 +2,7 @@
 
 import { useToast } from "@/component/Toast/ToastContext";
 import { persistAuthSession } from "@/lib/authSession";
+import { restoreLastWorkspace } from "@/lib/restoreLastWorkspace";
 import { RotatingLines } from "react-loader-spinner";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
@@ -56,6 +57,7 @@ const GoogleCallbackContent = () => {
         } as LoginResponsePayload;
 
         await persistAuthSession(payload);
+        const restored = await restoreLastWorkspace(payload);
 
         triggerToast({
           title: "Login Successful",
@@ -63,15 +65,11 @@ const GoogleCallbackContent = () => {
           type: "success",
         });
 
-        if (role === "STUDENT") {
-          router.replace("/classes");
-          return;
-        }
         if (role === "ADMIN" || role === "SUPER_ADMIN") {
           router.replace("/admin");
           return;
         }
-        router.replace("/dashboard");
+        router.replace(restored.href);
       } catch {
         triggerToast({
           title: "Google sign-in failed",

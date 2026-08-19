@@ -6,7 +6,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, DeepPartial, EntityManager, Repository, In } from 'typeorm';
+import { DataSource, DeepPartial, EntityManager, Repository, In, IsNull } from 'typeorm';
 import { buildResponseOptionId } from './utils/exam-option-ids.util';
 import { ExamEntity, ExamTypeEnum } from './entities/exam.entity';
 import {
@@ -30,6 +30,7 @@ import { ClassEntity } from 'src/classes/entities/class.entity';
 import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities/class-student.entity';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
+import { generatePublicId } from 'src/common/utils/public-id.util';
 import { SmsService } from 'src/sms/sms.service';
 import { SubjectService } from 'src/subjects/subject.service';
 import { EntitlementsService } from 'src/subscriptions/entitlements.service';
@@ -66,6 +67,10 @@ import {
   FINALIZED_SUBMISSION_STATUSES,
   TEACHER_VISIBLE_SUBMISSION_STATUSES,
 } from './utils/exam-grading.util';
+import { OrganizationAccessService } from 'src/organizations/organization-access.service';
+import { OrgContext } from 'src/organizations/interfaces/org-context.interface';
+import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
+import { ClassService } from 'src/classes/class.service';
 
 type ExamListMetrics = {
   participant_count: number;
@@ -124,7 +129,47 @@ export class ExamService {
     private readonly entitlementsService: EntitlementsService,
     private readonly subscriptionService: SubscriptionService,
     private readonly dataSource: DataSource,
+    private readonly organizationAccessService: OrganizationAccessService,
+    private readonly classService: ClassService,
   ) {}
+
+  private async assertOrgWizardClassAndSubject(
+    jwtPayload: JwtPayloadInterface,
+    orgContext: OrgContext,
+    publishState: CreateExamWizardDto['publishState'],
+    primarySubjectId: string | null,
+  ): Promise<void> {
+    if (publishState.testAudience !== TestAudienceEnum.SELECTED_CLASS || !publishState.selectedClassId) {
+      throw new BadRequestException('Organization tests must be assigned to a selected class');
+    }
+
+    const cls = await this.classRepo.findOne({ where: { id: publishState.selectedClassId } });
+    if (!cls) {
+      throw new BadRequestException('Class not found');
+    }
+    if (cls.organization_id !== orgContext.organizationId) {
+      throw new ForbiddenException('Class does not belong to this organization');
+    }
+
+    const canCreateForClass = await this.organizationAccessService.canCreateExam(
+      jwtPayload.id,
+      orgContext.organizationId,
+      cls.id,
+    );
+    if (!canCreateForClass) {
+      throw new ForbiddenException(
+        'You can only create exams for organization classes assigned to you',
+      );
+    }
+
+    if (primarySubjectId) {
+      await this.classService.assertTeacherAssignedToClassSubject(
+        cls.id,
+        jwtPayload.id,
+        primarySubjectId,
+      );
+    }
+  }
 
   /**
    * Unified wizard create (graded / ungraded / passage questions)
@@ -132,8 +177,22 @@ export class ExamService {
   async createFromWizard(
     dto: CreateExamWizardDto,
     jwtPayload: JwtPayloadInterface,
+    orgContext?: OrgContext | null,
   ): Promise<any> {
     const { formState, subjects, publishState } = dto;
+
+    if (orgContext?.organizationId) {
+      const membership = await this.organizationAccessService.requireApprovedMember(
+        orgContext.organizationId,
+        jwtPayload.id,
+      );
+      if (
+        membership.role === OrganizationMemberRoleEnum.ASSISTANT ||
+        membership.role === OrganizationMemberRoleEnum.STUDENT
+      ) {
+        throw new ForbiddenException('Your organization role cannot create exams');
+      }
+    }
 
     const canCreate = await this.entitlementsService.canCreateExam(jwtPayload.id);
     if (!canCreate.allowed) {
@@ -212,7 +271,14 @@ export class ExamService {
     const isModelTest = Boolean(formState.isModelTest);
     const primarySubjectId = isModelTest ? null : subjects[0].id;
 
-    if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS) {
+    if (orgContext?.organizationId) {
+      await this.assertOrgWizardClassAndSubject(
+        jwtPayload,
+        orgContext,
+        publishState,
+        primarySubjectId,
+      );
+    } else if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS) {
       if (!publishState.selectedClassId) {
         throw new BadRequestException('selectedClassId is required when test audience is selected_class');
       }
@@ -317,6 +383,8 @@ export class ExamService {
           publishState.testAudience === TestAudienceEnum.SELECTED_CLASS
             ? publishState.selectedClassId!
             : null,
+        organization_id: orgContext?.organizationId ?? null,
+        public_id: generatePublicId('EXM'),
         excluded_students: excludedStudents,
         created_by: jwtPayload.id,
         created_user_name: jwtPayload.full_name,
@@ -672,6 +740,7 @@ export class ExamService {
 
     const exam = this.examRepo.create({
       exam_type: ExamTypeEnum.OBJECTIVE,
+      public_id: generatePublicId('EXM'),
       exam_start_time: dto.exam_start_time,
       exam_end_time: dto.exam_end_time,
       is_negative_marking: dto.is_negative_marking,
@@ -743,6 +812,7 @@ export class ExamService {
 
     const exam = this.examRepo.create({
       exam_type: ExamTypeEnum.SUBJECTIVE,
+      public_id: generatePublicId('EXM'),
       exam_start_time: dto.exam_start_time,
       exam_end_time: dto.exam_end_time,
       is_negative_marking: false,
@@ -856,21 +926,55 @@ export class ExamService {
     return { sent, failed };
   }
 
-  async findAll(jwtPayload: JwtPayloadInterface): Promise<any[]> {
-    const exams = await this.examRepo.find({
-      where: { created_by: jwtPayload.id },
-      relations: [
-        'questions',
-        'questionSections',
-        'questionSections.questions',
-        'questionSections.subject',
-        'class',
-        'excluded_students',
-        'target_students',
-        'primary_subject',
-      ],
-      order: { created_at: 'DESC' },
-    });
+  async findAll(
+    jwtPayload: JwtPayloadInterface,
+    orgContext?: OrgContext | null,
+  ): Promise<any[]> {
+    let exams: ExamEntity[];
+
+    if (orgContext?.organizationId) {
+      await this.organizationAccessService.requireApprovedMember(
+        orgContext.organizationId,
+        jwtPayload.id,
+      );
+
+      const isOwnerOrAdmin =
+        orgContext.memberRole === OrganizationMemberRoleEnum.OWNER ||
+        orgContext.memberRole === OrganizationMemberRoleEnum.ADMIN;
+
+      exams = await this.examRepo.find({
+        where: isOwnerOrAdmin
+          ? { organization_id: orgContext.organizationId }
+          : { organization_id: orgContext.organizationId, created_by: jwtPayload.id },
+        relations: [
+          'questions',
+          'questionSections',
+          'questionSections.questions',
+          'questionSections.subject',
+          'class',
+          'excluded_students',
+          'target_students',
+          'primary_subject',
+        ],
+        order: { created_at: 'DESC' },
+      });
+    } else {
+      exams = await this.examRepo.find({
+        where: { created_by: jwtPayload.id, organization_id: IsNull() },
+        relations: [
+          'questions',
+          'questionSections',
+          'questionSections.questions',
+          'questionSections.subject',
+          'class',
+          'excluded_students',
+          'target_students',
+          'primary_subject',
+        ],
+        order: { created_at: 'DESC' },
+      });
+    }
+
     const metrics = await this.loadExamListMetrics(exams);
     return exams.map((exam) => ({
       ...this.formatExamResponse(exam, { includeCorrectAnswers: true }),
@@ -916,14 +1020,22 @@ export class ExamService {
     }));
   }
 
-  async findOne(id: string, jwtPayload: JwtPayloadInterface): Promise<any> {
+  async findOne(
+    id: string,
+    jwtPayload: JwtPayloadInterface,
+    orgContext?: OrgContext | null,
+  ): Promise<any> {
     const exam = await this.findOneEntity(id);
 
     if (
-      jwtPayload.role === RolesEnum.TEACHER &&
-      exam.created_by !== jwtPayload.id
+      jwtPayload.role !== RolesEnum.ADMIN &&
+      jwtPayload.role !== RolesEnum.SUPER_ADMIN
     ) {
-      throw new ForbiddenException('You do not have permission to view this exam');
+      await this.organizationAccessService.assertCanMonitorExam(
+        exam,
+        jwtPayload.id,
+        orgContext,
+      );
     }
 
     return this.formatAuthorizedExamResponse(exam, {
@@ -1042,8 +1154,11 @@ export class ExamService {
   /**
    * Tests assigned to the student (class membership, specific_students list; not open "anyone" exams).
    */
-  async findAllAssignedForStudent(studentId: string): Promise<StudentAssignedExamListItem[]> {
-    const exams = await this.loadAssignedExamsForStudent(studentId);
+  async findAllAssignedForStudent(
+    studentId: string,
+    jwtPayload?: JwtPayloadInterface,
+  ): Promise<StudentAssignedExamListItem[]> {
+    const exams = await this.loadAssignedExamsForStudent(studentId, undefined, jwtPayload);
     return await this.mapStudentAssignedExamList(exams);
   }
 
@@ -1053,17 +1168,31 @@ export class ExamService {
   async findAssignedForStudentByClass(
     studentId: string,
     classId: string,
+    jwtPayload?: JwtPayloadInterface,
   ): Promise<StudentAssignedExamListItem[]> {
-    await this.assertStudentJoinedClass(studentId, classId);
-    const exams = await this.loadAssignedExamsForStudent(studentId, classId);
+    await this.assertStudentJoinedClass(studentId, classId, jwtPayload);
+    const exams = await this.loadAssignedExamsForStudent(studentId, classId, jwtPayload);
     return await this.mapStudentAssignedExamList(exams);
   }
 
-  private async assertStudentJoinedClass(studentId: string, classId: string): Promise<void> {
+  private async assertStudentJoinedClass(
+    studentId: string,
+    classId: string,
+    jwtPayload?: JwtPayloadInterface,
+  ): Promise<void> {
     const classEntity = await this.classRepo.findOne({ where: { id: classId } });
     if (!classEntity) {
       throw new NotFoundException('Class not found');
     }
+
+    this.assertExamMatchesStudentWorkspace(
+      {
+        organization_id: classEntity.organization_id ?? null,
+        class: classEntity,
+        created_by: classEntity.teacher_id,
+      } as ExamEntity,
+      jwtPayload,
+    );
 
     const membership = await this.classStudentRepo.findOne({
       where: {
@@ -1081,6 +1210,7 @@ export class ExamService {
   private async loadAssignedExamsForStudent(
     studentId: string,
     classId?: string,
+    jwtPayload?: JwtPayloadInterface,
   ): Promise<ExamEntity[]> {
     const byId = new Map<string, ExamEntity>();
 
@@ -1093,6 +1223,8 @@ export class ExamService {
         { studentId, status: ClassStudentStatusEnum.JOINED },
       )
       .select(['class.id']);
+
+    this.applyStudentWorkspaceScopeToClassQuery(classQuery, jwtPayload);
 
     if (classId) {
       classQuery.andWhere('class.id = :classId', { classId });
@@ -1127,6 +1259,7 @@ export class ExamService {
         .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
         .where('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
         .orderBy('exam.exam_start_time', 'DESC');
+      this.applyStudentWorkspaceScopeToExamQuery(targetQuery, jwtPayload);
       const targetExams = await targetQuery.getMany();
       targetExams.forEach((e) => byId.set(e.id, e));
     }
@@ -1135,6 +1268,68 @@ export class ExamService {
       (a, b) =>
         new Date(b.exam_start_time).getTime() - new Date(a.exam_start_time).getTime(),
     );
+  }
+
+  private applyStudentWorkspaceScopeToClassQuery(
+    qb: any,
+    jwtPayload?: JwtPayloadInterface,
+  ): void {
+    if (jwtPayload?.session_mode === 'organization' && jwtPayload.organization_id) {
+      qb.andWhere('class.organization_id = :studentScopeOrgId', {
+        studentScopeOrgId: jwtPayload.organization_id,
+      });
+      return;
+    }
+
+    if (jwtPayload?.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
+      qb.andWhere('class.organization_id IS NULL').andWhere('class.teacher_id = :studentScopeTeacherId', {
+        studentScopeTeacherId: jwtPayload.teacher_id,
+      });
+    }
+  }
+
+  private applyStudentWorkspaceScopeToExamQuery(
+    qb: any,
+    jwtPayload?: JwtPayloadInterface,
+  ): void {
+    if (jwtPayload?.session_mode === 'organization' && jwtPayload.organization_id) {
+      qb.andWhere('exam.organization_id = :studentScopeOrgId', {
+        studentScopeOrgId: jwtPayload.organization_id,
+      });
+      return;
+    }
+
+    if (jwtPayload?.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
+      qb.andWhere('exam.organization_id IS NULL').andWhere(
+        '(class.teacher_id = :studentScopeTeacherId OR exam.created_by = :studentScopeTeacherId)',
+        {
+          studentScopeTeacherId: jwtPayload.teacher_id,
+        },
+      );
+    }
+  }
+
+  private assertExamMatchesStudentWorkspace(
+    exam: Pick<ExamEntity, 'organization_id' | 'created_by'> & { class?: Pick<ClassEntity, 'teacher_id'> | null },
+    jwtPayload?: JwtPayloadInterface,
+  ): void {
+    if (!jwtPayload) {
+      return;
+    }
+
+    if (jwtPayload.session_mode === 'organization' && jwtPayload.organization_id) {
+      if (exam.organization_id !== jwtPayload.organization_id) {
+        throw new ForbiddenException('This exam is outside your selected workspace');
+      }
+      return;
+    }
+
+    if (jwtPayload.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
+      const teacherId = exam.class?.teacher_id ?? exam.created_by ?? null;
+      if (exam.organization_id || teacherId !== jwtPayload.teacher_id) {
+        throw new ForbiddenException('This exam is outside your selected workspace');
+      }
+    }
   }
 
   private async mapStudentAssignedExamList(
@@ -1779,16 +1974,27 @@ export class ExamService {
     id: string,
     dto: CreateExamWizardDto,
     jwtPayload: JwtPayloadInterface,
+    orgContext?: OrgContext | null,
   ): Promise<any> {
     const { formState, subjects, publishState } = dto;
 
     const existing = await this.findOneEntity(id);
 
     if (
-      jwtPayload.role === RolesEnum.TEACHER &&
-      existing.created_by !== jwtPayload.id
+      jwtPayload.role !== RolesEnum.ADMIN &&
+      jwtPayload.role !== RolesEnum.SUPER_ADMIN
     ) {
-      throw new ForbiddenException('You do not have permission to edit this exam');
+      await this.organizationAccessService.assertCanEditExam(existing, jwtPayload.id);
+    }
+
+    if (orgContext?.organizationId) {
+      if (existing.organization_id !== orgContext.organizationId) {
+        throw new ForbiddenException('Exam does not belong to the current organization context');
+      }
+    } else if (existing.organization_id) {
+      throw new ForbiddenException(
+        'This exam belongs to an organization. Provide X-Organization-Id.',
+      );
     }
 
     this.assertExamEditableBeforeStart(existing);
@@ -1865,7 +2071,14 @@ export class ExamService {
     const isModelTest = Boolean(formState.isModelTest);
     const primarySubjectId = isModelTest ? null : subjects[0].id;
 
-    if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS) {
+    if (orgContext?.organizationId) {
+      await this.assertOrgWizardClassAndSubject(
+        jwtPayload,
+        orgContext,
+        publishState,
+        primarySubjectId,
+      );
+    } else if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS) {
       if (!publishState.selectedClassId) {
         throw new BadRequestException('selectedClassId is required when test audience is selected_class');
       }
@@ -2114,15 +2327,15 @@ export class ExamService {
     examId: string,
     studentIds: string[],
     jwtPayload: JwtPayloadInterface,
+    orgContext?: OrgContext | null,
   ): Promise<any> {
     const exam = await this.findOneEntity(examId);
 
     if (
-      exam.created_by !== jwtPayload.id &&
       jwtPayload.role !== RolesEnum.ADMIN &&
       jwtPayload.role !== RolesEnum.SUPER_ADMIN
     ) {
-      throw new ForbiddenException('You do not have permission to update this exam');
+      await this.organizationAccessService.assertCanEditExam(exam, jwtPayload.id);
     }
 
     const students = await this.userRepo.find({
@@ -2132,18 +2345,21 @@ export class ExamService {
     exam.excluded_students = students;
     await this.examRepo.save(exam);
 
-    return this.findOne(examId, jwtPayload);
+    return this.findOne(examId, jwtPayload, orgContext);
   }
 
-  async delete(id: string, jwtPayload: JwtPayloadInterface): Promise<void> {
+  async delete(
+    id: string,
+    jwtPayload: JwtPayloadInterface,
+    _orgContext?: OrgContext | null,
+  ): Promise<void> {
     const exam = await this.findOneEntity(id);
 
     if (
-      exam.created_by !== jwtPayload.id &&
       jwtPayload.role !== RolesEnum.ADMIN &&
       jwtPayload.role !== RolesEnum.SUPER_ADMIN
     ) {
-      throw new ForbiddenException('You do not have permission to delete this exam');
+      await this.organizationAccessService.assertCanEditExam(exam, jwtPayload.id);
     }
 
     await this.examRepo.remove(exam);
@@ -2156,6 +2372,7 @@ export class ExamService {
   async getGradingList(
     jwtPayload: JwtPayloadInterface,
     query: GradingListQueryDto,
+    orgContext?: OrgContext | null,
   ): Promise<{ items: Record<string, unknown>[]; meta: Record<string, number> }> {
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(50, Math.max(1, query.limit ?? 10));
@@ -2168,8 +2385,20 @@ export class ExamService {
       .leftJoinAndSelect('exam.questionSections', 'questionSections')
       .leftJoinAndSelect('questionSections.questions', 'sectionQuestions')
       .leftJoinAndSelect('exam.questions', 'questions')
-      .where('exam.created_by = :teacherId', { teacherId: jwtPayload.id })
       .andWhere('exam.exam_end_time < :now', { now });
+
+    if (orgContext?.organizationId) {
+      await this.organizationAccessService.requireApprovedMember(
+        orgContext.organizationId,
+        jwtPayload.id,
+      );
+      // Only creator can grade — list only own exams even for OWNER/ADMIN
+      qb.andWhere('exam.organization_id = :orgId', { orgId: orgContext.organizationId });
+      qb.andWhere('exam.created_by = :teacherId', { teacherId: jwtPayload.id });
+    } else {
+      qb.andWhere('exam.created_by = :teacherId', { teacherId: jwtPayload.id });
+      qb.andWhere('exam.organization_id IS NULL');
+    }
 
     if (query.search?.trim()) {
       const term = `%${query.search.trim()}%`;

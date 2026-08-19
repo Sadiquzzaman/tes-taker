@@ -2,9 +2,11 @@ import axiosReq from "@/lib/axios";
 import { AxiosError, AxiosResponse } from "axios";
 import { useCallback, useEffect, useState } from "react";
 import { useApiError } from "../useApiError";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 
 const useGetStudentClassList = () => {
   const { handleError } = useApiError();
+  const { workspace, sessionMode, contextType, organizationId } = useWorkspace();
   const [loading, setLoading] = useState(false);
   const [apiComplete, setApiComplete] = useState(false);
   const [classList, setClassList] = useState<StudentClass[]>([]);
@@ -28,7 +30,7 @@ const useGetStudentClassList = () => {
         setLoading(false);
         setApiComplete(true);
       });
-  }, [handleError]);
+  }, [contextType, handleError, organizationId, sessionMode, workspace]);
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {

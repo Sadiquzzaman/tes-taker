@@ -1,7 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { clearAuthSession, getStoredUser, refreshAuthSession } from "./authSession";
+import { getActiveOrganizationId } from "./workspace";
 
-let axiosReq = axios.create({
+const axiosReq = axios.create({
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -15,6 +16,17 @@ axiosReq.interceptors.request.use(
       const token = user?.access_token ?? "";
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      }
+
+      const isOrgSession = user?.session_mode === "organization";
+      const organizationId = isOrgSession
+        ? user?.organization?.id ?? getActiveOrganizationId()
+        : null;
+
+      if (organizationId) {
+        config.headers["X-Organization-Id"] = organizationId;
+      } else if (config.headers) {
+        delete config.headers["X-Organization-Id"];
       }
     }
     return config;

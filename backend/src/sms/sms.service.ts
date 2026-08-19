@@ -75,7 +75,8 @@ export class SmsService {
     const otp = this.generateOtp();
     // Never log OTPs in production.
     if (process.env.NODE_ENV !== 'production') {
-      this.logger.debug(`Generated OTP: ${otp}`);
+      console.log(`[OTP] phone: ${phoneNumber} | otp: ${otp}`);
+      this.logger.log(`[OTP] phone: ${phoneNumber} | otp: ${otp}`);
     }
 
     

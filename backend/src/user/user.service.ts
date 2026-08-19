@@ -15,6 +15,8 @@ import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { UserEntity } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'crypto';
+import { PublicIdService } from 'src/common/services/public-id.service';
+import { normalizeEmail, normalizePhone } from 'src/common/utils/contact.util';
 
 type AdminUserListMeta = {
   page: number;
@@ -48,17 +50,22 @@ export class UserService implements OnModuleInit {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly publicIdService: PublicIdService,
   ) {}
 
   async onModuleInit(): Promise<void> {
     await this.seedDefaultAdminIfMissing();
+    await this.ensureSuperAdminExists();
   }
 
   /**
-   * Ensures at least one ADMIN exists after boot.
+   * Ensures at least one SUPER_ADMIN exists after boot.
    * Env: ADMIN_NAME, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_PHONE
    * Dev defaults (only when env vars are missing):
    *   name=Admin, email=admin@testtaker.local, password=Admin@12345, phone=ADMIN00000001
+   *
+   * Organization approval requires SUPER_ADMIN. Prefer seeding SUPER_ADMIN so the
+   * admin portal shows Organizations without a manual role change.
    */
   private async seedDefaultAdminIfMissing(): Promise<void> {
     const existingAdmin = await this.userRepository.findOne({
@@ -79,18 +86,18 @@ export class UserService implements OnModuleInit {
 
     const existingByEmail = await this.findByEmail(email);
     if (existingByEmail) {
-      existingByEmail.role = RolesEnum.ADMIN;
+      existingByEmail.role = RolesEnum.SUPER_ADMIN;
       existingByEmail.is_otp_verified = true;
       existingByEmail.is_verified = true;
       existingByEmail.is_active = ActiveStatusEnum.ACTIVE;
       await this.userRepository.save(existingByEmail);
-      this.logger.log(`Promoted existing user ${email} to ADMIN (no admin was present)`);
+      this.logger.log(`Promoted existing user ${email} to SUPER_ADMIN (no admin was present)`);
       return;
     }
 
     const existingByPhone = await this.findByPhone(phone);
     if (existingByPhone) {
-      existingByPhone.role = RolesEnum.ADMIN;
+      existingByPhone.role = RolesEnum.SUPER_ADMIN;
       existingByPhone.is_otp_verified = true;
       existingByPhone.is_verified = true;
       existingByPhone.is_active = ActiveStatusEnum.ACTIVE;
@@ -98,7 +105,7 @@ export class UserService implements OnModuleInit {
         existingByPhone.email = email;
       }
       await this.userRepository.save(existingByPhone);
-      this.logger.log(`Promoted existing user with phone ${phone} to ADMIN (no admin was present)`);
+      this.logger.log(`Promoted existing user with phone ${phone} to SUPER_ADMIN (no admin was present)`);
       return;
     }
 
@@ -110,7 +117,7 @@ export class UserService implements OnModuleInit {
       email,
       phone,
       password: hashedPassword,
-      role: RolesEnum.ADMIN,
+      role: RolesEnum.SUPER_ADMIN,
       is_otp_verified: true,
       is_verified: true,
       is_active: ActiveStatusEnum.ACTIVE,
@@ -119,7 +126,42 @@ export class UserService implements OnModuleInit {
     });
 
     this.logger.warn(
-      `Seeded default ADMIN user (${email}). Change ADMIN_PASSWORD immediately in production.`,
+      `Seeded default SUPER_ADMIN user (${email}). Change ADMIN_PASSWORD immediately in production.`,
+    );
+  }
+
+  /**
+   * If the DB was seeded earlier as ADMIN only, promote the default admin account
+   * so organization approval is available in the portal.
+   */
+  private async ensureSuperAdminExists(): Promise<void> {
+    const existingSuperAdmin = await this.userRepository.findOne({
+      where: { role: RolesEnum.SUPER_ADMIN },
+    });
+    if (existingSuperAdmin) {
+      return;
+    }
+
+    const email =
+      this.configService.get<string>('ADMIN_EMAIL')?.trim().toLowerCase() || 'admin@testtaker.local';
+    const phone = this.configService.get<string>('ADMIN_PHONE')?.trim() || 'ADMIN00000001';
+
+    let candidate =
+      (await this.findByEmail(email)) ||
+      (await this.findByPhone(phone)) ||
+      (await this.userRepository.findOne({ where: { role: RolesEnum.ADMIN } }));
+
+    if (!candidate) {
+      return;
+    }
+
+    candidate.role = RolesEnum.SUPER_ADMIN;
+    candidate.is_otp_verified = true;
+    candidate.is_verified = true;
+    candidate.is_active = ActiveStatusEnum.ACTIVE;
+    await this.userRepository.save(candidate);
+    this.logger.warn(
+      `Promoted ${candidate.email || candidate.phone} to SUPER_ADMIN so organization approval is available.`,
     );
   }
 
@@ -143,19 +185,91 @@ export class UserService implements OnModuleInit {
     // on first login, but we never persist a weak or plaintext value.
     const refreshTokenHash = this.refreshTokenUtil.generate().hash;
 
+    const studentPublicId =
+      registerUserDto.role === RolesEnum.STUDENT || !registerUserDto.role
+        ? await this.publicIdService.nextStudentPublicId()
+        : registerUserDto.student_public_id ?? null;
+    const teacherPublicId =
+      registerUserDto.role === RolesEnum.TEACHER || registerUserDto.ensure_teacher_public_id
+        ? await this.publicIdService.nextTeacherPublicId()
+        : null;
+
+    const {
+      confirm_password: _confirm,
+      ensure_teacher_public_id: _ensureTeacher,
+      personal_teacher_enabled: personalTeacherFlag,
+      student_public_id: _studentPid,
+      ...rest
+    } = registerUserDto;
+
     const userEntity = {
-      ...registerUserDto,
+      ...rest,
       verification_token: verificationToken,
       is_active: registerUserDto.is_active || ActiveStatusEnum.ACTIVE,
       refresh_token: refreshTokenHash,
       is_otp_verified: registerUserDto.is_otp_verified || false,
       is_verified: registerUserDto.is_verified || false,
+      personal_teacher_enabled: personalTeacherFlag === true,
+      public_id: null,
+      student_public_id: studentPublicId,
+      teacher_public_id: teacherPublicId,
       created_at: new Date(),
     };
 
     const user = await this.userRepository.save(userEntity);
     delete user.password;
     return user;
+  }
+
+  /**
+   * Ensure teacher public id exists without enabling personal teacher context.
+   * Used for org teachers/owners who need TEACHER platform role for RolesGuard.
+   */
+  async ensureTeacherCapability(userId: string, options?: { enablePersonal?: boolean }): Promise<UserEntity> {
+    const user = await this.findById(userId);
+    let changed = false;
+
+    if (user.role !== RolesEnum.TEACHER && user.role !== RolesEnum.ADMIN && user.role !== RolesEnum.SUPER_ADMIN) {
+      user.role = RolesEnum.TEACHER;
+      changed = true;
+    }
+
+    if (!user.teacher_public_id) {
+      user.teacher_public_id = await this.publicIdService.nextTeacherPublicId();
+      changed = true;
+    }
+
+    if (options?.enablePersonal && !user.personal_teacher_enabled) {
+      user.personal_teacher_enabled = true;
+      changed = true;
+    }
+
+    if (changed) {
+      return this.userRepository.save(user);
+    }
+    return user;
+  }
+
+  async enablePersonalTeacherContext(userId: string): Promise<UserEntity> {
+    const user = await this.ensureTeacherCapability(userId, { enablePersonal: true });
+    try {
+      await this.subscriptionService.provisionFreePlan(user.id, user.full_name ?? 'Teacher');
+    } catch (error) {
+      this.logger.error(
+        `Failed to provision free subscription for personal teacher: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    return user;
+  }
+
+  /** Ensure a stable numeric Student ID (1000001+) exists once per user. */
+  async ensureStudentPublicId(userId: string): Promise<UserEntity> {
+    const user = await this.findById(userId);
+    if (user.student_public_id) {
+      return user;
+    }
+    user.student_public_id = await this.publicIdService.nextStudentPublicId();
+    return this.userRepository.save(user);
   }
 
   generateVerificationToken(): string {
@@ -252,30 +366,77 @@ export class UserService implements OnModuleInit {
     });
   }
 
-  async generateTokenForUser(user: UserEntity): Promise<UserReponseDto> {
-    // Generate JWT token
-    const access_token = this.generateJwtToken(user);
+  async generateTokenForUser(
+    user: UserEntity,
+    orgSession?: {
+      organization_id: string;
+      organization_number: number;
+      member_role: string;
+      organization_name: string;
+      organization_status: string;
+    } | null,
+    options?: {
+      context_type?:
+        | 'personal_teacher'
+        | 'organization'
+        | 'individual_teacher'
+        | 'individual';
+      teacher_id?: string;
+    },
+  ): Promise<UserReponseDto> {
+    const contextType =
+      options?.context_type ??
+      (orgSession ? 'organization' : 'individual');
 
-    // Rotate the refresh token: a new opaque token is issued to the client and
-    // only its hash is stored, so a stolen/leaked DB row cannot be replayed.
+    const access_token = this.generateJwtToken(
+      user,
+      orgSession ?? null,
+      contextType,
+      options?.teacher_id,
+    );
+
     const { token, hash } = this.refreshTokenUtil.generate();
     user.refresh_token = hash;
     await user.save();
 
-    return { ...user, access_token, refresh_token: token };
+    const base: UserReponseDto = {
+      id: user.id,
+      full_name: user.full_name,
+      email: user.email,
+      phone: user.phone,
+      is_verified: user.is_verified,
+      role: user.role,
+      personal_teacher_enabled: Boolean(user.personal_teacher_enabled),
+      public_id: user.public_id ?? null,
+      teacher_public_id: user.teacher_public_id ?? null,
+      student_public_id: user.student_public_id ?? null,
+      context_type: contextType,
+      teacher_id: options?.teacher_id ?? null,
+      session_mode: orgSession ? 'organization' : 'individual',
+      organization: orgSession
+        ? {
+            id: orgSession.organization_id,
+            name: orgSession.organization_name,
+            organization_number: orgSession.organization_number,
+            role: orgSession.member_role,
+            status: orgSession.organization_status,
+          }
+        : null,
+      access_token,
+      refresh_token: token,
+    };
+
+    return base;
   }
 
-  async validateUserEmailPass(loginDto: LoginDto): Promise<UserReponseDto> {
-    // Check if user is trying to login with email or phone
+  async assertLoginCredentials(loginDto: Pick<LoginDto, 'phone' | 'email' | 'password'>): Promise<UserEntity> {
     let user: UserEntity | null;
-    
+
     if (loginDto.email && loginDto.email.includes('@')) {
-      // Login with email
       user = await this.userRepository.findOne({
         where: { email: loginDto.email.trim().toLowerCase() },
       });
     } else if (loginDto.phone) {
-      // Login with phone
       user = await this.userRepository.findOne({
         where: { phone: loginDto.phone },
       });
@@ -287,12 +448,10 @@ export class UserService implements OnModuleInit {
       throw new UnauthorizedException('Invalid login credentials');
     }
 
-    // Verify password
     if (!(await this.crypto.comparePassword(loginDto.password, user.password))) {
       throw new UnauthorizedException('Invalid login credentials');
     }
 
-    // Check if user is verified (OTP verified)
     if (!user.is_otp_verified || !user.is_verified) {
       throw new UnauthorizedException('Please verify your phone number with OTP before logging in');
     }
@@ -301,18 +460,86 @@ export class UserService implements OnModuleInit {
       throw new UnauthorizedException('Your account has been disabled. Please contact support.');
     }
 
-    // Generate token
-    return await this.generateTokenForUser(user);
+    return user;
   }
 
-  private generateJwtToken(user: UserEntity): string {
-    const payload = {
+  async validateUserEmailPass(loginDto: LoginDto): Promise<UserReponseDto> {
+    const user = await this.assertLoginCredentials(loginDto);
+    return this.generateTokenForUser(user, null);
+  }
+
+  async authenticateForOrganizationLogin(params: {
+    phone: string;
+    password: string;
+    organization_id: string;
+    organization_number: number;
+    member_role: string;
+    organization_name: string;
+    organization_status: string;
+  }): Promise<UserReponseDto> {
+    const user = await this.userRepository.findOne({
+      where: { phone: params.phone },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid login credentials');
+    }
+
+    if (!(await this.crypto.comparePassword(params.password, user.password))) {
+      throw new UnauthorizedException('Invalid login credentials');
+    }
+
+    if (!user.is_otp_verified || !user.is_verified) {
+      throw new UnauthorizedException('Please verify your phone number with OTP before logging in');
+    }
+
+    if (user.is_active === ActiveStatusEnum.INACTIVE) {
+      throw new UnauthorizedException('Your account has been disabled. Please contact support.');
+    }
+
+    return this.generateTokenForUser(user, {
+      organization_id: params.organization_id,
+      organization_number: params.organization_number,
+      member_role: params.member_role,
+      organization_name: params.organization_name,
+      organization_status: params.organization_status,
+    });
+  }
+
+  private generateJwtToken(
+    user: UserEntity,
+    orgSession?: {
+      organization_id: string;
+      organization_number: number;
+      member_role: string;
+    } | null,
+    contextType:
+      | 'personal_teacher'
+      | 'organization'
+      | 'individual_teacher'
+      | 'individual' = 'individual',
+    teacherId?: string,
+  ): string {
+    const payload: Record<string, unknown> = {
       id: user.id,
       email: user.email,
       full_name: user.full_name,
       role: user.role,
-      phone: user.phone
+      phone: user.phone,
+      personal_teacher_enabled: Boolean(user.personal_teacher_enabled),
+      context_type: contextType,
+      session_mode: orgSession ? 'organization' : 'individual',
     };
+
+    if (orgSession) {
+      payload.organization_id = orgSession.organization_id;
+      payload.organization_number = orgSession.organization_number;
+      payload.member_role = orgSession.member_role;
+    }
+
+    if (teacherId) {
+      payload.teacher_id = teacherId;
+    }
 
     const token = this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_SECRET'),
@@ -336,6 +563,55 @@ export class UserService implements OnModuleInit {
     }
 
     return await this.findByPhone(trimmed);
+  }
+
+  async findByTeacherPublicId(teacherPublicId: string): Promise<UserEntity | null> {
+    const trimmed = teacherPublicId.trim();
+    if (!trimmed) {
+      return null;
+    }
+    return this.userRepository.findOne({ where: { teacher_public_id: trimmed } });
+  }
+
+  async findByStudentPublicId(studentPublicId: string): Promise<UserEntity | null> {
+    const trimmed = studentPublicId.trim();
+    if (!trimmed) {
+      return null;
+    }
+    return this.userRepository.findOne({ where: { student_public_id: trimmed } });
+  }
+
+  /**
+   * Resolve a human-facing search value to a user:
+   * email → phone → teacher public ID → student public ID.
+   */
+  async findByContactOrPublicId(raw: string): Promise<UserEntity | null> {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    if (trimmed.includes('@')) {
+      const email = normalizeEmail(trimmed);
+      return email ? this.findByEmail(email) : null;
+    }
+
+    const byTeacher = await this.findByTeacherPublicId(trimmed);
+    if (byTeacher) {
+      return byTeacher;
+    }
+
+    const byStudent = await this.findByStudentPublicId(trimmed);
+    if (byStudent) {
+      return byStudent;
+    }
+
+    const phone = normalizePhone(trimmed);
+    if (phone) {
+      return this.findByPhone(phone);
+    }
+
+    return null;
   }
 
   async updatePassword(userId: string, newPassword: string): Promise<void> {
@@ -370,7 +646,31 @@ export class UserService implements OnModuleInit {
     await this.userRepository.save(user);
   }
 
-  async refreshAccessToken(refreshToken: string): Promise<UserReponseDto> {
+  async getUserFromValidRefreshToken(refreshToken: string): Promise<UserEntity> {
+    const verification = this.refreshTokenUtil.verify(refreshToken);
+    if (!verification.valid || verification.expired) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { refresh_token: this.refreshTokenUtil.hash(refreshToken) },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    if (user.is_active === ActiveStatusEnum.INACTIVE) {
+      throw new UnauthorizedException('Your account has been disabled. Please contact support.');
+    }
+
+    return user;
+  }
+
+  async refreshAccessToken(
+    refreshToken: string,
+    organizationId?: string | null,
+  ): Promise<UserReponseDto> {
     // Validate the signature/expiry before touching the database.
     const verification = this.refreshTokenUtil.verify(refreshToken);
     if (!verification.valid || verification.expired) {
@@ -390,7 +690,46 @@ export class UserService implements OnModuleInit {
       throw new UnauthorizedException('Your account has been disabled. Please contact support.');
     }
 
-    return this.generateTokenForUser(user);
+    if (!organizationId) {
+      return this.generateTokenForUser(user, null);
+    }
+
+    // Organization session refresh is handled by AuthService (needs OrganizationsService).
+    // Fallback: individual token if caller forgot org context.
+    return this.generateTokenForUser(user, null);
+  }
+
+  /**
+   * Refresh while preserving an organization session (membership re-checked by AuthService).
+   */
+  async refreshAccessTokenWithOrg(
+    refreshToken: string,
+    orgSession: {
+      organization_id: string;
+      organization_number: number;
+      member_role: string;
+      organization_name: string;
+      organization_status: string;
+    },
+  ): Promise<UserReponseDto> {
+    const verification = this.refreshTokenUtil.verify(refreshToken);
+    if (!verification.valid || verification.expired) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { refresh_token: this.refreshTokenUtil.hash(refreshToken) },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    if (user.is_active === ActiveStatusEnum.INACTIVE) {
+      throw new UnauthorizedException('Your account has been disabled. Please contact support.');
+    }
+
+    return this.generateTokenForUser(user, orgSession);
   }
 
   async getProfile(userId: string) {
@@ -402,6 +741,10 @@ export class UserService implements OnModuleInit {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      personal_teacher_enabled: Boolean(user.personal_teacher_enabled),
+      public_id: user.public_id ?? null,
+      teacher_public_id: user.teacher_public_id ?? null,
+      student_public_id: user.student_public_id ?? null,
       is_verified: user.is_verified,
       is_otp_verified: user.is_otp_verified,
       is_active: user.is_active,
@@ -523,6 +866,12 @@ export class UserService implements OnModuleInit {
     }
 
     user.role = role;
+    if (role === RolesEnum.TEACHER) {
+      user.personal_teacher_enabled = true;
+      if (!user.teacher_public_id) {
+        user.teacher_public_id = await this.publicIdService.nextTeacherPublicId();
+      }
+    }
     const savedUser = await this.userRepository.save(user);
 
     if (role === RolesEnum.TEACHER) {

@@ -8,13 +8,18 @@ interface SignUpInfo {
   confirm_password: string;
   email?: string;
   phone: string;
-  organization: string;
   agreed: boolean;
   role: UserRoleEnum;
 }
 
 interface LoginInfo {
   identifier: string;
+  password: string;
+}
+
+interface OrganizationLoginInfo {
+  organization_number: string;
+  phone: string;
   password: string;
 }
 
@@ -28,14 +33,19 @@ type LoginPayload =
       password: string;
     };
 
-type SignUpPageView = "signup" | "otp";
+type OrganizationLoginPayload = {
+  organization_number: string;
+  phone: string;
+  password: string;
+};
+
+type SignUpPageView = "choice" | "signup" | "otp";
 
 interface SignUpInfoFormProps {
   signUpInfo: SignUpInfo;
   formError: {
     full_name: string;
     email: string;
-    organization: string;
     phone: string;
     password: string;
     confirm_password: string;
@@ -44,6 +54,7 @@ interface SignUpInfoFormProps {
   loading: boolean;
   handleFieldChange: <K extends keyof SignUpInfo>(field: K, value: SignUpInfo[K]) => void;
   handleSignUp: () => void;
+  onBackToChoice?: () => void;
 }
 
 interface AuthInputProps {
@@ -61,4 +72,6 @@ type LoginResponsePayload = User & {
 
 interface VerifyCodeProps {
   value: string;
+  successTitle?: string;
+  successDescription?: string;
 }
