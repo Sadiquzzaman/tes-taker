@@ -7,8 +7,15 @@ const useRegister = () => {
   const [loading, setLoading] = useState(false);
 
   const mutate = async (registerParams: SignUpInfo) => {
-    const requestData: any = { ...registerParams };
-    if (!registerParams.email) delete requestData.email;
+    const requestData: Record<string, unknown> = {
+      full_name: registerParams.full_name,
+      phone: registerParams.phone,
+      password: registerParams.password,
+      confirm_password: registerParams.confirm_password,
+      role: registerParams.role,
+      request_teacher: Boolean(registerParams.request_teacher),
+    };
+    if (registerParams.email) requestData.email = registerParams.email;
 
     setLoading(true);
 

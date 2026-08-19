@@ -71,6 +71,7 @@ type ImportResultPayload = {
   imported: number;
   already_member: number;
   invitation_sent: number;
+  user_not_found?: number;
   invalid: number;
   duplicate: number;
   results: Array<{
@@ -79,6 +80,32 @@ type ImportResultPayload = {
     message: string;
   }>;
 };
+
+const importStatusLabel = (status: string) => {
+  switch (status) {
+    case "imported":
+    case "reactivated":
+      return "Successfully added";
+    case "already_member":
+      return "Already a member";
+    case "user_not_found":
+      return "User not found";
+    case "invalid":
+      return "Invalid phone number";
+    case "invitation_sent":
+      return "Invitation sent";
+    case "duplicate":
+      return "Duplicate in this list";
+    default:
+      return status;
+  }
+};
+
+const parsePhoneList = (raw: string) =>
+  raw
+    .split(/[\n,;]+/)
+    .map((value) => value.trim())
+    .filter(Boolean);
 
 const canManageMembers = (role?: OrganizationMemberRole) =>
   role === "OWNER" || role === "ADMIN";
@@ -124,6 +151,8 @@ const OrganizationMembersTable = ({
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importSummary, setImportSummary] = useState<ImportResultPayload | null>(null);
+  const [phoneList, setPhoneList] = useState("");
+  const [addingPhones, setAddingPhones] = useState(false);
 
   const canManage = allowManage && canManageMembers(activeOrganization?.role);
 
@@ -172,6 +201,7 @@ const OrganizationMembersTable = ({
     setQuery("");
     setLookup(null);
     setImportSummary(null);
+    setPhoneList("");
     setLookingUp(false);
     setSubmitting(false);
   };
@@ -299,6 +329,39 @@ const OrganizationMembersTable = ({
       handleError(error as AxiosError<ApiError>);
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handlePhoneListAdd = async () => {
+    if (!organizationId) return;
+    const identifiers = parsePhoneList(phoneList);
+    if (identifiers.length === 0) {
+      triggerToast({
+        title: "No phone numbers",
+        description: "Paste one phone number per line, then add them together.",
+        type: "error",
+      });
+      return;
+    }
+
+    setAddingPhones(true);
+    setImportSummary(null);
+    try {
+      const res = await axiosReq.post<ApiResponse<ImportResultPayload>>(
+        `${baseUrl}/organizations/${organizationId}/members/import`,
+        { identifiers, role: addRole, invite_missing: false },
+      );
+      setImportSummary(res.data?.payload ?? null);
+      triggerToast({
+        title: "Phone numbers processed",
+        description: `Added as ${addRole.toLowerCase()}. Review the result for each number.`,
+        type: "success",
+      });
+      await load();
+    } catch (error) {
+      handleError(error as AxiosError<ApiError>);
+    } finally {
+      setAddingPhones(false);
     }
   };
 
@@ -498,6 +561,30 @@ const OrganizationMembersTable = ({
             )}
 
             <div className="mt-6 border-t border-[#EFF0F3] pt-4">
+              <p className="text-[14px] font-medium text-[#232A25] mb-2">Add multiple phone numbers</p>
+              <p className="text-[13px] text-[#747775] mb-3">
+                Paste one Bangladeshi mobile number per line. All valid numbers will be added as{" "}
+                {addRole.toLowerCase()}s. Unknown numbers are reported as not found and are not invited.
+              </p>
+              <textarea
+                value={phoneList}
+                onChange={(e) => setPhoneList(e.target.value)}
+                rows={6}
+                placeholder={"017XXXXXXXX\n018XXXXXXXX\n019XXXXXXXX"}
+                className="w-full border border-[#EFF0F3] bg-white rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:border-[#49734F] font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => void handlePhoneListAdd()}
+                disabled={addingPhones}
+                className="mt-3 bg-[#49734F] text-white rounded-[8px] px-4 py-2 text-sm font-medium disabled:opacity-60 flex items-center"
+              >
+                <ButtonLoader show={addingPhones} w="w-4" h="h-4" mr="mr-2" />
+                {addingPhones ? "Adding..." : `Add phone numbers as ${addRole.toLowerCase()}`}
+              </button>
+            </div>
+
+            <div className="mt-6 border-t border-[#EFF0F3] pt-4">
               <p className="text-[14px] font-medium text-[#232A25] mb-2">Import from CSV</p>
               <p className="text-[13px] text-[#747775] mb-3">
                 One column of Teacher/Student ID, phone, or email. Row-level results are shown after import.
@@ -526,37 +613,37 @@ const OrganizationMembersTable = ({
                   Download demo CSV
                 </button>
               </div>
-
-              {importSummary && (
-                <div className="mt-4 text-sm">
-                  <p className="text-[#232A25] font-medium mb-2">
-                    Imported {importSummary.imported} · Already member {importSummary.already_member} ·
-                    Invited {importSummary.invitation_sent} · Invalid {importSummary.invalid} ·
-                    Duplicate {importSummary.duplicate}
-                  </p>
-                  <div className="max-h-48 overflow-auto rounded-[8px] border border-[#EFF0F3]">
-                    <table className="w-full">
-                      <thead className="bg-[#EFF0F3] text-left">
-                        <tr>
-                          <th className="p-2">Value</th>
-                          <th className="p-2">Status</th>
-                          <th className="p-2">Message</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {importSummary.results.map((row, index) => (
-                          <tr key={`${row.identifier}-${index}`} className="border-t border-[#F0F0F0]">
-                            <td className="p-2">{row.identifier || "—"}</td>
-                            <td className="p-2">{row.status}</td>
-                            <td className="p-2 text-[#747775]">{row.message}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
             </div>
+
+            {importSummary && (
+              <div className="mt-4 text-sm">
+                <p className="text-[#232A25] font-medium mb-2">
+                  Successfully added {importSummary.imported} · Already a member {importSummary.already_member} ·
+                  User not found {importSummary.user_not_found ?? 0} · Invalid {importSummary.invalid} ·
+                  Invitation sent {importSummary.invitation_sent} · Duplicate {importSummary.duplicate}
+                </p>
+                <div className="max-h-48 overflow-auto rounded-[8px] border border-[#EFF0F3]">
+                  <table className="w-full">
+                    <thead className="bg-[#EFF0F3] text-left">
+                      <tr>
+                        <th className="p-2">Value</th>
+                        <th className="p-2">Status</th>
+                        <th className="p-2">Message</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importSummary.results.map((row, index) => (
+                        <tr key={`${row.identifier}-${index}`} className="border-t border-[#F0F0F0]">
+                          <td className="p-2">{row.identifier || "—"}</td>
+                          <td className="p-2">{importStatusLabel(row.status)}</td>
+                          <td className="p-2 text-[#747775]">{row.message}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

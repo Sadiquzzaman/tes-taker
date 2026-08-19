@@ -15,6 +15,7 @@ import { ClassService } from 'src/classes/class.service';
 import { SubscriptionService } from 'src/subscriptions/subscription.service';
 import { OrganizationsService } from 'src/organizations/organization.service';
 import { UserContextService } from 'src/organizations/user-context.service';
+import { TeacherRequestService } from 'src/teacher-requests/teacher-request.service';
 import { SelectableContextTypeEnum } from 'src/organizations/dto/select-context.dto';
 import { UserReponseDto } from 'src/user/dto/user-response.dto';
 import { VerifyOtpDto } from 'src/sms/dto/sms.dto';
@@ -33,6 +34,7 @@ export class AuthService {
     private readonly subscriptionService: SubscriptionService,
     private readonly organizationsService: OrganizationsService,
     private readonly userContextService: UserContextService,
+    private readonly teacherRequestService: TeacherRequestService,
   ) {}
 
   async signUp(registerUserDto: RegisterUserDto) {
@@ -46,8 +48,11 @@ export class AuthService {
       throw new BadRequestException('Phone number is required for registration');
     }
 
-    // Self-service registration always creates a student account
+    // Self-service registration always creates a student account.
+    // Teacher signup only queues a pending teacher request for admin review.
+    const requestTeacher = Boolean(registerUserDto.request_teacher);
     registerUserDto.role = RolesEnum.STUDENT;
+    registerUserDto.request_teacher = undefined;
 
     // Check if user with this phone already exists
     const existingUser = await this.userService.findByPhone(registerUserDto.phone);
@@ -76,20 +81,31 @@ export class AuthService {
     }
 
     // Create user (unverified until OTP is verified)
-    await this.userService.create({ 
+    const user = await this.userService.create({ 
       ...registerUserDto, 
       is_otp_verified: false,
       is_verified: false 
     });
 
+    let teacherRequestCreated = false;
+    if (requestTeacher) {
+      await this.teacherRequestService.createRequest(user.id, {
+        note: 'Created during teacher signup',
+      });
+      teacherRequestCreated = true;
+    }
+
     return {
       success: true,
-      message: 'Registration successful. Please verify your phone number with the OTP sent.',
+      message: teacherRequestCreated
+        ? 'Registration successful. Verify your phone with the OTP. Your teacher request is pending admin approval.'
+        : 'Registration successful. Please verify your phone number with the OTP sent.',
       data: {
         phone: registerUserDto.phone,
         email: registerUserDto.email,
         otpSent: true,
         requiresPhoneVerification: true,
+        teacher_request_created: teacherRequestCreated,
       },
     };
   }

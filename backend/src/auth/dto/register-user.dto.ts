@@ -9,7 +9,8 @@ import {
   MaxLength, 
   Matches, 
   IsEnum, 
-  IsOptional
+  IsOptional,
+  IsBoolean
 } from 'class-validator';
 import { Exclude, Transform } from 'class-transformer';
 import { RolesEnum } from 'src/common/enums/roles.enum';
@@ -77,4 +78,14 @@ export class RegisterUserDto {
   @IsOptional()
   @IsEnum(RolesEnum, { message: 'Role type must be one of: SUPER_ADMIN, ADMIN, TEACHER, STUDENT' })
   role?: RolesEnum;
+
+  @ApiPropertyOptional({
+    description:
+      'If true, register as a student and create a pending teacher request. The user stays a student until an admin approves.',
+    default: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true' || value === 1 || value === '1')
+  @IsBoolean()
+  request_teacher?: boolean;
 }

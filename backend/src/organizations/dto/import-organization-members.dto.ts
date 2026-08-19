@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { OrganizationMemberRoleEnum } from '../enums/organization-member-role.enum';
 
@@ -32,4 +32,22 @@ export class ImportOrganizationMembersDto {
   @IsOptional()
   @IsEnum(OrganizationMemberRoleEnum)
   role?: OrganizationMemberRoleEnum;
+
+  @ApiPropertyOptional({
+    description:
+      'When false, missing users are reported as user_not_found and no invitation is sent. Defaults to true for CSV import.',
+    default: true,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === false || value === 'false' || value === 0 || value === '0') {
+      return false;
+    }
+    if (value === undefined || value === null || value === '') {
+      return true;
+    }
+    return value === true || value === 'true' || value === 1 || value === '1';
+  })
+  @IsBoolean()
+  invite_missing?: boolean;
 }

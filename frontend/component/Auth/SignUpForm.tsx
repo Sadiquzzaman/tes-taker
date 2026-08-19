@@ -11,6 +11,8 @@ const SignUpForm = () => {
     joinInfo,
     view,
     setView,
+    startStudentSignup,
+    startTeacherSignup,
     signUpInfo,
     formError,
     checkboxError,
@@ -27,7 +29,7 @@ const SignUpForm = () => {
         </h4>
       )}
       {view === "choice" ? (
-        <SignUpChoice onSelectStudent={() => setView("signup")} />
+        <SignUpChoice onSelectStudent={startStudentSignup} onSelectTeacher={startTeacherSignup} />
       ) : view === "signup" ? (
         <SignUpInfoForm
           signUpInfo={signUpInfo}
@@ -37,9 +39,22 @@ const SignUpForm = () => {
           handleFieldChange={handleFieldChange}
           handleSignUp={handleSignUp}
           onBackToChoice={() => setView("choice")}
+          title={signUpInfo.request_teacher ? "Teacher Sign Up" : "Student Sign Up"}
+          description={
+            signUpInfo.request_teacher
+              ? "You will register as a student first. After an administrator approves your teacher request, you will receive teacher permissions."
+              : undefined
+          }
         />
       ) : (
-        <VerifyCode value={signUpInfo.phone} />
+        <VerifyCode
+          value={signUpInfo.phone}
+          successDescription={
+            signUpInfo.request_teacher
+              ? "Your teacher request is pending admin approval. You can sign in as a student until it is approved."
+              : undefined
+          }
+        />
       )}
       <p className="mt-4 text-center text-[#747775] text-[16px]">
         Already have an account?{" "}

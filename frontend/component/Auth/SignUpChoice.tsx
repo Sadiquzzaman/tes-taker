@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 
-const SignUpChoice = ({ onSelectStudent }: { onSelectStudent: () => void }) => {
+const SignUpChoice = ({
+  onSelectStudent,
+  onSelectTeacher,
+}: {
+  onSelectStudent: () => void;
+  onSelectTeacher: () => void;
+}) => {
   return (
     <div className="w-full max-w-[420px] mx-auto flex flex-col gap-8">
       <div className="flex flex-row justify-between items-center mb-2">
@@ -24,6 +30,17 @@ const SignUpChoice = ({ onSelectStudent }: { onSelectStudent: () => void }) => {
           <p className="text-[18px] font-semibold text-[#232A25]">Student</p>
           <p className="mt-1 text-[14px] text-[#747775]">
             Create a student account to join classes and take tests.
+          </p>
+        </button>
+
+        <button
+          type="button"
+          onClick={onSelectTeacher}
+          className="w-full text-left rounded-lg border border-[#E5E5E5] px-4 py-4 hover:border-[#49734F] transition"
+        >
+          <p className="text-[18px] font-semibold text-[#232A25]">Sign Up as Teacher</p>
+          <p className="mt-1 text-[14px] text-[#747775]">
+            Create an account and request teacher access. An admin must approve before you can teach.
           </p>
         </button>
 

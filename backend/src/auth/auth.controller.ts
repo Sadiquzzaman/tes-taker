@@ -35,7 +35,7 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register a new user',
-    description: 'Register a new user with phone number (required), password, and optional email. An OTP will be sent to the provided phone number for verification. The user must verify the OTP before they can login. If a user previously registered but did not verify OTP, they can register again with the same phone number.',
+    description: 'Register a new user with phone number (required), password, and optional email. An OTP will be sent to the provided phone number for verification. The user must verify the OTP before they can login. If a user previously registered but did not verify OTP, they can register again with the same phone number. Self-service always creates a STUDENT account. Set request_teacher=true to also create a pending teacher request for admin approval.',
   })
   @ApiBody({
     type: RegisterUserDto,

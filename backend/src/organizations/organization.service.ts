@@ -600,10 +600,18 @@ export class OrganizationsService {
     }
     await this.accessService.requireManageMemberRole(organizationId, actorUserId, role);
 
+    const inviteMissing = dto.invite_missing !== false;
     const seen = new Set<string>();
     const results: Array<{
       identifier: string;
-      status: 'imported' | 'already_member' | 'invitation_sent' | 'invalid' | 'duplicate' | 'reactivated';
+      status:
+        | 'imported'
+        | 'already_member'
+        | 'invitation_sent'
+        | 'invalid'
+        | 'duplicate'
+        | 'reactivated'
+        | 'user_not_found';
       message: string;
     }> = [];
 
@@ -613,8 +621,78 @@ export class OrganizationsService {
         results.push({
           identifier: raw ?? '',
           status: 'invalid',
-          message: 'Empty value',
+          message: inviteMissing ? 'Empty value' : 'Invalid phone number',
         });
+        continue;
+      }
+
+      if (!inviteMissing) {
+        const phone = normalizePhone(identifier);
+        if (!phone || !/^01[3-9]\d{8}$/.test(phone)) {
+          results.push({
+            identifier,
+            status: 'invalid',
+            message: 'Invalid phone number',
+          });
+          continue;
+        }
+
+        if (seen.has(phone)) {
+          results.push({
+            identifier: phone,
+            status: 'duplicate',
+            message: 'Duplicate phone number in this list',
+          });
+          continue;
+        }
+        seen.add(phone);
+
+        try {
+          const user = await this.userService.findByPhone(phone);
+          if (!user) {
+            results.push({
+              identifier: phone,
+              status: 'user_not_found',
+              message: 'User not found',
+            });
+            continue;
+          }
+
+          if (!user.is_otp_verified) {
+            results.push({
+              identifier: phone,
+              status: 'invalid',
+              message: 'User has not verified their account yet',
+            });
+            continue;
+          }
+
+          const existing = await this.accessService.getMembershipIncludingInactive(
+            organizationId,
+            user.id,
+          );
+          if (existing?.is_active === ActiveStatusEnum.ACTIVE) {
+            results.push({
+              identifier: phone,
+              status: 'already_member',
+              message: `Already an active ${existing.role.toLowerCase()}`,
+            });
+            continue;
+          }
+
+          await this.attachOrReactivateMember(organizationId, user, role, actorUserId);
+          results.push({
+            identifier: phone,
+            status: existing ? 'reactivated' : 'imported',
+            message: existing ? 'Previous membership restored' : 'Successfully added',
+          });
+        } catch (error) {
+          results.push({
+            identifier: phone,
+            status: 'invalid',
+            message: error instanceof Error ? error.message : 'Import failed for this row',
+          });
+        }
         continue;
       }
 
@@ -702,6 +780,7 @@ export class OrganizationsService {
       imported: results.filter((r) => r.status === 'imported' || r.status === 'reactivated').length,
       already_member: results.filter((r) => r.status === 'already_member').length,
       invitation_sent: results.filter((r) => r.status === 'invitation_sent').length,
+      user_not_found: results.filter((r) => r.status === 'user_not_found').length,
       invalid: results.filter((r) => r.status === 'invalid').length,
       duplicate: results.filter((r) => r.status === 'duplicate').length,
       results,

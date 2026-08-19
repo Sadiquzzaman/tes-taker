@@ -31,7 +31,7 @@ export class TeacherRequestService {
       : null;
   }
 
-  async createRequest(userId: string) {
+  async createRequest(userId: string, options?: { note?: string }) {
     const user = await this.userService.findById(userId);
 
     if (user.role !== RolesEnum.STUDENT) {
@@ -52,6 +52,7 @@ export class TeacherRequestService {
     const request = this.requestRepo.create({
       user_id: userId,
       status: TeacherRequestStatusEnum.PENDING,
+      note: options?.note?.trim() || null,
       created_by: userId,
       created_user_name: user.full_name,
       created_at: new Date(),

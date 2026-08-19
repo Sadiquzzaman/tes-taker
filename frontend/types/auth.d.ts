@@ -10,6 +10,7 @@ interface SignUpInfo {
   phone: string;
   agreed: boolean;
   role: UserRoleEnum;
+  request_teacher?: boolean;
 }
 
 interface LoginInfo {
@@ -55,6 +56,8 @@ interface SignUpInfoFormProps {
   handleFieldChange: <K extends keyof SignUpInfo>(field: K, value: SignUpInfo[K]) => void;
   handleSignUp: () => void;
   onBackToChoice?: () => void;
+  title?: string;
+  description?: string;
 }
 
 interface AuthInputProps {

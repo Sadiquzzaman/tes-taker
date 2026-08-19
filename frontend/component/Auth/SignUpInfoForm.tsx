@@ -10,12 +10,14 @@ const SignUpInfoForm = ({
   handleFieldChange,
   handleSignUp,
   onBackToChoice,
+  title = "Student Sign Up",
+  description,
 }: SignUpInfoFormProps) => {
   return (
     <div className="w-full max-w-[420px] mx-auto flex flex-col gap-8">
       <div className="flex flex-row justify-between items-center mb-2">
         <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
-          Student Sign Up
+          {title}
         </h2>
         <div className="flex gap-0.5 ml-2">
           <div className="w-4 h-1 rounded-[2px] bg-[#49734F]" />
@@ -30,6 +32,9 @@ const SignUpInfoForm = ({
         >
           Back to account type
         </button>
+      )}
+      {description && (
+        <p className="text-[#747775] text-[14px] leading-[20px] -mt-4">{description}</p>
       )}
       <div className="flex flex-col gap-3">
         <AuthInput
