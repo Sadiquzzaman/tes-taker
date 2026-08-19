@@ -10,6 +10,7 @@ import { setOpenShareClassModal } from "@/lib/features/classSlice";
 export const classTabList = [
   { name: "Student", value: "student" },
   { name: "Tests", value: "tests" },
+  { name: "Discussions", value: "discussions" },
 ];
 
 export default function useClassDetails(classId: string, role: RoleUserType | undefined) {

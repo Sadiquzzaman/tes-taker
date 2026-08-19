@@ -17,7 +17,9 @@
     "typeorm:prod": "typeorm -d dist/src/data-source.js",
     "migration:run:prod": "typeorm migration:run -d dist/src/data-source.js",
     "migration:revert:prod": "typeorm migration:revert -d dist/src/data-source.js",
-    "migration:show:prod": "typeorm migration:show -d dist/src/data-source.js"
+    "migration:show:prod": "typeorm migration:show -d dist/src/data-source.js",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "keywords": [],
   "author": "",
@@ -57,16 +59,20 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
     "@nestjs/schematics": "^11.0.7",
+    "@nestjs/testing": "^11.2.1",
     "@types/axios": "^0.14.4",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.3",
     "@types/ioredis": "^5.0.0",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.5.2",
     "@types/nodemailer": "^7.0.11",
     "@types/passport": "^1.0.17",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
     "@types/uuid": "^11.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
     "typescript": "^5"
   }

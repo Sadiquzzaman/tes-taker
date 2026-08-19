@@ -8,6 +8,13 @@ import { ClassSubjectTeacherEntity } from './entities/class-subject-teacher.enti
 import { ClassService } from './class.service';
 import { ClassController } from './class.controller';
 import { StudentClassController } from './student-class.controller';
+import { ClassDiscussionController } from './class-discussion.controller';
+import { ClassDiscussionService } from './class-discussion.service';
+import { DiscussionAccessService } from './discussion-access.service';
+import { ClassDiscussionPostEntity } from './entities/class-discussion-post.entity';
+import { ClassDiscussionCommentEntity } from './entities/class-discussion-comment.entity';
+import { ClassPrivateConversationEntity } from './entities/class-private-conversation.entity';
+import { ClassPrivateMessageEntity } from './entities/class-private-message.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { EmailModule } from 'src/email/email.module';
 import { SmsModule } from 'src/sms/sms.module';
@@ -23,6 +30,10 @@ import { OrganizationsModule } from 'src/organizations/organization.module';
       ClassTeacherEntity,
       ClassSubjectEntity,
       ClassSubjectTeacherEntity,
+      ClassDiscussionPostEntity,
+      ClassDiscussionCommentEntity,
+      ClassPrivateConversationEntity,
+      ClassPrivateMessageEntity,
       UserEntity,
       ExamEntity,
       SubjectEntity,
@@ -31,8 +42,8 @@ import { OrganizationsModule } from 'src/organizations/organization.module';
     SmsModule,
     OrganizationsModule,
   ],
-  controllers: [ClassController, StudentClassController],
-  providers: [ClassService],
+  controllers: [ClassController, StudentClassController, ClassDiscussionController],
+  providers: [ClassService, ClassDiscussionService, DiscussionAccessService],
   exports: [ClassService],
 })
 export class ClassModule {}

@@ -46,7 +46,19 @@ export class OrganizationAccessService {
       .innerJoin('cst.classSubject', 'classSubject')
       .where('cst.teacher_id = :userId', { userId })
       .andWhere('classSubject.class_id = :classId', { classId })
+      .andWhere('cst.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
       .getOne();
+    return Boolean(assignment);
+  }
+
+  async isAssignedToClassSubject(userId: string, classSubjectId: string): Promise<boolean> {
+    const assignment = await this.classSubjectTeacherRepo.findOne({
+      where: {
+        teacher_id: userId,
+        class_subject_id: classSubjectId,
+        is_active: ActiveStatusEnum.ACTIVE,
+      },
+    });
     return Boolean(assignment);
   }
 

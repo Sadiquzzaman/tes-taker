@@ -8,6 +8,7 @@ import LeftArrowIconSVG from "../svg/LeftArrowIconSVG";
 import ClassStudent from "./ClassStudent";
 import ClassTests from "./ClassTests";
 import ClassSubjectsPanel from "./ClassSubjectsPanel";
+import ClassDiscussions from "./ClassDiscussions";
 import ShareClassModal from "./ShareClassModal";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 
@@ -97,6 +98,14 @@ const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleU
           )}
           {activeTab.value === "tests" && <ClassTests testList={testList} role={role} />}
           {activeTab.value === "subjects" && isOrgClass && isTeacher && <ClassSubjectsPanel classId={classId} />}
+          {activeTab.value === "discussions" && (
+            <ClassDiscussions
+              classId={classId}
+              className={classData?.class_name || ""}
+              role={role}
+              classStudents={classData?.classStudents || []}
+            />
+          )}
         </div>
       </div>
       <ShareClassModal />
