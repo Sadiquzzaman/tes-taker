@@ -32,4 +32,13 @@ interface UseDropDownArgs {
 
 interface DropDownComponentProps extends UseDropDownArgs {
   placeholder: string;
+  disabled?: boolean;
+}
+
+interface SearchableMultiSelectProps {
+  values: string[];
+  handleChange: (values: string[]) => void;
+  list: DropDownOption[];
+  placeholder: string;
+  maxOuputInDropdownList?: number;
 }

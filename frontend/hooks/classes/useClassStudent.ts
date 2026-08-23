@@ -49,8 +49,14 @@ export default function useClassStudent({
         const fullName = item.student?.full_name?.toLowerCase() || "";
         const email = item.student?.email || item.invited_email || "";
         const phone = item.student?.phone || item.invited_phone || "";
+        const studentPublicId = item.student?.student_public_id || "";
 
-        return fullName.includes(searchTerm) || email.toLowerCase().includes(searchTerm) || phone.includes(searchTerm);
+        return (
+          fullName.includes(searchTerm) ||
+          email.toLowerCase().includes(searchTerm) ||
+          phone.includes(searchTerm) ||
+          studentPublicId.includes(searchTerm)
+        );
       });
 
       return {
@@ -85,8 +91,11 @@ export default function useClassStudent({
   const [removeStudentFromClass] = useRemoveStudentFromClass({ classId });
   const [approveStudent] = useApproveStudent({ classId });
 
-  const handleRemoveStudent = (studentId: string) => {
-    removeStudentFromClass({ student_ids: [studentId] }).then((res) => {
+  const handleRemoveStudent = (item: ClassStudent) => {
+    const targetId = item.student_id || item.id;
+    if (!targetId) return;
+
+    removeStudentFromClass({ student_ids: [targetId] }).then((res) => {
       if (res?.statusCode === 200) fetch();
     });
   };

@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 const OTP_TIME = 60;
 const length = 6;
 
-export const useVerifyCode = (value: string) => {
+export const useVerifyCode = (
+  value: string,
+  options?: { successTitle?: string; successDescription?: string },
+) => {
   const router = useRouter();
   const { triggerToast } = useToast();
   const [formError, setFormError] = useState("");
@@ -134,9 +137,17 @@ export const useVerifyCode = (value: string) => {
         },
       );
       setLoading(false);
+      const orgNumber = response.data?.payload?.data?.organization?.organization_number;
+      const defaultOrgDescription = orgNumber
+        ? `Your organization number is ${orgNumber}. It is awaiting SUPER_ADMIN approval. Sign in with your phone and password after approval.`
+        : options?.successDescription;
+
       triggerToast({
-        title: "Code Verified",
-        description: response.data?.message || "OTP verified successfully.",
+        title: options?.successTitle || "Code Verified",
+        description:
+          defaultOrgDescription ||
+          response.data?.message ||
+          "OTP verified successfully.",
         type: "success",
       });
 

@@ -13,16 +13,15 @@ export const useLoginForm = () => {
     identifier: "",
     password: "",
   });
-  const [loginUser, { loading }] = useLogin();
+  const [loginUser, , { loading }] = useLogin();
 
-  const handleFieldChange = (field: keyof LoginInfo, value: string) => {
+  const handleFieldChange = (field: "identifier" | "password", value: string) => {
     setFormError((prev) => ({ ...prev, [field]: "" }));
     setLoginInfo((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleLoginSendCode = () => {
+  const handleSubmit = () => {
     const errors = validateLoginForm(loginInfo);
-
     if (errors.identifier || errors.password) {
       setFormError({
         identifier: errors.identifier || "",
@@ -33,12 +32,12 @@ export const useLoginForm = () => {
 
     setFormError({ identifier: "", password: "" });
 
-    const value = loginInfo.identifier.trim();
-    const isEmail = value.includes("@");
-
-    loginUser(
-      isEmail ? { email: value, password: loginInfo.password } : { phone: value, password: loginInfo.password },
-    );
+    const identifier = loginInfo.identifier.trim();
+    if (identifier.includes("@")) {
+      loginUser({ email: identifier.toLowerCase(), password: loginInfo.password });
+    } else {
+      loginUser({ phone: identifier, password: loginInfo.password });
+    }
   };
 
   return {
@@ -47,7 +46,7 @@ export const useLoginForm = () => {
     loading,
     joinInfo,
     handleFieldChange,
-    handleLoginSendCode,
+    handleSubmit,
   };
 };
 

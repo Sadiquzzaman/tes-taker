@@ -7,12 +7,19 @@ import Link from "next/link";
 import LeftArrowIconSVG from "../svg/LeftArrowIconSVG";
 import ClassStudent from "./ClassStudent";
 import ClassTests from "./ClassTests";
+import ClassSubjectsPanel from "./ClassSubjectsPanel";
+import ClassDiscussions from "./ClassDiscussions";
 import ShareClassModal from "./ShareClassModal";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 
 const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleUserType | undefined }) => {
   const { loading, classData, fetch, apiComplete, testList, activeTab, setActiveTab, handleShareClass } =
     useClassDetails(classId, role);
+  const { isIndividual } = useWorkspace();
   const isTeacher = role === "TEACHER";
+  const isOrgClass = Boolean(classData?.organization_id);
+  const classesHref = isIndividual ? "/classes" : "/organization/classes";
+  const tabs = isOrgClass && isTeacher ? [...classTabList, { name: "Subjects", value: "subjects" }] : classTabList;
 
   if (loading) {
     return (
@@ -48,7 +55,7 @@ const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleU
     <>
       <div className="sm:mt-2 mb-2 sm:mb-4 flex flex-col gap-2 sm:gap-4 min-h-[40px]">
         <div className="flex justify-between items-center w-full">
-          <Link href="/classes" className="flex justify-end items-center gap-2 h-[40px]">
+          <Link href={classesHref} className="flex justify-end items-center gap-2 h-[40px]">
             <button className="border border-[#E5E5E5] rounded-[43px] flex items-center justify-center gap-2 w-[128px] sm:w-[158px] h-[32px] sm:h-[40px] font-[500] text-[#747775] font-[500] text-[12px] sm:text-[14px]">
               <LeftArrowIconSVG width={16} />
               <span className="capitalize mb-[2px]">Back to Classes</span>
@@ -70,7 +77,7 @@ const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleU
         <p className="py-2 font-[600] text-[32px] leading-[32px] tracking-[-0.04em]">{classData?.class_name || ""}</p>
         <div className="flex flex-col sm:flex-row justify-start sm:justify-between items-start sm:items-center w-full min-h-10 mb-2">
           <div className="flex w-fit rounded-md bg-gray-100 p-0.5">
-            {classTabList.map((tab) => (
+            {tabs.map((tab) => (
               <button
                 key={tab.value}
                 className={`px-4 py-2 text-sm rounded leading-[20px] tracking-[-0.02em] ${
@@ -90,6 +97,15 @@ const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleU
             <ClassStudent classId={classId} student={classData?.classStudents || []} fetch={fetch} role={role} />
           )}
           {activeTab.value === "tests" && <ClassTests testList={testList} role={role} />}
+          {activeTab.value === "subjects" && isOrgClass && isTeacher && <ClassSubjectsPanel classId={classId} />}
+          {activeTab.value === "discussions" && (
+            <ClassDiscussions
+              classId={classId}
+              className={classData?.class_name || ""}
+              role={role}
+              classStudents={classData?.classStudents || []}
+            />
+          )}
         </div>
       </div>
       <ShareClassModal />

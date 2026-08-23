@@ -58,7 +58,7 @@ const AddStudentModal = ({ fetchClassDetails }: { fetchClassDetails: () => void 
               Enter student email or phone
             </p>
             <TagInput
-              placeholder="Enter student email or phone"
+              placeholder="Enter student email, phone, or Student ID"
               inputClassName="px-2"
               afterIcon={null}
               value={value}

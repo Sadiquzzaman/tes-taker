@@ -24,6 +24,7 @@ Services:
 | backend   | tasktaker-backend    | `127.0.0.1:4000`    | via reverse proxy |
 | postgres  | tasktaker-postgres   | internal only       | no      |
 | redis     | tasktaker-redis      | internal only       | no      |
+| mongodb   | tasktaker-mongodb    | internal only       | no      |
 | pgadmin   | tasktaker-pgadmin    | `127.0.0.1:5050`    | no      |
 
 All ports are bound to `127.0.0.1`, so nothing is reachable from the internet

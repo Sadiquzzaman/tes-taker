@@ -3,6 +3,7 @@ import CrossIconSVG from "@/component/svg/CrossIconSVG";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import AddQuestionSubjectModal from "./AddQuestionSubjectModal";
 import RemoveSubjectConfirmationModal from "./RemoveSubjectConfirmationModal";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 
 const QuestionSubjectTabs = memo(
   ({
@@ -15,6 +16,7 @@ const QuestionSubjectTabs = memo(
   }: QuestionSubjectTabsProps) => {
     const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
     const [subjectPendingRemoval, setSubjectPendingRemoval] = useState<Pick<SubjectItem, "id" | "name"> | null>(null);
+    const { isIndividual } = useWorkspace();
     const subjectScrollRef = useRef<HTMLDivElement>(null);
     const subjectButtonRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const isSubjectScrollDragging = useRef(false);
@@ -109,6 +111,7 @@ const QuestionSubjectTabs = memo(
                   }`}
                 >
                   {subject.name}
+                  {isIndividual && (
                   <button
                     type="button"
                     className={`ml-2 flex h-4 w-4 items-center justify-center rounded-full border ${
@@ -125,10 +128,12 @@ const QuestionSubjectTabs = memo(
                   >
                     <CrossIconSVG />
                   </button>
+                  )}
                 </div>
               );
             })}
           </div>
+          {isIndividual && (
           <button
             type="button"
             onClick={() => setIsAddSubjectModalOpen(true)}
@@ -137,6 +142,7 @@ const QuestionSubjectTabs = memo(
             <PlusIcon />
             <span className="ml-1">Add Subject</span>
           </button>
+          )}
         </div>
 
         <AddQuestionSubjectModal

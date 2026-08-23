@@ -6,6 +6,8 @@ import PlayIconSVG from "../svg/PlayIconSVG";
 import ShareIconSVG from "../svg/ShareIconSVG";
 import { setNewTestCreated } from "@/lib/features/testSlice";
 import useDownloadExamQuestions from "@/hooks/api/exam/useDownloadExamQuestions";
+import { getStoredUser } from "@/lib/authSession";
+import Link from "next/link";
 import {
   getTestAudienceLabel,
   getTestCounts,
@@ -42,6 +44,12 @@ const TestCard = ({
   const { startAt, endAt } = getTestScheduleRange(testData);
   const isStudent = role === "STUDENT";
   const isTeacher = role === "TEACHER";
+  const currentUserId = getStoredUser()?.id;
+  const canGradeTest =
+    isTeacher &&
+    isTeacherExamListItem(testData) &&
+    Boolean(currentUserId) &&
+    testData.created_by === currentUserId;
   const canStudentDownload = Boolean(endAt && Date.now() > new Date(endAt).getTime());
   const showDownload = isTeacher || (isStudent && canStudentDownload);
   const submissionProgress = participantCount > 0 ? (submittedCount / participantCount) * 100 : 0;
@@ -198,6 +206,16 @@ const TestCard = ({
               <DownloadIconSVG width={16} />
             </button>
           ) : null}
+
+          {canGradeTest && (
+            <Link
+              href={`/grading/details/${testData.id}`}
+              onClick={(event) => event.stopPropagation()}
+              className="px-3 py-2 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] rounded-lg bg-[#232A25] text-white hover:bg-[#3f6244]"
+            >
+              Grade Test
+            </Link>
+          )}
 
           {isStudentOngoingTest ? (
             <button

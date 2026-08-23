@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import useClassStudent from "@/hooks/classes/useClassStudent";
 import dayjs from "dayjs";
 import SortIconSVG from "../svg/SortIconSVG";
@@ -11,6 +12,7 @@ import AddStudentModal from "./AddStudentModal";
 import { setOpenAddStudentModal } from "@/lib/features/classSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { InvitedBadge, JoinedBadge } from "./StudentBadges";
+import { getClassStudentContact, getClassStudentDisplayName } from "@/utils/classes/classStudentDisplay";
 
 const ClassStudent = ({
   student,
@@ -27,6 +29,20 @@ const ClassStudent = ({
   const isTeacher = role === "TEACHER";
   const { searchStudentInput, setSearchStudentInput, filteredStudent, handleRemoveStudent, handleApproveStudent } =
     useClassStudent({ student, classId, fetch, role });
+  const [viewingStudent, setViewingStudent] = useState<ClassStudent | null>(null);
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const actionMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
+        setOpenActionId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <div className="p-2 sm:p-4 bg-white rounded-[8px] h-full">
@@ -77,8 +93,8 @@ const ClassStudent = ({
                     key={item.id}
                     className="text-left font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775] border-b border-[#EFF0F3] h-10"
                   >
-                    <td className="p-2 whitespace-nowrap">{item.student?.full_name || "N/A"}</td>
-                    <td className="p-2 whitespace-nowrap">{item.student?.email || item.student?.phone || "N/A"}</td>
+                    <td className="p-2 whitespace-nowrap">{getClassStudentDisplayName(item)}</td>
+                    <td className="p-2 whitespace-nowrap">{getClassStudentContact(item)}</td>
                     <td className="p-2 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <button
@@ -88,7 +104,7 @@ const ClassStudent = ({
                           <TickSignIconSVG />
                         </button>
                         <button
-                          onClick={() => handleRemoveStudent(item.student_id)}
+                          onClick={() => handleRemoveStudent(item)}
                           className="w-6 h-6 flex justify-center items-center text-[#D24B44]"
                         >
                           <CrossIconSVG />
@@ -123,21 +139,58 @@ const ClassStudent = ({
                 key={item.id}
                 className="text-left font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775] border-b border-[#EFF0F3] h-10"
               >
-                <td className="p-2 whitespace-nowrap">{item.student?.full_name || "N/A"}</td>
-                <td className="p-2 whitespace-nowrap">
-                  {item.student?.email || item.student?.phone || item.invited_email || item.invited_phone || "N/A"}
-                </td>
+                <td className="p-2 whitespace-nowrap">{getClassStudentDisplayName(item)}</td>
+                <td className="p-2 whitespace-nowrap">{getClassStudentContact(item)}</td>
                 <td className="p-2 whitespace-nowrap">
                   {item.status === "JOINED" ? <JoinedBadge /> : <InvitedBadge />}
                 </td>
                 <td className="p-2 whitespace-nowrap">
                   <div className="flex items-center gap-2">
-                    <button className="w-6 h-6 flex justify-center items-center text-[#747775]">
+                    <button
+                      type="button"
+                      title="View student"
+                      onClick={() => setViewingStudent(item)}
+                      className="w-6 h-6 flex justify-center items-center text-[#747775] hover:text-[#232A25]"
+                    >
                       <EyeIconSVG />
                     </button>
-                    <button className="w-6 h-6 flex justify-center items-center text-[#747775]">
-                      <ThreeDotIconSVG width={16} />
-                    </button>
+                    <div
+                      className="relative"
+                      ref={openActionId === item.id ? actionMenuRef : undefined}
+                    >
+                      <button
+                        type="button"
+                        title="Student actions"
+                        onClick={() => setOpenActionId((current) => (current === item.id ? null : item.id))}
+                        className="w-6 h-6 flex justify-center items-center text-[#747775] hover:text-[#232A25]"
+                      >
+                        <ThreeDotIconSVG width={16} />
+                      </button>
+                      {openActionId === item.id && (
+                        <div className="absolute right-0 z-20 mt-1 w-[160px] rounded-[8px] border border-[#EFF0F3] bg-white py-1 shadow-lg">
+                          <button
+                            type="button"
+                            className="w-full px-3 py-2 text-left text-[13px] text-[#232A25] hover:bg-[#EFF0F3]"
+                            onClick={() => {
+                              setOpenActionId(null);
+                              setViewingStudent(item);
+                            }}
+                          >
+                            View details
+                          </button>
+                          <button
+                            type="button"
+                            className="w-full px-3 py-2 text-left text-[13px] text-[#D24B44] hover:bg-[#FDECEC]"
+                            onClick={() => {
+                              setOpenActionId(null);
+                              handleRemoveStudent(item);
+                            }}
+                          >
+                            Remove from class
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -170,6 +223,48 @@ const ClassStudent = ({
             ))}
           </tbody>
         </table>
+      )}
+
+      {viewingStudent && (
+        <div
+          className="fixed inset-0 z-40 bg-black/30 flex items-center justify-center p-4"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setViewingStudent(null);
+          }}
+        >
+          <div className="w-full max-w-md rounded-[12px] bg-white p-6 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <p className="font-[600] text-[20px] text-[#232A25]">Student details</p>
+              <button type="button" className="text-[#747775]" onClick={() => setViewingStudent(null)}>
+                <CrossIconSVG width={20} />
+              </button>
+            </div>
+            <div className="flex flex-col gap-3 text-[14px]">
+              <p>
+                <span className="text-[#747775]">Name: </span>
+                <span className="text-[#232A25]">{getClassStudentDisplayName(viewingStudent)}</span>
+              </p>
+              <p>
+                <span className="text-[#747775]">Student ID: </span>
+                <span className="text-[#232A25]">{viewingStudent.student?.student_public_id || "—"}</span>
+              </p>
+              <p>
+                <span className="text-[#747775]">Email/Phone: </span>
+                <span className="text-[#232A25]">{getClassStudentContact(viewingStudent)}</span>
+              </p>
+              <p>
+                <span className="text-[#747775]">Status: </span>
+                <span className="text-[#232A25]">{viewingStudent.status}</span>
+              </p>
+              {viewingStudent.joined_at && (
+                <p>
+                  <span className="text-[#747775]">Joined: </span>
+                  <span className="text-[#232A25]">{dayjs(viewingStudent.joined_at).format("MMM D, YYYY")}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {isTeacher && <AddStudentModal fetchClassDetails={fetch} />}

@@ -1,8 +1,9 @@
 interface SideBarList {
-  category: "Platform" | "System" | "Admin";
+  category: "Platform" | "System" | "Admin" | "Organization";
   label: string;
   route: string;
   role: RoleUserType[];
+  memberRoles?: OrganizationMemberRole[];
   image: React.ReactNode;
   children?: SideBarList[];
 }

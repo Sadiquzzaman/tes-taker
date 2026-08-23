@@ -3,10 +3,16 @@
 import Link from "next/link";
 import Tooltip from "@/Ui/Tooltip";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 import CreateActionPlusIconSVG from "../svg/CreateActionPlusIconSVG";
 
 const CreateTestActionButton = () => {
   const { isExamLimitReached, loading } = useEntitlements();
+  const { isIndividual } = useWorkspace();
+
+  if (!isIndividual) {
+    return null;
+  }
 
   const button = (
     <button

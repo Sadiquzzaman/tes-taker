@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { RegisterUserDto } from './dto/register-user.dto';
+import { RegisterOrganizationDto } from './dto/register-organization.dto';
 import { LoginDto } from './dto/login.dto';
+import { LoginOrganizationDto } from './dto/login-organization.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { VerifyResetOtpDto } from './dto/verify-reset-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -11,6 +13,10 @@ import { SmsRateLimitService } from 'src/sms/sms-rate-limit.service';
 import { EmailService } from 'src/email/email.service';
 import { ClassService } from 'src/classes/class.service';
 import { SubscriptionService } from 'src/subscriptions/subscription.service';
+import { OrganizationsService } from 'src/organizations/organization.service';
+import { UserContextService } from 'src/organizations/user-context.service';
+import { TeacherRequestService } from 'src/teacher-requests/teacher-request.service';
+import { SelectableContextTypeEnum } from 'src/organizations/dto/select-context.dto';
 import { UserReponseDto } from 'src/user/dto/user-response.dto';
 import { VerifyOtpDto } from 'src/sms/dto/sms.dto';
 import { RolesEnum } from 'src/common/enums/roles.enum';
@@ -26,6 +32,9 @@ export class AuthService {
     private readonly emailService: EmailService,
     private readonly classService: ClassService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly organizationsService: OrganizationsService,
+    private readonly userContextService: UserContextService,
+    private readonly teacherRequestService: TeacherRequestService,
   ) {}
 
   async signUp(registerUserDto: RegisterUserDto) {
@@ -39,8 +48,11 @@ export class AuthService {
       throw new BadRequestException('Phone number is required for registration');
     }
 
-    // Self-service registration always creates a student account
+    // Self-service registration always creates a student account.
+    // Teacher signup only queues a pending teacher request for admin review.
+    const requestTeacher = Boolean(registerUserDto.request_teacher);
     registerUserDto.role = RolesEnum.STUDENT;
+    registerUserDto.request_teacher = undefined;
 
     // Check if user with this phone already exists
     const existingUser = await this.userService.findByPhone(registerUserDto.phone);
@@ -69,20 +81,102 @@ export class AuthService {
     }
 
     // Create user (unverified until OTP is verified)
-    await this.userService.create({ 
+    const user = await this.userService.create({ 
       ...registerUserDto, 
       is_otp_verified: false,
       is_verified: false 
     });
 
+    let teacherRequestCreated = false;
+    if (requestTeacher) {
+      await this.teacherRequestService.createRequest(user.id, {
+        note: 'Created during teacher signup',
+      });
+      teacherRequestCreated = true;
+    }
+
     return {
       success: true,
-      message: 'Registration successful. Please verify your phone number with the OTP sent.',
+      message: teacherRequestCreated
+        ? 'Registration successful. Verify your phone with the OTP. Your teacher request is pending admin approval.'
+        : 'Registration successful. Please verify your phone number with the OTP sent.',
       data: {
         phone: registerUserDto.phone,
         email: registerUserDto.email,
         otpSent: true,
         requiresPhoneVerification: true,
+        teacher_request_created: teacherRequestCreated,
+      },
+    };
+  }
+
+  /**
+   * Organization owner registration. Creates an unverified TEACHER user,
+   * stores the org name in Redis, and sends OTP. Organization + OWNER membership
+   * are created on OTP verification (status PENDING until SUPER_ADMIN approval).
+   */
+  async registerOrganization(dto: RegisterOrganizationDto) {
+    if (dto.password !== dto.confirm_password) {
+      throw new BadRequestException('Password and confirm password do not match');
+    }
+
+    if (!dto.phone) {
+      throw new BadRequestException('Phone number is required for registration');
+    }
+
+    const organizationName = dto.organization_name?.trim();
+    if (!organizationName) {
+      throw new BadRequestException('Organization name is required');
+    }
+
+    const existingUser = await this.userService.findByPhone(dto.phone);
+    if (existingUser) {
+      if (existingUser.is_otp_verified) {
+        throw new BadRequestException('Phone number already registered and verified');
+      }
+      await this.userService.deleteUnverifiedUser(dto.phone);
+      await this.organizationsService.clearPendingOrgName(dto.phone);
+    }
+
+    if (dto.email) {
+      const existingEmailUser = await this.userService.findByEmail(dto.email);
+      if (existingEmailUser && existingEmailUser.is_otp_verified) {
+        throw new BadRequestException('Email already exists and verified');
+      }
+    }
+
+    const smsResult = await this.smsService.sendOtp(dto.phone);
+    if (!smsResult.success) {
+      throw new BadRequestException(`Failed to send OTP: ${smsResult.message}`);
+    }
+
+    await this.organizationsService.storePendingOrgName(dto.phone, organizationName);
+
+    await this.userService.create({
+      full_name: dto.full_name,
+      phone: dto.phone,
+      email: dto.email,
+      password: dto.password,
+      confirm_password: dto.confirm_password,
+      role: RolesEnum.TEACHER,
+      // Org owners are teacher-capable for RolesGuard, but do NOT get personal teaching workspace.
+      personal_teacher_enabled: false,
+      ensure_teacher_public_id: true,
+      is_otp_verified: false,
+      is_verified: false,
+    });
+
+    return {
+      success: true,
+      message:
+        'Organization registration started. Please verify your phone number with the OTP sent. Your organization will remain pending until approved.',
+      data: {
+        phone: dto.phone,
+        email: dto.email,
+        organization_name: organizationName,
+        otpSent: true,
+        requiresPhoneVerification: true,
+        requiresOrganizationApproval: true,
       },
     };
   }
@@ -106,11 +200,47 @@ export class AuthService {
       throw new BadRequestException(verifyResult.message);
     }
 
+    const pendingOrgName = await this.organizationsService.consumePendingOrgName(phone);
+
     await this.userService.verifyUserByPhone(phone);
 
-    if (user.role === RolesEnum.TEACHER) {
+    let organizationCreated: {
+      id: string;
+      name: string;
+      organization_number: number;
+      status: string;
+    } | null = null;
+    if (pendingOrgName) {
       try {
-        await this.subscriptionService.provisionFreePlan(user.id, user.full_name ?? 'Teacher');
+        const organization = await this.organizationsService.createPendingFromRegistration({
+          organizationName: pendingOrgName,
+          ownerUserId: user.id,
+          ownerFullName: user.full_name,
+        });
+        organizationCreated = {
+          id: organization.id,
+          name: organization.name,
+          organization_number: Number(organization.organization_number),
+          status: organization.status,
+        };
+      } catch (error) {
+        this.logger.error(
+          `Failed to create pending organization: ${error instanceof Error ? error.message : String(error)}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+        throw new BadRequestException('Phone verified but organization could not be created. Please contact support.');
+      }
+    }
+
+    // Only provision personal teacher subscription when personal teacher context is enabled.
+    // Organization-only teachers/owners must not get a personal teaching workspace automatically.
+    const verifiedUser = await this.userService.findByPhone(phone);
+    if (verifiedUser?.personal_teacher_enabled) {
+      try {
+        await this.subscriptionService.provisionFreePlan(
+          verifiedUser.id,
+          verifiedUser.full_name ?? 'Teacher',
+        );
       } catch (error) {
         this.logger.error(
           `Failed to provision free subscription: ${error instanceof Error ? error.message : String(error)}`,
@@ -135,23 +265,145 @@ export class AuthService {
       }
     }
 
+    try {
+      await this.organizationsService.acceptPendingInvitationsForUser({
+        userId: user.id,
+        phone,
+        email: user.email,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to accept organization invitations: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
     return {
       success: true,
-      message: 'Phone verified successfully. You can now login.',
+      message: organizationCreated
+        ? 'Phone verified successfully. Your organization is pending approval. You can login.'
+        : 'Phone verified successfully. You can now login.',
       data: {
         phone,
         phoneVerified: true,
         classJoined: !!classInvitationToken,
+        organization: organizationCreated,
       },
     };
   }
 
-  async login(loginDto: LoginDto): Promise<UserReponseDto> {
-    return await this.userService.validateUserEmailPass(loginDto);
+  async login(loginDto: LoginDto): Promise<UserReponseDto & { contexts: unknown[]; requires_context_selection: boolean }> {
+    const user = await this.userService.assertLoginCredentials(loginDto);
+
+    try {
+      await this.organizationsService.acceptPendingInvitationsForUser({
+        userId: user.id,
+        phone: user.phone,
+        email: user.email,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to accept organization invitations on login: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    const contexts = await this.userContextService.listContexts(user.id);
+    const actionable = contexts.filter((c) => c.actionable);
+
+    // Single actionable context → enter it directly (no selection page).
+    if (actionable.length === 1) {
+      const only = actionable[0];
+      if (only.type === 'organization' && only.organization_id) {
+        const selected = await this.userContextService.selectContext(
+          user.id,
+          SelectableContextTypeEnum.ORGANIZATION,
+          only.organization_id,
+        );
+        return { ...selected, requires_context_selection: false };
+      }
+      if (only.type === 'personal_teacher') {
+        const selected = await this.userContextService.selectContext(
+          user.id,
+          SelectableContextTypeEnum.PERSONAL_TEACHER,
+        );
+        return { ...selected, requires_context_selection: false };
+      }
+      if (only.type === 'individual_teacher' && only.teacher_id) {
+        const selected = await this.userContextService.selectContext(
+          user.id,
+          SelectableContextTypeEnum.INDIVIDUAL_TEACHER,
+          undefined,
+          only.teacher_id,
+        );
+        return { ...selected, requires_context_selection: false };
+      }
+    }
+
+    // Multiple (or zero) contexts: land on dashboard; pick from dashboard/header.
+    const token = await this.userService.generateTokenForUser(user, null, {
+      context_type: 'individual',
+    });
+    return {
+      ...token,
+      contexts,
+      requires_context_selection: false,
+    };
   }
 
-  async refreshToken(refreshToken: string): Promise<UserReponseDto> {
-    return this.userService.refreshAccessToken(refreshToken);
+  async listContexts(userId: string) {
+    return this.userContextService.listContexts(userId);
+  }
+
+  async selectContext(
+    userId: string,
+    type: SelectableContextTypeEnum,
+    organizationId?: string,
+    teacherId?: string,
+  ) {
+    return this.userContextService.selectContext(userId, type, organizationId, teacherId);
+  }
+
+  async loginOrganization(dto: LoginOrganizationDto): Promise<UserReponseDto & { contexts: unknown[] }> {
+    const user = await this.userService.assertLoginCredentials({
+      phone: dto.phone,
+      password: dto.password,
+    });
+
+    const { organization, membership } =
+      await this.organizationsService.findMembershipForLogin(
+        dto.organization_number,
+        user.id,
+      );
+
+    const token = await this.userService.generateTokenForUser(user, {
+      organization_id: organization.id,
+      organization_number: Number(organization.organization_number),
+      member_role: membership.role,
+      organization_name: organization.name,
+      organization_status: organization.status,
+    }, {
+      context_type: 'organization',
+    });
+
+    const contexts = await this.userContextService.listContexts(user.id);
+    return { ...token, contexts };
+  }
+
+  async refreshToken(refreshToken: string, organizationId?: string): Promise<UserReponseDto> {
+    if (!organizationId) {
+      return this.userService.refreshAccessToken(refreshToken);
+    }
+
+    const user = await this.userService.getUserFromValidRefreshToken(refreshToken);
+    const { organization, membership } =
+      await this.organizationsService.findMembershipByOrgId(organizationId, user.id);
+
+    return this.userService.refreshAccessTokenWithOrg(refreshToken, {
+      organization_id: organization.id,
+      organization_number: Number(organization.organization_number),
+      member_role: membership.role,
+      organization_name: organization.name,
+      organization_status: organization.status,
+    });
   }
 
   async getProfile(userId: string) {

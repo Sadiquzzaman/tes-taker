@@ -8,6 +8,7 @@ import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/ut
 import { useToast } from "@/component/Toast/ToastContext";
 import useCreateTest from "@/hooks/api/tests/useCreateTest";
 import useUpdateTest from "@/hooks/api/tests/useUpdateTest";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 
 const handlePublishStateForSubmission = (publishState: PublishState) => {
   const result: PublishStateForPayload = {
@@ -31,6 +32,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
   const { currentStep, formState, subjects, questionOrder, publishState, editExamId } = createTestState;
   const [createMutate, { loading: createLoading }] = useCreateTest();
   const [updateMutate, { loading: updateLoading }] = useUpdateTest(editExamId);
+  const { isIndividual } = useWorkspace();
   const isEditing = Boolean(editExamId);
   const mutate = isEditing ? updateMutate : createMutate;
   const loading = isEditing ? updateLoading : createLoading;
@@ -44,6 +46,11 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
 
       if (!formState.isModelTest && subjects.length === 0) {
         triggerToast({ description: "Please select a subject", type: "error" });
+        return;
+      }
+
+      if (!isIndividual && !publishState.selectedClassId) {
+        triggerToast({ description: "Please select a class", type: "error" });
         return;
       }
 
@@ -143,7 +150,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
     }
 
     dispatch(goToNextStep());
-  }, [currentStep, dispatch, formState, mutate, publishState, questionOrder, subjects, triggerToast]);
+  }, [currentStep, dispatch, formState, isIndividual, mutate, publishState, questionOrder, subjects, triggerToast]);
 
   const handlePreviousStep = useCallback(() => {
     dispatch(goToPreviousStep());

@@ -59,6 +59,22 @@ services:
       retries: 5
     command: redis-server --appendonly yes
 
+  mongodb:
+    image: mongo:7
+    container_name: tasktaker-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - tasktaker-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: ["mongod", "--bind_ip_all"]
+
   app:
     build:
       context: ./backend
@@ -72,6 +88,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:3000}
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/tasktaker_chat}
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -82,6 +99,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
     restart: unless-stopped
 
@@ -112,6 +131,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  mongodb_data:
 
 networks:
   tasktaker-network:

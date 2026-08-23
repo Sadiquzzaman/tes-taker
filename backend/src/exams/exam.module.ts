@@ -16,6 +16,7 @@ import { SmsModule } from 'src/sms/sms.module';
 import { SubjectModule } from 'src/subjects/subject.module';
 import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 import { ClassModule } from 'src/classes/class.module';
+import { OrganizationsModule } from 'src/organizations/organization.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { ClassModule } from 'src/classes/class.module';
     SubjectModule,
     SubscriptionModule,
     ClassModule,
+    OrganizationsModule,
   ],
   controllers: [ExamController, StudentExamController, ExamGradingController],
   providers: [ExamService, StudentExamService],
