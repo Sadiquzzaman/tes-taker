@@ -21,6 +21,8 @@ import { SmsModule } from 'src/sms/sms.module';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { OrganizationsModule } from 'src/organizations/organization.module';
+import { UserModule } from 'src/user/user.module';
+import { ChatMongoModule } from 'src/chat-mongo/chat-mongo.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { OrganizationsModule } from 'src/organizations/organization.module';
       ClassTeacherEntity,
       ClassSubjectEntity,
       ClassSubjectTeacherEntity,
+      // Legacy PostgreSQL discussion tables are left registered so synchronize
+      // does not drop them. Runtime discussion I/O uses MongoDB.
       ClassDiscussionPostEntity,
       ClassDiscussionCommentEntity,
       ClassPrivateConversationEntity,
@@ -38,9 +42,11 @@ import { OrganizationsModule } from 'src/organizations/organization.module';
       ExamEntity,
       SubjectEntity,
     ]),
+    ChatMongoModule,
     EmailModule,
     SmsModule,
     OrganizationsModule,
+    UserModule,
   ],
   controllers: [ClassController, StudentClassController, ClassDiscussionController],
   providers: [ClassService, ClassDiscussionService, DiscussionAccessService],

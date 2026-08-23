@@ -25,6 +25,7 @@ interface User {
   email: string | null;
   password: string;
   phone: string;
+  student_public_id?: string | null;
   is_otp_verified: boolean;
   is_verified: boolean;
   role: string;

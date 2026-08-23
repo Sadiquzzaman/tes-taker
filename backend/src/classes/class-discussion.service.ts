@@ -4,36 +4,43 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Model } from 'mongoose';
+import { In, Repository } from 'typeorm';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
+import { DiscussionComment } from 'src/chat-mongo/schemas/discussion-comment.schema';
+import { DiscussionPost } from 'src/chat-mongo/schemas/discussion-post.schema';
+import { PrivateConversation } from 'src/chat-mongo/schemas/private-conversation.schema';
+import { PrivateMessage } from 'src/chat-mongo/schemas/private-message.schema';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { OrganizationAccessService } from 'src/organizations/organization-access.service';
-import { DiscussionAccessService } from './discussion-access.service';
+import { UserEntity } from 'src/user/entities/user.entity';
+import { DiscussionAccessService, PrivateConversationAccess } from './discussion-access.service';
 import { CreatePrivateConversationDto } from './dto/create-private-conversation.dto';
-import { ClassDiscussionCommentEntity } from './entities/class-discussion-comment.entity';
-import { ClassDiscussionPostEntity } from './entities/class-discussion-post.entity';
-import { ClassPrivateConversationEntity } from './entities/class-private-conversation.entity';
-import { ClassPrivateMessageEntity } from './entities/class-private-message.entity';
 import { ClassSubjectEntity } from './entities/class-subject.entity';
 import { ClassSubjectTeacherEntity } from './entities/class-subject-teacher.entity';
 
 type AuthorSummary = { id: string; name: string };
+
+type Timestamped<T> = T & { createdAt?: Date; updatedAt?: Date };
 
 @Injectable()
 export class ClassDiscussionService {
   constructor(
     @InjectRepository(ClassSubjectEntity)
     private readonly classSubjectRepo: Repository<ClassSubjectEntity>,
-    @InjectRepository(ClassDiscussionPostEntity)
-    private readonly postRepo: Repository<ClassDiscussionPostEntity>,
-    @InjectRepository(ClassDiscussionCommentEntity)
-    private readonly commentRepo: Repository<ClassDiscussionCommentEntity>,
-    @InjectRepository(ClassPrivateConversationEntity)
-    private readonly conversationRepo: Repository<ClassPrivateConversationEntity>,
-    @InjectRepository(ClassPrivateMessageEntity)
-    private readonly messageRepo: Repository<ClassPrivateMessageEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepo: Repository<UserEntity>,
+    @InjectModel(DiscussionPost.name)
+    private readonly postModel: Model<DiscussionPost>,
+    @InjectModel(DiscussionComment.name)
+    private readonly commentModel: Model<DiscussionComment>,
+    @InjectModel(PrivateConversation.name)
+    private readonly conversationModel: Model<PrivateConversation>,
+    @InjectModel(PrivateMessage.name)
+    private readonly messageModel: Model<PrivateMessage>,
     private readonly discussionAccess: DiscussionAccessService,
     private readonly organizationAccess: OrganizationAccessService,
   ) {}
@@ -92,21 +99,24 @@ export class ClassDiscussionService {
       jwt,
     );
 
-    const qb = this.postRepo
-      .createQueryBuilder('post')
-      .leftJoinAndSelect('post.author', 'author')
-      .where('post.class_id = :classId', { classId })
-      .andWhere('post.class_subject_id = :classSubjectId', { classSubjectId })
-      .andWhere('post.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
-      .orderBy('post.created_at', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit);
-
-    const [posts, total] = await qb.getManyAndCount();
-    const commentsCount = await this.countCommentsByPostIds(posts.map((post) => post.id));
+    const filter = { classId, classSubjectId, isActive: true };
+    const [posts, total] = await Promise.all([
+      this.postModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean<Timestamped<DiscussionPost>[]>()
+        .exec(),
+      this.postModel.countDocuments(filter).exec(),
+    ]);
+    const commentsCount = await this.countCommentsByPostIds(posts.map((post) => post._id));
+    const names = await this.userNames(posts.map((post) => post.authorId));
 
     return {
-      items: posts.map((post) => this.mapPost(post, classSubject, commentsCount.get(post.id) ?? 0)),
+      items: posts.map((post) =>
+        this.mapPost(post, classSubject, commentsCount.get(post._id) ?? 0, names),
+      ),
       meta: this.meta(page, limit, total),
     };
   }
@@ -123,20 +133,18 @@ export class ClassDiscussionService {
       jwt,
     );
 
-    const post = this.postRepo.create({
-      class_id: classEntity.id,
-      class_subject_id: classSubject.id,
-      organization_id: classEntity.organization_id,
-      author_id: jwt.id,
+    const saved = await this.postModel.create({
+      organizationId: classEntity.organization_id,
+      classId: classEntity.id,
+      classSubjectId: classSubject.id,
+      subjectId: classSubject.subject_id,
+      authorId: jwt.id,
+      authorName: jwt.full_name,
       content,
-      is_active: ActiveStatusEnum.ACTIVE,
-      created_by: jwt.id,
-      created_user_name: jwt.full_name,
-      created_at: new Date(),
+      isActive: true,
     });
-    const saved = await this.postRepo.save(post);
-    saved.author = { id: jwt.id, full_name: jwt.full_name } as ClassDiscussionPostEntity['author'];
-    return this.mapPost(saved, classSubject, 0);
+
+    return this.mapPost(saved.toObject() as Timestamped<DiscussionPost>, classSubject, 0, new Map());
   }
 
   async getPost(classId: string, classSubjectId: string, postId: string, jwt: JwtPayloadInterface) {
@@ -146,8 +154,9 @@ export class ClassDiscussionService {
       jwt,
     );
     const post = await this.findScopedPost(classId, classSubjectId, postId);
-    const commentsCount = await this.countCommentsByPostIds([post.id]);
-    return this.mapPost(post, classSubject, commentsCount.get(post.id) ?? 0);
+    const commentsCount = await this.countCommentsByPostIds([post._id]);
+    const names = await this.userNames([post.authorId]);
+    return this.mapPost(post, classSubject, commentsCount.get(post._id) ?? 0, names);
   }
 
   async updatePost(
@@ -163,25 +172,24 @@ export class ClassDiscussionService {
       jwt,
     );
     const post = await this.findScopedPost(classId, classSubjectId, postId);
-    this.assertAuthor(post.author_id, jwt.id);
-    post.content = content;
-    post.updated_by = jwt.id;
-    post.updated_user_name = jwt.full_name;
-    post.updated_at = new Date();
-    const saved = await this.postRepo.save(post);
-    const commentsCount = await this.countCommentsByPostIds([saved.id]);
-    return this.mapPost(saved, classSubject, commentsCount.get(saved.id) ?? 0);
+    this.assertAuthor(post.authorId, jwt.id);
+    const saved = await this.postModel
+      .findByIdAndUpdate(post._id, { content }, { new: true })
+      .lean<Timestamped<DiscussionPost>>()
+      .exec();
+    if (!saved) {
+      throw new NotFoundException('Discussion post not found');
+    }
+    const commentsCount = await this.countCommentsByPostIds([saved._id]);
+    const names = await this.userNames([saved.authorId]);
+    return this.mapPost(saved, classSubject, commentsCount.get(saved._id) ?? 0, names);
   }
 
   async deletePost(classId: string, classSubjectId: string, postId: string, jwt: JwtPayloadInterface) {
     await this.discussionAccess.assertCanAccessClassSubject(classId, classSubjectId, jwt);
     const post = await this.findScopedPost(classId, classSubjectId, postId);
-    this.assertAuthor(post.author_id, jwt.id);
-    post.is_active = ActiveStatusEnum.INACTIVE;
-    post.updated_by = jwt.id;
-    post.updated_user_name = jwt.full_name;
-    post.updated_at = new Date();
-    await this.postRepo.save(post);
+    this.assertAuthor(post.authorId, jwt.id);
+    await this.postModel.findByIdAndUpdate(post._id, { isActive: false }).exec();
   }
 
   async listComments(
@@ -195,18 +203,21 @@ export class ClassDiscussionService {
     await this.discussionAccess.assertCanAccessClassSubject(classId, classSubjectId, jwt);
     await this.findScopedPost(classId, classSubjectId, postId);
 
-    const [comments, total] = await this.commentRepo
-      .createQueryBuilder('comment')
-      .leftJoinAndSelect('comment.author', 'author')
-      .where('comment.post_id = :postId', { postId })
-      .andWhere('comment.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
-      .orderBy('comment.created_at', 'ASC')
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
+    const filter = { postId, isActive: true };
+    const [comments, total] = await Promise.all([
+      this.commentModel
+        .find(filter)
+        .sort({ createdAt: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean<Timestamped<DiscussionComment>[]>()
+        .exec(),
+      this.commentModel.countDocuments(filter).exec(),
+    ]);
+    const names = await this.userNames(comments.map((comment) => comment.authorId));
 
     return {
-      items: comments.map((comment) => this.mapComment(comment)),
+      items: comments.map((comment) => this.mapComment(comment, names)),
       meta: this.meta(page, limit, total),
     };
   }
@@ -220,18 +231,14 @@ export class ClassDiscussionService {
   ) {
     await this.discussionAccess.assertCanAccessClassSubject(classId, classSubjectId, jwt);
     const post = await this.findScopedPost(classId, classSubjectId, postId);
-    const comment = this.commentRepo.create({
-      post_id: post.id,
-      author_id: jwt.id,
+    const saved = await this.commentModel.create({
+      postId: post._id,
+      authorId: jwt.id,
+      authorName: jwt.full_name,
       content,
-      is_active: ActiveStatusEnum.ACTIVE,
-      created_by: jwt.id,
-      created_user_name: jwt.full_name,
-      created_at: new Date(),
+      isActive: true,
     });
-    const saved = await this.commentRepo.save(comment);
-    saved.author = { id: jwt.id, full_name: jwt.full_name } as ClassDiscussionCommentEntity['author'];
-    return this.mapComment(saved);
+    return this.mapComment(saved.toObject() as Timestamped<DiscussionComment>, new Map());
   }
 
   async updateComment(
@@ -245,13 +252,16 @@ export class ClassDiscussionService {
     await this.discussionAccess.assertCanAccessClassSubject(classId, classSubjectId, jwt);
     await this.findScopedPost(classId, classSubjectId, postId);
     const comment = await this.findScopedComment(postId, commentId);
-    this.assertAuthor(comment.author_id, jwt.id);
-    comment.content = content;
-    comment.updated_by = jwt.id;
-    comment.updated_user_name = jwt.full_name;
-    comment.updated_at = new Date();
-    const saved = await this.commentRepo.save(comment);
-    return this.mapComment(saved);
+    this.assertAuthor(comment.authorId, jwt.id);
+    const saved = await this.commentModel
+      .findByIdAndUpdate(comment._id, { content }, { new: true })
+      .lean<Timestamped<DiscussionComment>>()
+      .exec();
+    if (!saved) {
+      throw new NotFoundException('Comment not found');
+    }
+    const names = await this.userNames([saved.authorId]);
+    return this.mapComment(saved, names);
   }
 
   async deleteComment(
@@ -264,34 +274,34 @@ export class ClassDiscussionService {
     await this.discussionAccess.assertCanAccessClassSubject(classId, classSubjectId, jwt);
     await this.findScopedPost(classId, classSubjectId, postId);
     const comment = await this.findScopedComment(postId, commentId);
-    this.assertAuthor(comment.author_id, jwt.id);
-    comment.is_active = ActiveStatusEnum.INACTIVE;
-    comment.updated_by = jwt.id;
-    comment.updated_user_name = jwt.full_name;
-    comment.updated_at = new Date();
-    await this.commentRepo.save(comment);
+    this.assertAuthor(comment.authorId, jwt.id);
+    await this.commentModel.findByIdAndUpdate(comment._id, { isActive: false }).exec();
   }
 
   async listConversations(classId: string, classSubjectId: string, jwt: JwtPayloadInterface) {
     await this.discussionAccess.assertCanAccessClassSubject(classId, classSubjectId, jwt);
 
-    const qb = this.conversationRepo
-      .createQueryBuilder('conversation')
-      .leftJoinAndSelect('conversation.student', 'student')
-      .leftJoinAndSelect('conversation.teacher', 'teacher')
-      .where('conversation.class_id = :classId', { classId })
-      .andWhere('conversation.class_subject_id = :classSubjectId', { classSubjectId })
-      .andWhere('conversation.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
-      .orderBy('conversation.updated_at', 'DESC');
-
+    const filter: Record<string, unknown> = {
+      classId,
+      classSubjectId,
+      isActive: true,
+    };
     if (jwt.role === RolesEnum.STUDENT) {
-      qb.andWhere('conversation.student_id = :userId', { userId: jwt.id });
+      filter.studentId = jwt.id;
     } else {
-      qb.andWhere('conversation.teacher_id = :userId', { userId: jwt.id });
+      filter.teacherId = jwt.id;
     }
 
-    const conversations = await qb.getMany();
-    return conversations.map((conversation) => this.mapConversation(conversation));
+    const conversations = await this.conversationModel
+      .find(filter)
+      .sort({ updatedAt: -1 })
+      .lean<Timestamped<PrivateConversation>[]>()
+      .exec();
+    const names = await this.userNames(
+      conversations.flatMap((conversation) => [conversation.studentId, conversation.teacherId]),
+    );
+
+    return conversations.map((conversation) => this.mapConversation(conversation, names));
   }
 
   async createConversation(
@@ -300,7 +310,7 @@ export class ClassDiscussionService {
     jwt: JwtPayloadInterface,
     dto: CreatePrivateConversationDto,
   ) {
-    const { classEntity } = await this.discussionAccess.assertCanAccessClassSubject(
+    const { classEntity, classSubject } = await this.discussionAccess.assertCanAccessClassSubject(
       classId,
       classSubjectId,
       jwt,
@@ -315,56 +325,55 @@ export class ClassDiscussionService {
       }
       studentId = jwt.id;
       teacherId = dto.teacher_id;
-      await this.assertTeacherCanChat(classEntity.organization_id, classEntity.teacher_id, classSubjectId, teacherId);
+      await this.assertTeacherCanChat(
+        classEntity.organization_id,
+        classEntity.teacher_id,
+        classSubjectId,
+        teacherId,
+      );
     } else {
       if (!dto.student_id) {
         throw new BadRequestException('student_id is required');
       }
       teacherId = jwt.id;
       studentId = dto.student_id;
-      await this.assertTeacherCanChat(classEntity.organization_id, classEntity.teacher_id, classSubjectId, teacherId);
+      await this.assertTeacherCanChat(
+        classEntity.organization_id,
+        classEntity.teacher_id,
+        classSubjectId,
+        teacherId,
+      );
     }
 
     await this.discussionAccess.assertJoinedStudent(studentId, classId);
 
-    const existing = await this.conversationRepo.findOne({
-      where: {
-        class_subject_id: classSubjectId,
-        student_id: studentId,
-        teacher_id: teacherId,
-      },
-      relations: ['student', 'teacher'],
-    });
+    const existing = await this.conversationModel
+      .findOne({ classSubjectId, studentId, teacherId })
+      .lean<Timestamped<PrivateConversation>>()
+      .exec();
 
     if (existing) {
-      if (existing.is_active !== ActiveStatusEnum.ACTIVE) {
-        existing.is_active = ActiveStatusEnum.ACTIVE;
-        existing.updated_by = jwt.id;
-        existing.updated_user_name = jwt.full_name;
-        existing.updated_at = new Date();
-        await this.conversationRepo.save(existing);
+      if (!existing.isActive) {
+        await this.conversationModel
+          .findByIdAndUpdate(existing._id, { isActive: true })
+          .exec();
+        existing.isActive = true;
       }
-      return this.mapConversation(existing);
+      const names = await this.userNames([existing.studentId, existing.teacherId]);
+      return this.mapConversation(existing, names);
     }
 
-    const conversation = this.conversationRepo.create({
-      class_id: classEntity.id,
-      class_subject_id: classSubjectId,
-      organization_id: classEntity.organization_id,
-      student_id: studentId,
-      teacher_id: teacherId,
-      is_active: ActiveStatusEnum.ACTIVE,
-      created_by: jwt.id,
-      created_user_name: jwt.full_name,
-      created_at: new Date(),
-      updated_at: new Date(),
+    const saved = await this.conversationModel.create({
+      organizationId: classEntity.organization_id,
+      classId: classEntity.id,
+      classSubjectId,
+      subjectId: classSubject.subject_id,
+      studentId,
+      teacherId,
+      isActive: true,
     });
-    const saved = await this.conversationRepo.save(conversation);
-    const loaded = await this.conversationRepo.findOne({
-      where: { id: saved.id },
-      relations: ['student', 'teacher'],
-    });
-    return this.mapConversation(loaded ?? saved);
+    const names = await this.userNames([studentId, teacherId]);
+    return this.mapConversation(saved.toObject() as Timestamped<PrivateConversation>, names);
   }
 
   async getConversation(
@@ -373,17 +382,19 @@ export class ClassDiscussionService {
     conversationId: string,
     jwt: JwtPayloadInterface,
   ) {
+    const loaded = await this.conversationModel
+      .findById(conversationId)
+      .lean<Timestamped<PrivateConversation>>()
+      .exec();
     const { conversation } = await this.discussionAccess.assertCanAccessConversation(
       classId,
       classSubjectId,
       conversationId,
       jwt,
+      this.toConversationAccess(loaded),
     );
-    const loaded = await this.conversationRepo.findOne({
-      where: { id: conversation.id },
-      relations: ['student', 'teacher'],
-    });
-    return this.mapConversation(loaded ?? conversation);
+    const names = await this.userNames([conversation.studentId, conversation.teacherId]);
+    return this.mapConversation(loaded as Timestamped<PrivateConversation>, names);
   }
 
   async listMessages(
@@ -394,20 +405,33 @@ export class ClassDiscussionService {
     page = 1,
     limit = 20,
   ) {
-    await this.discussionAccess.assertCanAccessConversation(classId, classSubjectId, conversationId, jwt);
+    const loaded = await this.conversationModel
+      .findById(conversationId)
+      .lean<Timestamped<PrivateConversation>>()
+      .exec();
+    await this.discussionAccess.assertCanAccessConversation(
+      classId,
+      classSubjectId,
+      conversationId,
+      jwt,
+      this.toConversationAccess(loaded),
+    );
 
-    const [messages, total] = await this.messageRepo
-      .createQueryBuilder('message')
-      .leftJoinAndSelect('message.sender', 'sender')
-      .where('message.conversation_id = :conversationId', { conversationId })
-      .andWhere('message.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
-      .orderBy('message.created_at', 'ASC')
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
+    const filter = { conversationId, isActive: true };
+    const [messages, total] = await Promise.all([
+      this.messageModel
+        .find(filter)
+        .sort({ createdAt: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean<Timestamped<PrivateMessage>[]>()
+        .exec(),
+      this.messageModel.countDocuments(filter).exec(),
+    ]);
+    const names = await this.userNames(messages.map((message) => message.senderId));
 
     return {
-      items: messages.map((message) => this.mapMessage(message)),
+      items: messages.map((message) => this.mapMessage(message, names)),
       meta: this.meta(page, limit, total),
     };
   }
@@ -419,29 +443,27 @@ export class ClassDiscussionService {
     jwt: JwtPayloadInterface,
     content: string,
   ) {
+    const loaded = await this.conversationModel
+      .findById(conversationId)
+      .lean<Timestamped<PrivateConversation>>()
+      .exec();
     const { conversation } = await this.discussionAccess.assertCanAccessConversation(
       classId,
       classSubjectId,
       conversationId,
       jwt,
+      this.toConversationAccess(loaded),
     );
 
-    const message = this.messageRepo.create({
-      conversation_id: conversation.id,
-      sender_id: jwt.id,
+    const saved = await this.messageModel.create({
+      conversationId: conversation.id,
+      senderId: jwt.id,
+      senderName: jwt.full_name,
       content,
-      is_active: ActiveStatusEnum.ACTIVE,
-      created_by: jwt.id,
-      created_user_name: jwt.full_name,
-      created_at: new Date(),
+      isActive: true,
     });
-    const saved = await this.messageRepo.save(message);
-    conversation.updated_at = new Date();
-    conversation.updated_by = jwt.id;
-    conversation.updated_user_name = jwt.full_name;
-    await this.conversationRepo.save(conversation);
-    saved.sender = { id: jwt.id, full_name: jwt.full_name } as ClassPrivateMessageEntity['sender'];
-    return this.mapMessage(saved);
+    await this.conversationModel.findByIdAndUpdate(conversation.id, { updatedAt: new Date() }).exec();
+    return this.mapMessage(saved.toObject() as Timestamped<PrivateMessage>, new Map());
   }
 
   private async assertTeacherCanChat(
@@ -464,25 +486,38 @@ export class ClassDiscussionService {
   }
 
   private async findScopedPost(classId: string, classSubjectId: string, postId: string) {
-    const post = await this.postRepo.findOne({
-      where: { id: postId, is_active: ActiveStatusEnum.ACTIVE },
-      relations: ['author'],
-    });
-    if (!post || post.class_id !== classId || post.class_subject_id !== classSubjectId) {
+    const post = await this.postModel.findById(postId).lean<Timestamped<DiscussionPost>>().exec();
+    if (!post || !post.isActive || post.classId !== classId || post.classSubjectId !== classSubjectId) {
       throw new NotFoundException('Discussion post not found');
     }
     return post;
   }
 
   private async findScopedComment(postId: string, commentId: string) {
-    const comment = await this.commentRepo.findOne({
-      where: { id: commentId, is_active: ActiveStatusEnum.ACTIVE },
-      relations: ['author'],
-    });
-    if (!comment || comment.post_id !== postId) {
+    const comment = await this.commentModel
+      .findById(commentId)
+      .lean<Timestamped<DiscussionComment>>()
+      .exec();
+    if (!comment || !comment.isActive || comment.postId !== postId) {
       throw new NotFoundException('Comment not found');
     }
     return comment;
+  }
+
+  private toConversationAccess(
+    conversation: Timestamped<PrivateConversation> | null,
+  ): PrivateConversationAccess | null {
+    if (!conversation) {
+      return null;
+    }
+    return {
+      id: conversation._id,
+      classId: conversation.classId,
+      classSubjectId: conversation.classSubjectId,
+      studentId: conversation.studentId,
+      teacherId: conversation.teacherId,
+      isActive: conversation.isActive,
+    };
   }
 
   private assertAuthor(authorId: string, userId: string) {
@@ -497,19 +532,26 @@ export class ClassDiscussionService {
       return counts;
     }
 
-    const rows = await this.commentRepo
-      .createQueryBuilder('comment')
-      .select('comment.post_id', 'post_id')
-      .addSelect('COUNT(comment.id)', 'count')
-      .where('comment.post_id IN (:...postIds)', { postIds })
-      .andWhere('comment.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
-      .groupBy('comment.post_id')
-      .getRawMany<{ post_id: string; count: string }>();
+    const rows = await this.commentModel
+      .aggregate<{ _id: string; count: number }>([
+        { $match: { postId: { $in: postIds }, isActive: true } },
+        { $group: { _id: '$postId', count: { $sum: 1 } } },
+      ])
+      .exec();
 
     for (const row of rows) {
-      counts.set(row.post_id, Number(row.count));
+      counts.set(row._id, row.count);
     }
     return counts;
+  }
+
+  private async userNames(userIds: string[]): Promise<Map<string, string>> {
+    const unique = [...new Set(userIds.filter(Boolean))];
+    if (unique.length === 0) {
+      return new Map();
+    }
+    const users = await this.userRepo.find({ where: { id: In(unique) } });
+    return new Map(users.map((user) => [user.id, user.full_name?.trim() || 'User']));
   }
 
   private mapDiscussionSubject(row: ClassSubjectEntity) {
@@ -543,14 +585,19 @@ export class ClassDiscussionService {
     };
   }
 
-  private mapPost(post: ClassDiscussionPostEntity, classSubject: ClassSubjectEntity, commentsCount: number) {
+  private mapPost(
+    post: Timestamped<DiscussionPost>,
+    classSubject: ClassSubjectEntity,
+    commentsCount: number,
+    names: Map<string, string>,
+  ) {
     return {
-      id: post.id,
+      id: post._id,
       content: post.content,
-      created_at: post.created_at,
-      updated_at: post.updated_at ?? null,
+      created_at: post.createdAt ?? null,
+      updated_at: post.updatedAt ?? null,
       comments_count: commentsCount,
-      author: this.mapAuthor(post.author, post.author_id, post.created_user_name),
+      author: this.mapAuthor(post.authorId, names.get(post.authorId) || post.authorName),
       class_subject: {
         id: classSubject.id,
         subject: {
@@ -562,43 +609,39 @@ export class ClassDiscussionService {
     };
   }
 
-  private mapComment(comment: ClassDiscussionCommentEntity) {
+  private mapComment(comment: Timestamped<DiscussionComment>, names: Map<string, string>) {
     return {
-      id: comment.id,
+      id: comment._id,
       content: comment.content,
-      created_at: comment.created_at,
-      updated_at: comment.updated_at ?? null,
-      author: this.mapAuthor(comment.author, comment.author_id, comment.created_user_name),
+      created_at: comment.createdAt ?? null,
+      updated_at: comment.updatedAt ?? null,
+      author: this.mapAuthor(comment.authorId, names.get(comment.authorId) || comment.authorName),
     };
   }
 
-  private mapConversation(conversation: ClassPrivateConversationEntity) {
+  private mapConversation(conversation: Timestamped<PrivateConversation>, names: Map<string, string>) {
     return {
-      id: conversation.id,
-      class_subject_id: conversation.class_subject_id,
-      created_at: conversation.created_at,
-      student: this.mapAuthor(conversation.student, conversation.student_id),
-      teacher: this.mapAuthor(conversation.teacher, conversation.teacher_id),
+      id: conversation._id,
+      class_subject_id: conversation.classSubjectId,
+      created_at: conversation.createdAt ?? null,
+      student: this.mapAuthor(conversation.studentId, names.get(conversation.studentId)),
+      teacher: this.mapAuthor(conversation.teacherId, names.get(conversation.teacherId)),
     };
   }
 
-  private mapMessage(message: ClassPrivateMessageEntity) {
+  private mapMessage(message: Timestamped<PrivateMessage>, names: Map<string, string>) {
     return {
-      id: message.id,
+      id: message._id,
       content: message.content,
-      created_at: message.created_at,
-      sender: this.mapAuthor(message.sender, message.sender_id, message.created_user_name),
+      created_at: message.createdAt ?? null,
+      sender: this.mapAuthor(message.senderId, names.get(message.senderId) || message.senderName),
     };
   }
 
-  private mapAuthor(
-    user: { id?: string; full_name?: string | null } | null | undefined,
-    fallbackId: string,
-    fallbackName?: string | null,
-  ): AuthorSummary {
+  private mapAuthor(id: string, name?: string | null): AuthorSummary {
     return {
-      id: user?.id ?? fallbackId,
-      name: user?.full_name?.trim() || fallbackName?.trim() || 'User',
+      id,
+      name: name?.trim() || 'User',
     };
   }
 

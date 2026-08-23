@@ -8,11 +8,19 @@ import { OrganizationAccessService } from 'src/organizations/organization-access
 import { ClassEntity } from './entities/class.entity';
 import { ClassStudentEntity, ClassStudentStatusEnum } from './entities/class-student.entity';
 import { ClassSubjectEntity } from './entities/class-subject.entity';
-import { ClassPrivateConversationEntity } from './entities/class-private-conversation.entity';
 
 export type ClassSubjectAccessContext = {
   classEntity: ClassEntity;
   classSubject: ClassSubjectEntity;
+};
+
+export type PrivateConversationAccess = {
+  id: string;
+  classId: string;
+  classSubjectId: string;
+  studentId: string;
+  teacherId: string;
+  isActive: boolean;
 };
 
 @Injectable()
@@ -24,8 +32,6 @@ export class DiscussionAccessService {
     private readonly classSubjectRepo: Repository<ClassSubjectEntity>,
     @InjectRepository(ClassStudentEntity)
     private readonly classStudentRepo: Repository<ClassStudentEntity>,
-    @InjectRepository(ClassPrivateConversationEntity)
-    private readonly conversationRepo: Repository<ClassPrivateConversationEntity>,
     private readonly organizationAccess: OrganizationAccessService,
   ) {}
 
@@ -128,10 +134,11 @@ export class DiscussionAccessService {
     classSubjectId: string,
     conversationId: string,
     jwt: JwtPayloadInterface,
+    conversation: PrivateConversationAccess | null,
   ): Promise<{
     classEntity: ClassEntity;
     classSubject: ClassSubjectEntity;
-    conversation: ClassPrivateConversationEntity;
+    conversation: PrivateConversationAccess;
   }> {
     const { classEntity, classSubject } = await this.assertCanAccessClassSubject(
       classId,
@@ -139,20 +146,18 @@ export class DiscussionAccessService {
       jwt,
     );
 
-    const conversation = await this.conversationRepo.findOne({
-      where: { id: conversationId, is_active: ActiveStatusEnum.ACTIVE },
-    });
-
     if (
       !conversation ||
-      conversation.class_id !== classId ||
-      conversation.class_subject_id !== classSubjectId
+      !conversation.isActive ||
+      conversation.id !== conversationId ||
+      conversation.classId !== classId ||
+      conversation.classSubjectId !== classSubjectId
     ) {
       throw new NotFoundException('Conversation not found');
     }
 
-    const isStudentParticipant = conversation.student_id === jwt.id;
-    const isTeacherParticipant = conversation.teacher_id === jwt.id;
+    const isStudentParticipant = conversation.studentId === jwt.id;
+    const isTeacherParticipant = conversation.teacherId === jwt.id;
 
     if (!isStudentParticipant && !isTeacherParticipant) {
       throw new ForbiddenException('You are not a participant in this conversation');

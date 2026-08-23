@@ -8,6 +8,7 @@ import { getStoredUser } from "@/lib/authSession";
 import { useApiError } from "@/hooks/api/useApiError";
 import { useToast } from "@/component/Toast/ToastContext";
 import useWorkspace from "@/hooks/organization/useWorkspace";
+import { getClassStudentDisplayName } from "@/utils/classes/classStudentDisplay";
 
 const PAGE_LIMIT = 20;
 const POLL_MS = 20000;
@@ -69,6 +70,7 @@ const ClassDiscussions = ({
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [messageContent, setMessageContent] = useState("");
   const [startWithId, setStartWithId] = useState("");
+  const [rosterStudents, setRosterStudents] = useState<ClassStudent[]>([]);
 
   const selectedSubject = subjects.find((item) => item.id === selectedSubjectId);
   const subjectTitle = selectedSubject ? subjectLabel(selectedSubject.class_subject.subject) : "";
@@ -82,20 +84,25 @@ const ClassDiscussions = ({
     [subjects],
   );
 
-  const joinedStudents = useMemo(
-    () =>
-      classStudents.filter((item): item is ClassStudent => "student_id" in item && item.status === "JOINED"),
-    [classStudents],
-  );
+  const joinedStudents = useMemo(() => {
+    const source =
+      rosterStudents.length > 0
+        ? rosterStudents
+        : classStudents.filter((item): item is ClassStudent => "student_id" in item);
+
+    return source.filter((item) => item.status === "JOINED" && Boolean(item.student_id));
+  }, [classStudents, rosterStudents]);
 
   const startOptions = useMemo<DropDownOption[]>(() => {
     if (isTeacher) {
-      return joinedStudents
-        .filter((student) => student.student_id)
-        .map((student) => ({
+      return joinedStudents.map((student) => {
+        const name = getClassStudentDisplayName(student);
+        const phone = student.student?.phone?.trim();
+        return {
           value: student.student_id,
-          label: student.student?.full_name?.trim() || "Student",
-        }));
+          label: phone && phone !== name ? `${name} · ${phone}` : name,
+        };
+      });
     }
     return (selectedSubject?.teachers ?? []).map((teacher) => ({
       value: teacher.id,
@@ -204,9 +211,23 @@ const ClassDiscussions = ({
     [handleError, scopedUrl, selectedSubjectId],
   );
 
+  const loadClassRoster = useCallback(async () => {
+    if (!isTeacher || !classId) return;
+    try {
+      const response = await axiosReq.get<ApiResponse<ClassStudent[]>>(`${baseUrl}/classes/${classId}/students`);
+      setRosterStudents(response.data.payload ?? []);
+    } catch {
+      setRosterStudents([]);
+    }
+  }, [baseUrl, classId, isTeacher]);
+
   useEffect(() => {
     void loadSubjects();
   }, [loadSubjects]);
+
+  useEffect(() => {
+    void loadClassRoster();
+  }, [loadClassRoster]);
 
   useEffect(() => {
     if (!selectedSubjectId) return;

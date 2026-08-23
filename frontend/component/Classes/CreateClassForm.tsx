@@ -70,7 +70,7 @@ const CreateClassForm = () => {
           Student email or phone (Optional) <ImportantIconSVG />{" "}
         </p>
         <TagInput
-          placeholder="Enter student email or phone"
+          placeholder="Enter student email, phone, or Student ID"
           inputClassName="px-2"
           afterIcon={null}
           value={value}

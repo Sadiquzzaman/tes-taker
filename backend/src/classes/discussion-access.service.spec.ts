@@ -56,7 +56,6 @@ describe('DiscussionAccessService', () => {
   let classRepo: { findOne: jest.Mock };
   let classSubjectRepo: { findOne: jest.Mock };
   let classStudentRepo: { findOne: jest.Mock };
-  let conversationRepo: { findOne: jest.Mock };
   let organizationAccess: { isAssignedToClassSubject: jest.Mock };
   let service: DiscussionAccessService;
 
@@ -64,13 +63,11 @@ describe('DiscussionAccessService', () => {
     classRepo = { findOne: jest.fn() };
     classSubjectRepo = { findOne: jest.fn() };
     classStudentRepo = { findOne: jest.fn() };
-    conversationRepo = { findOne: jest.fn() };
     organizationAccess = { isAssignedToClassSubject: jest.fn() };
     service = new DiscussionAccessService(
       classRepo as never,
       classSubjectRepo as never,
       classStudentRepo as never,
-      conversationRepo as never,
       organizationAccess as never,
     );
   });
@@ -122,14 +119,6 @@ describe('DiscussionAccessService', () => {
       status: ClassStudentStatusEnum.JOINED,
       is_active: ActiveStatusEnum.ACTIVE,
     });
-    conversationRepo.findOne.mockResolvedValue({
-      id: CONV_PHYSICS,
-      class_id: CLASS_A,
-      class_subject_id: PHYSICS_CS,
-      student_id: 'student-a',
-      teacher_id: 'physics-teacher',
-      is_active: ActiveStatusEnum.ACTIVE,
-    });
 
     await expect(
       service.assertCanAccessConversation(
@@ -137,6 +126,14 @@ describe('DiscussionAccessService', () => {
         PHYSICS_CS,
         CONV_PHYSICS,
         jwt({ id: 'other-student', role: RolesEnum.STUDENT }),
+        {
+          id: CONV_PHYSICS,
+          classId: CLASS_A,
+          classSubjectId: PHYSICS_CS,
+          studentId: 'student-a',
+          teacherId: 'physics-teacher',
+          isActive: true,
+        },
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
@@ -144,14 +141,6 @@ describe('DiscussionAccessService', () => {
   it('6. Other assigned teacher cannot access a private conversation they are not in', async () => {
     classSubjectRepo.findOne.mockResolvedValue(physicsSubject);
     organizationAccess.isAssignedToClassSubject.mockResolvedValue(true);
-    conversationRepo.findOne.mockResolvedValue({
-      id: CONV_PHYSICS,
-      class_id: CLASS_A,
-      class_subject_id: PHYSICS_CS,
-      student_id: 'student-a',
-      teacher_id: 'physics-teacher',
-      is_active: ActiveStatusEnum.ACTIVE,
-    });
 
     await expect(
       service.assertCanAccessConversation(
@@ -159,6 +148,14 @@ describe('DiscussionAccessService', () => {
         PHYSICS_CS,
         CONV_PHYSICS,
         jwt({ id: 'other-physics-teacher', role: RolesEnum.TEACHER }),
+        {
+          id: CONV_PHYSICS,
+          classId: CLASS_A,
+          classSubjectId: PHYSICS_CS,
+          studentId: 'student-a',
+          teacherId: 'physics-teacher',
+          isActive: true,
+        },
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
@@ -193,14 +190,6 @@ describe('DiscussionAccessService', () => {
   it('9. Tampered conversationId from another class subject returns 404', async () => {
     classSubjectRepo.findOne.mockResolvedValue(physicsSubject);
     organizationAccess.isAssignedToClassSubject.mockResolvedValue(true);
-    conversationRepo.findOne.mockResolvedValue({
-      id: CONV_PHYSICS,
-      class_id: CLASS_A,
-      class_subject_id: CHEMISTRY_CS,
-      student_id: 'student-a',
-      teacher_id: 'physics-teacher',
-      is_active: ActiveStatusEnum.ACTIVE,
-    });
 
     await expect(
       service.assertCanAccessConversation(
@@ -208,6 +197,14 @@ describe('DiscussionAccessService', () => {
         PHYSICS_CS,
         CONV_PHYSICS,
         jwt({ id: 'physics-teacher', role: RolesEnum.TEACHER }),
+        {
+          id: CONV_PHYSICS,
+          classId: CLASS_A,
+          classSubjectId: CHEMISTRY_CS,
+          studentId: 'student-a',
+          teacherId: 'physics-teacher',
+          isActive: true,
+        },
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
@@ -272,14 +269,6 @@ describe('DiscussionAccessService', () => {
   it('14. Conversation participant who is the assigned teacher can access the private thread', async () => {
     classSubjectRepo.findOne.mockResolvedValue(physicsSubject);
     organizationAccess.isAssignedToClassSubject.mockResolvedValue(true);
-    conversationRepo.findOne.mockResolvedValue({
-      id: CONV_PHYSICS,
-      class_id: CLASS_A,
-      class_subject_id: PHYSICS_CS,
-      student_id: 'student-a',
-      teacher_id: 'physics-teacher',
-      is_active: ActiveStatusEnum.ACTIVE,
-    });
 
     await expect(
       service.assertCanAccessConversation(
@@ -287,6 +276,14 @@ describe('DiscussionAccessService', () => {
         PHYSICS_CS,
         CONV_PHYSICS,
         jwt({ id: 'physics-teacher', role: RolesEnum.TEACHER }),
+        {
+          id: CONV_PHYSICS,
+          classId: CLASS_A,
+          classSubjectId: PHYSICS_CS,
+          studentId: 'student-a',
+          teacherId: 'physics-teacher',
+          isActive: true,
+        },
       ),
     ).resolves.toMatchObject({ conversation: { id: CONV_PHYSICS } });
   });

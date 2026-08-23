@@ -35,6 +35,7 @@ import { generatePublicId } from 'src/common/utils/public-id.util';
 import { ClassKindEnum } from './enums/class-kind.enum';
 import { OrganizationsService } from 'src/organizations/organization.service';
 import { OrganizationAccessService } from 'src/organizations/organization-access.service';
+import { UserService } from 'src/user/user.service';
 import { OrgContext } from 'src/organizations/interfaces/org-context.interface';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
@@ -63,6 +64,7 @@ export class ClassService {
     private readonly configService: ConfigService,
     private readonly organizationsService: OrganizationsService,
     private readonly organizationAccessService: OrganizationAccessService,
+    private readonly userService: UserService,
   ) {}
 
   /**
@@ -306,6 +308,7 @@ export class ClassService {
       jwtPayload.role === RolesEnum.SUPER_ADMIN
     ) {
       await this.attachConductedExamStatistics([classEntity]);
+      await this.hydrateClassStudents(classEntity);
       return classEntity;
     }
 
@@ -322,8 +325,62 @@ export class ClassService {
 
     // Conducted-exam statistics for teacher/admin detail view
     await this.attachConductedExamStatistics([classEntity]);
+    await this.hydrateClassStudents(classEntity);
 
     return classEntity;
+  }
+
+  /**
+   * Resolve registered users onto class-student rows so the UI can show names
+   * (including when students were added by Student ID / phone / email).
+   */
+  private async hydrateClassStudents(classEntity: ClassEntity): Promise<void> {
+    const rows = classEntity.classStudents || [];
+    if (rows.length === 0) {
+      return;
+    }
+
+    const linkedStudentIds = new Set(
+      rows.map((row) => row.student_id).filter((id): id is string => Boolean(id)),
+    );
+
+    for (const row of rows) {
+      let user = row.student ?? null;
+
+      if (!user && row.student_id) {
+        user = await this.userRepo.findOne({ where: { id: row.student_id } });
+      }
+
+      if (!user) {
+        const identifier = row.invited_email || row.invited_phone;
+        if (identifier) {
+          user = await this.userService.findByContactOrPublicId(identifier);
+        }
+      }
+
+      if (
+        user &&
+        user.role === RolesEnum.STUDENT &&
+        !row.student_id &&
+        !linkedStudentIds.has(user.id)
+      ) {
+        row.student_id = user.id;
+        row.student = user;
+        linkedStudentIds.add(user.id);
+        if (
+          row.status === ClassStudentStatusEnum.INVITED &&
+          user.is_otp_verified &&
+          user.is_verified
+        ) {
+          row.status = ClassStudentStatusEnum.JOINED;
+          row.joined_at = row.joined_at ?? new Date();
+          row.approved_at = row.approved_at ?? new Date();
+        }
+        await this.classStudentRepo.save(row);
+      } else if (user) {
+        row.student = user;
+      }
+    }
   }
 
   private assertClassMatchesOrgContext(
@@ -539,9 +596,7 @@ export class ClassService {
           }
 
           // Find student by email
-          const student = await this.userRepo.findOne({
-            where: { email: normalizedEmail },
-          });
+          const student = await this.userService.findByContactOrPublicId(trimmedContact);
 
           if (student) {
             if (student.role !== RolesEnum.STUDENT) {
@@ -649,9 +704,7 @@ export class ClassService {
           }
 
           // Find student by phone
-          const student = await this.userRepo.findOne({
-            where: { phone: normalizedPhone },
-          });
+          const student = await this.userService.findByContactOrPublicId(trimmedContact);
 
           if (student) {
             if (student.role !== RolesEnum.STUDENT) {
@@ -1018,10 +1071,17 @@ export class ClassService {
   ): Promise<ClassEntity> {
     await this.findOne(classId, jwtPayload, orgContext);
 
-    await this.classStudentRepo.delete({
-      class_id: classId,
-      student_id: In(studentIds),
-    });
+    if (!studentIds.length) {
+      return this.findOne(classId, jwtPayload, orgContext);
+    }
+
+    await this.classStudentRepo
+      .createQueryBuilder()
+      .delete()
+      .from(ClassStudentEntity)
+      .where('class_id = :classId', { classId })
+      .andWhere('(id IN (:...ids) OR student_id IN (:...ids))', { ids: studentIds })
+      .execute();
 
     return this.findOne(classId, jwtPayload, orgContext);
   }
@@ -1148,6 +1208,7 @@ export class ClassService {
     }
 
     this.assertStudentWorkspaceAllowsClass(classEntity, jwtPayload);
+    await this.hydrateClassStudents(classEntity);
 
     const classmates = (classEntity.classStudents || [])
       .filter(
@@ -1157,7 +1218,11 @@ export class ClassService {
           cs.student_id !== studentId,
       )
       .map((cs) => ({
-        name: cs.student?.full_name?.trim() || 'Student',
+        name:
+          cs.student?.full_name?.trim() ||
+          cs.student?.email ||
+          cs.student?.phone ||
+          'Student',
         joined_at: cs.joined_at ?? null,
       }))
       .sort((a, b) => {
@@ -1254,6 +1319,10 @@ export class ClassService {
       where: { class_id: classId },
       relations: ['student'],
       order: { created_at: 'DESC' },
+    }).then(async (rows) => {
+      const wrapper = { classStudents: rows } as ClassEntity;
+      await this.hydrateClassStudents(wrapper);
+      return wrapper.classStudents;
     });
   }
 
