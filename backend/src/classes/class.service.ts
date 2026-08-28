@@ -21,7 +21,6 @@ export type ClassPublicSummary = {
 };
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { EmailService } from 'src/email/email.service';
-import { SmsService } from 'src/sms/sms.service';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
 import { randomUUID } from 'crypto';
 import {
@@ -60,7 +59,6 @@ export class ClassService {
     @InjectRepository(SubjectEntity)
     private readonly subjectRepo: Repository<SubjectEntity>,
     private readonly emailService: EmailService,
-    private readonly smsService: SmsService,
     private readonly configService: ConfigService,
     private readonly organizationsService: OrganizationsService,
     private readonly organizationAccessService: OrganizationAccessService,
@@ -708,8 +706,15 @@ export class ClassService {
 
           if (student) {
             if (student.role !== RolesEnum.STUDENT) {
-              // User exists but is not a student - still send invitation
-              // This handles cases where phone/email belongs to a teacher or admin
+              // User exists but is not a student - still send invitation via email
+              const inviteEmail = normalizeEmail(student.email);
+              if (!inviteEmail) {
+                errors.push(
+                  `Cannot invite ${normalizedPhone}: no email on file. Provide an email contact instead.`,
+                );
+                continue;
+              }
+
               const invitationToken = randomUUID();
               const invitationLink = `${frontendUrl}/join/class/${classId}`;
 
@@ -719,22 +724,22 @@ export class ClassService {
                   student_id: null,
                   status: ClassStudentStatusEnum.INVITED,
                   invited_phone: normalizedPhone,
+                  invited_email: inviteEmail,
                   invitation_token: invitationToken,
                   invited_at: new Date(),
                 })
               );
 
-              // Send SMS invitation
               try {
-                const smsMessage = `You've been invited to join ${classEntity.class_name} on TestTaker. Register here: ${invitationLink}`;
-                const smsSent = await this.smsService.sendSms(normalizedPhone, smsMessage);
-                if (smsSent) {
-                  invited++;
-                } else {
-                  errors.push(`Failed to send SMS to ${normalizedPhone}`);
-                }
+                await this.emailService.sendInvitationEmail(
+                  inviteEmail,
+                  invitationLink,
+                  classEntity.class_name,
+                  jwtPayload.full_name,
+                );
+                invited++;
               } catch (error) {
-                errors.push(`Failed to send SMS to ${normalizedPhone}: ${error.message}`);
+                errors.push(`Failed to send email to ${inviteEmail}: ${error.message}`);
               }
               continue;
             }
@@ -777,33 +782,10 @@ export class ClassService {
               pending++;
             }
           } else {
-            // Not onboarded - send invitation
-            const invitationToken = randomUUID();
-            const invitationLink = `${frontendUrl}/join/class/${classId}`;
-
-            await this.classStudentRepo.save(
-              this.classStudentRepo.create({
-                class_id: classId,
-                student_id: null,
-                status: ClassStudentStatusEnum.INVITED,
-                invited_phone: normalizedPhone,
-                invitation_token: invitationToken,
-                invited_at: new Date(),
-              })
+            // Not onboarded — invitations require a resolvable email (no SMS)
+            errors.push(
+              `Cannot invite ${normalizedPhone}: no account email found. Invite using an email address instead.`,
             );
-
-            // Send SMS invitation
-            try {
-            const smsMessage = `You've been invited to join ${classEntity.class_name} on TestTaker. Register here: ${invitationLink}`;
-              const smsSent = await this.smsService.sendSms(normalizedPhone, smsMessage);
-              if (smsSent) {
-            invited++;
-              } else {
-                errors.push(`Failed to send SMS to ${normalizedPhone}`);
-              }
-            } catch (error) {
-              errors.push(`Failed to send SMS to ${normalizedPhone}: ${error.message}`);
-            }
           }
         }
       } catch (error) {

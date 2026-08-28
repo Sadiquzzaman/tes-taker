@@ -17,6 +17,7 @@ import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'crypto';
 import { PublicIdService } from 'src/common/services/public-id.service';
 import { normalizeEmail, normalizePhone } from 'src/common/utils/contact.util';
+import { TestUsersSeedService } from './test-users.seed';
 
 type AdminUserListMeta = {
   page: number;
@@ -51,11 +52,13 @@ export class UserService implements OnModuleInit {
     private readonly configService: ConfigService,
     private readonly subscriptionService: SubscriptionService,
     private readonly publicIdService: PublicIdService,
+    private readonly testUsersSeedService: TestUsersSeedService,
   ) {}
 
   async onModuleInit(): Promise<void> {
     await this.seedDefaultAdminIfMissing();
     await this.ensureSuperAdminExists();
+    await this.testUsersSeedService.seedIfEnabled();
   }
 
   /**

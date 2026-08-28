@@ -43,9 +43,12 @@ export class AuthService {
       throw new BadRequestException('Password and confirm password do not match');
     }
 
-    // Phone is required for registration
+    // Phone and email are required for registration
     if (!registerUserDto.phone) {
       throw new BadRequestException('Phone number is required for registration');
+    }
+    if (!registerUserDto.email) {
+      throw new BadRequestException('Email is required for registration');
     }
 
     // Self-service registration always creates a student account.
@@ -66,12 +69,10 @@ export class AuthService {
       }
     }
 
-    // Check for duplicate email if provided (only if verified)
-    if (registerUserDto.email) {
-      const existingEmailUser = await this.userService.findByEmail(registerUserDto.email);
-      if (existingEmailUser && existingEmailUser.is_otp_verified) {
-        throw new BadRequestException('Email already exists and verified');
-      }
+    // Check for duplicate email (only if verified)
+    const existingEmailUser = await this.userService.findByEmail(registerUserDto.email);
+    if (existingEmailUser && existingEmailUser.is_otp_verified) {
+      throw new BadRequestException('Email already exists and verified');
     }
 
     // Send OTP using centralized SMS service
@@ -123,6 +124,9 @@ export class AuthService {
     if (!dto.phone) {
       throw new BadRequestException('Phone number is required for registration');
     }
+    if (!dto.email) {
+      throw new BadRequestException('Email is required for registration');
+    }
 
     const organizationName = dto.organization_name?.trim();
     if (!organizationName) {
@@ -138,11 +142,9 @@ export class AuthService {
       await this.organizationsService.clearPendingOrgName(dto.phone);
     }
 
-    if (dto.email) {
-      const existingEmailUser = await this.userService.findByEmail(dto.email);
-      if (existingEmailUser && existingEmailUser.is_otp_verified) {
-        throw new BadRequestException('Email already exists and verified');
-      }
+    const existingEmailUser = await this.userService.findByEmail(dto.email);
+    if (existingEmailUser && existingEmailUser.is_otp_verified) {
+      throw new BadRequestException('Email already exists and verified');
     }
 
     const smsResult = await this.smsService.sendOtp(dto.phone);
@@ -430,6 +432,7 @@ export class AuthService {
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
     const identifier = forgotPasswordDto.identifier.trim();
+    const isEmailIdentifier = identifier.includes('@');
 
     const user = await this.userService.findByPhoneOrEmail(identifier);
     if (!user) {
@@ -446,21 +449,10 @@ export class AuthService {
       this.logger.debug(`[Password Reset OTP] identifier: ${identifier} | otp: ${otp}`);
     }
 
-    const message = `Your TestTaker password reset OTP is: ${otp}. Valid for 5 minutes.`;
-
-    // Send OTP to the user's phone (SMS) when available
-    if (user.phone) {
-      try {
-        await this.smsService.sendSms(user.phone, message);
-      } catch (error) {
-        this.logger.error(
-          `Failed to send password reset OTP via SMS: ${error instanceof Error ? error.message : String(error)}`,
-        );
+    if (isEmailIdentifier) {
+      if (!user.email) {
+        throw new BadRequestException('This account does not have an email address on file');
       }
-    }
-
-    // Send OTP to the user's email when available
-    if (user.email) {
       try {
         const html = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -478,17 +470,45 @@ export class AuthService {
         this.logger.error(
           `Failed to send password reset OTP via email: ${error instanceof Error ? error.message : String(error)}`,
         );
+        throw new BadRequestException('Failed to send password reset code via email. Please try again.');
       }
+
+      return {
+        success: true,
+        message: 'A password reset code has been sent to your email.',
+        data: {
+          identifier,
+          channel: 'email' as const,
+          otpSent: true,
+          maskedPhone: null,
+          maskedEmail: user.email ? this.maskEmail(user.email) : null,
+        },
+      };
+    }
+
+    if (!user.phone) {
+      throw new BadRequestException('This account does not have a phone number on file');
+    }
+
+    const message = `Your TestTaker password reset OTP is: ${otp}. Valid for 5 minutes.`;
+    try {
+      await this.smsService.sendSms(user.phone, message);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send password reset OTP via SMS: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new BadRequestException('Failed to send password reset code via SMS. Please try again.');
     }
 
     return {
       success: true,
-      message: 'A password reset code has been sent to your phone and email.',
+      message: 'A password reset code has been sent to your phone.',
       data: {
         identifier,
+        channel: 'sms' as const,
         otpSent: true,
-        maskedPhone: user.phone ? this.maskPhone(user.phone) : null,
-        maskedEmail: user.email ? this.maskEmail(user.email) : null,
+        maskedPhone: this.maskPhone(user.phone),
+        maskedEmail: null,
       },
     };
   }

@@ -18,7 +18,7 @@ export interface SignUpErrors {
 export const validateForgotIdentifier = (identifier: string): string => {
   const value = identifier.trim();
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const bdPhoneRegex = /^01[3-9]\d{8}$/;
+  const bdPhoneRegex = /^01\d{9}$/;
   const isEmail = value.includes("@");
   const isPhone = /^\d+$/.test(value);
 
@@ -71,7 +71,7 @@ export const validateOrganizationLoginForm = (
   const errors: OrganizationLoginErrors = {};
   const orgNumber = info.organization_number.trim();
   const phone = info.phone.trim();
-  const bdPhoneRegex = /^01[3-9]\d{8}$/;
+  const bdPhoneRegex = /^01\d{9}$/;
 
   if (!orgNumber) {
     errors.organization_number = "Please enter organization number";
@@ -181,15 +181,18 @@ export const validateChangePassword = (
 export const validateSignUpForm = (signUpInfo: SignUpInfo): SignUpErrors => {
   const errors: SignUpErrors = {};
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const bdPhoneRegex = /^01\d{9}$/;
   const complexity = getPasswordComplexityError(signUpInfo.password);
 
   if (!signUpInfo.full_name) {
     errors.full_name = "Please enter your full name";
   } else if (!signUpInfo.phone) {
     errors.phone = "Please enter a phone number";
-  } else if (signUpInfo.phone.length !== 11) {
+  } else if (signUpInfo.phone.length !== 11 || !bdPhoneRegex.test(signUpInfo.phone)) {
     errors.phone = "Please enter a valid 11-digit phone number";
-  } else if (signUpInfo.email && !emailRegex.test(signUpInfo.email)) {
+  } else if (!signUpInfo.email) {
+    errors.email = "Please enter your email address";
+  } else if (!emailRegex.test(signUpInfo.email)) {
     errors.email = "It looks like the email you entered is invalid!";
   } else if (complexity) {
     errors.password = complexity;
@@ -216,6 +219,7 @@ export const validateOrganizationSignUpForm = (
 ): OrganizationSignUpErrors => {
   const errors: OrganizationSignUpErrors = {};
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const bdPhoneRegex = /^01\d{9}$/;
   const complexity = getPasswordComplexityError(info.password);
 
   if (!info.organization_name.trim()) {
@@ -224,9 +228,11 @@ export const validateOrganizationSignUpForm = (
     errors.full_name = "Please enter your full name";
   } else if (!info.phone) {
     errors.phone = "Please enter a phone number";
-  } else if (info.phone.length !== 11) {
+  } else if (info.phone.length !== 11 || !bdPhoneRegex.test(info.phone)) {
     errors.phone = "Please enter a valid 11-digit phone number";
-  } else if (info.email && !emailRegex.test(info.email)) {
+  } else if (!info.email) {
+    errors.email = "Please enter your email address";
+  } else if (!emailRegex.test(info.email)) {
     errors.email = "It looks like the email you entered is invalid!";
   } else if (complexity) {
     errors.password = complexity;

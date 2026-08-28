@@ -59,12 +59,10 @@ export const useOrganizationSignUpForm = () => {
       organization_name: form.organization_name.trim(),
       full_name: form.full_name.trim(),
       phone: form.phone,
+      email: form.email.trim(),
       password: form.password,
       confirm_password: form.confirm_password,
     };
-    if (form.email?.trim()) {
-      requestData.email = form.email.trim();
-    }
 
     setLoading(true);
     try {

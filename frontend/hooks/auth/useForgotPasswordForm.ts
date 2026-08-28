@@ -12,9 +12,14 @@ const OTP_TIME = 60;
 type ForgotPasswordView = "request" | "otp" | "reset";
 
 interface ForgotPasswordOtpResponse {
+  message?: string;
   payload?: {
-    maskedPhone?: string | null;
-    maskedEmail?: string | null;
+    message?: string;
+    data?: {
+      channel?: "email" | "sms";
+      maskedPhone?: string | null;
+      maskedEmail?: string | null;
+    };
   };
 }
 
@@ -28,6 +33,7 @@ export const useForgotPasswordForm = () => {
   const [identifier, setIdentifier] = useState("");
   const [identifierError, setIdentifierError] = useState("");
   const [maskedTarget, setMaskedTarget] = useState("");
+  const [deliveryChannel, setDeliveryChannel] = useState<"email" | "sms" | null>(null);
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [otpError, setOtpError] = useState("");
@@ -68,9 +74,25 @@ export const useForgotPasswordForm = () => {
   }, []);
 
   const buildMaskedTarget = (response?: ForgotPasswordOtpResponse) => {
-    const maskedPhone = response?.payload?.maskedPhone;
-    const maskedEmail = response?.payload?.maskedEmail;
-    return [maskedPhone, maskedEmail].filter(Boolean).join(" and ");
+    const data = response?.payload?.data;
+    const channel = data?.channel;
+    if (channel === "email") {
+      return data?.maskedEmail || "";
+    }
+    if (channel === "sms") {
+      return data?.maskedPhone || "";
+    }
+    return [data?.maskedPhone, data?.maskedEmail].filter(Boolean).join(" and ");
+  };
+
+  const channelToastDescription = (channel: "email" | "sms" | null) => {
+    if (channel === "email") {
+      return "We've sent a reset code to your email.";
+    }
+    if (channel === "sms") {
+      return "We've sent a reset code to your phone.";
+    }
+    return "We've sent a reset code.";
   };
 
   const sendResetOtp = async (isResend = false) => {
@@ -92,6 +114,8 @@ export const useForgotPasswordForm = () => {
         identifier: identifier.trim(),
       });
 
+      const channel = response.data.payload?.data?.channel ?? null;
+      setDeliveryChannel(channel);
       setMaskedTarget(buildMaskedTarget(response.data));
       setOtp(Array(OTP_LENGTH).fill(""));
       setOtpError("");
@@ -100,7 +124,7 @@ export const useForgotPasswordForm = () => {
 
       triggerToast({
         title: "Code sent",
-        description: "We've sent a reset code to your phone and email.",
+        description: channelToastDescription(channel),
         type: "success",
       });
     } catch (error) {
@@ -252,6 +276,7 @@ export const useForgotPasswordForm = () => {
     identifier,
     identifierError,
     maskedTarget,
+    deliveryChannel,
     otp,
     otpError,
     timeLeft,

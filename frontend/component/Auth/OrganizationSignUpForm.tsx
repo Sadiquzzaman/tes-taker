@@ -89,7 +89,7 @@ const OrganizationSignUpForm = () => {
             onChange={(e) => handleFieldChange("email", e.target.value)}
             formError={formError.email}
             placeholder="Enter email address"
-            label="Email (Optional)"
+            label="Email"
           />
 
           <div className="flex flex-row items-center gap-2 py-2">

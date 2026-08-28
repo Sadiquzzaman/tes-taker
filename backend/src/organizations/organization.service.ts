@@ -18,7 +18,6 @@ import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { UserService } from 'src/user/user.service';
 import { EmailService } from 'src/email/email.service';
-import { SmsService } from 'src/sms/sms.service';
 import { normalizeEmail, normalizePhone } from 'src/common/utils/contact.util';
 import { resolveFrontendUrl } from 'src/common/utils/frontend-url.util';
 import { OrganizationEntity } from './entities/organization.entity';
@@ -65,7 +64,6 @@ export class OrganizationsService {
     private readonly dataSource: DataSource,
     private readonly publicIdService: PublicIdService,
     private readonly emailService: EmailService,
-    private readonly smsService: SmsService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -1161,20 +1159,30 @@ export class OrganizationsService {
     const invitationLink = `${frontendUrl}/signup?orgInvite=${invitation.token}`;
     const roleLabel = params.role.toLowerCase();
 
-    if (params.email) {
-      await this.emailService.sendOrganizationInvitationEmail(
-        params.email,
-        invitationLink,
-        organization.name,
-        roleLabel,
-        actor.full_name ?? undefined,
+    let deliveryEmail = params.email ? normalizeEmail(params.email) : null;
+    if (!deliveryEmail && params.phone) {
+      const existingByPhone = await this.userService.findByPhone(params.phone);
+      deliveryEmail = normalizeEmail(existingByPhone?.email);
+    }
+
+    if (!deliveryEmail) {
+      throw new BadRequestException(
+        'An email address is required to send an organization invitation. SMS invitations are no longer supported.',
       );
     }
 
-    if (params.phone) {
-      const smsMessage = `You've been invited to join ${organization.name} as ${roleLabel} on TestTaker. Register: ${invitationLink}`;
-      await this.smsService.sendSms(params.phone, smsMessage);
+    if (!invitation.invited_email) {
+      invitation.invited_email = deliveryEmail;
+      invitation = await this.invitationRepo.save(invitation);
     }
+
+    await this.emailService.sendOrganizationInvitationEmail(
+      deliveryEmail,
+      invitationLink,
+      organization.name,
+      roleLabel,
+      actor.full_name ?? undefined,
+    );
 
     return invitation;
   }

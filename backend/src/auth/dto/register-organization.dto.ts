@@ -1,11 +1,9 @@
 import {
   ApiProperty,
-  ApiPropertyOptional,
 } from '@nestjs/swagger';
 import {
   IsEmail,
   IsNotEmpty,
-  IsOptional,
   IsString,
   Matches,
   MaxLength,
@@ -41,20 +39,20 @@ export class RegisterOrganizationDto {
   })
   @IsNotEmpty({ message: 'Phone number is required' })
   @IsString()
-  @Matches(/^01[3-9]\d{8}$/, { message: 'Phone number must be a valid Bangladeshi mobile number' })
+  @Matches(/^01\d{9}$/, { message: 'Phone number must be a valid Bangladeshi mobile number' })
   @MaxLength(15)
   phone: string;
 
-  @ApiPropertyOptional({
-    description: 'Owner email (optional)',
+  @ApiProperty({
+    description: 'Owner email (required)',
     example: 'owner@school.com',
     maxLength: 100,
   })
-  @IsOptional()
+  @IsNotEmpty({ message: 'Email is required' })
   @IsEmail({}, { message: 'Email must be valid' })
   @MaxLength(100)
   @Transform(({ value }) => value?.toLowerCase().trim())
-  email?: string;
+  email: string;
 
   @ApiProperty({
     description: 'Password (min 8 chars, upper, lower, number, special)',

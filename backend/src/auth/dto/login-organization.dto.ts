@@ -18,7 +18,7 @@ export class LoginOrganizationDto {
   })
   @IsNotEmpty({ message: 'Phone number is required' })
   @IsString({ message: 'Phone must be a string' })
-  @Matches(/^01[3-9]\d{8}$/, { message: 'Phone number must be a valid Bangladeshi mobile number' })
+  @Matches(/^01\d{9}$/, { message: 'Phone number must be a valid Bangladeshi mobile number' })
   @MaxLength(15)
   phone: string;
 

@@ -6,7 +6,7 @@ interface SignUpInfo {
   full_name: string;
   password: string;
   confirm_password: string;
-  email?: string;
+  email: string;
   phone: string;
   agreed: boolean;
   role: UserRoleEnum;
