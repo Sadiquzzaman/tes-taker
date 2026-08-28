@@ -35,21 +35,12 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register a new user',
-    description: 'Register a new user with phone number (required), password, and optional email. An OTP will be sent to the provided phone number for verification. The user must verify the OTP before they can login. If a user previously registered but did not verify OTP, they can register again with the same phone number. Self-service always creates a STUDENT account. Set request_teacher=true to also create a pending teacher request for admin approval.',
+    description: 'Register a new user with phone number (required), password, and email (required). An OTP will be sent to the provided phone number for verification. The user must verify the OTP before they can login. If a user previously registered but did not verify OTP, they can register again with the same phone number. Self-service always creates a STUDENT account. Set request_teacher=true to also create a pending teacher request for admin approval.',
   })
   @ApiBody({
     type: RegisterUserDto,
-    description: 'User registration data. Phone number and password are required, email is optional.',
+    description: 'User registration data. Phone number, email, and password are required.',
     examples: {
-      withPhoneOnly: {
-        value: {
-          full_name: 'John Doe',
-          phone: '01734911480',
-          password: 'StrongPass123',
-          confirm_password: 'StrongPass123',
-          role: 'STUDENT'
-        }
-      },
       withPhoneAndEmail: {
         value: {
           full_name: 'Jane Smith',
@@ -57,7 +48,17 @@ export class AuthController {
           email: 'jane@example.com',
           password: 'StrongPass123',
           confirm_password: 'StrongPass123',
-          role: 'TEACHER'
+          role: 'STUDENT'
+        }
+      },
+      requestTeacher: {
+        value: {
+          full_name: 'John Doe',
+          phone: '01734911480',
+          email: 'john@example.com',
+          password: 'StrongPass123',
+          confirm_password: 'StrongPass123',
+          request_teacher: true
         }
       }
     }
@@ -324,7 +325,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Request a password reset OTP',
     description:
-      'Accepts a phone number or email. If an account exists, a 6-digit OTP is generated, logged to the server console, and sent to the account\'s phone (SMS) and email. The OTP is valid for 5 minutes.',
+      'Accepts a phone number or email. OTP is sent via email when the identifier is an email, or via SMS when it is a phone number. The OTP is valid for 5 minutes.',
   })
   @ApiBody({
     type: ForgotPasswordDto,
@@ -333,7 +334,7 @@ export class AuthController {
       withEmail: { value: { identifier: 'user@example.com' } },
     },
   })
-  @ApiResponse({ status: 200, description: 'OTP sent to the account phone and email' })
+  @ApiResponse({ status: 200, description: 'OTP sent via the channel matching the identifier (email or SMS)' })
   @ApiResponse({ status: 404, description: 'No account found with this phone number or email' })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     const payload = await this.authService.forgotPassword(forgotPasswordDto);

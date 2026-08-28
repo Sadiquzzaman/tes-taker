@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from 'src/config/redis.module';
 import { UserModule } from 'src/user/user.module';
 import { EmailModule } from 'src/email/email.module';
-import { SmsModule } from 'src/sms/sms.module';
 import { ClassEntity } from 'src/classes/entities/class.entity';
 import { ClassTeacherEntity } from 'src/classes/entities/class-teacher.entity';
 import { ClassStudentEntity } from 'src/classes/entities/class-student.entity';
@@ -42,7 +41,6 @@ import { OrganizationContextGuard } from './guards/organization-context.guard';
     RedisModule,
     UserModule,
     EmailModule,
-    SmsModule,
   ],
   controllers: [OrganizationAdminController, OrganizationController],
   providers: [

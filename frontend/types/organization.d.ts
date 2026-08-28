@@ -60,7 +60,7 @@ interface OrganizationRegisterInfo {
   organization_name: string;
   full_name: string;
   phone: string;
-  email?: string;
+  email: string;
   password: string;
   confirm_password: string;
   agreed: boolean;
