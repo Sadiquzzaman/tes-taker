@@ -71,10 +71,10 @@ export class TestUsersSeedService {
   ) {}
 
   async seedIfEnabled(): Promise<void> {
-    const nodeEnv = this.configService.get<string>('NODE_ENV') || process.env.NODE_ENV;
-    if (nodeEnv === 'production') {
-      return;
-    }
+    // const nodeEnv = this.configService.get<string>('NODE_ENV') || process.env.NODE_ENV;
+    // if (nodeEnv === 'production') {
+    //   return;
+    // }
 
     const flag = (this.configService.get<string>('SEED_TEST_USERS') || process.env.SEED_TEST_USERS || '')
       .trim()
