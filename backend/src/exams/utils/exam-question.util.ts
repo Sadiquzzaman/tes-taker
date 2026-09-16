@@ -243,8 +243,10 @@ function assertUniqueOptionIds(options: WizardOptionDto[], label: string): void 
     throw new BadRequestException(`${label} option ids must be unique`);
   }
   for (const opt of options) {
-    if (!opt.text?.trim()) {
-      throw new BadRequestException('Each option requires text');
+    const hasText = Boolean(opt.text?.trim());
+    const hasImage = Boolean(normalizeStoredMediaUrl(opt.image));
+    if (!hasText && !hasImage) {
+      throw new BadRequestException('Each option requires text or an image');
     }
   }
 }

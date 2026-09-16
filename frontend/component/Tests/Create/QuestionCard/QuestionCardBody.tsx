@@ -1,4 +1,3 @@
-import Image from "next/image";
 import PlusIcon from "@/component/svg/PlusIcon";
 import TrashIcon from "@/component/svg/TrashIcon";
 import UploadImageIconSVG from "@/component/svg/UploadImageIconSVG";
@@ -14,7 +13,7 @@ import {
 import { useAppDispatch } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useRef, type ChangeEvent } from "react";
 import { QUESTION_BUILDER_GAPS, resizeTextarea } from "./shared";
-import { uploadExamImage } from "@/utils/media/uploadMedia";
+import { resolveMediaUrl, uploadExamImage } from "@/utils/media/uploadMedia";
 
 function QuestionCardBody({
   activateCard,
@@ -72,12 +71,26 @@ function QuestionCardBody({
       }
 
       try {
+        console.debug("[media] option image selected", {
+          optionId,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        });
         const uploaded = await uploadExamImage(file);
-        dispatch(updateOptionImage({ subjectId, questionId, optionId, image: uploaded.url, parentPassageId }));
+        const previewUrl = resolveMediaUrl(uploaded.url);
+        console.debug("[media] option image ready for preview", { optionId, previewUrl, key: uploaded.key });
+        dispatch(updateOptionImage({ subjectId, questionId, optionId, image: previewUrl, parentPassageId }));
         activateCard();
-      } catch {
+      } catch (error) {
+        const message =
+          (error as { response?: { data?: { message?: string | string[] } } })?.response?.data
+            ?.message;
+        console.error("[media] option image upload failed", error);
         triggerToast({
-          description: "Unable to upload image right now.",
+          description: Array.isArray(message)
+            ? message[0]
+            : message || "Unable to upload image right now.",
           type: "error",
         });
       }
@@ -95,13 +108,26 @@ function QuestionCardBody({
       }
 
       try {
+        console.debug("[media] add-option image selected", {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        });
         const uploaded = await uploadExamImage(file);
-        dispatch(addOption({ subjectId, questionId, image: uploaded.url, parentPassageId }));
+        const previewUrl = resolveMediaUrl(uploaded.url);
+        console.debug("[media] add-option image ready", { previewUrl, key: uploaded.key });
+        dispatch(addOption({ subjectId, questionId, image: previewUrl, parentPassageId }));
         activateCard();
         scrollToOptionListEndIfNeeded();
-      } catch {
+      } catch (error) {
+        const message =
+          (error as { response?: { data?: { message?: string | string[] } } })?.response?.data
+            ?.message;
+        console.error("[media] add-option image upload failed", error);
         triggerToast({
-          description: "Unable to upload image right now.",
+          description: Array.isArray(message)
+            ? message[0]
+            : message || "Unable to upload image right now.",
           type: "error",
         });
       }
@@ -209,12 +235,21 @@ function QuestionCardBody({
               {option.image ? (
                 <div className={`flex items-center ${QUESTION_BUILDER_GAPS.optionImageActions}`}>
                   <div className="relative h-32 w-full max-w-[240px] overflow-hidden rounded-[12px] border border-[#E5E5E5] bg-white">
-                    <Image
-                      src={option.image}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={resolveMediaUrl(option.image)}
                       alt={`Option image for question ${questionNumber}`}
-                      fill
-                      unoptimized
-                      className="object-cover"
+                      className="h-full w-full object-cover"
+                      onLoad={() =>
+                        console.debug("[media] option preview loaded", {
+                          src: resolveMediaUrl(option.image || ""),
+                        })
+                      }
+                      onError={() =>
+                        console.error("[media] option preview failed to load", {
+                          src: resolveMediaUrl(option.image || ""),
+                        })
+                      }
                     />
                   </div>
                   {canEditOptionImage ? (

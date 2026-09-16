@@ -21,9 +21,11 @@ import { randomUUID } from 'crypto';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { RolesGuard } from 'src/common/guard/roles.guard';
+import { optimizeImageBuffer, withExtension } from './image-optimize.util';
 import { StorageService } from './storage.service';
 
-const MAX_BYTES = 5 * 1024 * 1024;
+/** Raw upload ceiling — images are compressed afterward. */
+const MAX_BYTES = 20 * 1024 * 1024;
 
 const IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const FILE_MIME = new Set([
@@ -57,6 +59,7 @@ export class UploadController {
     summary: 'Upload media to the configured storage driver (local or S3)',
     description:
       'purpose=discussion allows images + documents; purpose=exam|image is images only. ' +
+      'Images are automatically resized/compressed before storage. ' +
       'scopeId namespaces the object key (e.g. classId, examId).',
   })
   @ApiConsumes('multipart/form-data')
@@ -138,7 +141,7 @@ export class UploadController {
       );
     }
 
-    const mime = (file.mimetype || '').toLowerCase();
+    let mime = (file.mimetype || '').toLowerCase();
     const isImage = IMAGE_MIME.has(mime);
     const isFile = FILE_MIME.has(mime);
 
@@ -151,14 +154,29 @@ export class UploadController {
       if (!scopeId?.trim()) {
         throw new BadRequestException('scopeId (classId) is required for discussion uploads');
       }
+      // Non-image discussion docs stay under 5 MB.
+      if (!isImage && file.size > 5 * 1024 * 1024) {
+        throw new BadRequestException('Document size must be 5 MB or less');
+      }
     } else if (!isImage) {
       throw new BadRequestException(
         'Unsupported file type. Allowed images: jpeg, png, webp, gif.',
       );
     }
 
-    const safeName =
+    let body: Buffer = file.buffer;
+    let safeName =
       file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'file';
+
+    if (isImage) {
+      const optimized = await optimizeImageBuffer(file.buffer, mime);
+      if (optimized) {
+        body = optimized.buffer;
+        mime = optimized.contentType;
+        safeName = withExtension(safeName, optimized.extension);
+      }
+    }
+
     const scope = (scopeId || 'general').trim().replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80);
     const folder =
       purpose === 'discussion'
@@ -170,17 +188,18 @@ export class UploadController {
 
     const stored = await this.storageService.put({
       key,
-      body: file.buffer,
+      body,
       contentType: mime,
     });
 
     const payload = {
       id: randomUUID(),
       key: stored.key,
-      url: this.storageService.toAbsoluteUrl(stored.url),
-      file_name: file.originalname || safeName,
+      // Private S3 buckets cannot serve virtual-hosted URLs in <img>; use API proxy.
+      url: this.storageService.getClientUrl(stored.key),
+      file_name: safeName,
       mime_type: mime,
-      size: stored.size ?? file.size,
+      size: stored.size ?? body.byteLength,
       kind: isImage ? ('image' as const) : ('file' as const),
       purpose,
     };

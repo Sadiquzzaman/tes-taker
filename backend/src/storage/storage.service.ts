@@ -43,8 +43,23 @@ export class StorageService {
   }
 
   /**
-   * S3 returns absolute https URLs; the local driver returns `/uploads/...`.
-   * Absolute-ize relative URLs using BACKEND_BASE_URL when present.
+   * URL the browser should use to display the object.
+   * Local files → `/uploads/...` (static). S3 → API content proxy (bucket is private).
+   */
+  getClientUrl(key: string): string {
+    if (this.driver.name === 's3') {
+      const publicBase = (this.configService.get<string>('BACKEND_BASE_URL') || '').replace(
+        /\/$/,
+        '',
+      );
+      const path = `/api/v1/uploads/content?key=${encodeURIComponent(key)}`;
+      return publicBase ? `${publicBase}${path}` : path;
+    }
+    return this.toAbsoluteUrl(this.driver.getPublicUrl(key));
+  }
+
+  /**
+   * Absolute-ize relative `/uploads/...` URLs using BACKEND_BASE_URL when present.
    */
   toAbsoluteUrl(url: string): string {
     if (/^https?:\/\//i.test(url)) {

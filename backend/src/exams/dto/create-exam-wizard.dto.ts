@@ -30,9 +30,10 @@ export class WizardOptionDto {
   @IsNotEmpty()
   id: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Option label. May be empty when image is provided.',
+  })
   @IsString()
-  @IsNotEmpty()
   @MaxLength(2000)
   text: string;
 
@@ -51,9 +52,10 @@ export class WizardMatchingSideOptionDto {
   @IsNotEmpty()
   id: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Matching option label. May be empty when image is provided.',
+  })
   @IsString()
-  @IsNotEmpty()
   @MaxLength(2000)
   text: string;
 

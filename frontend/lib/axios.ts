@@ -11,6 +11,15 @@ const axiosReq = axios.create({
 
 axiosReq.interceptors.request.use(
   (config) => {
+    // FormData must set its own multipart boundary; the default application/json breaks uploads.
+    if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+      if (config.headers && typeof config.headers.delete === "function") {
+        config.headers.delete("Content-Type");
+      } else if (config.headers) {
+        delete (config.headers as Record<string, unknown>)["Content-Type"];
+      }
+    }
+
     if (typeof window !== "undefined") {
       const user = getStoredUser();
       const token = user?.access_token ?? "";
