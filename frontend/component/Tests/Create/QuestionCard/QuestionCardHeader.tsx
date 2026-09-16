@@ -15,7 +15,8 @@ import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import Tooltip from "@/Ui/Tooltip";
 import Link from "next/link";
 import type { ParsedPastedQuestion } from "@/utils/exam/parsePastedQuestion";
-import { QUESTION_BUILDER_GAPS, readImageFileAsDataUrl } from "./shared";
+import { QUESTION_BUILDER_GAPS } from "./shared";
+import { uploadExamImage } from "@/utils/media/uploadMedia";
 
 function QuestionCardHeader({
   activateCard,
@@ -48,8 +49,8 @@ function QuestionCardHeader({
       }
 
       try {
-        const image = await readImageFileAsDataUrl(file);
-        dispatch(updateQuestionImage({ subjectId, questionId, image, parentPassageId }));
+        const uploaded = await uploadExamImage(file);
+        dispatch(updateQuestionImage({ subjectId, questionId, image: uploaded.url, parentPassageId }));
         activateCard();
       } catch {
         triggerToast({
@@ -68,7 +69,8 @@ function QuestionCardHeader({
       }
 
       try {
-        return await readImageFileAsDataUrl(file);
+        const uploaded = await uploadExamImage(file);
+        return uploaded.url;
       } catch {
         triggerToast({
           description: "Unable to upload image right now.",

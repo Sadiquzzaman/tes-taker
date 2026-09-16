@@ -13,7 +13,8 @@ import {
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useRef, type ChangeEvent } from "react";
-import { QUESTION_BUILDER_GAPS, readImageFileAsDataUrl, resizeTextarea } from "./shared";
+import { QUESTION_BUILDER_GAPS, resizeTextarea } from "./shared";
+import { uploadExamImage } from "@/utils/media/uploadMedia";
 
 function QuestionCardBody({
   activateCard,
@@ -71,8 +72,8 @@ function QuestionCardBody({
       }
 
       try {
-        const image = await readImageFileAsDataUrl(file);
-        dispatch(updateOptionImage({ subjectId, questionId, optionId, image, parentPassageId }));
+        const uploaded = await uploadExamImage(file);
+        dispatch(updateOptionImage({ subjectId, questionId, optionId, image: uploaded.url, parentPassageId }));
         activateCard();
       } catch {
         triggerToast({
@@ -94,8 +95,8 @@ function QuestionCardBody({
       }
 
       try {
-        const image = await readImageFileAsDataUrl(file);
-        dispatch(addOption({ subjectId, questionId, image, parentPassageId }));
+        const uploaded = await uploadExamImage(file);
+        dispatch(addOption({ subjectId, questionId, image: uploaded.url, parentPassageId }));
         activateCard();
         scrollToOptionListEndIfNeeded();
       } catch {

@@ -34,10 +34,13 @@ async function bootstrap() {
   }
 
   const uploadsRoot = resolve(process.env.STORAGE_LOCAL_PATH || './uploads');
-  if (!existsSync(uploadsRoot)) {
-    mkdirSync(uploadsRoot, { recursive: true });
+  // Local driver only — S3 objects are served from the bucket URL directly.
+  if ((process.env.STORAGE_DRIVER || 'local').toLowerCase() !== 's3') {
+    if (!existsSync(uploadsRoot)) {
+      mkdirSync(uploadsRoot, { recursive: true });
+    }
+    app.useStaticAssets(uploadsRoot, { prefix: '/uploads/' });
   }
-  app.useStaticAssets(uploadsRoot, { prefix: '/uploads/' });
 
   // Security headers. The CSP allow-list is intentionally compatible with the
   // browser features this platform relies on: Google OAuth, Socket.IO, the

@@ -11,6 +11,7 @@ type ApiQuestion = {
   subType?: string;
   text?: string;
   instruction?: string | null;
+  image?: string | null;
   points?: number | null;
   subjectId?: string | null;
   sortOrder?: number | null;
@@ -22,7 +23,7 @@ type ApiQuestion = {
 };
 
 const mapOptions = (options?: ApiOption[]): QuestionOption[] | undefined =>
-  options?.map((option) => ({ id: option.id, text: option.text ?? "", image: null }));
+  options?.map((option) => ({ id: option.id, text: option.text ?? "", image: option.image ?? null }));
 
 const mapGradedQuestion = (question: ApiQuestion, subjectId?: string): QuestionItem => ({
   id: question.id,
@@ -30,7 +31,7 @@ const mapGradedQuestion = (question: ApiQuestion, subjectId?: string): QuestionI
   subType: question.subType ?? "",
   text: question.text ?? "",
   instruction: question.instruction ?? "",
-  image: null,
+  image: question.image ?? null,
   options: mapOptions(question.options),
   matchingOptions: question.matchingOptions
     ? {
@@ -50,7 +51,7 @@ const mapUngradedQuestion = (question: ApiQuestion, subjectId?: string): Questio
   subType: question.subType ?? "",
   text: question.text ?? "",
   instruction: question.instruction ?? "",
-  image: null,
+  image: question.image ?? null,
   answer: undefined,
   points: Number(question.points ?? 1),
   subjectId: question.subjectId ?? subjectId,

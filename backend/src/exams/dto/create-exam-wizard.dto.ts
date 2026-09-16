@@ -36,9 +36,13 @@ export class WizardOptionDto {
   @MaxLength(2000)
   text: string;
 
-  @ApiPropertyOptional({ description: 'Ignored by backend' })
+  @ApiPropertyOptional({
+    description: 'Public URL of uploaded option image (https or /uploads/...). data: URLs are ignored.',
+  })
   @IsOptional()
-  image?: unknown | null;
+  @IsString()
+  @MaxLength(2048)
+  image?: string | null;
 }
 
 export class WizardMatchingSideOptionDto {
@@ -53,9 +57,13 @@ export class WizardMatchingSideOptionDto {
   @MaxLength(2000)
   text: string;
 
-  @ApiPropertyOptional({ description: 'Ignored by backend' })
+  @ApiPropertyOptional({
+    description: 'Public URL of uploaded matching-option image (https or /uploads/...).',
+  })
   @IsOptional()
-  image?: unknown | null;
+  @IsString()
+  @MaxLength(2048)
+  image?: string | null;
 }
 
 export class WizardMatchingOptionsDto {
@@ -117,9 +125,13 @@ export class WizardChildQuestionDto {
   @MaxLength(500)
   instruction?: string;
 
-  @ApiPropertyOptional({ description: 'Ignored by backend' })
+  @ApiPropertyOptional({
+    description: 'Public URL of uploaded question image (https or /uploads/...). data: URLs are ignored.',
+  })
   @IsOptional()
-  image?: unknown | null;
+  @IsString()
+  @MaxLength(2048)
+  image?: string | null;
 
   @ApiPropertyOptional({ type: [WizardOptionDto] })
   @IsOptional()
@@ -224,9 +236,13 @@ export class WizardGradedQuestionDto {
   @MaxLength(500)
   instruction?: string;
 
-  @ApiPropertyOptional({ description: 'Ignored by backend' })
+  @ApiPropertyOptional({
+    description: 'Public URL of uploaded question image (https or /uploads/...). data: URLs are ignored.',
+  })
   @IsOptional()
-  image?: unknown | null;
+  @IsString()
+  @MaxLength(2048)
+  image?: string | null;
 
   @ApiPropertyOptional({ type: [WizardOptionDto] })
   @IsOptional()
@@ -289,9 +305,13 @@ export class WizardUngradedQuestionDto {
   @MaxLength(500)
   instruction?: string;
 
-  @ApiPropertyOptional({ description: 'Ignored by backend' })
+  @ApiPropertyOptional({
+    description: 'Public URL of uploaded question image (https or /uploads/...). data: URLs are ignored.',
+  })
   @IsOptional()
-  image?: unknown | null;
+  @IsString()
+  @MaxLength(2048)
+  image?: string | null;
 
   @ApiPropertyOptional({ type: WizardAnswerDto, description: 'Sample answers for manual grading' })
   @IsOptional()

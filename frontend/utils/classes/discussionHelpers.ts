@@ -1,13 +1,6 @@
-import axiosReq from "@/lib/axios";
+import { resolveMediaUrl, uploadMedia } from "@/utils/media/uploadMedia";
 
-const API_ORIGIN = (process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/api\/v1\/?$/, "");
-
-export const resolveAttachmentUrl = (url: string) => {
-  if (!url) return "";
-  if (/^https?:\/\//i.test(url)) return url;
-  if (url.startsWith("/")) return `${API_ORIGIN}${url}`;
-  return url;
-};
+export const resolveAttachmentUrl = (url: string) => resolveMediaUrl(url);
 
 export const formatFileSize = (bytes: number) => {
   if (!bytes || bytes < 0) return "";
@@ -24,16 +17,8 @@ export const formatDiscussionTime = (value?: string | null) => {
 };
 
 export const uploadDiscussionAttachment = async (classId: string, file: File) => {
-  const formData = new FormData();
-  formData.append("file", file);
-  const response = await axiosReq.post<ApiResponse<DiscussionAttachment>>(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/discussion?classId=${encodeURIComponent(classId)}`,
-    formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    },
-  );
-  return response.data.payload;
+  const uploaded = await uploadMedia("discussion", file, classId);
+  return uploaded as DiscussionAttachment;
 };
 
 export const CATEGORY_FILTERS: Array<{ value: DiscussionPostCategory | "all"; label: string }> = [

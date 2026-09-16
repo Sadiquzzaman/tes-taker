@@ -7,7 +7,7 @@ import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { QuestionCategoryEnum } from '../enums/question.enums';
 
-export type StoredQuestionOption = { id: string; text: string };
+export type StoredQuestionOption = { id: string; text: string; image?: string | null };
 export type StoredMatchingOptions = {
   left: StoredQuestionOption[];
   right: StoredQuestionOption[];

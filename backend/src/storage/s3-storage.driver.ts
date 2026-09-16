@@ -19,12 +19,14 @@ import {
 } from './storage.types';
 
 /**
- * AWS S3 storage driver for discussion attachments and other uploads.
+ * AWS S3 storage driver for all uploaded media (discussions, exam images, etc.).
  *
  * Required env:
  *   AWS_S3_BUCKET, AWS_S3_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
- * Optional:
- *   AWS_S3_PUBLIC_BASE_URL — CloudFront / custom CDN base (no trailing slash)
+ *
+ * Public object URLs use the virtual-hosted style:
+ *   https://{bucket}.s3.{region}.amazonaws.com/{key}
+ * Ensure the bucket (or prefix) allows public GetObject for browser display.
  */
 @Injectable()
 export class S3StorageDriver implements StorageDriver {
@@ -33,15 +35,12 @@ export class S3StorageDriver implements StorageDriver {
   private readonly client: S3Client;
   private readonly bucket: string;
   private readonly region: string;
-  private readonly publicBaseUrl: string | null;
 
   constructor(private readonly configService: ConfigService) {
     this.bucket = (this.configService.get<string>('AWS_S3_BUCKET') || '').trim();
     this.region = (this.configService.get<string>('AWS_S3_REGION') || '').trim();
     const accessKeyId = (this.configService.get<string>('AWS_ACCESS_KEY_ID') || '').trim();
     const secretAccessKey = (this.configService.get<string>('AWS_SECRET_ACCESS_KEY') || '').trim();
-    const publicBase = (this.configService.get<string>('AWS_S3_PUBLIC_BASE_URL') || '').trim();
-    this.publicBaseUrl = publicBase ? publicBase.replace(/\/$/, '') : null;
 
     if (!this.bucket || !this.region) {
       this.logger.warn(
@@ -78,6 +77,7 @@ export class S3StorageDriver implements StorageDriver {
           Key: input.key,
           Body: body,
           ContentType: input.contentType,
+          CacheControl: 'public, max-age=31536000, immutable',
         }),
       );
     } catch (error) {
@@ -127,7 +127,6 @@ export class S3StorageDriver implements StorageDriver {
       this.logger.warn(
         `S3 delete failed for key=${key}: ${error instanceof Error ? error.message : String(error)}`,
       );
-      // Idempotent delete: missing objects are not an error for callers.
     }
   }
 
@@ -136,10 +135,6 @@ export class S3StorageDriver implements StorageDriver {
       .split('/')
       .map((segment) => encodeURIComponent(segment))
       .join('/');
-
-    if (this.publicBaseUrl) {
-      return `${this.publicBaseUrl}/${encodedKey}`;
-    }
 
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${encodedKey}`;
   }

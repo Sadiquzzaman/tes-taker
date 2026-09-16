@@ -2,7 +2,8 @@
  * Storage driver abstraction.
  *
  * Drivers: local filesystem (`STORAGE_DRIVER=local`) or AWS S3 (`STORAGE_DRIVER=s3`).
- * Discussion uploads go through StorageService and inherit the active driver.
+ * All media uploads (discussions, exam images, generic images) go through StorageService.
+ * S3 public URLs use virtual-hosted bucket URLs (no CDN base env).
  */
 export type StorageDriverName = 'local' | 's3';
 

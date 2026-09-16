@@ -8,9 +8,13 @@ import CreateActionPlusIconSVG from "../svg/CreateActionPlusIconSVG";
 
 const CreateTestActionButton = () => {
   const { isExamLimitReached, loading } = useEntitlements();
-  const { isIndividual } = useWorkspace();
+  const { isIndividual, memberRole } = useWorkspace();
 
-  if (!isIndividual) {
+  // Match ClassTests: hide for org assistants/students; show for individual + org teachers/owners.
+  const canCreateTest =
+    isIndividual || (memberRole !== "ASSISTANT" && memberRole !== "STUDENT");
+
+  if (!canCreateTest) {
     return null;
   }
 

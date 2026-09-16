@@ -265,7 +265,30 @@ export function resolveQuestionId(clientId?: string): string | undefined {
 }
 
 export function mapOptionsForStorage(options: WizardOptionDto[] | undefined) {
-  return (options ?? []).map((o) => ({ id: o.id, text: o.text.trim() }));
+  return (options ?? []).map((o) => {
+    const image = normalizeStoredMediaUrl(o.image);
+    return image
+      ? { id: o.id, text: o.text.trim(), image }
+      : { id: o.id, text: o.text.trim() };
+  });
+}
+
+/** Persist only http(s) or local /uploads URLs — never data: URLs (too large for varchar/json). */
+export function normalizeStoredMediaUrl(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 2048) {
+    return null;
+  }
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/uploads/')) {
+    return trimmed;
+  }
+  return null;
 }
 
 export function mapMatchingForStorage(matching: WizardMatchingOptionsDto | undefined) {

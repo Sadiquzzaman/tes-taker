@@ -198,7 +198,7 @@ const formatSubmissionQuestion = (
     response.options = question.options_json.map((option) => ({
       id: option.id,
       text: option.text,
-      image_url: null,
+      image_url: option.image ?? null,
     }));
   }
 
@@ -207,12 +207,12 @@ const formatSubmissionQuestion = (
       left: question.matching_options_json.left.map((option) => ({
         id: option.id,
         text: option.text,
-        image: null,
+        image: option.image ?? null,
       })),
       right: question.matching_options_json.right.map((option) => ({
         id: option.id,
         text: option.text,
-        image: null,
+        image: option.image ?? null,
       })),
     };
   }

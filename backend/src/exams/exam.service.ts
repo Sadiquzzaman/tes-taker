@@ -43,6 +43,7 @@ import {
   mapMatchingForStorage,
   mapOptionsForStorage,
   normalizePoints,
+  normalizeStoredMediaUrl,
   parseWizardQuestion,
   resolveQuestionId,
   syncLegacyOptionColumns,
@@ -599,7 +600,7 @@ export class ExamService {
       parent_id: parentId,
       passage_text: null,
       question: q.text.trim(),
-      image_url: null,
+      image_url: normalizeStoredMediaUrl(q.image),
       points,
       marks_per_question: points,
       instruction: q.instruction?.trim() ? q.instruction.trim() : null,
@@ -643,7 +644,7 @@ export class ExamService {
       parent_id: parentId,
       passage_text: null,
       question: q.text.trim(),
-      image_url: null,
+      image_url: normalizeStoredMediaUrl(q.image),
       points,
       instruction: q.instruction?.trim() ? q.instruction.trim() : null,
       options_json: options.length ? options : null,
@@ -692,7 +693,7 @@ export class ExamService {
       parent_id: null,
       passage_text: null,
       question: q.text.trim(),
-      image_url: null,
+      image_url: normalizeStoredMediaUrl(q.image),
       points,
       marks_per_question: points,
       instruction: q.instruction?.trim() ? q.instruction.trim() : null,
@@ -1763,7 +1764,7 @@ export class ExamService {
         subType: question.sub_type,
         text: question.question,
         instruction: question.instruction ?? null,
-        image: null,
+        image: question.image_url ?? null,
         points: question.points ?? question.marks_per_question ?? null,
         showValidation: false,
       };
@@ -1794,7 +1795,7 @@ export class ExamService {
         subType: question.sub_type,
         text: question.question,
         instruction: question.instruction ?? null,
-        image: null,
+        image: question.image_url ?? null,
         points: question.points ?? question.marks_per_question ?? null,
         showValidation: false,
       };
@@ -1818,7 +1819,7 @@ export class ExamService {
     const options = (question.options_json ?? []).map((o) => ({
       id: o.id,
       text: o.text,
-      image: null,
+      image: o.image ?? null,
     }));
 
     const base: ExamQuestionResponse = {
@@ -1829,15 +1830,23 @@ export class ExamService {
       subType: question.sub_type,
       text: question.question,
       instruction: question.instruction ?? null,
-      image: null,
+      image: question.image_url ?? null,
       points: question.points ?? null,
       showValidation: false,
     };
 
     if (question.sub_type === 'matching-ordering' && question.matching_options_json) {
       base.matchingOptions = {
-        left: question.matching_options_json.left.map((o) => ({ ...o, image: null })),
-        right: question.matching_options_json.right.map((o) => ({ ...o, image: null })),
+        left: question.matching_options_json.left.map((o) => ({
+          id: o.id,
+          text: o.text,
+          image: o.image ?? null,
+        })),
+        right: question.matching_options_json.right.map((o) => ({
+          id: o.id,
+          text: o.text,
+          image: o.image ?? null,
+        })),
       };
     } else if (options.length) {
       base.options = options;
@@ -1886,7 +1895,7 @@ export class ExamService {
       const base: ExamQuestionResponse = {
         id: question.id,
         text: question.question,
-        image: null,
+        image: question.image_url ?? null,
         options,
         points: question.points ?? 1,
         instruction: question.instruction ?? null,
@@ -1909,7 +1918,7 @@ export class ExamService {
     return {
       id: question.id,
       text: question.question,
-      image: null,
+      image: question.image_url ?? null,
       points: question.points ?? question.marks_per_question ?? null,
       instruction: question.instruction ?? null,
       showValidation: false,
