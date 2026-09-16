@@ -19,12 +19,22 @@ import { OrganizationAccessService } from 'src/organizations/organization-access
 import { UserEntity } from 'src/user/entities/user.entity';
 import { DiscussionAccessService, PrivateConversationAccess } from './discussion-access.service';
 import { CreatePrivateConversationDto } from './dto/create-private-conversation.dto';
+import {
+  DiscussionAttachmentDto,
+  DiscussionPostCategoryEnum,
+  DiscussionPostContentDto,
+  PrivateMessageContentDto,
+} from './dto/discussion-content.dto';
 import { ClassSubjectEntity } from './entities/class-subject.entity';
 import { ClassSubjectTeacherEntity } from './entities/class-subject-teacher.entity';
+import { DiscussionAttachment } from 'src/chat-mongo/schemas/discussion-attachment.schema';
+import { DiscussionPostCategory } from 'src/chat-mongo/schemas/discussion-post.schema';
 
 type AuthorSummary = { id: string; name: string };
 
 type Timestamped<T> = T & { createdAt?: Date; updatedAt?: Date };
+
+const MAX_ATTACHMENTS = 5;
 
 @Injectable()
 export class ClassDiscussionService {
@@ -92,6 +102,7 @@ export class ClassDiscussionService {
     jwt: JwtPayloadInterface,
     page = 1,
     limit = 20,
+    category?: DiscussionPostCategoryEnum,
   ) {
     const { classSubject } = await this.discussionAccess.assertCanAccessClassSubject(
       classId,
@@ -99,7 +110,10 @@ export class ClassDiscussionService {
       jwt,
     );
 
-    const filter = { classId, classSubjectId, isActive: true };
+    const filter: Record<string, unknown> = { classId, classSubjectId, isActive: true };
+    if (category) {
+      filter.category = category;
+    }
     const [posts, total] = await Promise.all([
       this.postModel
         .find(filter)
@@ -125,13 +139,19 @@ export class ClassDiscussionService {
     classId: string,
     classSubjectId: string,
     jwt: JwtPayloadInterface,
-    content: string,
+    dto: DiscussionPostContentDto,
   ) {
     const { classEntity, classSubject } = await this.discussionAccess.assertCanAccessClassSubject(
       classId,
       classSubjectId,
       jwt,
     );
+
+    const content = (dto.content ?? '').trim();
+    const attachments = this.normalizeAttachments(dto.attachments);
+    if (!content && attachments.length === 0) {
+      throw new BadRequestException('Post content or at least one attachment is required');
+    }
 
     const saved = await this.postModel.create({
       organizationId: classEntity.organization_id,
@@ -141,6 +161,8 @@ export class ClassDiscussionService {
       authorId: jwt.id,
       authorName: jwt.full_name,
       content,
+      category: (dto.category ?? DiscussionPostCategoryEnum.GENERAL) as DiscussionPostCategory,
+      attachments,
       isActive: true,
     });
 
@@ -173,8 +195,12 @@ export class ClassDiscussionService {
     );
     const post = await this.findScopedPost(classId, classSubjectId, postId);
     this.assertAuthor(post.authorId, jwt.id);
+    const nextContent = content.trim();
+    if (!nextContent) {
+      throw new BadRequestException('Post content is required');
+    }
     const saved = await this.postModel
-      .findByIdAndUpdate(post._id, { content }, { new: true })
+      .findByIdAndUpdate(post._id, { content: nextContent }, { new: true })
       .lean<Timestamped<DiscussionPost>>()
       .exec();
     if (!saved) {
@@ -441,7 +467,7 @@ export class ClassDiscussionService {
     classSubjectId: string,
     conversationId: string,
     jwt: JwtPayloadInterface,
-    content: string,
+    dto: PrivateMessageContentDto,
   ) {
     const loaded = await this.conversationModel
       .findById(conversationId)
@@ -455,15 +481,40 @@ export class ClassDiscussionService {
       this.toConversationAccess(loaded),
     );
 
+    const content = (dto.content ?? '').trim();
+    const attachments = this.normalizeAttachments(dto.attachments);
+    if (!content && attachments.length === 0) {
+      throw new BadRequestException('Message content or at least one attachment is required');
+    }
+
     const saved = await this.messageModel.create({
       conversationId: conversation.id,
       senderId: jwt.id,
       senderName: jwt.full_name,
       content,
+      attachments,
       isActive: true,
     });
     await this.conversationModel.findByIdAndUpdate(conversation.id, { updatedAt: new Date() }).exec();
     return this.mapMessage(saved.toObject() as Timestamped<PrivateMessage>, new Map());
+  }
+
+  private normalizeAttachments(attachments?: DiscussionAttachmentDto[]): DiscussionAttachment[] {
+    if (!attachments?.length) {
+      return [];
+    }
+    if (attachments.length > MAX_ATTACHMENTS) {
+      throw new BadRequestException(`At most ${MAX_ATTACHMENTS} attachments are allowed`);
+    }
+    return attachments.map((item) => ({
+      id: item.id,
+      key: item.key,
+      url: item.url,
+      file_name: item.file_name,
+      mime_type: item.mime_type,
+      size: item.size,
+      kind: item.kind,
+    }));
   }
 
   private async assertTeacherCanChat(
@@ -594,6 +645,16 @@ export class ClassDiscussionService {
     return {
       id: post._id,
       content: post.content,
+      category: post.category ?? 'general',
+      attachments: (post.attachments ?? []).map((item) => ({
+        id: item.id,
+        key: item.key,
+        url: item.url,
+        file_name: item.file_name,
+        mime_type: item.mime_type,
+        size: item.size,
+        kind: item.kind,
+      })),
       created_at: post.createdAt ?? null,
       updated_at: post.updatedAt ?? null,
       comments_count: commentsCount,
@@ -633,6 +694,15 @@ export class ClassDiscussionService {
     return {
       id: message._id,
       content: message.content,
+      attachments: (message.attachments ?? []).map((item) => ({
+        id: item.id,
+        key: item.key,
+        url: item.url,
+        file_name: item.file_name,
+        mime_type: item.mime_type,
+        size: item.size,
+        kind: item.kind,
+      })),
       created_at: message.createdAt ?? null,
       sender: this.mapAuthor(message.senderId, names.get(message.senderId) || message.senderName),
     };

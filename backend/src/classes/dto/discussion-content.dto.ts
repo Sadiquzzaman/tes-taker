@@ -1,14 +1,85 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 
-export class DiscussionPostContentDto {
-  @ApiProperty({ maxLength: 4000 })
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+export enum DiscussionPostCategoryEnum {
+  GENERAL = 'general',
+  QUESTION = 'question',
+  IDEA = 'idea',
+  RESOURCE = 'resource',
+}
+
+export class DiscussionAttachmentDto {
+  @ApiProperty()
   @IsString()
   @IsNotEmpty()
+  id: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  key: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  url: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  file_name: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  mime_type: string;
+
+  @ApiProperty()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(5 * 1024 * 1024)
+  size: number;
+
+  @ApiProperty({ enum: ['image', 'file'] })
+  @IsIn(['image', 'file'])
+  kind: 'image' | 'file';
+}
+
+export class DiscussionPostContentDto {
+  @ApiPropertyOptional({ maxLength: 4000, description: 'Plain text body. Required if no attachments.' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsOptional()
+  @IsString()
   @MaxLength(4000)
-  content: string;
+  content?: string;
+
+  @ApiPropertyOptional({ enum: DiscussionPostCategoryEnum, default: DiscussionPostCategoryEnum.GENERAL })
+  @IsOptional()
+  @IsEnum(DiscussionPostCategoryEnum)
+  category?: DiscussionPostCategoryEnum;
+
+  @ApiPropertyOptional({ type: [DiscussionAttachmentDto], maxItems: 5 })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @ValidateNested({ each: true })
+  @Type(() => DiscussionAttachmentDto)
+  attachments?: DiscussionAttachmentDto[];
 }
 
 export class DiscussionCommentContentDto {
@@ -21,10 +92,18 @@ export class DiscussionCommentContentDto {
 }
 
 export class PrivateMessageContentDto {
-  @ApiProperty({ maxLength: 4000 })
+  @ApiPropertyOptional({ maxLength: 4000, description: 'Plain text body. Required if no attachments.' })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(4000)
-  content: string;
+  content?: string;
+
+  @ApiPropertyOptional({ type: [DiscussionAttachmentDto], maxItems: 5 })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @ValidateNested({ each: true })
+  @Type(() => DiscussionAttachmentDto)
+  attachments?: DiscussionAttachmentDto[];
 }

@@ -1,5 +1,17 @@
-import { Injectable, Logger, NotImplementedException } from '@nestjs/common';
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Readable } from 'stream';
 import {
   PutObjectInput,
   StorageDriver,
@@ -7,52 +19,139 @@ import {
 } from './storage.types';
 
 /**
- * Placeholder AWS S3 storage driver.
+ * AWS S3 storage driver for discussion attachments and other uploads.
  *
- * The architecture is ready: wire an S3 SDK client here and implement the
- * four StorageDriver methods. Selecting STORAGE_DRIVER=s3 will then switch
- * all call sites without further refactoring.
- *
- * Required env (documented, not yet consumed):
+ * Required env:
  *   AWS_S3_BUCKET, AWS_S3_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+ * Optional:
+ *   AWS_S3_PUBLIC_BASE_URL — CloudFront / custom CDN base (no trailing slash)
  */
 @Injectable()
 export class S3StorageDriver implements StorageDriver {
   readonly name = 's3' as const;
   private readonly logger = new Logger(S3StorageDriver.name);
+  private readonly client: S3Client;
+  private readonly bucket: string;
+  private readonly region: string;
+  private readonly publicBaseUrl: string | null;
 
   constructor(private readonly configService: ConfigService) {
-    // Validate that the expected configuration is present so misconfiguration
-    // is caught early, even though the driver is not yet implemented.
-    const bucket = this.configService.get<string>('AWS_S3_BUCKET');
-    const region = this.configService.get<string>('AWS_S3_REGION');
-    if (!bucket || !region) {
+    this.bucket = (this.configService.get<string>('AWS_S3_BUCKET') || '').trim();
+    this.region = (this.configService.get<string>('AWS_S3_REGION') || '').trim();
+    const accessKeyId = (this.configService.get<string>('AWS_ACCESS_KEY_ID') || '').trim();
+    const secretAccessKey = (this.configService.get<string>('AWS_SECRET_ACCESS_KEY') || '').trim();
+    const publicBase = (this.configService.get<string>('AWS_S3_PUBLIC_BASE_URL') || '').trim();
+    this.publicBaseUrl = publicBase ? publicBase.replace(/\/$/, '') : null;
+
+    if (!this.bucket || !this.region) {
       this.logger.warn(
         'S3 storage selected but AWS_S3_BUCKET / AWS_S3_REGION are not fully configured.',
       );
     }
+
+    this.client = new S3Client({
+      region: this.region || 'us-east-1',
+      credentials:
+        accessKeyId && secretAccessKey
+          ? { accessKeyId, secretAccessKey }
+          : undefined,
+    });
   }
 
-  private notImplemented(method: string): never {
-    throw new NotImplementedException(
-      `S3 storage driver is not implemented yet (called: ${method}). ` +
-        'Set STORAGE_DRIVER=local or implement S3StorageDriver.',
-    );
+  private assertConfigured(): void {
+    if (!this.bucket || !this.region) {
+      throw new ServiceUnavailableException(
+        'S3 storage is not configured. Set AWS_S3_BUCKET and AWS_S3_REGION (and credentials).',
+      );
+    }
   }
 
-  async put(_input: PutObjectInput): Promise<StoredObject> {
-    return this.notImplemented('put');
+  async put(input: PutObjectInput): Promise<StoredObject> {
+    this.assertConfigured();
+    const body =
+      typeof input.body === 'string' ? Buffer.from(input.body) : Buffer.from(input.body);
+
+    try {
+      await this.client.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: input.key,
+          Body: body,
+          ContentType: input.contentType,
+        }),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to upload to S3 key=${input.key}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new ServiceUnavailableException('Failed to upload file to S3');
+    }
+
+    this.logger.debug(`Stored object in S3 bucket=${this.bucket} key=${input.key}`);
+    return {
+      key: input.key,
+      url: this.getPublicUrl(input.key),
+      contentType: input.contentType,
+      size: body.byteLength,
+    };
   }
 
-  async get(_key: string): Promise<Buffer> {
-    return this.notImplemented('get');
+  async get(key: string): Promise<Buffer> {
+    this.assertConfigured();
+    try {
+      const result = await this.client.send(
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+        }),
+      );
+      return await this.streamToBuffer(result.Body as Readable | undefined);
+    } catch (error) {
+      this.logger.warn(
+        `S3 get failed for key=${key}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new NotFoundException(`Object not found: ${key}`);
+    }
   }
 
-  async delete(_key: string): Promise<void> {
-    return this.notImplemented('delete');
+  async delete(key: string): Promise<void> {
+    this.assertConfigured();
+    try {
+      await this.client.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+        }),
+      );
+    } catch (error) {
+      this.logger.warn(
+        `S3 delete failed for key=${key}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      // Idempotent delete: missing objects are not an error for callers.
+    }
   }
 
-  getPublicUrl(_key: string): string {
-    return this.notImplemented('getPublicUrl');
+  getPublicUrl(key: string): string {
+    const encodedKey = key
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
+
+    if (this.publicBaseUrl) {
+      return `${this.publicBaseUrl}/${encodedKey}`;
+    }
+
+    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${encodedKey}`;
+  }
+
+  private async streamToBuffer(body: Readable | undefined): Promise<Buffer> {
+    if (!body) {
+      return Buffer.alloc(0);
+    }
+    const chunks: Buffer[] = [];
+    for await (const chunk of body) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
   }
 }

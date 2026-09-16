@@ -1,11 +1,8 @@
 /**
  * Storage driver abstraction.
  *
- * The project currently stores files on the local filesystem. This interface
- * (and the accompanying module) is intentionally small so an AWS S3 driver
- * can be added later without refactoring call sites.
- *
- * DO NOT implement S3 here yet — only prepare the architecture.
+ * Drivers: local filesystem (`STORAGE_DRIVER=local`) or AWS S3 (`STORAGE_DRIVER=s3`).
+ * Discussion uploads go through StorageService and inherit the active driver.
  */
 export type StorageDriverName = 'local' | 's3';
 

@@ -7,8 +7,9 @@ import axiosReq from "@/lib/axios";
 import { getStoredUser } from "@/lib/authSession";
 import { useApiError } from "@/hooks/api/useApiError";
 import { useToast } from "@/component/Toast/ToastContext";
-import useWorkspace from "@/hooks/organization/useWorkspace";
 import { getClassStudentDisplayName } from "@/utils/classes/classStudentDisplay";
+import PublicDiscussionFeed from "./discussions/PublicDiscussionFeed";
+import PrivateDiscussionPane from "./discussions/PrivateDiscussionPane";
 
 const PAGE_LIMIT = 20;
 const POLL_MS = 20000;
@@ -18,13 +19,6 @@ type Mode = "public" | "private";
 const subjectLabel = (subject?: { name: string; code: string | null }) => {
   if (!subject?.name) return "Subject";
   return subject.code ? `${subject.name} — ${subject.code}` : subject.name;
-};
-
-const formatTime = (value?: string | null) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString();
 };
 
 const ClassDiscussions = ({
@@ -41,7 +35,6 @@ const ClassDiscussions = ({
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const { handleError } = useApiError();
   const { triggerToast } = useToast();
-  const { isIndividual } = useWorkspace();
   const currentUserId = getStoredUser()?.id;
   const isTeacher = role === "TEACHER";
 
@@ -50,25 +43,22 @@ const ClassDiscussions = ({
   const [loadingSubjects, setLoadingSubjects] = useState(true);
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [mode, setMode] = useState<Mode>("public");
+  const [categoryFilter, setCategoryFilter] = useState<DiscussionPostCategory | "all">("all");
 
   const [posts, setPosts] = useState<DiscussionPost[]>([]);
   const [postsMeta, setPostsMeta] = useState<DiscussionPageMeta | null>(null);
   const [postsError, setPostsError] = useState<string | null>(null);
   const [loadingPosts, setLoadingPosts] = useState(false);
-  const [postContent, setPostContent] = useState("");
-  const [editingPostId, setEditingPostId] = useState<string | null>(null);
-  const [editingPostContent, setEditingPostContent] = useState("");
+  const [submittingPost, setSubmittingPost] = useState(false);
   const [openComments, setOpenComments] = useState<Record<string, DiscussionComment[]>>({});
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editingCommentContent, setEditingCommentContent] = useState("");
 
   const [conversations, setConversations] = useState<DiscussionConversation[]>([]);
   const [conversationsError, setConversationsError] = useState<string | null>(null);
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState("");
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
-  const [messageContent, setMessageContent] = useState("");
+  const [submittingMessage, setSubmittingMessage] = useState(false);
   const [startWithId, setStartWithId] = useState("");
   const [rosterStudents, setRosterStudents] = useState<ClassStudent[]>([]);
 
@@ -141,16 +131,22 @@ const ClassDiscussions = ({
   }, [baseUrl, classId, handleError]);
 
   const loadPosts = useCallback(
-    async (page = 1, append = false) => {
+    async (page = 1, append = false, category: DiscussionPostCategory | "all" = categoryFilter) => {
       if (!selectedSubjectId) return;
       setLoadingPosts(true);
       setPostsError(null);
       try {
+        const categoryQuery = category !== "all" ? `&category=${category}` : "";
         const response = await axiosReq.get<ApiResponse<DiscussionListPayload<DiscussionPost>>>(
-          `${scopedUrl("/discussions")}?page=${page}&limit=${PAGE_LIMIT}`,
+          `${scopedUrl("/discussions")}?page=${page}&limit=${PAGE_LIMIT}${categoryQuery}`,
         );
         const payload = response.data.payload;
-        setPosts((current) => (append ? [...current, ...(payload.items ?? [])] : payload.items ?? []));
+        const items = (payload.items ?? []).map((post) => ({
+          ...post,
+          category: post.category || "general",
+          attachments: post.attachments || [],
+        }));
+        setPosts((current) => (append ? [...current, ...items] : items));
         setPostsMeta(payload.meta);
       } catch (error) {
         const axiosError = error as AxiosError<ApiError>;
@@ -165,7 +161,7 @@ const ClassDiscussions = ({
         setLoadingPosts(false);
       }
     },
-    [handleError, scopedUrl, selectedSubjectId],
+    [categoryFilter, handleError, scopedUrl, selectedSubjectId],
   );
 
   const loadConversations = useCallback(async () => {
@@ -202,7 +198,11 @@ const ClassDiscussions = ({
         const response = await axiosReq.get<ApiResponse<DiscussionListPayload<DiscussionMessage>>>(
           `${scopedUrl(`/private-conversations/${conversationId}/messages`)}?page=1&limit=${PAGE_LIMIT}`,
         );
-        setMessages(response.data.payload.items ?? []);
+        const items = (response.data.payload.items ?? []).map((message) => ({
+          ...message,
+          attachments: message.attachments || [],
+        }));
+        setMessages(items);
       } catch (error) {
         handleError(error as AxiosError<ApiError>);
         setMessages([]);
@@ -232,11 +232,11 @@ const ClassDiscussions = ({
   useEffect(() => {
     if (!selectedSubjectId) return;
     if (mode === "public") {
-      void loadPosts(1, false);
+      void loadPosts(1, false, categoryFilter);
     } else {
       void loadConversations();
     }
-  }, [loadConversations, loadPosts, mode, selectedSubjectId]);
+  }, [categoryFilter, loadConversations, loadPosts, mode, selectedSubjectId]);
 
   useEffect(() => {
     if (mode === "private" && activeConversationId) {
@@ -248,7 +248,7 @@ const ClassDiscussions = ({
     const refresh = () => {
       if (document.hidden || !selectedSubjectId) return;
       if (mode === "public") {
-        void loadPosts(1, false);
+        void loadPosts(1, false, categoryFilter);
       } else {
         void loadConversations();
         if (activeConversationId) void loadMessages(activeConversationId);
@@ -261,37 +261,43 @@ const ClassDiscussions = ({
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [activeConversationId, loadConversations, loadMessages, loadPosts, mode, selectedSubjectId]);
+  }, [activeConversationId, categoryFilter, loadConversations, loadMessages, loadPosts, mode, selectedSubjectId]);
 
-  const submitPost = async () => {
-    const content = postContent.trim();
-    if (!content || !selectedSubjectId) return;
+  const submitPost = async (payload: {
+    content: string;
+    category: DiscussionPostCategory;
+    attachments: DiscussionAttachment[];
+  }) => {
+    if (!selectedSubjectId) return;
+    setSubmittingPost(true);
     try {
-      await axiosReq.post(scopedUrl("/discussions"), { content });
-      setPostContent("");
-      triggerToast({ title: "Posted", description: "Your question was added to the class discussion.", type: "success" });
-      await loadPosts(1, false);
+      await axiosReq.post(scopedUrl("/discussions"), {
+        content: payload.content,
+        category: payload.category,
+        attachments: payload.attachments,
+      });
+      triggerToast({
+        title: "Posted",
+        description: "Your post was added to the class discussion.",
+        type: "success",
+      });
+      await loadPosts(1, false, categoryFilter);
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
+    } finally {
+      setSubmittingPost(false);
     }
   };
 
-  const savePost = async (postId: string) => {
-    const content = editingPostContent.trim();
-    if (!content) return;
-    try {
-      await axiosReq.patch(scopedUrl(`/discussions/${postId}`), { content });
-      setEditingPostId(null);
-      await loadPosts(1, false);
-    } catch (error) {
-      handleError(error as AxiosError<ApiError>);
-    }
+  const savePost = async (postId: string, content: string) => {
+    await axiosReq.patch(scopedUrl(`/discussions/${postId}`), { content });
+    await loadPosts(1, false, categoryFilter);
   };
 
   const deletePost = async (postId: string) => {
     try {
       await axiosReq.delete(scopedUrl(`/discussions/${postId}`));
-      await loadPosts(1, false);
+      await loadPosts(1, false, categoryFilter);
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
     }
@@ -308,6 +314,18 @@ const ClassDiscussions = ({
     }
   };
 
+  const toggleComments = async (postId: string) => {
+    if (openComments[postId]) {
+      setOpenComments((current) => {
+        const next = { ...current };
+        delete next[postId];
+        return next;
+      });
+      return;
+    }
+    await loadComments(postId);
+  };
+
   const submitComment = async (postId: string) => {
     const content = (commentDrafts[postId] || "").trim();
     if (!content) return;
@@ -315,7 +333,7 @@ const ClassDiscussions = ({
       await axiosReq.post(scopedUrl(`/discussions/${postId}/comments`), { content });
       setCommentDrafts((current) => ({ ...current, [postId]: "" }));
       await loadComments(postId);
-      await loadPosts(1, false);
+      await loadPosts(1, false, categoryFilter);
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
     }
@@ -324,21 +342,8 @@ const ClassDiscussions = ({
   const deleteComment = async (postId: string, commentId: string) => {
     try {
       await axiosReq.delete(scopedUrl(`/discussions/${postId}/comments/${commentId}`));
-      setEditingCommentId(null);
       await loadComments(postId);
-      await loadPosts(1, false);
-    } catch (error) {
-      handleError(error as AxiosError<ApiError>);
-    }
-  };
-
-  const saveComment = async (postId: string, commentId: string) => {
-    const content = editingCommentContent.trim();
-    if (!content) return;
-    try {
-      await axiosReq.patch(scopedUrl(`/discussions/${postId}/comments/${commentId}`), { content });
-      setEditingCommentId(null);
-      await loadComments(postId);
+      await loadPosts(1, false, categoryFilter);
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
     }
@@ -363,306 +368,129 @@ const ClassDiscussions = ({
     }
   };
 
-  const sendMessage = async () => {
-    const content = messageContent.trim();
-    if (!content || !activeConversationId) return;
+  const sendMessage = async (payload: { content: string; attachments: DiscussionAttachment[] }) => {
+    if (!activeConversationId) return;
+    setSubmittingMessage(true);
     try {
-      await axiosReq.post(scopedUrl(`/private-conversations/${activeConversationId}/messages`), { content });
-      setMessageContent("");
+      await axiosReq.post(scopedUrl(`/private-conversations/${activeConversationId}/messages`), {
+        content: payload.content,
+        attachments: payload.attachments,
+      });
       await loadMessages(activeConversationId);
       await loadConversations();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
+    } finally {
+      setSubmittingMessage(false);
     }
   };
 
-  if (loadingSubjects) {
-    return <p className="p-4 text-sm text-[#747775]">Loading discussions...</p>;
-  }
-
-  if (subjectsError) {
-    return <p className="p-4 text-sm text-[#D14343]">{subjectsError}</p>;
-  }
-
-  if (subjects.length === 0) {
-    return (
-      <p className="p-4 text-sm text-[#747775]">
-        No subjects are available for discussion yet. Teachers must be assigned to a class subject before Q&amp;A
-        appears here.
-      </p>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <p className="text-[18px] font-[600] text-[#232A25]">{className}</p>
-        <p className="text-sm text-[#747775]">
-          {isIndividual ? "Subject" : "Organization Subject"}
-          {subjectTitle ? `: ${subjectTitle}` : ""}
-        </p>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[14px] font-semibold text-[#101828]">{className}</p>
+          <p className="text-[12px] text-[#667085]">Discussions are scoped by subject</p>
+        </div>
+        <div className="min-w-[220px]">
+          <DropDownComponent
+            list={subjectOptions}
+            value={selectedSubjectId}
+            handleChange={(value: string) => {
+              setSelectedSubjectId(value);
+              setOpenComments({});
+              setActiveConversationId("");
+              setMessages([]);
+            }}
+            placeholder={loadingSubjects ? "Loading subjects…" : "Select subject"}
+          />
+        </div>
       </div>
 
-      <div className="max-w-md">
-        <DropDownComponent
-          value={selectedSubjectId}
-          handleChange={setSelectedSubjectId}
-          list={subjectOptions}
-          placeholder="Select subject"
-          isSearchable
-        />
-      </div>
+      {subjectsError ? <p className="text-[13px] text-[#B42318]">{subjectsError}</p> : null}
 
-      <div className="flex w-fit rounded-md bg-gray-100 p-0.5">
+      <div className="inline-flex rounded-full bg-[#F2F4F7] p-1">
         <button
-          className={`px-4 py-2 text-sm rounded ${mode === "public" ? "bg-white shadow text-[#232A25]" : "text-[#747775]"}`}
+          type="button"
           onClick={() => setMode("public")}
+          className={`rounded-full px-4 py-1.5 text-[13px] font-medium ${
+            mode === "public" ? "bg-white text-[#49734F] shadow-sm" : "text-[#667085]"
+          }`}
         >
-          Class discussion
+          Class Discussion
         </button>
         <button
-          className={`px-4 py-2 text-sm rounded ${mode === "private" ? "bg-white shadow text-[#232A25]" : "text-[#747775]"}`}
+          type="button"
           onClick={() => setMode("private")}
+          className={`rounded-full px-4 py-1.5 text-[13px] font-medium ${
+            mode === "private" ? "bg-white text-[#49734F] shadow-sm" : "text-[#667085]"
+          }`}
         >
-          Private
+          Private Discussion
         </button>
       </div>
 
-      {mode === "public" && (
-        <div className="flex flex-col gap-4">
-          <div className="rounded-[8px] border border-[#E5E5E5] p-4 flex flex-col gap-3">
-            <textarea
-              value={postContent}
-              onChange={(event) => setPostContent(event.target.value)}
-              maxLength={4000}
-              rows={3}
-              placeholder="Ask a question or share a note for this subject"
-              className="w-full resize-y rounded-[8px] border border-[#E5E5E5] p-3 text-sm text-[#232A25]"
-            />
-            <button
-              onClick={() => void submitPost()}
-              className="self-end rounded-xl bg-[#49734F] px-4 py-2 text-sm font-[500] text-white"
-            >
-              Post
-            </button>
-          </div>
+      {!selectedSubjectId && !loadingSubjects ? (
+        <p className="rounded-[12px] border border-dashed border-[#D0D5DD] px-4 py-8 text-center text-[13px] text-[#667085]">
+          Select a subject to open discussions.
+        </p>
+      ) : null}
 
-          {postsError && <p className="text-sm text-[#D14343]">{postsError}</p>}
-          {loadingPosts && posts.length === 0 && <p className="text-sm text-[#747775]">Loading posts...</p>}
-          {!loadingPosts && !postsError && posts.length === 0 && (
-            <p className="text-sm text-[#747775]">No posts yet for this subject.</p>
-          )}
+      {selectedSubjectId && mode === "public" ? (
+        <PublicDiscussionFeed
+          classId={classId}
+          subjectTitle={subjectTitle}
+          posts={posts}
+          postsMeta={postsMeta}
+          loadingPosts={loadingPosts}
+          postsError={postsError}
+          submitting={submittingPost}
+          categoryFilter={categoryFilter}
+          openComments={openComments}
+          commentDrafts={commentDrafts}
+          currentUserId={currentUserId}
+          onCategoryFilterChange={(value) => setCategoryFilter(value)}
+          onSubmitPost={submitPost}
+          onLoadMore={() => {
+            if (!postsMeta) return;
+            void loadPosts(postsMeta.page + 1, true, categoryFilter);
+          }}
+          onToggleComments={(postId) => void toggleComments(postId)}
+          onCommentDraftChange={(postId, value) =>
+            setCommentDrafts((current) => ({ ...current, [postId]: value }))
+          }
+          onSubmitComment={(postId) => void submitComment(postId)}
+          onEditPost={async (postId, content) => {
+            try {
+              await savePost(postId, content);
+            } catch (error) {
+              handleError(error as AxiosError<ApiError>);
+            }
+          }}
+          onDeletePost={(postId) => void deletePost(postId)}
+          onDeleteComment={(postId, commentId) => void deleteComment(postId, commentId)}
+        />
+      ) : null}
 
-          {posts.map((post) => (
-            <div key={post.id} className="rounded-[8px] border border-[#E5E5E5] p-4 flex flex-col gap-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-[600] text-[#232A25]">{post.author.name}</p>
-                  <p className="text-xs text-[#747775]">{formatTime(post.created_at)}</p>
-                </div>
-                {post.author.id === currentUserId && (
-                  <div className="flex gap-2 text-sm">
-                    <button
-                      className="text-[#49734F]"
-                      onClick={() => {
-                        setEditingPostId(post.id);
-                        setEditingPostContent(post.content);
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button className="text-[#D14343]" onClick={() => void deletePost(post.id)}>
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {editingPostId === post.id ? (
-                <div className="flex flex-col gap-2">
-                  <textarea
-                    value={editingPostContent}
-                    onChange={(event) => setEditingPostContent(event.target.value)}
-                    maxLength={4000}
-                    rows={3}
-                    className="w-full rounded-[8px] border border-[#E5E5E5] p-3 text-sm"
-                  />
-                  <div className="flex gap-2">
-                    <button className="rounded-xl bg-[#49734F] px-3 py-1 text-sm text-white" onClick={() => void savePost(post.id)}>
-                      Save
-                    </button>
-                    <button className="text-sm text-[#747775]" onClick={() => setEditingPostId(null)}>
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <p className="whitespace-pre-wrap text-sm text-[#232A25]">{post.content}</p>
-              )}
-
-              <button
-                className="self-start text-sm text-[#49734F]"
-                onClick={() => void loadComments(post.id)}
-              >
-                Comments ({post.comments_count})
-              </button>
-
-              {openComments[post.id] && (
-                <div className="flex flex-col gap-3 border-t border-[#E5E5E5] pt-3">
-                  {openComments[post.id].map((comment) => (
-                    <div key={comment.id} className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <p className="text-xs font-[600] text-[#232A25]">{comment.author.name}</p>
-                        {editingCommentId === comment.id ? (
-                          <div className="mt-1 flex flex-col gap-2">
-                            <textarea
-                              value={editingCommentContent}
-                              onChange={(event) => setEditingCommentContent(event.target.value)}
-                              maxLength={2000}
-                              rows={2}
-                              className="w-full rounded-[8px] border border-[#E5E5E5] p-2 text-sm"
-                            />
-                            <div className="flex gap-2">
-                              <button
-                                className="text-xs text-[#49734F]"
-                                onClick={() => void saveComment(post.id, comment.id)}
-                              >
-                                Save
-                              </button>
-                              <button className="text-xs text-[#747775]" onClick={() => setEditingCommentId(null)}>
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="whitespace-pre-wrap text-sm text-[#232A25]">{comment.content}</p>
-                        )}
-                      </div>
-                      {comment.author.id === currentUserId && editingCommentId !== comment.id && (
-                        <div className="flex gap-2">
-                          <button
-                            className="text-xs text-[#49734F]"
-                            onClick={() => {
-                              setEditingCommentId(comment.id);
-                              setEditingCommentContent(comment.content);
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button className="text-xs text-[#D14343]" onClick={() => void deleteComment(post.id, comment.id)}>
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  <div className="flex gap-2">
-                    <input
-                      value={commentDrafts[post.id] || ""}
-                      onChange={(event) =>
-                        setCommentDrafts((current) => ({ ...current, [post.id]: event.target.value }))
-                      }
-                      maxLength={2000}
-                      placeholder="Write a comment"
-                      className="flex-1 rounded-[8px] border border-[#E5E5E5] px-3 py-2 text-sm"
-                    />
-                    <button
-                      className="rounded-xl bg-[#49734F] px-3 py-2 text-sm text-white"
-                      onClick={() => void submitComment(post.id)}
-                    >
-                      Reply
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-
-          {postsMeta && postsMeta.page < postsMeta.total_pages && (
-            <button
-              className="self-center text-sm text-[#49734F]"
-              onClick={() => void loadPosts((postsMeta.page || 1) + 1, true)}
-            >
-              Load more
-            </button>
-          )}
-        </div>
-      )}
-
-      {mode === "private" && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[240px_1fr]">
-          <div className="flex flex-col gap-3 rounded-[8px] border border-[#E5E5E5] p-3">
-            <div className="flex flex-col gap-2">
-              <DropDownComponent
-                value={startWithId}
-                handleChange={setStartWithId}
-                list={startOptions}
-                placeholder={isTeacher ? "Start with a student" : "Start with a teacher"}
-                isSearchable
-              />
-              <button
-                className="rounded-xl bg-[#49734F] px-3 py-2 text-sm text-white disabled:opacity-50"
-                disabled={!startWithId}
-                onClick={() => void startConversation()}
-              >
-                Start conversation
-              </button>
-            </div>
-            {conversationsError && <p className="text-sm text-[#D14343]">{conversationsError}</p>}
-            {loadingConversations && conversations.length === 0 && (
-              <p className="text-sm text-[#747775]">Loading conversations...</p>
-            )}
-            {!loadingConversations && !conversationsError && conversations.length === 0 && (
-              <p className="text-sm text-[#747775]">No private conversations yet.</p>
-            )}
-            {conversations.map((conversation) => {
-              const other = isTeacher ? conversation.student : conversation.teacher;
-              return (
-                <button
-                  key={conversation.id}
-                  className={`rounded-[8px] px-3 py-2 text-left text-sm ${
-                    activeConversationId === conversation.id ? "bg-[#49734F0D] text-[#232A25]" : "text-[#747775]"
-                  }`}
-                  onClick={() => setActiveConversationId(conversation.id)}
-                >
-                  {other.name}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex min-h-[320px] flex-col gap-3 rounded-[8px] border border-[#E5E5E5] p-4">
-            {!activeConversationId ? (
-              <p className="text-sm text-[#747775]">Select or start a private conversation.</p>
-            ) : (
-              <>
-                <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
-                  {messages.map((message) => (
-                    <div key={message.id} className="rounded-[8px] bg-[#F7F7F8] p-3">
-                      <p className="text-xs font-[600] text-[#232A25]">{message.sender.name}</p>
-                      <p className="whitespace-pre-wrap text-sm text-[#232A25]">{message.content}</p>
-                      <p className="text-xs text-[#747775]">{formatTime(message.created_at)}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <textarea
-                    value={messageContent}
-                    onChange={(event) => setMessageContent(event.target.value)}
-                    maxLength={4000}
-                    rows={2}
-                    placeholder="Write a private message"
-                    className="flex-1 rounded-[8px] border border-[#E5E5E5] p-3 text-sm"
-                  />
-                  <button className="self-end rounded-xl bg-[#49734F] px-4 py-2 text-sm text-white" onClick={() => void sendMessage()}>
-                    Send
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {selectedSubjectId && mode === "private" ? (
+        <PrivateDiscussionPane
+          classId={classId}
+          currentUserId={currentUserId}
+          isTeacher={isTeacher}
+          conversations={conversations}
+          loadingConversations={loadingConversations}
+          conversationsError={conversationsError}
+          activeConversationId={activeConversationId}
+          messages={messages}
+          startOptions={startOptions}
+          startWithId={startWithId}
+          submitting={submittingMessage}
+          onSelectConversation={setActiveConversationId}
+          onStartWithChange={setStartWithId}
+          onStartConversation={() => void startConversation()}
+          onSendMessage={sendMessage}
+        />
+      ) : null}
     </div>
   );
 };

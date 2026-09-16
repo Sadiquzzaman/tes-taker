@@ -1,6 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { randomUUID } from 'crypto';
+import {
+  DiscussionAttachment,
+  DiscussionAttachmentSchema,
+} from './discussion-attachment.schema';
 
 export type PrivateMessageDocument = HydratedDocument<PrivateMessage>;
 
@@ -18,8 +22,11 @@ export class PrivateMessage {
   @Prop({ type: String, default: null })
   senderName: string | null;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: true, default: '' })
   content: string;
+
+  @Prop({ type: [DiscussionAttachmentSchema], default: [] })
+  attachments: DiscussionAttachment[];
 
   @Prop({ type: Boolean, default: true })
   isActive: boolean;

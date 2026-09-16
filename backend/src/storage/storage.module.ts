@@ -5,9 +5,11 @@ import { LocalStorageDriver } from './local-storage.driver';
 import { S3StorageDriver } from './s3-storage.driver';
 import { StorageService } from './storage.service';
 import { StorageDriver, StorageDriverName } from './storage.types';
+import { UploadController } from './upload.controller';
 
 @Global()
 @Module({
+  controllers: [UploadController],
   providers: [
     LocalStorageDriver,
     S3StorageDriver,

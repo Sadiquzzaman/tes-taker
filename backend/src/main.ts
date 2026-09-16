@@ -20,6 +20,8 @@ import {
 import { WrapResponseInterceptor } from './common/interceptors/wrap-response.interceptor';
 import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
 import helmet from 'helmet';
+import { resolve } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -30,6 +32,12 @@ async function bootstrap() {
   if (process.env.TRUST_PROXY === 'true') {
     app.set('trust proxy', 1);
   }
+
+  const uploadsRoot = resolve(process.env.STORAGE_LOCAL_PATH || './uploads');
+  if (!existsSync(uploadsRoot)) {
+    mkdirSync(uploadsRoot, { recursive: true });
+  }
+  app.useStaticAssets(uploadsRoot, { prefix: '/uploads/' });
 
   // Security headers. The CSP allow-list is intentionally compatible with the
   // browser features this platform relies on: Google OAuth, Socket.IO, the

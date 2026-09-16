@@ -13,3 +13,7 @@
 .idea
 .vscode
 *.log
+
+# Local file uploads (discussion attachments, etc.)
+uploads/
+backend/uploads/

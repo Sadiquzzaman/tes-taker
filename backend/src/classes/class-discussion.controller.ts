@@ -77,6 +77,7 @@ export class ClassDiscussionController {
       jwt,
       query.page ?? 1,
       query.limit ?? 20,
+      query.category,
     );
     return { message: 'Discussions retrieved successfully', payload };
   }
@@ -89,7 +90,7 @@ export class ClassDiscussionController {
     @Body() dto: DiscussionPostContentDto,
     @UserPayload() jwt: JwtPayloadInterface,
   ) {
-    const payload = await this.discussionService.createPost(classId, classSubjectId, jwt, dto.content);
+    const payload = await this.discussionService.createPost(classId, classSubjectId, jwt, dto);
     return { message: 'Discussion posted successfully', payload };
   }
 
@@ -119,7 +120,7 @@ export class ClassDiscussionController {
       classSubjectId,
       postId,
       jwt,
-      dto.content,
+      dto.content ?? '',
     );
     return { message: 'Discussion updated successfully', payload };
   }
@@ -285,7 +286,7 @@ export class ClassDiscussionController {
       classSubjectId,
       conversationId,
       jwt,
-      dto.content,
+      dto,
     );
     return { message: 'Message sent successfully', payload };
   }
