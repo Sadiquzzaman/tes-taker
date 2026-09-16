@@ -1,6 +1,18 @@
+type DiscussionPostCategory = "general" | "question" | "idea" | "resource";
+
 interface DiscussionAuthor {
   id: string;
   name: string;
+}
+
+interface DiscussionAttachment {
+  id: string;
+  key: string;
+  url: string;
+  file_name: string;
+  mime_type: string;
+  size: number;
+  kind: "image" | "file";
 }
 
 interface DiscussionSubjectOption {
@@ -19,6 +31,8 @@ interface DiscussionSubjectOption {
 interface DiscussionPost {
   id: string;
   content: string;
+  category: DiscussionPostCategory;
+  attachments: DiscussionAttachment[];
   created_at: string;
   updated_at: string | null;
   comments_count: number;
@@ -52,6 +66,7 @@ interface DiscussionConversation {
 interface DiscussionMessage {
   id: string;
   content: string;
+  attachments: DiscussionAttachment[];
   created_at: string;
   sender: DiscussionAuthor;
 }

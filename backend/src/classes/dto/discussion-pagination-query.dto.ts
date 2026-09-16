@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { DiscussionPostCategoryEnum } from './discussion-content.dto';
 
 export class DiscussionPaginationQueryDto {
   @ApiPropertyOptional({ default: 1, minimum: 1 })
@@ -17,4 +18,12 @@ export class DiscussionPaginationQueryDto {
   @Min(1)
   @Max(50)
   limit?: number = 20;
+
+  @ApiPropertyOptional({
+    enum: DiscussionPostCategoryEnum,
+    description: 'Filter public posts by category. Omit for all.',
+  })
+  @IsOptional()
+  @IsEnum(DiscussionPostCategoryEnum)
+  category?: DiscussionPostCategoryEnum;
 }
