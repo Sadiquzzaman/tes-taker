@@ -119,6 +119,10 @@ export const buildStudentExamViewModel = (exam: StudentExamDetails): StudentExam
         id: question.id,
         kind: "passage",
         passageText: question.passageText,
+        instructionLanguage:
+          question.instructionLanguage === "en" || question.instructionLanguage === "bn"
+            ? question.instructionLanguage
+            : undefined,
         questions,
       };
     }

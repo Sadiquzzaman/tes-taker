@@ -61,6 +61,8 @@ export type SubmissionPassageQuestionResponse = {
   id: string;
   type: 'passage-question';
   passageText: string;
+  instruction?: string | null;
+  instructionLanguage?: 'en' | 'bn';
   childQuestions: SubmissionQuestionResponse[];
 };
 
@@ -235,6 +237,15 @@ const formatSubmissionPassageQuestion = (
     id: question.id,
     type: QuestionCategoryEnum.PASSAGE,
     passageText: question.passage_text ?? question.question,
+    instruction: question.instruction ?? null,
+    instructionLanguage:
+      question.instruction ===
+      'Read the passage / CQ below and answer the following questions'
+        ? 'en'
+        : question.instruction ===
+            'নিচের অনুচ্ছেদ / সৃজনশীল প্রশ্নটি পড়ো এবং নিম্নলিখিত প্রশ্নগুলোর উত্তর দাও'
+          ? 'bn'
+          : undefined,
     childQuestions: children,
   };
 };

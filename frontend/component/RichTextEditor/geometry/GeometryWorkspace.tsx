@@ -1007,7 +1007,7 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
         <header className="geo-workspace__header">
           <div className="geo-workspace__header-copy">
             <h2>Geometry</h2>
-            <p>Drag shapes to move them. Use Segment to draw radius, diameter, or diagonal like a line in Word.</p>
+            <p>Click points on the board to draw, then tap Done to insert the figure into your question.</p>
           </div>
           <div className="geo-workspace__header-actions">
             <button type="button" className="rte-modal__ghost chem-btn" onClick={onClose} disabled={busy}>
@@ -1259,7 +1259,7 @@ const GeometryWorkspace = ({ open, onClose, onInsert, initialDocumentJson }: Geo
         {error ? <p className="rte-modal__error geo-workspace__error">{error}</p> : null}
 
         <footer className="geo-workspace__footer chem-actions">
-          <p className="geo-workspace__footer-hint">Tap Done to insert this figure into the question.</p>
+          <p className="geo-workspace__footer-hint">Click points on the board, then Done to insert.</p>
           <button type="button" className="rte-modal__ghost chem-btn" onClick={onClose} disabled={busy}>
             Cancel
           </button>

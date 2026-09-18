@@ -172,7 +172,7 @@ export const createTestQuestionCategoryOptions: CreateTestQuestionCategoryOption
       ...createObjectiveQuestionTabs(),
       {
         id: CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID,
-        label: "Essay",
+        label: "Short / Essay",
         isSupported: true,
         answerMode: "none",
         answerInputMode: "none",

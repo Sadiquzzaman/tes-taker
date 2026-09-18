@@ -96,10 +96,13 @@ type QuestionItem = {
   showValidation: boolean;
 };
 
+type PassageInstructionLanguage = "en" | "bn";
+
 type PassageQuestionItem = {
   id: string;
   type: "passage-question";
   passageText: string;
+  instructionLanguage: PassageInstructionLanguage;
   childQuestions: QuestionItem[];
   subjectId?: string;
   showValidation: boolean;
@@ -278,8 +281,6 @@ type PassageQuestionBlockProps = {
   passage: PassageQuestionItem;
   questionStartNumber: number;
   subjectId: string;
-  subjectName?: string;
-  subjectCode?: string;
   setBlockRef: (node: HTMLDivElement | null) => void;
   setQuestionRef: (questionId: string, node: HTMLDivElement | null) => void;
   isActive: boolean;

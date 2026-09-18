@@ -33,7 +33,8 @@ export class DiscussionPost {
   @Prop({ type: String, default: null })
   authorName: string | null;
 
-  @Prop({ type: String, required: true, default: '' })
+  /** Empty string allowed when the post has attachments only. */
+  @Prop({ type: String, default: '' })
   content: string;
 
   @Prop({

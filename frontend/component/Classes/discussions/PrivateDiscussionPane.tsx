@@ -97,9 +97,19 @@ const PrivateDiscussionPane = ({
 
   const handleSend = async () => {
     if (!canSend) return;
-    await onSendMessage({ content: content.trim(), attachments });
-    setContent("");
-    setAttachments([]);
+    try {
+      await onSendMessage({ content: content.trim(), attachments });
+      setContent("");
+      setAttachments([]);
+      setLocalError("");
+    } catch (error: any) {
+      const message = error?.response?.data?.message;
+      setLocalError(
+        Array.isArray(message)
+          ? message[0]
+          : message || "Could not send. Please try again.",
+      );
+    }
   };
 
   return (
@@ -118,6 +128,13 @@ const PrivateDiscussionPane = ({
               handleChange={onStartWithChange}
               placeholder={isTeacher ? "Start with student" : "Start with teacher"}
             />
+            {startOptions.length === 0 ? (
+              <p className="text-[12px] text-[#B42318]">
+                {isTeacher
+                  ? "No joined students in this class yet."
+                  : "No teachers are assigned to this subject yet."}
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={onStartConversation}

@@ -1,7 +1,7 @@
-import { createSlice } from "@reduxjs/toolkit";
 import addExcludedStudentReducer from "./create-test/addExcludedStudent";
 import addMatchingPairReducer from "./create-test/addMatchingPair";
 import addOptionReducer from "./create-test/addOption";
+import addPassageReducer from "./create-test/addPassage";
 import addQuestionReducer from "./create-test/addQuestion";
 import addSubjectReducer from "./create-test/addSubject";
 import applyGlobalQuestionOrderReducer, {
@@ -43,6 +43,7 @@ import updateDraggingReducer from "./create-test/updateDragging";
 import updateMatchingOptionTextReducer from "./create-test/updateMatchingOptionText";
 import updateOptionImageReducer from "./create-test/updateOptionImage";
 import updateOptionTextReducer from "./create-test/updateOptionText";
+import updatePassageInstructionLanguageReducer from "./create-test/updatePassageInstructionLanguage";
 import updatePassageTextReducer from "./create-test/updatePassageText";
 import updateQuestionAnswerValueReducer from "./create-test/updateQuestionAnswerValue";
 import updateQuestionImageReducer from "./create-test/updateQuestionImage";
@@ -50,6 +51,7 @@ import updateQuestionInstructionReducer from "./create-test/updateQuestionInstru
 import updateQuestionPointsReducer from "./create-test/updateQuestionPoints";
 import updateQuestionTextReducer from "./create-test/updateQuestionText";
 import { syncQuestionOrder } from "./create-test/moveQuestionToSubject";
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState: CreateTestState = createInitialState();
 
@@ -77,6 +79,7 @@ export const createTestSlice = createSlice({
     removeSubject: withQuestionOrderSync(removeSubjectReducer),
     setActiveSubjectId: setActiveSubjectIdReducer,
     addQuestion: withQuestionOrderSync(addQuestionReducer),
+    addPassage: withQuestionOrderSync(addPassageReducer),
     applyParsedQuestion: withQuestionOrderSync(applyParsedQuestionReducer),
     applySpokenQuestion: withQuestionOrderSync(applySpokenQuestionReducer),
     deleteQuestion: withQuestionOrderSync(deleteQuestionReducer),
@@ -87,6 +90,7 @@ export const createTestSlice = createSlice({
     updateQuestionAnswerValue: updateQuestionAnswerValueReducer,
     updateQuestionImage: updateQuestionImageReducer,
     updatePassageText: updatePassageTextReducer,
+    updatePassageInstructionLanguage: updatePassageInstructionLanguageReducer,
     updateMatchingOptionText: updateMatchingOptionTextReducer,
     updateOptionText: updateOptionTextReducer,
     updateOptionImage: updateOptionImageReducer,
@@ -123,6 +127,7 @@ export const {
   hydrateFromExam,
   addMatchingPair,
   addOption,
+  addPassage,
   addQuestion,
   applySpokenQuestion,
   applyParsedQuestion,
@@ -159,6 +164,7 @@ export const {
   updateQuestionAnswerValue,
   updateQuestionImage,
   updatePassageText,
+  updatePassageInstructionLanguage,
   updateQuestionPoints,
   updateQuestionText,
   setPublishTiming,

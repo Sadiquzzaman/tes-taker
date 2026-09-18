@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import AttachmentChip from "./AttachmentChip";
+import DiscussionAttachmentList from "./DiscussionAttachments";
 import {
   categoryPillClass,
   formatDiscussionTime,
@@ -94,10 +94,8 @@ const DiscussionPostCard = ({
             <p className="mt-3 whitespace-pre-wrap text-[14px] leading-6 text-[#101828]">{post.content}</p>
           ) : null}
           {post.attachments?.length ? (
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {post.attachments.map((attachment) => (
-                <AttachmentChip key={attachment.id} attachment={attachment} />
-              ))}
+            <div className="mt-3">
+              <DiscussionAttachmentList attachments={post.attachments} />
             </div>
           ) : null}
         </>

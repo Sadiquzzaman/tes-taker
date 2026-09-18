@@ -275,8 +275,24 @@ const RichTextEditor = ({
       const apply = (width: string) => {
         if (typeof figureEdit.pos === "number" && figureEdit.kind === payload.kind) {
           editor.chain().focus().updateResizableImageAtPos(figureEdit.pos, { ...attrs, width }).run();
+          editor.commands.setNodeSelection(figureEdit.pos);
         } else {
           editor.chain().focus().setResizableImage({ ...attrs, width }).run();
+          requestAnimationFrame(() => {
+            let selectedPos: number | null = null;
+            editor.state.doc.descendants((node, pos) => {
+              if (
+                node.type.name === "resizableImage" &&
+                node.attrs.src === payload.src &&
+                node.attrs.figureJson === payload.figureJson
+              ) {
+                selectedPos = pos;
+              }
+            });
+            if (selectedPos != null) {
+              editor.commands.setNodeSelection(selectedPos);
+            }
+          });
         }
         setFigureEdit({ open: false, kind: null, pos: null, figureJson: null });
       };

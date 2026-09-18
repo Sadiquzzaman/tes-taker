@@ -1,6 +1,6 @@
 "use client";
 
-import AttachmentChip from "./AttachmentChip";
+import DiscussionAttachmentList from "./DiscussionAttachments";
 import { formatDiscussionTime } from "@/utils/classes/discussionHelpers";
 
 const ChatBubble = ({
@@ -24,10 +24,8 @@ const ChatBubble = ({
           <p className="whitespace-pre-wrap text-[14px] leading-5">{message.content}</p>
         ) : null}
         {message.attachments?.length ? (
-          <div className="mt-2 flex flex-col gap-2">
-            {message.attachments.map((attachment) => (
-              <AttachmentChip key={attachment.id} attachment={attachment} />
-            ))}
+          <div className="mt-2">
+            <DiscussionAttachmentList attachments={message.attachments} compact />
           </div>
         ) : null}
         <p className={`mt-1 text-[11px] ${isOwn ? "text-[#3F6B4A]" : "text-[#667085]"}`}>

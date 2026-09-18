@@ -310,8 +310,11 @@ const RichTextToolbar = ({
         <IconButton title="Graph" onClick={() => onOpenGraph?.()}>
           ƒ
         </IconButton>
-        <IconButton title="Geometry" onClick={() => onOpenGeometry?.()}>
-          △
+        <IconButton title="Insert geometry figure" onClick={() => onOpenGeometry?.()}>
+          <span className="inline-flex items-center gap-1">
+            <span aria-hidden>△</span>
+            <span className="text-[11px] font-[500] leading-none">Geo</span>
+          </span>
         </IconButton>
         <IconButton title="Chemistry" onClick={() => onOpenChemistry?.()}>
           ⚗

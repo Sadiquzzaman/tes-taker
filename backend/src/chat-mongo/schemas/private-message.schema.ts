@@ -22,7 +22,8 @@ export class PrivateMessage {
   @Prop({ type: String, default: null })
   senderName: string | null;
 
-  @Prop({ type: String, required: true, default: '' })
+  /** Empty string allowed when the message has attachments only. */
+  @Prop({ type: String, default: '' })
   content: string;
 
   @Prop({ type: [DiscussionAttachmentSchema], default: [] })

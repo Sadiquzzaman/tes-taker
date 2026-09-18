@@ -61,6 +61,7 @@ interface StudentExamPassageQuestion {
   type: "passage-question";
   text?: string;
   instruction?: string | null;
+  instructionLanguage?: "en" | "bn" | null;
   image?: string | null;
   options?: StudentExamOption[];
   points?: number;
@@ -98,6 +99,7 @@ interface StudentExamPassageItem {
   id: string;
   kind: "passage";
   passageText: string;
+  instructionLanguage?: "en" | "bn";
   questions: StudentExamViewQuestion[];
 }
 
