@@ -4,10 +4,31 @@ export const isTeacherExamListItem = (test: TestListItem | TeacherShareableTest)
 
 export const getTestSubjectLabel = (test: TestListItem): string => {
   if (isTeacherExamListItem(test)) {
+    if (test.exam_category === "ielts" || test.formState?.examCategory === "ielts") {
+      const moduleNames = test.subjects.map((subject) => subject.name).filter(Boolean);
+      return moduleNames.length ? moduleNames.join(", ") : "IELTS";
+    }
     return test.subjects[0]?.name ?? "N/A";
   }
 
+  if (test.exam_category === "ielts") {
+    return test.subject ? `IELTS · ${test.subject}` : "IELTS";
+  }
+
   return test.subject ?? "N/A";
+};
+
+export const getTestCategoryLabel = (test: TestListItem): "Academic" | "IELTS" | null => {
+  const category =
+    ("exam_category" in test && test.exam_category) ||
+    (isTeacherExamListItem(test) ? test.formState?.examCategory : undefined);
+  if (category === "ielts") {
+    return "IELTS";
+  }
+  if (category === "academic") {
+    return "Academic";
+  }
+  return null;
 };
 
 export const getTestAudienceLabel = (test: TestListItem | TeacherShareableTest): string => {

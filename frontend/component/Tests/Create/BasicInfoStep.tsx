@@ -1,4 +1,4 @@
-import { removeSubject, setFormField, setPublishField, setSingleSubject, setTestAudience } from "@/lib/features/createTestSlice";
+import { addSubject, removeSubject, setFormField, setPublishField, setSingleSubject, setTestAudience } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import DropDownComponent from "@/Ui/DropDownComponent";
 import NormalInput from "@/Ui/NormalInput";
@@ -11,6 +11,7 @@ import { getStoredUser } from "@/lib/authSession";
 import axiosReq from "@/lib/axios";
 import Link from "next/link";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { EXAM_CATEGORIES, IELTS_MODULES } from "@/constants/examCategory";
 
 const assignedSubjectLabel = (subject: AssignedClassSubject) =>
   subject.code?.trim() ? `${subject.name} (${subject.code.trim()})` : subject.name;
@@ -228,6 +229,61 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
     </label>
   );
 
+  const handleExamCategoryChange = useCallback(
+    (category: "academic" | "ielts") => {
+      dispatch(setFormField({ field: "examCategory", value: category }));
+      if (category === "ielts") {
+        // Clear academic subjects and seed Reading module
+        dispatch(
+          setSingleSubject({
+            id: IELTS_MODULES[0].id,
+            label: IELTS_MODULES[0].label,
+            value: IELTS_MODULES[0].value,
+          }),
+        );
+      } else {
+        // Switching back to academic - clear IELTS modules
+        const firstAcademicSubject = subjectCatalog[0];
+        if (firstAcademicSubject) {
+          dispatch(
+            setSingleSubject({
+              id: firstAcademicSubject.id,
+              label: firstAcademicSubject.name,
+              value: firstAcademicSubject.value,
+            }),
+          );
+        }
+      }
+    },
+    [dispatch, subjectCatalog],
+  );
+
+  const handleIeltsModuleToggle = useCallback(
+    (module: typeof IELTS_MODULES[0], isChecked: boolean) => {
+      if (isChecked) {
+        dispatch(
+          addSubject({
+            id: module.id,
+            label: module.label,
+            value: module.value,
+          }),
+        );
+        return;
+      }
+
+      const ieltsSubjects = subjects.filter((s) => s.id.startsWith("ielts."));
+      if (ieltsSubjects.length <= 1) {
+        return;
+      }
+      dispatch(removeSubject(module.id));
+    },
+    [dispatch, subjects],
+  );
+
+  const selectedIeltsModules = useMemo(() => {
+    return new Set(subjects.filter((s) => s.id.startsWith("ielts.")).map((s) => s.id));
+  }, [subjects]);
+
   const orgSubjectSection = !formState.isModelTest && (
     <div className="flex flex-col gap-2">
       {!publishState.selectedClassId ? (
@@ -277,6 +333,50 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
         />
       </div>
 
+      <div className="flex w-full flex-col gap-2">
+        <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Exam Category</label>
+        <div className="flex gap-3">
+          {EXAM_CATEGORIES.map((cat) => (
+            <label key={cat.value} className="flex items-center gap-2 py-1 cursor-pointer">
+              <input
+                type="radio"
+                name="examCategory"
+                value={cat.value}
+                checked={formState.examCategory === cat.value}
+                onChange={() => handleExamCategoryChange(cat.value)}
+                className="h-4 w-4 border-[#747775] text-[#49734F] focus:ring-0"
+              />
+              <span className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">
+                {cat.label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {formState.examCategory === "ielts" ? (
+        <div className="flex flex-col gap-2">
+          <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+            IELTS Modules (select at least one)
+          </label>
+          <div className="flex flex-col gap-2">
+            {IELTS_MODULES.map((module) => (
+              <label key={module.id} className="flex items-center gap-2 py-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedIeltsModules.has(module.id)}
+                  onChange={(e) => handleIeltsModuleToggle(module, e.target.checked)}
+                  className="h-5 w-5 rounded border-[#747775] text-[#49734F] focus:ring-0"
+                />
+                <span className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">
+                  {module.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
       {!isIndividual && (
         <div className="flex flex-col gap-2">
           <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Class</label>
@@ -327,6 +427,9 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
               />
             </div>
           ) : null}
+
+        </>
+      )}
 
       <div className="flex w-full flex-col gap-2">
         <p className="text-[15px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Duration</p>

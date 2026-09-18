@@ -10,17 +10,32 @@ interface StudentExamMatchingOption {
   image: string | null;
 }
 
-type StudentExamQuestionType = "graded" | "ungraded" | "passage-question";
+type StudentExamQuestionType = "graded" | "ungraded" | "passage-question" | "ielts";
 type StudentExamAutoScoredSubType =
   | "multiple-choice"
   | "multiple-response"
   | "true-false"
+  | "true-false-not-given"
+  | "yes-no-not-given"
   | "fill-in-the-blanks"
   | "answer-box"
-  | "matching-ordering";
-type StudentExamManualSubType = "true-false" | "essay" | "fill-in-the-gaps";
+  | "matching-ordering"
+  | "sentence-completion"
+  | "summary-completion"
+  | "table-completion"
+  | "diagram-label"
+  | "short-answer";
+type StudentExamManualSubType =
+  | "true-false"
+  | "essay"
+  | "fill-in-the-gaps"
+  | "writing-task-1"
+  | "writing-task-2"
+  | "speaking-part-1"
+  | "speaking-part-2"
+  | "speaking-part-3";
 type StudentExamQuestionSubType = StudentExamAutoScoredSubType | StudentExamManualSubType;
-type StudentExamQuestionInputMode = "single-select" | "multi-select" | "matching" | "text";
+type StudentExamQuestionInputMode = "single-select" | "multi-select" | "matching" | "text" | "audio-record";
 
 interface StudentExamQuestionBase {
   id: string;
@@ -30,6 +45,11 @@ interface StudentExamQuestionBase {
   showValidation: boolean;
   subjectId?: string | null;
   sortOrder?: number;
+  audioUrl?: string | null;
+  timeLimitSeconds?: number | null;
+  wordLimit?: number | null;
+  moduleKey?: string | null;
+  mediaMeta?: Record<string, unknown> | null;
 }
 
 interface StudentExamStandardQuestion extends StudentExamQuestionBase {
@@ -44,8 +64,20 @@ interface StudentExamStandardQuestion extends StudentExamQuestionBase {
   correctOptionId?: string | null;
 }
 
+interface StudentExamIeltsQuestion extends StudentExamQuestionBase {
+  type: "ielts";
+  subType: StudentExamQuestionSubType;
+  text: string;
+  options?: StudentExamOption[];
+  matchingOptions?: {
+    left: StudentExamMatchingOption[];
+    right: StudentExamMatchingOption[];
+  };
+  correctOptionId?: string | null;
+}
+
 interface StudentExamPassageChildQuestion extends StudentExamQuestionBase {
-  type: "passage-question";
+  type: "passage-question" | "ielts" | "graded" | "ungraded";
   subType: StudentExamQuestionSubType;
   text: string;
   options?: StudentExamOption[];
@@ -71,9 +103,16 @@ interface StudentExamPassageQuestion {
   showValidation: boolean;
   subjectId?: string | null;
   sortOrder?: number;
+  audioUrl?: string | null;
+  title?: string | null;
+  imageUrl?: string | null;
+  moduleKey?: string | null;
 }
 
-type StudentExamSubjectQuestion = StudentExamStandardQuestion | StudentExamPassageQuestion;
+type StudentExamSubjectQuestion =
+  | StudentExamStandardQuestion
+  | StudentExamPassageQuestion
+  | StudentExamIeltsQuestion;
 
 interface StudentExamViewQuestion extends StudentExamQuestionBase {
   type: StudentExamQuestionType;
@@ -101,6 +140,8 @@ interface StudentExamPassageItem {
   passageText: string;
   instructionLanguage?: "en" | "bn";
   questions: StudentExamViewQuestion[];
+  audioUrl?: string | null;
+  title?: string | null;
 }
 
 type StudentExamViewItem = StudentExamSingleQuestionItem | StudentExamPassageItem;
@@ -123,6 +164,7 @@ interface StudentExamViewSummary {
 interface StudentExamViewModel {
   summary: StudentExamViewSummary;
   sections: StudentExamViewSection[];
+  examCategory?: "academic" | "ielts";
 }
 
 interface StudentExamQuestion {
@@ -154,6 +196,7 @@ interface StudentExamSubject {
   name: string;
   code: string | null;
   questions: StudentExamSubjectQuestion[];
+  moduleKey?: string | null;
 }
 
 interface StudentExamFormState {
@@ -165,6 +208,7 @@ interface StudentExamFormState {
   isModelTest?: boolean;
   allowScreenShare: boolean;
   screenShareDisqualifySeconds: number;
+  examCategory?: "academic" | "ielts";
 }
 
 interface StudentExamPublishState {
@@ -197,6 +241,7 @@ interface StudentExamDetails {
   remaining_time_seconds?: number;
   effective_deadline?: string;
   submission_status?: string | null;
+  exam_category?: "academic" | "ielts";
 }
 
 interface TeacherExamListItem {
@@ -215,6 +260,7 @@ interface TeacherExamListItem {
   updated_at: string | null;
   participant_count: number;
   submitted_count: number;
+  exam_category?: "academic" | "ielts";
 }
 
 interface TeacherExamDetails {
@@ -231,6 +277,7 @@ interface TeacherExamDetails {
   created_user_name?: string;
   created_at?: string;
   updated_at?: string | null;
+  exam_category?: "academic" | "ielts";
 }
 
 interface StudentAssignedExamListItem {
@@ -247,6 +294,7 @@ interface StudentAssignedExamListItem {
   status: "ongoing" | "completed" | "pending";
   participant_count: number;
   submitted_count: number;
+  exam_category?: "academic" | "ielts";
 }
 
 type TestListItem = TeacherExamListItem | StudentAssignedExamListItem;

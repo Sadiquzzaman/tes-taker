@@ -123,9 +123,22 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
         <p className="text-[16px] font-[600] uppercase leading-[1.25] tracking-[-0.02em] text-[#49734F]">
           Student Answer
         </p>
-        <p className="text-[16px] font-[400] leading-[1.2] tracking-[-0.02em] text-[#747775]">
-          {question.textAnswer || "No answer submitted"}
-        </p>
+        {question.mediaUrl ||
+        (question.textAnswer &&
+          (question.textAnswer.startsWith("data:audio") ||
+            question.textAnswer.startsWith("http") ||
+            question.textAnswer.startsWith("/uploads/"))) ? (
+          <audio
+            controls
+            src={question.mediaUrl || question.textAnswer}
+            className="w-full"
+            preload="metadata"
+          />
+        ) : (
+          <p className="text-[16px] font-[400] leading-[1.2] tracking-[-0.02em] text-[#747775]">
+            {question.textAnswer || "No answer submitted"}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-4">

@@ -46,6 +46,7 @@ const StudentExamSection = ({
                 onMatchingChange={onMatchingChange}
                 subjectName={section.subjectName ?? section.title}
                 subjectCode={section.subjectCode}
+                splitLayout={Boolean(section.id?.startsWith("ielts."))}
               />
             );
           }

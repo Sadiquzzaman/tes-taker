@@ -1,14 +1,29 @@
-type SubmissionGradingQuestionType = "graded" | "ungraded" | "passage-question";
+type SubmissionGradingQuestionType = "graded" | "ungraded" | "passage-question" | "ielts";
 
 type SubmissionGradingAutoSubType =
   | "multiple-choice"
   | "multiple-response"
   | "true-false"
+  | "true-false-not-given"
+  | "yes-no-not-given"
   | "fill-in-the-blanks"
   | "answer-box"
-  | "matching-ordering";
+  | "matching-ordering"
+  | "sentence-completion"
+  | "summary-completion"
+  | "table-completion"
+  | "diagram-label"
+  | "short-answer";
 
-type SubmissionGradingManualSubType = "true-false" | "essay" | "fill-in-the-gaps";
+type SubmissionGradingManualSubType =
+  | "true-false"
+  | "essay"
+  | "fill-in-the-gaps"
+  | "writing-task-1"
+  | "writing-task-2"
+  | "speaking-part-1"
+  | "speaking-part-2"
+  | "speaking-part-3";
 
 type SubmissionGradingQuestionSubType = SubmissionGradingAutoSubType | SubmissionGradingManualSubType;
 
@@ -39,6 +54,7 @@ interface SubmissionGradingMatchingAnswerApi {
 interface SubmissionGradingTextAnswerApi {
   type: "text";
   student_answer: string;
+  media_url?: string | null;
 }
 
 type SubmissionGradingAnswerApi =
@@ -71,6 +87,10 @@ interface SubmissionGradingUngradedQuestionApi extends SubmissionGradingQuestion
   type: "ungraded";
 }
 
+interface SubmissionGradingIeltsQuestionApi extends SubmissionGradingQuestionBaseApi {
+  type: "ielts";
+}
+
 interface SubmissionGradingPassageChildQuestionApi extends SubmissionGradingQuestionBaseApi {
   type: "passage-question";
 }
@@ -78,6 +98,7 @@ interface SubmissionGradingPassageChildQuestionApi extends SubmissionGradingQues
 type SubmissionGradingQuestionApi =
   | SubmissionGradingGradedQuestionApi
   | SubmissionGradingUngradedQuestionApi
+  | SubmissionGradingIeltsQuestionApi
   | SubmissionGradingPassageChildQuestionApi;
 
 interface SubmissionGradingPassageQuestionApi {

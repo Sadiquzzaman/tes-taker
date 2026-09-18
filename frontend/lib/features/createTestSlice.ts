@@ -45,6 +45,7 @@ import updateOptionImageReducer from "./create-test/updateOptionImage";
 import updateOptionTextReducer from "./create-test/updateOptionText";
 import updatePassageInstructionLanguageReducer from "./create-test/updatePassageInstructionLanguage";
 import updatePassageTextReducer from "./create-test/updatePassageText";
+import updatePassageAudioUrlReducer from "./create-test/updatePassageAudioUrl";
 import updateQuestionAnswerValueReducer from "./create-test/updateQuestionAnswerValue";
 import updateQuestionImageReducer from "./create-test/updateQuestionImage";
 import updateQuestionInstructionReducer from "./create-test/updateQuestionInstruction";
@@ -91,6 +92,7 @@ export const createTestSlice = createSlice({
     updateQuestionImage: updateQuestionImageReducer,
     updatePassageText: updatePassageTextReducer,
     updatePassageInstructionLanguage: updatePassageInstructionLanguageReducer,
+    updatePassageAudioUrl: updatePassageAudioUrlReducer,
     updateMatchingOptionText: updateMatchingOptionTextReducer,
     updateOptionText: updateOptionTextReducer,
     updateOptionImage: updateOptionImageReducer,
@@ -165,6 +167,7 @@ export const {
   updateQuestionImage,
   updatePassageText,
   updatePassageInstructionLanguage,
+  updatePassageAudioUrl,
   updateQuestionPoints,
   updateQuestionText,
   setPublishTiming,

@@ -1,4 +1,4 @@
-type GradingModalInputMode = "single-select" | "multi-select" | "matching" | "text";
+type GradingModalInputMode = "single-select" | "multi-select" | "matching" | "text" | "audio";
 
 interface GradingModalOption {
   id: string;
@@ -32,6 +32,7 @@ interface GradingModalQuestion {
   correctAnswerValues: string[];
   selectedAnswerValues: string[];
   textAnswer: string;
+  mediaUrl?: string | null;
   isEditable: boolean;
   isPassageChild: boolean;
 }
