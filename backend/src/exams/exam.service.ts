@@ -522,6 +522,12 @@ export class ExamService {
     sortOrder: number,
     jwtPayload: JwtPayloadInterface,
   ): Promise<number> {
+    const instructionLanguage = passage.instructionLanguage === 'en' ? 'en' : 'bn';
+    const instruction =
+      instructionLanguage === 'en'
+        ? 'Read the passage / CQ below and answer the following questions'
+        : 'নিচের অনুচ্ছেদ / সৃজনশীল প্রশ্নটি পড়ো এবং নিম্নলিখিত প্রশ্নগুলোর উত্তর দাও';
+
     const parentPayload: DeepPartial<ExamQuestionEntity> = {
       id: resolveQuestionId(passage.id),
       section_id: sectionId,
@@ -536,7 +542,7 @@ export class ExamService {
       question: passage.passageText.trim().slice(0, 500),
       image_url: null,
       points: null,
-      instruction: null,
+      instruction,
       created_by: jwtPayload.id,
       created_user_name: jwtPayload.full_name,
       created_at: new Date(),
@@ -1752,6 +1758,15 @@ export class ExamService {
         id: question.id,
         type: QuestionCategoryEnum.PASSAGE,
         passageText: question.passage_text ?? question.question,
+        instruction: question.instruction ?? null,
+        instructionLanguage:
+          question.instruction ===
+          'Read the passage / CQ below and answer the following questions'
+            ? 'en'
+            : question.instruction ===
+                'নিচের অনুচ্ছেদ / সৃজনশীল প্রশ্নটি পড়ো এবং নিম্নলিখিত প্রশ্নগুলোর উত্তর দাও'
+              ? 'bn'
+              : null,
         childQuestions: children,
         showValidation: false,
       });

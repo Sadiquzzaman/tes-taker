@@ -201,6 +201,14 @@ export class WizardPassageQuestionDto {
   @Type(() => WizardChildQuestionDto)
   childQuestions: WizardChildQuestionDto[];
 
+  @ApiPropertyOptional({
+    enum: ['en', 'bn'],
+    description: 'Passage instruction language. Defaults to Bangla when omitted.',
+  })
+  @IsOptional()
+  @IsIn(['en', 'bn'])
+  instructionLanguage?: 'en' | 'bn';
+
   @ApiPropertyOptional({ description: 'Ignored by backend' })
   @IsOptional()
   @IsBoolean()

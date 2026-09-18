@@ -2,6 +2,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import createInitialState from "./createInitialState";
 import { createSubject } from "./createTestDomain";
 import { syncQuestionOrder } from "./moveQuestionToSubject";
+import { resolvePassageInstructionLanguage } from "@/utils/richText";
 
 type ApiOption = { id: string; text: string; image?: string | null };
 
@@ -19,6 +20,7 @@ type ApiQuestion = {
   matchingOptions?: { left: ApiOption[]; right: ApiOption[] };
   answer?: { type: QuestionAnswerType; value: string[] };
   passageText?: string;
+  instructionLanguage?: "en" | "bn" | null;
   childQuestions?: ApiQuestion[];
 };
 
@@ -58,12 +60,22 @@ const mapUngradedQuestion = (question: ApiQuestion, subjectId?: string): Questio
   showValidation: false,
 });
 
-const mapRootQuestion = (question: ApiQuestion, subjectId?: string): RootQuestionItem => {
+const mapRootQuestion = (
+  question: ApiQuestion,
+  subjectId?: string,
+  subjectName?: string,
+  subjectCode?: string,
+): RootQuestionItem => {
   if (question.type === "passage-question" || Array.isArray(question.childQuestions)) {
     return {
       id: question.id,
       type: "passage-question",
       passageText: question.passageText ?? "",
+      instructionLanguage: resolvePassageInstructionLanguage(
+        question.instructionLanguage ?? question.instruction,
+        subjectName,
+        subjectCode,
+      ),
       childQuestions: (question.childQuestions ?? []).map((child) => mapGradedQuestion(child, subjectId)),
       subjectId: question.subjectId ?? subjectId,
       showValidation: false,
@@ -116,7 +128,9 @@ const hydrateFromExam = (_state: CreateTestState, action: PayloadAction<TeacherE
       });
       subjectsById.set(entry.subjectId, subject);
     }
-    subject.questions.push(mapRootQuestion(entry.question, entry.subjectId));
+    subject.questions.push(
+      mapRootQuestion(entry.question, entry.subjectId, entry.subjectName, entry.subjectCode),
+    );
   }
 
   // Preserve subject tabs that had no questions after grouping

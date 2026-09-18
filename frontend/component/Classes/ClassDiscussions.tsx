@@ -284,6 +284,7 @@ const ClassDiscussions = ({
       await loadPosts(1, false, categoryFilter);
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
+      throw error;
     } finally {
       setSubmittingPost(false);
     }
@@ -380,6 +381,7 @@ const ClassDiscussions = ({
       await loadConversations();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
+      throw error;
     } finally {
       setSubmittingMessage(false);
     }

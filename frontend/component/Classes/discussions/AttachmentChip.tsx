@@ -1,6 +1,6 @@
 "use client";
 
-import { formatFileSize, resolveAttachmentUrl } from "@/utils/classes/discussionHelpers";
+import { formatFileSize, isDiscussionImageAttachment, resolveAttachmentUrl } from "@/utils/classes/discussionHelpers";
 
 const AttachmentChip = ({
   attachment,
@@ -10,7 +10,7 @@ const AttachmentChip = ({
   onRemove?: () => void;
 }) => {
   const href = resolveAttachmentUrl(attachment.url);
-  const isImage = attachment.kind === "image";
+  const isImage = isDiscussionImageAttachment(attachment);
 
   return (
     <div className="flex items-center gap-3 rounded-[10px] border border-[#E5E7EB] bg-white px-3 py-2">

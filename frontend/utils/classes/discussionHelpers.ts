@@ -2,6 +2,13 @@ import { resolveMediaUrl, uploadMedia } from "@/utils/media/uploadMedia";
 
 export const resolveAttachmentUrl = (url: string) => resolveMediaUrl(url);
 
+export const isDiscussionImageAttachment = (attachment: DiscussionAttachment): boolean => {
+  if (attachment.kind === "image") {
+    return true;
+  }
+  return Boolean(attachment.mime_type?.toLowerCase().startsWith("image/"));
+};
+
 export const formatFileSize = (bytes: number) => {
   if (!bytes || bytes < 0) return "";
   if (bytes < 1024) return `${bytes} B`;

@@ -46,16 +46,39 @@ export const PASSAGE_INSTRUCTION_EN =
 export const PASSAGE_INSTRUCTION_BN =
   "নিচের অনুচ্ছেদ / সৃজনশীল প্রশ্নটি পড়ো এবং নিম্নলিখিত প্রশ্নগুলোর উত্তর দাও";
 
+export type PassageInstructionLanguage = "en" | "bn";
+
 export const isEnglishSubjectName = (name?: string | null, code?: string | null): boolean => {
   const subjectName = name ?? "";
   const subjectCode = (code ?? "").toLowerCase();
   return /english/i.test(subjectName) || subjectCode === "english" || subjectCode === "eng";
 };
 
-export const getPassageInstructionLabel = (subjectName?: string | null, subjectCode?: string | null): string => {
-  if (isEnglishSubjectName(subjectName, subjectCode)) {
-    return PASSAGE_INSTRUCTION_EN;
+export const getPassageInstructionByLanguage = (language: PassageInstructionLanguage): string =>
+  language === "en" ? PASSAGE_INSTRUCTION_EN : PASSAGE_INSTRUCTION_BN;
+
+export const resolvePassageInstructionLanguage = (
+  stored?: string | null,
+  subjectName?: string | null,
+  subjectCode?: string | null,
+): PassageInstructionLanguage => {
+  if (stored === "en" || stored === PASSAGE_INSTRUCTION_EN) {
+    return "en";
+  }
+  if (stored === "bn" || stored === PASSAGE_INSTRUCTION_BN) {
+    return "bn";
+  }
+  return isEnglishSubjectName(subjectName, subjectCode) ? "en" : "bn";
+};
+
+export const getPassageInstructionLabel = (
+  subjectName?: string | null,
+  subjectCode?: string | null,
+  language?: PassageInstructionLanguage | null,
+): string => {
+  if (language === "en" || language === "bn") {
+    return getPassageInstructionByLanguage(language);
   }
 
-  return PASSAGE_INSTRUCTION_BN;
+  return getPassageInstructionByLanguage(resolvePassageInstructionLanguage(null, subjectName, subjectCode));
 };

@@ -198,6 +198,7 @@ export const createPassageQuestion = (subType: string): PassageQuestionItem | nu
     id: createId(),
     type: "passage-question",
     passageText: "",
+    instructionLanguage: "bn",
     childQuestions: [childQuestion],
     showValidation: false,
   };
@@ -337,6 +338,7 @@ const normalizeRootQuestion = (question: RootQuestionItem): RootQuestionItem => 
   return {
     ...question,
     passageText: question.passageText ?? "",
+    instructionLanguage: question.instructionLanguage === "en" ? "en" : "bn",
     childQuestions: question.childQuestions.map((childQuestion) => normalizeQuestion(childQuestion)),
   };
 };

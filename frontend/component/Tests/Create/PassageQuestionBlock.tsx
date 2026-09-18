@@ -5,23 +5,21 @@ import {
   clearPendingFocusQuestionId,
   deleteQuestion,
   setActiveQuestionId,
+  updatePassageInstructionLanguage,
   updatePassageText,
 } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
-import { getPassageInstructionLabel } from "@/utils/richText";
+import { getPassageInstructionByLanguage, hasRichTextContent } from "@/utils/richText";
 import { memo, useCallback, useEffect, useRef } from "react";
 import QuestionCard from "./QuestionCard";
 import QuestionCardValidation from "./QuestionCard/QuestionCardValidation";
 import { QUESTION_BUILDER_GAPS } from "./QuestionCard/shared";
-import { hasRichTextContent } from "@/utils/richText";
 
 function PassageQuestionBlock({
   scrollContainerRef,
   passage,
   questionStartNumber,
   subjectId,
-  subjectName,
-  subjectCode,
   setBlockRef,
   setQuestionRef,
   isActive,
@@ -41,7 +39,8 @@ function PassageQuestionBlock({
     pendingFocusQuestion?.parentPassageId === passage.id && pendingFocusQuestion.questionId === null;
   const passageErrors =
     passage.showValidation && !hasRichTextContent(passage.passageText) ? ["Add passage text."] : [];
-  const instructionLabel = getPassageInstructionLabel(subjectName, subjectCode);
+  const instructionLanguage = passage.instructionLanguage === "en" ? "en" : "bn";
+  const instructionLabel = getPassageInstructionByLanguage(instructionLanguage);
 
   const activatePassage = useCallback(() => {
     dispatch(
@@ -88,9 +87,47 @@ function PassageQuestionBlock({
           onPointerDown={isDragOverlay ? undefined : activatePassage}
         >
           <div className={`flex items-start justify-between ${QUESTION_BUILDER_GAPS.passageHeaderRow}`}>
-            <p className="max-w-[480px] text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
-              {instructionLabel}
-            </p>
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[12px] font-[500] leading-[14px] tracking-[-0.02em] text-[#747775]">
+                  Instruction language
+                </p>
+                <div className="flex items-center rounded-[6px] border border-[#E5E5E5] bg-white p-0.5">
+                  {(
+                    [
+                      { id: "bn", label: "Bangla" },
+                      { id: "en", label: "English" },
+                    ] as const
+                  ).map((option) => {
+                    const isSelected = instructionLanguage === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          dispatch(
+                            updatePassageInstructionLanguage({
+                              subjectId,
+                              passageId: passage.id,
+                              instructionLanguage: option.id,
+                            }),
+                          );
+                        }}
+                        className={`rounded-[4px] px-2.5 py-1 text-[12px] font-[500] leading-[14px] tracking-[-0.02em] transition-colors ${
+                          isSelected ? "bg-[#49734F] text-white" : "bg-transparent text-[#232A25] hover:bg-[#F3F4F6]"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <p className="max-w-[480px] text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+                {instructionLabel}
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => dispatch(deleteQuestion({ subjectId, questionId: passage.id }))}

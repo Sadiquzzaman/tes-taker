@@ -1,7 +1,9 @@
-import { addQuestion, addSubject, finishDragging, removeSubject, setActiveSubjectId, startDragging, updateDragging } from "@/lib/features/createTestSlice";
+import { addPassage, addQuestion, addSubject, finishDragging, removeSubject, setActiveSubjectId, startDragging, updateDragging } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
+import useWorkspace from "@/hooks/organization/useWorkspace";
+import axiosReq from "@/lib/axios";
 import Tooltip from "@/Ui/Tooltip";
 import Link from "next/link";
 import {
@@ -9,7 +11,11 @@ import {
   getSubjectTotalMarks,
   isPassageQuestionItem,
 } from "@/lib/features/create-test/createTestDomain";
-import { createTestQuestionCategoryOptions, isCreateTestQuestionCreationSupported } from "@/utils/createTestOptions";
+import {
+  CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
+  createTestQuestionCategoryOptions,
+  isCreateTestQuestionCreationSupported,
+} from "@/utils/createTestOptions";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PassageQuestionBlock from "./PassageQuestionBlock";
 import QuestionCard from "./QuestionCard";
@@ -46,9 +52,11 @@ const getQuestionCardOffset = (questionIndex: number, dragState: DragState | nul
 const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
+  const { isIndividual } = useWorkspace();
   const defaultQuestionCategory = createTestQuestionCategoryOptions[0].id;
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
   const subjectCatalog = useAppSelector((state) => state.subject.subjects);
+  const [orgSubjectOptions, setOrgSubjectOptions] = useState<SubjectSelectionPayload[]>([]);
   useGetAllSubject();
   const {
     subjects,
@@ -59,6 +67,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     pendingFocusOption,
     dragState,
     formState,
+    publishState,
   } = createTestState;
   const isModelTest = formState.isModelTest;
   const questionsContainerRef = useRef<HTMLDivElement | null>(null);
@@ -83,6 +92,9 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const questions = activeSubject?.questions ?? [];
   const questionCountLabel = String(activeSubject ? getSubjectQuestionCount(activeSubject) : 0).padStart(2, "0");
   const totalMarks = activeSubject ? getSubjectTotalMarks(activeSubject) : 0;
+  const hasPassageInSubject = questions.some((question) => isPassageQuestionItem(question));
+  const showAddPassageControl =
+    Boolean(activeSubject) && hasFeature("allow_passage_questions") && hasPassageInSubject;
   const questionSubtypeTabs = useMemo(
     () => createTestQuestionCategoryOptions.find((category) => category.id === activeQuestionCategory)?.tabs ?? [],
     [activeQuestionCategory],
@@ -331,16 +343,77 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     [activeQuestionCategory, activeSubject, dispatch, triggerToast],
   );
 
+  const handleAddPassage = useCallback(() => {
+    if (!activeSubject) {
+      triggerToast({
+        description: "Please add a subject before creating questions",
+        type: "error",
+      });
+      return;
+    }
+
+    if (!hasFeature("allow_passage_questions")) {
+      return;
+    }
+
+    setActiveQuestionCategory("passage-question");
+    dispatch(
+      addPassage({
+        subjectId: activeSubject.id,
+        subType: CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
+      }),
+    );
+  }, [activeSubject, dispatch, hasFeature, triggerToast]);
+
   const availableSubjectOptions = useMemo(() => {
     const selectedIds = new Set(subjects.map((subject) => subject.id));
-    return subjectCatalog
-      .filter((subject) => !selectedIds.has(subject.id))
-      .map((subject) => ({
-        id: subject.id,
-        label: subject.name,
-        value: subject.value,
-      }));
-  }, [subjectCatalog, subjects]);
+    const source = isIndividual
+      ? subjectCatalog.map((subject) => ({
+          id: subject.id,
+          label: subject.name,
+          value: subject.value,
+        }))
+      : orgSubjectOptions;
+    return source.filter((subject) => !selectedIds.has(subject.id));
+  }, [isIndividual, orgSubjectOptions, subjectCatalog, subjects]);
+
+  useEffect(() => {
+    if (isIndividual || !isModelTest) {
+      setOrgSubjectOptions([]);
+      return;
+    }
+
+    const classId = publishState.selectedClassId;
+    if (!classId) {
+      setOrgSubjectOptions([]);
+      return;
+    }
+
+    let cancelled = false;
+    const loadAssigned = async () => {
+      try {
+        const response = await axiosReq.get<ApiResponse<AssignedClassSubject[]>>(
+          `${process.env.NEXT_PUBLIC_BASE_URL}/classes/${classId}/subjects/assigned`,
+        );
+        if (cancelled) return;
+        const payload = response.data?.payload ?? [];
+        setOrgSubjectOptions(
+          payload.map((item) => ({
+            id: item.subject_id,
+            label: item.code?.trim() ? `${item.name} (${item.code})` : item.name,
+            value: item.code?.trim() || item.name,
+          })),
+        );
+      } catch {
+        if (!cancelled) setOrgSubjectOptions([]);
+      }
+    };
+
+    void loadAssigned();
+    return () => {
+      cancelled = true;
+    };
+  }, [isIndividual, isModelTest, publishState.selectedClassId]);
 
   let nextQuestionNumber = 1;
   const renderedRootQuestions = questions.map((question, questionIndex) => {
@@ -364,8 +437,6 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
           passage={question}
           questionStartNumber={questionStartNumber}
           subjectId={activeSubject!.id}
-          subjectName={activeSubject?.name}
-          subjectCode={activeSubject?.value}
           setBlockRef={(node) => {
             itemRefs.current[question.id] = node;
           }}
@@ -443,8 +514,6 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
               <PassageQuestionBlock
                 scrollContainerRef={scrollContainerRef}
                 subjectId={draggedSubject.id}
-                subjectName={draggedSubject.name}
-                subjectCode={draggedSubject.value}
                 passage={draggedQuestion}
                 questionStartNumber={questionNumber}
                 isActive
@@ -530,6 +599,21 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         >
           {renderedRootQuestions}
         </div>
+
+        {showAddPassageControl ? (
+          <div className="flex w-full justify-start">
+            <button
+              type="button"
+              onClick={handleAddPassage}
+              className="flex h-10 items-center gap-2 rounded-[8px] border border-dashed border-[#49734F] bg-transparent px-4 text-[14px] font-[500] leading-[17px] tracking-[-0.02em] text-[#49734F] transition-colors hover:bg-[#F3F7F4]"
+            >
+              <span aria-hidden className="text-[18px] leading-none">
+                +
+              </span>
+              Add another passage
+            </button>
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-1">
           <div className="flex w-fit items-center gap-2 rounded-[8px] border border-[#49734F] bg-white p-1">

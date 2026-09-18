@@ -1,6 +1,6 @@
 import StudentExamQuestionCard from "@/component/Tests/exam/StudentExamQuestionCard";
 import { RichTextContent } from "@/component/RichTextEditor";
-import { getPassageInstructionLabel } from "@/utils/richText";
+import { getPassageInstructionByLanguage, resolvePassageInstructionLanguage } from "@/utils/richText";
 
 interface StudentExamPassageCardProps {
   item: StudentExamPassageItem;
@@ -26,7 +26,12 @@ const StudentExamPassageCard = ({
   subjectCode,
 }: StudentExamPassageCardProps) => {
   const questionRange = `${item.questions[0]?.questionNumber ?? 0}-${item.questions[item.questions.length - 1]?.questionNumber ?? 0}`;
-  const instructionLabel = getPassageInstructionLabel(subjectName, subjectCode);
+  const instructionLanguage = resolvePassageInstructionLanguage(
+    item.instructionLanguage,
+    subjectName,
+    subjectCode,
+  );
+  const instructionLabel = getPassageInstructionByLanguage(instructionLanguage);
 
   return (
     <div className="flex flex-col gap-4">

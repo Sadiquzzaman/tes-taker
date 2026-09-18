@@ -65,10 +65,20 @@ const DiscussionComposer = ({
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
-    await onSubmit({ content: content.trim(), category, attachments });
-    setContent("");
-    setAttachments([]);
-    setCategory("question");
+    try {
+      await onSubmit({ content: content.trim(), category, attachments });
+      setContent("");
+      setAttachments([]);
+      setCategory("question");
+      setLocalError("");
+    } catch (error: any) {
+      const message = error?.response?.data?.message;
+      setLocalError(
+        Array.isArray(message)
+          ? message[0]
+          : message || "Could not post. Please try again.",
+      );
+    }
   };
 
   return (
