@@ -105,7 +105,7 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
   }, [isIndividual, publishState.selectedClassId]);
 
   useEffect(() => {
-    if (isIndividual || formState.isModelTest) {
+    if (isIndividual || formState.isModelTest || formState.examCategory === "ielts") {
       return;
     }
     if (!publishState.selectedClassId || assignedLoading) {
@@ -138,6 +138,7 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
     assignedLoading,
     assignedSubjects,
     dispatch,
+    formState.examCategory,
     formState.isModelTest,
     isIndividual,
     publishState.selectedClassId,
@@ -333,6 +334,30 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
         />
       </div>
 
+      {!isIndividual && (
+        <div className="flex flex-col gap-2">
+          <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+            {formState.examCategory === "ielts" ? "Batch" : "Class"}
+          </label>
+          {orgClassOptions.length === 0 ? (
+            <p className="text-sm text-[#C1121F]">
+              {formState.examCategory === "ielts"
+                ? "You are not assigned to a subject in any batch."
+                : "You are not assigned to a subject in any class."}
+            </p>
+          ) : (
+            <DropDownComponent
+              placeholder={formState.examCategory === "ielts" ? "Select batch" : "Select class"}
+              value={publishState.selectedClassId}
+              handleChange={handleClassChange}
+              isSearchable={true}
+              maxOuputInDropdownList={5}
+              list={orgClassOptions}
+            />
+          )}
+        </div>
+      )}
+
       <div className="flex w-full flex-col gap-2">
         <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Exam Category</label>
         <div className="flex gap-3">
@@ -377,57 +402,37 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
         </div>
       ) : (
         <>
-      {!isIndividual && (
-        <div className="flex flex-col gap-2">
-          <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Class</label>
-          {orgClassOptions.length === 0 ? (
-            <p className="text-sm text-[#C1121F]">You are not assigned to a subject in any class.</p>
+          {canCreateModelTests ? (
+            modelTestCheckbox
           ) : (
-            <DropDownComponent
-              placeholder="Select class"
-              value={publishState.selectedClassId}
-              handleChange={handleClassChange}
-              isSearchable={true}
-              maxOuputInDropdownList={5}
-              list={orgClassOptions}
-            />
+            <Tooltip
+              content={
+                <span>
+                  Model tests are available on Pro.{" "}
+                  <Link href="/billing" className="underline text-[#49734F]">
+                    Upgrade
+                  </Link>
+                </span>
+              }
+            >
+              {modelTestCheckbox}
+            </Tooltip>
           )}
-        </div>
-      )}
 
-      {canCreateModelTests ? (
-        modelTestCheckbox
-      ) : (
-        <Tooltip
-          content={
-            <span>
-              Model tests are available on Pro.{" "}
-              <Link href="/billing" className="underline text-[#49734F]">
-                Upgrade
-              </Link>
-            </span>
-          }
-        >
-          {modelTestCheckbox}
-        </Tooltip>
-      )}
-
-      {!isIndividual
-        ? orgSubjectSection
-        : !formState.isModelTest ? (
-            <div className="flex flex-col gap-2">
-              <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Subject</label>
-              <DropDownComponent
-                placeholder="Select subject"
-                value={selectedSubjectValue}
-                handleChange={handleSubjectChange}
-                isSearchable={true}
-                maxOuputInDropdownList={5}
-                list={catalogSubjectOptions.map(({ label, value }) => ({ label, value }))}
-              />
-            </div>
-          ) : null}
-
+          {!isIndividual
+            ? orgSubjectSection
+            : !formState.isModelTest ? (
+                <div className="flex flex-col gap-2">
+                  <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Subject</label>
+                  <DropDownComponent
+                    placeholder="Select subject"
+                    value={selectedSubjectValue}
+                    handleChange={handleSubjectChange}
+                    isSearchable={true}
+                    maxOuputInDropdownList={5}
+                    list={catalogSubjectOptions.map(({ label, value }) => ({ label, value }))}                  />
+                </div>
+              ) : null}
         </>
       )}
 

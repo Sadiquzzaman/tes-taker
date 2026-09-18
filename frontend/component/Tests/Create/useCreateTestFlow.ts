@@ -55,7 +55,11 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
       }
 
       if (!isIndividual && !publishState.selectedClassId) {
-        triggerToast({ description: "Please select a class", type: "error" });
+        triggerToast({
+          description:
+            formState.examCategory === "ielts" ? "Please select a batch" : "Please select a class",
+          type: "error",
+        });
         return;
       }
 
@@ -142,7 +146,13 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
       }
 
       if (publishState.testAudience === "selected_class" && !publishState.selectedClassId) {
-        triggerToast({ description: "Please select at least one class", type: "error" });
+        triggerToast({
+          description:
+            formState.examCategory === "ielts"
+              ? "Please select at least one batch"
+              : "Please select at least one class",
+          type: "error",
+        });
         return;
       }
 

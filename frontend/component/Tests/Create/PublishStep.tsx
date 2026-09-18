@@ -25,9 +25,14 @@ const PublishStep = () => {
   const { triggerToast } = useToast();
   const publishState = useAppSelector((state) => (state.createTest as CreateTestState).publishState);
   const editExamId = useAppSelector((state) => (state.createTest as CreateTestState).editExamId);
+  const examCategory = useAppSelector(
+    (state) => (state.createTest as CreateTestState).formState.examCategory ?? "academic",
+  );
   const { classList } = useGetAllClass();
   const { isIndividual } = useWorkspace();
   const selectedClass = classList.find((item) => item.id === publishState.selectedClassId);
+  const classLabel = examCategory === "ielts" ? "batch" : "class";
+  const classLabelTitle = examCategory === "ielts" ? "Batch" : "Class";
 
   const [studentInput, setStudentInput] = useState("");
   const [copied, setCopied] = useState(false);
@@ -170,7 +175,7 @@ const PublishStep = () => {
               />
             ) : (
               <p className="rounded-[8px] bg-[#EFF0F3] px-3 py-3 text-sm text-[#232A25]">
-                Group or class
+                Group or {classLabel}
                 {selectedClass?.class_name ? ` — ${selectedClass.class_name}` : ""}
               </p>
             )}
@@ -178,10 +183,12 @@ const PublishStep = () => {
 
           {(isIndividual ? publishState.testAudience === "selected_class" : true) && (
             <div className="flex flex-col gap-2">
-              <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Select a class</p>
+              <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+                Select a {classLabel}
+              </p>
               {isIndividual ? (
                 <DropDownComponent
-                  placeholder="Select class"
+                  placeholder={`Select ${classLabel}`}
                   value={publishState.selectedClassId}
                   handleChange={(value) => dispatch(setPublishField({ field: "selectedClassId", value }))}
                   list={classOptions}
@@ -189,13 +196,13 @@ const PublishStep = () => {
                 />
               ) : (
                 <p className="rounded-[8px] border border-[#E5E5E5] px-3 py-3 text-sm text-[#232A25]">
-                  {selectedClass?.class_name || "Class selected in Basic Info"}
+                  {selectedClass?.class_name || `${classLabelTitle} selected in Basic Info`}
                 </p>
               )}
               {publishState.selectedClassId && (
                 <>
                   <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
-                    Students in this class will be able to join the test.
+                    Students in this {classLabel} will be able to join the test.
                   </p>
 
                   <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
