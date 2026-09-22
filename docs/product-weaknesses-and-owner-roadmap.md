@@ -1,6 +1,6 @@
 # Product Weaknesses, Improvements & Owner Roadmap
 
-**Project:** TaskTaker (TestTaker)  
+**Project:** Instructor (Instructor)  
 **Scope:** Current `develop` product surface  
 **Date:** 2026-08-29  
 **Purpose:** Product assessment of weak features, how to strengthen them, and what an owner would change or add next.
@@ -9,7 +9,7 @@
 
 ## 1. Executive snapshot
 
-Commercially, TaskTaker’s strongest spine is:
+Commercially, Instructor’s strongest spine is:
 
 **Create exam → invite/roster → take exam (with proctoring) → grade → results**, plus an emerging **organization/school workspace**.
 

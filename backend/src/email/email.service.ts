@@ -14,7 +14,7 @@ export class EmailService {
     // Check if Brevo API key is configured
     const brevoApiKey = this.configService.get<string>('BREVO_API_KEY');
     this.fromEmail = this.configService.get<string>('EMAIL_FROM', 'noreply@testtaker.com');
-    this.fromName = this.configService.get<string>('EMAIL_FROM_NAME', 'TestTaker');
+    this.fromName = this.configService.get<string>('EMAIL_FROM_NAME', 'Instructor');
     this.useBrevo = !!brevoApiKey;
 
     if (this.useBrevo && brevoApiKey) {
@@ -51,7 +51,7 @@ export class EmailService {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">You've been invited to join a class!</h2>
           <p>Hello,</p>
-          <p>${teacherName || 'A teacher'} has invited you to join the class <strong>${className}</strong> on TestTaker.</p>
+          <p>${teacherName || 'A teacher'} has invited you to join the class <strong>${className}</strong> on Instructor.</p>
           <p>Click the link below to register and join the class:</p>
           <p style="margin: 30px 0;">
             <a href="${invitationLink}" 
@@ -72,7 +72,7 @@ export class EmailService {
       `;
 
       const result = await this.brevoClient.transactionalEmails.sendTransacEmail({
-        subject: `Invitation to join ${className} on TestTaker`,
+        subject: `Invitation to join ${className} on Instructor`,
         htmlContent: html,
         sender: { name: this.fromName, email: this.fromEmail },
         to: [{ email }],
@@ -102,7 +102,7 @@ export class EmailService {
         <h2 style="color: #333;">You've been invited to join an organization</h2>
         <p>Hello,</p>
         <p>${inviterName || 'An administrator'} invited you to join
-          <strong>${organizationName}</strong> as <strong>${roleLabel}</strong> on TestTaker.</p>
+          <strong>${organizationName}</strong> as <strong>${roleLabel}</strong> on Instructor.</p>
         <p>Register or sign in with this email (or your phone) to accept:</p>
         <p style="margin: 30px 0;">
           <a href="${invitationLink}"
@@ -118,7 +118,7 @@ export class EmailService {
       </div>
     `;
 
-    return this.sendEmail(email, `Invitation to join ${organizationName} on TestTaker`, html);
+    return this.sendEmail(email, `Invitation to join ${organizationName} on Instructor`, html);
   }
 
   async sendEmail(to: string, subject: string, html: string): Promise<boolean> {

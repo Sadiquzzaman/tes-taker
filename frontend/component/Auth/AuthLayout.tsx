@@ -1,5 +1,5 @@
 import WelcomeBack from "./WelcomeBack";
-import TestTakerLogoMarkSVG from "../svg/TestTakerLogoMarkSVG";
+import InstructorLogoMarkSVG from "../svg/InstructorLogoMarkSVG";
 
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -10,9 +10,9 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex flex-col min-h-full justify-center">
             <div className="w-full lg:w-4/5 xl:w-3/5 p-12 flex flex-col justify-center align-items-center mx-auto">
               <div className="flex items-center justify-center mb-12">
-                <TestTakerLogoMarkSVG width={28} />
+                <InstructorLogoMarkSVG width={28} />
                 <p className="text-2xl font-bold text-[#49734F] ml-2" style={{ fontFamily: "Public Sans" }}>
-                  Test<span className="text-[#232A25]">Taker</span>
+                  Instructor
                 </p>
               </div>
               {children}

@@ -108,7 +108,7 @@ async function bootstrap() {
     .setTitle('Task Taker')
     .setDescription('Task Taker API DOC')
     .setVersion('1.0')
-    .addTag('TaskTaker')
+    .addTag('Instructor')
     .addBearerAuth(
       {
         type: 'http',

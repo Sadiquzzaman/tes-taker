@@ -1,6 +1,6 @@
 # Technical Position & Improvement Report
 
-**Project:** TaskTaker (TestTaker)  
+**Project:** Instructor (Instructor)  
 **Scope:** Current `develop` codebase  
 **Date:** 2026-08-29  
 **Purpose:** Engineering assessment of where the platform is weak technically and what to improve next.
@@ -9,7 +9,7 @@
 
 ## 1. Executive snapshot
 
-TaskTaker is a real product stack, not a prototype:
+Instructor is a real product stack, not a prototype:
 
 - **Frontend:** Next.js App Router (React 19), Redux Toolkit, TipTap, client-side proctoring ML
 - **Backend:** NestJS 11, JWT/Passport, Socket.IO
@@ -142,4 +142,4 @@ Impact: slower team velocity and sharper production footguns.
 
 ## 6. Bottom line
 
-Technically, TaskTaker is a **capable exam + school platform with a billing skeleton and scale debt**. The highest leverage engineering work is not more UI surfaces — it is **tests/CI, entitlement truth, org billing, and durable proctoring/state**.
+Technically, Instructor is a **capable exam + school platform with a billing skeleton and scale debt**. The highest leverage engineering work is not more UI surfaces — it is **tests/CI, entitlement truth, org billing, and durable proctoring/state**.

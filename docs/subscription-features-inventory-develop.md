@@ -1,4 +1,4 @@
-# TaskTaker Feature Inventory for Subscription Planning
+# Instructor Feature Inventory for Subscription Planning
 
 **Source branch:** `develop`  
 **Generated:** 2026-08-23  
@@ -8,7 +8,7 @@
 
 ## 1. Executive summary
 
-TaskTaker (TestTaker) on `develop` is primarily a **teacher-centric exam platform** with:
+Instructor (Instructor) on `develop` is primarily a **teacher-centric exam platform** with:
 
 - Teacher / student / admin / super-admin roles
 - Class roster & student invite flows

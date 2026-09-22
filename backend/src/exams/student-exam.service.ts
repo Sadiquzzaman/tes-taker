@@ -75,6 +75,7 @@ import {
   resolveSubmissionScores,
 } from './utils/submission-response.util';
 import { ClassService } from 'src/classes/class.service';
+import { ExamPaperCacheService } from './exam-paper-cache.service';
 
 export type ExamAccessValidation = {
   canAccess: boolean;
@@ -114,6 +115,8 @@ export class StudentExamService {
     private readonly dataSource: DataSource,
 
     private readonly classService: ClassService,
+
+    private readonly examPaperCache: ExamPaperCacheService,
   ) {}
 
   private static readonly UUID_V4_RE =
@@ -460,21 +463,9 @@ export class StudentExamService {
     studentId: string,
     jwtPayload?: JwtPayloadInterface,
   ): Promise<ExamAccessValidation> {
-    const exam = await this.examRepo.findOne({
-      where: { id: examId },
-      relations: [
-        'class',
-        'class.classStudents',
-        'class.classStudents.student',
-        'excluded_students',
-        'questions',
-        'questionSections',
-        'questionSections.questions',
-        'questionSections.subject',
-        'target_students',
-        'primary_subject',
-      ],
-    });
+    // Cache-aside exam graph (questions/sections/audience lists). Authorization
+    // still runs below; class membership is resolved live via ClassService.
+    const exam = await this.examPaperCache.getExamGraph(examId);
 
     if (!exam) {
       return {
@@ -849,20 +840,7 @@ export class StudentExamService {
       throw new BadRequestException('studentId does not match the authenticated user');
     }
 
-    const exam = await this.examRepo.findOne({
-      where: { id: examId },
-      relations: [
-        'class',
-        'class.classStudents',
-        'questions',
-        'questionSections',
-        'questionSections.questions',
-        'questionSections.subject',
-        'target_students',
-        'excluded_students',
-        'primary_subject',
-      ],
-    });
+    const exam = await this.examPaperCache.getExamGraph(examId);
 
     if (!exam) {
       throw new NotFoundException('Exam not found');
@@ -936,18 +914,34 @@ export class StudentExamService {
       status = ExamSubmissionStatusEnum.DISQUALIFIED;
     }
 
-    submission.status = status;
-    submission.submitted_at = new Date();
-    submission.updated_at = new Date();
+    // Re-load after scoring so we merge the latest score columns.
+    const toFinalize = await this.submissionRepo.findOne({ where: { id: submission.id } });
+    if (!toFinalize) {
+      throw new NotFoundException('Submission not found');
+    }
+    if (finalizedStatuses.includes(toFinalize.status)) {
+      return {
+        submission_id: toFinalize.id,
+        status: toFinalize.status,
+        saved_count: savedCount,
+        total_score: toFinalize.total_score ?? null,
+        max_score: toFinalize.max_score ?? null,
+        already_finalized: true,
+      };
+    }
+
+    toFinalize.status = status;
+    toFinalize.submitted_at = new Date();
+    toFinalize.updated_at = new Date();
     if (status === ExamSubmissionStatusEnum.DISQUALIFIED) {
-      submission.disqualification_reason =
+      toFinalize.disqualification_reason =
         dto.disqualification_reason?.trim() || 'Exam session disqualified.';
     }
     if (Array.isArray(dto.proctoring_events) && dto.proctoring_events.length) {
       const { serializeProctoringEvents, parseProctoringEvents } = await import(
         './utils/proctoring-events.util'
       );
-      const existing = parseProctoringEvents(submission.proctoring_events_json);
+      const existing = parseProctoringEvents(toFinalize.proctoring_events_json);
       const incoming = dto.proctoring_events.map((event, index) => ({
         id: event.id || `client-${index}-${Date.now()}`,
         type: event.type,
@@ -956,10 +950,43 @@ export class StudentExamService {
         timestamp: event.timestamp || new Date().toISOString(),
         source: 'client' as const,
       }));
-      submission.proctoring_events_json = serializeProctoringEvents([...existing, ...incoming]);
+      toFinalize.proctoring_events_json = serializeProctoringEvents([...existing, ...incoming]);
     }
-    this.applySubmissionGradingState(submission, exam);
-    await this.submissionRepo.save(submission);
+    this.applySubmissionGradingState(toFinalize, exam);
+
+    // Conditional update prevents double-finalize races from socket + HTTP.
+    const claim = await this.submissionRepo
+      .createQueryBuilder()
+      .update(StudentExamSubmissionEntity)
+      .set({
+        status: toFinalize.status,
+        submitted_at: toFinalize.submitted_at,
+        updated_at: toFinalize.updated_at,
+        disqualification_reason: toFinalize.disqualification_reason,
+        proctoring_events_json: toFinalize.proctoring_events_json,
+        is_graded: toFinalize.is_graded,
+        graded_at: toFinalize.graded_at,
+        graded_by: toFinalize.graded_by,
+        total_score: toFinalize.total_score,
+        max_score: toFinalize.max_score,
+      })
+      .where('id = :id AND status = :inProgress', {
+        id: toFinalize.id,
+        inProgress: ExamSubmissionStatusEnum.IN_PROGRESS,
+      })
+      .execute();
+
+    if (!claim.affected) {
+      const existing = await this.submissionRepo.findOne({ where: { id: submission.id } });
+      return {
+        submission_id: submission.id,
+        status: existing?.status ?? status,
+        saved_count: savedCount,
+        total_score: existing?.total_score ?? null,
+        max_score: existing?.max_score ?? null,
+        already_finalized: true,
+      };
+    }
 
     const result = await this.submissionRepo.findOne({ where: { id: submission.id } });
 
@@ -1056,6 +1083,96 @@ export class StudentExamService {
       subRow.updated_at = new Date();
       await submissionRepo.save(subRow);
 
+      // One read for all existing answers — avoids per-question findOne (N+1).
+      const existingAnswers = await answerRepo.find({
+        where: { submission_id: subRow.id },
+      });
+      const existingByQuestion = new Map(
+        existingAnswers.map((row) => [row.question_id, row]),
+      );
+
+      const toSave: StudentExamAnswerEntity[] = [];
+      const now = new Date();
+
+      const queueSelected = (questionId: string, selected: CorrectAnswerEnum) => {
+        const existing = existingByQuestion.get(questionId);
+        if (existing) {
+          Object.assign(existing, {
+            selected_answer: selected,
+            text_answer: null,
+            media_url: null,
+            word_count: null,
+            answered_at: now,
+            updated_at: now,
+          });
+          toSave.push(existing);
+          return;
+        }
+        const row = answerRepo.create({
+          submission_id: subRow.id,
+          question_id: questionId,
+          selected_answer: selected,
+          answered_at: now,
+          created_by: studentId,
+          created_at: now,
+        });
+        existingByQuestion.set(questionId, row);
+        toSave.push(row);
+      };
+
+      const queueText = (questionId: string, text: string, wordCount?: number | null) => {
+        const existing = existingByQuestion.get(questionId);
+        if (existing) {
+          Object.assign(existing, {
+            text_answer: text,
+            selected_answer: null,
+            media_url: null,
+            word_count: wordCount ?? null,
+            answered_at: now,
+            updated_at: now,
+          });
+          toSave.push(existing);
+          return;
+        }
+        const row = answerRepo.create({
+          submission_id: subRow.id,
+          question_id: questionId,
+          text_answer: text,
+          word_count: wordCount ?? undefined,
+          answered_at: now,
+          created_by: studentId,
+          created_at: now,
+        });
+        existingByQuestion.set(questionId, row);
+        toSave.push(row);
+      };
+
+      const queueMedia = (questionId: string, mediaUrl: string) => {
+        const existing = existingByQuestion.get(questionId);
+        if (existing) {
+          Object.assign(existing, {
+            media_url: mediaUrl,
+            text_answer: null,
+            selected_answer: null,
+            word_count: null,
+            answered_at: now,
+            updated_at: now,
+          });
+          toSave.push(existing);
+          return;
+        }
+        const row = answerRepo.create({
+          submission_id: subRow.id,
+          question_id: questionId,
+          media_url: mediaUrl,
+          answered_at: now,
+          created_by: studentId,
+          created_at: now,
+        });
+        existingByQuestion.set(questionId, row);
+        toSave.push(row);
+      };
+
       for (const [questionId, rawValue] of Object.entries(answersheet)) {
         const question = questionById.get(questionId)!;
         const value = rawValue === undefined || rawValue === null ? '' : String(rawValue);
@@ -1080,7 +1197,7 @@ export class StudentExamService {
             question.sub_type === 'diagram-label' ||
             question.sub_type === 'short-answer'
           ) {
-            await this.upsertTextAnswer(answerRepo, subRow.id, questionId, trimmed, studentId);
+            queueText(questionId, trimmed, null);
             continue;
           }
 
@@ -1091,7 +1208,7 @@ export class StudentExamService {
             }
             const idx = question.options_json.findIndex((o) => o.id === trimmed);
             const selected = CORRECT_ANSWER_ENUM_BY_OPTION_INDEX[idx];
-            await this.upsertSelectedAnswer(answerRepo, subRow.id, questionId, selected, studentId);
+            queueSelected(questionId, selected);
             continue;
           }
         }
@@ -1106,32 +1223,7 @@ export class StudentExamService {
           if (!selected) {
             throw new BadRequestException(`Invalid MCQ option index for question ${questionId}`);
           }
-
-          const existing = await answerRepo.findOne({
-            where: { submission_id: subRow.id, question_id: questionId },
-          });
-          if (existing) {
-            await answerRepo.update(
-              { id: existing.id },
-              {
-                selected_answer: selected,
-                text_answer: null,
-                word_count: null,
-                answered_at: new Date(),
-                updated_at: new Date(),
-              } as object,
-            );
-          } else {
-            const row = answerRepo.create({
-              submission_id: subRow.id,
-              question_id: questionId,
-              selected_answer: selected,
-              answered_at: new Date(),
-              created_by: studentId,
-              created_at: new Date(),
-            });
-            await answerRepo.save(row);
-          }
+          queueSelected(questionId, selected);
         } else {
           const isSpeaking =
             typeof question.sub_type === 'string' && question.sub_type.startsWith('speaking-part-');
@@ -1147,32 +1239,7 @@ export class StudentExamService {
                 `Recording for question ${questionId} exceeds the maximum allowed size`,
               );
             }
-            const existing = await answerRepo.findOne({
-              where: { submission_id: subRow.id, question_id: questionId },
-            });
-            if (existing) {
-              await answerRepo.update(
-                { id: existing.id },
-                {
-                  media_url: value,
-                  text_answer: null,
-                  selected_answer: null,
-                  word_count: null,
-                  answered_at: new Date(),
-                  updated_at: new Date(),
-                } as object,
-              );
-            } else {
-              const row = answerRepo.create({
-                submission_id: subRow.id,
-                question_id: questionId,
-                media_url: value,
-                answered_at: new Date(),
-                created_by: studentId,
-                created_at: new Date(),
-              });
-              await answerRepo.save(row);
-            }
+            queueMedia(questionId, value);
             continue;
           }
 
@@ -1184,35 +1251,12 @@ export class StudentExamService {
           const wordCount = trimmed.length
             ? trimmed.split(/\s+/).filter((w) => w.length > 0).length
             : 0;
-
-          const existing = await answerRepo.findOne({
-            where: { submission_id: subRow.id, question_id: questionId },
-          });
-          if (existing) {
-            await answerRepo.update(
-              { id: existing.id },
-              {
-                text_answer: value,
-                selected_answer: null,
-                media_url: null,
-                word_count: wordCount,
-                answered_at: new Date(),
-                updated_at: new Date(),
-              } as object,
-            );
-          } else {
-            const row = answerRepo.create({
-              submission_id: subRow.id,
-              question_id: questionId,
-              text_answer: value,
-              word_count: wordCount,
-              answered_at: new Date(),
-              created_by: studentId,
-              created_at: new Date(),
-            });
-            await answerRepo.save(row);
-          }
+          queueText(questionId, value, wordCount);
         }
+      }
+
+      if (toSave.length > 0) {
+        await answerRepo.save(toSave);
       }
     });
 
@@ -1504,8 +1548,10 @@ export class StudentExamService {
           totalScore -= Math.min(penalty, pts);
         }
       }
+    }
 
-      await this.answerRepo.save(answer);
+    if (answers.length > 0) {
+      await this.answerRepo.save(answers);
     }
 
     const answeredObjectiveIds = new Set(

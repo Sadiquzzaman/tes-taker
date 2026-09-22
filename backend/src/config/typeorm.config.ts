@@ -21,6 +21,14 @@ const parseBoolean = (value: string | undefined, fallback: boolean): boolean => 
 export const buildTypeOrmOptions = (): DataSourceOptions => {
   const isProduction = process.env.NODE_ENV === 'production';
 
+  // Pool sizing for a single Nest API process (proctoring is in-memory → prefer
+  // one API instance). Defaults: 10 local, 40 production. Cap via DATABASE_POOL_MAX.
+  // Keep API_instances × pool_max well under RDS max_connections (e.g. db.t4g.medium ~400).
+  const poolMax = Number(
+    process.env.DATABASE_POOL_MAX ?? (isProduction ? 40 : 10),
+  );
+  const poolMin = Number(process.env.DATABASE_POOL_MIN ?? (isProduction ? 2 : 1));
+
   return {
     type: 'postgres',
     host: process.env.DATABASE_HOST ?? 'localhost',
@@ -38,5 +46,11 @@ export const buildTypeOrmOptions = (): DataSourceOptions => {
     // as a separate step.
     migrationsRun: parseBoolean(process.env.DATABASE_MIGRATIONS_RUN, false),
     logging: parseBoolean(process.env.DATABASE_LOGGING, false),
+    extra: {
+      max: Number.isFinite(poolMax) && poolMax > 0 ? poolMax : 10,
+      min: Number.isFinite(poolMin) && poolMin >= 0 ? poolMin : 0,
+      idleTimeoutMillis: Number(process.env.DATABASE_POOL_IDLE_MS ?? 30000),
+      connectionTimeoutMillis: Number(process.env.DATABASE_POOL_CONNECT_MS ?? 10000),
+    },
   };
 };

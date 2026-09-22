@@ -1,4 +1,4 @@
-# TaskTaker / TestTaker — Subscription & Pricing Feature Pack
+# Instructor / Instructor — Subscription & Pricing Feature Pack
 
 **Source branch:** `develop` (`e4ed37b` and later)  
 **Generated:** 2026-09-21  
@@ -25,7 +25,7 @@
 
 ## 2. Product snapshot (develop today)
 
-TestTaker is no longer “individual teacher exams only.” On current `develop` it is:
+Instructor is no longer “individual teacher exams only.” On current `develop` it is:
 
 1. **Individual teacher workspace** — personal classes, tests, grading, billing  
 2. **Organization / school workspace** — org number login, members, subjects, class–subject–teacher assignments, batch-style classes  

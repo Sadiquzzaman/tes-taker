@@ -18,7 +18,7 @@ const SignUpChoice = ({
       </div>
 
       <p className="text-[#747775] text-[16px] leading-[20px] -mt-4">
-        Choose how you want to join TestTaker.
+        Choose how you want to join Instructor.
       </p>
 
       <div className="flex flex-col gap-3">

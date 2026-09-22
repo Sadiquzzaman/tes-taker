@@ -456,7 +456,7 @@ export class AuthService {
       try {
         const html = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #232A25;">Reset your TestTaker password</h2>
+            <h2 style="color: #232A25;">Reset your Instructor password</h2>
             <p>Hello ${user.full_name || ''},</p>
             <p>Use the verification code below to reset your password. This code is valid for 5 minutes.</p>
             <p style="margin: 24px 0;">
@@ -465,7 +465,7 @@ export class AuthService {
             <p style="color: #747775; font-size: 13px;">If you didn't request a password reset, you can safely ignore this email.</p>
           </div>
         `;
-        await this.emailService.sendEmail(user.email, 'Reset your TestTaker password', html);
+        await this.emailService.sendEmail(user.email, 'Reset your Instructor password', html);
       } catch (error) {
         this.logger.error(
           `Failed to send password reset OTP via email: ${error instanceof Error ? error.message : String(error)}`,
@@ -490,7 +490,7 @@ export class AuthService {
       throw new BadRequestException('This account does not have a phone number on file');
     }
 
-    const message = `Your TestTaker password reset OTP is: ${otp}. Valid for 5 minutes.`;
+    const message = `Your Instructor password reset OTP is: ${otp}. Valid for 5 minutes.`;
     try {
       await this.smsService.sendSms(user.phone, message);
     } catch (error) {

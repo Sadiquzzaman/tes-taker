@@ -1,4 +1,4 @@
-# TaskTaker – Production Deployment (single Hetzner VPS)
+# Instructor – Production Deployment (single Hetzner VPS)
 
 Production runs with Docker Compose using `docker-compose.prod.yml`.
 

@@ -74,6 +74,7 @@ import { OrganizationAccessService } from 'src/organizations/organization-access
 import { OrgContext } from 'src/organizations/interfaces/org-context.interface';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { ClassService } from 'src/classes/class.service';
+import { ExamPaperCacheService } from './exam-paper-cache.service';
 
 type ExamListMetrics = {
   participant_count: number;
@@ -136,6 +137,7 @@ export class ExamService {
     private readonly dataSource: DataSource,
     private readonly organizationAccessService: OrganizationAccessService,
     private readonly classService: ClassService,
+    private readonly examPaperCache: ExamPaperCacheService,
   ) {}
 
   private async assertOrgWizardClassAndSubject(
@@ -456,6 +458,8 @@ export class ExamService {
       }
 
       await this.subscriptionService.incrementExamCount(jwtPayload.id);
+
+      await this.examPaperCache.invalidate(reloaded.id);
 
       return this.formatExamResponse(reloaded, { includeCorrectAnswers: true });
     });
@@ -846,6 +850,8 @@ export class ExamService {
       });
     }
 
+    await this.examPaperCache.invalidate(savedExam.id);
+
     return this.findOne(savedExam.id, jwtPayload);
   }
 
@@ -913,6 +919,8 @@ export class ExamService {
         this.logger.error(`Failed to send exam notifications: ${err instanceof Error ? err.message : String(err)}`);
       });
     }
+
+    await this.examPaperCache.invalidate(savedExam.id);
 
     return this.findOne(savedExam.id, jwtPayload);
   }
@@ -2127,6 +2135,7 @@ export class ExamService {
     exam.updated_user_name = jwtPayload.full_name;
     exam.updated_at = new Date();
     await this.examRepo.save(exam);
+    await this.examPaperCache.invalidate(exam.id);
 
     return this.formatExamResponse(exam, { includeCorrectAnswers: true });
   }
@@ -2398,6 +2407,8 @@ export class ExamService {
       });
       if (!reloaded) throw new NotFoundException('Exam not found after update');
 
+      await this.examPaperCache.invalidate(id);
+
       return this.formatExamResponse(reloaded, { includeCorrectAnswers: true });
     });
   }
@@ -2566,6 +2577,7 @@ export class ExamService {
 
     exam.excluded_students = students;
     await this.examRepo.save(exam);
+    await this.examPaperCache.invalidate(examId);
 
     return this.findOne(examId, jwtPayload, orgContext);
   }
@@ -2585,6 +2597,7 @@ export class ExamService {
     }
 
     await this.examRepo.remove(exam);
+    await this.examPaperCache.invalidate(id);
   }
 
   // ========================

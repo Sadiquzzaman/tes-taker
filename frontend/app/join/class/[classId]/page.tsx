@@ -34,13 +34,13 @@ export async function generateMetadata({ params }: JoinClassPageProps): Promise<
 
   if (!classData) {
     return {
-      title: "Join Class | TestTaker",
+      title: "Join Class | Instructor",
       description: "Review the class invitation and continue when the class is available.",
       alternates: {
         canonical: pageUrl,
       },
       openGraph: {
-        title: "Join Class | TestTaker",
+        title: "Join Class | Instructor",
         description: "Review the class invitation and continue when the class is available.",
         url: pageUrl,
         type: "website",
@@ -49,13 +49,13 @@ export async function generateMetadata({ params }: JoinClassPageProps): Promise<
             url: imageUrl,
             width: 1200,
             height: 630,
-            alt: "TestTaker class invitation",
+            alt: "Instructor class invitation",
           },
         ],
       },
       twitter: {
         card: "summary_large_image",
-        title: "Join Class | TestTaker",
+        title: "Join Class | Instructor",
         description: "Review the class invitation and continue when the class is available.",
         images: [imageUrl],
       },
@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: JoinClassPageProps): Promise<
 
   const metadataDescription =
     classData.description || `Join ${classData.class_name} by ${classData.created_user_name}.`;
-  const metadataTitle = `${classData.class_name} | Join Class | TestTaker`;
+  const metadataTitle = `${classData.class_name} | Join Class | Instructor`;
 
   return {
     title: metadataTitle,

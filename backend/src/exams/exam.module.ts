@@ -17,6 +17,8 @@ import { SubjectModule } from 'src/subjects/subject.module';
 import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 import { ClassModule } from 'src/classes/class.module';
 import { OrganizationsModule } from 'src/organizations/organization.module';
+import { RedisModule } from 'src/config/redis.module';
+import { ExamPaperCacheService } from './exam-paper-cache.service';
 
 @Module({
   imports: [
@@ -35,9 +37,10 @@ import { OrganizationsModule } from 'src/organizations/organization.module';
     SubscriptionModule,
     ClassModule,
     OrganizationsModule,
+    RedisModule,
   ],
   controllers: [ExamController, StudentExamController, ExamGradingController],
-  providers: [ExamService, StudentExamService],
-  exports: [ExamService, StudentExamService],
+  providers: [ExamService, StudentExamService, ExamPaperCacheService],
+  exports: [ExamService, StudentExamService, ExamPaperCacheService],
 })
 export class ExamModule {}

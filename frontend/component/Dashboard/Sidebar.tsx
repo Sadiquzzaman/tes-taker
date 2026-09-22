@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import SidebarLogout from "./SidebarLogout";
 import SidebarToggleIconSVG from "../svg/SidebarToggleIconSVG";
-import TestTakerLogoMarkSVG from "../svg/TestTakerLogoMarkSVG";
+import InstructorLogoMarkSVG from "../svg/InstructorLogoMarkSVG";
 
 const orgMemberRoles: OrganizationMemberRole[] = [
   "OWNER",
@@ -51,9 +51,9 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
         <div className="flex-1 overflow-y-auto px-4 min-h-0">
           <div className="w-full flex justify-between items-center h-[72px]">
             <div className="flex items-center justify-center">
-              <TestTakerLogoMarkSVG width={21} />
+              <InstructorLogoMarkSVG width={21} />
               <p className="text-[20px] font-bold text-[#49734F] ml-2" style={{ fontFamily: "Public Sans" }}>
-                Test<span className="text-[#232A25]">Taker</span>
+                Instructor
               </p>
             </div>
             <form action={toggleSidebar}>

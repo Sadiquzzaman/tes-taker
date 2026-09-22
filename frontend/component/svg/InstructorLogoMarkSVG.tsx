@@ -1,4 +1,4 @@
-const TestTakerLogoMarkSVG = ({ width = 28 }: { width?: number }) => {
+const InstructorLogoMarkSVG = ({ width = 28 }: { width?: number }) => {
   return (
     <svg width={width} height={width} viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
@@ -15,4 +15,4 @@ const TestTakerLogoMarkSVG = ({ width = 28 }: { width?: number }) => {
   );
 };
 
-export default TestTakerLogoMarkSVG;
+export default InstructorLogoMarkSVG;
