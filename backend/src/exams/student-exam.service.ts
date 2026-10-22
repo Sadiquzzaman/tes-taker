@@ -49,8 +49,12 @@ import {
 import { isAutoScoredQuestion, scoreStudentAnswer } from './utils/exam-question.util';
 import { resolveExamSubjectLabel } from './utils/exam-subject.util';
 import {
+  assertSubmissionWritable,
   computeEffectiveDeadline,
   computeRemainingTimeSeconds,
+  EXAM_TIME_EXPIRED_MESSAGE,
+  isPastDeadlineWithGrace,
+  resolveSubmissionDeadline,
 } from './utils/exam-deadline.util';
 import { QuestionCategoryEnum } from './enums/question.enums';
 import { RolesEnum } from 'src/common/enums/roles.enum';
@@ -457,11 +461,13 @@ export class StudentExamService {
    * Eligibility for taking an exam (audience rules, exclusions, submission state).
    * Schedule window is enforced separately when loading questions, saving answers, and starting the exam.
    * For `anyone` audience, any authenticated student who knows the exam id may take the exam.
+   * `forWrite` (answer saves) lets an IN_PROGRESS attempt through until its deadline + grace.
    */
   async validateExamAccess(
     examId: string,
     studentId: string,
     jwtPayload?: JwtPayloadInterface,
+    options: { forWrite?: boolean } = {},
   ): Promise<ExamAccessValidation> {
     // Cache-aside exam graph (questions/sections/audience lists). Authorization
     // still runs below; class membership is resolved live via ClassService.
@@ -521,6 +527,7 @@ export class StudentExamService {
     const now = new Date();
     const examStart = new Date(exam.exam_start_time);
     const examEnd = new Date(exam.exam_end_time);
+    const isInProgress = existingSubmission?.status === ExamSubmissionStatusEnum.IN_PROGRESS;
 
     if (now < examStart) {
       return {
@@ -531,7 +538,7 @@ export class StudentExamService {
       };
     }
 
-    if (now > examEnd) {
+    if (now > examEnd && !(options.forWrite && isInProgress)) {
       return {
         canAccess: false,
         reason: 'Exam has ended',
@@ -540,15 +547,14 @@ export class StudentExamService {
       };
     }
 
-    if (
-      existingSubmission?.status === ExamSubmissionStatusEnum.IN_PROGRESS &&
-      existingSubmission.started_at
-    ) {
-      const effectiveDeadline = computeEffectiveDeadline(exam, existingSubmission);
-      if (now > effectiveDeadline) {
+    if (isInProgress && existingSubmission!.started_at) {
+      const expired = options.forWrite
+        ? isPastDeadlineWithGrace(exam, existingSubmission, now)
+        : now > resolveSubmissionDeadline(exam, existingSubmission);
+      if (expired) {
         return {
           canAccess: false,
-          reason: 'Your exam time has expired',
+          reason: EXAM_TIME_EXPIRED_MESSAGE,
           reason_code: ExamAccessReasonCodeEnum.ENDED,
           exam,
         };
@@ -728,12 +734,14 @@ export class StudentExamService {
     }
 
     const totalQs = this.getOrderedQuestions(exam).length;
+    const startedAt = new Date();
 
     submission = this.submissionRepo.create({
       student_id: studentId,
       exam_id: examId,
       status: ExamSubmissionStatusEnum.IN_PROGRESS,
-      started_at: new Date(),
+      started_at: startedAt,
+      effective_deadline: computeEffectiveDeadline(exam, { started_at: startedAt }),
       total_questions: totalQs,
       ip_address: ipAddress,
       user_agent: dto.user_agent,
@@ -753,25 +761,29 @@ export class StudentExamService {
     jwtPayload: JwtPayloadInterface | undefined,
     dto: SaveAnswerDto,
   ): Promise<StudentExamAnswerEntity> {
-    const validation = await this.validateExamAccess(examId, studentId, jwtPayload);
+    const validation = await this.validateExamAccess(examId, studentId, jwtPayload, {
+      forWrite: true,
+    });
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
     }
 
-    await this.assertExamOpenForTaking(validation.exam!, studentId);
+    const exam = validation.exam!;
+    await this.assertExamOpenForTaking(exam, studentId);
 
     // Get submission
     const submission = await this.submissionRepo.findOne({
       where: { 
         exam_id: examId, 
         student_id: studentId,
-        // status: ExamSubmissionStatusEnum.IN_PROGRESS,
       },
     });
 
     if (!submission) {
       throw new BadRequestException('Please start the exam first');
     }
+
+    assertSubmissionWritable(exam, submission);
 
     // Validate question belongs to this exam
     const question = await this.questionRepo.findOne({
@@ -817,7 +829,18 @@ export class StudentExamService {
       answer = this.answerRepo.create(answerData);
     }
 
-    return this.answerRepo.save(answer);
+    // Re-check under a row lock so a save racing a final submit cannot land after it.
+    return this.dataSource.transaction(async (manager) => {
+      const locked = await manager.getRepository(StudentExamSubmissionEntity).findOne({
+        where: { id: submission.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!locked) {
+        throw new BadRequestException('Please start the exam first');
+      }
+      assertSubmissionWritable(exam, locked);
+      return manager.getRepository(StudentExamAnswerEntity).save(answer);
+    });
   }
 
   /**
@@ -873,9 +896,8 @@ export class StudentExamService {
       };
     }
 
-    if (submission.status !== ExamSubmissionStatusEnum.IN_PROGRESS) {
-      throw new BadRequestException('No active exam session for this submission');
-    }
+    // A time-up submit sent at zero arrives a little late; the grace window covers it.
+    assertSubmissionWritable(exam, submission);
 
     const answersheet = dto.answersheet ?? {};
     const savedCount = await this.syncAnswersheetToSubmission(
@@ -1013,7 +1035,9 @@ export class StudentExamService {
       throw new BadRequestException('studentId does not match the authenticated user');
     }
 
-    const validation = await this.validateExamAccess(examId, studentId, jwtPayload);
+    const validation = await this.validateExamAccess(examId, studentId, jwtPayload, {
+      forWrite: true,
+    });
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
     }
@@ -1036,6 +1060,8 @@ export class StudentExamService {
     if (!submission) {
       throw new BadRequestException('Please start the exam first');
     }
+
+    assertSubmissionWritable(exam, submission);
 
     const savedCount = await this.syncAnswersheetToSubmission(
       exam,
@@ -1074,10 +1100,15 @@ export class StudentExamService {
       const submissionRepo = manager.getRepository(StudentExamSubmissionEntity);
       const answerRepo = manager.getRepository(StudentExamAnswerEntity);
 
-      const subRow = await submissionRepo.findOne({ where: { id: submission.id } });
-      if (!subRow || subRow.status !== ExamSubmissionStatusEnum.IN_PROGRESS) {
+      // Row lock: a concurrent finalize waits for this write, or this write sees it finished.
+      const subRow = await submissionRepo.findOne({
+        where: { id: submission.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!subRow) {
         throw new BadRequestException('No active exam session for this submission');
       }
+      assertSubmissionWritable(exam, subRow);
 
       subRow.answersheet_json = JSON.stringify(answersheet);
       subRow.updated_at = new Date();
@@ -1310,9 +1341,8 @@ export class StudentExamService {
       throw new BadRequestException('You have been disqualified from this exam');
     }
 
-    if (submission.status === ExamSubmissionStatusEnum.IN_PROGRESS) {
-      await this.assertExamOpenForTaking(exam, studentId);
-    }
+    await this.assertExamOpenForTaking(exam, studentId);
+    assertSubmissionWritable(exam, submission);
 
     for (const answerDto of dto.answers) {
       await this.saveAnswer(examId, studentId, jwtPayload, answerDto);

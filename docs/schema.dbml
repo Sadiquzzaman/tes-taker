@@ -740,7 +740,7 @@ Table student_exam_submissions {
   student_id uuid [ref: > users.id]
   status varchar [note: 'IN_PROGRESS | SUBMITTED | AUTO_SUBMITTED | DISQUALIFIED']
   started_at timestamptz
-  effective_deadline timestamptz [note: 'NEW — min(start + duration, exam end)']
+  effective_deadline timestamptz [note: 'ADDED (P0-06) — min(start + duration, exam end), set at start; NULL for older attempts (computed)']
   shuffle_seed int [note: 'NEW — per-student option/matching order']
   finalize_reason varchar [note: 'NEW — MANUAL | TIMEOUT | DEADLINE_JOB | PROCTOR_RULE | TEACHER_END']
   submitted_at timestamptz
@@ -750,7 +750,7 @@ Table student_exam_submissions {
   graded_by uuid
   Indexes {
     (exam_id, student_id) [unique]
-    (status, effective_deadline) [note: 'auto-submit job']
+    (status, effective_deadline) [note: 'ADDED (P0-06) — auto-submit job']
   }
   Note: 'CHANGED — proctoring_events_json, tab_switch_count, browser_switch_count move to proctoring_events'
 }
