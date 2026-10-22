@@ -1,24 +1,41 @@
 import { Injectable } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { Reflector } from '@nestjs/core';
+import { JwtService } from '@nestjs/jwt';
+import {
+  InjectThrottlerOptions,
+  InjectThrottlerStorage,
+  ThrottlerGuard,
+  ThrottlerModuleOptions,
+  ThrottlerStorage,
+} from '@nestjs/throttler';
 
 /**
  * Rate-limit tracker that prefers the authenticated user id over the client IP.
  *
  * This matters for exams: many students often sit behind a single shared/NAT
  * IP (a school or lab). Keying authenticated traffic by user id prevents one
- * busy classroom from tripping an IP-based limit, while unauthenticated
- * endpoints (login, register, OTP, password reset) still fall back to IP so
- * brute-force attempts remain limited.
+ * busy classroom from tripping an IP-based limit.
  *
- * The JWT is decoded (not verified) only to derive a bucket key — it is never
- * used for authorization.
+ * The bearer token is only used as a key after its signature and expiry are
+ * verified; a forged, unsigned or expired token falls back to the IP, so it
+ * cannot buy a fresh bucket per request. Login, OTP and reset routes use
+ * `@AuthThrottle`, which keys by IP + account identifier instead.
  */
 @Injectable()
 export class AppThrottlerGuard extends ThrottlerGuard {
+  constructor(
+    @InjectThrottlerOptions() options: ThrottlerModuleOptions,
+    @InjectThrottlerStorage() storageService: ThrottlerStorage,
+    reflector: Reflector,
+    private readonly jwtService: JwtService,
+  ) {
+    super(options, storageService, reflector);
+  }
+
   protected async getTracker(req: Record<string, any>): Promise<string> {
     const authHeader: unknown = req?.headers?.authorization;
     if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-      const userId = this.extractUserId(authHeader.slice(7));
+      const userId = this.verifiedUserId(authHeader.slice(7));
       if (userId) {
         return `user:${userId}`;
       }
@@ -26,14 +43,10 @@ export class AppThrottlerGuard extends ThrottlerGuard {
     return req.ip;
   }
 
-  private extractUserId(token: string): string | null {
+  private verifiedUserId(token: string): string | null {
     try {
-      const [, payloadSegment] = token.split('.');
-      if (!payloadSegment) {
-        return null;
-      }
-      const decoded = JSON.parse(Buffer.from(payloadSegment, 'base64').toString('utf8'));
-      return decoded?.id ?? decoded?.sub ?? null;
+      const payload = this.jwtService.verify<{ id?: string; sub?: string }>(token);
+      return payload?.id ?? payload?.sub ?? null;
     } catch {
       return null;
     }
