@@ -6,8 +6,11 @@ import PlayIconSVG from "../svg/PlayIconSVG";
 import ShareIconSVG from "../svg/ShareIconSVG";
 import { setNewTestCreated } from "@/lib/features/testSlice";
 import useDownloadExamQuestions from "@/hooks/api/exam/useDownloadExamQuestions";
+import { getStoredUser } from "@/lib/authSession";
+import Link from "next/link";
 import {
   getTestAudienceLabel,
+  getTestCategoryLabel,
   getTestCounts,
   getTestScheduleRange,
   getTestSubjectLabel,
@@ -37,11 +40,18 @@ const TestCard = ({
   const router = useRouter();
   const { download, loading: downloading } = useDownloadExamQuestions();
   const primarySubjectName = getTestSubjectLabel(testData);
+  const categoryLabel = getTestCategoryLabel(testData);
   const audienceName = getTestAudienceLabel(testData);
   const { participantCount, submittedCount } = getTestCounts(testData);
   const { startAt, endAt } = getTestScheduleRange(testData);
   const isStudent = role === "STUDENT";
   const isTeacher = role === "TEACHER";
+  const currentUserId = getStoredUser()?.id;
+  const canGradeTest =
+    isTeacher &&
+    isTeacherExamListItem(testData) &&
+    Boolean(currentUserId) &&
+    testData.created_by === currentUserId;
   const canStudentDownload = Boolean(endAt && Date.now() > new Date(endAt).getTime());
   const showDownload = isTeacher || (isStudent && canStudentDownload);
   const submissionProgress = participantCount > 0 ? (submittedCount / participantCount) * 100 : 0;
@@ -102,6 +112,11 @@ const TestCard = ({
           {testData.test_name}
         </h2>
         <div className="flex items-center gap-2">
+          {categoryLabel ? (
+            <span className="rounded-[27px] border border-[#49734F] bg-[rgba(73,115,79,0.12)] px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] text-[#49734F]">
+              {categoryLabel}
+            </span>
+          ) : null}
           {isTeacher && "is_active" in testData && (
             <span
               className={`px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] rounded-[27px] box-border border ${
@@ -131,7 +146,9 @@ const TestCard = ({
           </div>
         )}
         <div className="w-1/2 lg:flex-1">
-          <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Subject</p>
+          <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">
+            {categoryLabel === "IELTS" ? "Modules" : "Subject"}
+          </p>
           <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
             {primarySubjectName}
           </p>
@@ -198,6 +215,16 @@ const TestCard = ({
               <DownloadIconSVG width={16} />
             </button>
           ) : null}
+
+          {canGradeTest && (
+            <Link
+              href={`/grading/details/${testData.id}`}
+              onClick={(event) => event.stopPropagation()}
+              className="px-3 py-2 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] rounded-lg bg-[#232A25] text-white hover:bg-[#3f6244]"
+            >
+              Grade Test
+            </Link>
+          )}
 
           {isStudentOngoingTest ? (
             <button

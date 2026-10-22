@@ -7,7 +7,7 @@ import { cookies } from "next/headers";
  * proxies that forward /api to the Nest backend cannot intercept it.
  */
 export async function POST(req: Request) {
-  const { token, refreshToken, role } = await req.json();
+  const { token, refreshToken, role, sessionMode, memberRole, organizationId } = await req.json();
 
   if (!token || !role) {
     return Response.json({ success: false, message: "token and role are required" }, { status: 400 });
@@ -25,6 +25,17 @@ export async function POST(req: Request) {
   cookieStore.set("token", token, cookieOptions);
   cookieStore.set("refreshToken", refreshToken ?? "", cookieOptions);
   cookieStore.set("role", role, cookieOptions);
+  cookieStore.set(
+    "session_mode",
+    sessionMode === "organization" ? "organization" : "individual",
+    cookieOptions,
+  );
+  cookieStore.set("member_role", typeof memberRole === "string" ? memberRole : "", cookieOptions);
+  cookieStore.set(
+    "organization_id",
+    typeof organizationId === "string" ? organizationId : "",
+    cookieOptions,
+  );
 
   return Response.json({ success: true });
 }

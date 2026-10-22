@@ -416,7 +416,7 @@ export class PaymentService {
     payload.append('num_of_item', '1');
 
     // Product info (mandatory)
-    payload.append('product_name', dto.productName ?? 'TestTaker Order');
+    payload.append('product_name', dto.productName ?? 'Instructor Order');
     payload.append('product_category', dto.productCategory ?? 'general');
     payload.append('product_profile', 'non-physical-goods');
     return payload;

@@ -20,6 +20,8 @@ import {
 import { WrapResponseInterceptor } from './common/interceptors/wrap-response.interceptor';
 import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
 import helmet from 'helmet';
+import { resolve } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -29,6 +31,15 @@ async function bootstrap() {
   // rate limiting and secure-cookie handling accurate. Enable via TRUST_PROXY.
   if (process.env.TRUST_PROXY === 'true') {
     app.set('trust proxy', 1);
+  }
+
+  const uploadsRoot = resolve(process.env.STORAGE_LOCAL_PATH || './uploads');
+  // Local driver only — S3 objects are served from the bucket URL directly.
+  if ((process.env.STORAGE_DRIVER || 'local').toLowerCase() !== 's3') {
+    if (!existsSync(uploadsRoot)) {
+      mkdirSync(uploadsRoot, { recursive: true });
+    }
+    app.useStaticAssets(uploadsRoot, { prefix: '/uploads/' });
   }
 
   // Security headers. The CSP allow-list is intentionally compatible with the
@@ -97,7 +108,7 @@ async function bootstrap() {
     .setTitle('Task Taker')
     .setDescription('Task Taker API DOC')
     .setVersion('1.0')
-    .addTag('TaskTaker')
+    .addTag('Instructor')
     .addBearerAuth(
       {
         type: 'http',

@@ -11,8 +11,8 @@ import {
 /**
  * Local-filesystem storage driver.
  *
- * Suitable for single-server deployments. Swap for an S3 driver later by
- * implementing the same StorageDriver interface.
+ * Suitable for single-server / local development. Production should use
+ * `STORAGE_DRIVER=s3` (see S3StorageDriver).
  */
 @Injectable()
 export class LocalStorageDriver implements StorageDriver {

@@ -2,6 +2,7 @@ import axiosReq from "@/lib/axios";
 import { AxiosError, AxiosResponse } from "axios";
 import { useCallback, useEffect, useState } from "react";
 import { useApiError } from "../useApiError";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 
 // without class id it will fetch all tests
 // and with class id it will fetch tests of that class only
@@ -22,6 +23,7 @@ const getTestsEndpoint = ({ classId, role }: { classId: string; role: RoleUserTy
 
 const useGetAllTests = ({ classId = "", enabled = true, role = "TEACHER" }: UseGetAllTestsParams) => {
   const { handleError } = useApiError();
+  const { workspace, sessionMode, contextType, organizationId } = useWorkspace();
   const [loading, setLoading] = useState(false);
   const [apiComplete, setApiComplete] = useState(false);
   const [testList, setTestList] = useState<TestListItem[]>([]);
@@ -55,7 +57,7 @@ const useGetAllTests = ({ classId = "", enabled = true, role = "TEACHER" }: UseG
         setLoading(false);
         setApiComplete(true);
       });
-  }, [classId, enabled, handleError, role]);
+  }, [classId, contextType, enabled, handleError, organizationId, role, sessionMode, workspace]);
 
   useEffect(() => {
     if (!enabled) {

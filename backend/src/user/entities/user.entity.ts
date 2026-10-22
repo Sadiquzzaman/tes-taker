@@ -58,6 +58,47 @@ export class UserEntity extends CustomBaseEntity {
   })
   role: RolesEnum;
 
+  /**
+   * True when the user has an independent personal teaching workspace
+   * ("My Teaching"). Organization-only teachers keep this false.
+   */
+  @Column({
+    type: "boolean",
+    name: "personal_teacher_enabled",
+    default: false,
+  })
+  personal_teacher_enabled: boolean;
+
+  /** Human-readable account id (optional; not used for login) */
+  @Column({
+    type: "varchar",
+    name: "public_id",
+    length: 32,
+    nullable: true,
+  })
+  @Index({ unique: true })
+  public_id: string | null;
+
+  /** Sequential teacher id, e.g. 10001 — set when teacher-capable */
+  @Column({
+    type: "varchar",
+    name: "teacher_public_id",
+    length: 32,
+    nullable: true,
+  })
+  @Index({ unique: true })
+  teacher_public_id: string | null;
+
+  /** Sequential student id, e.g. 1000001 */
+  @Column({
+    type: "varchar",
+    name: "student_public_id",
+    length: 32,
+    nullable: true,
+  })
+  @Index({ unique: true })
+  student_public_id: string | null;
+
   @Column({
     type: "varchar",
     name: "refresh_token",

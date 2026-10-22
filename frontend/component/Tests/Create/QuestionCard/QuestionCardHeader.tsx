@@ -1,4 +1,3 @@
-import Image from "next/image";
 import TrashIcon from "@/component/svg/TrashIcon";
 import UploadImageIconSVG from "@/component/svg/UploadImageIconSVG";
 import { RichTextEditor } from "@/component/RichTextEditor";
@@ -15,7 +14,8 @@ import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import Tooltip from "@/Ui/Tooltip";
 import Link from "next/link";
 import type { ParsedPastedQuestion } from "@/utils/exam/parsePastedQuestion";
-import { QUESTION_BUILDER_GAPS, readImageFileAsDataUrl } from "./shared";
+import { QUESTION_BUILDER_GAPS } from "./shared";
+import { resolveMediaUrl, uploadExamImage } from "@/utils/media/uploadMedia";
 
 function QuestionCardHeader({
   activateCard,
@@ -48,12 +48,25 @@ function QuestionCardHeader({
       }
 
       try {
-        const image = await readImageFileAsDataUrl(file);
-        dispatch(updateQuestionImage({ subjectId, questionId, image, parentPassageId }));
+        console.debug("[media] question image selected", {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        });
+        const uploaded = await uploadExamImage(file);
+        const previewUrl = resolveMediaUrl(uploaded.url);
+        console.debug("[media] question image ready for preview", { previewUrl, key: uploaded.key });
+        dispatch(updateQuestionImage({ subjectId, questionId, image: previewUrl, parentPassageId }));
         activateCard();
-      } catch {
+      } catch (error) {
+        const message =
+          (error as { response?: { data?: { message?: string | string[] } } })?.response?.data
+            ?.message;
+        console.error("[media] question image upload failed", error);
         triggerToast({
-          description: "Unable to upload image right now.",
+          description: Array.isArray(message)
+            ? message[0]
+            : message || "Unable to upload image right now.",
           type: "error",
         });
       }
@@ -68,10 +81,24 @@ function QuestionCardHeader({
       }
 
       try {
-        return await readImageFileAsDataUrl(file);
-      } catch {
+        console.debug("[media] inline image selected", {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        });
+        const uploaded = await uploadExamImage(file);
+        const previewUrl = resolveMediaUrl(uploaded.url);
+        console.debug("[media] inline image ready", { previewUrl, key: uploaded.key });
+        return previewUrl;
+      } catch (error) {
+        const message =
+          (error as { response?: { data?: { message?: string | string[] } } })?.response?.data
+            ?.message;
+        console.error("[media] inline image upload failed", error);
         triggerToast({
-          description: "Unable to upload image right now.",
+          description: Array.isArray(message)
+            ? message[0]
+            : message || "Unable to upload image right now.",
           type: "error",
         });
         return null;
@@ -150,12 +177,23 @@ function QuestionCardHeader({
             {questionImage ? (
               <div className={`flex items-center ${QUESTION_BUILDER_GAPS.headerImageActions}`}>
                 <div className="relative h-40 w-full max-w-[320px] overflow-hidden rounded-[12px] border border-[#E5E5E5] bg-white">
-                  <Image
-                    src={questionImage}
+                  {/* Native img: next/Image can hide load failures; we need onError for private S3 proxy debug */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={resolveMediaUrl(questionImage)}
                     alt={`Question ${questionNumber} image`}
-                    fill
-                    unoptimized
-                    className="object-cover"
+                    className="h-full w-full object-cover"
+                    onLoad={() =>
+                      console.debug("[media] question preview loaded", {
+                        src: resolveMediaUrl(questionImage),
+                      })
+                    }
+                    onError={(event) => {
+                      console.error("[media] question preview failed to load", {
+                        src: resolveMediaUrl(questionImage),
+                        nativeSrc: (event.target as HTMLImageElement)?.currentSrc,
+                      });
+                    }}
                   />
                 </div>
                 <div className={`flex items-center ${QUESTION_BUILDER_GAPS.headerImageActions}`}>

@@ -30,6 +30,9 @@ interface FlagReportPayload {
 
 const clientOrigin = process.env.CLIENT_ORIGIN ?? true;
 
+/** Room for teacher/admin live monitors only — students are not members. */
+const monitorsRoom = (examId: string) => `exam:${examId}:monitors`;
+
 @WebSocketGateway({
   cors: {
     origin: clientOrigin,
@@ -99,6 +102,10 @@ export class ProctoringGateway implements OnGatewayDisconnect, OnApplicationShut
     return 'Request failed';
   }
 
+  private emitToMonitors(examId: string, event: string, payload: unknown): void {
+    this.server.to(monitorsRoom(examId)).emit(event, payload);
+  }
+
   @SubscribeMessage('exam:join')
   async handleJoin(
     @ConnectedSocket() client: Socket,
@@ -124,8 +131,6 @@ export class ProctoringGateway implements OnGatewayDisconnect, OnApplicationShut
       return;
     }
 
-    await client.join(examId);
-
     if (role === 'monitor') {
       if (
         user.role !== RolesEnum.TEACHER &&
@@ -142,6 +147,11 @@ export class ProctoringGateway implements OnGatewayDisconnect, OnApplicationShut
         client.emit('exam:error', { message: this.extractErrorMessage(err) });
         return;
       }
+
+      await client.join(monitorsRoom(examId));
+      // Keep legacy room join for disconnect bookkeeping of monitor sockets.
+      await client.join(examId);
+      client.data = { ...(client.data ?? {}), examId, role: 'monitor' };
 
       client.emit('monitor:state', {
         sessions: this.proctoringStore.getExamSessions(examId),
@@ -161,6 +171,9 @@ export class ProctoringGateway implements OnGatewayDisconnect, OnApplicationShut
       return;
     }
 
+    await client.join(examId);
+    client.data = { ...(client.data ?? {}), examId, role: 'student', studentId: user.id };
+
     const session = this.proctoringStore.upsertStudentSession(
       examId,
       client.id,
@@ -168,7 +181,14 @@ export class ProctoringGateway implements OnGatewayDisconnect, OnApplicationShut
       user.full_name ?? user.email ?? 'Student',
     );
 
-    this.server.to(examId).emit('session:joined', session);
+    // Fan-out only to monitors (not every student) — avoids O(n²) join storms.
+    this.emitToMonitors(examId, 'session:joined', {
+      socketId: session.socketId,
+      studentId: session.studentId,
+      studentName: session.studentName,
+      joinedAt: session.joinedAt,
+      totalFlagPoints: session.totalFlagPoints,
+    });
     client.emit('session:ready', session);
   }
 
@@ -192,23 +212,28 @@ export class ProctoringGateway implements OnGatewayDisconnect, OnApplicationShut
       return;
     }
 
-    this.server.to(examId).emit('flag:update', {
-      session: result.session,
+    // Slim payload for monitors — do not rebroadcast the full flag history.
+    this.emitToMonitors(examId, 'flag:update', {
+      studentId: result.session.studentId,
+      socketId: result.session.socketId,
+      studentName: result.session.studentName,
+      totalFlagPoints: result.session.totalFlagPoints,
       flag: result.flag,
     });
   }
 
   @SubscribeMessage('exam:submit')
   handleExamSubmit(@MessageBody() payload: ProctoringExamSubmitPayload) {
-    const { examId, studentId, studentName, answers, totalFlagPoints } = payload ?? {};
+    const { examId, studentId, studentName, totalFlagPoints } = payload ?? {};
     if (!examId || !studentId || !studentName) {
       return;
     }
 
-    this.server.to(examId).emit('exam:submitted', {
+    // Do not broadcast answers to the room (privacy + bandwidth).
+    // Teachers receive submission metadata only; scores remain on the HTTP finalize path.
+    this.emitToMonitors(examId, 'exam:submitted', {
       studentId,
       studentName,
-      answers,
       totalFlagPoints,
       submittedAt: new Date().toISOString(),
     });
@@ -216,12 +241,12 @@ export class ProctoringGateway implements OnGatewayDisconnect, OnApplicationShut
 
   handleDisconnect(client: Socket) {
     for (const room of client.rooms) {
-      if (room === client.id) {
+      if (room === client.id || room.endsWith(':monitors')) {
         continue;
       }
 
       this.proctoringStore.removeStudentSession(room, client.id);
-      this.server.to(room).emit('session:left', { socketId: client.id });
+      this.emitToMonitors(room, 'session:left', { socketId: client.id });
     }
   }
 }

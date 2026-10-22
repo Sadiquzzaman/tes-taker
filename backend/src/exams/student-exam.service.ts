@@ -75,6 +75,7 @@ import {
   resolveSubmissionScores,
 } from './utils/submission-response.util';
 import { ClassService } from 'src/classes/class.service';
+import { ExamPaperCacheService } from './exam-paper-cache.service';
 
 export type ExamAccessValidation = {
   canAccess: boolean;
@@ -114,6 +115,8 @@ export class StudentExamService {
     private readonly dataSource: DataSource,
 
     private readonly classService: ClassService,
+
+    private readonly examPaperCache: ExamPaperCacheService,
   ) {}
 
   private static readonly UUID_V4_RE =
@@ -121,6 +124,68 @@ export class StudentExamService {
 
   private isUuidV4(value: string): boolean {
     return StudentExamService.UUID_V4_RE.test(value);
+  }
+
+  private examMatchesStudentWorkspace(
+    exam: Pick<ExamEntity, 'organization_id' | 'created_by'> & { class?: Pick<ClassEntity, 'teacher_id'> | null },
+    jwtPayload?: JwtPayloadInterface,
+  ): boolean {
+    if (!jwtPayload) {
+      return true;
+    }
+
+    if (jwtPayload.session_mode === 'organization' && jwtPayload.organization_id) {
+      return exam.organization_id === jwtPayload.organization_id;
+    }
+
+    if (jwtPayload.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
+      const teacherId = exam.class?.teacher_id ?? exam.created_by ?? null;
+      return !exam.organization_id && teacherId === jwtPayload.teacher_id;
+    }
+
+    return true;
+  }
+
+  private assertExamMatchesStudentWorkspace(
+    exam: Pick<ExamEntity, 'organization_id' | 'created_by'> & { class?: Pick<ClassEntity, 'teacher_id'> | null },
+    jwtPayload?: JwtPayloadInterface,
+  ): void {
+    if (!this.examMatchesStudentWorkspace(exam, jwtPayload)) {
+      throw new ForbiddenException('This exam is outside your selected workspace');
+    }
+  }
+
+  private applyStudentWorkspaceScopeToClassQuery(qb: any, jwtPayload?: JwtPayloadInterface): void {
+    if (jwtPayload?.session_mode === 'organization' && jwtPayload.organization_id) {
+      qb.andWhere('class.organization_id = :studentScopeOrgId', {
+        studentScopeOrgId: jwtPayload.organization_id,
+      });
+      return;
+    }
+
+    if (jwtPayload?.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
+      qb.andWhere('class.organization_id IS NULL').andWhere('class.teacher_id = :studentScopeTeacherId', {
+        studentScopeTeacherId: jwtPayload.teacher_id,
+      });
+    }
+  }
+
+  private applyStudentWorkspaceScopeToExamQuery(qb: any, jwtPayload?: JwtPayloadInterface): void {
+    if (jwtPayload?.session_mode === 'organization' && jwtPayload.organization_id) {
+      qb.andWhere('exam.organization_id = :studentScopeOrgId', {
+        studentScopeOrgId: jwtPayload.organization_id,
+      });
+      return;
+    }
+
+    if (jwtPayload?.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
+      qb.andWhere('exam.organization_id IS NULL').andWhere(
+        '(class.teacher_id = :studentScopeTeacherId OR exam.created_by = :studentScopeTeacherId)',
+        {
+          studentScopeTeacherId: jwtPayload.teacher_id,
+        },
+      );
+    }
   }
 
   /** Flatten scorable questions; wizard exams use exam-wide sort_order */
@@ -219,6 +284,7 @@ export class StudentExamService {
    */
   async getUpcomingExams(
     studentId: string,
+    jwtPayload?: JwtPayloadInterface,
     sortOrder: 'ASC' | 'DESC' = 'ASC',
     includePast: boolean = false,
   ): Promise<any[]> {
@@ -233,10 +299,14 @@ export class StudentExamService {
         'classStudent.student_id = :studentId AND classStudent.status = :status',
         { studentId, status: ClassStudentStatusEnum.JOINED },
       )
-      .select(['class.id'])
+      .select(['class.id']);
+
+    this.applyStudentWorkspaceScopeToClassQuery(classes, jwtPayload);
+
+    const joinedClasses = await classes
       .getMany();
 
-    const classIds = classes.map((c) => c.id);
+    const classIds = joinedClasses.map((c) => c.id);
     if (classIds.length > 0) {
       let examQuery = this.examRepo
         .createQueryBuilder('exam')
@@ -248,6 +318,8 @@ export class StudentExamService {
         .where('exam.class_id IN (:...classIds)', { classIds })
         .andWhere('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
         .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId });
+
+      this.applyStudentWorkspaceScopeToExamQuery(examQuery, jwtPayload);
 
       if (!includePast) {
         examQuery = examQuery.andWhere('exam.exam_end_time > :now', { now });
@@ -265,6 +337,7 @@ export class StudentExamService {
       .leftJoinAndSelect('exam.questionSections', 'questionSections')
       .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
       .where('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE });
+    this.applyStudentWorkspaceScopeToExamQuery(targetQuery, jwtPayload);
     if (!includePast) {
       targetQuery = targetQuery.andWhere('exam.exam_end_time > :now', { now });
     }
@@ -335,7 +408,7 @@ export class StudentExamService {
   /**
    * Get exam history for a student (completed exams)
    */
-  async getExamHistory(studentId: string): Promise<any[]> {
+  async getExamHistory(studentId: string, jwtPayload?: JwtPayloadInterface): Promise<any[]> {
     const submissions = await this.submissionRepo.find({
       where: {
         student_id: studentId,
@@ -351,7 +424,7 @@ export class StudentExamService {
       order: { submitted_at: 'DESC' },
     });
 
-    return submissions.map((sub) => {
+    return submissions.filter((sub) => this.examMatchesStudentWorkspace(sub.exam, jwtPayload)).map((sub) => {
       const hasManualQuestions = examHasManualQuestions(sub.exam);
       const resultPublished = Boolean(sub.exam.result_published_at);
       const canShowScores = !hasManualQuestions || resultPublished;
@@ -388,28 +461,26 @@ export class StudentExamService {
   async validateExamAccess(
     examId: string,
     studentId: string,
+    jwtPayload?: JwtPayloadInterface,
   ): Promise<ExamAccessValidation> {
-    const exam = await this.examRepo.findOne({
-      where: { id: examId },
-      relations: [
-        'class',
-        'class.classStudents',
-        'class.classStudents.student',
-        'excluded_students',
-        'questions',
-        'questionSections',
-        'questionSections.questions',
-        'questionSections.subject',
-        'target_students',
-        'primary_subject',
-      ],
-    });
+    // Cache-aside exam graph (questions/sections/audience lists). Authorization
+    // still runs below; class membership is resolved live via ClassService.
+    const exam = await this.examPaperCache.getExamGraph(examId);
 
     if (!exam) {
       return {
         canAccess: false,
         reason: 'Exam not found',
         reason_code: ExamAccessReasonCodeEnum.NOT_ASSIGNED,
+      };
+    }
+
+    if (!this.examMatchesStudentWorkspace(exam, jwtPayload)) {
+      return {
+        canAccess: false,
+        reason: 'This exam is outside your selected workspace',
+        reason_code: ExamAccessReasonCodeEnum.NOT_ASSIGNED,
+        exam,
       };
     }
 
@@ -537,8 +608,9 @@ export class StudentExamService {
   async getExamForStudent(
     examId: string,
     studentId: string,
+    jwtPayload?: JwtPayloadInterface,
   ): Promise<Record<string, unknown>> {
-    const validation = await this.validateExamAccess(examId, studentId);
+    const validation = await this.validateExamAccess(examId, studentId, jwtPayload);
 
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
@@ -624,10 +696,11 @@ export class StudentExamService {
   async startExam(
     examId: string,
     studentId: string,
+    jwtPayload: JwtPayloadInterface | undefined,
     dto: StartExamDto,
     ipAddress?: string,
   ): Promise<StudentExamSubmissionEntity> {
-    const validation = await this.validateExamAccess(examId, studentId);
+    const validation = await this.validateExamAccess(examId, studentId, jwtPayload);
     
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
@@ -677,9 +750,10 @@ export class StudentExamService {
   async saveAnswer(
     examId: string,
     studentId: string,
+    jwtPayload: JwtPayloadInterface | undefined,
     dto: SaveAnswerDto,
   ): Promise<StudentExamAnswerEntity> {
-    const validation = await this.validateExamAccess(examId, studentId);
+    const validation = await this.validateExamAccess(examId, studentId, jwtPayload);
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
     }
@@ -752,6 +826,7 @@ export class StudentExamService {
   async finalizeAnswerSheet(
     examId: string,
     studentId: string,
+    jwtPayload: JwtPayloadInterface | undefined,
     dto: SubmitAnswerSheetDto,
   ): Promise<{
     submission_id: string;
@@ -765,24 +840,13 @@ export class StudentExamService {
       throw new BadRequestException('studentId does not match the authenticated user');
     }
 
-    const exam = await this.examRepo.findOne({
-      where: { id: examId },
-      relations: [
-        'class',
-        'class.classStudents',
-        'questions',
-        'questionSections',
-        'questionSections.questions',
-        'questionSections.subject',
-        'target_students',
-        'excluded_students',
-        'primary_subject',
-      ],
-    });
+    const exam = await this.examPaperCache.getExamGraph(examId);
 
     if (!exam) {
       throw new NotFoundException('Exam not found');
     }
+
+    this.assertExamMatchesStudentWorkspace(exam, jwtPayload);
 
     const submission = await this.submissionRepo.findOne({
       where: { exam_id: examId, student_id: studentId },
@@ -850,18 +914,34 @@ export class StudentExamService {
       status = ExamSubmissionStatusEnum.DISQUALIFIED;
     }
 
-    submission.status = status;
-    submission.submitted_at = new Date();
-    submission.updated_at = new Date();
+    // Re-load after scoring so we merge the latest score columns.
+    const toFinalize = await this.submissionRepo.findOne({ where: { id: submission.id } });
+    if (!toFinalize) {
+      throw new NotFoundException('Submission not found');
+    }
+    if (finalizedStatuses.includes(toFinalize.status)) {
+      return {
+        submission_id: toFinalize.id,
+        status: toFinalize.status,
+        saved_count: savedCount,
+        total_score: toFinalize.total_score ?? null,
+        max_score: toFinalize.max_score ?? null,
+        already_finalized: true,
+      };
+    }
+
+    toFinalize.status = status;
+    toFinalize.submitted_at = new Date();
+    toFinalize.updated_at = new Date();
     if (status === ExamSubmissionStatusEnum.DISQUALIFIED) {
-      submission.disqualification_reason =
+      toFinalize.disqualification_reason =
         dto.disqualification_reason?.trim() || 'Exam session disqualified.';
     }
     if (Array.isArray(dto.proctoring_events) && dto.proctoring_events.length) {
       const { serializeProctoringEvents, parseProctoringEvents } = await import(
         './utils/proctoring-events.util'
       );
-      const existing = parseProctoringEvents(submission.proctoring_events_json);
+      const existing = parseProctoringEvents(toFinalize.proctoring_events_json);
       const incoming = dto.proctoring_events.map((event, index) => ({
         id: event.id || `client-${index}-${Date.now()}`,
         type: event.type,
@@ -870,10 +950,43 @@ export class StudentExamService {
         timestamp: event.timestamp || new Date().toISOString(),
         source: 'client' as const,
       }));
-      submission.proctoring_events_json = serializeProctoringEvents([...existing, ...incoming]);
+      toFinalize.proctoring_events_json = serializeProctoringEvents([...existing, ...incoming]);
     }
-    this.applySubmissionGradingState(submission, exam);
-    await this.submissionRepo.save(submission);
+    this.applySubmissionGradingState(toFinalize, exam);
+
+    // Conditional update prevents double-finalize races from socket + HTTP.
+    const claim = await this.submissionRepo
+      .createQueryBuilder()
+      .update(StudentExamSubmissionEntity)
+      .set({
+        status: toFinalize.status,
+        submitted_at: toFinalize.submitted_at,
+        updated_at: toFinalize.updated_at,
+        disqualification_reason: toFinalize.disqualification_reason,
+        proctoring_events_json: toFinalize.proctoring_events_json,
+        is_graded: toFinalize.is_graded,
+        graded_at: toFinalize.graded_at,
+        graded_by: toFinalize.graded_by,
+        total_score: toFinalize.total_score,
+        max_score: toFinalize.max_score,
+      })
+      .where('id = :id AND status = :inProgress', {
+        id: toFinalize.id,
+        inProgress: ExamSubmissionStatusEnum.IN_PROGRESS,
+      })
+      .execute();
+
+    if (!claim.affected) {
+      const existing = await this.submissionRepo.findOne({ where: { id: submission.id } });
+      return {
+        submission_id: submission.id,
+        status: existing?.status ?? status,
+        saved_count: savedCount,
+        total_score: existing?.total_score ?? null,
+        max_score: existing?.max_score ?? null,
+        already_finalized: true,
+      };
+    }
 
     const result = await this.submissionRepo.findOne({ where: { id: submission.id } });
 
@@ -893,13 +1006,14 @@ export class StudentExamService {
   async saveAnswerSheet(
     examId: string,
     studentId: string,
+    jwtPayload: JwtPayloadInterface | undefined,
     dto: SubmitAnswerSheetDto,
   ): Promise<{ submission_id: string; saved_count: number }> {
     if (dto.studentId && dto.studentId !== studentId) {
       throw new BadRequestException('studentId does not match the authenticated user');
     }
 
-    const validation = await this.validateExamAccess(examId, studentId);
+    const validation = await this.validateExamAccess(examId, studentId, jwtPayload);
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
     }
@@ -969,6 +1083,96 @@ export class StudentExamService {
       subRow.updated_at = new Date();
       await submissionRepo.save(subRow);
 
+      // One read for all existing answers — avoids per-question findOne (N+1).
+      const existingAnswers = await answerRepo.find({
+        where: { submission_id: subRow.id },
+      });
+      const existingByQuestion = new Map(
+        existingAnswers.map((row) => [row.question_id, row]),
+      );
+
+      const toSave: StudentExamAnswerEntity[] = [];
+      const now = new Date();
+
+      const queueSelected = (questionId: string, selected: CorrectAnswerEnum) => {
+        const existing = existingByQuestion.get(questionId);
+        if (existing) {
+          Object.assign(existing, {
+            selected_answer: selected,
+            text_answer: null,
+            media_url: null,
+            word_count: null,
+            answered_at: now,
+            updated_at: now,
+          });
+          toSave.push(existing);
+          return;
+        }
+        const row = answerRepo.create({
+          submission_id: subRow.id,
+          question_id: questionId,
+          selected_answer: selected,
+          answered_at: now,
+          created_by: studentId,
+          created_at: now,
+        });
+        existingByQuestion.set(questionId, row);
+        toSave.push(row);
+      };
+
+      const queueText = (questionId: string, text: string, wordCount?: number | null) => {
+        const existing = existingByQuestion.get(questionId);
+        if (existing) {
+          Object.assign(existing, {
+            text_answer: text,
+            selected_answer: null,
+            media_url: null,
+            word_count: wordCount ?? null,
+            answered_at: now,
+            updated_at: now,
+          });
+          toSave.push(existing);
+          return;
+        }
+        const row = answerRepo.create({
+          submission_id: subRow.id,
+          question_id: questionId,
+          text_answer: text,
+          word_count: wordCount ?? undefined,
+          answered_at: now,
+          created_by: studentId,
+          created_at: now,
+        });
+        existingByQuestion.set(questionId, row);
+        toSave.push(row);
+      };
+
+      const queueMedia = (questionId: string, mediaUrl: string) => {
+        const existing = existingByQuestion.get(questionId);
+        if (existing) {
+          Object.assign(existing, {
+            media_url: mediaUrl,
+            text_answer: null,
+            selected_answer: null,
+            word_count: null,
+            answered_at: now,
+            updated_at: now,
+          });
+          toSave.push(existing);
+          return;
+        }
+        const row = answerRepo.create({
+          submission_id: subRow.id,
+          question_id: questionId,
+          media_url: mediaUrl,
+          answered_at: now,
+          created_by: studentId,
+          created_at: now,
+        });
+        existingByQuestion.set(questionId, row);
+        toSave.push(row);
+      };
+
       for (const [questionId, rawValue] of Object.entries(answersheet)) {
         const question = questionById.get(questionId)!;
         const value = rawValue === undefined || rawValue === null ? '' : String(rawValue);
@@ -986,9 +1190,14 @@ export class StudentExamService {
             question.sub_type === 'multiple-response' ||
             question.sub_type === 'matching-ordering' ||
             question.sub_type === 'fill-in-the-blanks' ||
-            question.sub_type === 'answer-box'
+            question.sub_type === 'answer-box' ||
+            question.sub_type === 'sentence-completion' ||
+            question.sub_type === 'summary-completion' ||
+            question.sub_type === 'table-completion' ||
+            question.sub_type === 'diagram-label' ||
+            question.sub_type === 'short-answer'
           ) {
-            await this.upsertTextAnswer(answerRepo, subRow.id, questionId, trimmed, studentId);
+            queueText(questionId, trimmed, null);
             continue;
           }
 
@@ -999,7 +1208,7 @@ export class StudentExamService {
             }
             const idx = question.options_json.findIndex((o) => o.id === trimmed);
             const selected = CORRECT_ANSWER_ENUM_BY_OPTION_INDEX[idx];
-            await this.upsertSelectedAnswer(answerRepo, subRow.id, questionId, selected, studentId);
+            queueSelected(questionId, selected);
             continue;
           }
         }
@@ -1014,33 +1223,26 @@ export class StudentExamService {
           if (!selected) {
             throw new BadRequestException(`Invalid MCQ option index for question ${questionId}`);
           }
-
-          const existing = await answerRepo.findOne({
-            where: { submission_id: subRow.id, question_id: questionId },
-          });
-          if (existing) {
-            await answerRepo.update(
-              { id: existing.id },
-              {
-                selected_answer: selected,
-                text_answer: null,
-                word_count: null,
-                answered_at: new Date(),
-                updated_at: new Date(),
-              } as object,
-            );
-          } else {
-            const row = answerRepo.create({
-              submission_id: subRow.id,
-              question_id: questionId,
-              selected_answer: selected,
-              answered_at: new Date(),
-              created_by: studentId,
-              created_at: new Date(),
-            });
-            await answerRepo.save(row);
-          }
+          queueSelected(questionId, selected);
         } else {
+          const isSpeaking =
+            typeof question.sub_type === 'string' && question.sub_type.startsWith('speaking-part-');
+          const looksLikeMedia =
+            trimmed.startsWith('data:audio') ||
+            trimmed.startsWith('/uploads/') ||
+            trimmed.startsWith('http://') ||
+            trimmed.startsWith('https://');
+
+          if (isSpeaking || looksLikeMedia) {
+            if (value.length > 5_000_000) {
+              throw new BadRequestException(
+                `Recording for question ${questionId} exceeds the maximum allowed size`,
+              );
+            }
+            queueMedia(questionId, value);
+            continue;
+          }
+
           if (value.length > 10000) {
             throw new BadRequestException(
               `Essay answer for question ${questionId} exceeds 10000 characters`,
@@ -1049,34 +1251,12 @@ export class StudentExamService {
           const wordCount = trimmed.length
             ? trimmed.split(/\s+/).filter((w) => w.length > 0).length
             : 0;
-
-          const existing = await answerRepo.findOne({
-            where: { submission_id: subRow.id, question_id: questionId },
-          });
-          if (existing) {
-            await answerRepo.update(
-              { id: existing.id },
-              {
-                text_answer: value,
-                selected_answer: null,
-                word_count: wordCount,
-                answered_at: new Date(),
-                updated_at: new Date(),
-              } as object,
-            );
-          } else {
-            const row = answerRepo.create({
-              submission_id: subRow.id,
-              question_id: questionId,
-              text_answer: value,
-              word_count: wordCount,
-              answered_at: new Date(),
-              created_by: studentId,
-              created_at: new Date(),
-            });
-            await answerRepo.save(row);
-          }
+          queueText(questionId, value, wordCount);
         }
+      }
+
+      if (toSave.length > 0) {
+        await answerRepo.save(toSave);
       }
     });
 
@@ -1089,6 +1269,7 @@ export class StudentExamService {
   async submitExam(
     examId: string,
     studentId: string,
+    jwtPayload: JwtPayloadInterface | undefined,
     dto: SubmitExamDto,
     autoSubmit: boolean = false,
   ): Promise<Record<string, unknown>> {
@@ -1105,6 +1286,8 @@ export class StudentExamService {
     if (!exam) {
       throw new NotFoundException('Exam not found');
     }
+
+    this.assertExamMatchesStudentWorkspace(exam, jwtPayload);
 
     // Get submission
     const submission = await this.submissionRepo.findOne({
@@ -1132,7 +1315,7 @@ export class StudentExamService {
     }
 
     for (const answerDto of dto.answers) {
-      await this.saveAnswer(examId, studentId, answerDto);
+      await this.saveAnswer(examId, studentId, jwtPayload, answerDto);
     }
 
     if (dto.browser_switch_count !== undefined) {
@@ -1365,8 +1548,10 @@ export class StudentExamService {
           totalScore -= Math.min(penalty, pts);
         }
       }
+    }
 
-      await this.answerRepo.save(answer);
+    if (answers.length > 0) {
+      await this.answerRepo.save(answers);
     }
 
     const answeredObjectiveIds = new Set(
@@ -1435,9 +1620,10 @@ export class StudentExamService {
   async reportViolation(
     examId: string,
     studentId: string,
+    jwtPayload: JwtPayloadInterface | undefined,
     dto: ReportViolationDto,
   ): Promise<void> {
-    const validation = await this.validateExamAccess(examId, studentId);
+    const validation = await this.validateExamAccess(examId, studentId, jwtPayload);
     if (!validation.canAccess) {
       throw new ForbiddenException(validation.reason);
     }
@@ -1510,6 +1696,7 @@ export class StudentExamService {
   async getExamResult(
     examId: string,
     studentId: string,
+    jwtPayload?: JwtPayloadInterface,
   ): Promise<any> {
     const submission = await this.submissionRepo.findOne({
       where: { 
@@ -1530,6 +1717,8 @@ export class StudentExamService {
     if (!submission) {
       throw new NotFoundException('No submission found for this exam');
     }
+
+    this.assertExamMatchesStudentWorkspace(submission.exam, jwtPayload);
 
     if (
       examHasManualQuestions(submission.exam) &&

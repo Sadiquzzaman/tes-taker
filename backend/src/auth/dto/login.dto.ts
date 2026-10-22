@@ -22,7 +22,7 @@ export class LoginDto {
   @ValidateIf((o) => !o.email)
   @IsNotEmpty({ message: 'Phone number is required when email is not provided' })
   @IsString({ message: 'Phone must be a string' })
-  @Matches(/^01[3-9]\d{8}$/, { message: 'Phone number must be a valid Bangladeshi mobile number' })
+  @Matches(/^01\d{9}$/, { message: 'Phone number must be a valid Bangladeshi mobile number' })
   @MaxLength(15, { message: 'Maximum 15 characters supported' })
   phone?: string;
 

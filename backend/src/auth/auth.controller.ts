@@ -5,12 +5,15 @@ import { AuthService } from './auth.service';
 import { GoogleAuthService } from './google-auth.service';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiBody } from '@nestjs/swagger';
 import { RegisterUserDto } from './dto/register-user.dto';
+import { RegisterOrganizationDto } from './dto/register-organization.dto';
 import { LoginDto } from './dto/login.dto';
+import { LoginOrganizationDto } from './dto/login-organization.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { VerifyResetOtpDto } from './dto/verify-reset-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RefreshAuthUserDto } from './dto/refresh-auth-user.dto';
+import { SelectContextDto } from 'src/organizations/dto/select-context.dto';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { JwtPayloadInterface } from './interfaces/jwt-payload.interface';
@@ -32,21 +35,12 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register a new user',
-    description: 'Register a new user with phone number (required), password, and optional email. An OTP will be sent to the provided phone number for verification. The user must verify the OTP before they can login. If a user previously registered but did not verify OTP, they can register again with the same phone number.',
+    description: 'Register a new user with phone number (required), password, and email (required). An OTP will be sent to the provided phone number for verification. The user must verify the OTP before they can login. If a user previously registered but did not verify OTP, they can register again with the same phone number. Self-service always creates a STUDENT account. Set request_teacher=true to also create a pending teacher request for admin approval.',
   })
   @ApiBody({
     type: RegisterUserDto,
-    description: 'User registration data. Phone number and password are required, email is optional.',
+    description: 'User registration data. Phone number, email, and password are required.',
     examples: {
-      withPhoneOnly: {
-        value: {
-          full_name: 'John Doe',
-          phone: '01734911480',
-          password: 'StrongPass123',
-          confirm_password: 'StrongPass123',
-          role: 'STUDENT'
-        }
-      },
       withPhoneAndEmail: {
         value: {
           full_name: 'Jane Smith',
@@ -54,7 +48,17 @@ export class AuthController {
           email: 'jane@example.com',
           password: 'StrongPass123',
           confirm_password: 'StrongPass123',
-          role: 'TEACHER'
+          role: 'STUDENT'
+        }
+      },
+      requestTeacher: {
+        value: {
+          full_name: 'John Doe',
+          phone: '01734911480',
+          email: 'john@example.com',
+          password: 'StrongPass123',
+          confirm_password: 'StrongPass123',
+          request_teacher: true
         }
       }
     }
@@ -92,6 +96,22 @@ export class AuthController {
   async register(@Body() registerUserDto: RegisterUserDto) {
     const payload = await this.authService.signUp(registerUserDto);
     return { message: 'Registered successfully!', payload };
+  }
+
+  @Post('register/organization')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Register an organization / school',
+    description:
+      'Creates an unverified TEACHER account for the owner, stores the organization name pending OTP verification, and sends an OTP. After OTP verify, a PENDING organization and OWNER membership are created. SUPER_ADMIN must approve before the org workspace is usable. There is no individual teacher signup API.',
+  })
+  @ApiBody({ type: RegisterOrganizationDto })
+  @ApiResponse({ status: 201, description: 'Organization registration started; OTP sent' })
+  @ApiResponse({ status: 400, description: 'Validation error or duplicate phone/email' })
+  async registerOrganization(@Body() dto: RegisterOrganizationDto) {
+    const payload = await this.authService.registerOrganization(dto);
+    return { message: 'Organization registration started', payload };
   }
 
   @Post('register/verify-otp')
@@ -226,17 +246,37 @@ export class AuthController {
     return { message: 'Login successful!', payload };
   }
 
+  @Post('login/organization')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Login as an organization member',
+    description:
+      'Requires organization number, phone, and password. Issues a JWT locked to that approved organization. Platform (individual) routes should not be used with this session.',
+  })
+  @ApiBody({ type: LoginOrganizationDto })
+  @ApiResponse({ status: 200, description: 'Organization login successful' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials or not a member' })
+  async loginOrganization(@Body() dto: LoginOrganizationDto) {
+    const payload = await this.authService.loginOrganization(dto);
+    return { message: 'Organization login successful!', payload };
+  }
+
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Refresh access token',
-    description: 'Exchange a valid refresh token for a new access token and refresh token pair.',
+    description:
+      'Exchange a valid refresh token for a new access token and refresh token pair. Pass organization_id to preserve an organization session.',
   })
   @ApiBody({ type: RefreshAuthUserDto })
   @ApiResponse({ status: 200, description: 'Token refreshed successfully' })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
   async refresh(@Body() refreshAuthUserDto: RefreshAuthUserDto) {
-    const payload = await this.authService.refreshToken(refreshAuthUserDto.refreshToken);
+    const payload = await this.authService.refreshToken(
+      refreshAuthUserDto.refreshToken,
+      refreshAuthUserDto.organization_id,
+    );
     return { message: 'Token refreshed successfully', payload };
   }
 
@@ -285,7 +325,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Request a password reset OTP',
     description:
-      'Accepts a phone number or email. If an account exists, a 6-digit OTP is generated, logged to the server console, and sent to the account\'s phone (SMS) and email. The OTP is valid for 5 minutes.',
+      'Accepts a phone number or email. OTP is sent via email when the identifier is an email, or via SMS when it is a phone number. The OTP is valid for 5 minutes.',
   })
   @ApiBody({
     type: ForgotPasswordDto,
@@ -294,7 +334,7 @@ export class AuthController {
       withEmail: { value: { identifier: 'user@example.com' } },
     },
   })
-  @ApiResponse({ status: 200, description: 'OTP sent to the account phone and email' })
+  @ApiResponse({ status: 200, description: 'OTP sent via the channel matching the identifier (email or SMS)' })
   @ApiResponse({ status: 404, description: 'No account found with this phone number or email' })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     const payload = await this.authService.forgotPassword(forgotPasswordDto);
@@ -376,6 +416,44 @@ export class AuthController {
   ) {
     const payload = await this.authService.changePassword(jwtPayload.id, changePasswordDto);
     return { message: payload.message, payload };
+  }
+
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard)
+  @Get('contexts')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'List available workspaces/contexts for the authenticated user',
+    description:
+      'Returns My Teaching (if enabled), organization memberships by name, and individual-teacher student contexts. Never exposes a generic My Learning workspace.',
+  })
+  @ApiResponse({ status: 200, description: 'Contexts retrieved' })
+  async listContexts(@UserPayload() jwtPayload: JwtPayloadInterface) {
+    const payload = await this.authService.listContexts(jwtPayload.id);
+    return { message: 'Contexts retrieved successfully', payload };
+  }
+
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard)
+  @Post('select-context')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Activate a workspace context and re-issue JWT',
+    description:
+      'Validates membership/personal teacher eligibility server-side. Never trust a frontend-only organization UUID.',
+  })
+  @ApiBody({ type: SelectContextDto })
+  async selectContext(
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+    @Body() dto: SelectContextDto,
+  ) {
+    const payload = await this.authService.selectContext(
+      jwtPayload.id,
+      dto.type,
+      dto.organization_id,
+      dto.teacher_id,
+    );
+    return { message: 'Context selected successfully', payload };
   }
 
   @ApiBearerAuth('jwt')

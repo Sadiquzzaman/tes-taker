@@ -4,19 +4,37 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import SidebarLogout from "./SidebarLogout";
 import SidebarToggleIconSVG from "../svg/SidebarToggleIconSVG";
-import TestTakerLogoMarkSVG from "../svg/TestTakerLogoMarkSVG";
+import InstructorLogoMarkSVG from "../svg/InstructorLogoMarkSVG";
 
-// hidden md:block h-screen bg-white overflow-y-auto min-w-[256px]
+const orgMemberRoles: OrganizationMemberRole[] = [
+  "OWNER",
+  "ADMIN",
+  "ASSISTANT",
+  "TEACHER",
+  "STUDENT",
+];
 
-// fixed top-0 left-0 h-screen bg-white overflow-y-auto
-// w-64 transform -translate-x-full z-1
-// transition-transform duration-300
-// md:translate-x-0 md:static md:block
+const isOrgMemberRole = (value: string | undefined): value is OrganizationMemberRole =>
+  Boolean(value && orgMemberRoles.includes(value as OrganizationMemberRole));
 
 const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
   const cookieStore = await cookies();
   const sidebarState = cookieStore.get("sidebar")?.value || "closed";
   const role = cookieStore.get("role")?.value as RoleUserType;
+  const sessionMode = (cookieStore.get("session_mode")?.value || "individual") as SessionMode;
+  const memberRoleValue = cookieStore.get("member_role")?.value;
+  const memberRole = isOrgMemberRole(memberRoleValue) ? memberRoleValue : undefined;
+
+  const isOrgStudent = sessionMode === "organization" && memberRole === "STUDENT";
+
+  const visibleCategories =
+    isOrgStudent
+      ? (["Platform", "System"] as const)
+      : sessionMode === "organization"
+        ? (["Organization", "System"] as const)
+        : role === "ADMIN" || role === "SUPER_ADMIN"
+          ? (["Admin", "System"] as const)
+          : (["Platform", "System"] as const);
 
   return (
     <div
@@ -33,9 +51,9 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
         <div className="flex-1 overflow-y-auto px-4 min-h-0">
           <div className="w-full flex justify-between items-center h-[72px]">
             <div className="flex items-center justify-center">
-              <TestTakerLogoMarkSVG width={21} />
+              <InstructorLogoMarkSVG width={21} />
               <p className="text-[20px] font-bold text-[#49734F] ml-2" style={{ fontFamily: "Public Sans" }}>
-                Test<span className="text-[#232A25]">Taker</span>
+                Instructor
               </p>
             </div>
             <form action={toggleSidebar}>
@@ -45,10 +63,16 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
             </form>
           </div>
           <nav className="flex flex-col gap-2">
-            {(["Platform", "System", "Admin"] as const).map((category) => {
-              const items = sidebarList.filter(
-                (element) => element.category === category && element.role.includes(role),
-              );
+            {visibleCategories.map((category) => {
+              const items = sidebarList.filter((element) => {
+                if (element.category !== category || !element.role.includes(role)) {
+                  return false;
+                }
+                if (element.memberRoles) {
+                  return Boolean(memberRole && element.memberRoles.includes(memberRole));
+                }
+                return true;
+              });
 
               if (items.length === 0) return null;
 

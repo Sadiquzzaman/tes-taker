@@ -4,6 +4,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { RedisService } from '../config/redis.service';
+import { MongoChatHealthService } from '../chat-mongo/mongo-chat-health.service';
 
 type DependencyStatus = 'up' | 'down';
 
@@ -14,6 +15,7 @@ export class HealthController {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly redisService: RedisService,
+    private readonly mongoChatHealth: MongoChatHealthService,
   ) {}
 
   @Get('health')
@@ -21,15 +23,16 @@ export class HealthController {
   @ApiOperation({
     summary: 'Service health check',
     description:
-      'Reports application status, version, uptime, dependency health (PostgreSQL, Redis), memory usage and environment. Returns 503 when a critical dependency is unavailable. No secrets are ever exposed.',
+      'Reports application status, version, uptime, dependency health (PostgreSQL, Redis, MongoDB), memory usage and environment. Returns 503 when a critical dependency is unavailable. No secrets are ever exposed.',
   })
   async check() {
-    const [database, redis] = await Promise.all([
+    const [database, redis, mongodb] = await Promise.all([
       this.checkDatabase(),
       this.checkRedis(),
+      this.checkMongo(),
     ]);
 
-    const isHealthy = database === 'up' && redis === 'up';
+    const isHealthy = database === 'up' && redis === 'up' && mongodb === 'up';
 
     const memory = process.memoryUsage();
     const payload = {
@@ -41,6 +44,7 @@ export class HealthController {
       services: {
         database,
         redis,
+        mongodb,
       },
       memory: {
         rss_mb: this.toMb(memory.rss),
@@ -70,6 +74,14 @@ export class HealthController {
   private async checkRedis(): Promise<DependencyStatus> {
     try {
       return (await this.redisService.ping()) ? 'up' : 'down';
+    } catch {
+      return 'down';
+    }
+  }
+
+  private async checkMongo(): Promise<DependencyStatus> {
+    try {
+      return (await this.mongoChatHealth.ping()) ? 'up' : 'down';
     } catch {
       return 'down';
     }

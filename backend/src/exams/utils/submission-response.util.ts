@@ -36,6 +36,7 @@ export type SubmissionAnswerResponse =
   | {
       type: 'text';
       student_answer: string;
+      media_url?: string | null;
       explanation?: string | null;
     };
 
@@ -61,6 +62,8 @@ export type SubmissionPassageQuestionResponse = {
   id: string;
   type: 'passage-question';
   passageText: string;
+  instruction?: string | null;
+  instructionLanguage?: 'en' | 'bn';
   childQuestions: SubmissionQuestionResponse[];
 };
 
@@ -130,10 +133,15 @@ const buildSubmissionAnswer = (
   question: ExamQuestionEntity,
   answer: StudentExamAnswerEntity | undefined,
 ): SubmissionAnswerResponse => {
-  if (question.category === QuestionCategoryEnum.UNGRADED) {
+  if (
+    question.category === QuestionCategoryEnum.UNGRADED ||
+    (question.category === QuestionCategoryEnum.IELTS &&
+      !isAutoScoredQuestion(question.category, question.sub_type))
+  ) {
     return {
       type: 'text',
-      student_answer: answer?.text_answer ?? '',
+      student_answer: answer?.text_answer ?? answer?.media_url ?? '',
+      media_url: answer?.media_url ?? null,
       explanation: answer?.grader_explanation ?? null,
     };
   }
@@ -152,8 +160,27 @@ const buildSubmissionAnswer = (
   ) {
     return {
       type: 'text',
-      student_answer: answer?.text_answer ?? '',
+      student_answer: answer?.text_answer ?? answer?.media_url ?? '',
+      media_url: answer?.media_url ?? null,
       explanation: answer?.grader_explanation ?? null,
+    };
+  }
+
+  // Text auto-scored subtypes (fill-in, completion, short-answer, etc.)
+  if (
+    question.answer_json?.type === AnswerValueTypeEnum.TEXT ||
+    question.sub_type === 'fill-in-the-blanks' ||
+    question.sub_type === 'answer-box' ||
+    question.sub_type === 'sentence-completion' ||
+    question.sub_type === 'summary-completion' ||
+    question.sub_type === 'table-completion' ||
+    question.sub_type === 'diagram-label' ||
+    question.sub_type === 'short-answer'
+  ) {
+    return {
+      type: 'optionId',
+      correct_answer: [...(question.answer_json?.value ?? [])],
+      student_selected: resolveStudentSelected(answer, question),
     };
   }
 
@@ -198,7 +225,7 @@ const formatSubmissionQuestion = (
     response.options = question.options_json.map((option) => ({
       id: option.id,
       text: option.text,
-      image_url: null,
+      image_url: option.image ?? null,
     }));
   }
 
@@ -207,12 +234,12 @@ const formatSubmissionQuestion = (
       left: question.matching_options_json.left.map((option) => ({
         id: option.id,
         text: option.text,
-        image: null,
+        image: option.image ?? null,
       })),
       right: question.matching_options_json.right.map((option) => ({
         id: option.id,
         text: option.text,
-        image: null,
+        image: option.image ?? null,
       })),
     };
   }
@@ -235,6 +262,15 @@ const formatSubmissionPassageQuestion = (
     id: question.id,
     type: QuestionCategoryEnum.PASSAGE,
     passageText: question.passage_text ?? question.question,
+    instruction: question.instruction ?? null,
+    instructionLanguage:
+      question.instruction ===
+      'Read the passage / CQ below and answer the following questions'
+        ? 'en'
+        : question.instruction ===
+            'নিচের অনুচ্ছেদ / সৃজনশীল প্রশ্নটি পড়ো এবং নিম্নলিখিত প্রশ্নগুলোর উত্তর দাও'
+          ? 'bn'
+          : undefined,
     childQuestions: children,
   };
 };

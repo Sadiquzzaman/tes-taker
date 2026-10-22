@@ -1,4 +1,4 @@
-export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+export const MAX_IMAGE_SIZE_BYTES = 20 * 1024 * 1024;
 
 export const QUESTION_BUILDER_GAPS = {
   blockOuter: "gap-2",

@@ -21,7 +21,7 @@ const addOption = (state: CreateTestState, action: PayloadAction<QuestionPayload
     return;
   }
 
-  const nextOption = createOption(action.payload.image ? " " : "", action.payload.image ?? null);
+  const nextOption = createOption("", action.payload.image ?? null);
   question.options.push(nextOption);
   focusOption(state, subject.id, question.id, nextOption.id, action.payload.parentPassageId);
 };

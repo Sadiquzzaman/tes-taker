@@ -1,5 +1,5 @@
 import Link from "next/link";
-import TestTakerLogoMarkSVG from "@/component/svg/TestTakerLogoMarkSVG";
+import InstructorLogoMarkSVG from "@/component/svg/InstructorLogoMarkSVG";
 import LandingPricing from "@/component/Landing/LandingPricing";
 
 const features = [
@@ -34,7 +34,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-[#EFF0F3]">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <TestTakerLogoMarkSVG width={28} />
+            <InstructorLogoMarkSVG width={28} />
             <span className="text-xl font-bold text-[#49734F]" style={{ fontFamily: "Public Sans, sans-serif" }}>
               instructor<span className="text-[#232A25]">.academy</span>
             </span>
@@ -95,7 +95,7 @@ export default function LandingPage() {
           </div>
           <div className="bg-[#EFF0F3] rounded-[16px] p-8 min-h-[320px] flex items-center justify-center">
             <div className="text-center">
-              <TestTakerLogoMarkSVG width={64} />
+              <InstructorLogoMarkSVG width={64} />
               <p className="mt-4 text-[#747775] text-sm">Trusted by educators across Bangladesh</p>
             </div>
           </div>
@@ -179,7 +179,7 @@ export default function LandingPage() {
       <footer className="border-t border-[#EFF0F3] py-10 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <TestTakerLogoMarkSVG width={24} />
+            <InstructorLogoMarkSVG width={24} />
             <span className="text-sm font-semibold text-[#49734F]" style={{ fontFamily: "Public Sans, sans-serif" }}>
               instructor.academy
             </span>

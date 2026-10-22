@@ -1,6 +1,7 @@
 import axiosReq from "@/lib/axios";
 import { AxiosError, AxiosResponse } from "axios";
 import { useCallback, useEffect, useState } from "react";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 
 const getExamResultErrorMessage = (error: AxiosError<ApiError>): string => {
   const status = error.response?.status;
@@ -22,6 +23,7 @@ const getExamResultErrorMessage = (error: AxiosError<ApiError>): string => {
 };
 
 const useGetExamResult = (examId: string) => {
+  const { workspace, sessionMode, contextType, organizationId } = useWorkspace();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<StudentExamResultPayload | null>(null);
@@ -52,7 +54,7 @@ const useGetExamResult = (examId: string) => {
       .finally(() => {
         setLoading(false);
       });
-  }, [examId]);
+  }, [contextType, examId, organizationId, sessionMode, workspace]);
 
   useEffect(() => {
     void fetchResult();

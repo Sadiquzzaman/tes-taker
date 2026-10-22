@@ -4,7 +4,9 @@ import { ThrottlerModule } from "@nestjs/throttler";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { AppThrottlerGuard } from "./common/guard/app-throttler.guard";
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { MongooseModule } from "@nestjs/mongoose";
+import { getMongoUri } from "./config/mongodb.config";
 import { AuthModule } from "./auth/auth.module";
 import { UserModule } from "./user/user.module";
 import { TypeOrmModule } from "@nestjs/typeorm";
@@ -19,10 +21,14 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
 import { StorageModule } from './storage/storage.module';
 import { TeacherRequestModule } from './teacher-requests/teacher-request.module';
+import { OrganizationsModule } from './organizations/organization.module';
+import { ChatMongoModule } from './chat-mongo/chat-mongo.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    CommonModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [
@@ -42,6 +48,14 @@ import { TeacherRequestModule } from './teacher-requests/teacher-request.module'
         autoLoadEntities: true,
       }),
     }),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        uri: getMongoUri(config),
+        serverSelectionTimeoutMS: 5000,
+      }),
+    }),
     AuthModule,
     UserModule,
     ExamModule,
@@ -54,6 +68,8 @@ import { TeacherRequestModule } from './teacher-requests/teacher-request.module'
     HealthModule,
     StorageModule,
     TeacherRequestModule,
+    OrganizationsModule,
+    ChatMongoModule,
   ],
   controllers: [AppController],
   providers: [

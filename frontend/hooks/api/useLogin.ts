@@ -1,6 +1,7 @@
 import { useToast } from "@/component/Toast/ToastContext";
 import apiClient from "@/lib/axios";
 import { persistAuthSession } from "@/lib/authSession";
+import { restoreLastWorkspace } from "@/lib/restoreLastWorkspace";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useJoinStateManage from "../ui/useJoinStateManage";
@@ -26,10 +27,6 @@ const useLogin = () => {
       description: message,
       type: "error",
     });
-  };
-
-  const persistAuthSessionFromLogin = async (payload: LoginResponsePayload) => {
-    await persistAuthSession(payload);
   };
 
   const handleClassJoinAfterLogin = async (classId: string) => {
@@ -79,31 +76,21 @@ const useLogin = () => {
     push("/join/test");
   };
 
-  const getRoleHomeRoute = (role: LoginResponsePayload["role"]) => {
-    if (role === "STUDENT") return "/classes";
-    if (role === "ADMIN" || role === "SUPER_ADMIN") return "/admin";
-    return "/dashboard";
-  };
-
-  const handlePostLoginRedirect = async (payload: LoginResponsePayload) => {
+  const handlePostLoginRedirect = async (payload: LoginResponsePayload, href: string) => {
     const isStudent = payload?.role === "STUDENT";
 
-    if (!isStudent || !joinInfo?.id) {
-      push(getRoleHomeRoute(payload?.role));
-      return;
+    if (isStudent && joinInfo?.id) {
+      if (joinInfo.joinType === "class") {
+        await handleClassJoinAfterLogin(joinInfo.id);
+        return;
+      }
+      if (joinInfo.joinType === "test") {
+        await handleTestJoinAfterLogin(joinInfo.id);
+        return;
+      }
     }
 
-    if (joinInfo.joinType === "class") {
-      await handleClassJoinAfterLogin(joinInfo.id);
-      return;
-    }
-
-    if (joinInfo.joinType === "test") {
-      await handleTestJoinAfterLogin(joinInfo.id);
-      return;
-    }
-
-    push(getRoleHomeRoute(payload?.role));
+    push(href);
   };
 
   const handleLoginError = (error: unknown) => {
@@ -116,17 +103,21 @@ const useLogin = () => {
       Array.isArray(responseMessage.message) &&
       responseMessage.message.length
     ) {
-      const messages = responseMessage.message;
-
-      messages.forEach((message: string) => {
+      responseMessage.message.forEach((message: string) => {
         showLoginErrorToast(message);
       });
-
       return;
     }
 
-    const message = typeof responseMessage === "string" ? responseMessage : "Failed to send OTP. Please try again.";
+    const message = typeof responseMessage === "string" ? responseMessage : "Login failed. Please try again.";
     showLoginErrorToast(message);
+  };
+
+  const completeLogin = async (payload: LoginResponsePayload) => {
+    showLoginSuccessToast(payload?.message);
+    await persistAuthSession(payload);
+    const restored = await restoreLastWorkspace(payload);
+    await handlePostLoginRedirect(restored.payload, restored.href);
   };
 
   const mutate = async (loginInfo: LoginPayload) => {
@@ -140,10 +131,7 @@ const useLogin = () => {
       }
 
       const payload = response.data?.payload as LoginResponsePayload;
-
-      showLoginSuccessToast(payload?.message);
-      await persistAuthSessionFromLogin(payload);
-      await handlePostLoginRedirect(payload);
+      await completeLogin(payload);
     } catch (error) {
       handleLoginError(error);
     } finally {
@@ -151,7 +139,26 @@ const useLogin = () => {
     }
   };
 
-  return [mutate, { loading }] as const;
+  const mutateOrganization = async (loginInfo: OrganizationLoginPayload) => {
+    setLoading(true);
+
+    try {
+      const response = await apiClient.post(`${baseUrl}/auth/login/organization`, loginInfo);
+
+      if (response.status !== 200) {
+        throw new Error("Unexpected response status");
+      }
+
+      const payload = response.data?.payload as LoginResponsePayload;
+      await completeLogin(payload);
+    } catch (error) {
+      handleLoginError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return [mutate, mutateOrganization, { loading }] as const;
 };
 
 export default useLogin;

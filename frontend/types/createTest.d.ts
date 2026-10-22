@@ -5,6 +5,7 @@ type FormState = {
   allowNegativeMarking: boolean;
   negativeMarking: string;
   isModelTest: boolean;
+  examCategory: "academic" | "ielts";
 };
 
 type BasicInfoErrors = {
@@ -40,7 +41,7 @@ type LegacyQuestionItem = QuestionItem & {
   alternativeAnser?: string[];
 };
 
-type CreateTestQuestionCategory = "graded" | "ungraded" | "passage-question";
+type CreateTestQuestionCategory = "graded" | "ungraded" | "passage-question" | "ielts";
 
 type CreateTestQuestionAnswerMode = "single" | "multiple" | "none";
 
@@ -94,15 +95,26 @@ type QuestionItem = {
   points: number;
   subjectId?: string;
   showValidation: boolean;
+  audioUrl?: string;
+  timeLimitSeconds?: number;
+  wordLimit?: number;
+  moduleKey?: string;
 };
+
+type PassageInstructionLanguage = "en" | "bn";
 
 type PassageQuestionItem = {
   id: string;
   type: "passage-question";
   passageText: string;
+  instructionLanguage: PassageInstructionLanguage;
   childQuestions: QuestionItem[];
   subjectId?: string;
   showValidation: boolean;
+  audioUrl?: string;
+  title?: string;
+  instruction?: string;
+  imageUrl?: string;
 };
 
 type RootQuestionItem = QuestionItem | PassageQuestionItem;
@@ -115,6 +127,7 @@ type SubjectItem = {
   value: string;
   type: CreateTestQuestionCategory | "";
   questions: RootQuestionItem[];
+  moduleKey?: string;
 };
 
 type DragState = {
@@ -278,8 +291,6 @@ type PassageQuestionBlockProps = {
   passage: PassageQuestionItem;
   questionStartNumber: number;
   subjectId: string;
-  subjectName?: string;
-  subjectCode?: string;
   setBlockRef: (node: HTMLDivElement | null) => void;
   setQuestionRef: (questionId: string, node: HTMLDivElement | null) => void;
   isActive: boolean;

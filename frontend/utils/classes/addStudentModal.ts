@@ -1,6 +1,9 @@
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneRegex = /^\d+$/;
-const csvIdentifierHeaders = ["email_or_phone", "email", "phone", "student", "student_email_or_phone"];
+const studentPublicIdRegex = /^\d{5,8}$/;
+const csvIdentifierHeaders = ["email_or_phone", "email", "phone", "student", "student_email_or_phone", "student_id"];
+
+export const isStudentPublicId = (input: string) => studentPublicIdRegex.test(input.trim());
 
 export const isValidStudentIdentifier = (input: string) => {
   const trimmed = input.trim();
@@ -9,6 +12,10 @@ export const isValidStudentIdentifier = (input: string) => {
 
   if (trimmed.includes("@")) {
     return emailRegex.test(trimmed);
+  }
+
+  if (isStudentPublicId(trimmed)) {
+    return true;
   }
 
   return phoneRegex.test(trimmed) && trimmed.length === 11;
@@ -22,24 +29,31 @@ export const normalizeStudentIdentifier = (input: string) => {
 export const getValidationError = (input: string) => {
   const trimmed = input.trim();
 
-  if (!emailRegex.test(trimmed) && !phoneRegex.test(trimmed)) {
+  if (trimmed.includes("@")) {
+    if (!emailRegex.test(trimmed)) {
+      return {
+        title: "Invalid email",
+        description: "Please enter a valid email address.",
+      };
+    }
+    return null;
+  }
+
+  if (isStudentPublicId(trimmed)) {
+    return null;
+  }
+
+  if (!phoneRegex.test(trimmed)) {
     return {
       title: "Invalid input",
-      description: "Please enter a valid email address or phone number.",
+      description: "Please enter a valid email, phone number, or Student ID.",
     };
   }
 
-  if (trimmed.includes("@") && !emailRegex.test(trimmed)) {
-    return {
-      title: "Invalid email",
-      description: "Please enter a valid email address.",
-    };
-  }
-
-  if (phoneRegex.test(trimmed) && trimmed.length !== 11) {
+  if (trimmed.length !== 11) {
     return {
       title: "Invalid phone number",
-      description: "Phone number must be 11 digits.",
+      description: "Phone number must be 11 digits, or use the student's Student ID.",
     };
   }
 

@@ -147,6 +147,10 @@ export class StudentExamAnswerEntity extends CustomBaseEntity {
   @Column({ name: 'text_answer', type: 'text', nullable: true })
   text_answer?: string;
 
+  @ApiPropertyOptional({ description: 'Uploaded media URL (e.g. speaking recording)' })
+  @Column({ name: 'media_url', type: 'varchar', length: 2048, nullable: true })
+  media_url?: string | null;
+
   @ApiPropertyOptional({ description: 'Word count for subjective answers' })
   @Column({ name: 'word_count', type: 'int', nullable: true })
   word_count?: number;

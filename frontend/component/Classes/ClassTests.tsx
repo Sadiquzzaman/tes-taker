@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import FileIconSVG from "../svg/FileIconSVG";
 import TestCard from "./TestCard";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 
 const classTestTabList = [
   { name: "All", value: "all" },
@@ -12,7 +13,9 @@ const classTestTabList = [
 
 const ClassTests = ({ testList, role }: { testList: TestListItem[]; role: RoleUserType | undefined }) => {
   const [activeTestTab, setActiveTestTab] = useState(classTestTabList[0]);
-  const isTeacher = role === "TEACHER";
+  const { memberRole, isIndividual } = useWorkspace();
+  const canCreateTest =
+    role === "TEACHER" && (isIndividual || (memberRole !== "ASSISTANT" && memberRole !== "STUDENT"));
   const filteredTestList = useMemo(() => {
     if (activeTestTab.value === "all") {
       return testList;
@@ -26,7 +29,7 @@ const ClassTests = ({ testList, role }: { testList: TestListItem[]; role: RoleUs
       <div className="flex justify-between items-center">
         <p className="font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">Tests</p>
 
-        {isTeacher && (
+        {canCreateTest && (
           <Link href="/tests/create">
             <button className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] bg-[#49734F] rounded-[8px] font-[500] text-white font-medium text-[12px] sm:text-[14px]">
               <FileIconSVG width={16} />

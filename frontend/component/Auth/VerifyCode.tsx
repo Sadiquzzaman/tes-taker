@@ -2,7 +2,7 @@ import { useVerifyCode } from "@/hooks/auth/useVerifyCode";
 import { maskInputValue, formatTime } from "@/utils/auth/helpers";
 import ButtonLoader from "../Loader/ButtonLoadder";
 
-const VerifyCode = ({ value }: VerifyCodeProps) => {
+const VerifyCode = ({ value, successTitle, successDescription }: VerifyCodeProps) => {
   const {
     otp,
     timeLeft,
@@ -13,7 +13,7 @@ const VerifyCode = ({ value }: VerifyCodeProps) => {
     handleKeyDown,
     handleVerifyAndContinue,
     handleResendCode,
-  } = useVerifyCode(value);
+  } = useVerifyCode(value, { successTitle, successDescription });
 
   const isEmail = value.includes("@");
 

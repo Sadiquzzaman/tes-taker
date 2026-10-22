@@ -14,6 +14,7 @@ import TagInput from "@/Ui/TagInput";
 import { testAudienceOptions } from "@/utils/createTestOptions";
 import { buildTestJoinLink, getFrontendAppUrl } from "@/utils/frontendAppUrl";
 import useGetAllClass from "@/hooks/api/class/useGetAllClass";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 import PublishSchedule from "./PublishSchedule";
 import { useToast } from "@/component/Toast/ToastContext";
 import AddStudentIconSVG from "@/component/svg/AddStudentIconSVG";
@@ -24,7 +25,14 @@ const PublishStep = () => {
   const { triggerToast } = useToast();
   const publishState = useAppSelector((state) => (state.createTest as CreateTestState).publishState);
   const editExamId = useAppSelector((state) => (state.createTest as CreateTestState).editExamId);
+  const examCategory = useAppSelector(
+    (state) => (state.createTest as CreateTestState).formState.examCategory ?? "academic",
+  );
   const { classList } = useGetAllClass();
+  const { isIndividual } = useWorkspace();
+  const selectedClass = classList.find((item) => item.id === publishState.selectedClassId);
+  const classLabel = examCategory === "ielts" ? "batch" : "class";
+  const classLabelTitle = examCategory === "ielts" ? "Batch" : "Class";
 
   const [studentInput, setStudentInput] = useState("");
   const [copied, setCopied] = useState(false);
@@ -158,28 +166,43 @@ const PublishStep = () => {
 
           <div className="flex flex-col gap-2">
             <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Test Created for</p>
-            <DropDownComponent
-              placeholder="Select audience"
-              value={publishState.testAudience}
-              handleChange={(value) => dispatch(setTestAudience(value as TestAudience))}
-              list={testAudienceOptions}
-            />
+            {isIndividual ? (
+              <DropDownComponent
+                placeholder="Select audience"
+                value={publishState.testAudience}
+                handleChange={(value) => dispatch(setTestAudience(value as TestAudience))}
+                list={testAudienceOptions}
+              />
+            ) : (
+              <p className="rounded-[8px] bg-[#EFF0F3] px-3 py-3 text-sm text-[#232A25]">
+                Group or {classLabel}
+                {selectedClass?.class_name ? ` — ${selectedClass.class_name}` : ""}
+              </p>
+            )}
           </div>
 
-          {publishState.testAudience === "selected_class" && (
+          {(isIndividual ? publishState.testAudience === "selected_class" : true) && (
             <div className="flex flex-col gap-2">
-              <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Select a class</p>
-              <DropDownComponent
-                placeholder="Select class"
-                value={publishState.selectedClassId}
-                handleChange={(value) => dispatch(setPublishField({ field: "selectedClassId", value }))}
-                list={classOptions}
-                maxOuputInDropdownList={5}
-              />
+              <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+                Select a {classLabel}
+              </p>
+              {isIndividual ? (
+                <DropDownComponent
+                  placeholder={`Select ${classLabel}`}
+                  value={publishState.selectedClassId}
+                  handleChange={(value) => dispatch(setPublishField({ field: "selectedClassId", value }))}
+                  list={classOptions}
+                  maxOuputInDropdownList={5}
+                />
+              ) : (
+                <p className="rounded-[8px] border border-[#E5E5E5] px-3 py-3 text-sm text-[#232A25]">
+                  {selectedClass?.class_name || `${classLabelTitle} selected in Basic Info`}
+                </p>
+              )}
               {publishState.selectedClassId && (
                 <>
                   <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
-                    Students in this class will be able to join the test.
+                    Students in this {classLabel} will be able to join the test.
                   </p>
 
                   <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
@@ -214,7 +237,7 @@ const PublishStep = () => {
             </div>
           )}
 
-          {publishState.testAudience === "anyone" && (
+          {isIndividual && publishState.testAudience === "anyone" && (
             <div className="flex flex-col gap-2">
               <p className="text-[14px] font-[600] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Test Join Link</p>
               <div className="flex items-center justify-between rounded-[6px] bg-[#EFF0F3]/75 px-3 py-[6px]">

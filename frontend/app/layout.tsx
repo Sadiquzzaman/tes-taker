@@ -4,9 +4,9 @@ import { ToastProvider } from "@/component/Toast/ToastContext";
 import StoreProvider from "./StoreProvider";
 
 export const metadata: Metadata = {
-  title: "instructor.academy — Secure Online Exams for Educators",
+  title: "Instructor — Secure Online Exams for Educators",
   description:
-    "Create, proctor, and grade online exams with instructor.academy. Free plan available. AI-powered proctoring scales with your subscription.",
+    "Create, proctor, and grade online exams with Instructor. Free plan available. AI-powered proctoring scales with your subscription.",
 };
 
 export const viewport: Viewport = {

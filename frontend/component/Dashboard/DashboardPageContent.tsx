@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import NameSection from "@/component/Dashboard/NameSection";
 import NeedsMarking from "@/component/Dashboard/NeedsMarking";
 import LiveTest from "@/component/Dashboard/LiveTest";
@@ -10,7 +10,9 @@ import UpcomingTests from "@/component/Dashboard/UpcomingTests";
 import Calendar from "@/component/Dashboard/Calendar";
 import MyClasses from "@/component/Dashboard/MyClasses";
 import MyActivity from "@/component/Dashboard/MyActivity";
+import StudentWorkspaceCards from "@/component/Dashboard/StudentWorkspaceCards";
 import { DashboardProvider, useDashboard } from "@/context/DashboardContext";
+import { getStoredUser } from "@/lib/authSession";
 
 const DashboardErrorBanner = () => {
   const { error, refetch } = useDashboard();
@@ -21,7 +23,9 @@ const DashboardErrorBanner = () => {
 
   return (
     <div className="mb-4 rounded-[12px] border border-[#F2C6C6] bg-[#FFF5F5] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <p className="font-[400] text-[14px] leading-[16px] text-[#232A25]">{error || "Failed to load dashboard data."}</p>
+      <p className="font-[400] text-[14px] leading-[16px] text-[#232A25]">
+        {error || "Failed to load dashboard data."}
+      </p>
       <button
         type="button"
         onClick={() => void refetch()}
@@ -33,53 +37,73 @@ const DashboardErrorBanner = () => {
   );
 };
 
-const DashboardPageContent = () => (
-  <DashboardProvider>
-    <NameSection />
-    <DashboardErrorBanner />
-    <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 flex flex-col gap-6 min-h-[calc(100vh-162px)]">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-        <div className="sm:col-span-2 md:col-span-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
+const TeacherDashboardGrid = () => (
+  <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 flex flex-col gap-6 min-h-[calc(100vh-162px)]">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+      <div className="sm:col-span-2 md:col-span-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
+        <div className="w-full">
+          <NeedsMarking />
+        </div>
+        <div className="w-full">
+          <LiveTest />
+        </div>
+        <div className="w-full">
+          <TotalStudents />
+        </div>
+        <div className="w-full hidden sm:block md:hidden">
+          <MyActivity />
+        </div>
+        <div className="col-span-1 sm:col-span-2">
           <div className="w-full">
-            <NeedsMarking />
-          </div>
-          <div className="w-full">
-            <LiveTest />
-          </div>
-          <div className="w-full">
-            <TotalStudents />
-          </div>
-          <div className="w-full hidden sm:block md:hidden">
-            <MyActivity />
-          </div>
-          <div className="col-span-1 sm:col-span-2">
-            <div className="w-full">
-              <UpcomingTests />
-            </div>
-          </div>
-          <div className="w-full">
-            <MyClasses />
-          </div>
-          <div className="w-full hidden sm:block md:hidden">
-            <Calendar />
+            <UpcomingTests />
           </div>
         </div>
+        <div className="w-full">
+          <MyClasses />
+        </div>
+        <div className="w-full hidden sm:block md:hidden">
+          <Calendar />
+        </div>
+      </div>
 
-        <div className="w-full sm:col-span-2 md:col-span-3 lg:col-span-1">
-          <TopStudents />
+      <div className="w-full sm:col-span-2 md:col-span-3 lg:col-span-1">
+        <TopStudents />
+      </div>
+      <div className="sm:hidden md:block md:col-span-3 lg:col-span-2">
+        <div className="w-full h-full">
+          <Calendar />
         </div>
-        <div className="sm:hidden md:block md:col-span-3 lg:col-span-2">
-          <div className="w-full h-full">
-            <Calendar />
-          </div>
-        </div>
-        <div className=" sm:hidden md:block md:col-span-3 lg:col-span-2">
-          <div className="w-full h-full">
-            <MyActivity />
-          </div>
+      </div>
+      <div className=" sm:hidden md:block md:col-span-3 lg:col-span-2">
+        <div className="w-full h-full">
+          <MyActivity />
         </div>
       </div>
     </div>
+  </div>
+);
+
+const DashboardInner = () => {
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRole((getStoredUser()?.role as string) || null);
+  }, []);
+
+  const isStudent = role === "STUDENT";
+
+  return (
+    <>
+      <NameSection variant={isStudent ? "student" : "teacher"} />
+      {!isStudent && <DashboardErrorBanner />}
+      {isStudent ? <StudentWorkspaceCards /> : <TeacherDashboardGrid />}
+    </>
+  );
+};
+
+const DashboardPageContent = () => (
+  <DashboardProvider>
+    <DashboardInner />
   </DashboardProvider>
 );
 

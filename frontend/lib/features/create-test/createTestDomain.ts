@@ -144,6 +144,23 @@ export const createQuestion = (questionType: CreateTestQuestionCategory, subType
     };
   }
 
+  // Handle IELTS manual subtypes (writing, speaking)
+  if (questionType === "ielts" && (subType === "writing-task-1" || subType === "writing-task-2" || subType === "speaking-part-1" || subType === "speaking-part-2" || subType === "speaking-part-3")) {
+    return {
+      id: createId(),
+      type: questionType,
+      subType,
+      text: "",
+      instruction: "",
+      image: null,
+      answer: undefined,
+      points: 1,
+      showValidation: false,
+      wordLimit: subType.startsWith("writing") ? 150 : undefined,
+      timeLimitSeconds: subType.startsWith("speaking") ? 120 : undefined,
+    };
+  }
+
   if (!isCreateTestObjectiveCategory(questionType)) {
     return null;
   }
@@ -198,6 +215,7 @@ export const createPassageQuestion = (subType: string): PassageQuestionItem | nu
     id: createId(),
     type: "passage-question",
     passageText: "",
+    instructionLanguage: "bn",
     childQuestions: [childQuestion],
     showValidation: false,
   };
@@ -337,6 +355,7 @@ const normalizeRootQuestion = (question: RootQuestionItem): RootQuestionItem => 
   return {
     ...question,
     passageText: question.passageText ?? "",
+    instructionLanguage: question.instructionLanguage === "en" ? "en" : "bn",
     childQuestions: question.childQuestions.map((childQuestion) => normalizeQuestion(childQuestion)),
   };
 };
@@ -362,10 +381,13 @@ export const resolveSubjectType = (questions: RootQuestionItem[]): SubjectItem["
 };
 
 export const createSubject = (
-  subjectOption: Pick<SubjectItem, "name" | "value" | "id">,
+  subjectOption: Pick<SubjectItem, "name" | "value" | "id"> & { moduleKey?: string },
   existingQuestions: RootQuestionItem[] = [],
 ): SubjectItem => {
   const questions = createSubjectQuestions(existingQuestions);
+  const moduleKey =
+    subjectOption.moduleKey ??
+    (subjectOption.id.startsWith("ielts.") ? subjectOption.id : undefined);
 
   return {
     id: subjectOption.id,
@@ -373,6 +395,7 @@ export const createSubject = (
     value: subjectOption.value,
     type: resolveSubjectType(questions),
     questions,
+    moduleKey,
   };
 };
 

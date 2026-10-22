@@ -4,25 +4,35 @@ import useRegister from "@/hooks/api/useRegister";
 import useJoinStateManage from "@/hooks/ui/useJoinStateManage";
 import { validateSignUpForm } from "@/utils/auth/validation";
 
+const hasJoinSession = () => {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  try {
+    return Boolean(sessionStorage.getItem("joinSessionInfo"));
+  } catch {
+    return false;
+  }
+};
+
 export const useSignUpForm = () => {
   const { joinInfo } = useJoinStateManage("signup");
-  const [view, setView] = useState<SignUpPageView>("signup");
+  const [view, setView] = useState<SignUpPageView>(hasJoinSession() ? "signup" : "choice");
   const [signUpInfo, setSignUpInfo] = useState<SignUpInfo>({
     full_name: "",
     email: "",
-    organization: "",
     agreed: false,
     phone: "",
     password: "",
     confirm_password: "",
     role: UserRoleEnum.STUDENT,
+    request_teacher: false,
   });
 
   const [register, { loading }] = useRegister();
   const [formError, setFormError] = useState({
     full_name: "",
     email: "",
-    organization: "",
     phone: "",
     password: "",
     confirm_password: "",
@@ -32,10 +42,20 @@ export const useSignUpForm = () => {
   const handleFieldChange = <K extends keyof SignUpInfo>(field: K, value: SignUpInfo[K]) => {
     if (field === "agreed") {
       setCheckboxError("");
-    } else if (field !== "role") {
+    } else if (field !== "role" && field !== "request_teacher") {
       setFormError((prev) => ({ ...prev, [field]: "" }));
     }
     setSignUpInfo((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const startStudentSignup = () => {
+    setSignUpInfo((prev) => ({ ...prev, request_teacher: false, role: UserRoleEnum.STUDENT }));
+    setView("signup");
+  };
+
+  const startTeacherSignup = () => {
+    setSignUpInfo((prev) => ({ ...prev, request_teacher: true, role: UserRoleEnum.STUDENT }));
+    setView("signup");
   };
 
   const handleSignUp = () => {
@@ -44,7 +64,6 @@ export const useSignUpForm = () => {
     setFormError({
       full_name: errors.full_name || "",
       email: errors.email || "",
-      organization: "",
       phone: errors.phone || "",
       password: errors.password || "",
       confirm_password: errors.confirm_password || "",
@@ -68,6 +87,8 @@ export const useSignUpForm = () => {
     joinInfo,
     view,
     setView,
+    startStudentSignup,
+    startTeacherSignup,
     signUpInfo,
     setSignUpInfo,
     formError,

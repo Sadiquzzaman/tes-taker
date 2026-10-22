@@ -10,6 +10,7 @@ import {
   showQuestionValidationErrors,
   syncSubjectType,
 } from "./createTestDomain";
+import { isEnglishSubjectName } from "@/utils/richText";
 
 const addQuestion = (state: CreateTestState, action: PayloadAction<SubjectQuestionTypePayload>) => {
   const subject = findSubjectById(state.subjects, action.payload.subjectId);
@@ -60,6 +61,7 @@ const addQuestion = (state: CreateTestState, action: PayloadAction<SubjectQuesti
     }
 
     nextPassage.subjectId = subject.id;
+    nextPassage.instructionLanguage = isEnglishSubjectName(subject.name, subject.value) ? "en" : "bn";
     nextPassage.childQuestions.forEach((child) => {
       child.subjectId = subject.id;
     });

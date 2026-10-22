@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   PutObjectInput,
   StorageDriver,
@@ -18,6 +19,7 @@ export class StorageService {
   constructor(
     @Inject(STORAGE_DRIVER)
     private readonly driver: StorageDriver,
+    private readonly configService: ConfigService,
   ) {}
 
   get driverName(): string {
@@ -38,5 +40,38 @@ export class StorageService {
 
   getPublicUrl(key: string): string {
     return this.driver.getPublicUrl(key);
+  }
+
+  /**
+   * URL the browser should use to display the object.
+   * Local files → `/uploads/...` (static). S3 → API content proxy (bucket is private).
+   */
+  getClientUrl(key: string): string {
+    if (this.driver.name === 's3') {
+      const publicBase = (this.configService.get<string>('BACKEND_BASE_URL') || '').replace(
+        /\/$/,
+        '',
+      );
+      const path = `/api/v1/uploads/content?key=${encodeURIComponent(key)}`;
+      return publicBase ? `${publicBase}${path}` : path;
+    }
+    return this.toAbsoluteUrl(this.driver.getPublicUrl(key));
+  }
+
+  /**
+   * Absolute-ize relative `/uploads/...` URLs using BACKEND_BASE_URL when present.
+   */
+  toAbsoluteUrl(url: string): string {
+    if (/^https?:\/\//i.test(url)) {
+      return url;
+    }
+    const publicBase = (this.configService.get<string>('BACKEND_BASE_URL') || '').replace(
+      /\/$/,
+      '',
+    );
+    if (url.startsWith('/') && publicBase) {
+      return `${publicBase}${url}`;
+    }
+    return url;
   }
 }

@@ -6,6 +6,7 @@ import {
   JoinColumn,
   ManyToMany,
   JoinTable,
+  Index,
 } from 'typeorm';
 import { ExamQuestionEntity } from './exam-question.entity';
 import { ExamQuestionSectionEntity } from './exam-question-section.entity';
@@ -15,6 +16,8 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ExamKindEnum, PublishTimingEnum, TestAudienceEnum } from '../enums/exam-wizard.enums';
+import { OrganizationEntity } from 'src/organizations/entities/organization.entity';
+import { ExamCategoryEnum } from '../enums/exam-category.enum';
 
 export enum ExamTypeEnum {
   OBJECTIVE = 'OBJECTIVE',
@@ -26,6 +29,13 @@ export class ExamEntity extends CustomBaseEntity {
   @ApiProperty({ description: 'Legacy coarse type (OBJECTIVE / SUBJECTIVE)', enum: ExamTypeEnum })
   @Column({ name: 'exam_type', type: 'enum', enum: ExamTypeEnum, default: ExamTypeEnum.OBJECTIVE })
   exam_type: ExamTypeEnum;
+
+  @ApiProperty({
+    description: 'Product category: academic | ielts (extensible for toefl/gre/…)',
+    enum: ExamCategoryEnum,
+  })
+  @Column({ name: 'exam_category', type: 'varchar', length: 30, default: ExamCategoryEnum.ACADEMIC })
+  exam_category: ExamCategoryEnum;
 
   @ApiPropertyOptional({
     description: 'Wizard exam kind: hybrid | model (legacy rows may still read mcq | essay)',
@@ -41,6 +51,12 @@ export class ExamEntity extends CustomBaseEntity {
   @ApiPropertyOptional({ description: 'Display title for the test' })
   @Column({ name: 'test_name', type: 'varchar', length: 200, nullable: true })
   test_name: string | null;
+
+  /** Human-readable exam id, e.g. EXM-19QF3 */
+  @ApiPropertyOptional({ example: 'EXM-19QF3' })
+  @Column({ name: 'public_id', type: 'varchar', length: 32, nullable: true })
+  @Index({ unique: true })
+  public_id: string | null;
 
   @ApiPropertyOptional({ description: 'Primary subject for hybrid exams (null for model tests)' })
   @Column({ name: 'primary_subject_id', type: 'uuid', nullable: true })
@@ -108,6 +124,14 @@ export class ExamEntity extends CustomBaseEntity {
   @ManyToOne(() => ClassEntity, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'class_id' })
   class: ClassEntity;
+
+  @ApiPropertyOptional({ description: 'Organization this exam belongs to (null = individual)' })
+  @Column({ name: 'organization_id', type: 'uuid', nullable: true })
+  organization_id: string | null;
+
+  @ManyToOne(() => OrganizationEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'organization_id' })
+  organization: OrganizationEntity | null;
 
   @ApiPropertyOptional({ description: 'Students excluded when using a class audience' })
   @ManyToMany(() => UserEntity)

@@ -9,7 +9,8 @@ import {
   MaxLength, 
   Matches, 
   IsEnum, 
-  IsOptional
+  IsOptional,
+  IsBoolean
 } from 'class-validator';
 import { Exclude, Transform } from 'class-transformer';
 import { RolesEnum } from 'src/common/enums/roles.enum';
@@ -26,16 +27,16 @@ export class RegisterUserDto {
   @MaxLength(100, { message: 'Full name is maximum 100 characters supported' })
   full_name: string;
 
-  @ApiPropertyOptional({ 
-    description: 'User email address (optional). Phone number is required for registration.',
+  @ApiProperty({ 
+    description: 'User email address (required). Phone number is also required for registration.',
     example: 'sadikuzzaman1996@gmail.com',
     maxLength: 100
   })
-  @IsOptional()
+  @IsNotEmpty({ message: 'Email is required' })
   @IsEmail({}, { message: 'Email must be valid' })
   @MaxLength(100, { message: 'Maximum 100 characters supported' })
   @Transform(({ value }) => value?.toLowerCase().trim())
-  email?: string;
+  email: string;
 
   @ApiProperty({ 
     description: 'User phone number (required). Must be a valid Bangladeshi mobile number. OTP will be sent to this number for verification.',
@@ -44,7 +45,7 @@ export class RegisterUserDto {
   })
   @IsNotEmpty({ message: 'Phone number is required' })
   @IsString({ message: 'Phone must be a string' })
-  @Matches(/^01[3-9]\d{8}$/, { message: 'Phone number must be a valid Bangladeshi mobile number' })
+  @Matches(/^01\d{9}$/, { message: 'Phone number must be a valid Bangladeshi mobile number' })
   @MaxLength(15, { message: 'Maximum 15 characters supported' })
   phone: string;
 
@@ -77,4 +78,14 @@ export class RegisterUserDto {
   @IsOptional()
   @IsEnum(RolesEnum, { message: 'Role type must be one of: SUPER_ADMIN, ADMIN, TEACHER, STUDENT' })
   role?: RolesEnum;
+
+  @ApiPropertyOptional({
+    description:
+      'If true, register as a student and create a pending teacher request. The user stays a student until an admin approves.',
+    default: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true' || value === 1 || value === '1')
+  @IsBoolean()
+  request_teacher?: boolean;
 }

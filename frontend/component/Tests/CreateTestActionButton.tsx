@@ -3,10 +3,20 @@
 import Link from "next/link";
 import Tooltip from "@/Ui/Tooltip";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 import CreateActionPlusIconSVG from "../svg/CreateActionPlusIconSVG";
 
 const CreateTestActionButton = () => {
   const { isExamLimitReached, loading } = useEntitlements();
+  const { isIndividual, memberRole } = useWorkspace();
+
+  // Match ClassTests: hide for org assistants/students; show for individual + org teachers/owners.
+  const canCreateTest =
+    isIndividual || (memberRole !== "ASSISTANT" && memberRole !== "STUDENT");
+
+  if (!canCreateTest) {
+    return null;
+  }
 
   const button = (
     <button

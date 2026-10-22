@@ -20,7 +20,7 @@ import RichTextToolbar from "./RichTextToolbar";
 import "./richTextEditor.css";
 
 const MathLiveModal = dynamic(() => import("./modals/MathLiveModal"), { ssr: false });
-const GeometryFigureModal = dynamic(() => import("./modals/GeometryFigureModal"), { ssr: false });
+const GeometryFigureModal = dynamic(() => import("./geometry/GeometryWorkspace"), { ssr: false });
 const ChemistryWorkspace = dynamic(() => import("./chemistry/ChemistryWorkspace"), { ssr: false });
 const KetcherStructureDialog = dynamic(() => import("./chemistry/KetcherStructureDialog"), { ssr: false });
 const GraphPanel = dynamic(() => import("./panels/GraphPanel"), { ssr: false });
@@ -275,8 +275,24 @@ const RichTextEditor = ({
       const apply = (width: string) => {
         if (typeof figureEdit.pos === "number" && figureEdit.kind === payload.kind) {
           editor.chain().focus().updateResizableImageAtPos(figureEdit.pos, { ...attrs, width }).run();
+          editor.commands.setNodeSelection(figureEdit.pos);
         } else {
           editor.chain().focus().setResizableImage({ ...attrs, width }).run();
+          requestAnimationFrame(() => {
+            let selectedPos: number | null = null;
+            editor.state.doc.descendants((node, pos) => {
+              if (
+                node.type.name === "resizableImage" &&
+                node.attrs.src === payload.src &&
+                node.attrs.figureJson === payload.figureJson
+              ) {
+                selectedPos = pos;
+              }
+            });
+            if (selectedPos != null) {
+              editor.commands.setNodeSelection(selectedPos);
+            }
+          });
         }
         setFigureEdit({ open: false, kind: null, pos: null, figureJson: null });
       };

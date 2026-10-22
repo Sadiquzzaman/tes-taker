@@ -8,6 +8,7 @@ import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/ut
 import { useToast } from "@/component/Toast/ToastContext";
 import useCreateTest from "@/hooks/api/tests/useCreateTest";
 import useUpdateTest from "@/hooks/api/tests/useUpdateTest";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 
 const handlePublishStateForSubmission = (publishState: PublishState) => {
   const result: PublishStateForPayload = {
@@ -31,6 +32,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
   const { currentStep, formState, subjects, questionOrder, publishState, editExamId } = createTestState;
   const [createMutate, { loading: createLoading }] = useCreateTest();
   const [updateMutate, { loading: updateLoading }] = useUpdateTest(editExamId);
+  const { isIndividual } = useWorkspace();
   const isEditing = Boolean(editExamId);
   const mutate = isEditing ? updateMutate : createMutate;
   const loading = isEditing ? updateLoading : createLoading;
@@ -42,8 +44,22 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
         return;
       }
 
-      if (!formState.isModelTest && subjects.length === 0) {
+      if (!formState.isModelTest && formState.examCategory !== "ielts" && subjects.length === 0) {
         triggerToast({ description: "Please select a subject", type: "error" });
+        return;
+      }
+
+      if (formState.examCategory === "ielts" && subjects.length === 0) {
+        triggerToast({ description: "Please select at least one IELTS module", type: "error" });
+        return;
+      }
+
+      if (!isIndividual && !publishState.selectedClassId) {
+        triggerToast({
+          description:
+            formState.examCategory === "ielts" ? "Please select a batch" : "Please select a class",
+          type: "error",
+        });
         return;
       }
 
@@ -66,7 +82,11 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
         return;
       }
 
-      if (!formState.isModelTest && subjectsWithQuestions.length !== 1) {
+      if (
+        !formState.isModelTest &&
+        formState.examCategory !== "ielts" &&
+        subjectsWithQuestions.length !== 1
+      ) {
         triggerToast({ description: "Non-model tests must use exactly one subject", type: "error" });
         return;
       }
@@ -126,13 +146,25 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
       }
 
       if (publishState.testAudience === "selected_class" && !publishState.selectedClassId) {
-        triggerToast({ description: "Please select at least one class", type: "error" });
+        triggerToast({
+          description:
+            formState.examCategory === "ielts"
+              ? "Please select at least one batch"
+              : "Please select at least one class",
+          type: "error",
+        });
         return;
       }
 
       await mutate({
         formState,
-        subjects: subjects.filter((subject) => getSubjectQuestionCount(subject) > 0),
+        subjects: subjects
+          .filter((subject) => getSubjectQuestionCount(subject) > 0)
+          .map((subject) => ({
+            ...subject,
+            moduleKey: subject.moduleKey ?? (subject.id.startsWith("ielts.") ? subject.id : undefined),
+            name: subject.name,
+          })),
         questionOrder:
           questionOrder.length > 0
             ? questionOrder
@@ -143,7 +175,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
     }
 
     dispatch(goToNextStep());
-  }, [currentStep, dispatch, formState, mutate, publishState, questionOrder, subjects, triggerToast]);
+  }, [currentStep, dispatch, formState, isIndividual, mutate, publishState, questionOrder, subjects, triggerToast]);
 
   const handlePreviousStep = useCallback(() => {
     dispatch(goToPreviousStep());

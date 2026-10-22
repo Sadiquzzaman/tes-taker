@@ -67,6 +67,7 @@ export class StudentExamController {
   ) {
     const payload = await this.studentExamService.getUpcomingExams(
       jwtPayload.id,
+      jwtPayload,
       sortOrder,
       includePast === 'true',
     );
@@ -83,7 +84,7 @@ export class StudentExamController {
   })
   @ApiResponse({ status: 200, description: 'Exam history' })
   async getExamHistory(@UserPayload() jwtPayload: JwtPayloadInterface) {
-    const payload = await this.studentExamService.getExamHistory(jwtPayload.id);
+    const payload = await this.studentExamService.getExamHistory(jwtPayload.id, jwtPayload);
     return { message: 'Exam history retrieved successfully', payload };
   }
 
@@ -98,7 +99,7 @@ export class StudentExamController {
   })
   @ApiResponse({ status: 200, description: 'List of assigned tests' })
   async getAssignedExams(@UserPayload() jwtPayload: JwtPayloadInterface) {
-    const payload = await this.examService.findAllAssignedForStudent(jwtPayload.id);
+    const payload = await this.examService.findAllAssignedForStudent(jwtPayload.id, jwtPayload);
     return { message: 'Assigned tests retrieved successfully', payload };
   }
 
@@ -119,7 +120,7 @@ export class StudentExamController {
     @Param('classId', ParseUUIDPipe) classId: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
-    const payload = await this.examService.findAssignedForStudentByClass(jwtPayload.id, classId);
+    const payload = await this.examService.findAssignedForStudentByClass(jwtPayload.id, classId, jwtPayload);
     return { message: 'Assigned tests for class retrieved successfully', payload };
   }
 
@@ -145,6 +146,7 @@ export class StudentExamController {
     const payload = await this.studentExamService.validateExamAccess(
       examId,
       jwtPayload.id,
+      jwtPayload,
     );
     return {
       message: payload.canAccess ? 'Access granted' : 'Access denied',
@@ -174,6 +176,7 @@ export class StudentExamController {
     const payload = await this.studentExamService.validateExamAccess(
       examId,
       jwtPayload.id,
+      jwtPayload,
     );
     return {
       message: payload.canAccess ? 'Eligible' : 'Not eligible',
@@ -205,6 +208,7 @@ export class StudentExamController {
     const payload = await this.studentExamService.getExamForStudent(
       examId,
       jwtPayload.id,
+      jwtPayload,
     );
     return { message: 'Exam retrieved successfully', payload };
   }
@@ -236,6 +240,7 @@ export class StudentExamController {
     const payload = await this.studentExamService.startExam(
       examId,
       jwtPayload.id,
+      jwtPayload,
       dto,
       ipAddress,
     );
@@ -260,7 +265,12 @@ export class StudentExamController {
     @UserPayload() jwtPayload: JwtPayloadInterface,
     @Body() dto: SubmitAnswerSheetDto,
   ) {
-    const payload = await this.studentExamService.finalizeAnswerSheet(examId, jwtPayload.id, dto);
+    const payload = await this.studentExamService.finalizeAnswerSheet(
+      examId,
+      jwtPayload.id,
+      jwtPayload,
+      dto,
+    );
     return { message: 'Exam submitted successfully', payload };
   }
 
@@ -284,6 +294,7 @@ export class StudentExamController {
     const payload = await this.studentExamService.saveAnswer(
       examId,
       jwtPayload.id,
+      jwtPayload,
       dto,
     );
     return { message: 'Answer saved successfully', payload: { question_id: dto.question_id } };
@@ -309,6 +320,7 @@ export class StudentExamController {
     const payload = await this.studentExamService.submitExam(
       examId,
       jwtPayload.id,
+      jwtPayload,
       dto,
       false,
     );
@@ -333,6 +345,7 @@ export class StudentExamController {
     const payload = await this.studentExamService.submitExam(
       examId,
       jwtPayload.id,
+      jwtPayload,
       dto,
       true,
     );
@@ -354,7 +367,7 @@ export class StudentExamController {
     @UserPayload() jwtPayload: JwtPayloadInterface,
     @Body() dto: ReportViolationDto,
   ) {
-    await this.studentExamService.reportViolation(examId, jwtPayload.id, dto);
+    await this.studentExamService.reportViolation(examId, jwtPayload.id, jwtPayload, dto);
     return { message: 'Violation recorded' };
   }
 
@@ -377,7 +390,7 @@ export class StudentExamController {
     @Param('examId', ParseUUIDPipe) examId: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
-    const payload = await this.studentExamService.getExamResult(examId, jwtPayload.id);
+    const payload = await this.studentExamService.getExamResult(examId, jwtPayload.id, jwtPayload);
     return { message: 'Exam result retrieved successfully', payload };
   }
 }

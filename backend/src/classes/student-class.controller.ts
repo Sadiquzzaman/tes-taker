@@ -1,8 +1,9 @@
-import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -25,21 +26,31 @@ export class StudentClassController {
   @Get()
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.STUDENT)
+  @Roles(RolesEnum.STUDENT, RolesEnum.TEACHER)
   @ApiOperation({
     summary: 'List classes for the logged-in student',
-    description: 'Returns all classes where the student has JOINED status.',
+    description:
+      'Returns JOINED classes. Optional organization_id or teacher_id filters the list.',
   })
+  @ApiQuery({ name: 'organization_id', required: false })
+  @ApiQuery({ name: 'teacher_id', required: false })
   @ApiResponse({ status: 200, description: 'List of classes' })
-  async findAll(@UserPayload() jwtPayload: JwtPayloadInterface) {
-    const payload = await this.classService.findAllForStudent(jwtPayload.id);
+  async findAll(
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+    @Query('organization_id') organizationId?: string,
+    @Query('teacher_id') teacherId?: string,
+  ) {
+    const payload = await this.classService.findAllForStudent(jwtPayload.id, jwtPayload, {
+      organization_id: organizationId,
+      teacher_id: teacherId,
+    });
     return { message: 'Classes retrieved successfully', payload };
   }
 
   @Get(':id')
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.STUDENT)
+  @Roles(RolesEnum.STUDENT, RolesEnum.TEACHER)
   @ApiOperation({
     summary: 'Get class details for student',
     description:
@@ -53,7 +64,7 @@ export class StudentClassController {
     @Param('id', ParseUUIDPipe) id: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
-    const payload = await this.classService.findOneForStudent(id, jwtPayload.id);
+    const payload = await this.classService.findOneForStudent(id, jwtPayload.id, jwtPayload);
     return { message: 'Class retrieved successfully', payload };
   }
 }

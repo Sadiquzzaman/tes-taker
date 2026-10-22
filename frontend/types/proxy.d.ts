@@ -5,6 +5,9 @@ type RoutePolicy = {
   match: RoutePolicyMatch;
   isPublic?: boolean;
   allowedRoles?: RoleUserType[];
-  redirectAuthenticatedTo?: string;
+  allowedSessionModes?: Array<"individual" | "organization">;
+  blockedSessionModes?: Array<"individual" | "organization">;
+  blockedMemberRoles?: OrganizationMemberRole[];
   redirectUnauthorizedTo?: string;
+  redirectAuthenticatedTo?: string;
 };

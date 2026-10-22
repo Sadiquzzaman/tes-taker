@@ -15,13 +15,19 @@ export class ExamQuestionSectionEntity extends CustomBaseEntity {
   @JoinColumn({ name: 'exam_id' })
   exam: ExamEntity;
 
-  @ApiProperty({ description: 'Subject this section belongs to' })
-  @Column({ name: 'subject_id', type: 'uuid' })
-  subject_id: string;
+  @ApiPropertyOptional({ description: 'Subject this section belongs to (Academic exams)' })
+  @Column({ name: 'subject_id', type: 'uuid', nullable: true })
+  subject_id: string | null;
 
-  @ManyToOne(() => SubjectEntity, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => SubjectEntity, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'subject_id' })
-  subject: SubjectEntity;
+  subject: SubjectEntity | null;
+
+  @ApiPropertyOptional({
+    description: 'Namespaced module key for non-academic categories (e.g. ielts.reading)',
+  })
+  @Column({ name: 'module_key', type: 'varchar', length: 60, nullable: true })
+  module_key: string | null;
 
   @ApiProperty({ description: 'Section question style', enum: ['objective', 'essay', 'mixed'] })
   @Column({ name: 'section_type', type: 'varchar', length: 20 })

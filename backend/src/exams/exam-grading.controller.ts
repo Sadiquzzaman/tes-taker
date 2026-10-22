@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiHeader,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -29,8 +30,16 @@ import {
   GradingListQueryDto,
   GradingSummaryQueryDto,
 } from './dto/grade-submission.dto';
+import { OrganizationContextGuard } from 'src/organizations/guards/organization-context.guard';
+import { OrgContext } from 'src/organizations/decorators/org-context.decorator';
+import { OrgContext as OrgContextType } from 'src/organizations/interfaces/org-context.interface';
 
 @ApiTags('Exam Grading')
+@ApiHeader({
+  name: 'X-Organization-Id',
+  required: false,
+  description: 'Organization workspace context. Empty = individual teacher workspace.',
+})
 @Controller({
   path: 'exams/grading',
   version: '1',
@@ -43,19 +52,24 @@ export class ExamGradingController {
 
   @Get('list')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: 'List ended exams for grading dashboard',
     description:
-      'Returns exams created by the teacher whose end time has passed, with grading status and submission metrics.',
+      'Returns exams created by the teacher whose end time has passed, with grading status and submission metrics. Org OWNER/ADMIN still only see exams they created for grading.',
   })
   @ApiResponse({ status: 200, description: 'Grading list retrieved successfully' })
   async getGradingList(
     @UserPayload() jwtPayload: JwtPayloadInterface,
     @Query() query: GradingListQueryDto,
+    @OrgContext() orgContext: OrgContextType | null,
   ) {
-    const { items, meta } = await this.examService.getGradingList(jwtPayload, query);
+    const { items, meta } = await this.examService.getGradingList(
+      jwtPayload,
+      query,
+      orgContext,
+    );
     return {
       message: 'Grading list retrieved successfully',
       payload: items,
@@ -65,7 +79,7 @@ export class ExamGradingController {
 
   @Get(':examId/roster')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: 'Get class roster status for an exam',
@@ -87,7 +101,7 @@ export class ExamGradingController {
 
   @Get(':examId')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: 'Get grading summary for an exam',
@@ -115,7 +129,7 @@ export class ExamGradingController {
 
   @Get(':examId/submissions/:submissionId')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: 'Get a submission for grading or review',
@@ -143,12 +157,12 @@ export class ExamGradingController {
 
   @Patch(':examId/submissions/:submissionId')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: 'Save manual grades for a submission',
     description:
-      'Updates marks for manual questions, recomputes total score, and marks submission graded when all manual questions are scored.',
+      'Updates marks for manual questions, recomputes total score, and marks submission graded when all manual questions are scored. Only the exam creator can grade.',
   })
   @ApiParam({ name: 'examId', description: 'Exam UUID' })
   @ApiParam({ name: 'submissionId', description: 'Submission UUID' })
@@ -173,7 +187,7 @@ export class ExamGradingController {
 
   @Post(':examId/publish')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   @ApiOperation({
     summary: 'Publish exam results to students',

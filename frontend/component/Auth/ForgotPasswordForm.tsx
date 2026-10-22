@@ -20,6 +20,7 @@ const ForgotPasswordForm = () => {
     identifier,
     identifierError,
     maskedTarget,
+    deliveryChannel,
     otp,
     otpError,
     timeLeft,
@@ -39,6 +40,13 @@ const ForgotPasswordForm = () => {
     handlePasswordChange,
     handleResetPassword,
   } = useForgotPasswordForm();
+
+  const otpInboxHint =
+    deliveryChannel === "email"
+      ? "Please check your email inbox."
+      : deliveryChannel === "sms"
+        ? "Please check your SMS inbox."
+        : "Please check your inbox.";
 
   return (
     <div className="w-full max-w-[420px] mx-auto flex flex-col gap-8">
@@ -108,8 +116,7 @@ const ForgotPasswordForm = () => {
 
             <label className="text-[#747775] font-normal text-[16px] leading-[125%] tracking-[-0.02em] mt-2">
               We've sent a 6-digit code{maskedTarget ? " to " : ""}
-              {maskedTarget && <span className="font-medium text-[#0F1A12]">{maskedTarget}</span>}. Please check your
-              SMS inbox and email.
+              {maskedTarget && <span className="font-medium text-[#0F1A12]">{maskedTarget}</span>}. {otpInboxHint}
             </label>
 
             <label className="text-[#747775] font-normal text-[16px] leading-[125%] tracking-[-0.02em]">

@@ -13,6 +13,7 @@ const DropDownComponent = ({
   placeholder,
   isSearchable = false,
   maxOuputInDropdownList = DEFAULT_MAX_OUTPUT_IN_DROPDOWN_LIST,
+  disabled = false,
 }: DropDownComponentProps) => {
   const {
     open,
@@ -37,7 +38,7 @@ const DropDownComponent = ({
   const icon = open ? <ChevronUpFilledIconSVG className="size-4" /> : <ChevronDownFilledIconSVG className="size-4" />;
 
   const menu =
-    open && menuPosition
+    !disabled && open && menuPosition
       ? createPortal(
           <div
             ref={setMenuRef}
@@ -81,23 +82,30 @@ const DropDownComponent = ({
     <>
       <div ref={containerRef} className="relative">
         {isSearchable ? (
-          <div className="flex h-[44px] items-center justify-between rounded-[8px] border border-[#E5E5E5] px-3">
+          <div
+            className={`flex h-[44px] items-center justify-between rounded-[8px] border border-[#E5E5E5] px-3 ${
+              disabled ? "pointer-events-none bg-[#F8F8F8] opacity-70" : ""
+            }`}
+          >
             <input
               type="text"
               value={searchText}
               onFocus={handleInputFocus}
               onChange={(event) => handleSearchChange(event.target.value)}
               placeholder={placeholder}
-              className="w-full bg-transparent text-[16px] leading-[125%] tracking-[-0.02em] text-[#232A25] placeholder:text-[#747775] focus:outline-none"
+              disabled={disabled}
+              className="w-full bg-transparent text-[16px] leading-[125%] tracking-[-0.02em] text-[#232A25] placeholder:text-[#747775] focus:outline-none disabled:cursor-not-allowed"
             />
-            <button type="button" onClick={toggleDropdown} className="ml-2 text-[#232A25]">
+            <button type="button" disabled={disabled} onClick={toggleDropdown} className="ml-2 text-[#232A25]">
               {icon}
             </button>
           </div>
         ) : (
           <div
-            onClick={toggleDropdown}
-            className="flex h-[44px] cursor-pointer items-center justify-between rounded-[8px] border border-[#E5E5E5] px-3"
+            onClick={disabled ? undefined : toggleDropdown}
+            className={`flex h-[44px] items-center justify-between rounded-[8px] border border-[#E5E5E5] px-3 ${
+              disabled ? "cursor-not-allowed bg-[#F8F8F8] opacity-70" : "cursor-pointer"
+            }`}
           >
             <span className={`${!value ? "text-[#747775]" : "text-black"}`}>
               {selected ? selected.label : placeholder}

@@ -20,6 +20,7 @@ const createInitialState = (): CreateTestState => ({
     allowNegativeMarking: false,
     negativeMarking: "",
     isModelTest: false,
+    examCategory: "academic",
   },
   subjects: [],
   questionOrder: [],

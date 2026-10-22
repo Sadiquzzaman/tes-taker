@@ -25,10 +25,39 @@ interface User {
   email: string | null;
   password: string;
   phone: string;
+  student_public_id?: string | null;
   is_otp_verified: boolean;
   is_verified: boolean;
   role: string;
   refresh_token: string;
+}
+
+interface ClassSubjectTeacherAssignment {
+  id: string;
+  teacher_id: string;
+  teacher?: {
+    id: string;
+    full_name?: string | null;
+  };
+}
+
+interface ClassSubject {
+  id: string;
+  class_id: string;
+  subject_id: string;
+  subject?: {
+    id: string;
+    name: string;
+    code?: string | null;
+  };
+  teachers?: ClassSubjectTeacherAssignment[];
+}
+
+interface AssignedClassSubject {
+  class_subject_id: string;
+  subject_id: string;
+  name: string;
+  code: string | null;
 }
 
 interface Class {
@@ -43,8 +72,10 @@ interface Class {
   class_name: string;
   description: string;
   teacher_id: string;
+  organization_id?: string | null;
   share_token: string | null;
   classStudents: ClassStudent[];
+  classSubjects?: ClassSubject[];
   total_test_taken: number;
   last_test_taken_date: string | null;
   type?: "new" | "existing";
@@ -56,6 +87,12 @@ interface StudentClass {
   description: string;
   created_user_name: string;
   joined_at: string;
+  organization_id?: string | null;
+  organization_name?: string | null;
+  teacher_id?: string | null;
+  context_label?: string;
+  total_test_taken?: number;
+  last_test_taken_date?: string | null;
 }
 
 interface StudentClassDetailsResponse extends StudentClass {
@@ -74,7 +111,9 @@ interface ClassDetailsData {
   class_name: string;
   description: string;
   created_user_name: string;
+  organization_id?: string | null;
   classStudents: ClassDetailsStudentItem[];
+  classSubjects?: ClassSubject[];
   joined_at?: string;
   type?: "new" | "existing";
 }

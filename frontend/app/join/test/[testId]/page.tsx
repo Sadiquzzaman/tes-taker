@@ -35,13 +35,13 @@ export async function generateMetadata({ params }: JoinTestPageProps): Promise<M
 
   if (!testData) {
     return {
-      title: "Test Invitation | TestTaker",
+      title: "Test Invitation | Instructor",
       description: "Review the test invitation and continue when the test is available.",
       alternates: {
         canonical: pageUrl,
       },
       openGraph: {
-        title: "Test Invitation | TestTaker",
+        title: "Test Invitation | Instructor",
         description: "Review the test invitation and continue when the test is available.",
         url: pageUrl,
         type: "website",
@@ -50,13 +50,13 @@ export async function generateMetadata({ params }: JoinTestPageProps): Promise<M
             url: imageUrl,
             width: 1200,
             height: 630,
-            alt: "TestTaker test invitation",
+            alt: "Instructor test invitation",
           },
         ],
       },
       twitter: {
         card: "summary_large_image",
-        title: "Test Invitation | TestTaker",
+        title: "Test Invitation | Instructor",
         description: "Review the test invitation and continue when the test is available.",
         images: [imageUrl],
       },
@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: JoinTestPageProps): Promise<M
   }
 
   const metadataDescription = `Join ${testData.test_name} by ${testData.created_user_name}.`;
-  const metadataTitle = `${testData.test_name} | Test Invitation | TestTaker`;
+  const metadataTitle = `${testData.test_name} | Test Invitation | Instructor`;
 
   return {
     title: metadataTitle,

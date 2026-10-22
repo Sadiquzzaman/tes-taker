@@ -90,7 +90,7 @@ function QuestionCard({
 
       if (file.size > MAX_IMAGE_SIZE_BYTES) {
         triggerToast({
-          description: "Image size must be 5 MB or less.",
+          description: "Image size must be 20 MB or less.",
           type: "error",
         });
         return false;

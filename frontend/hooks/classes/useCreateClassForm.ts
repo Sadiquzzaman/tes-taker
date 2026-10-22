@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState, ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, ChangeEvent } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
 import useCreateClass from "@/hooks/api/class/useCreateClass";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 import {
   downloadStudentCsvTemplate,
   extractStudentsFromCsvRows,
@@ -14,6 +15,7 @@ import {
 
 export default function useCreateClassForm() {
   const { triggerToast } = useToast();
+  const { isIndividual } = useWorkspace();
   const [mutate, { loading }] = useCreateClass();
   const [createClassPayload, setCreateClassPayload] = useState<CreateClassPayload>({
     class_name: "",
@@ -158,7 +160,15 @@ export default function useCreateClassForm() {
       return;
     }
 
-    mutate(createClassPayload);
+    mutate(
+      isIndividual
+        ? {
+            class_name: createClassPayload.class_name,
+            description: createClassPayload.description,
+            student_ids: createClassPayload.student_ids,
+          }
+        : createClassPayload,
+    );
   };
 
   return {
@@ -170,6 +180,7 @@ export default function useCreateClassForm() {
     fileInputRef,
     tagInputRef,
     invalidStudentIndices,
+    isIndividual,
     addTag,
     removeTag,
     handleTagClick,

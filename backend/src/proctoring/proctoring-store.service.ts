@@ -27,6 +27,11 @@ export class ProctoringStoreService {
     const room = this.sessions.get(examId)!;
     const existing = Array.from(room.values()).find((s) => s.studentId === studentId);
 
+    // Drop stale socket key for the same student (reconnect) to avoid orphan entries.
+    if (existing && existing.socketId !== socketId) {
+      room.delete(existing.socketId);
+    }
+
     const session: ProctoringStudentSession = existing ?? {
       socketId,
       studentId,
