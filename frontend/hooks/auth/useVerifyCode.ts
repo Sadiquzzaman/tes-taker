@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 
 const OTP_TIME = 60;
@@ -19,17 +19,7 @@ export const useVerifyCode = (
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
 
-  useEffect(() => {
-    startTimer();
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
-
-  const startTimer = () => {
-    setTimeLeft(OTP_TIME);
-
+  const startCountdown = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     intervalRef.current = setInterval(() => {
@@ -41,6 +31,20 @@ export const useVerifyCode = (
         return prev - 1;
       });
     }, 1000);
+  };
+
+  // timeLeft already starts at OTP_TIME, so the first countdown only needs the interval.
+  useEffect(() => {
+    startCountdown();
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  const startTimer = () => {
+    setTimeLeft(OTP_TIME);
+    startCountdown();
   };
 
   const handleChange = (index: number, val: string, prevValue: string) => {
@@ -152,9 +156,10 @@ export const useVerifyCode = (
       });
 
       router.push("/login");
-    } catch (err: any) {
+    } catch (caught) {
+      const err = caught as AxiosError<{ message?: string }>;
       setLoading(false);
-      const message = err?.response?.data?.message || "OTP verification failed. Please try again.";
+      const message = err.response?.data?.message || "OTP verification failed. Please try again.";
       triggerToast({
         title: "Verification Failed",
         description: message,
