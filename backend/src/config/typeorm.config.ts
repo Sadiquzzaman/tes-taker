@@ -29,6 +29,17 @@ export const buildTypeOrmOptions = (): DataSourceOptions => {
   );
   const poolMin = Number(process.env.DATABASE_POOL_MIN ?? (isProduction ? 2 : 1));
 
+  // Production must never auto-alter the schema (sync drops migration-named
+  // indexes). Development keeps the convenient default (true) unless
+  // explicitly overridden.
+  const synchronize = parseBoolean(process.env.DATABASE_SYNCRONIZE, !isProduction);
+  if (isProduction && synchronize) {
+    throw new Error(
+      'DATABASE_SYNCRONIZE=true is not allowed when NODE_ENV=production. ' +
+        'Set DATABASE_SYNCRONIZE=false and apply schema changes with migrations.',
+    );
+  }
+
   return {
     type: 'postgres',
     host: process.env.DATABASE_HOST ?? 'localhost',
@@ -38,9 +49,7 @@ export const buildTypeOrmOptions = (): DataSourceOptions => {
     database: process.env.DATABASE_DB ?? 'tasktaker',
     entities: [join(__dirname, '..', '**', '*.entity{.ts,.js}')],
     migrations: [join(__dirname, '..', 'migrations', '*{.ts,.js}')],
-    // Production must never auto-alter the schema. Development keeps the
-    // convenient default (true) unless explicitly overridden.
-    synchronize: parseBoolean(process.env.DATABASE_SYNCRONIZE, !isProduction),
+    synchronize,
     // Optionally run pending migrations automatically on boot. Handy for a
     // single-server Hetzner deployment; keep false when running migrations
     // as a separate step.
