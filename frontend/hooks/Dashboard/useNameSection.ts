@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
+import { useStorageItem } from "@/hooks/useBrowserStorage";
 
-const getStoredFullName = (): string => {
-  const userData = localStorage.getItem("user");
-
+const getStoredFullName = (userData: string | null | undefined): string => {
   if (!userData) {
     return "";
   }
@@ -16,11 +14,7 @@ const getStoredFullName = (): string => {
 };
 
 export const useNameSection = () => {
-  const [fullName, setFullName] = useState("");
-
-  useEffect(() => {
-    setFullName(getStoredFullName());
-  }, []);
+  const fullName = getStoredFullName(useStorageItem("local", "user"));
 
   return {
     fullName,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import NameSection from "@/component/Dashboard/NameSection";
 import NeedsMarking from "@/component/Dashboard/NeedsMarking";
 import LiveTest from "@/component/Dashboard/LiveTest";
@@ -13,6 +13,7 @@ import MyActivity from "@/component/Dashboard/MyActivity";
 import StudentWorkspaceCards from "@/component/Dashboard/StudentWorkspaceCards";
 import { DashboardProvider, useDashboard } from "@/context/DashboardContext";
 import { getStoredUser } from "@/lib/authSession";
+import { useIsClient } from "@/hooks/useBrowserStorage";
 
 const DashboardErrorBanner = () => {
   const { error, refetch } = useDashboard();
@@ -84,11 +85,8 @@ const TeacherDashboardGrid = () => (
 );
 
 const DashboardInner = () => {
-  const [role, setRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    setRole((getStoredUser()?.role as string) || null);
-  }, []);
+  const isClient = useIsClient();
+  const role = isClient ? (getStoredUser()?.role as string) || null : null;
 
   const isStudent = role === "STUDENT";
 
