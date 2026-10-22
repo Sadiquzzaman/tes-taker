@@ -45,8 +45,15 @@ jobs:
           RUN_MIGRATIONS: ${{ inputs.run_migrations || 'false' }}
           EXPECTED_SHA: ${{ github.sha }}
         run: |
+          set -o pipefail
           ssh -i ~/.ssh/beta_key -p "${PORT:-22}" -o StrictHostKeyChecking=yes "$USER@$HOST" \
-            "RUN_MIGRATIONS=$RUN_MIGRATIONS EXPECTED_SHA=$EXPECTED_SHA bash -s" < scripts/deploy/deploy-beta.sh
+            "RUN_MIGRATIONS=$RUN_MIGRATIONS EXPECTED_SHA=$EXPECTED_SHA bash -s" < scripts/deploy/deploy-beta.sh \
+            | tee deploy.log
+          # A zero exit code is not enough: fail unless the script reached its final health check.
+          if ! grep -q "==> healthy. Deployed $EXPECTED_SHA" deploy.log; then
+            echo "::error::Deploy did not finish (no healthy line for $EXPECTED_SHA in the output)."
+            exit 1
+          fi
 
       - name: Clean up key
         if: always()
