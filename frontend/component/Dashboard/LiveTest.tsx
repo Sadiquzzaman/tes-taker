@@ -17,17 +17,29 @@ const LiveTest = () => {
   const [index, setIndex] = useState(0);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
 
+  // Go back to the first test whenever the number of live tests changes.
+  const [indexedLength, setIndexedLength] = useState(liveTests.length);
+  if (indexedLength !== liveTests.length) {
+    setIndexedLength(liveTests.length);
+    setIndex(0);
+  }
+
   const currentTest = liveTests[index] ?? null;
 
-  useEffect(() => {
-    setIndex(0);
-  }, [liveTests.length]);
+  // Restart the countdown from the server value when the shown test or its remaining time changes.
+  const countdownKey = currentTest ? `${currentTest.id}:${currentTest.remaining_seconds}` : null;
+  const [shownCountdownKey, setShownCountdownKey] = useState<string | null>(null);
+  if (shownCountdownKey !== countdownKey) {
+    setShownCountdownKey(countdownKey);
+    if (currentTest) {
+      setRemainingSeconds(currentTest.remaining_seconds);
+    }
+  }
 
   useEffect(() => {
     if (!currentTest) {
       return;
     }
-    setRemainingSeconds(currentTest.remaining_seconds);
     const timer = window.setInterval(() => {
       setRemainingSeconds((prev) => Math.max(0, prev - 1));
     }, 1000);

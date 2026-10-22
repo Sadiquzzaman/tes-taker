@@ -35,6 +35,16 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
     return grade?.marks_obtained ?? question.marksObtained;
   }, [grade?.marks_obtained, question.marksObtained]);
   const [scoreInput, setScoreInput] = useState(formatScoreLabel(persistedScore));
+  // Show the saved score again whenever it changes or another question is shown.
+  const [scoreSource, setScoreSource] = useState({ questionId: question.id, score: persistedScore });
+  if (scoreSource.questionId !== question.id || scoreSource.score !== persistedScore) {
+    setScoreSource({ questionId: question.id, score: persistedScore });
+    setScoreInput(formatScoreLabel(persistedScore));
+  }
+  // A read-only card is never in the interacting state.
+  if (!showEditableControls && isInteracting) {
+    setIsInteracting(false);
+  }
   const parsedScore = Number(scoreInput);
   const hasPositiveScore = !Number.isNaN(parsedScore) && parsedScore > 0;
   const showSuccessIcon = !isInteracting && hasPositiveScore;
@@ -42,12 +52,7 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
   const validationError = grade ? getSubmissionGradeValidationError(grade.marks_obtained, question.points) : "";
 
   useEffect(() => {
-    setScoreInput(formatScoreLabel(persistedScore));
-  }, [persistedScore, question.id]);
-
-  useEffect(() => {
     if (!showEditableControls) {
-      setIsInteracting(false);
       return;
     }
 
