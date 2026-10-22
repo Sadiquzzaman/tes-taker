@@ -31,6 +31,58 @@ jobs:
       - name: Build
         run: pnpm build
 
+  migrations:
+    name: Backend — migrations on an empty database
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        # Same image as docker-compose.prod.yml.
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tasktaker_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Throwaway CI database only.
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 5432
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_DB: tasktaker_ci
+      DATABASE_SYNCRONIZE: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install pnpm 9 (same version as backend/Dockerfile.prod)
+        run: npm install -g pnpm@9
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm build
+      - name: Run all migrations
+        run: pnpm migration:run:prod
+      - name: No migration left pending
+        run: |
+          pnpm migration:show:prod | tee show.log
+          if grep -q '\[ \]' show.log; then
+            echo "::error::Migrations still pending after migration:run."
+            exit 1
+          fi
+      - name: Schema matches the entities (no migration missing)
+        run: pnpm migration:check
+
   frontend:
     name: Frontend — install, lint, build
     runs-on: ubuntu-latest
