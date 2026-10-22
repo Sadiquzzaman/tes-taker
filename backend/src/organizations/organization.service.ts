@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
 import { DataSource, ILike, In, Repository } from 'typeorm';
+import { isUniqueViolation } from 'src/common/utils/db-error.util';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { RedisService } from 'src/config/redis.service';
 import { ClassEntity } from 'src/classes/entities/class.entity';
@@ -1352,16 +1353,29 @@ export class OrganizationsService {
       return existing;
     }
 
-    return this.subjectRepo.save(
-      this.subjectRepo.create({
-        name,
-        code,
-        organization_id: organizationId,
-        created_by: actorUserId,
-        created_user_name: actorName ?? '',
-        created_at: new Date(),
-      }),
-    );
+    try {
+      return await this.subjectRepo.save(
+        this.subjectRepo.create({
+          name,
+          code,
+          organization_id: organizationId,
+          created_by: actorUserId,
+          created_user_name: actorName ?? '',
+          created_at: new Date(),
+        }),
+      );
+    } catch (error) {
+      if (!isUniqueViolation(error, 'UQ_subjects_org_name_code')) throw error;
+      // A parallel request created the same subject past the check above.
+      if (failIfExists) {
+        throw new ConflictException('A subject with this name and code already exists in the organization');
+      }
+      const created = await this.subjectRepo.findOne({
+        where: { organization_id: organizationId, name: ILike(name), code: ILike(code) },
+      });
+      if (!created) throw error;
+      return created;
+    }
   }
 
   async updateOrganizationSubject(
@@ -1401,7 +1415,14 @@ export class OrganizationsService {
     subject.updated_by = actorUserId;
     subject.updated_user_name = actorName ?? '';
     subject.updated_at = new Date();
-    return this.subjectRepo.save(subject);
+    try {
+      return await this.subjectRepo.save(subject);
+    } catch (error) {
+      if (isUniqueViolation(error, 'UQ_subjects_org_name_code')) {
+        throw new ConflictException('A subject with this name and code already exists in the organization');
+      }
+      throw error;
+    }
   }
 
   async removeOrganizationSubject(organizationId: string, subjectId: string, actorUserId: string) {

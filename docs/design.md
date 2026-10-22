@@ -579,7 +579,7 @@ The sizing starts from the existing `docs/AWS-PRODUCTION-COST-AND-INFRASTRUCTURE
 
 1. Lint and type-check.
 2. Backend unit tests + critical-path tests: payment settlement, deadline enforcement, matching shuffle, tenancy guard, attendance resolver.
-3. Run migrations against a throwaway PostgreSQL.
+3. Run migrations against a throwaway PostgreSQL, then fail if the schema differs from the entities (`migration:check`). The first migration, `BaselineSchema`, builds the base schema on an empty database and does nothing where the schema already exists.
 4. Build the Docker images (api, worker, web) and push them to ECR.
 5. Deploy to beta automatically; deploy to prod by manual approval.
 

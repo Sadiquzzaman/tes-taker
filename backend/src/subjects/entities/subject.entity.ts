@@ -5,10 +5,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { OrganizationEntity } from 'src/organizations/entities/organization.entity';
 
 @Index('UQ_subjects_global_name', ['name'], { unique: true, where: '"organization_id" IS NULL' })
-@Index('UQ_subjects_org_name_code', ['organization_id', 'name', 'code'], {
-  unique: true,
-  where: '"organization_id" IS NOT NULL',
-})
+// Org subjects: unique on (organization_id, LOWER(name), LOWER(code)) where organization_id
+// is set. TypeORM cannot declare expression indexes, so the index lives in
+// ReconcileSchema1754900000000 and synchronize / migration:generate leave it alone.
+@Index('UQ_subjects_org_name_code', { synchronize: false })
 @Entity('subjects')
 export class SubjectEntity extends CustomBaseEntity {
   @ApiProperty({ description: 'Display name of the subject', example: 'Mathematics' })
