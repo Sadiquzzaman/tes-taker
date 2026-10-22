@@ -58,6 +58,9 @@ export class SmsService {
   }
 
   async sendOtp(phoneNumber: string): Promise<{ success: boolean; otp?: string; message: string }> {
+    // A new code does not lift a wrong-guess lockout.
+    await this.smsRateLimitService.assertOtpNotLocked('register', phoneNumber);
+
     // Check rate limiting
     const rateLimitCheck = await this.smsRateLimitService.canSendSms(phoneNumber);
     
@@ -107,15 +110,17 @@ export class SmsService {
 
   async verifyOtp(phoneNumber: string, otp: string): Promise<{ success: boolean; message: string }> {
     const storedOtp = await this.smsRateLimitService.getOtp(phoneNumber);
-    
-    if (!storedOtp) {
+    // Throws 429 once the phone is locked after too many wrong codes.
+    const result = await this.smsRateLimitService.checkOtpAttempt('register', phoneNumber, otp, storedOtp);
+
+    if (result === 'expired') {
       return { 
         success: false, 
         message: 'OTP expired or not found. Please request a new OTP.' 
       };
     }
     
-    if (storedOtp === otp) {
+    if (result === 'valid') {
       // Remove OTP after successful verification
       await this.smsRateLimitService.removeOtp(phoneNumber);
       return { 
