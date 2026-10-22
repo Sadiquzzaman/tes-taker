@@ -2,6 +2,24 @@
 
 Production runs with Docker Compose using `docker-compose.prod.yml`.
 
+## Developer commands (root `Makefile`)
+
+For local development, run these from the repo root (`make help` lists every target):
+
+| Command | What it does |
+| --- | --- |
+| `make install` | Install backend (pnpm) and frontend (npm) dependencies from the lockfiles |
+| `make lint` | Frontend ESLint (the backend has no lint script yet) |
+| `make typecheck` | `tsc --noEmit` for backend and frontend |
+| `make test` | Backend unit tests (jest) |
+| `make build` | Production build of backend and frontend |
+| `make check` | lint + typecheck + test + build; run before opening a PR |
+| `make migrate` / `make migrate-show` | Run / show TypeORM migrations on your **local** database (`backend/.env`) |
+
+`make migrate` is for your local database only. Beta migrations run only through the
+Deploy beta workflow (`.github/workflows/deploy-beta.yml`); never point these targets at
+beta or production. Production migrations are covered in §3 below.
+
 ## 1. Prepare environment
 
 ```bash
