@@ -227,6 +227,9 @@ Table teacher_role_requests {
   id uuid [pk]
   user_id uuid [ref: > users.id]
   status varchar
+  Indexes {
+    user_id [unique, name: 'UQ_teacher_role_requests_pending_user', note: 'partial: WHERE status = \'pending\' (one pending request per user)']
+  }
   Note: 'EXISTING'
 }
 
@@ -315,6 +318,10 @@ Table subjects {
   name varchar
   code varchar
   credit_hours numeric(4,1) [note: 'NEW column, nullable; used by Tertiary later']
+  Indexes {
+    name [unique, name: 'UQ_subjects_global_name', note: 'partial: WHERE organization_id IS NULL']
+    (organization_id, `LOWER(name)`, `LOWER(code)`) [unique, name: 'UQ_subjects_org_name_code', note: 'partial: WHERE organization_id IS NOT NULL; case-insensitive']
+  }
   Note: 'CHANGED'
 }
 

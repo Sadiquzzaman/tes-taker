@@ -79,9 +79,16 @@ Other production migration commands (run the same way with `run --rm backend`):
 | `pnpm migration:revert:prod` | Revert the last migration        |
 | `pnpm migration:show:prod`   | List applied/pending migrations  |
 
-> Migrations are **authored** in development (`pnpm migration:generate` /
-> `migration:create`, which use `src/data-source.ts` via ts-node) and
-> **applied** in production with the `:prod` commands above.
+> Migrations are **authored** in development and **applied** in production with
+> the `:prod` commands above. `pnpm migration:create` writes an empty migration;
+> `pnpm migration:generate` builds the app and diffs the entities
+> (`dist/src/data-source.entities.js`) against the database in `DATABASE_*`.
+> `pnpm migration:check` fails if the entities and that database differ; CI runs it
+> after applying every migration to an empty PostgreSQL.
+>
+> `1753000000000-BaselineSchema` creates the whole base schema on an empty database.
+> On a database that already has every base table (beta, or a dev database built by
+> `synchronize`) it changes nothing and is only recorded as run.
 >
 > Alternatively, set `DATABASE_MIGRATIONS_RUN=true` to have the backend apply
 > pending migrations automatically on boot (prefer the explicit one-off step
