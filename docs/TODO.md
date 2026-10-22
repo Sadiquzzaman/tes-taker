@@ -2,7 +2,6 @@
 
 Out-of-scope items noted during other tasks. One line each, with the reason.
 
-- Add a type-check step to CI (`tsc --noEmit` for backend and frontend) — Development Plan P0-02 asks for it; `ci.yml` does not run it yet.
 - Organization subject duplicate checks use `ILike`, so `%` and `_` in a name or code act as wildcards — `organization.service.ts` find-or-create/update; the DB index (`LOWER()`) is exact.
 - Move the frontend to pnpm — Development Plan §2.1 step 3 ("one package manager"); the frontend still uses npm and `package-lock.json`.
 - Add the "TaskTaker Production Deployment Runbook" to the repo or fix the reference — `scripts/deploy/deploy-beta.sh` cites its §4 and §15, but it is not in the repo and `DEPLOYMENT.md` §4 covers pgAdmin.
@@ -22,3 +21,4 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Switch CI to the `make` targets (`make install`, `make check`) — Development Plan P0-02; `ci.yml` still calls pnpm/npm directly.
 - Auto-submit job for abandoned exam attempts (every minute: `status = IN_PROGRESS AND effective_deadline < now() - 60 s` → AUTO_SUBMITTED with saved answers, conditional update, compute the deadline when `effective_deadline` is NULL for attempts started before P0-06) — owner chose to build it in the P0-04 BullMQ worker instead of adding `@nestjs/schedule` now; until then abandoned attempts stay IN_PROGRESS (no further writes are accepted).
 - Retire or rebuild the legacy `POST /student/exams/:examId/submit` and `/auto-submit` endpoints (`submitExam`) — the frontend uses only `/answersheet`; P0-06 added the deadline guard, but `submitExam` still saves a stale entity (may overwrite freshly computed scores) and has no conditional update against double submit.
+- Test migrations on a copy of beta data, not only an empty database — Development Plan §5 definition of done; needs a sanitised beta dump.
