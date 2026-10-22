@@ -14,7 +14,7 @@ dotenv.config();
  * Entities are omitted here on purpose: the CLI only needs the DB connection +
  * migration files. Loading `*.entity.ts` under plain ts-node fails because those
  * files import Nest path aliases like `src/...` which Node cannot resolve.
- * Use `migration:generate` via Nest/build tooling if you need the entity graph.
+ * `migration:generate` and `migration:check` use `data-source.entities.ts` from the build.
  */
 const appOptions = buildTypeOrmOptions();
 
