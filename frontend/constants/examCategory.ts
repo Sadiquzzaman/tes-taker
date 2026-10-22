@@ -44,6 +44,6 @@ export const EXAM_CATEGORIES = [
 
 export const getModuleLabel = (moduleKey: string | null | undefined): string => {
   if (!moduleKey) return "";
-  const module = IELTS_MODULES.find((m) => m.moduleKey === moduleKey);
-  return module?.label ?? "";
+  const ieltsModule = IELTS_MODULES.find((m) => m.moduleKey === moduleKey);
+  return ieltsModule?.label ?? "";
 };

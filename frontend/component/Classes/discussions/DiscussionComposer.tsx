@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { AxiosError } from "axios";
 import AttachmentChip from "./AttachmentChip";
 import {
   CATEGORY_OPTIONS,
@@ -54,8 +55,9 @@ const DiscussionComposer = ({
         uploaded.push(await uploadDiscussionAttachment(classId, file));
       }
       setAttachments((current) => [...current, ...uploaded]);
-    } catch (error: any) {
-      setLocalError(error?.response?.data?.message || "Upload failed. Please try again.");
+    } catch (caught) {
+      const error = caught as AxiosError<{ message?: string }>;
+      setLocalError(error.response?.data?.message || "Upload failed. Please try again.");
     } finally {
       setUploading(false);
       if (imageInputRef.current) imageInputRef.current.value = "";
@@ -71,8 +73,9 @@ const DiscussionComposer = ({
       setAttachments([]);
       setCategory("question");
       setLocalError("");
-    } catch (error: any) {
-      const message = error?.response?.data?.message;
+    } catch (caught) {
+      const error = caught as AxiosError<{ message?: string | string[] }>;
+      const message = error.response?.data?.message;
       setLocalError(
         Array.isArray(message)
           ? message[0]
