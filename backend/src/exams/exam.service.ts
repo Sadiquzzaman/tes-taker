@@ -75,6 +75,7 @@ import { OrgContext } from 'src/organizations/interfaces/org-context.interface';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { ClassService } from 'src/classes/class.service';
 import { ExamPaperCacheService } from './exam-paper-cache.service';
+import { shuffleStudentPaper } from './utils/exam-shuffle.util';
 
 type ExamListMetrics = {
   participant_count: number;
@@ -1141,6 +1142,10 @@ export class ExamService {
       includeCorrectAnswers: false,
       includeQuestions: examStarted,
     });
+
+    // Per-student order (design §6.2): seeded by the submission id so a reload shows the same order.
+    const shuffleSeed = submission?.id ?? `${id}:${studentId}`;
+    response.subjects = shuffleStudentPaper(response.subjects as ExamSubjectResponse[], shuffleSeed);
 
     const effectiveDeadline = computeEffectiveDeadline(exam, submission);
 
