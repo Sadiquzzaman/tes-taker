@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend — install, test, build
+    name: Backend — install, type-check, test, build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -26,6 +26,8 @@ jobs:
         run: npm install -g pnpm@9
       - name: Install
         run: pnpm install --frozen-lockfile
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
       - name: Test
         run: pnpm test
       - name: Build
@@ -84,7 +86,7 @@ jobs:
         run: pnpm migration:check
 
   frontend:
-    name: Frontend — install, lint, build
+    name: Frontend — install, lint, type-check, build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -104,5 +106,11 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
+      - name: Type-check
+        # next-env.d.ts (image and route types) is gitignored and normally written by `next build`;
+        # generate it first so tsc sees the same types the build does.
+        run: |
+          npx next typegen
+          npx tsc --noEmit
       - name: Build
         run: npm run build
