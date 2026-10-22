@@ -1,5 +1,4 @@
 import { Controller, Post, Body, UseGuards, Get, HttpCode, HttpStatus, Query, Res } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { GoogleAuthService } from './google-auth.service';
@@ -18,6 +17,7 @@ import { JwtAuthGuard } from './guards/jwt.guard';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { JwtPayloadInterface } from './interfaces/jwt-payload.interface';
 import { VerifyOtpDto } from 'src/sms/dto/sms.dto';
+import { AuthThrottle } from 'src/common/decorators/auth-throttle.decorator';
 
 @ApiTags('Authentication')
 @Controller({
@@ -31,7 +31,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @AuthThrottle({ fields: ['phone', 'email'], perIdentifier: 5, perIp: 60 })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register a new user',
@@ -99,7 +99,7 @@ export class AuthController {
   }
 
   @Post('register/organization')
-  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @AuthThrottle({ fields: ['phone', 'email'], perIdentifier: 5, perIp: 60 })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Register an organization / school',
@@ -115,7 +115,7 @@ export class AuthController {
   }
 
   @Post('register/verify-otp')
-  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @AuthThrottle({ fields: ['phone'], perIdentifier: 10, perIp: 120 })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Verify registration OTP',
@@ -188,7 +188,7 @@ export class AuthController {
   }
 
   @Post('login')
-  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @AuthThrottle({ fields: ['phone', 'email'], perIdentifier: 10, perIp: 300 })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Login with password',
@@ -247,7 +247,7 @@ export class AuthController {
   }
 
   @Post('login/organization')
-  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @AuthThrottle({ fields: ['organization_number', 'phone'], perIdentifier: 10, perIp: 300 })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Login as an organization member',
@@ -320,7 +320,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
-  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @AuthThrottle({ fields: ['identifier'], perIdentifier: 5, perIp: 60 })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Request a password reset OTP',
@@ -342,7 +342,7 @@ export class AuthController {
   }
 
   @Post('reset-password/verify-otp')
-  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @AuthThrottle({ fields: ['identifier'], perIdentifier: 10, perIp: 120 })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Verify a password reset OTP',
@@ -360,7 +360,7 @@ export class AuthController {
   }
 
   @Post('reset-password')
-  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @AuthThrottle({ fields: ['identifier'], perIdentifier: 5, perIp: 60 })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Reset password using OTP',

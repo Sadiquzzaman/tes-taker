@@ -15,3 +15,7 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Add a real DB test for payment initiate → settle → activate — P0-05 tests use mocked repositories until P0-03 adds a DB test harness.
 - Remove the dead SMTP branch in `backend/src/email/email.service.ts` (reads `EMAIL_USER`/`EMAIL_PASSWORD` only to log "Falling back to SMTP") and the unused `nodemailer` / `@types/nodemailer` dependencies — no SMTP sender exists; found in P0-01 env clean-up.
 - Retire or shuffle `GET /student/exams/:examId` (`getExamForStudent`) — it serves legacy positional `option1..5` in stored order and pairs with positional `save-answer`; the frontend no longer calls it, so P0-07 shuffled only `GET /exams/:id`.
+- Protect or remove `GET /api/v1/sms/status/:phoneNumber` — it is public and shows SMS attempt counts for any phone number (seen in P0-08).
+- Re-enable the SMS send limit in `SmsService.sendOtp` — the `canSendSms` check is commented out, so only the route throttle limits SMS cost (seen in P0-08).
+- Move the rate-limiter storage to Redis (`ThrottlerStorage`) before running more than one backend instance — counters are in memory per process (P0-08).
+- Let the admin `POST /sms/reset-cache` also clear OTP lockouts (`otp_fail:*`, `otp_lock:*`) — support currently has to wait the 15 minutes out (P0-08).

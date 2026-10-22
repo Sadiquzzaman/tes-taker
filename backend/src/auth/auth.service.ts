@@ -439,6 +439,9 @@ export class AuthService {
       throw new NotFoundException('No account found with this phone number or email');
     }
 
+    // A new code does not lift a wrong-guess lockout.
+    await this.smsRateLimitService.assertOtpNotLocked('reset', identifier);
+
     // Generate and store OTP keyed by the identifier the user provided
     const otp = this.smsService.generateOtp();
     await this.smsRateLimitService.storePasswordResetOtp(identifier, otp);
@@ -516,14 +519,7 @@ export class AuthService {
   async verifyResetOtp(verifyResetOtpDto: VerifyResetOtpDto) {
     const identifier = verifyResetOtpDto.identifier.trim();
 
-    const storedOtp = await this.smsRateLimitService.getPasswordResetOtp(identifier);
-    if (!storedOtp) {
-      throw new BadRequestException('OTP expired or not found. Please request a new code.');
-    }
-
-    if (storedOtp !== verifyResetOtpDto.otp) {
-      throw new BadRequestException('Invalid OTP. Please try again.');
-    }
+    await this.assertResetOtp(identifier, verifyResetOtpDto.otp);
 
     return {
       success: true,
@@ -539,14 +535,7 @@ export class AuthService {
       throw new BadRequestException('Password and confirm password do not match');
     }
 
-    const storedOtp = await this.smsRateLimitService.getPasswordResetOtp(identifier);
-    if (!storedOtp) {
-      throw new BadRequestException('OTP expired or not found. Please request a new code.');
-    }
-
-    if (storedOtp !== resetPasswordDto.otp) {
-      throw new BadRequestException('Invalid OTP. Please try again.');
-    }
+    await this.assertResetOtp(identifier, resetPasswordDto.otp);
 
     const user = await this.userService.findByPhoneOrEmail(identifier);
     if (!user) {
@@ -561,6 +550,18 @@ export class AuthService {
       message: 'Password reset successfully. You can now login with your new password.',
       data: { passwordReset: true },
     };
+  }
+
+  /** Checks a reset OTP; wrong codes count towards the lockout (429 when locked). */
+  private async assertResetOtp(identifier: string, otp: string): Promise<void> {
+    const storedOtp = await this.smsRateLimitService.getPasswordResetOtp(identifier);
+    const result = await this.smsRateLimitService.checkOtpAttempt('reset', identifier, otp, storedOtp);
+    if (result === 'expired') {
+      throw new BadRequestException('OTP expired or not found. Please request a new code.');
+    }
+    if (result === 'invalid') {
+      throw new BadRequestException('Invalid OTP. Please try again.');
+    }
   }
 
   private maskPhone(phone: string): string {

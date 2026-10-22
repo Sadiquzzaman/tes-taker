@@ -4,6 +4,7 @@ import { ThrottlerModule } from "@nestjs/throttler";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { AppThrottlerGuard } from "./common/guard/app-throttler.guard";
+import { AUTH_IP_THROTTLER, isAuthThrottled } from "./common/decorators/auth-throttle.decorator";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
 import { getMongoUri } from "./config/mongodb.config";
@@ -37,6 +38,16 @@ import { CommonModule } from './common/common.module';
             // throttled. Tune per deployment via THROTTLE_TTL/THROTTLE_LIMIT.
             ttl: Number(process.env.THROTTLE_TTL ?? 60000),
             limit: Number(process.env.THROTTLE_LIMIT ?? 300),
+          },
+          {
+            // Per-IP cap for login / OTP / reset routes only (set per route by
+            // @AuthThrottle). Skipped everywhere else so exam traffic from a
+            // shared lab IP is never limited by IP.
+            name: AUTH_IP_THROTTLER,
+            ttl: 60000,
+            limit: 300,
+            skipIf: (context) => !isAuthThrottled(context),
+            getTracker: (req) => req.ip,
           },
         ],
       }),
