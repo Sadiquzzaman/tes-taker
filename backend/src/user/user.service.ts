@@ -276,13 +276,8 @@ export class UserService implements OnModuleInit {
   }
 
   generateVerificationToken(): string {
-    const timestamp = new Date().getTime().toString(16).slice(-8);
-    const randomToken = (Math.random() * 0xfffff * 1000000)
-      .toString(16)
-      .slice(0, 12);
-
-    const verificationToken = timestamp + randomToken;
-    return verificationToken;
+    // 20 hex chars from a cryptographically secure source.
+    return randomBytes(10).toString('hex');
   }
 
   async findById(id: string): Promise<UserEntity> {

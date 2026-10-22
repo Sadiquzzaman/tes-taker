@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { randomInt } from 'crypto';
 import { SmsRateLimitService } from './sms-rate-limit.service';
 
 @Injectable()
@@ -143,7 +144,8 @@ export class SmsService {
     };
   }
 
+  /** 6-digit OTP from a cryptographically secure source (100000–999999). */
   generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return randomInt(100000, 1000000).toString();
   }
 } 
