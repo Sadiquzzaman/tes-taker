@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useIsClient } from "@/hooks/useBrowserStorage";
 
 /**
  * Speech → Text only. This hook isolates the browser Speech Recognition API so it can be
@@ -116,7 +117,8 @@ const useSpeechRecognition = ({
   onEnd,
   onError,
 }: UseSpeechRecognitionOptions = {}): UseSpeechRecognitionReturn => {
-  const [isSupported, setIsSupported] = useState(false);
+  // False on the server and while hydrating, as before, so the markup matches.
+  const isSupported = useIsClient() && Boolean(getSpeechRecognitionConstructor());
   const [status, setStatus] = useState<SpeechRecognitionStatus>("idle");
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
@@ -140,10 +142,6 @@ const useSpeechRecognition = ({
     onEndRef.current = onEnd;
     onErrorRef.current = onError;
   }, [onResult, onEnd, onError]);
-
-  useEffect(() => {
-    setIsSupported(Boolean(getSpeechRecognitionConstructor()));
-  }, []);
 
   const emitError = useCallback((message: string) => {
     hadErrorRef.current = true;

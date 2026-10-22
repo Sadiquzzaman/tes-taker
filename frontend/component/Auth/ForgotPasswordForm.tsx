@@ -59,7 +59,7 @@ const ForgotPasswordForm = () => {
             <StepIndicator step={1} />
           </div>
           <p className="text-[#747775] font-normal text-[16px] leading-[125%] tracking-[-0.02em] -mt-4">
-            Enter your email or phone number and we'll send you a verification code to reset your password.
+            Enter your email or phone number and we&apos;ll send you a verification code to reset your password.
           </p>
           <div className="flex flex-col gap-4">
             <AuthInput
@@ -115,7 +115,7 @@ const ForgotPasswordForm = () => {
             )}
 
             <label className="text-[#747775] font-normal text-[16px] leading-[125%] tracking-[-0.02em] mt-2">
-              We've sent a 6-digit code{maskedTarget ? " to " : ""}
+              We&apos;ve sent a 6-digit code{maskedTarget ? " to " : ""}
               {maskedTarget && <span className="font-medium text-[#0F1A12]">{maskedTarget}</span>}. {otpInboxHint}
             </label>
 

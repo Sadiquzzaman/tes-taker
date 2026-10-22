@@ -22,9 +22,13 @@ const MAX_POLLS = 8;
 export default function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-  const [phase, setPhase] = useState<"loading" | "settled" | "pending" | "error">("loading");
+  const tranId = searchParams.get("tran_id");
+  const [pollPhase, setPhase] = useState<"loading" | "settled" | "pending" | "error">("loading");
   const [payment, setPayment] = useState<PaymentView | null>(null);
-  const [message, setMessage] = useState("Confirming your payment...");
+  const [pollMessage, setMessage] = useState("Confirming your payment...");
+  // Without a transaction reference there is nothing to poll.
+  const phase = tranId ? pollPhase : "error";
+  const message = tranId ? pollMessage : "Missing transaction reference.";
 
   const fetchPayment = useCallback(
     async (tranId: string): Promise<PaymentView | null> => {
@@ -35,11 +39,7 @@ export default function PaymentSuccessContent() {
   );
 
   useEffect(() => {
-    const tranId = searchParams.get("tran_id");
-
     if (!tranId) {
-      setPhase("error");
-      setMessage("Missing transaction reference.");
       return;
     }
 
@@ -93,7 +93,7 @@ export default function PaymentSuccessContent() {
     return () => {
       cancelled = true;
     };
-  }, [fetchPayment, searchParams]);
+  }, [fetchPayment, tranId]);
 
   const heading =
     phase === "settled"

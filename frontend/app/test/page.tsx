@@ -17,6 +17,7 @@ import useSubmitAnswersheet from "@/hooks/api/tests/useSubmitAnswersheet";
 import useExamFullscreen from "@/hooks/tests/proctoring/useExamFullscreen";
 import useProctoring from "@/hooks/tests/proctoring/useProctoring";
 import useProctoringSocket from "@/hooks/tests/proctoring/useProctoringSocket";
+import { useIsClient } from "@/hooks/useBrowserStorage";
 import {
   hydrateExamAnswers,
   resetExamAnswers,
@@ -35,7 +36,7 @@ import {
 import { createInitialExamAnswerState } from "@/utils/tests/studentExamAnswers";
 import { loadExamAnswersFromStorage, saveExamAnswersToStorage } from "@/utils/tests/examAnswerStorage";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { RotatingLines } from "react-loader-spinner";
 
 const getStoredUserId = () => {
@@ -53,6 +54,14 @@ const getStoredUserId = () => {
   }
 };
 
+type ExamSession = { testId: string | null; initialMediaStream: MediaStream | null };
+
+// Browser-only: the test chosen on the join page and the camera stream from the permissions page.
+const readExamSession = (): ExamSession => ({
+  testId: sessionStorage.getItem("testId"),
+  initialMediaStream: getExamMediaStreams().cameraStream,
+});
+
 const isMediaStreamActive = (stream: MediaStream | null) =>
   Boolean(stream?.getTracks().some((track) => track.readyState === "live" && track.enabled));
 
@@ -65,9 +74,14 @@ export default function ParticipateTest() {
   const proctoringState = useAppSelector((state) => state.proctoring);
   const answerState = useAppSelector(selectExamAnswerState);
 
-  const [isMounted, setIsMounted] = useState(false);
-  const [testId, setTestId] = useState<string | null>(null);
-  const [initialMediaStream, setInitialMediaStream] = useState<MediaStream | null>(null);
+  const isMounted = useIsClient();
+  const [examSession, setExamSession] = useState<ExamSession | null>(null);
+  // Read once, on the first render in the browser; later changes to storage or streams are ignored.
+  if (isMounted && examSession === null) {
+    setExamSession(readExamSession());
+  }
+  const testId = examSession?.testId ?? null;
+  const initialMediaStream = examSession?.initialMediaStream ?? null;
   const [hasStartedExam, setHasStartedExam] = useState(false);
   const [hasAttemptedStart, setHasAttemptedStart] = useState(false);
   const [submitReason, setSubmitReason] = useState<"manual" | "timeout" | "disqualified" | null>(null);
@@ -126,15 +140,6 @@ export default function ParticipateTest() {
       void restoreFullscreen();
     }
   };
-
-  useEffect(() => {
-    const storedTestId = sessionStorage.getItem("testId");
-    const { cameraStream } = getExamMediaStreams();
-
-    setTestId(storedTestId);
-    setInitialMediaStream(cameraStream);
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!isMounted) {
@@ -263,13 +268,17 @@ export default function ParticipateTest() {
     }
   };
 
+  const submitAfterDisqualification = useEffectEvent(() => {
+    void handleSubmit("disqualified");
+  });
+
   useEffect(() => {
     if (!proctoringState.isDisqualified || hasHandledDisqualificationRef.current || !test?.id) {
       return;
     }
 
     hasHandledDisqualificationRef.current = true;
-    void handleSubmit("disqualified");
+    submitAfterDisqualification();
   }, [proctoringState.isDisqualified, test?.id]);
 
   if (!isMounted || !testId) {

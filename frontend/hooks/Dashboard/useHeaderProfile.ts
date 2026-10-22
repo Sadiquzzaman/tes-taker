@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useStorageItem } from "@/hooks/useBrowserStorage";
 
-const getStoredUser = (): User | null => {
-  const userData = localStorage.getItem("user");
-
+const parseStoredUser = (userData: string | null | undefined): User | null => {
   if (!userData) {
     return null;
   }
@@ -16,12 +15,9 @@ const getStoredUser = (): User | null => {
 
 export const useHeaderProfile = () => {
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const storedUser = useStorageItem("local", "user");
+  const user = useMemo(() => parseStoredUser(storedUser), [storedUser]);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setUser(getStoredUser());
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

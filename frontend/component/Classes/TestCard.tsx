@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAppDispatch } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 import CalenderIconSVG from "../svg/CalenderIconSVG";
@@ -39,6 +40,8 @@ const TestCard = ({
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { download, loading: downloading } = useDownloadExamQuestions();
+  // Time the card was first rendered; decides whether a student may download the paper.
+  const [renderedAt] = useState(() => Date.now());
   const primarySubjectName = getTestSubjectLabel(testData);
   const categoryLabel = getTestCategoryLabel(testData);
   const audienceName = getTestAudienceLabel(testData);
@@ -52,7 +55,7 @@ const TestCard = ({
     isTeacherExamListItem(testData) &&
     Boolean(currentUserId) &&
     testData.created_by === currentUserId;
-  const canStudentDownload = Boolean(endAt && Date.now() > new Date(endAt).getTime());
+  const canStudentDownload = Boolean(endAt && renderedAt > new Date(endAt).getTime());
   const showDownload = isTeacher || (isStudent && canStudentDownload);
   const submissionProgress = participantCount > 0 ? (submittedCount / participantCount) * 100 : 0;
   const isExamDisabled = isTeacher && "is_active" in testData && testData.is_active === 0;

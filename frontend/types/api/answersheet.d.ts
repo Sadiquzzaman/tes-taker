@@ -1,4 +1,4 @@
-type AnswersheetMap = any;
+type AnswersheetMap = ExamAnswerState;
 type ExamAnswerValue = string | string[];
 type ExamAnswerState = Record<string, ExamAnswerValue>;
 
