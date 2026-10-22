@@ -40,6 +40,14 @@ const useProctoring = ({
   const isProctoringActive = useAppSelector(selectIsProctoringActive);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(initialMediaStream);
+  // Use a camera stream handed over from the permissions page as soon as it arrives.
+  const [syncedInitialStream, setSyncedInitialStream] = useState<MediaStream | null>(initialMediaStream);
+  if (syncedInitialStream !== initialMediaStream) {
+    setSyncedInitialStream(initialMediaStream);
+    if (initialMediaStream) {
+      setMediaStream(initialMediaStream);
+    }
+  }
   const activeSetupRequestRef = useRef(0);
 
   const featureEnabled = (key: string, defaultValue = true) =>
@@ -144,7 +152,6 @@ const useProctoring = ({
     dispatch(resetProctoring());
     dispatch(startProctoring());
     dispatch(setProctoringReady());
-    setMediaStream(initialMediaStream);
   }, [dispatch, initialMediaStream]);
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setOpenShareClassModal } from "@/lib/features/classSlice";
 import { useToast } from "@/component/Toast/ToastContext";
@@ -10,12 +10,11 @@ export default function useShareClass() {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
   const [classLink, setClassLink] = useState("");
-
-  useEffect(() => {
-    if (classData?.id) {
-      setClassLink(buildClassJoinLink(classData.id));
-    }
-  }, [classData]);
+  // Keep the last link while the modal closes, so the text does not go blank.
+  const nextClassLink = classData?.id ? buildClassJoinLink(classData.id) : null;
+  if (nextClassLink && nextClassLink !== classLink) {
+    setClassLink(nextClassLink);
+  }
 
   const handleClose = () => {
     dispatch(setOpenShareClassModal(null));

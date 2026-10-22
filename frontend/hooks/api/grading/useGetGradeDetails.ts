@@ -15,7 +15,12 @@ const useGetGradeDetails = (examId: string) => {
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
   const [apiComplete, setApiComplete] = useState(false);
-  const [readyExamId, setReadyExamId] = useState("");
+  // A different exam has not loaded yet.
+  const [apiCompleteExamId, setApiCompleteExamId] = useState(examId);
+  if (apiCompleteExamId !== examId) {
+    setApiCompleteExamId(examId);
+    setApiComplete(false);
+  }
   const normalizedSearchInput = useMemo(() => searchStudentInput.trim(), [searchStudentInput]);
 
   const fetch = useCallback(async () => {
@@ -51,25 +56,22 @@ const useGetGradeDetails = (examId: string) => {
       });
   }, [currentPage, dispatch, examId, handleError, normalizedSearchInput, router]);
 
+  // Clear the previous exam's data. This effect runs before the fetch effect below.
   useEffect(() => {
-    setApiComplete(false);
-    setReadyExamId("");
     dispatch(resetGradeDetails());
 
     if (!examId) {
       router.push("/grading");
-    } else {
-      setReadyExamId(examId);
+      return;
     }
 
     return () => {
-      setReadyExamId("");
       dispatch(resetGradeDetails());
     };
   }, [dispatch, examId, router]);
 
   useEffect(() => {
-    if (readyExamId !== examId) {
+    if (!examId) {
       return;
     }
 
@@ -80,7 +82,7 @@ const useGetGradeDetails = (examId: string) => {
     return () => {
       window.clearTimeout(timerId);
     };
-  }, [examId, fetch, readyExamId]);
+  }, [examId, fetch]);
 
   return {
     loading,

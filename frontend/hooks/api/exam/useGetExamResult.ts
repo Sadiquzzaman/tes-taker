@@ -28,15 +28,7 @@ const useGetExamResult = (examId: string) => {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<StudentExamResultPayload | null>(null);
 
-  const fetchResult = useCallback(async () => {
-    if (!examId) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
+  const requestResult = useCallback(() => {
     return axiosReq
       .get<
         ApiResponse<StudentExamResultPayload>,
@@ -56,9 +48,35 @@ const useGetExamResult = (examId: string) => {
       });
   }, [contextType, examId, organizationId, sessionMode, workspace]);
 
+  const fetchResult = useCallback(async () => {
+    if (!examId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    return requestResult();
+  }, [examId, requestResult]);
+
+  // Show the loading state again whenever the request changes; the effect below sends it.
+  const [shownRequest, setShownRequest] = useState<{ request: typeof requestResult } | null>(null);
+  if (shownRequest?.request !== requestResult) {
+    setShownRequest({ request: requestResult });
+    setLoading(Boolean(examId));
+    if (examId) {
+      setError(null);
+    }
+  }
+
   useEffect(() => {
-    void fetchResult();
-  }, [fetchResult]);
+    if (!examId) {
+      return;
+    }
+
+    void requestResult();
+  }, [examId, requestResult]);
 
   return { loading, error, result, refetch: fetchResult } as const;
 };

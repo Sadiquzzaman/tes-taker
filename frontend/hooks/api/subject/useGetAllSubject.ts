@@ -59,9 +59,13 @@ const useGetAllSubject = () => {
     [dispatch, handleError, isIndividual, subjectList.length],
   );
 
+  // Outside an individual workspace there is no subject list to fetch.
+  if (!isIndividual && !hasFetchedSubjectList) {
+    setHasFetchedSubjectList(true);
+  }
+
   useEffect(() => {
     if (!isIndividual) {
-      setHasFetchedSubjectList(true);
       return;
     }
 
