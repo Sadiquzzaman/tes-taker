@@ -59,8 +59,8 @@ const AccountBilling = () => {
   }, [highlightSlug, plansLoading]);
 
   const handleCheckout = async (plan: SubscriptionPlan) => {
-    const amount = getPrice(plan, billingCycle);
-    if (!amount) return;
+    // Free plans have nothing to pay for; the displayed price is never sent to the server.
+    if (!getPrice(plan, billingCycle)) return;
 
     setCheckoutLoading(plan.id);
 
@@ -71,22 +71,11 @@ const AccountBilling = () => {
       });
 
       const subscription = subscribeRes.data?.payload;
-      const user = JSON.parse(localStorage.getItem("user") ?? "{}");
+      if (!subscription?.id) throw new Error("No subscription returned");
 
+      // The server reads the price from the pending subscription; never send an amount.
       const paymentRes = await axiosReq.post(`${baseUrl}/payments/initiate`, {
-        orderId: `SUB_${subscription?.id ?? plan.id}_${Date.now()}`,
-        amount,
-        customer: {
-          name: user.full_name ?? "Teacher",
-          email: user.email ?? "teacher@instructor.academy",
-          phone: user.phone ?? "01700000000",
-        },
-        productName: `${plan.name ?? plan.display_name} Subscription`,
-        productCategory: "subscription",
-        teacherId: user.id,
-        planId: plan.id,
-        billingCycle,
-        subscriptionId: subscription?.id,
+        subscriptionId: subscription.id,
       });
 
       const gatewayUrl = paymentRes.data?.payload?.gatewayPageUrl ?? paymentRes.data?.gatewayPageUrl;
