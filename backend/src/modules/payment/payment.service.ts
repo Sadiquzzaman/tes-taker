@@ -15,6 +15,7 @@ import { DataSource, Repository } from 'typeorm';
 import { PaymentEntity } from './entities/payment.entity';
 import { PaymentStatusEnum } from './enums/payment-status.enum';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
+import { PaymentView } from './interfaces/payment-view.interface';
 import {
   SslCallbackPayload,
   SslCommerzConfig,
@@ -22,10 +23,13 @@ import {
   SslValidationResponse,
 } from './interfaces/sslcommerz.interface';
 import { SubscriptionService } from 'src/subscriptions/subscription.service';
+import { TeacherSubscriptionEntity } from 'src/subscriptions/entities/teacher-subscription.entity';
+import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 
 const SUCCESSFUL_VALIDATION_STATUSES = ['VALID', 'VALIDATED'];
 const HTTP_TIMEOUT_MS = 20000;
 const AMOUNT_TOLERANCE = 0.01;
+const PAYMENT_CURRENCY = 'BDT';
 
 @Injectable()
 export class PaymentService {
@@ -44,7 +48,15 @@ export class PaymentService {
   // Public API
   // ---------------------------------------------------------------------------
 
-  async initiatePayment(dto: InitiatePaymentDto): Promise<{
+  /**
+   * Start a checkout for one of the caller's PENDING subscriptions.
+   * The amount is the server-side price stored on the subscription; nothing
+   * price-related is taken from the browser.
+   */
+  async initiatePayment(
+    dto: InitiatePaymentDto,
+    user: JwtPayloadInterface,
+  ): Promise<{
     paymentId: string;
     orderId: string;
     transactionId: string;
@@ -53,31 +65,37 @@ export class PaymentService {
     gatewayPageUrl: string;
   }> {
     const config = this.getConfig();
+    const subscription = await this.subscriptionService.getPendingSubscriptionForPayment(
+      dto.subscriptionId,
+      user.id,
+    );
+    const amount = Number(subscription.amount_paid);
     const transactionId = this.generateTransactionId();
+    const orderId = `SUB_${subscription.id}_${Date.now()}`;
 
     const payment = this.paymentRepo.create({
-      orderId: dto.orderId,
+      orderId,
       transactionId,
-      amount: dto.amount,
-      currency: 'BDT',
+      amount,
+      currency: PAYMENT_CURRENCY,
       status: PaymentStatusEnum.PENDING,
-      customerName: dto.customer.name,
-      customerEmail: dto.customer.email,
-      customerPhone: dto.customer.phone,
+      customerName: user.full_name || 'Teacher',
+      customerEmail: user.email || 'teacher@instructor.academy',
+      customerPhone: user.phone || '00000000000',
       metadata: {
-        teacherId: dto.teacherId,
-        planId: dto.planId,
-        billingCycle: dto.billingCycle,
-        subscriptionId: dto.subscriptionId,
+        teacherId: user.id,
+        planId: subscription.plan_id,
+        billingCycle: subscription.billing_cycle,
+        subscriptionId: subscription.id,
       },
     });
     await this.paymentRepo.save(payment);
 
     this.logger.log(
-      `Initiating payment | paymentId=${payment.id} tran_id=${transactionId} orderId=${dto.orderId} amount=${dto.amount}`,
+      `Initiating payment | paymentId=${payment.id} tran_id=${transactionId} subscriptionId=${subscription.id} amount=${amount}`,
     );
 
-    const body = this.buildSessionPayload(config, dto, transactionId);
+    const body = this.buildSessionPayload(config, payment, subscription);
 
     let session: SslSessionResponse;
     try {
@@ -119,15 +137,20 @@ export class PaymentService {
   }
 
   /**
-   * Verify and settle a payment using the validation API.
+   * Verify and settle one of the caller's payments using the validation API.
    * Idempotent: an already-PAID payment is returned without re-processing.
    */
-  async verifyPayment(params: {
-    transactionId?: string;
-    valId?: string;
-  }): Promise<PaymentEntity> {
+  async verifyPayment(
+    params: {
+      transactionId?: string;
+      valId?: string;
+    },
+    userId: string,
+  ): Promise<PaymentView> {
     const transactionId = await this.resolveTransactionId(params);
-    return this.settlePayment(transactionId, params.valId);
+    await this.findOwnedPayment(transactionId, userId);
+    const payment = await this.settlePayment(transactionId, params.valId);
+    return this.toView(payment);
   }
 
   /**
@@ -195,12 +218,10 @@ export class PaymentService {
     );
   }
 
-  async getByTransactionId(transactionId: string): Promise<PaymentEntity> {
-    const payment = await this.paymentRepo.findOne({ where: { transactionId } });
-    if (!payment) {
-      throw new NotFoundException('Payment not found');
-    }
-    return payment;
+  /** Payment status for its owner only; anyone else gets "not found". */
+  async getByTransactionId(transactionId: string, userId: string): Promise<PaymentView> {
+    const payment = await this.findOwnedPayment(transactionId, userId);
+    return this.toView(payment);
   }
 
   // ---------------------------------------------------------------------------
@@ -254,18 +275,31 @@ export class PaymentService {
         throw new BadRequestException('Payment validation was not successful');
       }
 
-      // Guard against tampering: validated amount must match the recorded amount.
+      // Guard against tampering: the validated amount and currency must match the
+      // server-side price recorded at initiation. A missing amount is a mismatch.
       const validatedAmount = Number(validation.amount);
       const expectedAmount = Number(payment.amount);
       if (
-        !Number.isNaN(validatedAmount) &&
+        validation.amount === undefined ||
+        validation.amount === null ||
+        validation.amount === '' ||
+        Number.isNaN(validatedAmount) ||
         Math.abs(validatedAmount - expectedAmount) > AMOUNT_TOLERANCE
       ) {
         await repo.save(payment);
         this.logger.error(
-          `Amount mismatch | tran_id=${transactionId} expected=${expectedAmount} validated=${validatedAmount}`,
+          `Amount mismatch | tran_id=${transactionId} expected=${expectedAmount} validated=${validation.amount ?? 'missing'}`,
         );
         throw new BadRequestException('Payment amount mismatch');
+      }
+
+      const validatedCurrency = String(validation.currency_type ?? validation.currency ?? '').toUpperCase();
+      if (validatedCurrency !== (payment.currency ?? PAYMENT_CURRENCY).toUpperCase()) {
+        await repo.save(payment);
+        this.logger.error(
+          `Currency mismatch | tran_id=${transactionId} expected=${payment.currency} validated=${validatedCurrency || 'missing'}`,
+        );
+        throw new BadRequestException('Payment currency mismatch');
       }
 
       // Guard against transaction id mismatch from the gateway response.
@@ -383,15 +417,15 @@ export class PaymentService {
 
   private buildSessionPayload(
     config: SslCommerzConfig,
-    dto: InitiatePaymentDto,
-    transactionId: string,
+    payment: PaymentEntity,
+    subscription: TeacherSubscriptionEntity,
   ): URLSearchParams {
     const payload = new URLSearchParams();
     payload.append('store_id', config.storeId);
     payload.append('store_passwd', config.storePassword);
-    payload.append('total_amount', Number(dto.amount).toFixed(2));
-    payload.append('currency', 'BDT');
-    payload.append('tran_id', transactionId);
+    payload.append('total_amount', Number(payment.amount).toFixed(2));
+    payload.append('currency', payment.currency);
+    payload.append('tran_id', payment.transactionId);
     // Settlement happens server-side: the gateway returns to the backend, which
     // validates, updates the DB, then redirects the browser to the frontend.
     payload.append('success_url', `${config.backendBaseUrl}/api/v1/payments/success`);
@@ -403,23 +437,44 @@ export class PaymentService {
     payload.append('emi_option', '0');
 
     // Customer info (cus_add1/cus_city/cus_country are mandatory for the session API)
-    payload.append('cus_name', dto.customer.name);
-    payload.append('cus_email', dto.customer.email);
-    payload.append('cus_add1', dto.customer.address ?? 'N/A');
-    payload.append('cus_city', dto.customer.city ?? 'Dhaka');
-    payload.append('cus_postcode', dto.customer.postcode ?? '1000');
-    payload.append('cus_country', dto.customer.country ?? 'Bangladesh');
-    payload.append('cus_phone', dto.customer.phone);
+    payload.append('cus_name', payment.customerName ?? 'Teacher');
+    payload.append('cus_email', payment.customerEmail ?? '');
+    payload.append('cus_add1', 'N/A');
+    payload.append('cus_city', 'Dhaka');
+    payload.append('cus_postcode', '1000');
+    payload.append('cus_country', 'Bangladesh');
+    payload.append('cus_phone', payment.customerPhone ?? '');
 
     // Shipping (mandatory). Digital subscription => no shipping.
     payload.append('shipping_method', 'NO');
     payload.append('num_of_item', '1');
 
     // Product info (mandatory)
-    payload.append('product_name', dto.productName ?? 'Instructor Order');
-    payload.append('product_category', dto.productCategory ?? 'general');
+    payload.append('product_name', `${subscription.plan?.name ?? 'Instructor'} Subscription`);
+    payload.append('product_category', 'subscription');
     payload.append('product_profile', 'non-physical-goods');
     return payload;
+  }
+
+  /** Load a payment the user started; another user's payment is "not found". */
+  private async findOwnedPayment(transactionId: string, userId: string): Promise<PaymentEntity> {
+    const payment = await this.paymentRepo.findOne({ where: { transactionId } });
+    if (!payment || !userId || payment.metadata?.teacherId !== userId) {
+      throw new NotFoundException('Payment not found');
+    }
+    return payment;
+  }
+
+  /** Public view of a payment: no customer details and no raw gateway data. */
+  private toView(payment: PaymentEntity): PaymentView {
+    return {
+      transactionId: payment.transactionId,
+      status: payment.status,
+      amount: Number(payment.amount),
+      currency: payment.currency,
+      paymentMethod: payment.paymentMethod ?? null,
+      subscriptionId: payment.metadata?.subscriptionId,
+    };
   }
 
   private generateTransactionId(): string {

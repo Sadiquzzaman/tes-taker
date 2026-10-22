@@ -1,12 +1,18 @@
-import { Body, Controller, Get, Logger, Param, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import { ApiExcludeEndpoint, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { PaymentService } from './payment.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { SslCommerzCallbackDto } from './dto/sslcommerz-callback.dto';
 import { SslCallbackPayload } from './interfaces/sslcommerz.interface';
+import { RolesGuard } from 'src/common/guard/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RolesEnum } from 'src/common/enums/roles.enum';
+import { UserPayload } from 'src/common/decorators/user-payload.decorator';
+import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 
 @ApiTags('Payments')
 @Controller({ path: 'payments', version: '1' })
@@ -17,29 +23,37 @@ export class PaymentController {
 
   @Post('initiate')
   @Throttle({ default: { ttl: 60000, limit: 15 } })
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.TEACHER)
   @ApiOperation({
     summary: 'Initiate a payment',
     description:
-      'Creates a PENDING payment, requests an SSLCommerz session, and returns the GatewayPageURL for redirection.',
+      "Creates a PENDING payment for one of the caller's PENDING subscriptions, priced on the server, requests an SSLCommerz session, and returns the GatewayPageURL for redirection.",
   })
   @ApiResponse({ status: 201, description: 'Payment session created' })
-  async initiate(@Body() dto: InitiatePaymentDto) {
-    const payload = await this.paymentService.initiatePayment(dto);
+  async initiate(@Body() dto: InitiatePaymentDto, @UserPayload() user: JwtPayloadInterface) {
+    const payload = await this.paymentService.initiatePayment(dto, user);
     return { message: 'Payment session created successfully', payload };
   }
 
   @Post('verify')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({
     summary: 'Verify a payment',
     description:
-      'Confirms a payment through the SSLCommerz validation API. Idempotent: a PAID payment is returned unchanged.',
+      "Confirms one of the caller's payments through the SSLCommerz validation API. Idempotent: a PAID payment is returned unchanged.",
   })
   @ApiResponse({ status: 201, description: 'Payment verified' })
-  async verify(@Body() dto: VerifyPaymentDto) {
-    const payment = await this.paymentService.verifyPayment({
-      transactionId: dto.transactionId,
-      valId: dto.val_id,
-    });
+  async verify(@Body() dto: VerifyPaymentDto, @UserPayload() user: JwtPayloadInterface) {
+    const payment = await this.paymentService.verifyPayment(
+      {
+        transactionId: dto.transactionId,
+        valId: dto.val_id,
+      },
+      user.id,
+    );
     return { message: 'Payment verified successfully', payload: payment };
   }
 
@@ -115,11 +129,17 @@ export class PaymentController {
   }
 
   @Get(':transactionId')
-  @ApiOperation({ summary: 'Get payment by transaction id' })
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: "Get one of the caller's payments by transaction id" })
   @ApiParam({ name: 'transactionId', description: 'Gateway transaction id (tran_id)' })
   @ApiResponse({ status: 200, description: 'Payment retrieved' })
-  async getByTransactionId(@Param('transactionId') transactionId: string) {
-    const payment = await this.paymentService.getByTransactionId(transactionId);
+  @ApiResponse({ status: 404, description: 'Not found or not owned by the caller' })
+  async getByTransactionId(
+    @Param('transactionId') transactionId: string,
+    @UserPayload() user: JwtPayloadInterface,
+  ) {
+    const payment = await this.paymentService.getByTransactionId(transactionId, user.id);
     return { message: 'Payment retrieved successfully', payload: payment };
   }
 

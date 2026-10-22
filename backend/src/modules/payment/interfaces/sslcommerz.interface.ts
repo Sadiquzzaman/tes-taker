@@ -30,6 +30,9 @@ export interface SslValidationResponse {
   amount?: string;
   store_amount?: string;
   currency?: string;
+  /** Currency the session was created in (we always send BDT). */
+  currency_type?: string;
+  currency_amount?: string;
   card_type?: string;
   card_issuer?: string;
   risk_level?: string;

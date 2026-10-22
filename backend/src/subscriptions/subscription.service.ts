@@ -548,6 +548,31 @@ export class SubscriptionService implements OnModuleInit {
     return this.subscriptionRepo.save(subscription);
   }
 
+  /**
+   * Load a PENDING paid subscription owned by `teacherId` for checkout.
+   * Another teacher's subscription is reported as not found, so ids are not leaked.
+   * The price is `amount_paid`, computed by `subscribe()` from the plan on the server.
+   */
+  async getPendingSubscriptionForPayment(
+    subscriptionId: string,
+    teacherId: string,
+  ): Promise<TeacherSubscriptionEntity> {
+    const subscription = await this.subscriptionRepo.findOne({
+      where: { id: subscriptionId, teacher_id: teacherId },
+      relations: ['plan'],
+    });
+
+    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (subscription.status !== SubscriptionStatusEnum.PENDING) {
+      throw new BadRequestException('Subscription is not awaiting payment');
+    }
+    if (!(Number(subscription.amount_paid) > 0)) {
+      throw new BadRequestException('Subscription has no payable amount');
+    }
+
+    return subscription;
+  }
+
   async activateSubscriptionFromPayment(
     subscriptionId: string,
     transactionId: string,
@@ -560,6 +585,12 @@ export class SubscriptionService implements OnModuleInit {
     });
 
     if (!subscription) throw new NotFoundException('Subscription not found');
+
+    // Defence in depth: never activate for less than the server-side price.
+    const price = Number(subscription.amount_paid);
+    if (!(Number(amount) + 0.01 >= price)) {
+      throw new BadRequestException('Paid amount is below the subscription price');
+    }
 
     const activated = await this.swapToActiveSubscription(subscription, amount);
 
