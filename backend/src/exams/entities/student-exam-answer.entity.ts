@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, Unique } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserEntity } from 'src/user/entities/user.entity';
@@ -15,6 +15,7 @@ export enum ExamSubmissionStatusEnum {
 
 @Entity('student_exam_submissions')
 @Unique(['student_id', 'exam_id'])
+@Index('IDX_student_exam_submissions_status_deadline', ['status', 'effective_deadline'])
 export class StudentExamSubmissionEntity extends CustomBaseEntity {
   @ApiProperty({ description: 'Student ID' })
   @Column({ name: 'student_id', type: 'uuid' })
@@ -44,6 +45,12 @@ export class StudentExamSubmissionEntity extends CustomBaseEntity {
   @ApiPropertyOptional({ description: 'When the student started the exam' })
   @Column({ name: 'started_at', type: 'timestamp', nullable: true })
   started_at?: Date;
+
+  @ApiPropertyOptional({
+    description: 'Last moment answers are accepted: min(started_at + duration, exam end). Set at start.',
+  })
+  @Column({ name: 'effective_deadline', type: 'timestamptz', nullable: true })
+  effective_deadline?: Date | null;
 
   @ApiPropertyOptional({ description: 'When the student submitted the exam' })
   @Column({ name: 'submitted_at', type: 'timestamp', nullable: true })
