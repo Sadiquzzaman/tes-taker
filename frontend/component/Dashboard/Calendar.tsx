@@ -6,13 +6,20 @@ import ChevronRightIconSVG from "../svg/ChevronRightIconSVG";
 import { useDashboard } from "@/context/DashboardContext";
 import { getMonthName, getDaysInMonth, getPrevMonthYear, WEEK_DAYS } from "@/utils/Dashboard/calendar";
 import DashboardWidgetSkeleton from "./DashboardWidgetSkeleton";
+import { useIsClient } from "@/hooks/useBrowserStorage";
 
 const Calendar = () => {
   const { data, loading, calendarYear, calendarMonth, setCalendarMonth, setCalendarYear } = useDashboard();
   const [isWide, setIsWide] = useState(false);
   const [yearPopupOpen, setYearPopupOpen] = useState(false);
   const yearPopupRef = useRef<HTMLDivElement>(null);
+  const isClient = useIsClient();
   const [today, setToday] = useState<{ day: number; month: number; year: number } | null>(null);
+  // Today's date is read once in the browser so the server render does not depend on its clock.
+  if (isClient && today === null) {
+    const now = new Date();
+    setToday({ day: now.getDate(), month: now.getMonth() + 1, year: now.getFullYear() });
+  }
 
   const month = calendarMonth;
   const year = calendarYear;
@@ -28,11 +35,6 @@ const Calendar = () => {
   }, [data?.calendar_events, month, year]);
 
   const hasEventsThisMonth = eventDays.size > 0;
-
-  useEffect(() => {
-    const now = new Date();
-    setToday({ day: now.getDate(), month: now.getMonth() + 1, year: now.getFullYear() });
-  }, []);
 
   useEffect(() => {
     const check = () => setIsWide(window.innerWidth >= 900);

@@ -27,8 +27,8 @@ src/modules/payment/
 
 | Variable | Description | Example |
 | --- | --- | --- |
-| `SSL_STORE_ID` | Sandbox store id | `magne6a3d8f92c572f` |
-| `SSL_STORE_PASSWORD` | Sandbox store password | `magne6a3d8f92c572f@ssl` |
+| `SSL_STORE_ID` | Sandbox store id | `your_sandbox_store_id` |
+| `SSL_STORE_PASSWORD` | Sandbox store password (from the SSLCommerz sandbox dashboard; never commit real values) | `your_sandbox_store_password` |
 | `SSL_SESSION_API` | Session (initiate) API | `https://sandbox.sslcommerz.com/gwprocess/v4/api.php` |
 | `SSL_VALIDATION_API` | Validation API | `https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php` |
 | `BACKEND_BASE_URL` | Public backend base URL (used to build `ipn_url`) | `http://localhost:5000` |
@@ -63,24 +63,20 @@ All non-callback responses are wrapped by the global interceptor as:
 
 ### POST /api/v1/payments/initiate
 
-Request:
+Requires a teacher login (`Authorization: Bearer`). Request:
 
 ```json
-{
-  "orderId": "ORDER_123",
-  "amount": 1000,
-  "customer": { "name": "John Doe", "email": "john@example.com", "phone": "017xxxxxxxx" },
-  "productName": "Premium Subscription",
-  "productCategory": "subscription"
-}
+{ "subscriptionId": "PENDING subscription UUID from POST /subscriptions/subscribe" }
 ```
+
+The subscription must belong to the caller and be `PENDING` (another teacher's id returns 404). The amount is the subscription's server-side price (`amount_paid`), the currency is BDT, and customer details come from the login. Any other field in the body (for example `amount`) is ignored.
 
 Response `payload`:
 
 ```json
 {
   "paymentId": "0f0b...uuid",
-  "orderId": "ORDER_123",
+  "orderId": "SUB_<subscriptionId>_<timestamp>",
   "transactionId": "TT_LZ3K9_8F21AB0C",
   "amount": 1000,
   "currency": "BDT",
@@ -92,13 +88,13 @@ The frontend redirects the user to `gatewayPageUrl`.
 
 ### POST /api/v1/payments/verify
 
-Called by the frontend success page. Provide `val_id` (preferred) or `transactionId`:
+Requires login; only the user who started the payment can verify it (404 otherwise). Provide `val_id` (preferred) or `transactionId`:
 
 ```json
 { "val_id": "2406...", "transactionId": "TT_LZ3K9_8F21AB0C" }
 ```
 
-Response `payload` is the updated payment (status `PAID` on success). Idempotent — calling again returns the same `PAID` record.
+Response `payload` is the payment view (`transactionId`, `status`, `amount`, `currency`, `paymentMethod`, `subscriptionId`; status `PAID` on success). Idempotent — calling again returns the same `PAID` record.
 
 ### POST /api/v1/payments/ipn
 
@@ -110,12 +106,14 @@ Server-side gateway callbacks (urlencoded). `success` re-validates before markin
 
 ### GET /api/v1/payments/:transactionId
 
-Returns the stored payment by `tran_id` (status polling / debugging).
+Requires login; returns the payment view (same fields as verify, no customer details) only to the user who started the payment, 404 for anyone else. Used by the frontend success page to poll status.
 
 ## Validation rules
 
 - Only `VALID` or `VALIDATED` validation statuses settle a payment.
-- Validated amount must match the recorded amount (tolerance 0.01).
+- Validated amount must be present and match the server-side price recorded at initiation (tolerance 0.01).
+- Validated currency (`currency_type`, else `currency`) must be BDT.
+- A subscription is never activated for less than its stored price.
 - Validated `tran_id` must match the stored `tran_id`.
 - Frontend success is never trusted without a validation-API check.
 

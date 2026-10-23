@@ -58,7 +58,7 @@ export const useApiError = () => {
       description: message,
       type: "error",
     });
-  }, []);
+  }, [triggerToast]);
 
   return { handleError };
 };

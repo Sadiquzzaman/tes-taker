@@ -22,7 +22,7 @@ const NormalInput = ({
   type?: string;
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value;
+    const val = e.target.value;
 
     if (type === "number" && !/^\d*$/.test(val)) return;
 

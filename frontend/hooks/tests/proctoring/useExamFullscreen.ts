@@ -3,10 +3,16 @@ import { useCallback, useEffect, useState } from "react";
 
 const useExamFullscreen = (active: boolean) => {
   const [needsFullscreen, setNeedsFullscreen] = useState(false);
+  // Check fullscreen when the exam becomes active, and stop asking when it becomes inactive.
+  // `active` is false on the server, so `document` is only read in the browser.
+  const [syncedActive, setSyncedActive] = useState(false);
+  if (syncedActive !== active) {
+    setSyncedActive(active);
+    setNeedsFullscreen(active ? !document.fullscreenElement : false);
+  }
 
   useEffect(() => {
     if (!active) {
-      setNeedsFullscreen(false);
       return;
     }
 
@@ -14,7 +20,6 @@ const useExamFullscreen = (active: boolean) => {
       setNeedsFullscreen(!document.fullscreenElement);
     };
 
-    syncFullscreenState();
     document.addEventListener("fullscreenchange", syncFullscreenState);
     window.addEventListener("focus", syncFullscreenState);
     document.addEventListener("visibilitychange", syncFullscreenState);

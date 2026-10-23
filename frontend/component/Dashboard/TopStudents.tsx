@@ -21,11 +21,17 @@ const TopStudents = () => {
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (classOptions.length > 0 && !selectedClassId) {
-      setSelectedClassId(classOptions[0].class_id);
-    }
-  }, [classOptions, selectedClassId]);
+  // Select the first class once the dashboard data arrives.
+  if (classOptions.length > 0 && !selectedClassId && classOptions[0].class_id) {
+    setSelectedClassId(classOptions[0].class_id);
+  }
+
+  // Clear the search box whenever a different class is selected.
+  const [searchedClassId, setSearchedClassId] = useState(selectedClassId);
+  if (searchedClassId !== selectedClassId) {
+    setSearchedClassId(selectedClassId);
+    setSearch("");
+  }
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -42,10 +48,6 @@ const TopStudents = () => {
 
   const selectedClass = classOptions.find((item) => item.class_id === selectedClassId) ?? classOptions[0];
   const students = selectedClass?.students ?? [];
-
-  useEffect(() => {
-    setSearch("");
-  }, [selectedClassId]);
 
   const filteredStudents = useMemo(() => {
     return students

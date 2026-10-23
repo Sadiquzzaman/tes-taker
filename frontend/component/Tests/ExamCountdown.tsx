@@ -17,31 +17,38 @@ export default function ExamCountdown({
         : null;
 
   const [timeLeft, setTimeLeft] = useState<number | null>(initialSeconds);
+  // Start again from the new value whenever the exam duration or server remaining time changes.
+  const [timerSource, setTimerSource] = useState({ durationMinutes, remainingSeconds });
+  if (timerSource.durationMinutes !== durationMinutes || timerSource.remainingSeconds !== remainingSeconds) {
+    setTimerSource({ durationMinutes, remainingSeconds });
+    setTimeLeft(initialSeconds);
+  }
+
   const hasSubmittedRef = useRef(false);
   const hasStartedRef = useRef(false);
+  const intervalRef = useRef<number | null>(null);
   const handleStart = useEffectEvent(() => {
     onStart?.();
   });
   const handleTimeUp = useEffectEvent(() => {
+    if (hasSubmittedRef.current) {
+      return;
+    }
+    hasSubmittedRef.current = true;
     onTimeUp?.();
   });
 
+  // Run the countdown. It restarts only when the starting value changes, not on every render.
   useEffect(() => {
+    hasSubmittedRef.current = false;
+
     if (initialSeconds === null) {
-      hasSubmittedRef.current = false;
       hasStartedRef.current = false;
-      setTimeLeft(null);
       return;
     }
 
-    hasSubmittedRef.current = false;
-    setTimeLeft(initialSeconds);
-
     if (initialSeconds <= 0) {
-      if (!hasSubmittedRef.current) {
-        hasSubmittedRef.current = true;
-        handleTimeUp();
-      }
+      handleTimeUp();
       return;
     }
 
@@ -51,29 +58,34 @@ export default function ExamCountdown({
     }
 
     const interval = window.setInterval(() => {
-      setTimeLeft((previousTimeLeft) => {
-        if (previousTimeLeft === null || previousTimeLeft <= 0) {
-          window.clearInterval(interval);
-          return 0;
-        }
-
-        if (previousTimeLeft === 1) {
-          window.clearInterval(interval);
-
-          if (!hasSubmittedRef.current && !submitButtonRef.current?.disabled) {
-            hasSubmittedRef.current = true;
-            handleTimeUp();
-          }
-
-          return 0;
-        }
-
-        return previousTimeLeft - 1;
-      });
+      setTimeLeft((previousTimeLeft) =>
+        previousTimeLeft === null || previousTimeLeft <= 0 ? 0 : previousTimeLeft - 1,
+      );
     }, 1000);
+    intervalRef.current = interval;
 
-    return () => window.clearInterval(interval);
-  }, [durationMinutes, handleStart, handleTimeUp, initialSeconds, remainingSeconds, submitButtonRef]);
+    return () => {
+      window.clearInterval(interval);
+      intervalRef.current = null;
+    };
+  }, [durationMinutes, initialSeconds, remainingSeconds]);
+
+  // When the countdown reaches zero, stop it and submit (unless a submit is already in progress).
+  const isTimeUp = timeLeft === 0;
+  useEffect(() => {
+    if (!isTimeUp) {
+      return;
+    }
+
+    if (intervalRef.current !== null) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    if (!submitButtonRef.current?.disabled) {
+      handleTimeUp();
+    }
+  }, [isTimeUp, submitButtonRef]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);

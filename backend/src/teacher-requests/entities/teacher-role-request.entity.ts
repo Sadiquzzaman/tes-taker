@@ -4,6 +4,11 @@ import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { TeacherRequestStatusEnum } from '../enums/teacher-request-status.enum';
 
+// One pending request per user (created in ReconcileSchema1754900000000).
+@Index('UQ_teacher_role_requests_pending_user', ['user_id'], {
+  unique: true,
+  where: `"status" = 'pending'`,
+})
 @Entity('teacher_role_requests')
 export class TeacherRoleRequestEntity extends CustomBaseEntity {
   @ApiProperty({ description: 'Requesting student user id' })

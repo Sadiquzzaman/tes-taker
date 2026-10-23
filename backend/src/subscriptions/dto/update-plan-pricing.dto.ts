@@ -1,6 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
-import { SubscriptionPlanTypeEnum } from '../entities/subscription-plan.entity';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class UpdatePlanPricingDto {
   @ApiPropertyOptional({

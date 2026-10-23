@@ -32,6 +32,28 @@ export class RedisService implements OnApplicationShutdown {
     return await this.client.get(key);
   }
 
+  /**
+   * Increment a counter and start its expiry on the first hit, so the window
+   * runs from the first increment (fixed window). Returns the new count.
+   */
+  async incrWithTtl(key: string, expirationSeconds: number): Promise<number> {
+    const count = await this.client.incr(key);
+    if (count === 1) {
+      await this.client.expire(key, expirationSeconds);
+    }
+    return count;
+  }
+
+  /** Sets a key's time-to-live in seconds. */
+  async expire(key: string, expirationSeconds: number): Promise<void> {
+    await this.client.expire(key, expirationSeconds);
+  }
+
+  /** Remaining time-to-live in seconds (-2 if the key does not exist, -1 if it has no expiry). */
+  async ttl(key: string): Promise<number> {
+    return await this.client.ttl(key);
+  }
+
   async ping(): Promise<boolean> {
     const result = await this.client.ping();
     return result === 'PONG';

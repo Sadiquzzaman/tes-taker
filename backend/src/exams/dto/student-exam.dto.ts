@@ -10,9 +10,7 @@ import {
   IsUUID,
   MaxLength,
   Min,
-  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { CorrectAnswerEnum } from '../entities/exam-question.entity';
 import { ExamFinalizeReasonEnum } from '../enums/exam-access-reason.enum';
 
@@ -126,29 +124,6 @@ export class SubmitAnswerSheetDto {
     points?: number;
     timestamp?: string;
   }>;
-}
-
-export class SubmitExamDto {
-  @ApiProperty({ 
-    description: 'Array of answers to submit', 
-    type: [SaveAnswerDto] 
-  })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => SaveAnswerDto)
-  answers: SaveAnswerDto[];
-
-  @ApiPropertyOptional({ description: 'Browser switch count during exam' })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  browser_switch_count?: number;
-
-  @ApiPropertyOptional({ description: 'Tab switch count during exam' })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  tab_switch_count?: number;
 }
 
 export class ReportViolationDto {

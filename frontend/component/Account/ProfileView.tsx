@@ -44,7 +44,7 @@ const ProfileView = () => {
   if (error || !profile) {
     return (
       <div className="flex min-h-[300px] flex-col items-center justify-center gap-4">
-        <p className="text-[16px] font-[500] text-[#232A25]">We couldn't load your profile.</p>
+        <p className="text-[16px] font-[500] text-[#232A25]">We couldn&apos;t load your profile.</p>
         <button
           onClick={() => void refetch()}
           className="px-4 h-10 flex items-center justify-center rounded-[8px] bg-[#49734F] text-white text-[14px] font-[500] tracking-[-0.02em]"

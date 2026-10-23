@@ -6,6 +6,7 @@ import { SendOtpDto, VerifyOtpDto, ResetSmsCacheDto } from './dto/sms.dto';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guard/roles.guard';
+import { AuthThrottle } from 'src/common/decorators/auth-throttle.decorator';
 
 @ApiTags('SMS')
 @Controller({
@@ -16,6 +17,7 @@ export class SmsController {
   constructor(private readonly smsService: SmsService) {}
 
   @Post('send-otp')
+  @AuthThrottle({ fields: ['phone'], perIdentifier: 3, perIp: 30 })
   async sendOtp(@Body() sendOtpDto: SendOtpDto) {
     const result = await this.smsService.sendOtp(sendOtpDto.phone);
     return {
@@ -25,6 +27,7 @@ export class SmsController {
   }
 
   @Post('verify-otp')
+  @AuthThrottle({ fields: ['phone'], perIdentifier: 10, perIp: 120 })
   async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
     const result = await this.smsService.verifyOtp(verifyOtpDto.phone, verifyOtpDto.otp);
     return {
@@ -33,6 +36,9 @@ export class SmsController {
     };
   }
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN)
   @Get('status/:phoneNumber')
   async getSmsStatus(@Param('phoneNumber') phoneNumber: string) {
     const status = await this.smsService.getSmsStatus(phoneNumber);

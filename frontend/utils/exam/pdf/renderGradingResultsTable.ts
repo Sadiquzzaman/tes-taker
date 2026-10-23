@@ -105,7 +105,7 @@ const renderTableRow = async (
   contentWidth: number,
 ): Promise<number> => {
   const columns = getColumnLayout(contentWidth);
-  let cursorY = ensureSpace(doc, y, TABLE_ROW_MIN_HEIGHT);
+  const cursorY = ensureSpace(doc, y, TABLE_ROW_MIN_HEIGHT);
   const rowTop = cursorY;
 
   const serialHeight = renderLatinCell(doc, String(serial), columns.serial.x, rowTop, columns.serial.width, "center");

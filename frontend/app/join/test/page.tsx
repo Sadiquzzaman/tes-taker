@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthLayout from "@/component/Auth/AuthLayout";
 import SuccessIconSVG from "@/component/svg/SuccessIconSVG";
+import { useIsClient } from "@/hooks/useBrowserStorage";
 
 const INITIALSTATE: IJoinTest = {
   status: "loading",
@@ -11,67 +12,68 @@ const INITIALSTATE: IJoinTest = {
   description: "Checking your test join request.",
 };
 
+const errorState = (message: string, title: string = "Request unavailable"): IJoinTest => ({
+  status: "error",
+  title,
+  description: message,
+});
+
+// Builds the page state from the join details saved in browser storage. Browser-only.
+const readJoinTestState = (): IJoinTest => {
+  const testJoinResponse = sessionStorage.getItem("testJoinResponse");
+  const joinSessionInfo = sessionStorage.getItem("joinSessionInfo");
+  const user = localStorage.getItem("user");
+
+  if (!testJoinResponse) {
+    return errorState("No join request was found for this session.");
+  }
+
+  if (!joinSessionInfo || !user) {
+    return errorState("Required join details are missing. Please try the test join flow again.");
+  }
+
+  try {
+    const parsedTestJoinResponse = JSON.parse(testJoinResponse);
+    const parsedJoinSessionInfo = JSON.parse(joinSessionInfo);
+    const parsedUser = JSON.parse(user);
+
+    console.log({
+      parsedTestJoinResponse,
+      parsedJoinSessionInfo,
+      parsedUser,
+    });
+
+    if (!parsedTestJoinResponse || !parsedJoinSessionInfo.id || !parsedUser.full_name) {
+      return errorState("The join information is incomplete.");
+    }
+
+    if (!parsedTestJoinResponse.eligible) {
+      return errorState("You are not eligible to join this test.", "Not Eligible");
+    }
+
+    return {
+      status: "success",
+      title: `Welcome ${parsedUser.full_name}`,
+      test: parsedJoinSessionInfo.test_name,
+      teacher: parsedJoinSessionInfo.created_user_name,
+      time: parsedJoinSessionInfo.duration_minutes,
+      testId: parsedJoinSessionInfo.id,
+      description: "",
+    };
+  } catch {
+    return errorState("Stored join information could not be read.");
+  }
+};
+
 const JoinTest = () => {
   const router = useRouter();
-  const [pageState, setPageState] = useState<IJoinTest>(INITIALSTATE);
-
-  const handleErrorState = (message: string, title: string = "Request unavailable") => {
-    setPageState({
-      status: "error",
-      title,
-      description: message,
-    });
-  };
-
-  useEffect(() => {
-    const testJoinResponse = sessionStorage.getItem("testJoinResponse");
-    const joinSessionInfo = sessionStorage.getItem("joinSessionInfo");
-    const user = localStorage.getItem("user");
-
-    if (!testJoinResponse) {
-      handleErrorState("No join request was found for this session.");
-      return;
-    }
-
-    if (!joinSessionInfo || !user) {
-      handleErrorState("Required join details are missing. Please try the test join flow again.");
-      return;
-    }
-
-    try {
-      const parsedTestJoinResponse = JSON.parse(testJoinResponse);
-      const parsedJoinSessionInfo = JSON.parse(joinSessionInfo);
-      const parsedUser = JSON.parse(user);
-
-      console.log({
-        parsedTestJoinResponse,
-        parsedJoinSessionInfo,
-        parsedUser,
-      });
-
-      if (!parsedTestJoinResponse || !parsedJoinSessionInfo.id || !parsedUser.full_name) {
-        handleErrorState("The join information is incomplete.");
-        return;
-      }
-
-      if (!parsedTestJoinResponse.eligible) {
-        handleErrorState("You are not eligible to join this test.", "Not Eligible");
-        return;
-      }
-
-      setPageState({
-        status: "success",
-        title: `Welcome ${parsedUser.full_name}`,
-        test: parsedJoinSessionInfo.test_name,
-        teacher: parsedJoinSessionInfo.created_user_name,
-        time: parsedJoinSessionInfo.duration_minutes,
-        testId: parsedJoinSessionInfo.id,
-        description: "",
-      });
-    } catch {
-      handleErrorState("Stored join information could not be read.");
-    }
-  }, []);
+  const isClient = useIsClient();
+  const [storedState, setStoredState] = useState<IJoinTest | null>(null);
+  // Read storage once, on the first render in the browser.
+  if (isClient && storedState === null) {
+    setStoredState(readJoinTestState());
+  }
+  const pageState = storedState ?? INITIALSTATE;
 
   const handleStartTest = () => {
     sessionStorage.removeItem("testJoinResponse");

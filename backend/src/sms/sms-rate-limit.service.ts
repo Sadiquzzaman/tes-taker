@@ -1,5 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { timingSafeEqual } from 'crypto';
 import { RedisService } from '../config/redis.service';
+
+/** Which OTP flow a code belongs to; each flow has its own wrong-guess counter. */
+export const OTP_PURPOSES = ['register', 'reset'] as const;
+export type OtpPurpose = (typeof OTP_PURPOSES)[number];
+
+export type OtpCheckResult = 'valid' | 'invalid' | 'expired';
+
+/** Wrong codes allowed before the identifier is locked (design §8.2). */
+export const OTP_MAX_WRONG_ATTEMPTS = 5;
+/** How long a locked identifier stays locked, and the window wrong codes are counted in. */
+export const OTP_LOCKOUT_SECONDS = 15 * 60;
+
+function otpMatches(stored: string, submitted: string): boolean {
+  const a = Buffer.from(stored);
+  const b = Buffer.from(String(submitted ?? ''));
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 @Injectable()
 export class SmsRateLimitService {
@@ -21,6 +39,74 @@ export class SmsRateLimitService {
 
   private getPasswordResetOtpKey(identifier: string): string {
     return `pwd_reset_otp:${identifier.toLowerCase()}`;
+  }
+
+  private getOtpFailKey(purpose: OtpPurpose, identifier: string): string {
+    return `otp_fail:${purpose}:${identifier.toLowerCase()}`;
+  }
+
+  private getOtpLockKey(purpose: OtpPurpose, identifier: string): string {
+    return `otp_lock:${purpose}:${identifier.toLowerCase()}`;
+  }
+
+  private otpLockedException(secondsLeft: number): HttpException {
+    const minutes = Math.max(1, Math.ceil(secondsLeft / 60));
+    return new HttpException(
+      `Too many wrong codes. Please try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
+  }
+
+  /**
+   * Throws 429 while the identifier is locked after too many wrong codes.
+   * Redis errors are not swallowed here: if the lock can't be read, the
+   * request fails instead of silently allowing unlimited guesses.
+   */
+  async assertOtpNotLocked(purpose: OtpPurpose, identifier: string): Promise<void> {
+    const lockKey = this.getOtpLockKey(purpose, identifier);
+    if (await this.redisService.get(lockKey)) {
+      const ttl = await this.redisService.ttl(lockKey);
+      throw this.otpLockedException(ttl > 0 ? ttl : OTP_LOCKOUT_SECONDS);
+    }
+  }
+
+  /**
+   * Checks a submitted OTP against the stored one and counts wrong guesses.
+   * After OTP_MAX_WRONG_ATTEMPTS wrong codes the identifier is locked for
+   * OTP_LOCKOUT_SECONDS; while locked every attempt (even the right code) gets
+   * 429. A correct code clears the counter. Asking for a new code does not
+   * lift the lock.
+   */
+  async checkOtpAttempt(
+    purpose: OtpPurpose,
+    identifier: string,
+    submittedOtp: string,
+    storedOtp: string | null,
+  ): Promise<OtpCheckResult> {
+    await this.assertOtpNotLocked(purpose, identifier);
+
+    if (!storedOtp) {
+      return 'expired';
+    }
+
+    const failKey = this.getOtpFailKey(purpose, identifier);
+    if (otpMatches(storedOtp, submittedOtp)) {
+      await this.redisService.del(failKey);
+      return 'valid';
+    }
+
+    const failures = await this.redisService.incrWithTtl(failKey, OTP_LOCKOUT_SECONDS);
+    if (failures >= OTP_MAX_WRONG_ATTEMPTS) {
+      await this.redisService.set(
+        this.getOtpLockKey(purpose, identifier),
+        new Date(Date.now() + OTP_LOCKOUT_SECONDS * 1000).toISOString(),
+        OTP_LOCKOUT_SECONDS,
+      );
+      await this.redisService.del(failKey);
+      this.logger.warn(`OTP locked for ${purpose} after ${failures} wrong codes`);
+      throw this.otpLockedException(OTP_LOCKOUT_SECONDS);
+    }
+    return 'invalid';
   }
 
   async canSendSms(phoneNumber: string): Promise<{ canSend: boolean; remainingAttempts?: number; blockedUntil?: Date }> {
@@ -141,13 +227,21 @@ export class SmsRateLimitService {
   async resetSmsCache(phoneNumber?: string): Promise<void> {
     try {
       if (phoneNumber) {
-        // Reset specific phone number
+        // Reset specific phone number, including wrong-code lockouts for every OTP purpose
         await this.redisService.del(this.getSmsAttemptKey(phoneNumber));
         await this.redisService.del(this.getSmsBlockKey(phoneNumber));
         await this.redisService.del(this.getOtpKey(phoneNumber));
+        for (const purpose of OTP_PURPOSES) {
+          await this.redisService.del(this.getOtpFailKey(purpose, phoneNumber));
+          await this.redisService.del(this.getOtpLockKey(purpose, phoneNumber));
+        }
       } else {
-        // Reset all SMS-related cache
-        const keys = await this.redisService.keys('sms_*');
+        // Reset all SMS-related cache and every OTP lockout
+        const keys = [
+          ...(await this.redisService.keys('sms_*')),
+          ...(await this.redisService.keys('otp_fail:*')),
+          ...(await this.redisService.keys('otp_lock:*')),
+        ];
         if (keys.length > 0) {
           await this.redisService.delMultiple(keys);
         }

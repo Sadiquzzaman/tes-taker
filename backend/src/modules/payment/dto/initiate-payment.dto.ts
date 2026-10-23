@@ -1,98 +1,14 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsNumber,
-  IsObject,
-  IsOptional,
-  IsString,
-  Min,
-  ValidateNested,
-} from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsUUID } from 'class-validator';
 
-export class PaymentCustomerDto {
-  @ApiProperty({ example: 'John Doe' })
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @ApiProperty({ example: 'john@example.com' })
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-
-  @ApiProperty({ example: '017xxxxxxxx' })
-  @IsString()
-  @IsNotEmpty()
-  phone: string;
-
-  @ApiPropertyOptional({ example: 'House 1, Road 1' })
-  @IsOptional()
-  @IsString()
-  address?: string;
-
-  @ApiPropertyOptional({ example: 'Dhaka' })
-  @IsOptional()
-  @IsString()
-  city?: string;
-
-  @ApiPropertyOptional({ example: '1000' })
-  @IsOptional()
-  @IsString()
-  postcode?: string;
-
-  @ApiPropertyOptional({ example: 'Bangladesh' })
-  @IsOptional()
-  @IsString()
-  country?: string;
-}
-
+/**
+ * The client only says which PENDING subscription to pay for.
+ * Amount, currency, customer and plan details are all read on the server;
+ * any other field sent by the browser is stripped by the global ValidationPipe.
+ */
 export class InitiatePaymentDto {
-  @ApiProperty({ example: 'ORDER_123' })
-  @IsString()
+  @ApiProperty({ description: 'Pending subscription UUID owned by the caller' })
+  @IsUUID()
   @IsNotEmpty()
-  orderId: string;
-
-  @ApiProperty({ example: 1000, minimum: 1 })
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(1)
-  @Type(() => Number)
-  amount: number;
-
-  @ApiProperty({ type: PaymentCustomerDto })
-  @IsObject()
-  @ValidateNested()
-  @Type(() => PaymentCustomerDto)
-  customer: PaymentCustomerDto;
-
-  @ApiProperty({ required: false, example: 'Premium Subscription' })
-  @IsOptional()
-  @IsString()
-  productName?: string;
-
-  @ApiProperty({ required: false, example: 'subscription' })
-  @IsOptional()
-  @IsString()
-  productCategory?: string;
-
-  @ApiPropertyOptional({ description: 'Teacher UUID for subscription checkout' })
-  @IsOptional()
-  @IsString()
-  teacherId?: string;
-
-  @ApiPropertyOptional({ description: 'Plan UUID for subscription checkout' })
-  @IsOptional()
-  @IsString()
-  planId?: string;
-
-  @ApiPropertyOptional({ description: 'Billing cycle for subscription checkout' })
-  @IsOptional()
-  @IsString()
-  billingCycle?: string;
-
-  @ApiPropertyOptional({ description: 'Pending subscription UUID' })
-  @IsOptional()
-  @IsString()
-  subscriptionId?: string;
+  subscriptionId: string;
 }

@@ -3,6 +3,7 @@
 import ExamMessageScreen from "@/component/Tests/exam/ExamMessageScreen";
 import StudentExamPermissionFlow from "@/component/Tests/exam/StudentExamPermissionFlow";
 import useExamEligibility from "@/hooks/api/exam/useExamEligibility";
+import { useIsClient } from "@/hooks/useBrowserStorage";
 import { isExamPermissionsComplete } from "@/utils/tests/examSessionMedia";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -10,8 +11,13 @@ import { RotatingLines } from "react-loader-spinner";
 
 export default function TestPermissionsPage() {
   const router = useRouter();
-  const [testId, setTestId] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useIsClient();
+  const [storedTestId, setStoredTestId] = useState<{ value: string | null } | null>(null);
+  // Read once, on the first render in the browser.
+  if (isMounted && storedTestId === null) {
+    setStoredTestId({ value: sessionStorage.getItem("testId") });
+  }
+  const testId = storedTestId?.value ?? null;
 
   const {
     loading: eligibilityLoading,
@@ -19,11 +25,6 @@ export default function TestPermissionsPage() {
     eligibility,
     messageVariant,
   } = useExamEligibility(testId, isMounted && Boolean(testId));
-
-  useEffect(() => {
-    setTestId(sessionStorage.getItem("testId"));
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!isMounted) {

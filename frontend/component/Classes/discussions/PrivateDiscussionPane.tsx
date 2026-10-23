@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { AxiosError } from "axios";
 import DropDownComponent from "@/Ui/DropDownComponent";
 import ChatBubble from "./ChatBubble";
 import AttachmentChip from "./AttachmentChip";
@@ -87,8 +88,9 @@ const PrivateDiscussionPane = ({
         uploaded.push(await uploadDiscussionAttachment(classId, file));
       }
       setAttachments((current) => [...current, ...uploaded]);
-    } catch (error: any) {
-      setLocalError(error?.response?.data?.message || "Upload failed. Please try again.");
+    } catch (caught) {
+      const error = caught as AxiosError<{ message?: string }>;
+      setLocalError(error.response?.data?.message || "Upload failed. Please try again.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -102,8 +104,9 @@ const PrivateDiscussionPane = ({
       setContent("");
       setAttachments([]);
       setLocalError("");
-    } catch (error: any) {
-      const message = error?.response?.data?.message;
+    } catch (caught) {
+      const error = caught as AxiosError<{ message?: string | string[] }>;
+      const message = error.response?.data?.message;
       setLocalError(
         Array.isArray(message)
           ? message[0]

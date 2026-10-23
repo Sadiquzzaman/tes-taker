@@ -38,6 +38,16 @@ type AdminUserSummary = {
   created_at: Date;
 };
 
+/** Registration data plus the fields only the server sets when creating a user. */
+export type CreateUserInput = RegisterUserDto & {
+  is_otp_verified?: boolean;
+  is_verified?: boolean;
+  is_active?: ActiveStatusEnum;
+  personal_teacher_enabled?: boolean;
+  ensure_teacher_public_id?: boolean;
+  student_public_id?: string | null;
+};
+
 @Injectable()
 export class UserService implements OnModuleInit {
   private readonly logger = new Logger(UserService.name);
@@ -149,7 +159,7 @@ export class UserService implements OnModuleInit {
       this.configService.get<string>('ADMIN_EMAIL')?.trim().toLowerCase() || 'admin@testtaker.local';
     const phone = this.configService.get<string>('ADMIN_PHONE')?.trim() || 'ADMIN00000001';
 
-    let candidate =
+    const candidate =
       (await this.findByEmail(email)) ||
       (await this.findByPhone(phone)) ||
       (await this.userRepository.findOne({ where: { role: RolesEnum.ADMIN } }));
@@ -168,7 +178,7 @@ export class UserService implements OnModuleInit {
     );
   }
 
-  async create(registerUserDto: RegisterUserDto | any): Promise<UserEntity> {
+  async create(registerUserDto: CreateUserInput): Promise<UserEntity> {
     // Check for duplicate email if provided
     if (registerUserDto.email) {
       const isEmailDuplicate = await this.userRepository.findOne({
@@ -219,9 +229,9 @@ export class UserService implements OnModuleInit {
       created_at: new Date(),
     };
 
-    const user = await this.userRepository.save(userEntity);
+    const user: Partial<UserEntity> = await this.userRepository.save(userEntity);
     delete user.password;
-    return user;
+    return user as UserEntity;
   }
 
   /**
@@ -276,13 +286,8 @@ export class UserService implements OnModuleInit {
   }
 
   generateVerificationToken(): string {
-    const timestamp = new Date().getTime().toString(16).slice(-8);
-    const randomToken = (Math.random() * 0xfffff * 1000000)
-      .toString(16)
-      .slice(0, 12);
-
-    const verificationToken = timestamp + randomToken;
-    return verificationToken;
+    // 20 hex chars from a cryptographically secure source.
+    return randomBytes(10).toString('hex');
   }
 
   async findById(id: string): Promise<UserEntity> {

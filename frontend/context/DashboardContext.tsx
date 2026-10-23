@@ -48,7 +48,7 @@ export const DashboardProvider = ({ children }: { children: React.ReactNode }) =
       setCalendarMonth,
       setCalendarYear,
     }),
-    [data, loading, error, refetch, activityPeriod, calendarYear, calendarMonth],
+    [data, loading, error, refetch, activityPeriod, calendarYear, calendarMonth, setActivityPeriod, setCalendarMonth, setCalendarYear],
   );
 
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;

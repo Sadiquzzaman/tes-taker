@@ -7,7 +7,7 @@ import { normalizeSubmissionGradingDetail } from "@/utils/grading/normalizeSubmi
 import { cacheSubmissionGradingDetail, selectSubmissionGradingEntry } from "@/lib/features/gradingSubmissionSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { AxiosError, AxiosResponse } from "axios";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 const useGetSubmissionGradingDetail = (examId?: string | null, submissionId?: string | null) => {
   const dispatch = useAppDispatch();
@@ -17,16 +17,27 @@ const useGetSubmissionGradingDetail = (examId?: string | null, submissionId?: st
   const [loading, setLoading] = useState(false);
   const [apiComplete, setApiComplete] = useState(false);
 
-  useEffect(() => {
+  // Show the cached detail (or nothing) whenever the cache entry or the selected submission changes.
+  const [shownSource, setShownSource] = useState<{
+    cachedEntry: typeof cachedEntry;
+    examId: typeof examId;
+    submissionId: typeof submissionId;
+  } | null>(null);
+  if (
+    shownSource === null ||
+    shownSource.cachedEntry !== cachedEntry ||
+    shownSource.examId !== examId ||
+    shownSource.submissionId !== submissionId
+  ) {
+    setShownSource({ cachedEntry, examId, submissionId });
     if (cachedEntry?.apiResponse) {
       setData(cachedEntry.apiResponse);
       setApiComplete(true);
-      return;
+    } else {
+      setData(null);
+      setApiComplete(false);
     }
-
-    setData(null);
-    setApiComplete(false);
-  }, [cachedEntry, examId, submissionId]);
+  }
 
   const fetch = useCallback(async () => {
     if (!examId || !submissionId) {

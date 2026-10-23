@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
 import { RolesEnum } from 'src/common/enums/roles.enum';
+import { isUniqueViolation } from 'src/common/utils/db-error.util';
 import { UserService } from 'src/user/user.service';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { TeacherRoleRequestEntity } from './entities/teacher-role-request.entity';
@@ -58,8 +59,16 @@ export class TeacherRequestService {
       created_at: new Date(),
     });
 
-    const saved = await this.requestRepo.save(request);
-    return this.toStudentView(saved);
+    try {
+      const saved = await this.requestRepo.save(request);
+      return this.toStudentView(saved);
+    } catch (error) {
+      // A parallel request won the race past the check above.
+      if (isUniqueViolation(error, 'UQ_teacher_role_requests_pending_user')) {
+        throw new BadRequestException('You already have a pending teacher request');
+      }
+      throw error;
+    }
   }
 
   async listForAdmin(query: ListTeacherRequestsQueryDto) {

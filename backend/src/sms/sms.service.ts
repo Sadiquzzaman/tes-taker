@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { randomInt } from 'crypto';
 import { SmsRateLimitService } from './sms-rate-limit.service';
 
 @Injectable()
@@ -57,19 +58,22 @@ export class SmsService {
   }
 
   async sendOtp(phoneNumber: string): Promise<{ success: boolean; otp?: string; message: string }> {
-    // Check rate limiting
+    // A new code does not lift a wrong-guess lockout.
+    await this.smsRateLimitService.assertOtpNotLocked('register', phoneNumber);
+
+    // Check rate limiting: 3 SMS per phone per hour, then blocked for an hour (limits SMS cost).
     const rateLimitCheck = await this.smsRateLimitService.canSendSms(phoneNumber);
-    
-    // if (!rateLimitCheck.canSend) {
-    //   const message = rateLimitCheck.blockedUntil 
-    //     ? `SMS blocked until ${rateLimitCheck.blockedUntil.toLocaleString()}. Please try again later.`
-    //     : 'SMS limit exceeded. Please try again later.';
-      
-    //   return { 
-    //     success: false, 
-    //     message 
-    //   };
-    // }
+
+    if (!rateLimitCheck.canSend) {
+      const message = rateLimitCheck.blockedUntil
+        ? `SMS blocked until ${rateLimitCheck.blockedUntil.toLocaleString()}. Please try again later.`
+        : 'SMS limit exceeded. Please try again later.';
+
+      return {
+        success: false,
+        message,
+      };
+    }
 
     // Generate OTP
     const otp = this.generateOtp();
@@ -106,15 +110,17 @@ export class SmsService {
 
   async verifyOtp(phoneNumber: string, otp: string): Promise<{ success: boolean; message: string }> {
     const storedOtp = await this.smsRateLimitService.getOtp(phoneNumber);
-    
-    if (!storedOtp) {
+    // Throws 429 once the phone is locked after too many wrong codes.
+    const result = await this.smsRateLimitService.checkOtpAttempt('register', phoneNumber, otp, storedOtp);
+
+    if (result === 'expired') {
       return { 
         success: false, 
         message: 'OTP expired or not found. Please request a new OTP.' 
       };
     }
     
-    if (storedOtp === otp) {
+    if (result === 'valid') {
       // Remove OTP after successful verification
       await this.smsRateLimitService.removeOtp(phoneNumber);
       return { 
@@ -143,7 +149,8 @@ export class SmsService {
     };
   }
 
+  /** 6-digit OTP from a cryptographically secure source (100000–999999). */
   generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return randomInt(100000, 1000000).toString();
   }
 } 

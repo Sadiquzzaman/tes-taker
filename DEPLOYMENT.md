@@ -2,6 +2,40 @@
 
 Production runs with Docker Compose using `docker-compose.prod.yml`.
 
+## Developer commands (root `Makefile`)
+
+For local development, run these from the repo root (`make help` lists every target):
+
+| Command | What it does |
+| --- | --- |
+| `make install` | Install backend (pnpm) and frontend (npm) dependencies from the lockfiles |
+| `make lint` | ESLint for backend and frontend |
+| `make typecheck` | `tsc --noEmit` for backend and frontend |
+| `make test` | Backend unit tests (jest) and frontend unit tests (vitest) |
+| `make build` | Production build of backend and frontend |
+| `make check` | lint + typecheck + test + build; run before opening a PR |
+| `make migrate` / `make migrate-show` | Run / show TypeORM migrations on your **local** database (`backend/.env`) |
+
+`make migrate` is for your local database only. Beta migrations run only through the
+Deploy beta workflow (`.github/workflows/deploy-beta.yml`); never point these targets at
+beta or production. Production migrations are covered in §3 below.
+
+## Automatic beta deploys
+
+Beta (`/opt/instructor/apps/tasktaker`, branch `develop`) is deployed by
+`.github/workflows/deploy-beta.yml`; nobody deploys it by hand.
+
+- **Trigger:** every merge into `develop`, or **Actions → Deploy beta → Run workflow**.
+- **Steps:** CI runs first, then `scripts/deploy/deploy-beta.sh` runs on the server over SSH: refuse if tracked
+  files were edited on the server, fast-forward `develop`, check it is the commit CI tested, build the backend and
+  frontend images, recreate only those two containers (databases and volumes are never touched), then health-check
+  `/api/health` and `/`. The job fails unless the script prints `==> healthy. Deployed <sha>`.
+- **Migrations:** skipped on automatic deploys (the log lists pending ones). Run the workflow by hand with
+  *run_migrations* ticked: it first writes a `pg_dump` to `backups/` on the server, then runs them.
+- **History:** each successful deploy appends `<time> <sha>` to `deployments.log` on the server.
+- **Secrets:** the GitHub environment `beta` holds `BETA_SSH_HOST`, `BETA_SSH_PORT`, `BETA_SSH_USER`, `BETA_SSH_KEY`
+  and `BETA_SSH_KNOWN_HOSTS`.
+
 ## 1. Prepare environment
 
 ```bash
@@ -79,9 +113,16 @@ Other production migration commands (run the same way with `run --rm backend`):
 | `pnpm migration:revert:prod` | Revert the last migration        |
 | `pnpm migration:show:prod`   | List applied/pending migrations  |
 
-> Migrations are **authored** in development (`pnpm migration:generate` /
-> `migration:create`, which use `src/data-source.ts` via ts-node) and
-> **applied** in production with the `:prod` commands above.
+> Migrations are **authored** in development and **applied** in production with
+> the `:prod` commands above. `pnpm migration:create` writes an empty migration;
+> `pnpm migration:generate` builds the app and diffs the entities
+> (`dist/src/data-source.entities.js`) against the database in `DATABASE_*`.
+> `pnpm migration:check` fails if the entities and that database differ; CI runs it
+> after applying every migration to an empty PostgreSQL.
+>
+> `1753000000000-BaselineSchema` creates the whole base schema on an empty database.
+> On a database that already has every base table (beta, or a dev database built by
+> `synchronize`) it changes nothing and is only recorded as run.
 >
 > Alternatively, set `DATABASE_MIGRATIONS_RUN=true` to have the backend apply
 > pending migrations automatically on boot (prefer the explicit one-off step

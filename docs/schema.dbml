@@ -1,0 +1,1523 @@
+// Instructor — target schema v1 (PostgreSQL + MongoDB notes)
+// Companion to "Instructor — System Design, DFD & Schema v1".
+// Status tags in each table Note: EXISTING (unchanged), CHANGED (columns added/removed), NEW.
+// Conventions (not repeated per table):
+//   - id uuid pk default gen_random_uuid()
+//   - created_at, updated_at timestamptz default now(); created_by, updated_by uuid (existing base entity also keeps
+//     is_active, created_user_name, updated_user_name — kept for compatibility)
+//   - every tenant table has organization_id uuid not null, indexed, first column of composite indexes
+//   - all timestamps are timestamptz (UTC); "school day" columns are date in the org time zone
+// Paste into https://dbdiagram.io to render the ER diagram.
+
+Project instructor {
+  database_type: 'PostgreSQL'
+  Note: 'Target schema for Feature Specification v1. Chat lives in MongoDB (see bottom).'
+}
+
+//////////////////////////////////////////////////////////////
+// A. Tenancy, billing
+//////////////////////////////////////////////////////////////
+
+Enum workspace_type { ACADEMIC IELTS TERTIARY } // TERTIARY reserved for a later version (colleges, universities)
+Enum org_kind { SCHOOL COACHING IELTS_CENTRE SOLO COLLEGE UNIVERSITY } // COLLEGE, UNIVERSITY reserved
+Enum org_status { PENDING APPROVED REJECTED SUSPENDED }
+
+Table organizations {
+  id uuid [pk]
+  name varchar(200) [not null]
+  public_id varchar [unique, note: 'EXISTING']
+  organization_number int [unique, note: 'EXISTING']
+  status org_status [not null, note: 'EXISTING']
+  workspace_type workspace_type [not null, default: 'ACADEMIC', note: 'NEW column']
+  kind org_kind [not null, note: 'NEW column; SOLO replaces personal-teacher mode']
+  timezone varchar(64) [not null, default: 'Asia/Dhaka', note: 'NEW column']
+  default_locale varchar(5) [not null, default: 'bn', note: 'NEW column']
+  level_labels jsonb [note: 'NEW: {"class":{"bn":"শ্রেণি","en":"Class"},"section":{...}} (FND-03)']
+  logo_file_id uuid [ref: > file_objects.id]
+  rejected_reason text
+  reviewed_by uuid
+  reviewed_at timestamptz
+  Note: 'CHANGED'
+}
+
+Table branches {
+  id uuid [pk]
+  organization_id uuid [not null, ref: > organizations.id]
+  name varchar(120) [not null]
+  address text
+  geo_lat numeric(9,6) [note: 'centre of app check-in radius']
+  geo_lng numeric(9,6)
+  checkin_radius_m int [default: 100, note: '25..1000']
+  is_default boolean [default: false, note: 'hidden default branch for single-campus orgs']
+  Note: 'NEW (FND-06)'
+}
+
+Enum attendance_method { OFF ZKTECO APP }
+Enum class_attendance_mode { OFF PER_SESSION DAILY }
+
+Table org_settings {
+  organization_id uuid [pk, ref: - organizations.id]
+  attendance_method attendance_method [default: 'OFF']
+  selfie_required boolean [default: false]
+  class_attendance_mode class_attendance_mode [default: 'PER_SESSION']
+  weekly_off_days smallint[] [default: '{5}', note: 'ISO day numbers; 5 = Friday']
+  student_entry_time time [default: '09:00']
+  teacher_entry_time time [default: '08:45']
+  guardian_sms jsonb [note: '{"late":true,"absent":true,"leave":true}']
+  sms_locale varchar(5) [default: 'bn']
+  homework_policy jsonb [note: '{"late":"ALLOW","penalty":{"type":"NONE"},"max_resubmissions":1,"max_files":5}']
+  at_risk_thresholds jsonb [note: '{"score_pct":40,"attendance_pct":75,"missing_homework":3}']
+  plagiarism_thresholds jsonb [note: '{"high":40,"medium":20,"min_words":50}']
+  repeat_absence_days smallint [default: 3]
+  show_rank boolean [default: false]
+  chat_retention_months int [note: 'null = keep forever']
+  Note: 'NEW — one row per org; all Epic settings tables in the spec live here'
+}
+
+Enum billing_cycle { MONTHLY HALF_YEARLY YEARLY }
+Enum plan_visibility { PUBLIC HIDDEN BETA }
+
+Table subscription_plans {
+  id uuid [pk]
+  name varchar [not null]
+  slug varchar [unique, not null]
+  workspace_type workspace_type [note: 'NEW column; null = both']
+  price_monthly numeric(10,2)
+  price_half_yearly numeric(10,2)
+  price_yearly numeric(10,2)
+  features jsonb [note: 'feature keys, see design 8.3']
+  limits jsonb [note: 'limit keys, see design 8.3']
+  is_plan_active boolean
+  visibility plan_visibility
+  sort_order int
+  is_custom boolean
+  Note: 'CHANGED (feature keys renamed to namespaced keys; plan_type enum dropped)'
+}
+
+Enum subscription_status { PENDING ACTIVE EXPIRED CANCELLED }
+
+Table account_subscriptions {
+  id uuid [pk]
+  organization_id uuid [not null, ref: > organizations.id]
+  plan_id uuid [not null, ref: > subscription_plans.id]
+  billing_cycle billing_cycle [not null]
+  status subscription_status [not null]
+  price_due numeric(10,2) [not null, note: 'computed server-side from plan at subscribe time']
+  amount_paid numeric(10,2)
+  start_date timestamptz
+  end_date timestamptz
+  payment_id uuid [ref: > payments.id]
+  Indexes {
+    (organization_id, status)
+  }
+  Note: 'NEW — replaces teacher_subscriptions'
+}
+
+Table feature_overrides {
+  id uuid [pk]
+  organization_id uuid [not null, ref: > organizations.id]
+  key varchar(80) [not null, note: 'feature or limit key']
+  value jsonb [not null]
+  expires_at timestamptz
+  reason text
+  granted_by uuid [ref: > users.id]
+  Indexes {
+    (organization_id, key) [unique]
+  }
+  Note: 'NEW — replaces teacher_subscriptions.overrides'
+}
+
+Enum payment_status { PENDING PAID FAILED CANCELLED REFUNDED }
+
+Table payments {
+  id uuid [pk]
+  organization_id uuid [not null, ref: > organizations.id, note: 'NEW column']
+  user_id uuid [not null, ref: > users.id, note: 'NEW column — who paid']
+  subscription_id uuid [ref: > account_subscriptions.id, note: 'NEW column, replaces metadata.subscriptionId']
+  purpose varchar(30) [note: 'SUBSCRIPTION | SMS_CREDITS | STORAGE']
+  order_id varchar
+  transaction_id varchar [unique]
+  amount numeric(10,2) [note: 'set by server only']
+  currency varchar(3) [default: 'BDT']
+  status payment_status
+  ssl_val_id varchar
+  payment_method varchar
+  gateway_response jsonb
+  validation_response jsonb
+  Note: 'CHANGED — payment_history table is merged into this one and dropped'
+}
+
+//////////////////////////////////////////////////////////////
+// B. Identity, membership, audit
+//////////////////////////////////////////////////////////////
+
+Enum platform_role { STUDENT TEACHER ADMIN SUPER_ADMIN }
+
+Table users {
+  id uuid [pk]
+  full_name varchar(150)
+  email varchar [unique]
+  phone varchar(20) [unique]
+  password varchar [note: 'bcrypt']
+  role platform_role
+  locale varchar(5) [default: 'bn', note: 'NEW column']
+  avatar_file_id uuid [ref: > file_objects.id, note: 'NEW column']
+  google_id varchar
+  is_otp_verified boolean
+  public_id varchar
+  student_public_id varchar
+  teacher_public_id varchar
+  token_version int [default: 0, note: 'NEW — bump to log out everywhere']
+  Note: 'CHANGED — refresh_token column moves to refresh_tokens; personal_teacher_enabled dropped (SOLO org)'
+}
+
+Enum device_platform { ANDROID IOS WEB }
+
+Table user_devices {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  platform device_platform
+  fcm_token varchar [unique]
+  app_version varchar(20)
+  last_seen_at timestamptz
+  Note: 'NEW'
+}
+
+Table refresh_tokens {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  device_id uuid [ref: > user_devices.id]
+  token_hash varchar(128) [unique, not null]
+  expires_at timestamptz [not null]
+  revoked_at timestamptz
+  replaced_by uuid [note: 'rotation chain; reuse of a revoked token revokes the chain']
+  Note: 'NEW'
+}
+
+Enum member_role { OWNER ADMIN ASSISTANT TEACHER STUDENT }
+
+Table organization_members {
+  id uuid [pk]
+  organization_id uuid [not null, ref: > organizations.id]
+  user_id uuid [not null, ref: > users.id]
+  role member_role [not null]
+  branch_id uuid [ref: > branches.id, note: 'NEW column — branch admin scope']
+  employee_code varchar(40) [note: 'NEW — teacher id for ZKTeco mapping']
+  removed_at timestamptz
+  removed_by uuid
+  Indexes {
+    (organization_id, user_id, role) [unique]
+  }
+  Note: 'CHANGED'
+}
+
+Table organization_invitations {
+  id uuid [pk]
+  organization_id uuid [ref: > organizations.id]
+  invited_phone varchar
+  invited_email varchar
+  role member_role
+  token varchar
+  status varchar
+  expires_at timestamptz
+  Note: 'EXISTING'
+}
+
+Table teacher_role_requests {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  status varchar
+  Indexes {
+    user_id [unique, name: 'UQ_teacher_role_requests_pending_user', note: 'partial: WHERE status = \'pending\' (one pending request per user)']
+  }
+  Note: 'EXISTING'
+}
+
+Table audit_logs {
+  id bigserial [pk]
+  organization_id uuid [ref: > organizations.id]
+  actor_id uuid [ref: > users.id]
+  action varchar(80) [not null, note: 'e.g. attendance.correct, chat.access, grade.update']
+  entity_type varchar(60)
+  entity_id uuid
+  before jsonb
+  after jsonb
+  reason text
+  ip inet
+  created_at timestamptz
+  Indexes {
+    (organization_id, created_at)
+    (entity_type, entity_id)
+  }
+  Note: 'NEW — append-only'
+}
+
+//////////////////////////////////////////////////////////////
+// C. Academic structure
+//////////////////////////////////////////////////////////////
+
+Enum session_status { ACTIVE CLOSED }
+
+Table academic_sessions {
+  id uuid [pk]
+  organization_id uuid [not null, ref: > organizations.id]
+  name varchar(80) [not null]
+  start_date date [not null]
+  end_date date [not null]
+  status session_status [default: 'ACTIVE']
+  is_default boolean [default: false]
+  Note: 'NEW (FND-01)'
+}
+
+Table terms {
+  id uuid [pk]
+  organization_id uuid [not null]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  name varchar(80) [not null, note: 'e.g. অর্ধ বার্ষিক পরীক্ষা']
+  start_date date
+  end_date date
+  sort_order smallint
+  Note: 'NEW (PRF-02); auto-created from syllabus import terms'
+}
+
+Table classes {
+  id uuid [pk]
+  organization_id uuid [ref: > organizations.id]
+  branch_id uuid [ref: > branches.id, note: 'NEW column']
+  class_name varchar [note: 'e.g. Class 6, HSC Science, Admission Prep']
+  curriculum_level varchar(20) [note: 'NEW — e.g. NCTB-6, links textbook_chapters']
+  description text
+  public_id varchar
+  teacher_id uuid [note: 'owner for SOLO orgs']
+  class_kind varchar
+  sort_order smallint
+  Note: 'CHANGED — classes are reused across sessions; sections belong to a session'
+}
+
+Enum shift { MORNING DAY EVENING }
+
+Table sections {
+  id uuid [pk]
+  organization_id uuid [not null]
+  class_id uuid [not null, ref: > classes.id]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  name varchar(60) [not null, note: 'e.g. A, Admission Batch 1']
+  shift shift
+  room varchar(40)
+  class_teacher_id uuid [ref: > users.id, note: 'approves student leave']
+  entry_time_override time
+  Indexes {
+    (class_id, session_id, name) [unique]
+  }
+  Note: 'NEW (FND-02)'
+}
+
+Table subjects {
+  id uuid [pk]
+  organization_id uuid [note: 'null = global subject']
+  name varchar
+  code varchar
+  credit_hours numeric(4,1) [note: 'NEW column, nullable; used by Tertiary later']
+  Indexes {
+    name [unique, name: 'UQ_subjects_global_name', note: 'partial: WHERE organization_id IS NULL']
+    (organization_id, `LOWER(name)`, `LOWER(code)`) [unique, name: 'UQ_subjects_org_name_code', note: 'partial: WHERE organization_id IS NOT NULL; case-insensitive']
+  }
+  Note: 'CHANGED'
+}
+
+Table class_subjects {
+  id uuid [pk]
+  class_id uuid [ref: > classes.id]
+  subject_id uuid [ref: > subjects.id]
+  full_marks numeric(6,2) [note: 'NEW column']
+  Note: 'CHANGED'
+}
+
+Enum offering_enrolment_mode { WHOLE_SECTION SELECTED }
+
+Table course_offerings {
+  id uuid [pk]
+  organization_id uuid [not null]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  term_id uuid [ref: > terms.id, note: 'null = whole session (schools); set per semester (Tertiary)']
+  section_id uuid [not null, ref: > sections.id]
+  subject_id uuid [not null, ref: > subjects.id]
+  enrolment_mode offering_enrolment_mode [not null, default: 'WHOLE_SECTION', note: 'SELECTED for religion / electives']
+  is_optional boolean [default: false]
+  Indexes {
+    (section_id, subject_id, term_id) [unique]
+    (organization_id, session_id)
+  }
+  Note: 'NEW (FND-19) — "subject class": the core teaching unit every epic links to'
+}
+
+Table offering_teachers {
+  id uuid [pk]
+  organization_id uuid [not null]
+  offering_id uuid [not null, ref: > course_offerings.id]
+  teacher_id uuid [not null, ref: > users.id]
+  role varchar(20) [default: 'PRIMARY', note: 'PRIMARY | ASSISTANT']
+  Indexes {
+    (offering_id, teacher_id) [unique]
+    (teacher_id)
+  }
+  Note: 'NEW — replaces class_teachers, class_subject_teachers and organization_teacher_subjects'
+}
+
+Table offering_enrolments {
+  id uuid [pk]
+  organization_id uuid [not null]
+  offering_id uuid [not null, ref: > course_offerings.id]
+  student_id uuid [not null, ref: > users.id]
+  status varchar(20) [default: 'ACTIVE', note: 'ACTIVE | DROPPED']
+  Indexes {
+    (offering_id, student_id) [unique]
+    (student_id)
+  }
+  Note: 'NEW (FND-19) — only for SELECTED offerings; WHOLE_SECTION offerings take all section enrolments. Tertiary course registration later'
+}
+
+Enum enrolment_status { INVITED PENDING ACTIVE LEFT PROMOTED }
+
+Table enrolments {
+  id uuid [pk]
+  organization_id uuid [not null]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  class_id uuid [not null, ref: > classes.id, note: 'denormalised for the unique rule']
+  section_id uuid [not null, ref: > sections.id]
+  student_id uuid [not null, ref: > users.id]
+  roll_no varchar(20)
+  status enrolment_status [not null]
+  invited_phone varchar
+  invited_email varchar
+  invitation_token varchar
+  joined_at timestamptz
+  left_at timestamptz
+  Indexes {
+    (session_id, class_id, student_id) [unique]
+    (section_id, status)
+  }
+  Note: 'NEW — replaces class_students (FND-04, FND-05)'
+}
+
+Enum guardian_relation { FATHER MOTHER OTHER }
+
+Table guardians {
+  id uuid [pk]
+  organization_id uuid [not null]
+  student_id uuid [not null, ref: > users.id]
+  name varchar(120) [not null]
+  relation guardian_relation [not null]
+  phone varchar(14) [not null, note: '01XXXXXXXXX']
+  is_primary boolean [default: false]
+  sms_locale varchar(5) [note: 'override of org sms_locale']
+  Indexes {
+    (organization_id, student_id, phone) [unique]
+  }
+  Note: 'NEW (FND-09) — max 2 per student per org, enforced in service'
+}
+
+//////////////////////////////////////////////////////////////
+// D. Attendance (Epic 1)
+//////////////////////////////////////////////////////////////
+
+Table attendance_devices {
+  id uuid [pk]
+  organization_id uuid [not null]
+  branch_id uuid [ref: > branches.id]
+  name varchar(80)
+  serial_no varchar(60) [unique]
+  api_key_hash varchar(128) [not null]
+  last_heartbeat_at timestamptz
+  status varchar(20) [note: 'ONLINE | OFFLINE']
+  Note: 'NEW (ATT-02)'
+}
+
+Enum person_type { STUDENT TEACHER }
+
+Table device_user_maps {
+  id uuid [pk]
+  organization_id uuid [not null]
+  device_id uuid [not null, ref: > attendance_devices.id]
+  device_user_id varchar(40) [not null]
+  person_id uuid [ref: > users.id, note: 'null = unmapped']
+  person_type person_type
+  Indexes {
+    (device_id, device_user_id) [unique]
+  }
+  Note: 'NEW (ATT-02)'
+}
+
+Enum punch_source { ZKTECO APP }
+
+Table attendance_punches {
+  id uuid
+  organization_id uuid [not null]
+  person_id uuid [ref: > users.id]
+  person_type person_type
+  source punch_source [not null]
+  device_id uuid [ref: > attendance_devices.id]
+  device_user_id varchar(40)
+  punched_at timestamptz [not null, note: 'server time for APP']
+  lat numeric(9,6)
+  lng numeric(9,6)
+  accuracy_m numeric(6,1)
+  selfie_file_id uuid [ref: > file_objects.id]
+  is_suspicious boolean [default: false]
+  suspicious_reason varchar(60) [note: 'MOCK_LOCATION | OUTSIDE_RADIUS']
+  Indexes {
+    (id, punched_at) [pk]
+    (organization_id, person_id, punched_at)
+    (device_id, device_user_id, punched_at) [unique]
+  }
+  Note: 'NEW — PARTITION BY RANGE (punched_at), monthly'
+}
+
+Enum day_status { PRESENT LATE ABSENT LEAVE HOLIDAY }
+
+Table daily_attendance {
+  id uuid
+  organization_id uuid [not null]
+  person_id uuid [not null, ref: > users.id]
+  person_type person_type [not null]
+  session_id uuid [ref: > academic_sessions.id]
+  section_id uuid [ref: > sections.id]
+  date date [not null, note: 'school day in org time zone']
+  status day_status [not null]
+  check_in_at timestamptz
+  check_out_at timestamptz
+  late_minutes smallint
+  leave_request_id uuid [ref: > leave_requests.id]
+  resolved_by varchar(20) [note: 'PUNCH | CLASS_ROLL | EOD_JOB | CORRECTION']
+  Indexes {
+    (id, date) [pk]
+    (organization_id, person_id, date) [unique]
+    (organization_id, section_id, date)
+  }
+  Note: 'NEW (ATT-06, ATT-10, ATT-11) — PARTITION BY RANGE (date), monthly'
+}
+
+Table class_attendance {
+  id uuid [pk]
+  organization_id uuid [not null]
+  section_id uuid [not null, ref: > sections.id]
+  offering_id uuid [ref: > course_offerings.id, note: 'null when mode = DAILY']
+  routine_slot_id uuid [ref: > routine_slots.id]
+  date date [not null]
+  marked_by uuid [ref: > users.id]
+  marked_at timestamptz
+  locked_at timestamptz [note: 'midnight; edits after this need admin + reason']
+  Indexes {
+    (section_id, offering_id, date, routine_slot_id) [unique]
+  }
+  Note: 'NEW (ATT-07)'
+}
+
+Table class_attendance_records {
+  id uuid
+  organization_id uuid [not null]
+  class_attendance_id uuid [not null, ref: > class_attendance.id]
+  date date [not null, note: 'copied for partitioning']
+  student_id uuid [not null, ref: > users.id]
+  status day_status [not null, note: 'PRESENT | LATE | ABSENT | LEAVE']
+  note varchar(200)
+  Indexes {
+    (id, date) [pk]
+    (class_attendance_id, student_id, date) [unique]
+    (organization_id, student_id, date)
+  }
+  Note: 'NEW — PARTITION BY RANGE (date), monthly'
+}
+
+Table class_attendance_photos {
+  id uuid [pk]
+  class_attendance_id uuid [not null, ref: > class_attendance.id]
+  file_id uuid [not null, ref: > file_objects.id]
+  Note: 'NEW (ATT-08) — max 3 per record'
+}
+
+Enum leave_status { PENDING APPROVED REJECTED CANCELLED }
+
+Table leave_requests {
+  id uuid [pk]
+  organization_id uuid [not null]
+  person_id uuid [not null, ref: > users.id]
+  person_type person_type [not null]
+  from_date date [not null]
+  to_date date [not null]
+  reason text
+  file_id uuid [ref: > file_objects.id]
+  status leave_status [not null, default: 'PENDING']
+  applied_by uuid [ref: > users.id, note: 'student, teacher or admin on their behalf']
+  approver_id uuid [ref: > users.id]
+  decided_at timestamptz
+  decision_note text
+  Indexes {
+    (organization_id, person_id, from_date)
+    (approver_id, status)
+  }
+  Note: 'NEW (ATT-09, ATT-11)'
+}
+
+Table attendance_corrections {
+  id uuid [pk]
+  organization_id uuid [not null]
+  target_type varchar(30) [note: 'DAILY | CLASS']
+  target_id uuid
+  old_status day_status
+  new_status day_status
+  reason text [not null]
+  corrected_by uuid [ref: > users.id]
+  correction_sms_sent boolean [default: false]
+  Note: 'NEW (ATT-12)'
+}
+
+//////////////////////////////////////////////////////////////
+// E. Homework (Epic 2)
+//////////////////////////////////////////////////////////////
+
+Enum homework_type { FILE TEXT QUESTIONS PAPER }
+Enum homework_status { DRAFT SCHEDULED PUBLISHED CLOSED }
+
+Table homework {
+  id uuid [pk]
+  organization_id uuid [not null]
+  session_id uuid [ref: > academic_sessions.id]
+  subject_id uuid [ref: > subjects.id]
+  topic_id uuid [ref: > syllabus_topics.id]
+  title varchar(200) [not null]
+  instructions jsonb [note: 'rich text (TipTap JSON)']
+  submission_type homework_type [not null]
+  total_marks numeric(6,2)
+  due_at timestamptz
+  publish_at timestamptz
+  status homework_status [not null]
+  policy_override jsonb [note: 'late / penalty / resubmissions, else org_settings']
+  scores_published_at timestamptz
+  created_by uuid [ref: > users.id]
+  Note: 'NEW (HW-01)'
+}
+
+Table homework_attachments {
+  homework_id uuid [ref: > homework.id]
+  file_id uuid [ref: > file_objects.id]
+  Indexes {
+    (homework_id, file_id) [pk]
+  }
+  Note: 'NEW'
+}
+
+Table homework_targets {
+  id uuid [pk]
+  homework_id uuid [not null, ref: > homework.id]
+  offering_id uuid [ref: > course_offerings.id]
+  student_id uuid [ref: > users.id]
+  Note: 'NEW — subject class or individual student'
+}
+
+Table homework_items {
+  id uuid [pk]
+  homework_id uuid [not null, ref: > homework.id]
+  question_bank_item_id uuid [not null, ref: > question_bank_items.id]
+  points numeric(6,2)
+  sort_order smallint
+  Note: 'NEW (QA-02) — for submission_type = QUESTIONS'
+}
+
+Enum submission_status { SUBMITTED RETURNED SCORED }
+
+Table homework_submissions {
+  id uuid [pk]
+  organization_id uuid [not null]
+  homework_id uuid [not null, ref: > homework.id]
+  student_id uuid [not null, ref: > users.id]
+  version smallint [not null, default: 1]
+  text_answer text
+  answers jsonb [note: 'for QUESTIONS type']
+  extracted_text text [note: 'from files, for plagiarism']
+  submitted_at timestamptz [not null]
+  is_late boolean
+  late_minutes int
+  status submission_status
+  Indexes {
+    (homework_id, student_id, version) [unique]
+  }
+  Note: 'NEW (HW-03)'
+}
+
+Table submission_files {
+  submission_id uuid [ref: > homework_submissions.id]
+  file_id uuid [ref: > file_objects.id]
+  page_order smallint
+  Indexes {
+    (submission_id, file_id) [pk]
+  }
+  Note: 'NEW'
+}
+
+Table homework_scores {
+  id uuid [pk]
+  organization_id uuid [not null]
+  homework_id uuid [not null, ref: > homework.id]
+  student_id uuid [not null, ref: > users.id]
+  submission_id uuid [ref: > homework_submissions.id, note: 'null for PAPER homework']
+  raw_score numeric(6,2)
+  penalty numeric(6,2) [default: 0]
+  final_score numeric(6,2)
+  feedback text
+  annotations_file_id uuid [ref: > file_objects.id]
+  ratings jsonb [note: 'neatness / effort / on-time 1..5 (HW-05)']
+  is_missing boolean [default: false]
+  scored_by uuid [ref: > users.id]
+  scored_at timestamptz
+  Indexes {
+    (homework_id, student_id) [unique]
+  }
+  Note: 'NEW (HW-04, HW-05)'
+}
+
+//////////////////////////////////////////////////////////////
+// F. Exams, proctoring (existing + changes), offline exams
+//////////////////////////////////////////////////////////////
+
+Enum proctoring_level { OFF LIGHT STRICT }
+
+Table exams {
+  id uuid [pk]
+  organization_id uuid
+  session_id uuid [ref: > academic_sessions.id, note: 'NEW column']
+  term_id uuid [ref: > terms.id, note: 'NEW column']
+  offering_id uuid [ref: > course_offerings.id, note: 'NEW column; audience = offering students when set']
+  class_id uuid [ref: > classes.id]
+  primary_subject_id uuid [ref: > subjects.id]
+  test_name varchar
+  exam_type varchar
+  exam_category varchar [note: 'ACADEMIC | IELTS']
+  exam_kind varchar
+  is_model_test boolean
+  is_homework_mode boolean [default: false, note: 'NEW (QA-02)']
+  duration_minutes int
+  exam_start_time timestamptz
+  exam_end_time timestamptz
+  test_audience varchar
+  is_negative_marking boolean
+  negative_mark_value numeric
+  result_published_at timestamptz
+  Note: 'CHANGED — plus existing join tables exam_target_students, exam_excluded_students'
+}
+
+Table exam_question_sections {
+  id uuid [pk]
+  exam_id uuid [ref: > exams.id]
+  subject_id uuid
+  module_key varchar [note: 'ielts.reading etc.']
+  header_text text
+  sort_order int
+  Note: 'EXISTING'
+}
+
+Table exam_questions {
+  id uuid [pk]
+  exam_id uuid [ref: > exams.id]
+  section_id uuid [ref: > exam_question_sections.id]
+  question_bank_item_id uuid [ref: > question_bank_items.id, note: 'NEW column']
+  topic_id uuid [ref: > syllabus_topics.id, note: 'NEW column']
+  category varchar
+  sub_type varchar
+  parent_id uuid
+  options_json jsonb
+  matching_options_json jsonb
+  answer_json jsonb [note: 'never sent to students']
+  audio_url varchar [note: 'IELTS listening']
+  points numeric
+  sort_order int
+  Note: 'CHANGED'
+}
+
+Table student_exam_submissions {
+  id uuid [pk]
+  exam_id uuid [ref: > exams.id]
+  student_id uuid [ref: > users.id]
+  status varchar [note: 'IN_PROGRESS | SUBMITTED | AUTO_SUBMITTED | DISQUALIFIED']
+  started_at timestamptz
+  effective_deadline timestamptz [note: 'ADDED (P0-06) — min(start + duration, exam end), set at start; NULL for older attempts (computed)']
+  shuffle_seed int [note: 'NEW — per-student option/matching order']
+  finalize_reason varchar [note: 'NEW — MANUAL | TIMEOUT | DEADLINE_JOB | PROCTOR_RULE | TEACHER_END']
+  submitted_at timestamptz
+  total_score numeric
+  max_score numeric
+  is_graded boolean
+  graded_by uuid
+  Indexes {
+    (exam_id, student_id) [unique]
+    (status, effective_deadline) [note: 'ADDED (P0-06) — auto-submit job']
+  }
+  Note: 'CHANGED — proctoring_events_json, tab_switch_count, browser_switch_count move to proctoring_events'
+}
+
+Table student_exam_answers {
+  id uuid [pk]
+  submission_id uuid [ref: > student_exam_submissions.id]
+  question_id uuid [ref: > exam_questions.id]
+  selected_answer varchar
+  text_answer text
+  media_url varchar [note: 'speaking recording etc.']
+  is_correct boolean
+  marks_obtained numeric
+  grader_explanation text
+  Note: 'EXISTING'
+}
+
+Table proctoring_settings {
+  exam_id uuid [pk, ref: - exams.id]
+  level proctoring_level [not null, default: 'OFF']
+  enabled_checks jsonb [note: '{"tab_switch":true,"face":true,...} within plan']
+  snapshots_enabled boolean [default: false]
+  auto_disqualify boolean [default: false]
+  dq_threshold smallint
+  warn_at_pct smallint [default: 60]
+  Note: 'NEW (PRO-01, PRO-02)'
+}
+
+Table proctoring_events {
+  id uuid
+  organization_id uuid [not null]
+  exam_id uuid [not null, ref: > exams.id]
+  submission_id uuid [not null, ref: > student_exam_submissions.id]
+  student_id uuid [not null]
+  type varchar(40) [not null, note: 'TAB_SWITCH, NO_FACE, MULTI_FACE, PHONE, VOICE, MONITORING_LOST, ...']
+  severity smallint
+  occurred_at timestamptz [not null]
+  meta jsonb
+  snapshot_file_id uuid [ref: > file_objects.id, note: 'deleted after 90 days']
+  Indexes {
+    (id, occurred_at) [pk]
+    (submission_id, occurred_at)
+  }
+  Note: 'NEW — PARTITION BY RANGE (occurred_at), monthly'
+}
+
+Enum proctoring_decision { CONFIRM REINSTATE RETAKE }
+
+Table proctoring_reviews {
+  id uuid [pk]
+  submission_id uuid [not null, ref: > student_exam_submissions.id]
+  decision proctoring_decision [not null]
+  reason text [not null]
+  decided_by uuid [ref: > users.id]
+  decided_at timestamptz
+  Note: 'NEW (PRO-05)'
+}
+
+Table offline_exams {
+  id uuid [pk]
+  organization_id uuid [not null]
+  session_id uuid [ref: > academic_sessions.id]
+  term_id uuid [ref: > terms.id]
+  offering_id uuid [not null, ref: > course_offerings.id]
+  name varchar(120)
+  exam_date date
+  total_marks numeric(6,2)
+  parts jsonb [note: '[{"name":"MCQ","marks":30},{"name":"Written","marks":70}]']
+  Note: 'NEW (PRF-03)'
+}
+
+Table offline_exam_marks {
+  id uuid [pk]
+  offline_exam_id uuid [not null, ref: > offline_exams.id]
+  student_id uuid [not null, ref: > users.id]
+  marks numeric(6,2)
+  part_marks jsonb
+  is_absent boolean [default: false]
+  entered_by uuid
+  Indexes {
+    (offline_exam_id, student_id) [unique]
+  }
+  Note: 'NEW'
+}
+
+//////////////////////////////////////////////////////////////
+// G. Question bank, syllabus (Epics 4, 6)
+//////////////////////////////////////////////////////////////
+
+Enum bank_visibility { PRIVATE ORG }
+Enum difficulty { EASY MEDIUM HARD }
+
+Table question_bank_items {
+  id uuid [pk]
+  organization_id uuid [not null]
+  owner_id uuid [ref: > users.id]
+  visibility bank_visibility [default: 'PRIVATE']
+  class_id uuid [ref: > classes.id]
+  subject_id uuid [ref: > subjects.id]
+  topic_id uuid [ref: > syllabus_topics.id]
+  difficulty difficulty
+  category varchar
+  sub_type varchar
+  content jsonb [note: 'same shape as exam_questions (text, options, matching, media)']
+  answer_json jsonb
+  tags text[]
+  source varchar(20) [note: 'MANUAL | IMPORT | AI_DRAFT']
+  usage_count int [default: 0]
+  Indexes {
+    (organization_id, subject_id, topic_id)
+  }
+  Note: 'NEW (QA-01)'
+}
+
+Table exam_blueprints {
+  id uuid [pk]
+  organization_id uuid [not null]
+  session_id uuid [ref: > academic_sessions.id]
+  class_id uuid [ref: > classes.id]
+  subject_id uuid [ref: > subjects.id]
+  source_import_id uuid [ref: > syllabus_imports.id]
+  duration_text varchar(40)
+  full_marks numeric(6,2)
+  rows jsonb [note: '[{"part","section","questions_given","questions_to_answer","marks_each","total_marks"}]']
+  Note: 'NEW — from syllabus exam_pattern; used by QA-05 and PRF-03'
+}
+
+Table textbook_chapters {
+  id uuid [pk]
+  curriculum varchar(20) [note: 'NCTB']
+  class_level varchar(10)
+  subject_code varchar(20)
+  chapter_no smallint
+  title_bn varchar(200)
+  title_en varchar(200)
+  Indexes {
+    (curriculum, class_level, subject_code, chapter_no) [unique]
+  }
+  Note: 'NEW — platform-level catalogue (not tenant)'
+}
+
+Enum import_status { QUEUED PROCESSING REVIEW PUBLISHED FAILED }
+
+Table syllabus_imports {
+  id uuid [pk]
+  organization_id uuid [not null]
+  session_id uuid [ref: > academic_sessions.id]
+  class_id uuid [ref: > classes.id]
+  uploaded_by uuid [ref: > users.id]
+  file_ids uuid[] [note: 'images or PDF, in upload order']
+  status import_status [not null]
+  model varchar(60)
+  prompt_version varchar(20)
+  input_tokens int
+  output_tokens int
+  cost_usd numeric(8,4)
+  draft_json jsonb [note: 'merged two-run draft with needs_review flags']
+  published_snapshot jsonb [note: 'for edit-rate metric']
+  edit_rate numeric(5,4)
+  error text
+  Note: 'NEW (SYL-01)'
+}
+
+Enum syllabus_status { DRAFT PUBLISHED }
+
+Table syllabi {
+  id uuid [pk]
+  organization_id uuid [not null]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  class_id uuid [not null, ref: > classes.id]
+  subject_id uuid [not null, ref: > subjects.id]
+  status syllabus_status [not null]
+  source_import_id uuid [ref: > syllabus_imports.id]
+  published_at timestamptz
+  Indexes {
+    (session_id, class_id, subject_id) [unique]
+  }
+  Note: 'NEW (SYL-01, SYL-02)'
+}
+
+Table syllabus_units {
+  id uuid [pk]
+  syllabus_id uuid [not null, ref: > syllabi.id]
+  term_id uuid [ref: > terms.id]
+  sort_order smallint
+  title varchar(300)
+  chapter_number smallint
+  textbook_chapter_id uuid [ref: > textbook_chapters.id]
+  scope_note text
+  planned_end_date date [note: 'SYL-03']
+  source_text text
+  source_image smallint
+  needs_review boolean [default: false]
+  Note: 'NEW'
+}
+
+Table syllabus_topics {
+  id uuid [pk]
+  unit_id uuid [not null, ref: > syllabus_units.id]
+  sort_order smallint
+  title varchar(500)
+  planned_classes smallint
+  source_text text
+  source_image smallint
+  needs_review boolean [default: false]
+  Note: 'NEW'
+}
+
+Enum progress_status { NOT_STARTED IN_PROGRESS COMPLETED }
+
+Table syllabus_progress {
+  offering_id uuid [ref: > course_offerings.id]
+  topic_id uuid [ref: > syllabus_topics.id]
+  status progress_status [not null]
+  updated_at timestamptz
+  Indexes {
+    (offering_id, topic_id) [pk]
+  }
+  Note: 'NEW (SYL-05) — maintained from lesson logs'
+}
+
+Table lesson_logs {
+  id uuid [pk]
+  organization_id uuid [not null]
+  offering_id uuid [not null, ref: > course_offerings.id]
+  teacher_id uuid [not null, ref: > users.id]
+  routine_slot_id uuid [ref: > routine_slots.id, note: 'null = unscheduled class']
+  class_date date [not null]
+  note text
+  file_id uuid [ref: > file_objects.id]
+  Note: 'NEW (SYL-04)'
+}
+
+Table lesson_log_topics {
+  lesson_log_id uuid [ref: > lesson_logs.id]
+  topic_id uuid [ref: > syllabus_topics.id]
+  status progress_status [note: 'IN_PROGRESS | COMPLETED']
+  Indexes {
+    (lesson_log_id, topic_id) [pk]
+  }
+  Note: 'NEW'
+}
+
+//////////////////////////////////////////////////////////////
+// H. Performance & reporting (Epic 3)
+//////////////////////////////////////////////////////////////
+
+Table grading_scales {
+  id uuid [pk]
+  organization_id uuid [note: 'null = platform default (Bangladesh national)']
+  name varchar(60)
+  is_default boolean
+  Note: 'NEW (FND-11)'
+}
+
+Table grading_bands {
+  id uuid [pk]
+  scale_id uuid [not null, ref: > grading_scales.id]
+  min_pct numeric(5,2) [not null]
+  max_pct numeric(5,2) [not null]
+  grade varchar(5) [not null]
+  gpa numeric(3,2)
+  Note: 'NEW'
+}
+
+Table score_weights {
+  id uuid [pk]
+  organization_id uuid [not null]
+  session_id uuid [ref: > academic_sessions.id]
+  class_id uuid [ref: > classes.id]
+  exams_pct smallint
+  homework_pct smallint
+  attendance_pct smallint
+  behaviour_pct smallint [note: 'check: sum = 100']
+  Indexes {
+    (session_id, class_id) [unique]
+  }
+  Note: 'NEW (PRF-01)'
+}
+
+Table behaviour_criteria {
+  id uuid [pk]
+  organization_id uuid [not null]
+  name_bn varchar(80)
+  name_en varchar(80)
+  is_active boolean
+  Note: 'NEW (PRF-04)'
+}
+
+Table behaviour_ratings {
+  id uuid [pk]
+  organization_id uuid [not null]
+  offering_id uuid [ref: > course_offerings.id]
+  student_id uuid [not null, ref: > users.id]
+  criterion_id uuid [not null, ref: > behaviour_criteria.id]
+  rating smallint [note: '1..5']
+  remark varchar(300)
+  rated_on date
+  rated_by uuid [ref: > users.id]
+  Note: 'NEW (PRF-04)'
+}
+
+Table student_term_scores {
+  id uuid [pk]
+  organization_id uuid [not null]
+  term_id uuid [not null, ref: > terms.id]
+  student_id uuid [not null, ref: > users.id]
+  subject_id uuid [ref: > subjects.id, note: 'null row = overall']
+  exams_pct numeric(5,2)
+  homework_pct numeric(5,2)
+  attendance_pct numeric(5,2)
+  behaviour_pct numeric(5,2)
+  overall_pct numeric(5,2)
+  grade varchar(5)
+  gpa numeric(3,2)
+  section_rank int
+  computed_at timestamptz
+  Indexes {
+    (term_id, student_id, subject_id) [unique]
+  }
+  Note: 'NEW — read model rebuilt by performance.recompute (PRF-05..07)'
+}
+
+Table report_cards {
+  id uuid [pk]
+  organization_id uuid [not null]
+  term_id uuid [not null, ref: > terms.id]
+  student_id uuid [not null, ref: > users.id]
+  type varchar(20) [default: 'REPORT_CARD', note: 'REPORT_CARD | TRANSCRIPT (Tertiary, later)']
+  file_id uuid [ref: > file_objects.id]
+  teacher_remark text
+  principal_remark text
+  locale varchar(5)
+  share_token_hash varchar(128) [note: 'guardian link, no login']
+  share_expires_at timestamptz [note: '30 days']
+  version smallint [not null, default: 1, note: 'regenerated card = new row, version + 1']
+  scores_snapshot jsonb [note: 'frozen term scores at generation (decided 22 Oct)']
+  generated_at timestamptz
+  Indexes {
+    (term_id, student_id, version) [unique]
+  }
+  Note: 'NEW (PRF-09)'
+}
+
+//////////////////////////////////////////////////////////////
+// I. Communication — PostgreSQL side (chat itself in MongoDB)
+//////////////////////////////////////////////////////////////
+
+Table chat_access_logs {
+  id uuid [pk]
+  organization_id uuid [not null]
+  admin_id uuid [not null, ref: > users.id]
+  chat_type varchar(10) [note: 'GROUP | PRIVATE']
+  chat_id varchar(24) [note: 'Mongo ObjectId']
+  reason text [not null]
+  accessed_at timestamptz
+  Note: 'NEW (COM-04)'
+}
+
+Table message_reports {
+  id uuid [pk]
+  organization_id uuid [not null]
+  chat_type varchar(10)
+  message_id varchar(24)
+  reporter_id uuid [ref: > users.id]
+  reason text
+  context jsonb [note: '5 messages before and after']
+  status varchar(20) [note: 'OPEN | ACTIONED | DISMISSED']
+  Note: 'NEW (COM-05)'
+}
+
+//////////////////////////////////////////////////////////////
+// J. Resources (Epic 8)
+//////////////////////////////////////////////////////////////
+
+Table resource_folders {
+  id uuid [pk]
+  organization_id uuid [not null]
+  parent_id uuid [ref: > resource_folders.id]
+  class_id uuid [ref: > classes.id]
+  subject_id uuid [ref: > subjects.id]
+  name varchar(120)
+  owner_id uuid [ref: > users.id]
+  Note: 'NEW (RES-03)'
+}
+
+Enum resource_type { FILE VIDEO LINK }
+
+Table resources {
+  id uuid [pk]
+  organization_id uuid [not null]
+  folder_id uuid [ref: > resource_folders.id]
+  subject_id uuid [ref: > subjects.id]
+  topic_id uuid [ref: > syllabus_topics.id]
+  type resource_type [not null]
+  title varchar(200)
+  description text
+  file_id uuid [ref: > file_objects.id]
+  url varchar(1000)
+  download_allowed boolean [default: true, note: 'RES-05']
+  archived_at timestamptz
+  created_by uuid [ref: > users.id]
+  Note: 'NEW (RES-01, RES-02)'
+}
+
+Table resource_shares {
+  resource_id uuid [ref: > resources.id]
+  offering_id uuid [ref: > course_offerings.id]
+  Indexes {
+    (resource_id, offering_id) [pk]
+  }
+  Note: 'NEW'
+}
+
+Table resource_views {
+  resource_id uuid [ref: > resources.id]
+  student_id uuid [ref: > users.id]
+  first_opened_at timestamptz
+  last_opened_at timestamptz
+  watch_pct smallint
+  Indexes {
+    (resource_id, student_id) [pk]
+  }
+  Note: 'NEW (RES-06)'
+}
+
+//////////////////////////////////////////////////////////////
+// K. Calendar (Epic 9)
+//////////////////////////////////////////////////////////////
+
+Table routine_slots {
+  id uuid [pk]
+  organization_id uuid [not null]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  section_id uuid [not null, ref: > sections.id, note: 'denormalised for the section clash check']
+  offering_id uuid [ref: > course_offerings.id, note: 'null = non-subject slot (assembly, break)']
+  teacher_id uuid [ref: > users.id]
+  room varchar(40)
+  day_of_week smallint [not null, note: 'ISO 1..7']
+  start_time time [not null]
+  end_time time [not null]
+  valid_from date
+  valid_to date
+  Indexes {
+    (teacher_id, day_of_week, start_time)
+    (section_id, day_of_week, start_time)
+  }
+  Note: 'NEW (CAL-01) — clash check in service (CAL-02)'
+}
+
+Enum exception_type { CANCEL MOVE SUBSTITUTE }
+
+Table routine_exceptions {
+  id uuid [pk]
+  slot_id uuid [not null, ref: > routine_slots.id]
+  date date [not null]
+  type exception_type
+  new_start_time time
+  new_end_time time
+  substitute_teacher_id uuid [ref: > users.id]
+  note text
+  Indexes {
+    (slot_id, date) [unique]
+  }
+  Note: 'NEW'
+}
+
+Enum event_type { EXAM MEETING PARENT_MEETING ACTIVITY OTHER }
+
+Table events {
+  id uuid [pk]
+  organization_id uuid [not null]
+  type event_type
+  title varchar(200)
+  starts_at timestamptz
+  ends_at timestamptz
+  place varchar(120)
+  source_type varchar(20) [note: 'EXAM | OFFLINE_EXAM | null']
+  source_id uuid
+  created_by uuid
+  Note: 'NEW (CAL-03)'
+}
+
+Table event_attendees {
+  id uuid [pk]
+  event_id uuid [not null, ref: > events.id]
+  section_id uuid [ref: > sections.id]
+  user_id uuid [ref: > users.id]
+  whole_org boolean [default: false]
+  Note: 'NEW'
+}
+
+Table holidays {
+  id uuid [pk]
+  organization_id uuid [not null]
+  date_from date [not null]
+  date_to date [not null]
+  name varchar(120)
+  Note: 'NEW (CAL-04)'
+}
+
+Table reminder_rules {
+  id uuid [pk]
+  organization_id uuid [not null]
+  user_id uuid [ref: > users.id, note: 'null = org default']
+  target varchar(20) [note: 'CLASS | EXAM | MEETING | HOMEWORK']
+  offsets jsonb [note: '[{"minutes":120,"channel":"PUSH"},{"minutes":30,"channel":"SMS"}] max 5']
+  Note: 'NEW (CAL-05)'
+}
+
+//////////////////////////////////////////////////////////////
+// L. Notifications
+//////////////////////////////////////////////////////////////
+
+Enum channel { IN_APP PUSH EMAIL SMS }
+Enum outbox_status { PENDING HELD SENT DELIVERED FAILED NO_CREDIT }
+
+Table notification_outbox {
+  id uuid [pk]
+  organization_id uuid
+  event_type varchar(60) [not null, note: 'attendance.absent, homework.assigned, ...']
+  recipient_type varchar(10) [note: 'USER | GUARDIAN']
+  recipient_id uuid
+  to_address varchar(200) [note: 'phone / email / fcm token resolved at dispatch']
+  channel channel [not null]
+  locale varchar(5)
+  payload jsonb
+  dedupe_key varchar(200) [unique]
+  status outbox_status [not null, default: 'PENDING']
+  send_after timestamptz
+  attempts smallint [default: 0]
+  provider_msg_id varchar(100)
+  credits_used smallint
+  sent_at timestamptz
+  error text
+  Indexes {
+    (status, send_after)
+    (organization_id, created_at)
+  }
+  Note: 'NEW (FND-12..14) — PARTITION BY RANGE (created_at), monthly'
+}
+
+Table notifications {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  organization_id uuid
+  type varchar(60)
+  title varchar(200)
+  body text
+  link varchar(300)
+  read_at timestamptz
+  created_at timestamptz
+  Indexes {
+    (user_id, read_at, created_at)
+  }
+  Note: 'NEW — in-app inbox (bell)'
+}
+
+Table message_templates {
+  id uuid [pk]
+  event_type varchar(60)
+  channel channel
+  locale varchar(5)
+  subject varchar(200)
+  body text [note: 'with {{variables}}']
+  organization_id uuid [note: 'null = platform default']
+  Indexes {
+    (organization_id, event_type, channel, locale) [unique]
+  }
+  Note: 'NEW'
+}
+
+Table sms_credit_ledger {
+  id bigserial [pk]
+  organization_id uuid [not null]
+  bucket varchar(10) [not null, note: 'ALLOWANCE | TOPUP (decided 22 Oct: monthly allowance plus top-ups)']
+  delta int [not null, note: '+grant/top-up, -send/expire']
+  reason varchar(20) [note: 'MONTHLY_GRANT | MONTHLY_EXPIRE | TOPUP | SEND | REFUND | ADJUST']
+  outbox_id uuid [ref: > notification_outbox.id]
+  payment_id uuid [ref: > payments.id]
+  balance_after int [not null]
+  created_at timestamptz
+  Note: 'NEW (FND-13) — allowance spent first, then top-ups; balance per bucket = last balance_after; row lock on org'
+}
+
+Table user_notification_prefs {
+  user_id uuid [ref: > users.id]
+  event_type varchar(60)
+  channels channel[]
+  Indexes {
+    (user_id, event_type) [pk]
+  }
+  Note: 'NEW'
+}
+
+//////////////////////////////////////////////////////////////
+// M. Files, AI
+//////////////////////////////////////////////////////////////
+
+Enum file_status { PENDING READY FAILED DELETED }
+
+Table file_objects {
+  id uuid [pk]
+  organization_id uuid
+  owner_id uuid [ref: > users.id]
+  purpose varchar(30) [note: 'HOMEWORK | RESOURCE | VIDEO | SELFIE | SNAPSHOT | SYLLABUS | REPORT | AVATAR | ...']
+  s3_key varchar(400)
+  mime varchar(100)
+  size_bytes bigint [note: 'counts toward org storage']
+  original_size_bytes bigint
+  width int
+  height int
+  duration_s int
+  status file_status
+  delete_after timestamptz [note: 'retention: selfies/snapshots +90 days']
+  Indexes {
+    (organization_id, purpose)
+    (delete_after)
+  }
+  Note: 'NEW (FND-15, FND-16) — replaces local /uploads'
+}
+
+Table ai_task_configs {
+  task varchar(40) [pk, note: 'SYLLABUS_EXTRACT | QUESTION_DRAFT | AI_WRITING']
+  provider varchar(20)
+  model varchar(60)
+  params jsonb [note: 'temperature, media_resolution, thinking, max_output_tokens']
+  prompt_version varchar(20)
+  Note: 'NEW — switch model without deploy'
+}
+
+Table ai_requests {
+  id uuid [pk]
+  organization_id uuid
+  task varchar(40)
+  provider varchar(20)
+  model varchar(60)
+  prompt_version varchar(20)
+  input_tokens int
+  output_tokens int
+  cost_usd numeric(8,5)
+  latency_ms int
+  status varchar(20)
+  ref_type varchar(30)
+  ref_id uuid
+  created_at timestamptz
+  Indexes {
+    (organization_id, task, created_at)
+  }
+  Note: 'NEW — usage, cost and plan quota'
+}
+
+//////////////////////////////////////////////////////////////
+// N. Integrity (Epic 10)
+//////////////////////////////////////////////////////////////
+
+Table similarity_checks {
+  id uuid [pk]
+  organization_id uuid [not null]
+  scope_type varchar(20) [note: 'HOMEWORK | EXAM']
+  scope_id uuid
+  status varchar(20)
+  ran_at timestamptz
+  Note: 'NEW (PLG-01)'
+}
+
+Table similarity_matches {
+  id uuid [pk]
+  check_id uuid [not null, ref: > similarity_checks.id]
+  submission_a uuid
+  submission_b uuid
+  score numeric(5,2)
+  spans jsonb [note: 'matching passages for side-by-side view']
+  review_decision varchar(20) [note: 'OK | COPIED (PLG-02)']
+  review_note text
+  reviewed_by uuid
+  Note: 'NEW'
+}
+
+Table ai_writing_scores {
+  id uuid [pk]
+  organization_id uuid
+  submission_type varchar(20)
+  submission_id uuid
+  likelihood varchar(10)
+  provider varchar(20)
+  Note: 'NEW (PLG-04, experimental)'
+}
+
+//////////////////////////////////////////////////////////////
+// O. IELTS (Epic 11)
+//////////////////////////////////////////////////////////////
+
+Enum ielts_test_type { ACADEMIC GENERAL }
+Enum ielts_module { LISTENING READING WRITING SPEAKING }
+
+Table ielts_profiles {
+  id uuid [pk]
+  organization_id uuid [not null]
+  student_id uuid [not null, ref: > users.id]
+  test_type ielts_test_type
+  target_overall numeric(2,1)
+  target_bands jsonb [note: '{"L":7,"R":7,"W":6.5,"S":6.5}']
+  test_date date
+  Indexes {
+    (organization_id, student_id) [unique]
+  }
+  Note: 'NEW (IEL-02)'
+}
+
+Table ielts_band_tables {
+  id uuid [pk]
+  organization_id uuid [note: 'null = platform default']
+  module ielts_module [note: 'LISTENING | READING']
+  test_type ielts_test_type
+  raw_min smallint
+  raw_max smallint
+  band numeric(2,1)
+  Note: 'NEW (IEL-03, IEL-04) — editable conversion'
+}
+
+Table ielts_mock_tests {
+  id uuid [pk]
+  organization_id uuid [not null]
+  name varchar(120)
+  listening_exam_id uuid [ref: > exams.id]
+  reading_exam_id uuid [ref: > exams.id]
+  writing_exam_id uuid [ref: > exams.id]
+  speaking_exam_id uuid [ref: > exams.id]
+  Note: 'NEW (IEL-07)'
+}
+
+Table ielts_results {
+  id uuid [pk]
+  organization_id uuid [not null]
+  student_id uuid [not null, ref: > users.id]
+  submission_id uuid [ref: > student_exam_submissions.id]
+  mock_test_id uuid [ref: > ielts_mock_tests.id]
+  module ielts_module
+  raw_score smallint
+  band numeric(2,1)
+  criteria jsonb [note: 'W: TA/TR, CC, LR, GRA; S: FC, LR, GRA, P']
+  marked_by uuid
+  Note: 'NEW (IEL-05..08); overall band computed per mock'
+}
+
+//////////////////////////////////////////////////////////////
+// Tables to DROP after migration (kept read-only for one release)
+//////////////////////////////////////////////////////////////
+// teacher_subscriptions        -> account_subscriptions + feature_overrides
+// payment_history              -> payments
+// class_students               -> enrolments
+// class_teachers               -> course_offerings + offering_teachers
+// class_subject_teachers       -> course_offerings + offering_teachers
+// organization_teacher_subjects-> offering_teachers
+// class_discussion_posts, class_discussion_comments,
+// class_private_conversations, class_private_messages   -> MongoDB only (already the runtime store)
+
+//////////////////////////////////////////////////////////////
+// MongoDB collections (chat) — not rendered by DBML
+//////////////////////////////////////////////////////////////
+// group_chats        { _id, orgId, offeringId, announcementOnly, pinned[], closedAt, createdAt }   NEW (one per subject class)
+//                    index: { orgId:1, offeringId:1 } unique
+// group_messages     { _id, groupId, orgId, senderId, parentId (null = post, else comment on that post), body,
+//                      attachments[{fileId,mime}], commentCount, lastCommentAt, deletedAt, deletedBy, createdAt }  NEW
+//                    index: { groupId:1, createdAt:-1 }, { groupId:1, parentId:1, createdAt:1 }
+// private_conversations { _id, orgId, classSubjectId, studentId, teacherId, lastMessageAt }  EXISTING (+orgId index)
+// private_messages      { _id, conversationId, senderId, body, attachments[], readAt, createdAt }  EXISTING (+readAt)
+// discussion_posts / discussion_comments / discussion_attachments  EXISTING (shown as the "Discussions" tab)
+// user_mutes         { groupId, userId, until, by }  NEW (COM-04)

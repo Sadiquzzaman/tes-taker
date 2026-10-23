@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { isAxiosError } from "axios";
 import axiosReq from "@/lib/axios";
 
 type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "CANCELLED";
@@ -17,14 +18,22 @@ type PaymentView = {
 };
 
 const POLL_INTERVAL_MS = 2000;
+// The lookup is private: only the logged-in account that paid can see it.
+const NOT_VISIBLE_STATUSES = [401, 403, 404];
+const NOT_VISIBLE_MESSAGE =
+  "Log in with the account that made this payment to see its status. / এই পেমেন্টের অবস্থা দেখতে যে অ্যাকাউন্ট থেকে পেমেন্ট করেছেন সেটিতে লগ ইন করুন।";
 const MAX_POLLS = 8;
 
 export default function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-  const [phase, setPhase] = useState<"loading" | "settled" | "pending" | "error">("loading");
+  const tranId = searchParams.get("tran_id");
+  const [pollPhase, setPhase] = useState<"loading" | "settled" | "pending" | "error">("loading");
   const [payment, setPayment] = useState<PaymentView | null>(null);
-  const [message, setMessage] = useState("Confirming your payment...");
+  const [pollMessage, setMessage] = useState("Confirming your payment...");
+  // Without a transaction reference there is nothing to poll.
+  const phase = tranId ? pollPhase : "error";
+  const message = tranId ? pollMessage : "Missing transaction reference.";
 
   const fetchPayment = useCallback(
     async (tranId: string): Promise<PaymentView | null> => {
@@ -35,11 +44,7 @@ export default function PaymentSuccessContent() {
   );
 
   useEffect(() => {
-    const tranId = searchParams.get("tran_id");
-
     if (!tranId) {
-      setPhase("error");
-      setMessage("Missing transaction reference.");
       return;
     }
 
@@ -77,8 +82,13 @@ export default function PaymentSuccessContent() {
         }
 
         setTimeout(() => void poll(), POLL_INTERVAL_MS);
-      } catch {
+      } catch (error) {
         if (cancelled) return;
+        if (isAxiosError(error) && NOT_VISIBLE_STATUSES.includes(error.response?.status ?? 0)) {
+          setPhase("error");
+          setMessage(NOT_VISIBLE_MESSAGE);
+          return;
+        }
         if (attempts >= MAX_POLLS) {
           setPhase("error");
           setMessage("We couldn't confirm your payment. Contact support if you were charged.");
@@ -93,7 +103,7 @@ export default function PaymentSuccessContent() {
     return () => {
       cancelled = true;
     };
-  }, [fetchPayment, searchParams]);
+  }, [fetchPayment, tranId]);
 
   const heading =
     phase === "settled"

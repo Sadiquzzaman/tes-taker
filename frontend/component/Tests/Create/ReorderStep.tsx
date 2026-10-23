@@ -40,6 +40,7 @@ const ReorderStep = memo(() => {
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const dragStateRef = useRef<DragState | null>(null);
+  const dragListenersRef = useRef<AbortController | null>(null);
 
   const flatQuestions = useMemo(() => {
     const byId = new Map<
@@ -125,9 +126,8 @@ const ReorderStep = memo(() => {
 
   const handleStopDragging = useCallback(() => {
     const current = dragStateRef.current;
-    window.removeEventListener("pointermove", handlePointerMove);
-    window.removeEventListener("pointerup", handleStopDragging);
-    window.removeEventListener("pointercancel", handleStopDragging);
+    dragListenersRef.current?.abort();
+    dragListenersRef.current = null;
 
     if (current) {
       const { id, draggedOriginalIndex, dropLineIndex } = current;
@@ -138,7 +138,7 @@ const ReorderStep = memo(() => {
     }
 
     dispatch(cancelDragging());
-  }, [dispatch, handlePointerMove]);
+  }, [dispatch]);
 
   const handleDragHandlePointerDown = useCallback(
     (questionId: string, event: React.PointerEvent<HTMLButtonElement>) => {
@@ -169,9 +169,12 @@ const ReorderStep = memo(() => {
       };
 
       dispatch(startDragging(nextDragState));
-      window.addEventListener("pointermove", handlePointerMove);
-      window.addEventListener("pointerup", handleStopDragging);
-      window.addEventListener("pointercancel", handleStopDragging);
+      dragListenersRef.current?.abort();
+      const dragListeners = new AbortController();
+      dragListenersRef.current = dragListeners;
+      window.addEventListener("pointermove", handlePointerMove, { signal: dragListeners.signal });
+      window.addEventListener("pointerup", handleStopDragging, { signal: dragListeners.signal });
+      window.addEventListener("pointercancel", handleStopDragging, { signal: dragListeners.signal });
     },
     [dispatch, flatQuestions, handlePointerMove, handleStopDragging],
   );

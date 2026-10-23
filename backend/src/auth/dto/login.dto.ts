@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Exclude } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString, MaxLength, Matches, ValidateIf, IsOptional } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MaxLength, Matches, ValidateIf } from 'class-validator';
 
 export class LoginDto {
   @ApiPropertyOptional({

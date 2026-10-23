@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AxiosError } from "axios";
 import { useToast } from "@/component/Toast/ToastContext";
 import axiosReq from "@/lib/axios";
 import { validateOrganizationSignUpForm } from "@/utils/auth/validation";
@@ -76,8 +77,9 @@ export const useOrganizationSignUpForm = () => {
         type: "success",
       });
       setView("otp");
-    } catch (error: any) {
-      const message = error?.response?.data?.message || "Organization signup failed. Please try again.";
+    } catch (caught) {
+      const error = caught as AxiosError<{ message?: unknown }>;
+      const message = error.response?.data?.message || "Organization signup failed. Please try again.";
       triggerToast({
         title: "Sign Up Failed",
         description: typeof message === "string" ? message : "Organization signup failed. Please try again.",
