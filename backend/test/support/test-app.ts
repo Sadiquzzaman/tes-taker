@@ -35,7 +35,9 @@ export interface TestApp {
  * pipeline (configureApp) and all outbound HTTP blocked. Each call starts from an empty
  * database (apart from migrations and the seeded plans) and empty Redis/Mongo.
  */
-export async function createTestApp(): Promise<TestApp> {
+export async function createTestApp(
+  options: { beforeListen?: (app: INestApplication) => void } = {},
+): Promise<TestApp> {
   await resetDatabase();
   const redis = new Redis({ host: process.env.REDIS_HOST, port: Number(process.env.REDIS_PORT), lazyConnect: true });
   await redis.connect();
@@ -48,6 +50,7 @@ export async function createTestApp(): Promise<TestApp> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication({ logger: ['error'] });
   configureApp(app);
+  options.beforeListen?.(app);
   await app.listen(0, '127.0.0.1');
   const baseUrl = `${await app.getUrl()}/api/v1`.replace('[::1]', '127.0.0.1');
 
