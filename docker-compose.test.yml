@@ -1,6 +1,7 @@
 # Throwaway databases for the backend API tests (make test-db-up / make test-api).
 # Same images as docker-compose.prod.yml. Data lives in memory (tmpfs) and is gone when the
-# containers stop. Ports are bound to localhost and differ from the dev databases.
+# containers stop, and `make test-db-down` removes everything (containers, network, volumes).
+# Ports are bound to localhost and differ from the dev databases.
 # Credentials here are for these local test containers only.
 name: tasktaker-test
 
@@ -37,8 +38,10 @@ services:
     image: mongo:7
     ports:
       - "127.0.0.1:57017:27017"
+    # Both folders the mongo image declares as volumes, so no anonymous volume is created.
     tmpfs:
       - /data/db
+      - /data/configdb
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 2s
