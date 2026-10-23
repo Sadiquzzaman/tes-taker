@@ -8,7 +8,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node .",
-    "lint": "eslint src",
+    "lint": "eslint src test",
     "typeorm": "typeorm-ts-node-commonjs -d ./src/data-source.ts",
     "migration:create": "typeorm-ts-node-commonjs migration:create ./src/migrations/Migration",
     "migration:generate": "nest build && typeorm migration:generate -d dist/src/data-source.entities.js ./src/migrations/Migration",
@@ -21,7 +21,8 @@
     "migration:show:prod": "typeorm migration:show -d dist/src/data-source.js",
     "migration:check": "nest build && typeorm migration:generate --check -d dist/src/data-source.entities.js ./src/migrations/Check",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:e2e": "jest --config test/jest-e2e.config.js"
   },
   "keywords": [],
   "author": "",
