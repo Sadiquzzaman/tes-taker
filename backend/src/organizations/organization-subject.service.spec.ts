@@ -72,3 +72,39 @@ describe('OrganizationsService organization subjects — lost insert race on UQ_
     ).rejects.toBe(other);
   });
 });
+
+describe('OrganizationsService organization subjects — duplicate check treats % and _ literally', () => {
+  it('find-or-create looks up the exact name and code, not a LIKE pattern', async () => {
+    const subjectRepo = {
+      findOne: jest.fn().mockResolvedValue(null),
+      create: jest.fn((value) => value),
+      save: jest.fn((value) => Promise.resolve(value)),
+    };
+    const service = build(subjectRepo);
+
+    await service.findOrCreateOrganizationSubject(ORG, ACTOR, { name: 'Math_100%', code: 'M_1' });
+
+    const where = subjectRepo.findOne.mock.calls[0][0].where;
+    expect(where.name.value).toBe('Math\\_100\\%');
+    expect(where.code.value).toBe('M\\_1');
+    // The subject itself is saved with the name as typed.
+    expect(subjectRepo.save.mock.calls[0][0]).toMatchObject({ name: 'Math_100%', code: 'M_1' });
+  });
+
+  it('update checks duplicates with the escaped name and code', async () => {
+    const subjectRepo = {
+      findOne: jest
+        .fn()
+        .mockResolvedValueOnce({ id: SUBJECT, name: 'Physics', code: 'PHY', organization_id: ORG })
+        .mockResolvedValueOnce(null),
+      save: jest.fn((value) => Promise.resolve(value)),
+    };
+    const service = build(subjectRepo);
+
+    await service.updateOrganizationSubject(ORG, SUBJECT, ACTOR, { name: 'Phy_sics', code: 'P%' });
+
+    const where = subjectRepo.findOne.mock.calls[1][0].where;
+    expect(where.name.value).toBe('Phy\\_sics');
+    expect(where.code.value).toBe('P\\%');
+  });
+});

@@ -36,7 +36,6 @@ import {
   CreatePlanDto,
   GrantTempAccessDto,
   ReorderPlansDto,
-  SetTeacherActiveDto,
   SubscribeByPlanIdDto,
   SubscriptionOverridesDto,
   UpdatePlanDto,

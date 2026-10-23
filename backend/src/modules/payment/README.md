@@ -27,8 +27,8 @@ src/modules/payment/
 
 | Variable | Description | Example |
 | --- | --- | --- |
-| `SSL_STORE_ID` | Sandbox store id | `magne6a3d8f92c572f` |
-| `SSL_STORE_PASSWORD` | Sandbox store password | `magne6a3d8f92c572f@ssl` |
+| `SSL_STORE_ID` | Sandbox store id | `your_sandbox_store_id` |
+| `SSL_STORE_PASSWORD` | Sandbox store password (from the SSLCommerz sandbox dashboard; never commit real values) | `your_sandbox_store_password` |
 | `SSL_SESSION_API` | Session (initiate) API | `https://sandbox.sslcommerz.com/gwprocess/v4/api.php` |
 | `SSL_VALIDATION_API` | Validation API | `https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php` |
 | `BACKEND_BASE_URL` | Public backend base URL (used to build `ipn_url`) | `http://localhost:5000` |

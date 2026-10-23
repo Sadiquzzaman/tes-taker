@@ -61,19 +61,19 @@ export class SmsService {
     // A new code does not lift a wrong-guess lockout.
     await this.smsRateLimitService.assertOtpNotLocked('register', phoneNumber);
 
-    // Check rate limiting
+    // Check rate limiting: 3 SMS per phone per hour, then blocked for an hour (limits SMS cost).
     const rateLimitCheck = await this.smsRateLimitService.canSendSms(phoneNumber);
-    
-    // if (!rateLimitCheck.canSend) {
-    //   const message = rateLimitCheck.blockedUntil 
-    //     ? `SMS blocked until ${rateLimitCheck.blockedUntil.toLocaleString()}. Please try again later.`
-    //     : 'SMS limit exceeded. Please try again later.';
-      
-    //   return { 
-    //     success: false, 
-    //     message 
-    //   };
-    // }
+
+    if (!rateLimitCheck.canSend) {
+      const message = rateLimitCheck.blockedUntil
+        ? `SMS blocked until ${rateLimitCheck.blockedUntil.toLocaleString()}. Please try again later.`
+        : 'SMS limit exceeded. Please try again later.';
+
+      return {
+        success: false,
+        message,
+      };
+    }
 
     // Generate OTP
     const otp = this.generateOtp();

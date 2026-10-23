@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, ValidateIf } from 'class-validator';
+import { IsString, ValidateIf } from 'class-validator';
 
 /**
  * Verification can be requested by val_id (preferred, returned by the gateway)

@@ -81,3 +81,58 @@ describe('SmsRateLimitService OTP lockout', () => {
     await expect(service.assertOtpNotLocked('register', '01700000000')).resolves.toBeUndefined();
   });
 });
+
+describe('SmsRateLimitService.resetSmsCache', () => {
+  const phone = '01700000002';
+  const email = 'user@example.com';
+  const rightCode = '482913';
+  const wrongCode = '000000';
+  let service: SmsRateLimitService;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-10-23T08:00:00Z'));
+    service = new SmsRateLimitService(new InMemoryRedis() as never);
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  const lockOut = async (purpose: 'register' | 'reset', identifier: string) => {
+    for (let i = 0; i < OTP_MAX_WRONG_ATTEMPTS - 1; i++) {
+      await service.checkOtpAttempt(purpose, identifier, wrongCode, rightCode);
+    }
+    await service.checkOtpAttempt(purpose, identifier, wrongCode, rightCode).catch(() => undefined);
+    await expect(service.assertOtpNotLocked(purpose, identifier)).rejects.toBeInstanceOf(HttpException);
+  };
+
+  it('clears the OTP lockout for one phone number, for every purpose', async () => {
+    await lockOut('register', phone);
+    await lockOut('reset', phone);
+
+    await service.resetSmsCache(phone);
+
+    await expect(service.assertOtpNotLocked('register', phone)).resolves.toBeUndefined();
+    await expect(service.assertOtpNotLocked('reset', phone)).resolves.toBeUndefined();
+    await expect(service.checkOtpAttempt('register', phone, rightCode, rightCode)).resolves.toBe('valid');
+  });
+
+  it('leaves other identifiers locked when resetting one phone number', async () => {
+    await lockOut('reset', email);
+
+    await service.resetSmsCache(phone);
+
+    await expect(service.assertOtpNotLocked('reset', email)).rejects.toBeInstanceOf(HttpException);
+  });
+
+  it('clears every OTP lockout and SMS counter when no phone number is given', async () => {
+    await lockOut('register', phone);
+    await lockOut('reset', email);
+    await service.recordSmsAttempt(phone);
+
+    await service.resetSmsCache();
+
+    await expect(service.assertOtpNotLocked('register', phone)).resolves.toBeUndefined();
+    await expect(service.assertOtpNotLocked('reset', email)).resolves.toBeUndefined();
+    await expect(service.getSmsStatus(phone)).resolves.toMatchObject({ attempts: 0 });
+  });
+});

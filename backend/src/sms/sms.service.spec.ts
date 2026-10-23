@@ -55,3 +55,46 @@ describe('SmsService registration OTP lockout', () => {
     await expect(service.sendOtp(phone)).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
   });
 });
+
+describe('SmsService.sendOtp send limit', () => {
+  const phone = '01700000001';
+  let rateLimit: SmsRateLimitService;
+  let service: SmsService;
+  let sendSms: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-10-23T08:00:00Z'));
+    rateLimit = new SmsRateLimitService(new InMemoryRedis() as never);
+    service = new SmsService({} as never, rateLimit);
+    sendSms = jest.spyOn(service, 'sendSms').mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  it('sends 3 OTP SMS, then refuses the 4th without sending', async () => {
+    for (let i = 0; i < 3; i++) {
+      await expect(service.sendOtp(phone)).resolves.toMatchObject({ success: true });
+    }
+
+    const blocked = await service.sendOtp(phone);
+
+    expect(blocked.success).toBe(false);
+    expect(blocked.message).toMatch(/SMS blocked until/);
+    expect(sendSms).toHaveBeenCalledTimes(3);
+  });
+
+  it('allows sending again after the 1-hour block', async () => {
+    for (let i = 0; i < 4; i++) {
+      await service.sendOtp(phone);
+    }
+
+    jest.advanceTimersByTime(60 * 60 * 1000 + 1000);
+
+    await expect(service.sendOtp(phone)).resolves.toMatchObject({ success: true });
+    expect(sendSms).toHaveBeenCalledTimes(4);
+  });
+});

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Deploys the develop branch on the beta server. Follows the routine in
-# "TaskTaker Production Deployment Runbook" §4 and §15. Never resets or deletes data.
+# Deploys the develop branch on the beta server, following DEPLOYMENT.md
+# ("Automatic beta deploys", §2 build and start, §3 migrations). Never resets or deletes data.
 # Inputs (env): RUN_MIGRATIONS=true|false, EXPECTED_SHA=<commit the workflow built>
 #
 # The workflow pipes this file into `bash -s` over SSH. Everything runs inside main(),
@@ -17,7 +17,7 @@ main() {
   cd "$APP_DIR"
   echo "==> $(date -u +%FT%TZ) deploying $BRANCH in $APP_DIR"
 
-  # 1. Refuse to deploy over unexpected server-side edits (runbook §3).
+  # 1. Refuse to deploy over unexpected server-side edits.
   if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
     echo "ERROR: tracked files changed on the server. Resolve by hand before deploying." >&2
     git status --short >&2
@@ -40,7 +40,7 @@ main() {
   # 4. Build application images only.
   $COMPOSE build backend frontend
 
-  # 5. Optional migrations, always after a database backup (runbook §7, §8).
+  # 5. Optional migrations, always after a database backup (DEPLOYMENT.md §3).
   if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
     mkdir -p backups && chmod 700 backups
     BACKUP="backups/tasktaker_$(date +%Y%m%d_%H%M%S)_pre_${DEPLOYED_SHA:0:7}.dump"

@@ -46,7 +46,7 @@ These are already exported to Markdown in `docs/` (Claude Code cannot open claud
 ## Repository state
 
 - Release branch is `main` ("master"); `develop` deploys to beta. `develop` was merged into `main` on 22 Oct 2026 (PR #67); the two branches now hold the same code.
-- Beta server: `/opt/instructor/apps/tasktaker`, deployed by hand over SSH with `docker-compose.prod.yml` + `.env.production` (see the deployment runbook). No CI/CD yet.
+- Beta server: `/opt/instructor/apps/tasktaker` (`develop` checked out). Deployed by `.github/workflows/deploy-beta.yml` on every merge to `develop`; see DEPLOYMENT.md "Automatic beta deploys".
 - Claude GitHub App is installed; pushes from cloud sessions work.
 
 ## Next steps (approved plan pending the owner's "go")

@@ -45,8 +45,8 @@ check: lint typecheck test build ## lint + typecheck + test + build (run before 
 backend-install: ## Backend: install dependencies
 	cd $(BACKEND_DIR) && $(BACKEND_INSTALL)
 
-backend-lint: ## Backend: lint (no lint script yet, see docs/TODO.md)
-	@echo "backend: no lint script in backend/package.json yet; skipping (see docs/TODO.md)"
+backend-lint: ## Backend: eslint
+	cd $(BACKEND_DIR) && $(BACKEND_PM) run lint
 
 backend-typecheck: ## Backend: tsc --noEmit
 	cd $(BACKEND_DIR) && $(BACKEND_PM) exec tsc --noEmit -p tsconfig.json
@@ -70,8 +70,8 @@ frontend-lint: ## Frontend: eslint
 frontend-typecheck: ## Frontend: next typegen + tsc --noEmit
 	cd $(FRONTEND_DIR) && $(FRONTEND_PM) exec -- next typegen && $(FRONTEND_PM) exec -- tsc --noEmit -p tsconfig.json
 
-frontend-test: ## Frontend: tests (no test harness yet, see docs/TODO.md)
-	@echo "frontend: no test script in frontend/package.json yet; skipping (see docs/TODO.md)"
+frontend-test: ## Frontend: vitest (components and hooks, jsdom)
+	cd $(FRONTEND_DIR) && $(FRONTEND_PM) test
 
 frontend-build: ## Frontend: next build
 	cd $(FRONTEND_DIR) && $(FRONTEND_PM) run build

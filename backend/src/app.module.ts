@@ -5,6 +5,9 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { AppThrottlerGuard } from "./common/guard/app-throttler.guard";
 import { AUTH_IP_THROTTLER, isAuthThrottled } from "./common/decorators/auth-throttle.decorator";
+import { RedisThrottlerStorage } from "./common/guard/redis-throttler.storage";
+import { RedisModule } from "./config/redis.module";
+import { RedisService } from "./config/redis.service";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
 import { getMongoUri } from "./config/mongodb.config";
@@ -31,7 +34,11 @@ import { CommonModule } from './common/common.module';
     ConfigModule.forRoot({ isGlobal: true }),
     CommonModule,
     ThrottlerModule.forRootAsync({
-      useFactory: () => ({
+      imports: [RedisModule],
+      inject: [RedisService],
+      useFactory: (redis: RedisService) => ({
+        // Shared counters in Redis, so limits hold across backend instances.
+        storage: new RedisThrottlerStorage(redis),
         throttlers: [
           {
             // Generous application-wide default so normal exam traffic is never

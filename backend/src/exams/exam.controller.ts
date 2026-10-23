@@ -157,8 +157,9 @@ export class ExamController {
   async findByClass(
     @Param("classId", ParseUUIDPipe) classId: string,
     @UserPayload() jwtPayload: JwtPayloadInterface,
+    @OrgContext() orgContext: OrgContextType | null,
   ) {
-    const payload = await this.examService.findByClass(classId, jwtPayload);
+    const payload = await this.examService.findByClass(classId, jwtPayload, orgContext);
     return { message: "Exams retrieved successfully", payload };
   }
 

@@ -7,7 +7,6 @@ import {
   IsString,
   MaxLength,
   Min,
-  ValidateIf,
 } from "class-validator";
 
 export enum CorrectAnswerEnum {

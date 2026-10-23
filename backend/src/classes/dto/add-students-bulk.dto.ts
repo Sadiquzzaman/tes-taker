@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNotEmpty, IsString, ArrayMinSize } from 'class-validator';
+import { IsArray, IsString, ArrayMinSize } from 'class-validator';
 
 export class AddStudentsBulkDto {
   @ApiProperty({

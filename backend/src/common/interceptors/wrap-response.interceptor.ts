@@ -7,19 +7,21 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-//global response interceptor interface
-export interface Response<T> {
+/** What controllers return: `{ message, payload, meta? }`, or nothing when they send the response themselves. */
+type HandlerResult = { message?: string; payload?: unknown; meta?: unknown } | null | undefined;
+
+/** The envelope every JSON response is wrapped in. */
+export interface WrappedResponse {
   statusCode: number;
   message: string;
-  data: T;
-  error: boolean;
+  payload: unknown;
+  meta?: unknown;
+  error: false;
 }
 
 @Injectable()
-export class WrapResponseInterceptor<T>
-  implements NestInterceptor<T, Response<T>>
-{
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+export class WrapResponseInterceptor implements NestInterceptor<HandlerResult, WrappedResponse | HandlerResult> {
+  intercept(context: ExecutionContext, next: CallHandler<HandlerResult>): Observable<WrappedResponse | HandlerResult> {
     return next.handle().pipe(
       map((data) => {
         const response = context.switchToHttp().getResponse();
