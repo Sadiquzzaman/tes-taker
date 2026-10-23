@@ -12,6 +12,8 @@ import {
   In,
   WhereExpressionBuilder,
 } from 'typeorm';
+import { EntitlementsService } from 'src/subscriptions/entitlements.service';
+import { LimitKey } from 'src/subscriptions/constants/feature-catalog';
 import { ExamEntity } from './entities/exam.entity';
 import { TestAudienceEnum } from './enums/exam-wizard.enums';
 import {
@@ -82,6 +84,9 @@ export type ExamAccessValidation = {
   exam?: ExamEntity;
 };
 
+export const EXAM_FULL_MESSAGE =
+  "This exam is full: it has reached the student limit of the teacher's plan.";
+
 @Injectable()
 export class StudentExamService {
   private readonly logger = new Logger(StudentExamService.name);
@@ -115,6 +120,8 @@ export class StudentExamService {
     private readonly classService: ClassService,
 
     private readonly examPaperCache: ExamPaperCacheService,
+
+    private readonly entitlementsService: EntitlementsService,
   ) {}
 
   private static readonly UUID_V4_RE =
@@ -599,7 +606,31 @@ export class StudentExamService {
       }
     }
 
+    if (!existingSubmission) {
+      const studentCap = await this.getStudentCap(exam);
+      if (studentCap > 0 && (await this.submissionRepo.count({ where: { exam_id: exam.id } })) >= studentCap) {
+        return {
+          canAccess: false,
+          reason: EXAM_FULL_MESSAGE,
+          reason_code: ExamAccessReasonCodeEnum.EXAM_FULL,
+          exam,
+        };
+      }
+    }
+
     return { canAccess: true, reason_code: ExamAccessReasonCodeEnum.OK, exam };
+  }
+
+  /**
+   * max_students_per_exam from the exam creator's plan (the same limit checked when the
+   * exam is created). 0 means no limit.
+   */
+  private async getStudentCap(exam: ExamEntity): Promise<number> {
+    if (!exam.created_by) {
+      return 0;
+    }
+    const entitlements = await this.entitlementsService.getEntitlements(exam.created_by);
+    return entitlements.limits[LimitKey.MAX_STUDENTS_PER_EXAM] ?? 0;
   }
 
   // ========================
@@ -659,7 +690,22 @@ export class StudentExamService {
       created_at: new Date(),
     });
 
-    return this.submissionRepo.save(submission);
+    const studentCap = await this.getStudentCap(exam);
+    if (studentCap <= 0) {
+      return this.submissionRepo.save(submission);
+    }
+
+    // Lock the exam row so students starting at the same moment are counted one at a time
+    // and cannot both take the last place.
+    const newSubmission = submission;
+    return this.dataSource.transaction(async (manager) => {
+      await manager.query('SELECT id FROM exams WHERE id = $1 FOR UPDATE', [examId]);
+      const submissions = manager.getRepository(StudentExamSubmissionEntity);
+      if ((await submissions.count({ where: { exam_id: examId } })) >= studentCap) {
+        throw new ForbiddenException(EXAM_FULL_MESSAGE);
+      }
+      return submissions.save(newSubmission);
+    });
   }
 
   /**
