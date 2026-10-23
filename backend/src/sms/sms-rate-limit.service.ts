@@ -3,7 +3,8 @@ import { timingSafeEqual } from 'crypto';
 import { RedisService } from '../config/redis.service';
 
 /** Which OTP flow a code belongs to; each flow has its own wrong-guess counter. */
-export type OtpPurpose = 'register' | 'reset';
+export const OTP_PURPOSES = ['register', 'reset'] as const;
+export type OtpPurpose = (typeof OTP_PURPOSES)[number];
 
 export type OtpCheckResult = 'valid' | 'invalid' | 'expired';
 
@@ -226,13 +227,21 @@ export class SmsRateLimitService {
   async resetSmsCache(phoneNumber?: string): Promise<void> {
     try {
       if (phoneNumber) {
-        // Reset specific phone number
+        // Reset specific phone number, including wrong-code lockouts for every OTP purpose
         await this.redisService.del(this.getSmsAttemptKey(phoneNumber));
         await this.redisService.del(this.getSmsBlockKey(phoneNumber));
         await this.redisService.del(this.getOtpKey(phoneNumber));
+        for (const purpose of OTP_PURPOSES) {
+          await this.redisService.del(this.getOtpFailKey(purpose, phoneNumber));
+          await this.redisService.del(this.getOtpLockKey(purpose, phoneNumber));
+        }
       } else {
-        // Reset all SMS-related cache
-        const keys = await this.redisService.keys('sms_*');
+        // Reset all SMS-related cache and every OTP lockout
+        const keys = [
+          ...(await this.redisService.keys('sms_*')),
+          ...(await this.redisService.keys('otp_fail:*')),
+          ...(await this.redisService.keys('otp_lock:*')),
+        ];
         if (keys.length > 0) {
           await this.redisService.delMultiple(keys);
         }
