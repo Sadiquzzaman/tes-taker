@@ -39,6 +39,11 @@ export class InMemoryRedis {
     return count;
   }
 
+  async expire(key: string, expirationSeconds: number): Promise<void> {
+    const entry = this.live(key);
+    if (entry) entry.expiresAt = Date.now() + expirationSeconds * 1000;
+  }
+
   async ttl(key: string): Promise<number> {
     const entry = this.live(key);
     if (!entry) return -2;

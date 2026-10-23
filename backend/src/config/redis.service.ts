@@ -44,6 +44,11 @@ export class RedisService implements OnApplicationShutdown {
     return count;
   }
 
+  /** Sets a key's time-to-live in seconds. */
+  async expire(key: string, expirationSeconds: number): Promise<void> {
+    await this.client.expire(key, expirationSeconds);
+  }
+
   /** Remaining time-to-live in seconds (-2 if the key does not exist, -1 if it has no expiry). */
   async ttl(key: string): Promise<number> {
     return await this.client.ttl(key);
