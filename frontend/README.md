@@ -2,17 +2,14 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+This app uses **pnpm** (`pnpm-lock.yaml`). Install the dependencies and run the development server:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
+
+From the repo root, `make help` lists the shared commands (`make check` runs lint, type-check, tests and build).
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
