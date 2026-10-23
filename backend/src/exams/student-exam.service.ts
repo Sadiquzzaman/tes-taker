@@ -51,6 +51,7 @@ import {
   EXAM_TIME_EXPIRED_MESSAGE,
   isPastDeadlineWithGrace,
   resolveSubmissionDeadline,
+  SUBMIT_GRACE_SECONDS,
 } from './utils/exam-deadline.util';
 import { QuestionCategoryEnum } from './enums/question.enums';
 import { RolesEnum } from 'src/common/enums/roles.enum';
@@ -82,6 +83,25 @@ export type ExamAccessValidation = {
   reason?: string;
   reason_code: ExamAccessReasonCodeEnum;
   exam?: ExamEntity;
+};
+
+/** Attempts finalised per auto-submit run; the next run (a minute later) picks up the rest. */
+const AUTO_SUBMIT_BATCH_SIZE = 200;
+
+/** Statuses after which an attempt can no longer change. */
+const FINALIZED_STATUSES = [
+  ExamSubmissionStatusEnum.SUBMITTED,
+  ExamSubmissionStatusEnum.AUTO_SUBMITTED,
+  ExamSubmissionStatusEnum.DISQUALIFIED,
+];
+
+export type FinalizeSubmissionResult = {
+  submission_id: string;
+  status: ExamSubmissionStatusEnum;
+  saved_count: number;
+  total_score: number | null;
+  max_score: number | null;
+  already_finalized?: boolean;
 };
 
 export const EXAM_FULL_MESSAGE =
@@ -807,14 +827,7 @@ export class StudentExamService {
     studentId: string,
     jwtPayload: JwtPayloadInterface | undefined,
     dto: SubmitAnswerSheetDto,
-  ): Promise<{
-    submission_id: string;
-    status: ExamSubmissionStatusEnum;
-    saved_count: number;
-    total_score: number | null;
-    max_score: number | null;
-    already_finalized?: boolean;
-  }> {
+  ): Promise<FinalizeSubmissionResult> {
     if (dto.studentId && dto.studentId !== studentId) {
       throw new BadRequestException('studentId does not match the authenticated user');
     }
@@ -835,13 +848,8 @@ export class StudentExamService {
       throw new BadRequestException('Please start the exam first');
     }
 
-    const finalizedStatuses = [
-      ExamSubmissionStatusEnum.SUBMITTED,
-      ExamSubmissionStatusEnum.AUTO_SUBMITTED,
-      ExamSubmissionStatusEnum.DISQUALIFIED,
-    ];
 
-    if (finalizedStatuses.includes(submission.status)) {
+    if (FINALIZED_STATUSES.includes(submission.status)) {
       return {
         submission_id: submission.id,
         status: submission.status,
@@ -864,6 +872,90 @@ export class StudentExamService {
       { strict: false },
     );
 
+    const reason = dto.reason ?? ExamFinalizeReasonEnum.MANUAL;
+    let status = ExamSubmissionStatusEnum.SUBMITTED;
+    if (reason === ExamFinalizeReasonEnum.TIMEOUT) {
+      status = ExamSubmissionStatusEnum.AUTO_SUBMITTED;
+    } else if (reason === ExamFinalizeReasonEnum.DISQUALIFIED) {
+      status = ExamSubmissionStatusEnum.DISQUALIFIED;
+    }
+
+    return this.completeSubmission(exam, submission, {
+      status,
+      savedCount,
+      disqualificationReason: dto.disqualification_reason,
+      proctoringEvents: dto.proctoring_events,
+    });
+  }
+
+  /**
+   * The exams.auto-submit job (worker, every minute): finalises abandoned attempts, i.e.
+   * IN_PROGRESS past their deadline + 60 s grace, with the answers autosave already stored,
+   * as AUTO_SUBMITTED. Attempts started before effective_deadline existed get their deadline
+   * computed from the exam. Safe to run twice: completeSubmission only claims IN_PROGRESS rows.
+   * Throws after the batch if any attempt failed, so the job is retried.
+   */
+  async autoSubmitExpired(
+    now: Date = new Date(),
+    batchSize = AUTO_SUBMIT_BATCH_SIZE,
+  ): Promise<{ checked: number; submitted: number }> {
+    const cutoff = new Date(now.getTime() - SUBMIT_GRACE_SECONDS * 1000);
+    const candidates = await this.submissionRepo
+      .createQueryBuilder('submission')
+      .where('submission.status = :inProgress', { inProgress: ExamSubmissionStatusEnum.IN_PROGRESS })
+      .andWhere('(submission.effective_deadline < :cutoff OR submission.effective_deadline IS NULL)', { cutoff })
+      .orderBy('submission.started_at', 'ASC')
+      .take(batchSize)
+      .getMany();
+
+    let submitted = 0;
+    const failures: string[] = [];
+    for (const candidate of candidates) {
+      try {
+        const exam = await this.examPaperCache.getExamGraph(candidate.exam_id);
+        if (!exam || !isPastDeadlineWithGrace(exam, candidate, now)) {
+          continue;
+        }
+        const result = await this.completeSubmission(exam, candidate, {
+          status: ExamSubmissionStatusEnum.AUTO_SUBMITTED,
+          savedCount: 0,
+        });
+        if (!result.already_finalized) {
+          submitted += 1;
+        }
+      } catch (error) {
+        failures.push(candidate.id);
+        this.logger.error(
+          `Auto-submit failed | submission=${candidate.id} error=${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
+    if (submitted > 0) {
+      this.logger.log(`Auto-submitted ${submitted} expired attempt(s)`);
+    }
+    if (failures.length > 0) {
+      throw new Error(`Auto-submit failed for ${failures.length} attempt(s): ${failures.join(', ')}`);
+    }
+    return { checked: candidates.length, submitted };
+  }
+
+  /**
+   * Scores a submission and moves it from IN_PROGRESS to `status` with one conditional
+   * update, so concurrent finalisers (the student's submit, the socket, the auto-submit
+   * job) can only finalise it once. Used by finalizeAnswerSheet and autoSubmitExpired.
+   */
+  private async completeSubmission(
+    exam: ExamEntity,
+    submission: StudentExamSubmissionEntity,
+    options: {
+      status: ExamSubmissionStatusEnum;
+      savedCount: number;
+      disqualificationReason?: string;
+      proctoringEvents?: SubmitAnswerSheetDto['proctoring_events'];
+    },
+  ): Promise<FinalizeSubmissionResult> {
+    const { status, savedCount } = options;
     const ordered = this.getOrderedQuestions(exam);
     const hasObjective = ordered.some(
       (q) =>
@@ -884,20 +976,13 @@ export class StudentExamService {
     }
     await this.syncSubmissionScoresFromExam(submission.id, exam);
 
-    const reason = dto.reason ?? ExamFinalizeReasonEnum.MANUAL;
-    let status = ExamSubmissionStatusEnum.SUBMITTED;
-    if (reason === ExamFinalizeReasonEnum.TIMEOUT) {
-      status = ExamSubmissionStatusEnum.AUTO_SUBMITTED;
-    } else if (reason === ExamFinalizeReasonEnum.DISQUALIFIED) {
-      status = ExamSubmissionStatusEnum.DISQUALIFIED;
-    }
 
     // Re-load after scoring so we merge the latest score columns.
     const toFinalize = await this.submissionRepo.findOne({ where: { id: submission.id } });
     if (!toFinalize) {
       throw new NotFoundException('Submission not found');
     }
-    if (finalizedStatuses.includes(toFinalize.status)) {
+    if (FINALIZED_STATUSES.includes(toFinalize.status)) {
       return {
         submission_id: toFinalize.id,
         status: toFinalize.status,
@@ -913,14 +998,14 @@ export class StudentExamService {
     toFinalize.updated_at = new Date();
     if (status === ExamSubmissionStatusEnum.DISQUALIFIED) {
       toFinalize.disqualification_reason =
-        dto.disqualification_reason?.trim() || 'Exam session disqualified.';
+        options.disqualificationReason?.trim() || 'Exam session disqualified.';
     }
-    if (Array.isArray(dto.proctoring_events) && dto.proctoring_events.length) {
+    if (Array.isArray(options.proctoringEvents) && options.proctoringEvents.length) {
       const { serializeProctoringEvents, parseProctoringEvents } = await import(
         './utils/proctoring-events.util'
       );
       const existing = parseProctoringEvents(toFinalize.proctoring_events_json);
-      const incoming = dto.proctoring_events.map((event, index) => ({
+      const incoming = options.proctoringEvents.map((event, index) => ({
         id: event.id || `client-${index}-${Date.now()}`,
         type: event.type,
         message: event.message || event.type,
