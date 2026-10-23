@@ -31,7 +31,11 @@ import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // API tests load test/test.env themselves and must never pick up real keys from .env.
+      ignoreEnvFile: process.env.NODE_ENV === 'test',
+    }),
     CommonModule,
     ThrottlerModule.forRootAsync({
       imports: [RedisModule],

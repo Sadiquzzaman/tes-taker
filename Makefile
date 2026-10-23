@@ -15,7 +15,7 @@ FRONTEND_DIR ?= frontend
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install lint typecheck test build check migrate migrate-show \
+.PHONY: help install lint typecheck test build check migrate migrate-show test-db-up test-db-down test-api \
 	backend-install backend-lint backend-typecheck backend-test backend-build \
 	frontend-install frontend-lint frontend-typecheck frontend-test frontend-build
 
@@ -52,6 +52,20 @@ backend-typecheck: ## Backend: tsc --noEmit
 
 backend-test: ## Backend: jest
 	cd $(BACKEND_DIR) && $(BACKEND_PM) test
+
+## ------------------------------------------------------- backend API tests
+#
+# The real app against throwaway PostgreSQL, Redis and MongoDB (docker-compose.test.yml,
+# in memory, localhost ports 55432/56379/57017). Settings: backend/test/test.env.
+
+test-db-up: ## Start the throwaway test databases (Docker)
+	docker compose -f docker-compose.test.yml up -d --wait
+
+test-db-down: ## Stop and remove the test databases
+	docker compose -f docker-compose.test.yml down
+
+test-api: test-db-up ## Backend API tests against the test databases
+	cd $(BACKEND_DIR) && $(BACKEND_PM) run test:e2e
 
 backend-build: ## Backend: nest build
 	cd $(BACKEND_DIR) && $(BACKEND_PM) run build

@@ -1,10 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { setupSwagger } from './common/swagger/swagger.setup';
-import { WrapResponseInterceptor } from './common/interceptors/wrap-response.interceptor';
-import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
+import { configureApp } from './app.setup';
 import helmet from 'helmet';
 import { resolve } from 'path';
 import { existsSync, mkdirSync } from 'fs';
@@ -74,28 +73,10 @@ async function bootstrap() {
       ? { origin: clientOrigin.split(',').map((o) => o.trim()), credentials: true }
       : undefined,
   );
-  app.setGlobalPrefix('api');
-  app.enableVersioning({
-    type: VersioningType.URI,
-  });
-
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: false,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
+  configureApp(app);
 
   // Swagger UI at /apidoc, only outside production.
   setupSwagger(app);
-
-  //use custom made global handlers to use in app
-  app.useGlobalInterceptors(new WrapResponseInterceptor());
-  app.useGlobalFilters(new HttpExceptionFilter());
 
   // Listen for SIGTERM/SIGINT and run onModuleDestroy / onApplicationShutdown
   // hooks so PostgreSQL, Redis, Socket.IO and the HTTP server close cleanly.

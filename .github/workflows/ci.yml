@@ -85,6 +85,55 @@ jobs:
       - name: Schema matches the entities (no migration missing)
         run: pnpm migration:check
 
+  api-tests:
+    name: Backend — API tests (PostgreSQL, Redis, MongoDB)
+    runs-on: ubuntu-latest
+    # Same images and host ports as docker-compose.test.yml, so backend/test/test.env works unchanged.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: tasktaker_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d tasktaker_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 56379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      mongodb:
+        image: mongo:7
+        ports:
+          - 57017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ping:1}).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install pnpm 9 (same version as backend/Dockerfile.prod)
+        run: npm install -g pnpm@9
+      - name: Install
+        run: make backend-install
+      - name: API tests
+        working-directory: backend
+        run: pnpm test:e2e
+
   frontend:
     name: Frontend — install, lint, type-check, test, build
     runs-on: ubuntu-latest
