@@ -96,7 +96,7 @@ Multiple origins (comma-separated):
 ## 4. Dependencies
 
 ```bash
-npm install socket.io-client
+pnpm add socket.io-client
 ```
 
 You will also port proctoring **hooks** from `demo_instructor` (browser APIs, ML models, etc.). Those are frontend-only and do not require extra backend packages.
@@ -634,8 +634,8 @@ pnpm start:dev
 
 # Terminal 2 — frontend
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm dev
 # http://localhost:3000
 ```
 
