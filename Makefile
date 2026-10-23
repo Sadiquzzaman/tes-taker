@@ -61,8 +61,8 @@ backend-test: ## Backend: jest
 test-db-up: ## Start the throwaway test databases (Docker)
 	docker compose -f docker-compose.test.yml up -d --wait
 
-test-db-down: ## Stop and remove the test databases
-	docker compose -f docker-compose.test.yml down
+test-db-down: ## Stop the test databases and remove their containers, network and volumes
+	docker compose -f docker-compose.test.yml down --volumes --remove-orphans
 
 test-api: test-db-up ## Backend API tests against the test databases
 	cd $(BACKEND_DIR) && $(BACKEND_PM) run test:e2e
