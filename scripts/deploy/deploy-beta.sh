@@ -67,8 +67,10 @@ main() {
     fi
     sleep 5
   done
-  echo "ERROR: health check failed after deploy. Recent backend logs:" >&2
-  $COMPOSE logs --tail=100 backend >&2
+  # The Actions log is public: show container states only, never application logs (they can hold user data).
+  echo "ERROR: health check failed after deploy. Container states:" >&2
+  $COMPOSE ps --format '{{.Service}}: {{.State}} {{.Health}}' >&2 || true
+  echo "Read the logs on the server: docker compose --env-file .env.production -f docker-compose.prod.yml logs --tail=100 backend" >&2
   exit 1
 }
 
