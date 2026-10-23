@@ -3,7 +3,14 @@ import axiosReq from "@/lib/axios";
 import { AxiosError } from "axios";
 import { useApiError } from "@/hooks/api/useApiError";
 
-type ExamAccessReasonCode = "OK" | "NOT_STARTED" | "ENDED" | "ALREADY_SUBMITTED" | "DISQUALIFIED" | "NOT_ASSIGNED";
+type ExamAccessReasonCode =
+  | "OK"
+  | "NOT_STARTED"
+  | "ENDED"
+  | "ALREADY_SUBMITTED"
+  | "DISQUALIFIED"
+  | "NOT_ASSIGNED"
+  | "EXAM_FULL";
 
 interface ExamEligibilityPayload {
   eligible: boolean;
@@ -18,7 +25,8 @@ export type ExamMessageVariant =
   | "already-submitted"
   | "disqualified"
   | "time-up"
-  | "not-assigned";
+  | "not-assigned"
+  | "exam-full";
 
 export const mapReasonCodeToMessageVariant = (reasonCode?: ExamAccessReasonCode): ExamMessageVariant | null => {
   switch (reasonCode) {
@@ -32,6 +40,8 @@ export const mapReasonCodeToMessageVariant = (reasonCode?: ExamAccessReasonCode)
       return "disqualified";
     case "NOT_ASSIGNED":
       return "not-assigned";
+    case "EXAM_FULL":
+      return "exam-full";
     default:
       return null;
   }

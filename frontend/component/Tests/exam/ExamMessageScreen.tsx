@@ -9,7 +9,8 @@ export type ExamMessageVariant =
   | "already-submitted"
   | "disqualified"
   | "time-up"
-  | "not-assigned";
+  | "not-assigned"
+  | "exam-full";
 
 interface ExamMessageScreenProps {
   variant: ExamMessageVariant;
@@ -55,6 +56,13 @@ const MESSAGE_COPY: Record<
   "not-assigned": {
     title: "Access denied",
     description: "You are not assigned to this exam.",
+    actionLabel: "Back to Tests",
+    tone: "neutral",
+  },
+  "exam-full": {
+    title: "Exam is full",
+    description:
+      "This exam has reached the student limit of your teacher's plan, so no more students can start it. Please contact your teacher.",
     actionLabel: "Back to Tests",
     tone: "neutral",
   },
