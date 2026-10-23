@@ -12,7 +12,6 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Replace the SSLCommerz store id/password example values in `backend/src/modules/payment/README.md` with placeholders and rotate them if they are real — CLAUDE.md rule 12; noticed during P0-05.
 - Add a real DB test for payment initiate → settle → activate — P0-05 tests use mocked repositories until P0-03 adds a DB test harness.
 - Remove the dead SMTP branch in `backend/src/email/email.service.ts` (reads `EMAIL_USER`/`EMAIL_PASSWORD` only to log "Falling back to SMTP") and the unused `nodemailer` / `@types/nodemailer` dependencies — no SMTP sender exists; found in P0-01 env clean-up.
-- Retire or shuffle `GET /student/exams/:examId` (`getExamForStudent`) — it serves legacy positional `option1..5` in stored order and pairs with positional `save-answer`; the frontend no longer calls it, so P0-07 shuffled only `GET /exams/:id`.
 - Protect or remove `GET /api/v1/sms/status/:phoneNumber` — it is public and shows SMS attempt counts for any phone number (seen in P0-08).
 - Re-enable the SMS send limit in `SmsService.sendOtp` — the `canSendSms` check is commented out, so only the route throttle limits SMS cost (seen in P0-08).
 - Move the rate-limiter storage to Redis (`ThrottlerStorage`) before running more than one backend instance — counters are in memory per process (P0-08).
@@ -20,5 +19,5 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Add a backend lint script (ESLint) and wire it into `make lint` — `backend/package.json` has no lint script, so `make lint` only lints the frontend; needs a new dev dependency, which requires approval.
 - Switch CI to the `make` targets (`make install`, `make check`) — Development Plan P0-02; `ci.yml` still calls pnpm/npm directly.
 - Auto-submit job for abandoned exam attempts (every minute: `status = IN_PROGRESS AND effective_deadline < now() - 60 s` → AUTO_SUBMITTED with saved answers, conditional update, compute the deadline when `effective_deadline` is NULL for attempts started before P0-06) — owner chose to build it in the P0-04 BullMQ worker instead of adding `@nestjs/schedule` now; until then abandoned attempts stay IN_PROGRESS (no further writes are accepted).
-- Retire or rebuild the legacy `POST /student/exams/:examId/submit` and `/auto-submit` endpoints (`submitExam`) — the frontend uses only `/answersheet`; P0-06 added the deadline guard, but `submitExam` still saves a stale entity (may overwrite freshly computed scores) and has no conditional update against double submit.
 - Test migrations on a copy of beta data, not only an empty database — Development Plan §5 definition of done; needs a sanitised beta dump.
+- Decide on `POST /student/exams/:examId/save-answer` (positional options) — the frontend autosaves through `/answersheet`; with the legacy GET removed nothing serves positional options any more, so it can likely go too (needs owner approval to remove).

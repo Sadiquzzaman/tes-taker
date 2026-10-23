@@ -38,7 +38,6 @@ import {
   StartExamDto,
   SaveAnswerDto,
   SubmitAnswerSheetDto,
-  SubmitExamDto,
   ReportViolationDto,
 } from './dto/student-exam.dto';
 import {
@@ -51,7 +50,6 @@ import { resolveExamSubjectLabel } from './utils/exam-subject.util';
 import {
   assertSubmissionWritable,
   computeEffectiveDeadline,
-  computeRemainingTimeSeconds,
   EXAM_TIME_EXPIRED_MESSAGE,
   isPastDeadlineWithGrace,
   resolveSubmissionDeadline,
@@ -606,90 +604,6 @@ export class StudentExamService {
     }
 
     return { canAccess: true, reason_code: ExamAccessReasonCodeEnum.OK, exam };
-  }
-
-  /**
-   * Get exam details for student (without correct answers)
-   */
-  async getExamForStudent(
-    examId: string,
-    studentId: string,
-    jwtPayload?: JwtPayloadInterface,
-  ): Promise<Record<string, unknown>> {
-    const validation = await this.validateExamAccess(examId, studentId, jwtPayload);
-
-    if (!validation.canAccess) {
-      throw new ForbiddenException(validation.reason);
-    }
-
-    const exam = validation.exam!;
-    await this.assertExamOpenForTaking(exam, studentId);
-
-    const submission = await this.submissionRepo.findOne({
-      where: { exam_id: examId, student_id: studentId },
-    });
-
-    let savedAnswers: { question_id: string; selected_answer?: CorrectAnswerEnum; text_answer?: string }[] = [];
-    if (submission) {
-      const answers = await this.answerRepo.find({
-        where: { submission_id: submission.id },
-      });
-      savedAnswers = answers.map((a) => ({
-        question_id: a.question_id,
-        selected_answer: a.selected_answer,
-        text_answer: a.text_answer,
-      }));
-    }
-
-    const ordered = this.getOrderedQuestions(exam);
-    const questions = ordered.map((q) => {
-      if (q.question_type === QuestionTypeEnum.OBJECTIVE) {
-        return {
-          id: q.id,
-          question_type: q.question_type,
-          question: q.question,
-          image_url: q.image_url,
-          points: q.points ?? 1,
-          instruction: q.instruction ?? null,
-          option1: q.option1,
-          option2: q.option2,
-          option3: q.option3,
-          option4: q.option4,
-          option5: q.option5,
-        };
-      }
-      return {
-        id: q.id,
-        question_type: q.question_type,
-        question: q.question,
-        image_url: q.image_url,
-        points: q.points ?? q.marks_per_question,
-        instruction: q.instruction ?? null,
-        expected_word_limit: q.expected_word_limit,
-        marks_per_question: q.marks_per_question,
-      };
-    });
-
-    const effectiveDeadline = computeEffectiveDeadline(exam, submission);
-
-    return {
-      id: exam.id,
-      test_name: exam.test_name,
-      subject: resolveExamSubjectLabel(exam),
-      exam_type: exam.exam_type,
-      exam_kind: exam.exam_kind,
-      exam_start_time: exam.exam_start_time,
-      exam_end_time: exam.exam_end_time,
-      duration_minutes: exam.duration_minutes,
-      is_negative_marking: exam.is_negative_marking,
-      negative_mark_value: exam.negative_mark_value,
-      total_questions: questions.length,
-      remaining_time_seconds: computeRemainingTimeSeconds(exam, submission),
-      effective_deadline: effectiveDeadline.toISOString(),
-      questions,
-      submission_status: submission?.status || null,
-      saved_answers: savedAnswers,
-    };
   }
 
   // ========================
@@ -1294,117 +1208,6 @@ export class StudentExamService {
     return Object.keys(answersheet).length;
   }
 
-  /**
-   * Submit exam
-   */
-  async submitExam(
-    examId: string,
-    studentId: string,
-    jwtPayload: JwtPayloadInterface | undefined,
-    dto: SubmitExamDto,
-    autoSubmit: boolean = false,
-  ): Promise<Record<string, unknown>> {
-    const exam = await this.examRepo.findOne({
-      where: { id: examId },
-      relations: [
-        'questions',
-        'questionSections',
-        'questionSections.questions',
-        'questionSections.subject',
-      ],
-    });
-
-    if (!exam) {
-      throw new NotFoundException('Exam not found');
-    }
-
-    this.assertExamMatchesStudentWorkspace(exam, jwtPayload);
-
-    // Get submission
-    const submission = await this.submissionRepo.findOne({
-      where: { 
-        exam_id: examId, 
-        student_id: studentId,
-      },
-    });
-
-    if (!submission) {
-      throw new BadRequestException('No active exam session found');
-    }
-
-    if (submission.status === ExamSubmissionStatusEnum.SUBMITTED || 
-        submission.status === ExamSubmissionStatusEnum.AUTO_SUBMITTED) {
-      throw new BadRequestException('Exam already submitted');
-    }
-
-    if (submission.status === ExamSubmissionStatusEnum.DISQUALIFIED) {
-      throw new BadRequestException('You have been disqualified from this exam');
-    }
-
-    await this.assertExamOpenForTaking(exam, studentId);
-    assertSubmissionWritable(exam, submission);
-
-    for (const answerDto of dto.answers) {
-      await this.saveAnswer(examId, studentId, jwtPayload, answerDto);
-    }
-
-    if (dto.browser_switch_count !== undefined) {
-      submission.browser_switch_count = dto.browser_switch_count;
-    }
-    if (dto.tab_switch_count !== undefined) {
-      submission.tab_switch_count = dto.tab_switch_count;
-    }
-
-    const ordered = this.getOrderedQuestions(exam);
-    const hasObjective = ordered.some(
-      (q) =>
-        q.question_type === QuestionTypeEnum.OBJECTIVE ||
-        isAutoScoredQuestion(q.category, q.sub_type),
-    );
-    const hasSubjective = ordered.some(
-      (q) =>
-        q.question_type === QuestionTypeEnum.SUBJECTIVE &&
-        !isAutoScoredQuestion(q.category, q.sub_type),
-    );
-    if (hasObjective) {
-      await this.calculateObjectiveScore(submission.id, exam);
-    }
-    if (hasSubjective) {
-      await this.calculateSubjectiveMaxScore(submission.id, exam);
-    }
-    await this.syncSubmissionScoresFromExam(submission.id, exam);
-
-    // Update submission status
-    submission.status = autoSubmit 
-      ? ExamSubmissionStatusEnum.AUTO_SUBMITTED 
-      : ExamSubmissionStatusEnum.SUBMITTED;
-    submission.submitted_at = new Date();
-    submission.updated_at = new Date();
-    this.applySubmissionGradingState(submission, exam);
-
-    await this.submissionRepo.save(submission);
-
-    // Reload with calculated values
-    const result = await this.submissionRepo.findOne({
-      where: { id: submission.id },
-      relations: ['exam'],
-    });
-
-    return {
-      message: autoSubmit ? 'Exam auto-submitted due to time expiry' : 'Exam submitted successfully',
-      submission_id: result!.id,
-      exam_id: result!.exam_id,
-      status: result!.status,
-      submitted_at: result!.submitted_at,
-      total_questions: result!.total_questions,
-      correct_answers: result!.correct_answers,
-      wrong_answers: result!.wrong_answers,
-      unanswered: result!.unanswered,
-      total_score: result!.total_score,
-      max_score: result!.max_score,
-    };
-  }
-
   private resolveSubmittedAnswerValue(
     answer: StudentExamAnswerEntity,
     question: ExamQuestionEntity,
@@ -1425,74 +1228,6 @@ export class StudentExamService {
       }
     }
     return '';
-  }
-
-  private async upsertSelectedAnswer(
-    answerRepo: Repository<StudentExamAnswerEntity>,
-    submissionId: string,
-    questionId: string,
-    selected: CorrectAnswerEnum,
-    studentId: string,
-  ): Promise<void> {
-    const existing = await answerRepo.findOne({
-      where: { submission_id: submissionId, question_id: questionId },
-    });
-    if (existing) {
-      await answerRepo.update(
-        { id: existing.id },
-        {
-          selected_answer: selected,
-          text_answer: null,
-          word_count: null,
-          answered_at: new Date(),
-          updated_at: new Date(),
-        } as object,
-      );
-      return;
-    }
-    const row = answerRepo.create({
-      submission_id: submissionId,
-      question_id: questionId,
-      selected_answer: selected,
-      answered_at: new Date(),
-      created_by: studentId,
-      created_at: new Date(),
-    });
-    await answerRepo.save(row);
-  }
-
-  private async upsertTextAnswer(
-    answerRepo: Repository<StudentExamAnswerEntity>,
-    submissionId: string,
-    questionId: string,
-    value: string,
-    studentId: string,
-  ): Promise<void> {
-    const existing = await answerRepo.findOne({
-      where: { submission_id: submissionId, question_id: questionId },
-    });
-    if (existing) {
-      await answerRepo.update(
-        { id: existing.id },
-        {
-          text_answer: value,
-          selected_answer: null,
-          word_count: null,
-          answered_at: new Date(),
-          updated_at: new Date(),
-        } as object,
-      );
-      return;
-    }
-    const row = answerRepo.create({
-      submission_id: submissionId,
-      question_id: questionId,
-      text_answer: value,
-      answered_at: new Date(),
-      created_by: studentId,
-      created_at: new Date(),
-    });
-    await answerRepo.save(row);
   }
 
   /**

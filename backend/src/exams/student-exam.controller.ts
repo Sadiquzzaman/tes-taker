@@ -29,7 +29,6 @@ import {
   StartExamDto,
   SaveAnswerDto,
   SubmitAnswerSheetDto,
-  SubmitExamDto,
   ReportViolationDto,
 } from './dto/student-exam.dto';
 import { Request } from 'express';
@@ -189,30 +188,6 @@ export class StudentExamController {
     };
   }
 
-  @Get(':examId')
-  @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.STUDENT)
-  @ApiOperation({
-    summary: 'Get exam for taking',
-    description:
-      'Get exam details with questions. Correct answers are hidden. Access follows test audience rules (no invite token).',
-  })
-  @ApiParam({ name: 'examId', description: 'Exam UUID' })
-  @ApiResponse({ status: 200, description: 'Exam details with questions' })
-  @ApiResponse({ status: 403, description: 'Access denied - not assigned or excluded' })
-  async getExam(
-    @Param('examId', ParseUUIDPipe) examId: string,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-  ) {
-    const payload = await this.studentExamService.getExamForStudent(
-      examId,
-      jwtPayload.id,
-      jwtPayload,
-    );
-    return { message: 'Exam retrieved successfully', payload };
-  }
-
   // ========================
   // EXAM TAKING
   // ========================
@@ -298,58 +273,6 @@ export class StudentExamController {
       dto,
     );
     return { message: 'Answer saved successfully', payload: { question_id: dto.question_id } };
-  }
-
-  @Post(':examId/submit')
-  @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.STUDENT)
-  @ApiOperation({
-    summary: 'Submit exam',
-    description: 'Submit the exam with all answers. Scores objective items; sets max score for essays.',
-  })
-  @ApiParam({ name: 'examId', description: 'Exam UUID' })
-  @ApiResponse({ status: 201, description: 'Exam submitted successfully' })
-  @ApiResponse({ status: 403, description: 'Access denied' })
-  @ApiResponse({ status: 400, description: 'Already submitted or no active session' })
-  async submitExam(
-    @Param('examId', ParseUUIDPipe) examId: string,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-    @Body() dto: SubmitExamDto,
-  ) {
-    const payload = await this.studentExamService.submitExam(
-      examId,
-      jwtPayload.id,
-      jwtPayload,
-      dto,
-      false,
-    );
-    return payload;
-  }
-
-  @Post(':examId/auto-submit')
-  @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(RolesEnum.STUDENT)
-  @ApiOperation({
-    summary: 'Auto-submit exam',
-    description: 'Auto-submit when time expires.',
-  })
-  @ApiParam({ name: 'examId', description: 'Exam UUID' })
-  @ApiResponse({ status: 201, description: 'Exam auto-submitted' })
-  async autoSubmitExam(
-    @Param('examId', ParseUUIDPipe) examId: string,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-    @Body() dto: SubmitExamDto,
-  ) {
-    const payload = await this.studentExamService.submitExam(
-      examId,
-      jwtPayload.id,
-      jwtPayload,
-      dto,
-      true,
-    );
-    return payload;
   }
 
   @Post(':examId/report-violation')
