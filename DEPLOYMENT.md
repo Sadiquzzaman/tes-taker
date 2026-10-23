@@ -21,6 +21,27 @@ For local development, run these from the repo root (`make help` lists every tar
 Deploy beta workflow (`.github/workflows/deploy-beta.yml`); never point these targets at
 beta or production. Production migrations are covered in §3 below.
 
+## Background worker and job queue
+
+The backend has two entry points (design §3): `dist/src/main.js` (the API) and `dist/src/worker.js`
+(the **worker**: BullMQ processors and schedules on the existing Redis, no HTTP port). In
+`docker-compose.prod.yml` the `worker` service runs the backend image with `node dist/src/worker.js`
+and the same environment as `backend`; it is healthy while it refreshes the `worker:heartbeat` key in
+Redis (`dist/src/worker-health.js`). Start-up seeding runs only in the API.
+
+| Job | Schedule | What it does |
+| --- | --- | --- |
+| `exams.auto-submit` | every minute | Finalises attempts still in progress after `effective_deadline` + 60 s, with their saved answers, as AUTO_SUBMITTED |
+
+Jobs retry 3 times with exponential back-off; failed jobs stay in Redis for 7 days.
+
+**Queue dashboard (bull-board):** `https://<api-host>/api/admin/queues`, HTTP basic auth with
+`BULL_BOARD_USER` / `BULL_BOARD_PASSWORD` from `.env.production`. It is off while either is empty.
+Use a long random password: the API is public.
+
+Local development: `make worker` (or `pnpm start:worker:dev` in `backend/`) runs `src/worker.ts` with
+ts-node; restart it after code changes. The dev compose file has a `worker` service too.
+
 ## Automatic beta deploys
 
 Beta (`/opt/instructor/apps/tasktaker`, branch `develop`) is deployed by
@@ -29,8 +50,8 @@ Beta (`/opt/instructor/apps/tasktaker`, branch `develop`) is deployed by
 - **Trigger:** every merge into `develop`, or **Actions → Deploy beta → Run workflow**.
 - **Steps:** CI runs first, then `scripts/deploy/deploy-beta.sh` runs on the server over SSH: refuse if tracked
   files were edited on the server, fast-forward `develop`, check it is the commit CI tested, build the backend and
-  frontend images, recreate only those two containers (databases and volumes are never touched), then health-check
-  `/api/health` and `/`. The job fails unless the script prints `==> healthy. Deployed <sha>`.
+  frontend images, recreate the backend, worker and frontend containers (databases and volumes are never touched),
+  then health-check `/api/health`, `/` and the worker's container health. The job fails unless the script prints `==> healthy. Deployed <sha>`.
 - **Migrations:** skipped on automatic deploys (the log lists pending ones). Run the workflow by hand with
   *run_migrations* ticked: it first writes a `pg_dump` to `backups/` on the server, then runs them.
 - **History:** each successful deploy appends `<time> <sha>` to `deployments.log` on the server.
