@@ -11,7 +11,7 @@ For local development, run these from the repo root (`make help` lists every tar
 | `make install` | Install backend (pnpm) and frontend (npm) dependencies from the lockfiles |
 | `make lint` | Frontend ESLint (the backend has no lint script yet) |
 | `make typecheck` | `tsc --noEmit` for backend and frontend |
-| `make test` | Backend unit tests (jest) |
+| `make test` | Backend unit tests (jest) and frontend unit tests (vitest) |
 | `make build` | Production build of backend and frontend |
 | `make check` | lint + typecheck + test + build; run before opening a PR |
 | `make migrate` / `make migrate-show` | Run / show TypeORM migrations on your **local** database (`backend/.env`) |

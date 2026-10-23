@@ -84,7 +84,7 @@ jobs:
         run: pnpm migration:check
 
   frontend:
-    name: Frontend — install, lint, type-check, build
+    name: Frontend — install, lint, type-check, test, build
     runs-on: ubuntu-latest
     # Same commands developers run locally (root Makefile).
     env:
@@ -105,5 +105,7 @@ jobs:
       - name: Type-check
         # Runs `next typegen` first: next-env.d.ts is gitignored and tsc needs its image/route types.
         run: make frontend-typecheck
+      - name: Test
+        run: make frontend-test
       - name: Build
         run: make frontend-build
