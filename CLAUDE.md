@@ -39,5 +39,5 @@ These rules apply to every task in this repository. If a rule and a request conf
 - Anything sent to users (SMS, email, push) goes through the notification outbox, never directly from a request handler.
 - Schema changes: a TypeORM migration in `backend/src/migrations` plus an update to `docs/schema.dbml`. Do not rely on `DATABASE_SYNCRONIZE`.
 - Times are stored as `timestamptz` in UTC; school days as `date` in the organisation's time zone (default `Asia/Dhaka`).
-- Frontend (Next.js, npm): use the shared UI components and design tokens; no hard-coded colours or font sizes in new code. All user-facing text in Bangla and English.
+- Frontend (Next.js, pnpm): use the shared UI components and design tokens; no hard-coded colours or font sizes in new code. All user-facing text in Bangla and English.
 - Deployment to beta is done by `.github/workflows/deploy-beta.yml` on merge to `develop`. Never run database reset, `docker compose down -v`, or production migrations by hand without approval.

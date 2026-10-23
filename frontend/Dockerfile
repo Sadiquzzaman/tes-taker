@@ -2,12 +2,14 @@ FROM node:24-slim
 
 WORKDIR /app
 
-COPY package*.json ./
+RUN npm install -g pnpm@9
 
-RUN npm install
+COPY package.json pnpm-lock.yaml ./
+
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+CMD ["pnpm", "run", "dev"]

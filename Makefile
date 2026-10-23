@@ -4,12 +4,11 @@
 # The targets call the scripts that already exist in backend/package.json and
 # frontend/package.json; they add no new tools.
 
-# Package managers. The frontend still uses npm (package-lock.json); when it
-# moves to pnpm, change the two FRONTEND_* lines below.
+# Package manager: pnpm for both apps (pnpm-lock.yaml in each).
 BACKEND_PM       ?= pnpm
 BACKEND_INSTALL  ?= $(BACKEND_PM) install --frozen-lockfile
-FRONTEND_PM      ?= npm
-FRONTEND_INSTALL ?= npm ci
+FRONTEND_PM      ?= pnpm
+FRONTEND_INSTALL ?= $(FRONTEND_PM) install --frozen-lockfile
 
 BACKEND_DIR  ?= backend
 FRONTEND_DIR ?= frontend
@@ -68,7 +67,7 @@ frontend-lint: ## Frontend: eslint
 # `next typegen` writes next-env.d.ts (gitignored; image and route types),
 # which tsc needs on a fresh checkout before `next build` or `next dev` has run.
 frontend-typecheck: ## Frontend: next typegen + tsc --noEmit
-	cd $(FRONTEND_DIR) && $(FRONTEND_PM) exec -- next typegen && $(FRONTEND_PM) exec -- tsc --noEmit -p tsconfig.json
+	cd $(FRONTEND_DIR) && $(FRONTEND_PM) exec next typegen && $(FRONTEND_PM) exec tsc --noEmit -p tsconfig.json
 
 frontend-test: ## Frontend: vitest (components and hooks, jsdom)
 	cd $(FRONTEND_DIR) && $(FRONTEND_PM) test

@@ -22,7 +22,7 @@ services:
       - NEXT_PUBLIC_APP_URL=http://localhost:3000
     depends_on:
       - app
-    command: npm run dev
+    command: pnpm run dev
 
   postgres:
     image: postgres:16-alpine

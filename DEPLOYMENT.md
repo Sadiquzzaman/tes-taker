@@ -8,7 +8,7 @@ For local development, run these from the repo root (`make help` lists every tar
 
 | Command | What it does |
 | --- | --- |
-| `make install` | Install backend (pnpm) and frontend (npm) dependencies from the lockfiles |
+| `make install` | Install backend and frontend dependencies with pnpm from the lockfiles |
 | `make lint` | ESLint for backend and frontend |
 | `make typecheck` | `tsc --noEmit` for backend and frontend |
 | `make test` | Backend unit tests (jest) and frontend unit tests (vitest) |
