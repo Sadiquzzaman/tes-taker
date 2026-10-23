@@ -178,7 +178,7 @@ All jobs run in the worker on BullMQ.
 | `attendance.on-punch` | New punch | Marks Present/Late, queues the late SMS | Same upsert; outbox `dedupe_key` | ATT-06 |
 | `attendance.device-health` | Every 15 min | Flags devices with no heartbeat for 2 h | — | ATT-03 |
 | `attendance.repeat-absence` | Daily 08:00 | Alerts class teachers about 3+ days absent | Outbox key per student per streak | ATT-14 |
-| `exams.auto-submit` | Every 1 min | Finalises attempts past `effective_deadline + 60 s` | `UPDATE … WHERE status = 'IN_PROGRESS'` | Review fix |
+| `exams.auto-submit` | Every 1 min | Finalises attempts past `effective_deadline + 60 s` | `UPDATE … WHERE status = 'IN_PROGRESS'` | Review fix — **built (P0-04)** |
 | `exams.proctoring-flush` | Every 5 s | Batch-inserts flags from Redis into `proctoring_events` | Event id is the primary key | PRO-03, 06 |
 | `exams.monitoring-lost` | Every 30 s | Marks students with no heartbeat for 60 s | — | PRO-07 |
 | `homework.due-reminder` | 24 h before due | Push to students who haven't submitted | Outbox key | HW-02 |

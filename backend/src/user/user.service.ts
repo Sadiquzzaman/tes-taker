@@ -66,6 +66,8 @@ export class UserService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    // Seeding runs in the API process only; the worker boots at the same time (worker.ts).
+    if (process.env.APP_ROLE === 'worker') return;
     await this.seedDefaultAdminIfMissing();
     await this.ensureSuperAdminExists();
     await this.testUsersSeedService.seedIfEnabled();

@@ -38,7 +38,7 @@ main() {
   $COMPOSE config --quiet
 
   # 4. Build application images only.
-  $COMPOSE build backend frontend
+  $COMPOSE build backend frontend worker
 
   # 5. Optional migrations, always after a database backup (DEPLOYMENT.md §3).
   if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
@@ -55,20 +55,24 @@ main() {
     $COMPOSE run --rm -T backend npm run migration:show:prod < /dev/null || true
   fi
 
-  # 6. Recreate backend and frontend only (databases and volumes untouched).
-  $COMPOSE up -d backend frontend
+  # 6. Recreate backend, worker and frontend only (databases and volumes untouched).
+  $COMPOSE up -d backend frontend worker
 
-  # 7. Health check: backend /api/health, frontend /.
+  # 7. Health check: backend /api/health, frontend /, and the worker container's heartbeat check.
   for i in $(seq 1 30); do
-    if curl -fsS http://127.0.0.1:4000/api/health > /dev/null && curl -fsS -o /dev/null http://127.0.0.1:3000/; then
+    worker_health=$(docker inspect -f '{{.State.Health.Status}}' "$($COMPOSE ps -q worker)" 2>/dev/null || echo missing)
+    if curl -fsS http://127.0.0.1:4000/api/health > /dev/null && curl -fsS -o /dev/null http://127.0.0.1:3000/ \
+      && [ "$worker_health" = "healthy" ]; then
       echo "==> healthy. Deployed $DEPLOYED_SHA"
       echo "$(date -u +%FT%TZ) $DEPLOYED_SHA" >> deployments.log
       exit 0
     fi
     sleep 5
   done
-  echo "ERROR: health check failed after deploy. Recent backend logs:" >&2
-  $COMPOSE logs --tail=100 backend >&2
+  # The Actions log is public: show container states only, never application logs (they can hold user data).
+  echo "ERROR: health check failed after deploy. Container states:" >&2
+  $COMPOSE ps --format '{{.Service}}: {{.State}} {{.Health}}' >&2 || true
+  echo "Read the logs on the server: docker compose --env-file .env.production -f docker-compose.prod.yml logs --tail=100 backend" >&2
   exit 1
 }
 

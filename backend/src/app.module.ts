@@ -28,6 +28,7 @@ import { TeacherRequestModule } from './teacher-requests/teacher-request.module'
 import { OrganizationsModule } from './organizations/organization.module';
 import { ChatMongoModule } from './chat-mongo/chat-mongo.module';
 import { CommonModule } from './common/common.module';
+import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [
@@ -92,6 +93,7 @@ import { CommonModule } from './common/common.module';
     TeacherRequestModule,
     OrganizationsModule,
     ChatMongoModule,
+    QueueModule,
   ],
   controllers: [AppController],
   providers: [
