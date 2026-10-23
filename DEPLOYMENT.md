@@ -14,6 +14,7 @@ For local development, run these from the repo root (`make help` lists every tar
 | `make test` | Backend unit tests (jest) and frontend unit tests (vitest) |
 | `make build` | Production build of backend and frontend |
 | `make check` | lint + typecheck + test + build; run before opening a PR |
+| `make test-api` | Backend API tests: the real app against throwaway PostgreSQL, Redis and MongoDB in Docker (`make test-db-down` stops them) |
 | `make migrate` / `make migrate-show` | Run / show TypeORM migrations on your **local** database (`backend/.env`) |
 
 `make migrate` is for your local database only. Beta migrations run only through the
