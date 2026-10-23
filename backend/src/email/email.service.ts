@@ -24,15 +24,7 @@ export class EmailService {
       });
       this.logger.log('Email service initialized with Brevo API');
     } else {
-      this.logger.warn('BREVO_API_KEY not found. Please configure the Brevo API key.');
-      // Fallback: try to initialize with nodemailer if SMTP is configured
-      const emailUser = this.configService.get<string>('EMAIL_USER');
-      const emailPassword = this.configService.get<string>('EMAIL_PASSWORD');
-      if (emailUser && emailPassword) {
-        this.logger.warn('Falling back to SMTP (nodemailer). Consider using Brevo for better reliability.');
-      } else {
-        this.logger.error('Email service not configured. Please set BREVO_API_KEY.');
-      }
+      this.logger.error('Email service not configured. Please set BREVO_API_KEY.');
     }
   }
 

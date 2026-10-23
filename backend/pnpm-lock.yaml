@@ -74,9 +74,6 @@ importers:
       mongoose:
         specifier: ^9.9.3
         version: 9.9.3
-      nodemailer:
-        specifier: ^8.0.2
-        version: 8.0.2
       passport:
         specifier: ^0.7.0
         version: 0.7.0
@@ -138,9 +135,6 @@ importers:
       '@types/node':
         specifier: ^24.5.2
         version: 24.5.2
-      '@types/nodemailer':
-        specifier: ^7.0.11
-        version: 7.0.11
       '@types/passport':
         specifier: ^1.0.17
         version: 1.0.17
@@ -1211,9 +1205,6 @@ packages:
 
   '@types/node@24.5.2':
     resolution: {integrity: sha512-FYxk1I7wPv3K2XBaoyH2cTnocQEu8AOZ60hPbsyukMPLv5/5qr7V1i8PLHdl6Zf87I+xZXFvPCXYjiTFq+YSDQ==}
-
-  '@types/nodemailer@7.0.11':
-    resolution: {integrity: sha512-E+U4RzR2dKrx+u3N4DlsmLaDC6mMZOM/TPROxA0UAPiTgI0y4CEFBmZE+coGWTjakDriRsXG368lNk1u9Q0a2g==}
 
   '@types/passport-jwt@4.0.1':
     resolution: {integrity: sha512-Y0Ykz6nWP4jpxgEUYq8NoVZeCQPo1ZndJLfapI249g1jHChvRfZRO/LS3tqu26YgAS/laI1qx98sYGz0IalRXQ==}
@@ -2724,10 +2715,6 @@ packages:
 
   node-releases@2.0.21:
     resolution: {integrity: sha512-5b0pgg78U3hwXkCM8Z9b2FJdPZlr9Psr9V2gQPESdGHqbntyFJKFW4r5TeWGFzafGY3hzs1JC62VEQMbl1JFkw==}
-
-  nodemailer@8.0.2:
-    resolution: {integrity: sha512-zbj002pZAIkWQFxyAaqoxvn+zoIwRnS40hgjqTXudKOOJkiFFgBeNqjgD3/YCR12sZnrghWYBY+yP1ZucdDRpw==}
-    engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -4922,10 +4909,6 @@ snapshots:
     dependencies:
       undici-types: 7.12.0
 
-  '@types/nodemailer@7.0.11':
-    dependencies:
-      '@types/node': 24.5.2
-
   '@types/passport-jwt@4.0.1':
     dependencies:
       '@types/jsonwebtoken': 9.0.10
@@ -6594,8 +6577,6 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.21: {}
-
-  nodemailer@8.0.2: {}
 
   normalize-path@3.0.0: {}
 

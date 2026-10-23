@@ -9,7 +9,6 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - A paid subscription that was cancelled by a newer "subscribe" click is still activated when its old payment settles — P0-05 kept existing behaviour so a full payment is never lost; decide refund vs. activate.
 - Add `organization_id` to `teacher_subscriptions` and payments — subscriptions are per teacher today, so P0-05 checks ownership by `teacher_id`; P2-02 (account subscriptions) should scope by organisation.
 - Add a real DB test for payment initiate → settle → activate — P0-05 tests use mocked repositories until P0-03 adds a DB test harness.
-- Remove the dead SMTP branch in `backend/src/email/email.service.ts` (reads `EMAIL_USER`/`EMAIL_PASSWORD` only to log "Falling back to SMTP") and the unused `nodemailer` / `@types/nodemailer` dependencies — no SMTP sender exists; found in P0-01 env clean-up.
 - Move the rate-limiter storage to Redis (`ThrottlerStorage`) before running more than one backend instance — counters are in memory per process (P0-08).
 - Add a backend lint script (ESLint) and wire it into `make lint` — `backend/package.json` has no lint script, so `make lint` only lints the frontend; needs a new dev dependency, which requires approval.
 - Switch CI to the `make` targets (`make install`, `make check`) — Development Plan P0-02; `ci.yml` still calls pnpm/npm directly.
