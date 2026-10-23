@@ -8,6 +8,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node .",
+    "lint": "eslint src",
     "typeorm": "typeorm-ts-node-commonjs -d ./src/data-source.ts",
     "migration:create": "typeorm-ts-node-commonjs migration:create ./src/migrations/Migration",
     "migration:generate": "nest build && typeorm migration:generate -d dist/src/data-source.entities.js ./src/migrations/Migration",
@@ -61,6 +62,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "9.39.5",
     "@nestjs/cli": "^11.0.10",
     "@nestjs/schematics": "^11.0.7",
     "@nestjs/testing": "^11.2.1",
@@ -75,9 +77,12 @@
     "@types/passport-local": "^1.0.38",
     "@types/sharp": "^0.32.0",
     "@types/uuid": "^11.0.0",
+    "eslint": "9.39.5",
+    "globals": "16.5.0",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "typescript-eslint": "8.72.0"
   }
 }

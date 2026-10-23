@@ -126,9 +126,10 @@ describe('exam deadline and attempt status on writes (P0-06)', () => {
     );
 
     // Scoring is covered elsewhere; these tests only care about who may write when.
-    jest.spyOn(service as any, 'calculateObjectiveScore').mockResolvedValue(undefined);
-    jest.spyOn(service as any, 'calculateSubjectiveMaxScore').mockResolvedValue(undefined);
-    jest.spyOn(service as any, 'syncSubmissionScoresFromExam').mockResolvedValue(undefined);
+    const internals = service as unknown as Record<string, () => Promise<void>>;
+    jest.spyOn(internals, 'calculateObjectiveScore').mockResolvedValue(undefined);
+    jest.spyOn(internals, 'calculateSubjectiveMaxScore').mockResolvedValue(undefined);
+    jest.spyOn(internals, 'syncSubmissionScoresFromExam').mockResolvedValue(undefined);
   });
 
   afterEach(() => {

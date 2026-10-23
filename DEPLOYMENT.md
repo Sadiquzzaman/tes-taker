@@ -9,7 +9,7 @@ For local development, run these from the repo root (`make help` lists every tar
 | Command | What it does |
 | --- | --- |
 | `make install` | Install backend (pnpm) and frontend (npm) dependencies from the lockfiles |
-| `make lint` | Frontend ESLint (the backend has no lint script yet) |
+| `make lint` | ESLint for backend and frontend |
 | `make typecheck` | `tsc --noEmit` for backend and frontend |
 | `make test` | Backend unit tests (jest) and frontend unit tests (vitest) |
 | `make build` | Production build of backend and frontend |

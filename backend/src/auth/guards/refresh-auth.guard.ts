@@ -3,7 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
 export class RefreshAuthGuard extends AuthGuard('refresh') {
-  async canActivate(context: ExecutionContext): Promise<any> {
+  canActivate(context: ExecutionContext) {
     return super.canActivate(context);
   }
 }

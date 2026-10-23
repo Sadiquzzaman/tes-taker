@@ -101,10 +101,21 @@ function examServiceFor(submissionId: string | null) {
 
 const STUDENT = { id: 'student-1', role: 'STUDENT' } as never;
 
+/** The parts of a served question these tests read. */
+type ServedOption = { id: string };
+type ServedQuestion = {
+  id: string;
+  options: ServedOption[];
+  matchingOptions: { left: ServedOption[]; right: ServedOption[] };
+  childQuestions: ServedQuestion[];
+  answer: { value: unknown };
+};
+type ServedPaper = { subjects: { questions: ServedQuestion[] }[] };
+
 async function servedPaper(submissionId: string | null) {
-  const payload = await examServiceFor(submissionId).findOneForStudent('exam-1', STUDENT);
-  const questions = payload.subjects.flatMap((s: { questions: Record<string, any>[] }) => s.questions);
-  const byId = new Map<string, Record<string, any>>(questions.map((q: Record<string, any>) => [q.id, q]));
+  const payload = (await examServiceFor(submissionId).findOneForStudent('exam-1', STUDENT)) as unknown as ServedPaper;
+  const questions = payload.subjects.flatMap((s) => s.questions);
+  const byId = new Map<string, ServedQuestion>(questions.map((q) => [q.id, q]));
   return { payload, byId };
 }
 
@@ -227,7 +238,7 @@ describe('ExamService.findOneForStudent (served paper)', () => {
     // Student matches each left item to its correct right item, as shown in the shuffled column.
     const served = byId.get(MATCHING_Q_ID)!.matchingOptions;
     const correctPairs = served.left.map((l: { id: string }) => {
-      const r = served.right.find((o: { id: string }) => o.id === `r${l.id.slice(1)}`);
+      const r = served.right.find((o: { id: string }) => o.id === `r${l.id.slice(1)}`)!;
       return `${l.id}::${r.id}`;
     });
     expect(scoreStudentAnswer(matchingEntity, correctPairs.join('|'))).toBe(true);
@@ -247,8 +258,8 @@ describe('ExamService.findOneForStudent (served paper)', () => {
     Object.assign(service, {
       organizationAccessService: { assertCanMonitorExam: jest.fn().mockResolvedValue(undefined) },
     });
-    const payload = await service.findOne('exam-1', { id: 'teacher-1', role: 'TEACHER' } as never);
-    const matching = payload.subjects[0].questions.find((q: { id: string }) => q.id === MATCHING_Q_ID);
+    const payload = (await service.findOne('exam-1', { id: 'teacher-1', role: 'TEACHER' } as never)) as unknown as ServedPaper;
+    const matching = payload.subjects[0].questions.find((q) => q.id === MATCHING_Q_ID)!;
     expect(ids(matching.matchingOptions.right)).toEqual(ids(RIGHT));
     expect(matching.answer.value).toEqual(MATCHING_KEY);
   });

@@ -10,11 +10,7 @@ import {
   DataSource,
   Repository,
   In,
-  MoreThan,
-  LessThan,
-  Not,
-  MoreThanOrEqual,
-  LessThanOrEqual,
+  WhereExpressionBuilder,
 } from 'typeorm';
 import { ExamEntity } from './entities/exam.entity';
 import { TestAudienceEnum } from './enums/exam-wizard.enums';
@@ -157,7 +153,7 @@ export class StudentExamService {
     }
   }
 
-  private applyStudentWorkspaceScopeToClassQuery(qb: any, jwtPayload?: JwtPayloadInterface): void {
+  private applyStudentWorkspaceScopeToClassQuery(qb: WhereExpressionBuilder, jwtPayload?: JwtPayloadInterface): void {
     if (jwtPayload?.session_mode === 'organization' && jwtPayload.organization_id) {
       qb.andWhere('class.organization_id = :studentScopeOrgId', {
         studentScopeOrgId: jwtPayload.organization_id,
@@ -172,7 +168,7 @@ export class StudentExamService {
     }
   }
 
-  private applyStudentWorkspaceScopeToExamQuery(qb: any, jwtPayload?: JwtPayloadInterface): void {
+  private applyStudentWorkspaceScopeToExamQuery(qb: WhereExpressionBuilder, jwtPayload?: JwtPayloadInterface): void {
     if (jwtPayload?.session_mode === 'organization' && jwtPayload.organization_id) {
       qb.andWhere('exam.organization_id = :studentScopeOrgId', {
         studentScopeOrgId: jwtPayload.organization_id,
@@ -289,7 +285,7 @@ export class StudentExamService {
     jwtPayload?: JwtPayloadInterface,
     sortOrder: 'ASC' | 'DESC' = 'ASC',
     includePast: boolean = false,
-  ): Promise<any[]> {
+  ) {
     const now = new Date();
     const byId = new Map<string, ExamEntity>();
 
@@ -410,7 +406,7 @@ export class StudentExamService {
   /**
    * Get exam history for a student (completed exams)
    */
-  async getExamHistory(studentId: string, jwtPayload?: JwtPayloadInterface): Promise<any[]> {
+  async getExamHistory(studentId: string, jwtPayload?: JwtPayloadInterface) {
     const submissions = await this.submissionRepo.find({
       where: {
         student_id: studentId,
@@ -1462,7 +1458,7 @@ export class StudentExamService {
     examId: string,
     studentId: string,
     jwtPayload?: JwtPayloadInterface,
-  ): Promise<any> {
+  ) {
     const submission = await this.submissionRepo.findOne({
       where: { 
         exam_id: examId, 

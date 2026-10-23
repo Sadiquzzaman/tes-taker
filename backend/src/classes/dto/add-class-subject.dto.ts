@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUUID, MaxLength, ValidateIf } from 'class-validator';
+import { IsString, IsUUID, MaxLength, ValidateIf } from 'class-validator';
 
 export class AddClassSubjectDto {
   @ApiPropertyOptional({ description: 'Existing global subject UUID' })

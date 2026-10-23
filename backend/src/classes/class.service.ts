@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, ILike, IsNull } from 'typeorm';
+import { Repository, In, ILike, IsNull, WhereExpressionBuilder } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { ClassEntity } from './entities/class.entity';
 import { ClassStudentEntity, ClassStudentStatusEnum } from './entities/class-student.entity';
@@ -1225,7 +1225,7 @@ export class ClassService {
   }
 
   private applyStudentWorkspaceScopeToClassQuery(
-    qb: any,
+    qb: WhereExpressionBuilder,
     jwtPayload?: JwtPayloadInterface,
   ): void {
     if (jwtPayload?.session_mode === 'organization' && jwtPayload.organization_id) {

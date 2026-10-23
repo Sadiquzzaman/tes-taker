@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend — install, type-check, test, build
+    name: Backend — install, lint, type-check, test, build
     runs-on: ubuntu-latest
     # Same commands developers run locally (root Makefile).
     steps:
@@ -24,6 +24,8 @@ jobs:
         run: npm install -g pnpm@9
       - name: Install
         run: make backend-install
+      - name: Lint
+        run: make backend-lint
       - name: Type-check
         run: make backend-typecheck
       - name: Test

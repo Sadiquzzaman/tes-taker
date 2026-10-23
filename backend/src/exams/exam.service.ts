@@ -6,7 +6,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, DeepPartial, EntityManager, Repository, In, IsNull } from 'typeorm';
+import { DataSource, DeepPartial, EntityManager, Repository, In, IsNull, WhereExpressionBuilder } from 'typeorm';
 import { buildResponseOptionId } from './utils/exam-option-ids.util';
 import { ExamEntity, ExamTypeEnum } from './entities/exam.entity';
 import {
@@ -186,7 +186,7 @@ export class ExamService {
     dto: CreateExamWizardDto,
     jwtPayload: JwtPayloadInterface,
     orgContext?: OrgContext | null,
-  ): Promise<any> {
+  ) {
     const { formState, subjects, publishState } = dto;
 
     if (orgContext?.organizationId) {
@@ -743,7 +743,7 @@ export class ExamService {
   ): Promise<void> {
     const points = normalizePoints(q.points);
     const answerJson = mapAnswerForStorage(q.answer);
-    const wordLimit = (q as WizardUngradedQuestionDto).wordLimit ?? (q.mediaMeta as any)?.wordLimit ?? null;
+    const wordLimit = (q as WizardUngradedQuestionDto).wordLimit ?? q.mediaMeta?.wordLimit ?? null;
 
     const payload: DeepPartial<ExamQuestionEntity> = {
       id: resolveQuestionId(q.id),
@@ -782,7 +782,7 @@ export class ExamService {
   async createObjectiveExam(
     dto: CreateObjectiveExamDto,
     jwtPayload: JwtPayloadInterface,
-  ): Promise<any> {
+  ) {
     if (dto.is_negative_marking && (!dto.negative_mark_value || dto.negative_mark_value <= 0)) {
       throw new BadRequestException(
         'Negative mark value is required if negative marking is enabled and must be greater than 0',
@@ -862,7 +862,7 @@ export class ExamService {
   async createSubjectiveExam(
     dto: CreateSubjectiveExamDto,
     jwtPayload: JwtPayloadInterface,
-  ): Promise<any> {
+  ) {
     if (dto.exam_start_time >= dto.exam_end_time) {
       throw new BadRequestException('Exam start time must be before end time');
     }
@@ -1002,7 +1002,7 @@ export class ExamService {
   async findAll(
     jwtPayload: JwtPayloadInterface,
     orgContext?: OrgContext | null,
-  ): Promise<any[]> {
+  ) {
     let exams: ExamEntity[];
 
     if (orgContext?.organizationId) {
@@ -1055,7 +1055,7 @@ export class ExamService {
     }));
   }
 
-  async findAllAdmin(): Promise<any[]> {
+  async findAllAdmin() {
     const exams = await this.examRepo.find({
       relations: [
         'questions',
@@ -1080,7 +1080,7 @@ export class ExamService {
     classId: string,
     jwtPayload: JwtPayloadInterface,
     orgContext?: OrgContext | null,
-  ): Promise<any[]> {
+  ) {
     const classExams = await this.examRepo.find({
       where: { class_id: classId },
       relations: [
@@ -1113,7 +1113,7 @@ export class ExamService {
     id: string,
     jwtPayload: JwtPayloadInterface,
     orgContext?: OrgContext | null,
-  ): Promise<any> {
+  ) {
     const exam = await this.findOneEntity(id);
 
     if (
@@ -1138,7 +1138,7 @@ export class ExamService {
    * Full exam for a student (no correct answers), when audience rules allow.
    * Questions are included only after exam_start_time.
    */
-  async findOneForStudent(id: string, jwtPayload: JwtPayloadInterface): Promise<any> {
+  async findOneForStudent(id: string, jwtPayload: JwtPayloadInterface) {
     if (jwtPayload.role !== RolesEnum.STUDENT) {
       throw new ForbiddenException('Only students can use this access path');
     }
@@ -1343,7 +1343,7 @@ export class ExamService {
     }
 
     if (!classId) {
-      let targetQuery = this.examRepo
+      const targetQuery = this.examRepo
         .createQueryBuilder('exam')
         .innerJoin('exam.target_students', 'st', 'st.id = :studentId', { studentId })
         .leftJoinAndSelect('exam.class', 'class')
@@ -1364,7 +1364,7 @@ export class ExamService {
   }
 
   private applyStudentWorkspaceScopeToClassQuery(
-    qb: any,
+    qb: WhereExpressionBuilder,
     jwtPayload?: JwtPayloadInterface,
   ): void {
     if (jwtPayload?.session_mode === 'organization' && jwtPayload.organization_id) {
@@ -1382,7 +1382,7 @@ export class ExamService {
   }
 
   private applyStudentWorkspaceScopeToExamQuery(
-    qb: any,
+    qb: WhereExpressionBuilder,
     jwtPayload?: JwtPayloadInterface,
   ): void {
     if (jwtPayload?.session_mode === 'organization' && jwtPayload.organization_id) {
@@ -2139,7 +2139,7 @@ export class ExamService {
     id: string,
     active: boolean,
     jwtPayload: JwtPayloadInterface,
-  ): Promise<any> {
+  ) {
     const exam = await this.findOneEntity(id);
 
     if (
@@ -2170,7 +2170,7 @@ export class ExamService {
     dto: CreateExamWizardDto,
     jwtPayload: JwtPayloadInterface,
     orgContext?: OrgContext | null,
-  ): Promise<any> {
+  ) {
     const { formState, subjects, publishState } = dto;
 
     const existing = await this.findOneEntity(id);
@@ -2582,7 +2582,7 @@ export class ExamService {
     studentIds: string[],
     jwtPayload: JwtPayloadInterface,
     orgContext?: OrgContext | null,
-  ): Promise<any> {
+  ) {
     const exam = await this.findOneEntity(examId);
 
     if (

@@ -32,7 +32,7 @@ describe('ExamService.findByClass access', () => {
 
     const result = await service.findByClass(CLASS_ID, caller(RolesEnum.TEACHER));
 
-    expect(result.map((exam: { id: string }) => exam.id)).toEqual(['exam-own']);
+    expect((result as unknown as { id: string }[]).map((exam) => exam.id)).toEqual(['exam-own']);
   });
 
   it('returns nothing to a teacher with no access to the class exams', async () => {

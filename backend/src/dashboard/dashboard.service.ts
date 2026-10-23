@@ -71,7 +71,6 @@ export class DashboardService {
       }),
     ]);
 
-    const classIds = classes.map((c) => c.id);
     const metrics = await this.loadExamListMetrics(exams);
     const gradingStats = await this.loadExamGradingStats(exams);
 

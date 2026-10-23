@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 import { RegisterUserDto } from 'src/auth/dto/register-user.dto';
 
 export class RegisterWithClassDto extends RegisterUserDto {

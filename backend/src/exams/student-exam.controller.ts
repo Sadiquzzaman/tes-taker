@@ -266,7 +266,7 @@ export class StudentExamController {
     @UserPayload() jwtPayload: JwtPayloadInterface,
     @Body() dto: SaveAnswerDto,
   ) {
-    const payload = await this.studentExamService.saveAnswer(
+    await this.studentExamService.saveAnswer(
       examId,
       jwtPayload.id,
       jwtPayload,

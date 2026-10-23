@@ -45,8 +45,8 @@ check: lint typecheck test build ## lint + typecheck + test + build (run before 
 backend-install: ## Backend: install dependencies
 	cd $(BACKEND_DIR) && $(BACKEND_INSTALL)
 
-backend-lint: ## Backend: lint (no lint script yet, see docs/TODO.md)
-	@echo "backend: no lint script in backend/package.json yet; skipping (see docs/TODO.md)"
+backend-lint: ## Backend: eslint
+	cd $(BACKEND_DIR) && $(BACKEND_PM) run lint
 
 backend-typecheck: ## Backend: tsc --noEmit
 	cd $(BACKEND_DIR) && $(BACKEND_PM) exec tsc --noEmit -p tsconfig.json

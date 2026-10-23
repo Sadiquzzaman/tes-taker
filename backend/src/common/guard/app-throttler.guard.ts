@@ -32,15 +32,15 @@ export class AppThrottlerGuard extends ThrottlerGuard {
     super(options, storageService, reflector);
   }
 
-  protected async getTracker(req: Record<string, any>): Promise<string> {
-    const authHeader: unknown = req?.headers?.authorization;
+  protected async getTracker(req: { headers?: { authorization?: unknown }; ip?: string }): Promise<string> {
+    const authHeader = req?.headers?.authorization;
     if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
       const userId = this.verifiedUserId(authHeader.slice(7));
       if (userId) {
         return `user:${userId}`;
       }
     }
-    return req.ip;
+    return req.ip ?? '';
   }
 
   private verifiedUserId(token: string): string | null {
