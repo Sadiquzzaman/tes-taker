@@ -1072,8 +1072,16 @@ export class ExamService {
     return exams.map((exam) => this.formatExamResponse(exam, { includeCorrectAnswers: true }));
   }
 
-  async findByClass(classId: string, jwtPayload: JwtPayloadInterface): Promise<any[]> {
-    const exams = await this.examRepo.find({
+  /**
+   * Exams of a class, with answers, limited to the exams the caller may open one by one
+   * (same rule as findOne). Admins see all of them.
+   */
+  async findByClass(
+    classId: string,
+    jwtPayload: JwtPayloadInterface,
+    orgContext?: OrgContext | null,
+  ): Promise<any[]> {
+    const classExams = await this.examRepo.find({
       where: { class_id: classId },
       relations: [
         'questions',
@@ -1086,8 +1094,16 @@ export class ExamService {
       ],
       order: { created_at: 'DESC' },
     });
-    const metrics = await this.loadExamListMetrics(exams);
-    return exams.map((exam) => ({
+    const isAdmin = jwtPayload.role === RolesEnum.ADMIN || jwtPayload.role === RolesEnum.SUPER_ADMIN;
+    const visible = isAdmin
+      ? classExams
+      : await Promise.all(
+          classExams.map((exam) =>
+            this.organizationAccessService.canMonitorExam(exam, jwtPayload.id, orgContext),
+          ),
+        ).then((allowed) => classExams.filter((_, index) => allowed[index]));
+    const metrics = await this.loadExamListMetrics(visible);
+    return visible.map((exam) => ({
       ...this.formatExamResponse(exam, { includeCorrectAnswers: true }),
       ...metrics.get(exam.id)!,
     }));
