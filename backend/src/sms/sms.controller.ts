@@ -36,6 +36,9 @@ export class SmsController {
     };
   }
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN)
   @Get('status/:phoneNumber')
   async getSmsStatus(@Param('phoneNumber') phoneNumber: string) {
     const status = await this.smsService.getSmsStatus(phoneNumber);

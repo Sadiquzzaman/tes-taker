@@ -12,7 +12,6 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Replace the SSLCommerz store id/password example values in `backend/src/modules/payment/README.md` with placeholders and rotate them if they are real — CLAUDE.md rule 12; noticed during P0-05.
 - Add a real DB test for payment initiate → settle → activate — P0-05 tests use mocked repositories until P0-03 adds a DB test harness.
 - Remove the dead SMTP branch in `backend/src/email/email.service.ts` (reads `EMAIL_USER`/`EMAIL_PASSWORD` only to log "Falling back to SMTP") and the unused `nodemailer` / `@types/nodemailer` dependencies — no SMTP sender exists; found in P0-01 env clean-up.
-- Protect or remove `GET /api/v1/sms/status/:phoneNumber` — it is public and shows SMS attempt counts for any phone number (seen in P0-08).
 - Move the rate-limiter storage to Redis (`ThrottlerStorage`) before running more than one backend instance — counters are in memory per process (P0-08).
 - Let the admin `POST /sms/reset-cache` also clear OTP lockouts (`otp_fail:*`, `otp_lock:*`) — support currently has to wait the 15 minutes out (P0-08).
 - Add a backend lint script (ESLint) and wire it into `make lint` — `backend/package.json` has no lint script, so `make lint` only lints the frontend; needs a new dev dependency, which requires approval.
