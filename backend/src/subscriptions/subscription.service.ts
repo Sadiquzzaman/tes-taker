@@ -62,6 +62,8 @@ export class SubscriptionService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    // Seeding runs in the API process only; the worker boots at the same time (worker.ts).
+    if (process.env.APP_ROLE === 'worker') return;
     await this.seedPlans();
   }
 

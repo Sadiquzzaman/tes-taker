@@ -77,7 +77,8 @@ services:
       dockerfile: Dockerfile.prod
     container_name: tasktaker-backend
     restart: unless-stopped
-    environment:
+    # Shared with the worker (same app, second entry point), so their settings never differ.
+    environment: &backend-environment
       NODE_ENV: production
       APP_PORT: 3000
       TRUST_PROXY: ${TRUST_PROXY:-true}
@@ -136,6 +137,10 @@ services:
       AWS_S3_REGION: ${AWS_S3_REGION:-}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+
+      # Queue dashboard at /api/admin/queues (basic auth); off unless both are set.
+      BULL_BOARD_USER: ${BULL_BOARD_USER:-}
+      BULL_BOARD_PASSWORD: ${BULL_BOARD_PASSWORD:-}
     ports:
       # Bind to loopback only — put a reverse proxy (NGINX/Caddy) in front.
       - "127.0.0.1:${BACKEND_HOST_PORT:-4000}:3000"
@@ -154,6 +159,32 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
+
+  # Background jobs (BullMQ, design §3/§7): the backend image with the worker entry point.
+  # No HTTP port; healthy while it refreshes its heartbeat key in Redis.
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: tasktaker-worker
+    restart: unless-stopped
+    command: ["node", "dist/src/worker.js"]
+    environment: *backend-environment
+    networks:
+      - tasktaker-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "dist/src/worker-health.js"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   frontend:
     build:

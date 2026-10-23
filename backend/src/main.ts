@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 import { setupSwagger } from './common/swagger/swagger.setup';
 import { configureApp } from './app.setup';
+import { mountBullBoard } from './queue/bull-board';
 import helmet from 'helmet';
 import { resolve } from 'path';
 import { existsSync, mkdirSync } from 'fs';
@@ -77,6 +78,9 @@ async function bootstrap() {
 
   // Swagger UI at /apidoc, only outside production.
   setupSwagger(app);
+
+  // Queue dashboard for admins (basic auth); off unless BULL_BOARD_USER/PASSWORD are set.
+  mountBullBoard(app);
 
   // Listen for SIGTERM/SIGINT and run onModuleDestroy / onApplicationShutdown
   // hooks so PostgreSQL, Redis, Socket.IO and the HTTP server close cleanly.

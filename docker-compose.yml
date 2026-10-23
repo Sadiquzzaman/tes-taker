@@ -104,6 +104,33 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Background jobs for local development (runs src/worker.ts with ts-node; restart after changes).
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tasktaker-worker
+    command: ["pnpm", "run", "start:worker:dev"]
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/tasktaker_chat}
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - tasktaker-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
   adminer:
     image: adminer
     container_name: tasktaker-adminer
