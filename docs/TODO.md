@@ -2,7 +2,6 @@
 
 Out-of-scope items noted during other tasks. One line each, with the reason.
 
-- Organization subject duplicate checks use `ILike`, so `%` and `_` in a name or code act as wildcards — `organization.service.ts` find-or-create/update; the DB index (`LOWER()`) is exact.
 - Move the frontend to pnpm — Development Plan §2.1 step 3 ("one package manager"); the frontend still uses npm and `package-lock.json`.
 - Add the "TaskTaker Production Deployment Runbook" to the repo or fix the reference — `scripts/deploy/deploy-beta.sh` cites its §4 and §15, but it is not in the repo and `DEPLOYMENT.md` §4 covers pgAdmin.
 - Confirm the beta server can `git pull` from GitHub (deploy key) — `deploy-beta.sh` fetches `develop` on the server.
