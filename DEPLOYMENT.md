@@ -20,6 +20,22 @@ For local development, run these from the repo root (`make help` lists every tar
 Deploy beta workflow (`.github/workflows/deploy-beta.yml`); never point these targets at
 beta or production. Production migrations are covered in §3 below.
 
+## Automatic beta deploys
+
+Beta (`/opt/instructor/apps/tasktaker`, branch `develop`) is deployed by
+`.github/workflows/deploy-beta.yml`; nobody deploys it by hand.
+
+- **Trigger:** every merge into `develop`, or **Actions → Deploy beta → Run workflow**.
+- **Steps:** CI runs first, then `scripts/deploy/deploy-beta.sh` runs on the server over SSH: refuse if tracked
+  files were edited on the server, fast-forward `develop`, check it is the commit CI tested, build the backend and
+  frontend images, recreate only those two containers (databases and volumes are never touched), then health-check
+  `/api/health` and `/`. The job fails unless the script prints `==> healthy. Deployed <sha>`.
+- **Migrations:** skipped on automatic deploys (the log lists pending ones). Run the workflow by hand with
+  *run_migrations* ticked: it first writes a `pg_dump` to `backups/` on the server, then runs them.
+- **History:** each successful deploy appends `<time> <sha>` to `deployments.log` on the server.
+- **Secrets:** the GitHub environment `beta` holds `BETA_SSH_HOST`, `BETA_SSH_PORT`, `BETA_SSH_USER`, `BETA_SSH_KEY`
+  and `BETA_SSH_KNOWN_HOSTS`.
+
 ## 1. Prepare environment
 
 ```bash
