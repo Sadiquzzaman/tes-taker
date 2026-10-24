@@ -1817,5 +1817,80 @@
     "heading": "This page does not exist",
     "detail": "The address may be wrong, or the page was moved or removed.",
     "home": "Go to dashboard"
+  },
+  "editor": {
+    "placeholder": "Write here…",
+    "toolbar": {
+      "liteLabel": "Instruction formatting",
+      "fullLabel": "Question editor",
+      "formatting": "Formatting",
+      "paragraph": "Paragraph",
+      "table": "Table",
+      "insert": "Insert",
+      "history": "History",
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "strike": "Strikethrough",
+      "superscript": "Superscript",
+      "subscript": "Subscript",
+      "textStyle": "Text style",
+      "normal": "Normal",
+      "heading": "Heading {level, number}",
+      "bulletList": "Bullet list",
+      "numberedList": "Numbered list",
+      "alignLeft": "Align left",
+      "alignCenter": "Align centre",
+      "alignRight": "Align right",
+      "insertTable": "Insert table",
+      "addColumnBefore": "Add column before",
+      "addColumnAfter": "Add column after",
+      "deleteColumn": "Delete column",
+      "addRowBefore": "Add row before",
+      "addRowAfter": "Add row after",
+      "deleteRow": "Delete row",
+      "toggleHeaderRow": "Header row on or off",
+      "mergeCells": "Merge cells",
+      "splitCell": "Split cell",
+      "deleteTable": "Delete table",
+      "link": "Link",
+      "linkPrompt": "Link address",
+      "equation": "Equation",
+      "graph": "Graph",
+      "geometry": "Geometry figure",
+      "geometryShort": "Geo",
+      "chemistry": "Chemistry",
+      "image": "Upload image",
+      "horizontalLine": "Horizontal line",
+      "undo": "Undo",
+      "redo": "Redo"
+    },
+    "math": {
+      "title": "Equation",
+      "label": "Equation editor",
+      "hint": "Type with the math keyboard. Fractions, roots, integrals, matrices and Greek letters work.",
+      "block": "Show as a separate line",
+      "keyboard": "Show math keyboard",
+      "insert": "Insert equation",
+      "edit": "Double-click to edit the equation"
+    },
+    "image": {
+      "chemistryAlt": "Chemical structure",
+      "geometryAlt": "Geometry figure",
+      "resize": "Drag to resize",
+      "caption": "Add a caption",
+      "captionLabel": "Caption",
+      "align": {
+        "left": "Left",
+        "center": "Centre",
+        "right": "Right"
+      },
+      "editStructure": "Edit structure",
+      "editFigure": "Edit figure",
+      "remove": "Remove"
+    },
+    "graph": {
+      "invalid": "This graph could not be drawn."
+    }
   }
 }

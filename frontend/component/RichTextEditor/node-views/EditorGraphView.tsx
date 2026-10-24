@@ -2,11 +2,13 @@
 
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { parseGraphDefinition } from "@/utils/exam/graph/graphTypes";
 
 const GraphRenderer = dynamic(() => import("../graph/GraphRenderer"), { ssr: false });
 
 const EditorGraphView = ({ node, selected, getPos }: NodeViewProps) => {
+  const t = useTranslations("editor.graph");
   const definition = parseGraphDefinition(node.attrs.definition) ?? null;
   const previewSrc = (node.attrs.previewSrc as string | null) || null;
 
@@ -24,7 +26,7 @@ const EditorGraphView = ({ node, selected, getPos }: NodeViewProps) => {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={previewSrc} alt="Graph" className="rte-graph-fallback-img" />
         ) : (
-          <p className="rte-modal__hint">Invalid graph definition</p>
+          <p className="rte-modal__hint">{t("invalid")}</p>
         )}
       </div>
       <div className="rte-editor-graph-actions">

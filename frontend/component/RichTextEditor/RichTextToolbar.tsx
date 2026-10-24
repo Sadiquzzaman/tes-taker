@@ -1,6 +1,7 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
+import { useTranslations } from "next-intl";
 import { useEffect, useReducer, type ReactNode } from "react";
 
 type RichTextToolbarProps = {
@@ -31,6 +32,7 @@ const IconButton = ({
     type="button"
     title={title}
     aria-label={title}
+    aria-pressed={active === undefined ? undefined : active}
     disabled={disabled}
     onMouseDown={(event) => event.preventDefault()}
     onClick={onClick}
@@ -57,6 +59,7 @@ const RichTextToolbar = ({
   onOpenGraph,
   onOpenChemistry,
 }: RichTextToolbarProps) => {
+  const t = useTranslations("editor.toolbar");
   const [, forceRender] = useReducer((value: number) => value + 1, 0);
 
   useEffect(() => {
@@ -78,7 +81,7 @@ const RichTextToolbar = ({
 
   const insertLink = () => {
     const previous = editor.getAttributes("link").href as string | undefined;
-    const url = window.prompt("Enter link URL", previous ?? "https://");
+    const url = window.prompt(t("linkPrompt"), previous ?? "https://");
     if (url === null) {
       return;
     }
@@ -91,27 +94,27 @@ const RichTextToolbar = ({
 
   if (variant === "lite") {
     return (
-      <div className="rte-toolbar rte-toolbar--lite" role="toolbar" aria-label="Instruction formatting">
-        <ToolbarGroup label="Formatting">
-          <IconButton title="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+      <div className="rte-toolbar rte-toolbar--lite" role="toolbar" aria-label={t("liteLabel")}>
+        <ToolbarGroup label={t("formatting")}>
+          <IconButton title={t("bold")} active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
             <strong>B</strong>
           </IconButton>
-          <IconButton title="Italic" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+          <IconButton title={t("italic")} active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
             <em>I</em>
           </IconButton>
           <IconButton
-            title="Underline"
+            title={t("underline")}
             active={editor.isActive("underline")}
             onClick={() => editor.chain().focus().toggleUnderline().run()}
           >
             <span className="underline">U</span>
           </IconButton>
         </ToolbarGroup>
-        <ToolbarGroup label="History">
-          <IconButton title="Undo" onClick={() => editor.chain().focus().undo().run()}>
+        <ToolbarGroup label={t("history")}>
+          <IconButton title={t("undo")} onClick={() => editor.chain().focus().undo().run()}>
             ↶
           </IconButton>
-          <IconButton title="Redo" onClick={() => editor.chain().focus().redo().run()}>
+          <IconButton title={t("redo")} onClick={() => editor.chain().focus().redo().run()}>
             ↷
           </IconButton>
         </ToolbarGroup>
@@ -122,40 +125,40 @@ const RichTextToolbar = ({
   const inTable = editor.isActive("table");
 
   return (
-    <div className="rte-toolbar" role="toolbar" aria-label="Question editor">
-      <ToolbarGroup label="Formatting">
-        <IconButton title="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+    <div className="rte-toolbar" role="toolbar" aria-label={t("fullLabel")}>
+      <ToolbarGroup label={t("formatting")}>
+        <IconButton title={t("bold")} active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
           <strong>B</strong>
         </IconButton>
-        <IconButton title="Italic" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+        <IconButton title={t("italic")} active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
           <em>I</em>
         </IconButton>
         <IconButton
-          title="Underline"
+          title={t("underline")}
           active={editor.isActive("underline")}
           onClick={() => editor.chain().focus().toggleUnderline().run()}
         >
           <span className="underline">U</span>
         </IconButton>
-        <IconButton title="Strikethrough" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>
+        <IconButton title={t("strike")} active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>
           <span className="line-through">S</span>
         </IconButton>
         <IconButton
-          title="Superscript"
+          title={t("superscript")}
           active={editor.isActive("superscript")}
           onClick={() => editor.chain().focus().toggleSuperscript().run()}
         >
           X²
         </IconButton>
-        <IconButton title="Subscript" active={editor.isActive("subscript")} onClick={() => editor.chain().focus().toggleSubscript().run()}>
+        <IconButton title={t("subscript")} active={editor.isActive("subscript")} onClick={() => editor.chain().focus().toggleSubscript().run()}>
           X₂
         </IconButton>
       </ToolbarGroup>
 
-      <ToolbarGroup label="Paragraph">
+      <ToolbarGroup label={t("paragraph")}>
         <select
           className="rte-tb-select"
-          aria-label="Text style"
+          aria-label={t("textStyle")}
           value={
             editor.isActive("heading", { level: 1 })
               ? "h1"
@@ -178,42 +181,42 @@ const RichTextToolbar = ({
             chain.toggleHeading({ level }).run();
           }}
         >
-          <option value="p">Normal</option>
-          <option value="h1">Heading 1</option>
-          <option value="h2">Heading 2</option>
-          <option value="h3">Heading 3</option>
-          <option value="h4">Heading 4</option>
+          <option value="p">{t("normal")}</option>
+          <option value="h1">{t("heading", { level: 1 })}</option>
+          <option value="h2">{t("heading", { level: 2 })}</option>
+          <option value="h3">{t("heading", { level: 3 })}</option>
+          <option value="h4">{t("heading", { level: 4 })}</option>
         </select>
         <IconButton
-          title="Bullet list"
+          title={t("bulletList")}
           active={editor.isActive("bulletList")}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
         >
           ••
         </IconButton>
         <IconButton
-          title="Numbered list"
+          title={t("numberedList")}
           active={editor.isActive("orderedList")}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         >
           1.
         </IconButton>
         <IconButton
-          title="Align left"
+          title={t("alignLeft")}
           active={editor.isActive({ textAlign: "left" })}
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
         >
           ☰
         </IconButton>
         <IconButton
-          title="Align center"
+          title={t("alignCenter")}
           active={editor.isActive({ textAlign: "center" })}
           onClick={() => editor.chain().focus().setTextAlign("center").run()}
         >
           ≡
         </IconButton>
         <IconButton
-          title="Align right"
+          title={t("alignRight")}
           active={editor.isActive({ textAlign: "right" })}
           onClick={() => editor.chain().focus().setTextAlign("right").run()}
         >
@@ -221,78 +224,78 @@ const RichTextToolbar = ({
         </IconButton>
       </ToolbarGroup>
 
-      <ToolbarGroup label="Table">
+      <ToolbarGroup label={t("table")}>
         <IconButton
-          title="Insert table"
+          title={t("insertTable")}
           onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
         >
           ▦
         </IconButton>
         <IconButton
-          title="Add column before"
+          title={t("addColumnBefore")}
           disabled={!inTable || !editor.can().addColumnBefore()}
           onClick={() => editor.chain().focus().addColumnBefore().run()}
         >
           ←Col
         </IconButton>
         <IconButton
-          title="Add column after"
+          title={t("addColumnAfter")}
           disabled={!inTable || !editor.can().addColumnAfter()}
           onClick={() => editor.chain().focus().addColumnAfter().run()}
         >
           Col→
         </IconButton>
         <IconButton
-          title="Delete column"
+          title={t("deleteColumn")}
           disabled={!inTable || !editor.can().deleteColumn()}
           onClick={() => editor.chain().focus().deleteColumn().run()}
         >
           Col−
         </IconButton>
         <IconButton
-          title="Add row before"
+          title={t("addRowBefore")}
           disabled={!inTable || !editor.can().addRowBefore()}
           onClick={() => editor.chain().focus().addRowBefore().run()}
         >
           ↑Row
         </IconButton>
         <IconButton
-          title="Add row after"
+          title={t("addRowAfter")}
           disabled={!inTable || !editor.can().addRowAfter()}
           onClick={() => editor.chain().focus().addRowAfter().run()}
         >
           Row↓
         </IconButton>
         <IconButton
-          title="Delete row"
+          title={t("deleteRow")}
           disabled={!inTable || !editor.can().deleteRow()}
           onClick={() => editor.chain().focus().deleteRow().run()}
         >
           Row−
         </IconButton>
         <IconButton
-          title="Toggle header row"
+          title={t("toggleHeaderRow")}
           disabled={!inTable || !editor.can().toggleHeaderRow()}
           onClick={() => editor.chain().focus().toggleHeaderRow().run()}
         >
           Hdr
         </IconButton>
         <IconButton
-          title="Merge cells"
+          title={t("mergeCells")}
           disabled={!inTable || !editor.can().mergeCells()}
           onClick={() => editor.chain().focus().mergeCells().run()}
         >
           Merge
         </IconButton>
         <IconButton
-          title="Split cell"
+          title={t("splitCell")}
           disabled={!inTable || !editor.can().splitCell()}
           onClick={() => editor.chain().focus().splitCell().run()}
         >
           Split
         </IconButton>
         <IconButton
-          title="Delete table"
+          title={t("deleteTable")}
           disabled={!inTable || !editor.can().deleteTable()}
           onClick={() => editor.chain().focus().deleteTable().run()}
         >
@@ -300,38 +303,38 @@ const RichTextToolbar = ({
         </IconButton>
       </ToolbarGroup>
 
-      <ToolbarGroup label="Insert">
-        <IconButton title="Link" active={editor.isActive("link")} onClick={insertLink}>
+      <ToolbarGroup label={t("insert")}>
+        <IconButton title={t("link")} active={editor.isActive("link")} onClick={insertLink}>
           🔗
         </IconButton>
-        <IconButton title="Equation" onClick={() => onOpenMath?.()}>
+        <IconButton title={t("equation")} onClick={() => onOpenMath?.()}>
           ∑
         </IconButton>
-        <IconButton title="Graph" onClick={() => onOpenGraph?.()}>
+        <IconButton title={t("graph")} onClick={() => onOpenGraph?.()}>
           ƒ
         </IconButton>
-        <IconButton title="Insert geometry figure" onClick={() => onOpenGeometry?.()}>
+        <IconButton title={t("geometry")} onClick={() => onOpenGeometry?.()}>
           <span className="inline-flex items-center gap-1">
             <span aria-hidden>△</span>
-            <span className="text-caption font-medium leading-none">Geo</span>
+            <span className="text-caption font-medium leading-none">{t("geometryShort")}</span>
           </span>
         </IconButton>
-        <IconButton title="Chemistry" onClick={() => onOpenChemistry?.()}>
+        <IconButton title={t("chemistry")} onClick={() => onOpenChemistry?.()}>
           ⚗
         </IconButton>
-        <IconButton title="Upload image" disabled={!allowImages} onClick={() => onRequestImageUpload?.()}>
+        <IconButton title={t("image")} disabled={!allowImages} onClick={() => onRequestImageUpload?.()}>
           🖼
         </IconButton>
-        <IconButton title="Horizontal line" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
+        <IconButton title={t("horizontalLine")} onClick={() => editor.chain().focus().setHorizontalRule().run()}>
           ―
         </IconButton>
       </ToolbarGroup>
 
-      <ToolbarGroup label="History">
-        <IconButton title="Undo" onClick={() => editor.chain().focus().undo().run()}>
+      <ToolbarGroup label={t("history")}>
+        <IconButton title={t("undo")} onClick={() => editor.chain().focus().undo().run()}>
           ↶
         </IconButton>
-        <IconButton title="Redo" onClick={() => editor.chain().focus().redo().run()}>
+        <IconButton title={t("redo")} onClick={() => editor.chain().focus().redo().run()}>
           ↷
         </IconButton>
       </ToolbarGroup>

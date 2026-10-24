@@ -43,6 +43,9 @@ const eslintConfig = defineConfig([
       "component/Admin/**/*.{ts,tsx}",
       "app/admin/**/*.{ts,tsx}",
       "app/not-found.tsx",
+      // Rich-text editor chrome; the geometry, graph and chemistry boards draw with their own palettes.
+      "component/RichTextEditor/{RichTextEditor,RichTextToolbar,RichTextContent}.tsx",
+      "component/RichTextEditor/{node-views,modals}/**/*.{ts,tsx}",
     ],
     ignores: [
       "**/*.test.{ts,tsx}",

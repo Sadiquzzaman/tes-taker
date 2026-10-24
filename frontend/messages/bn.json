@@ -1817,5 +1817,80 @@
     "heading": "এই পৃষ্ঠাটি নেই",
     "detail": "ঠিকানা ভুল হতে পারে, অথবা পৃষ্ঠাটি সরানো বা মুছে ফেলা হয়েছে।",
     "home": "ড্যাশবোর্ডে যান"
+  },
+  "editor": {
+    "placeholder": "এখানে লিখুন…",
+    "toolbar": {
+      "liteLabel": "নির্দেশনার ফরম্যাট",
+      "fullLabel": "প্রশ্ন সম্পাদক",
+      "formatting": "ফরম্যাট",
+      "paragraph": "অনুচ্ছেদ",
+      "table": "টেবিল",
+      "insert": "যোগ করুন",
+      "history": "ইতিহাস",
+      "bold": "বোল্ড",
+      "italic": "ইটালিক",
+      "underline": "আন্ডারলাইন",
+      "strike": "কাটা দাগ",
+      "superscript": "সুপারস্ক্রিপ্ট",
+      "subscript": "সাবস্ক্রিপ্ট",
+      "textStyle": "লেখার ধরন",
+      "normal": "সাধারণ",
+      "heading": "শিরোনাম {level, number}",
+      "bulletList": "বুলেট তালিকা",
+      "numberedList": "নম্বরযুক্ত তালিকা",
+      "alignLeft": "বাঁয়ে",
+      "alignCenter": "মাঝে",
+      "alignRight": "ডানে",
+      "insertTable": "টেবিল যোগ করুন",
+      "addColumnBefore": "আগে কলাম যোগ করুন",
+      "addColumnAfter": "পরে কলাম যোগ করুন",
+      "deleteColumn": "কলাম মুছুন",
+      "addRowBefore": "আগে সারি যোগ করুন",
+      "addRowAfter": "পরে সারি যোগ করুন",
+      "deleteRow": "সারি মুছুন",
+      "toggleHeaderRow": "শিরোনাম সারি চালু/বন্ধ",
+      "mergeCells": "ঘর একত্র করুন",
+      "splitCell": "ঘর ভাগ করুন",
+      "deleteTable": "টেবিল মুছুন",
+      "link": "লিংক",
+      "linkPrompt": "লিংকের ঠিকানা",
+      "equation": "সমীকরণ",
+      "graph": "গ্রাফ",
+      "geometry": "জ্যামিতিক চিত্র",
+      "geometryShort": "জ্যা",
+      "chemistry": "রসায়ন",
+      "image": "ছবি আপলোড করুন",
+      "horizontalLine": "আনুভূমিক রেখা",
+      "undo": "আগের অবস্থায় ফিরুন",
+      "redo": "আবার করুন"
+    },
+    "math": {
+      "title": "সমীকরণ",
+      "label": "সমীকরণ সম্পাদক",
+      "hint": "গণিত কিবোর্ড দিয়ে লিখুন। ভগ্নাংশ, মূল, ইন্টিগ্রাল, ম্যাট্রিক্স ও গ্রিক অক্ষর লেখা যায়।",
+      "block": "আলাদা লাইনে দেখান",
+      "keyboard": "গণিত কিবোর্ড দেখান",
+      "insert": "সমীকরণ যোগ করুন",
+      "edit": "সমীকরণ বদলাতে দুবার ক্লিক করুন"
+    },
+    "image": {
+      "chemistryAlt": "রাসায়নিক গঠন",
+      "geometryAlt": "জ্যামিতিক চিত্র",
+      "resize": "আকার বদলাতে টানুন",
+      "caption": "ক্যাপশন যোগ করুন",
+      "captionLabel": "ক্যাপশন",
+      "align": {
+        "left": "বাঁয়ে",
+        "center": "মাঝে",
+        "right": "ডানে"
+      },
+      "editStructure": "গঠন বদলান",
+      "editFigure": "চিত্র বদলান",
+      "remove": "সরান"
+    },
+    "graph": {
+      "invalid": "এই গ্রাফটি আঁকা যায়নি।"
+    }
   }
 }
