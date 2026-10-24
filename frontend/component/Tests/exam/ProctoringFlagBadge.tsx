@@ -1,8 +1,9 @@
 "use client";
 
-import { getProctoringFlagColorStyles } from "@/utils/tests/proctoring";
+import { getProctoringFlagToneClasses } from "@/utils/tests/proctoring";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
+import useFormat from "@/i18n/useFormat";
 
 interface ProctoringFlagBadgeProps {
   flagCount: number;
@@ -12,15 +13,15 @@ interface ProctoringFlagBadgeProps {
 
 const ProctoringFlagBadge = ({ flagCount, label, className = "" }: ProctoringFlagBadgeProps) => {
   const t = useTranslations("proctoring");
-  const colors = getProctoringFlagColorStyles(flagCount);
+  const tone = getProctoringFlagToneClasses(flagCount);
+  const format = useFormat();
 
   return (
     <div
-      className={`rounded-card px-4 py-3 ${className}`}
-      style={{ backgroundColor: colors.background, color: colors.text, border: `1px solid ${colors.border}` }}
+      className={`rounded-card border px-4 py-3 ${tone} ${className}`}
     >
-      <p className="text-caption font-medium leading-4 opacity-90">{label ?? t("flagCount")}</p>
-      <p className="mt-1 text-display font-bold leading-8">{flagCount}</p>
+      <p className="text-caption font-medium opacity-90">{label ?? t("flagCount")}</p>
+      <p className="mt-1 text-title font-bold">{format.number(flagCount)}</p>
     </div>
   );
 };

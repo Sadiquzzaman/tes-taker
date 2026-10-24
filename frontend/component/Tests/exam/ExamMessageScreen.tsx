@@ -1,8 +1,9 @@
 "use client";
 
-import CreateModal from "@/component/Tests/Create/CreateModal";
+import NextLink from "next/link";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
+import { Button, buttonClasses } from "@/design/ui";
+import ExamDialog from "./ExamDialog";
 
 export type ExamMessageVariant =
   | "not-started"
@@ -20,8 +21,8 @@ interface ExamMessageScreenProps {
   actionLabel?: string;
 }
 
-const MESSAGE_TONE: Record<ExamMessageVariant, "neutral" | "warning" | "success"> = {
-  "not-started": "neutral",
+const TONE: Record<ExamMessageVariant, "neutral" | "warning" | "success" | "info"> = {
+  "not-started": "info",
   "exam-ended": "warning",
   "already-submitted": "success",
   disqualified: "warning",
@@ -30,46 +31,29 @@ const MESSAGE_TONE: Record<ExamMessageVariant, "neutral" | "warning" | "success"
   "exam-full": "neutral",
 };
 
-const toneStyles = {
-  neutral: "bg-canvas text-ink",
-  warning: "bg-danger-soft text-danger",
-  success: "bg-primary-soft text-primary",
-};
-
+/** Why the student cannot (or no longer) take the exam, with the way back. */
 const ExamMessageScreen = ({ variant, reason, onAction, actionLabel }: ExamMessageScreenProps) => {
   const t = useTranslations("exam");
-  const tone = MESSAGE_TONE[variant];
-  const defaultActionLabel = t("backToTests");
+  const label = actionLabel ?? t("backToTests");
 
   return (
-    <CreateModal open onClose={() => {}} maxWidthClassName="max-w-[520px]" panelClassName="p-6 sm:p-8">
-      <div className="flex flex-col items-center gap-4 text-center">
-        <div
-          className={`flex size-14 items-center justify-center rounded-full text-title font-bold ${toneStyles[tone]}`}
-        >
-          !
-        </div>
-        <p className="text-title font-semibold leading-7 tracking-tight text-ink">{t(`message.${variant}.title`)}</p>
-        <p className="text-body-sm leading-6 text-ink-muted">{t(`message.${variant}.description`)}</p>
-        {reason ? <p className="text-body-sm leading-5 text-danger">{reason}</p> : null}
-        {onAction ? (
-          <button
-            type="button"
-            onClick={onAction}
-            className="mt-2 h-11 rounded-card bg-primary px-5 text-body-sm font-semibold leading-4 text-ink-inverse"
-          >
-            {actionLabel ?? defaultActionLabel}
-          </button>
+    <ExamDialog
+      open
+      tone={TONE[variant]}
+      title={t(`message.${variant}.title`)}
+      description={t(`message.${variant}.description`)}
+      footer={
+        onAction ? (
+          <Button onClick={onAction}>{label}</Button>
         ) : (
-          <Link
-            href="/classes"
-            className="mt-2 inline-flex h-11 items-center justify-center rounded-card bg-primary px-5 text-body-sm font-semibold leading-4 text-ink-inverse"
-          >
-            {actionLabel ?? defaultActionLabel}
-          </Link>
-        )}
-      </div>
-    </CreateModal>
+          <NextLink href="/classes" className={buttonClasses()}>
+            {label}
+          </NextLink>
+        )
+      }
+    >
+      {reason ? <p className="text-body-sm text-danger">{reason}</p> : null}
+    </ExamDialog>
   );
 };
 

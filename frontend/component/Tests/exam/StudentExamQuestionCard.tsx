@@ -2,12 +2,15 @@
 
 import StudentExamMatchingOrderInput from "@/component/Tests/exam/StudentExamMatchingOrderInput";
 import { RichTextContent } from "@/component/RichTextEditor";
-import NotmalTextFeild from "@/Ui/NotmalTextFeild";
 import { toggleMultiSelectAnswer } from "@/utils/tests/studentExamAnswers";
 import { useTranslations } from "next-intl";
+import useFormat from "@/i18n/useFormat";
+import { Button, cn, Textarea } from "@/design/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface StudentExamQuestionCardProps {
+  flagged?: boolean;
+  onToggleFlag?: (questionId: string) => void;
   question: StudentExamViewQuestion;
   answerState: ExamAnswerState;
   disabled: boolean;
@@ -97,22 +100,13 @@ const StudentExamSpeakingRecorder = ({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
         {!isRecording ? (
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={startRecording}
-            className="rounded-input bg-primary px-4 py-2 text-body-sm font-medium text-ink-inverse disabled:opacity-50"
-          >
+          <Button disabled={disabled} onClick={() => void startRecording()}>
             {value ? t("reRecord") : t("startRecording")}
-          </button>
+          </Button>
         ) : (
-          <button
-            type="button"
-            onClick={stopRecording}
-            className="rounded-input bg-danger px-4 py-2 text-body-sm font-medium text-ink-inverse"
-          >
+          <Button variant="danger" onClick={stopRecording}>
             {t("stopRecording")}
-          </button>
+          </Button>
         )}
         {secondsLeft !== null ? (
           <span className="text-body-sm text-ink-muted">{t("recordingTimeLeft", { seconds: secondsLeft })}</span>
@@ -132,8 +126,11 @@ const StudentExamQuestionCard = ({
   negativeMarkValue,
   onAnswerChange,
   onMatchingChange,
+  flagged = false,
+  onToggleFlag,
 }: StudentExamQuestionCardProps) => {
   const t = useTranslations("exam");
+  const format = useFormat();
   const answerValue = answerState[question.id];
   const textValue = typeof answerValue === "string" ? answerValue : "";
   const selectedOptionIds = Array.isArray(answerValue) ? answerValue : [];
@@ -144,20 +141,33 @@ const StudentExamQuestionCard = ({
   const wordLimit = question.wordLimit ?? null;
 
   return (
-    <article className="flex w-full flex-col gap-3 rounded-input bg-surface p-4">
-      {question.instruction ? (
-        <RichTextContent html={question.instruction} className="text-body-sm leading-5 text-primary" />
-      ) : null}
-
-      <div className="flex min-w-0 gap-2">
-        <span className="w-4 shrink-0 text-center text-body font-medium leading-5 text-ink">
-          {question.questionNumber}.
+    <article
+      id={`exam-q-${question.id}`}
+      tabIndex={-1}
+      aria-label={t("questionLabel", { number: question.questionNumber })}
+      className={cn(
+        "flex w-full scroll-mt-24 flex-col gap-3 rounded-card border bg-surface p-4 outline-none sm:p-5",
+        flagged ? "border-warning" : "border-border",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-body-sm font-semibold text-primary">
+          {format.number(question.questionNumber)}
         </span>
-        <RichTextContent
-          html={question.text}
-          className="min-w-0 flex-1 text-body font-medium leading-5 text-ink"
-        />
+        {onToggleFlag ? (
+          <Button
+            variant={flagged ? "secondary" : "ghost"}
+            size="sm"
+            aria-pressed={flagged}
+            className={flagged ? "border-warning text-warning" : "text-ink-muted"}
+            onClick={() => onToggleFlag(question.id)}
+          >
+            {flagged ? t("flagged") : t("flag")}
+          </Button>
+        ) : null}
       </div>
+      {question.instruction ? <RichTextContent html={question.instruction} className="text-body-sm text-primary" /> : null}
+      <RichTextContent html={question.text} className="min-w-0 text-body font-medium text-ink" />
 
       {question.audioUrl ? (
         <audio controls src={question.audioUrl} className="w-full" preload="metadata">
@@ -167,15 +177,14 @@ const StudentExamQuestionCard = ({
 
       {question.inputMode === "text" ? (
         <div className="flex flex-col gap-3">
-          <NotmalTextFeild
+          <Textarea
+            label={t("questionLabel", { number: question.questionNumber })}
+            hideLabel
             value={textValue}
             onChange={(event) => onAnswerChange(question.id, event.target.value)}
             placeholder={isWritingTask ? t("writeEssay") : t("writeAnswer")}
             rows={isWritingTask ? 12 : 4}
-            maxRows={isWritingTask ? 24 : 6}
             disabled={disabled}
-            parentClassName="rounded-input border-border bg-surface px-3 py-[10px]"
-            inputClassName="text-body font-normal leading-5 text-ink placeholder:text-ink-muted"
           />
         </div>
       ) : null}

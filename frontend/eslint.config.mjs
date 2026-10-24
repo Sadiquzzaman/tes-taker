@@ -18,6 +18,9 @@ const eslintConfig = defineConfig([
       "component/JoinTest/**/*.{ts,tsx}",
       "component/Tests/{CreateTestActionButton,TestsNameSection,TestList,ExamDetails,StudentExamResults,ShareTestModal,CreateTestForm}.tsx",
       "component/Tests/Create/**/*.{ts,tsx}",
+      "component/Tests/exam/**/*.{ts,tsx}",
+      "component/Tests/ExamCountdown.tsx",
+      "app/test/**/*.{ts,tsx}",
       "app/tests/page.tsx",
       "app/tests/create/**/*.{ts,tsx}",
       "app/tests/[[]id]/**/*.{ts,tsx}",
@@ -27,6 +30,8 @@ const eslintConfig = defineConfig([
       // No longer used; deletion pending owner approval.
       "component/Classes/StudentBadges.tsx",
       "component/Tests/Create/CreateModal.tsx",
+      "component/Tests/exam/ObjectiveQuestionSectionCard.tsx",
+      "component/Tests/exam/EssayQuestionSectionCard.tsx",
     ],
     rules: {
       "no-restricted-syntax": [

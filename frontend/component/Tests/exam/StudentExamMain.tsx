@@ -1,10 +1,14 @@
-import ButtonLoader from "@/component/Loader/ButtonLoadder";
+"use client";
+
+import { useTranslations } from "next-intl";
+import { useMemo, useState } from "react";
 import ExamCountdown from "@/component/Tests/ExamCountdown";
 import StudentExamSection from "@/component/Tests/exam/StudentExamSection";
 import ExamTimerIconSVG from "@/component/svg/ExamTimerIconSVG";
-import RightArrowIconSVG from "@/component/svg/RightArrowIconSVG";
+import { Button, Card, ConfirmDialog, MenuIcon, Sheet } from "@/design/ui";
+import useFormat from "@/i18n/useFormat";
 import { buildStudentExamViewModel } from "@/utils/tests/studentExamViewModel";
-import { useTranslations } from "next-intl";
+import QuestionNavigator, { isAnswered } from "./QuestionNavigator";
 
 interface StudentExamMainProps {
   exam: StudentExamDetails;
@@ -19,6 +23,10 @@ interface StudentExamMainProps {
   onTimeUp: () => void;
 }
 
+/**
+ * The calm exam screen (design-system §3.4): test name and timer on top, the questions, and a
+ * question list showing what is answered or flagged. Submitting asks once, with the count left.
+ */
 const StudentExamMain = ({
   exam,
   answerState,
@@ -32,47 +40,74 @@ const StudentExamMain = ({
   onTimeUp,
 }: StudentExamMainProps) => {
   const t = useTranslations("exam");
+  const format = useFormat();
   const examView = buildStudentExamViewModel(exam);
   const showSectionTitles = examView.sections.length > 1;
+  const [flagged, setFlagged] = useState<Set<string>>(() => new Set());
+  const [navigatorOpen, setNavigatorOpen] = useState(false);
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
+
+  const questions = useMemo(
+    () =>
+      examView.sections.flatMap((section) =>
+        section.items.flatMap((item) =>
+          item.kind === "passage"
+            ? item.questions.map((question) => ({ id: question.id, number: question.questionNumber }))
+            : [{ id: item.question.id, number: item.question.questionNumber }],
+        ),
+      ),
+    [examView.sections],
+  );
+  const unanswered = questions.filter((question) => !isAnswered(answerState[question.id])).length;
+
+  const toggleFlag = (questionId: string) =>
+    setFlagged((current) => {
+      const next = new Set(current);
+      if (next.has(questionId)) next.delete(questionId);
+      else next.add(questionId);
+      return next;
+    });
+
+  const jumpTo = (questionId: string) => {
+    setNavigatorOpen(false);
+    const target = document.getElementById(`exam-q-${questionId}`);
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    target?.focus({ preventScroll: true });
+  };
+
+  const navigator = <QuestionNavigator questions={questions} answerState={answerState} flagged={flagged} onJump={jumpTo} />;
 
   return (
-    <main className="min-h-0 flex-1 overflow-y-auto bg-surface">
-      <div className="mx-auto flex w-full max-w-[920px] flex-col gap-8 px-4 py-8 md:px-0">
-        <section className="relative h-[200px] overflow-hidden rounded-sheet bg-primary text-ink-inverse">
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(17,34,21,0.16)),radial-gradient(circle_at_50%_100%,rgba(15,26,18,0.38),transparent_45%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.20),transparent_28%)]" />
-          <div className="absolute inset-x-0 bottom-0 h-[130px] bg-[linear-gradient(180deg,transparent,rgba(26,46,31,0.55))]" />
-          <div className="absolute -left-[120px] -top-[84px] h-[162px] w-[183px] rounded-full border border-surface/15 opacity-70" />
-          <div className="absolute -right-[56px] top-[70px] h-[120px] w-[120px] rounded-full border border-surface/10 opacity-70" />
-
-          <div className="relative flex h-full flex-col items-center justify-center px-6 text-center">
-            <p className="max-w-[360px] font-ins-sans text-display font-semibold tracking-tight">
-              {exam.test_name}
-            </p>
-            <p className="mt-3 text-body leading-4 text-ink-inverse/90">
-              <span className="font-semibold">{t("subject")}</span>: {examView.summary.subjectSummary}
+    <main className="min-h-0 flex-1 overflow-y-auto bg-canvas">
+      <div className="sticky top-0 z-10 border-b border-border bg-surface/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-body font-semibold text-ink">{exam.test_name}</h1>
+            <p className="truncate text-caption text-ink-muted">
+              {t("subject")}: {examView.summary.subjectSummary} · {t("totalMarks", { marks: examView.summary.totalMarks })}
             </p>
           </div>
-        </section>
-
-        <section className="flex flex-col gap-4 px-1 md:flex-row md:items-center md:justify-between">
-          <p className="text-body font-medium leading-4 text-ink">
-            {t("totalMarks", { marks: examView.summary.totalMarks })}
-          </p>
-
-          <div className="flex items-center gap-2 text-primary">
-            <ExamTimerIconSVG width={16} />
-            <ExamCountdown
-              key={`${exam.id}-${exam.remaining_time_seconds ?? exam.formState.duration}`}
-              remainingSeconds={exam.remaining_time_seconds}
-              durationMinutes={exam.formState.duration}
-              submitButtonRef={submitButtonRef}
-              onStart={onCountdownStart}
-              onTimeUp={onTimeUp}
-            />
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-input bg-primary-soft px-3 py-1.5 text-primary" aria-label={t("timeLeftLabel")}>
+              <ExamTimerIconSVG width={16} />
+              <ExamCountdown
+                key={`${exam.id}-${exam.remaining_time_seconds ?? exam.formState.duration}`}
+                remainingSeconds={exam.remaining_time_seconds}
+                durationMinutes={exam.formState.duration}
+                submitButtonRef={submitButtonRef}
+                onStart={onCountdownStart}
+                onTimeUp={onTimeUp}
+              />
+            </div>
+            <Button variant="secondary" size="sm" className="lg:hidden" leftIcon={<MenuIcon />} onClick={() => setNavigatorOpen(true)}>
+              {format.number(questions.length - unanswered)}/{format.number(questions.length)}
+            </Button>
           </div>
-        </section>
+        </div>
+      </div>
 
-        <div className="flex flex-col gap-4 rounded-input bg-canvas p-4">
+      <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[1fr_240px]">
+        <div className="flex min-w-0 flex-col gap-6">
           {examView.sections.map((section) => (
             <StudentExamSection
               key={section.id}
@@ -84,25 +119,45 @@ const StudentExamMain = ({
               showTitle={showSectionTitles}
               onAnswerChange={onAnswerChange}
               onMatchingChange={onMatchingChange}
+              flagged={flagged}
+              onToggleFlag={toggleFlag}
             />
           ))}
+
+          <div className="flex justify-center pb-8">
+            <Button
+              ref={submitButtonRef}
+              size="lg"
+              loading={isSubmitLoading}
+              disabled={isInteractionDisabled}
+              onClick={() => setConfirmSubmit(true)}
+            >
+              {isSubmitLoading ? t("submitting") : t("submit")}
+            </Button>
+          </div>
         </div>
 
-        <div className="flex justify-center pb-4">
-          <button
-            ref={submitButtonRef}
-            onClick={onSubmit}
-            disabled={isInteractionDisabled}
-            className={`flex h-11 items-center justify-center rounded-card px-5 text-body-sm font-semibold leading-4 text-ink-inverse ${
-              isInteractionDisabled ? "bg-primary/60" : "bg-primary"
-            }`}
-          >
-            <ButtonLoader show={isSubmitLoading} w="w-4" h="h-4" mr="mr-2" />
-            {isSubmitLoading ? t("submitting") : t("submit")}
-            <RightArrowIconSVG className="ml-2 size-4" />
-          </button>
-        </div>
+        <aside className="hidden lg:block">
+          <Card className="sticky top-24">{navigator}</Card>
+        </aside>
       </div>
+
+      <Sheet open={navigatorOpen} onClose={() => setNavigatorOpen(false)} title={t("navigator.open")}>
+        {navigator}
+      </Sheet>
+
+      <ConfirmDialog
+        open={confirmSubmit}
+        title={t("submitTitle")}
+        description={t("submitDetail", { open: unanswered })}
+        confirmLabel={t("submitConfirm")}
+        cancelLabel={t("keepWorking")}
+        onCancel={() => setConfirmSubmit(false)}
+        onConfirm={() => {
+          setConfirmSubmit(false);
+          onSubmit();
+        }}
+      />
     </main>
   );
 };

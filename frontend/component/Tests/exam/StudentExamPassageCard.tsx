@@ -1,8 +1,11 @@
 import StudentExamQuestionCard from "@/component/Tests/exam/StudentExamQuestionCard";
 import { RichTextContent } from "@/component/RichTextEditor";
+import { useTranslations } from "next-intl";
 import { getPassageInstructionByLanguage, resolvePassageInstructionLanguage } from "@/utils/richText";
 
 interface StudentExamPassageCardProps {
+  flagged?: Set<string>;
+  onToggleFlag?: (questionId: string) => void;
   item: StudentExamPassageItem;
   answerState: ExamAnswerState;
   disabled: boolean;
@@ -26,7 +29,10 @@ const StudentExamPassageCard = ({
   subjectName,
   subjectCode,
   splitLayout = false,
+  flagged,
+  onToggleFlag,
 }: StudentExamPassageCardProps) => {
+  const t = useTranslations("exam");
   const questionRange = `${item.questions[0]?.questionNumber ?? 0}-${item.questions[item.questions.length - 1]?.questionNumber ?? 0}`;
   const instructionLanguage = resolvePassageInstructionLanguage(
     item.instructionLanguage,
@@ -36,13 +42,13 @@ const StudentExamPassageCard = ({
   const instructionLabel = getPassageInstructionByLanguage(instructionLanguage);
 
   const passagePanel = (
-    <div className="rounded-input px-2 py-2">
+    <div className="rounded-card border border-border bg-surface p-4 sm:p-5">
       <p className="text-title-sm font-medium text-ink">
         {item.title ? item.title : `${instructionLabel} (${questionRange})`}
       </p>
       {item.audioUrl ? (
         <audio controls src={item.audioUrl} className="mt-3 w-full" preload="metadata">
-          Your browser does not support the audio element.
+          {t("noAudioSupport")}
         </audio>
       ) : null}
       <RichTextContent
@@ -64,6 +70,8 @@ const StudentExamPassageCard = ({
           negativeMarkValue={negativeMarkValue}
           onAnswerChange={onAnswerChange}
           onMatchingChange={onMatchingChange}
+          flagged={flagged?.has(question.id)}
+          onToggleFlag={onToggleFlag}
         />
       ))}
     </div>
@@ -72,7 +80,7 @@ const StudentExamPassageCard = ({
   if (splitLayout) {
     return (
       <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-        <div className="max-h-[70vh] overflow-y-auto rounded-input bg-surface p-3 lg:sticky lg:top-2">
+        <div className="max-h-[70vh] overflow-y-auto lg:sticky lg:top-2">
           {passagePanel}
         </div>
         <div className="max-h-[70vh] overflow-y-auto">{questionsPanel}</div>

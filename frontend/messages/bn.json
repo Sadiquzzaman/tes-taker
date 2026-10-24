@@ -301,7 +301,24 @@
       "startTest": "পরীক্ষা শুরু করুন",
       "back": "পেছনে"
     },
-    "retry": "আবার চেষ্টা করুন"
+    "retry": "আবার চেষ্টা করুন",
+    "navigator": {
+      "title": "প্রশ্নসমূহ",
+      "progress": "{total, number}টির মধ্যে {answered, number}টির উত্তর দেওয়া হয়েছে",
+      "go": "প্রশ্ন {number, number}{state, select, answered {, উত্তর দেওয়া হয়েছে} flagged {, পুনরায় দেখার জন্য চিহ্নিত} answeredFlagged {, উত্তর দেওয়া, পুনরায় দেখার জন্য চিহ্নিত} other {}}",
+      "legendAnswered": "উত্তর দেওয়া",
+      "legendFlagged": "চিহ্নিত",
+      "legendOpen": "উত্তর বাকি",
+      "open": "প্রশ্নের তালিকা"
+    },
+    "flag": "পুনরায় দেখতে চিহ্নিত করুন",
+    "flagged": "চিহ্নিত",
+    "timeLeftLabel": "বাকি সময়",
+    "submitTitle": "উত্তর জমা দেবেন?",
+    "submitDetail": "{open, plural, =0 {সব প্রশ্নের উত্তর দেওয়া হয়েছে।} other {#টি প্রশ্নের উত্তর এখনো বাকি।}} জমা দেওয়ার পর উত্তর বদলানো যাবে না।",
+    "submitConfirm": "জমা দিন",
+    "keepWorking": "চালিয়ে যান",
+    "questionLabel": "প্রশ্ন {number, number}"
   },
   "proctoring": {
     "title": "প্রক্টরিং",

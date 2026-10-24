@@ -1,6 +1,7 @@
 "use client";
 
-import CreateModal from "@/component/Tests/Create/CreateModal";
+import ExamDialog from "@/component/Tests/exam/ExamDialog";
+import { Button, Card, ErrorState, Spinner } from "@/design/ui";
 import ExamHeader from "@/component/Tests/exam/ExamHeader";
 import ProctoringCountdownModal from "@/component/Tests/exam/ProctoringCountdownModal";
 import ProctoringDisqualificationScreen from "@/component/Tests/exam/ProctoringDisqualificationScreen";
@@ -38,7 +39,7 @@ import { loadExamAnswersFromStorage, saveExamAnswersToStorage } from "@/utils/te
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { RotatingLines } from "react-loader-spinner";
+import ExamLoading from "@/component/Tests/exam/ExamLoading";
 
 const getStoredUserId = () => {
   const user = localStorage.getItem("user");
@@ -285,32 +286,16 @@ export default function ParticipateTest() {
 
   if (!isMounted || !testId) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <RotatingLines
-          visible={true}
-          height="48"
-          width="48"
-          color="#49734F"
-          strokeWidth="5"
-          animationDuration="0.75"
-          ariaLabel="exam-loading"
-        />
+      <div className="flex min-h-dvh">
+        <ExamLoading />
       </div>
     );
   }
 
   if (eligibilityLoading || !eligibilityChecked) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <RotatingLines
-          visible={true}
-          height="48"
-          width="48"
-          color="#49734F"
-          strokeWidth="5"
-          animationDuration="0.75"
-          ariaLabel="eligibility-loading"
-        />
+      <div className="flex min-h-dvh">
+        <ExamLoading />
       </div>
     );
   }
@@ -364,20 +349,22 @@ export default function ParticipateTest() {
       <div className="flex h-screen flex-col overflow-hidden">
         <ExamHeader />
         <main className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[920px] px-4 py-8">
-            <div className="rounded-input border border-border bg-primary-soft p-4 text-body-sm leading-5 text-primary">
-              {t("mediaLost")}
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                clearExamPermissionsComplete();
-                router.replace("/test/permissions");
-              }}
-              className="mt-4 h-11 rounded-card bg-primary px-5 text-body-sm font-semibold leading-4 text-ink-inverse"
-            >
-              {t("backToPermissions")}
-            </button>
+          <div className="mx-auto w-full max-w-3xl px-4 py-8">
+            <Card>
+              <div className="flex flex-col items-start gap-4">
+                <p role="alert" className="text-body text-ink">
+                  {t("mediaLost")}
+                </p>
+                <Button
+                  onClick={() => {
+                    clearExamPermissionsComplete();
+                    router.replace("/test/permissions");
+                  }}
+                >
+                  {t("backToPermissions")}
+                </Button>
+              </div>
+            </Card>
           </div>
         </main>
         {proctoringOverlays}
@@ -390,10 +377,12 @@ export default function ParticipateTest() {
       <div className="flex h-screen flex-col overflow-hidden">
         <ExamHeader />
         <main className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[920px] px-4 py-8">
-            <div className="rounded-input border border-border bg-primary-soft p-4 text-body-sm leading-5 text-primary">
-              {t("mediaRequired")}
-            </div>
+          <div className="mx-auto w-full max-w-3xl px-4 py-8">
+            <Card>
+              <p role="status" className="text-body text-ink">
+                {t("mediaRequired")}
+              </p>
+            </Card>
           </div>
         </main>
         {proctoringOverlays}
@@ -405,16 +394,8 @@ export default function ParticipateTest() {
     return (
       <div>
         <ExamHeader />
-        <div className="flex min-h-[calc(100vh-300px)] w-full items-center justify-center">
-          <RotatingLines
-            visible={true}
-            height="48"
-            width="48"
-            color="grey"
-            strokeWidth="5"
-            animationDuration="0.75"
-            ariaLabel="exam-loading"
-          />
+        <div className="flex min-h-[60dvh]">
+          <ExamLoading />
         </div>
         {proctoringOverlays}
       </div>
@@ -425,10 +406,10 @@ export default function ParticipateTest() {
     return (
       <div>
         <ExamHeader />
-        <div className="flex min-h-[calc(100vh-162px)] items-center justify-center">
-          <p className="text-title font-semibold leading-8 tracking-tight text-ink">
-            {t("unableToStart")}
-          </p>
+        <div className="mx-auto w-full max-w-3xl px-4 py-8">
+          <Card>
+            <ErrorState title={t("unableToStart")} />
+          </Card>
         </div>
         {proctoringOverlays}
       </div>
@@ -439,16 +420,8 @@ export default function ParticipateTest() {
     return (
       <div>
         <ExamHeader />
-        <div className="flex min-h-[calc(100vh-300px)] w-full items-center justify-center">
-          <RotatingLines
-            visible={true}
-            height="48"
-            width="48"
-            color="#49734F"
-            strokeWidth="5"
-            animationDuration="0.75"
-            ariaLabel="exam-loading"
-          />
+        <div className="flex min-h-[60dvh]">
+          <ExamLoading />
         </div>
         {proctoringOverlays}
       </div>
@@ -459,15 +432,10 @@ export default function ParticipateTest() {
     return (
       <div>
         <ExamHeader />
-        <div className="flex min-h-[calc(100vh-162px)] flex-col items-center justify-center gap-4 px-4">
-          <p className="text-title font-semibold leading-8 tracking-tight text-ink">{t("unableToLoad")}</p>
-          <button
-            type="button"
-            onClick={() => void refetchExam(testId)}
-            className="h-11 rounded-card bg-primary px-5 text-body-sm font-semibold leading-4 text-ink-inverse"
-          >
-            {t("retry")}
-          </button>
+        <div className="mx-auto w-full max-w-3xl px-4 py-8">
+          <Card>
+            <ErrorState title={t("unableToLoad")} onRetry={() => void refetchExam(testId)} />
+          </Card>
         </div>
         {proctoringOverlays}
       </div>
@@ -515,32 +483,13 @@ export default function ParticipateTest() {
         open={proctoringState.isDisqualified}
         reason={proctoringState.disqualificationReason}
       />
-      <CreateModal
+      <ExamDialog
         open={submitLoading}
-        onClose={() => {}}
-        maxWidthClassName="max-w-[440px]"
-        panelClassName="p-6 sm:p-7"
-      >
-        <div className="flex flex-col items-center gap-4 text-center">
-          <RotatingLines
-            visible={true}
-            height="48"
-            width="48"
-            color="#49734F"
-            strokeWidth="5"
-            animationDuration="0.75"
-            ariaLabel="submission-loading"
-          />
-          <div className="flex flex-col gap-2">
-            <p className="text-title font-semibold leading-7 text-ink">
-              {t("submittingTitle", { reason: submitReason ?? "manual" })}
-            </p>
-            <p className="text-body-sm leading-5 text-ink-muted">
-              {t("submittingDescription", { reason: submitReason ?? "manual" })}
-            </p>
-          </div>
-        </div>
-      </CreateModal>
+        tone="info"
+        icon={<Spinner className="size-5" />}
+        title={t("submittingTitle", { reason: submitReason ?? "manual" })}
+        description={t("submittingDescription", { reason: submitReason ?? "manual" })}
+      />
     </div>
   );
 }

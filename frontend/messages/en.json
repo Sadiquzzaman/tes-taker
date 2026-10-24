@@ -301,7 +301,24 @@
       "startTest": "Start Test",
       "back": "Back"
     },
-    "retry": "Retry"
+    "retry": "Retry",
+    "navigator": {
+      "title": "Questions",
+      "progress": "{answered, number} of {total, number} answered",
+      "go": "Question {number, number}{state, select, answered {, answered} flagged {, flagged for review} answeredFlagged {, answered, flagged for review} other {}}",
+      "legendAnswered": "Answered",
+      "legendFlagged": "Flagged",
+      "legendOpen": "Not answered",
+      "open": "Question list"
+    },
+    "flag": "Flag for review",
+    "flagged": "Flagged",
+    "timeLeftLabel": "Time left",
+    "submitTitle": "Submit your answers?",
+    "submitDetail": "{open, plural, =0 {Every question is answered.} one {# question is not answered yet.} other {# questions are not answered yet.}} You cannot change your answers after submitting.",
+    "submitConfirm": "Submit",
+    "keepWorking": "Keep working",
+    "questionLabel": "Question {number, number}"
   },
   "proctoring": {
     "title": "Proctoring",
