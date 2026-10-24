@@ -160,7 +160,7 @@ Table users {
   phone varchar(20) [unique]
   password varchar [note: 'bcrypt']
   role platform_role
-  locale varchar(5) [default: 'bn', note: 'NEW column']
+  locale varchar(5) [null, note: 'bn | en (CHECK). NULL = not chosen: organisation default, then English. Added in P1-04']
   avatar_file_id uuid [ref: > file_objects.id, note: 'NEW column']
   google_id varchar
   is_otp_verified boolean

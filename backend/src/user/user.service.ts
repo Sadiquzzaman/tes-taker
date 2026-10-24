@@ -12,7 +12,7 @@ import { SubscriptionService } from 'src/subscriptions/subscription.service';
 import { Brackets, In, Repository } from 'typeorm';
 import { UserReponseDto } from './dto/user-response.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
-import { UserEntity } from './entities/user.entity';
+import { UserEntity, UserLocale } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'crypto';
 import { PublicIdService } from 'src/common/services/public-id.service';
@@ -420,6 +420,7 @@ export class UserService implements OnModuleInit {
       public_id: user.public_id ?? null,
       teacher_public_id: user.teacher_public_id ?? null,
       student_public_id: user.student_public_id ?? null,
+      locale: user.locale ?? null,
       context_type: contextType,
       teacher_id: options?.teacher_id ?? null,
       session_mode: orgSession ? 'organization' : 'individual',
@@ -742,6 +743,15 @@ export class UserService implements OnModuleInit {
     return this.generateTokenForUser(user, orgSession);
   }
 
+  /** Saves the user's app language (FND-18). */
+  async updateLocale(userId: string, locale: UserLocale): Promise<{ locale: UserLocale }> {
+    const result = await this.userRepository.update({ id: userId }, { locale });
+    if (!result.affected) {
+      throw new NotFoundException('User not found');
+    }
+    return { locale };
+  }
+
   async getProfile(userId: string) {
     const user = await this.findById(userId);
 
@@ -755,6 +765,7 @@ export class UserService implements OnModuleInit {
       public_id: user.public_id ?? null,
       teacher_public_id: user.teacher_public_id ?? null,
       student_public_id: user.student_public_id ?? null,
+      locale: user.locale ?? null,
       is_verified: user.is_verified,
       is_otp_verified: user.is_otp_verified,
       is_active: user.is_active,

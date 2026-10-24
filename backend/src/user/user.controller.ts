@@ -24,11 +24,26 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { UserService } from './user.service';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { UpdateLocaleDto } from './dto/update-locale.dto';
 
 @ApiTags('Users')
 @Controller({ path: 'user', version: '1' })
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Patch('me/locale')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({
+    summary: 'Set my language',
+    description: "Saves the caller's app language (bn or en), so it follows them to other devices.",
+  })
+  @ApiResponse({ status: 200, description: 'Language saved' })
+  @ApiResponse({ status: 400, description: 'Unsupported language' })
+  async updateMyLocale(@UserPayload() jwtPayload: JwtPayloadInterface, @Body() dto: UpdateLocaleDto) {
+    const payload = await this.userService.updateLocale(jwtPayload.id, dto.locale);
+    return { message: 'Language saved', payload };
+  }
 
   @Get('admin/users')
   @ApiBearerAuth('jwt')
