@@ -1,27 +1,44 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AxiosError } from "axios";
-import axiosReq from "@/lib/axios";
-import { useApiError } from "@/hooks/api/useApiError";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
+import {
+  Button,
+  Card,
+  Combobox,
+  ConfirmDialog,
+  EmptyState,
+  PageHeader,
+  Skeleton,
+  Table,
+  type TableColumn,
+} from "@/design/ui";
+import { useApiError } from "@/hooks/api/useApiError";
 import useWorkspace from "@/hooks/organization/useWorkspace";
+import axiosReq from "@/lib/axios";
 import OrganizationWorkspaceGate from "./OrganizationWorkspaceGate";
-import DropDownComponent from "@/Ui/DropDownComponent";
 
-const subjectLabel = (row: ClassSubject) =>
-  row.subject?.code ? `${row.subject.name} — ${row.subject.code}` : row.subject?.name || "Organization Subject";
+const subjectLabel = (row: ClassSubject, fallback: string) =>
+  row.subject?.code ? `${row.subject.name} — ${row.subject.code}` : row.subject?.name || fallback;
 
-const catalogSubjectLabel = (subject: OrganizationSubjectItem) =>
-  subject.code ? `${subject.name} — ${subject.code}` : subject.name;
+const catalogSubjectLabel = (subject: OrganizationSubjectItem) => (subject.code ? `${subject.name} — ${subject.code}` : subject.name);
 
-const teacherLabel = (member: OrganizationMemberItem) =>
-  member.user.full_name || member.user.phone || "Teacher";
+const teacherLabel = (member: OrganizationMemberItem, fallback: string) => member.user.full_name || member.user.phone || fallback;
 
-const assignmentTeacherName = (assignment: ClassSubjectTeacherAssignment) =>
-  assignment.teacher?.full_name?.trim() || "Teacher";
+const assignmentTeacherName = (assignment: ClassSubjectTeacherAssignment, fallback: string) => assignment.teacher?.full_name?.trim() || fallback;
 
+type PendingRemoval =
+  | { kind: "subject"; classId: string; className: string; classSubjectId: string; subject: string }
+  | { kind: "teacher"; classId: string; className: string; classSubjectId: string; assignmentId: string; subject: string; teacher: string };
+
+/** Which subjects each class has, and which teacher teaches each one. */
 const OrganizationAssignmentsContent = () => {
+  const t = useTranslations("organization.assignments");
+  const subjectFallback = t("subject");
+  const teacherFallback = t("teacher");
+  const unassignedLabel = t("unassigned");
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const { organizationId, activeOrganization } = useWorkspace();
   const { handleError } = useApiError();
@@ -40,6 +57,7 @@ const OrganizationAssignmentsContent = () => {
   const [tableClassFilter, setTableClassFilter] = useState("all");
   const [tableSubjectFilter, setTableSubjectFilter] = useState("all");
   const [tableTeacherFilter, setTableTeacherFilter] = useState("all");
+  const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(null);
 
   const resetFormState = useCallback(() => {
     setSelectedClassId("");
@@ -102,8 +120,8 @@ const OrganizationAssignmentsContent = () => {
     [classes],
   );
   const attachedSubjectOptions = useMemo(
-    () => classSubjects.map((row) => ({ label: subjectLabel(row), value: row.id })),
-    [classSubjects],
+    () => classSubjects.map((row) => ({ label: subjectLabel(row, subjectFallback), value: row.id })),
+    [classSubjects, subjectFallback],
   );
   const attachableSubjectOptions = useMemo(() => {
     const attachedIds = new Set(classSubjects.map((row) => row.subject_id));
@@ -131,8 +149,8 @@ const OrganizationAssignmentsContent = () => {
               ),
           );
         })
-        .map((member) => ({ label: teacherLabel(member), value: member.user.id })),
-    [assignedTeacherIds, editingAssignmentId, selectedClassSubject, teachers],
+        .map((member) => ({ label: teacherLabel(member, teacherFallback), value: member.user.id })),
+    [assignedTeacherIds, editingAssignmentId, selectedClassSubject, teacherFallback, teachers],
   );
 
   const assignmentRows = useMemo(
@@ -147,10 +165,10 @@ const OrganizationAssignmentsContent = () => {
                 className: classItem.class_name,
                 classSubjectId: row.id,
                 subjectId: row.subject_id,
-                subject: subjectLabel(row),
+                subject: subjectLabel(row, subjectFallback),
                 assignmentId: `unassigned-${row.id}`,
                 teacherId: "",
-                teacherName: "Unassigned",
+                teacherName: unassignedLabel,
                 unassigned: true,
               },
             ];
@@ -160,15 +178,15 @@ const OrganizationAssignmentsContent = () => {
             className: classItem.class_name,
             classSubjectId: row.id,
             subjectId: row.subject_id,
-            subject: subjectLabel(row),
+            subject: subjectLabel(row, subjectFallback),
             assignmentId: assignment.id,
             teacherId: assignment.teacher_id,
-            teacherName: assignmentTeacherName(assignment),
+            teacherName: assignmentTeacherName(assignment, teacherFallback),
             unassigned: false,
           }));
         }),
       ),
-    [classes],
+    [classes, subjectFallback, teacherFallback, unassignedLabel],
   );
 
   const filteredAssignmentRows = useMemo(
@@ -195,13 +213,13 @@ const OrganizationAssignmentsContent = () => {
     const seen = new Map<string, string>();
     assignmentRows.forEach((row) => {
       if (row.unassigned) {
-        seen.set("unassigned", "Unassigned");
+        seen.set("unassigned", unassignedLabel);
         return;
       }
       if (!seen.has(row.teacherId)) seen.set(row.teacherId, row.teacherName);
     });
     return Array.from(seen.entries()).map(([value, label]) => ({ value, label }));
-  }, [assignmentRows]);
+  }, [assignmentRows, unassignedLabel]);
 
   useEffect(() => {
     if (!selectedClassId) {
@@ -230,8 +248,8 @@ const OrganizationAssignmentsContent = () => {
   const handleAttachSubject = async () => {
     if (!selectedClassId || !selectedCatalogSubjectId) {
       triggerToast({
-        title: "Class and organization subject required",
-        description: "Select a class and an organization subject.",
+        title: t("needClassSubjectTitle"),
+        description: t("needClassSubject"),
         type: "error",
       });
       return;
@@ -246,8 +264,8 @@ const OrganizationAssignmentsContent = () => {
       });
       setSelectedCatalogSubjectId("");
       triggerToast({
-        title: "Subject assigned",
-        description: "You can now assign a teacher to this class and organization subject.",
+        title: t("subjectAddedTitle"),
+        description: t("subjectAdded"),
         type: "success",
       });
       const nextClasses = await load();
@@ -269,8 +287,8 @@ const OrganizationAssignmentsContent = () => {
   const handleAssignTeacher = async () => {
     if (!selectedClassId || !selectedClassSubjectId || !selectedTeacherId) {
       triggerToast({
-        title: "All fields required",
-        description: "Select a class, organization subject, and teacher.",
+        title: t("needAllTitle"),
+        description: t("needAll"),
         type: "error",
       });
       return;
@@ -300,8 +318,8 @@ const OrganizationAssignmentsContent = () => {
       setSelectedTeacherId("");
       setEditingAssignmentId("");
       triggerToast({
-        title: replacing ? "Teacher replaced" : "Teacher assigned",
-        description: "The teacher can create tests for this class and organization subject.",
+        title: replacing ? t("replacedTitle") : t("assignedTitle"),
+        description: t("assigned"),
         type: "success",
       });
       await load();
@@ -323,10 +341,11 @@ const OrganizationAssignmentsContent = () => {
         setSelectedTeacherId("");
       }
       triggerToast({
-        title: "Assignment removed",
-        description: "The teacher was unassigned from this class and organization subject.",
+        title: t("unassignedTitle"),
+        description: t("unassignedDetail"),
         type: "success",
       });
+      setPendingRemoval(null);
       await load();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
@@ -345,10 +364,11 @@ const OrganizationAssignmentsContent = () => {
         setEditingAssignmentId("");
       }
       triggerToast({
-        title: "Subject removed",
-        description: "The organization subject and its class-level teacher assignments were removed.",
+        title: t("subjectRemovedTitle"),
+        description: t("subjectRemoved"),
         type: "success",
       });
+      setPendingRemoval(null);
       await load();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
@@ -366,262 +386,233 @@ const OrganizationAssignmentsContent = () => {
     step2Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const step1SubjectPlaceholder = !selectedClassId
-    ? "Select a class first"
-    : attachableSubjectOptions.length === 0
-      ? "All organization subjects are already assigned to this class"
-      : "Select organization subject";
 
+  const step1SubjectPlaceholder = !selectedClassId
+    ? t("classFirst")
+    : attachableSubjectOptions.length === 0
+      ? t("allAttached")
+      : t("selectSubject");
   const step2SubjectPlaceholder = !selectedClassId
-    ? "Select a class first"
+    ? t("classFirst")
     : classSubjects.length === 0
-      ? "Assign an organization subject in Step 1 first"
-      : "Select organization subject";
+      ? t("addSubjectFirst")
+      : t("selectSubject");
+
+  const confirmRemoval = () => {
+    if (!pendingRemoval) return;
+    if (pendingRemoval.kind === "subject") {
+      void handleRemoveSubject(pendingRemoval.classId, pendingRemoval.classSubjectId);
+    } else {
+      void handleUnassign(pendingRemoval.classId, pendingRemoval.classSubjectId, pendingRemoval.assignmentId);
+    }
+  };
+
+  const columns: TableColumn<(typeof assignmentRows)[number]>[] = [
+    { key: "class", header: t("class"), cell: (row) => row.className, sortValue: (row) => row.className },
+    { key: "subject", header: t("subject"), cell: (row) => row.subject, sortValue: (row) => row.subject },
+    {
+      key: "teacher",
+      header: t("teacher"),
+      cell: (row) => (row.unassigned ? <span className="text-ink-muted">{row.teacherName}</span> : row.teacherName),
+      sortValue: (row) => (row.unassigned ? null : row.teacherName),
+    },
+    {
+      key: "actions",
+      header: t("remove"),
+      align: "right",
+      cell: (row) =>
+        row.unassigned ? (
+          <span className="text-body-sm text-ink-muted">{t("assignInStep2")}</span>
+        ) : (
+          <div className="flex justify-end gap-1">
+            <Button size="sm" variant="ghost" disabled={saving} onClick={() => handleEditAssignment(row)}>
+              {t("edit")}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-danger"
+              disabled={saving}
+              onClick={() =>
+                setPendingRemoval({
+                  kind: "teacher",
+                  classId: row.classId,
+                  className: row.className,
+                  classSubjectId: row.classSubjectId,
+                  assignmentId: row.assignmentId,
+                  subject: row.subject,
+                  teacher: row.teacherName,
+                })
+              }
+            >
+              {t("remove")}
+            </Button>
+          </div>
+        ),
+    },
+  ];
 
   return (
-    <div>
-      <div className="mb-3 flex w-full flex-wrap items-center justify-between gap-2">
-        <div>
-          <div className="flex flex-wrap items-center text-title-sm tracking-tight md:text-display">
-            <p className="font-medium text-ink">Assignments</p>
-            <p className="ml-2 font-normal italic text-primary" style={{ fontFamily: "DM Serif Display" }}>
-              {activeOrganization?.name || ""}
-            </p>
-          </div>
-          <p className="mt-1 text-body-sm text-ink-muted">Class → Organization Subject → Teacher</p>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6 pb-8">
+      <PageHeader title={t("title")} description={activeOrganization?.name ? `${activeOrganization.name} · ${t("intro")}` : t("intro")} />
 
-      <div className="flex flex-col gap-3 rounded-card bg-canvas p-2 sm:p-3">
-        <div className="flex flex-col gap-3 rounded-card bg-surface p-3">
-          <div>
-            <p className="text-body font-semibold text-ink">1. Assign Organization Subject to Class</p>
-            <p className="text-body-sm text-ink-muted">Class → Organization Subject</p>
-          </div>
+      <Card title={t("step1")}>
+        <div className="flex flex-col gap-4">
           <div className="grid items-end gap-3 md:grid-cols-[1fr_1fr_auto]">
-            <DropDownComponent
-              placeholder="Select class"
-              value={selectedClassId}
-              handleChange={handleClassChange}
-              list={classOptions}
-              isSearchable
-              maxOuputInDropdownList={8}
-            />
-            <DropDownComponent
+            <Combobox label={t("class")} placeholder={t("selectClass")} value={selectedClassId || null} onChange={(value) => handleClassChange(value ?? "")} options={classOptions} />
+            <Combobox
+              label={t("subject")}
               placeholder={step1SubjectPlaceholder}
-              value={selectedCatalogSubjectId}
-              handleChange={setSelectedCatalogSubjectId}
-              list={attachableSubjectOptions}
-              isSearchable
+              value={selectedCatalogSubjectId || null}
+              onChange={(value) => setSelectedCatalogSubjectId(value ?? "")}
+              options={attachableSubjectOptions}
               disabled={!selectedClassId}
-              maxOuputInDropdownList={8}
             />
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void handleAttachSubject()}
-              className={`h-[44px] rounded-input px-4 text-sm font-medium text-ink-inverse ${saving ? "bg-ink-muted" : "bg-primary"}`}
-            >
-              Assign Organization Subject
-            </button>
+            <Button loading={saving} onClick={() => void handleAttachSubject()}>
+              {t("addSubject")}
+            </Button>
           </div>
-          {selectedClass && (
-            <div className="rounded-input border border-border p-3">
-              <p className="text-body-sm font-semibold text-ink">
-                Organization subjects in {selectedClass.class_name}
-              </p>
-              <div className="mt-2 flex flex-col gap-2">
-                {classSubjects.length === 0 ? (
-                  <p className="text-body-sm text-ink-muted">No organization subjects assigned yet.</p>
-                ) : (
-                  classSubjects.map((row) => (
-                    <div
-                      key={row.id}
-                      className="flex items-center justify-between gap-3 rounded-input bg-canvas px-3 py-2"
-                    >
-                      <span className="text-sm text-ink">{subjectLabel(row)}</span>
-                      <button
-                        type="button"
+          {selectedClass ? (
+            <div className="flex flex-col gap-2 rounded-input border border-border p-3">
+              <p className="text-body-sm font-semibold text-ink">{t("subjectsIn", { name: selectedClass.class_name })}</p>
+              {classSubjects.length === 0 ? (
+                <p className="text-body-sm text-ink-muted">{t("noSubjects")}</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {classSubjects.map((row) => (
+                    <li key={row.id} className="flex items-center justify-between gap-3 rounded-input bg-canvas px-3 py-2">
+                      <span className="text-body-sm text-ink">{subjectLabel(row, subjectFallback)}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-danger"
                         disabled={saving}
-                        onClick={() => void handleRemoveSubject(selectedClass.id, row.id)}
-                        className="text-sm font-medium text-danger"
+                        onClick={() =>
+                          setPendingRemoval({
+                            kind: "subject",
+                            classId: selectedClass.id,
+                            className: selectedClass.class_name,
+                            classSubjectId: row.id,
+                            subject: subjectLabel(row, subjectFallback),
+                          })
+                        }
                       >
-                        Remove
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
+                        {t("remove")}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-          )}
+          ) : null}
         </div>
+      </Card>
 
-        <div className="flex flex-col items-center gap-1 py-0.5 text-center text-body-sm text-ink-muted">
-          <span aria-hidden="true">↓</span>
-          <p>Then assign a teacher to that class + organization subject</p>
-        </div>
-
-        <div ref={step2Ref} className="flex flex-col gap-3 rounded-card bg-surface p-3">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <p className="text-body font-semibold text-ink">2. Assign Teacher to Class & Organization Subject</p>
-              <p className="text-body-sm text-ink-muted">Class + Organization Subject → Teacher</p>
-            </div>
-            {editingAssignmentId ? (
-              <button
-                type="button"
-                className="text-sm font-medium text-ink-muted"
+      <div ref={step2Ref} className="scroll-mt-24">
+        <Card
+          title={t("step2")}
+          actions={
+            editingAssignmentId ? (
+              <Button
+                size="sm"
+                variant="ghost"
                 onClick={() => {
                   setEditingAssignmentId("");
                   setSelectedTeacherId("");
                 }}
               >
-                Cancel edit
-              </button>
-            ) : null}
-          </div>
-          {selectedClassId && classSubjects.length === 0 ? (
-            <p className="text-body-sm text-ink-muted">
-              Assign an organization subject to this class in Step 1 first.
-            </p>
-          ) : null}
+                {t("cancelEdit")}
+              </Button>
+            ) : undefined
+          }
+        >
           <div className="grid items-end gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
-            <DropDownComponent
-              placeholder="Select class"
-              value={selectedClassId}
-              handleChange={handleClassChange}
-              list={classOptions}
-              isSearchable
-              maxOuputInDropdownList={8}
-            />
-            <DropDownComponent
+            <Combobox label={t("class")} placeholder={t("selectClass")} value={selectedClassId || null} onChange={(value) => handleClassChange(value ?? "")} options={classOptions} />
+            <Combobox
+              label={t("subject")}
               placeholder={step2SubjectPlaceholder}
-              value={selectedClassSubjectId}
-              handleChange={(value) => {
-                setSelectedClassSubjectId(value);
+              value={selectedClassSubjectId || null}
+              onChange={(value) => {
+                setSelectedClassSubjectId(value ?? "");
                 setSelectedTeacherId("");
                 setEditingAssignmentId("");
               }}
-              list={attachedSubjectOptions}
-              isSearchable
+              options={attachedSubjectOptions}
               disabled={!selectedClassId || classSubjects.length === 0}
-              maxOuputInDropdownList={8}
             />
-            <DropDownComponent
-              placeholder={!selectedClassSubjectId ? "Select organization subject first" : "Select teacher"}
-              value={selectedTeacherId}
-              handleChange={setSelectedTeacherId}
-              list={selectedClassSubjectId ? teacherOptions : []}
-              isSearchable
+            <Combobox
+              label={t("teacher")}
+              placeholder={!selectedClassSubjectId ? t("subjectFirst") : t("selectTeacher")}
+              value={selectedTeacherId || null}
+              onChange={(value) => setSelectedTeacherId(value ?? "")}
+              options={selectedClassSubjectId ? teacherOptions : []}
               disabled={!selectedClassSubjectId}
-              maxOuputInDropdownList={8}
             />
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void handleAssignTeacher()}
-              className={`h-[44px] whitespace-nowrap rounded-input px-4 text-sm font-medium text-ink-inverse ${saving ? "bg-ink-muted" : "bg-primary"}`}
-            >
-              {editingAssignmentId ? "Replace Teacher" : "Assign Teacher"}
-            </button>
+            <Button loading={saving} onClick={() => void handleAssignTeacher()}>
+              {editingAssignmentId ? t("replace") : t("assign")}
+            </Button>
           </div>
-        </div>
-
-        <div className="flex flex-col gap-3 rounded-card bg-surface p-3">
-          <p className="text-body font-semibold text-ink">3. Current Assignments</p>
-          <div className="grid gap-3 md:grid-cols-3">
-            <DropDownComponent
-              placeholder="All classes"
-              value={tableClassFilter}
-              handleChange={setTableClassFilter}
-              list={[{ label: "All classes", value: "all" }, ...classOptions]}
-              isSearchable
-              maxOuputInDropdownList={8}
-            />
-            <DropDownComponent
-              placeholder="All organization subjects"
-              value={tableSubjectFilter}
-              handleChange={setTableSubjectFilter}
-              list={[{ label: "All organization subjects", value: "all" }, ...tableSubjectOptions]}
-              isSearchable
-              maxOuputInDropdownList={8}
-            />
-            <DropDownComponent
-              placeholder="All teachers"
-              value={tableTeacherFilter}
-              handleChange={setTableTeacherFilter}
-              list={[{ label: "All teachers", value: "all" }, ...tableTeacherOptions]}
-              isSearchable
-              maxOuputInDropdownList={8}
-            />
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-canvas text-left text-ink">
-                <tr>
-                  <th className="p-3">Class</th>
-                  <th className="p-3">Organization Subject</th>
-                  <th className="p-3">Teacher</th>
-                  <th className="p-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={4} className="p-6 text-center text-ink-muted">
-                      Loading assignments...
-                    </td>
-                  </tr>
-                ) : filteredAssignmentRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="p-6 text-center text-ink-muted">
-                      No class–organization subject rows yet. Complete Step 1.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredAssignmentRows.map((row) => (
-                    <tr key={row.assignmentId} className="border-t border-border">
-                      <td className="p-3 text-ink">{row.className}</td>
-                      <td className="p-3 text-ink">{row.subject}</td>
-                      <td className="p-3 text-ink">{row.teacherName}</td>
-                      <td className="p-3">
-                        {row.unassigned ? (
-                          <span className="text-ink-muted">Assign a teacher in Step 2</span>
-                        ) : (
-                          <div className="flex items-center gap-3">
-                            <button
-                              type="button"
-                              disabled={saving}
-                              onClick={() => handleEditAssignment(row)}
-                              className="font-medium text-primary"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              disabled={saving}
-                              onClick={() => void handleUnassign(row.classId, row.classSubjectId, row.assignmentId)}
-                              className="font-medium text-danger"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        </Card>
       </div>
+
+      <Card title={t("step3")} flush>
+        <div className="grid gap-3 p-4 md:grid-cols-3">
+          <Combobox
+            label={t("filterClass")}
+            value={tableClassFilter}
+            onChange={(value) => setTableClassFilter(value ?? "all")}
+            options={[{ label: t("allClasses"), value: "all" }, ...classOptions]}
+          />
+          <Combobox
+            label={t("filterSubject")}
+            value={tableSubjectFilter}
+            onChange={(value) => setTableSubjectFilter(value ?? "all")}
+            options={[{ label: t("allSubjects"), value: "all" }, ...tableSubjectOptions]}
+          />
+          <Combobox
+            label={t("filterTeacher")}
+            value={tableTeacherFilter}
+            onChange={(value) => setTableTeacherFilter(value ?? "all")}
+            options={[{ label: t("allTeachers"), value: "all" }, ...tableTeacherOptions]}
+          />
+        </div>
+        {loading ? (
+          <div className="p-4" aria-busy="true">
+            <Skeleton lines={5} />
+          </div>
+        ) : (
+          <Table
+            caption={t("step3")}
+            columns={columns}
+            rows={filteredAssignmentRows}
+            getRowId={(row) => row.assignmentId}
+            empty={<EmptyState title={t("empty")} />}
+          />
+        )}
+      </Card>
+
+      <ConfirmDialog
+        open={Boolean(pendingRemoval)}
+        tone="danger"
+        title={
+          pendingRemoval?.kind === "teacher"
+            ? t("unassignTitle", { teacher: pendingRemoval.teacher, subject: pendingRemoval.subject })
+            : t("removeSubjectTitle", { subject: pendingRemoval?.subject ?? "", className: pendingRemoval?.className ?? "" })
+        }
+        description={
+          pendingRemoval?.kind === "teacher" ? t("unassignDetail", { className: pendingRemoval.className }) : t("removeSubjectDetail")
+        }
+        confirmLabel={t("remove")}
+        loading={saving}
+        onCancel={() => setPendingRemoval(null)}
+        onConfirm={confirmRemoval}
+      />
     </div>
   );
 };
 
 const OrganizationAssignments = () => (
-  <OrganizationWorkspaceGate title="Teacher assignments" allowedRoles={["OWNER", "ADMIN", "ASSISTANT"]}>
+  <OrganizationWorkspaceGate allowedRoles={["OWNER", "ADMIN", "ASSISTANT"]}>
     <OrganizationAssignmentsContent />
   </OrganizationWorkspaceGate>
 );

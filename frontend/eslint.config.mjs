@@ -38,6 +38,8 @@ const eslintConfig = defineConfig([
       "app/login/**/*.{ts,tsx}",
       "app/signup/**/*.{ts,tsx}",
       "app/forgot-password/**/*.{ts,tsx}",
+      "component/Organization/**/*.{ts,tsx}",
+      "app/organization/**/*.{ts,tsx}",
     ],
     ignores: [
       "**/*.test.{ts,tsx}",

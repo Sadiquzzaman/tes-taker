@@ -1,86 +1,57 @@
 "use client";
 
-import Link from "next/link";
+import NextLink from "next/link";
+import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
+import { buttonClasses, Card, EmptyState, Skeleton } from "@/design/ui";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 
+const GateMessage = ({ title, description, href, label }: { title: string; description: string; href: string; label: string }) => (
+  <Card>
+    <EmptyState
+      title={title}
+      description={description}
+      action={
+        <NextLink href={href} className={buttonClasses({ variant: "secondary" })}>
+          {label}
+        </NextLink>
+      }
+    />
+  </Card>
+);
+
+/** Shows organisation pages only inside an approved organisation workspace, to the roles allowed. */
 const OrganizationWorkspaceGate = ({
   children,
-  title = "Organization workspace required",
-  description,
   allowPending = false,
   allowedRoles,
 }: {
-  children: React.ReactNode;
-  title?: string;
-  description?: string;
+  children: ReactNode;
   /** When true, pending org sessions can view the children (e.g. review screen). */
   allowPending?: boolean;
   allowedRoles?: OrganizationMemberRole[];
 }) => {
+  const t = useTranslations("organization.gate");
   const { loading, organizationId, activeOrganization, sessionMode } = useWorkspace();
 
   if (loading) {
     return (
-      <div className="rounded-input bg-surface p-6">
-        <p className="text-body-sm text-ink-muted">Loading workspace...</p>
-      </div>
+      <Card aria-busy="true">
+        <Skeleton lines={3} />
+      </Card>
     );
   }
 
   if (sessionMode !== "organization" || !organizationId || !activeOrganization) {
-    return (
-      <div className="rounded-input bg-surface p-6">
-        <p className="text-title font-medium text-ink">
-          {title}
-        </p>
-        <p className="mt-2 text-body-sm text-ink-muted">
-          {description ||
-            "Select an organization from the workspace switcher, or use organization login."}
-        </p>
-        <Link
-          href="/dashboard"
-          className="mt-4 inline-block text-body-sm font-medium text-primary underline"
-        >
-          Choose workspace
-        </Link>
-      </div>
-    );
+    return <GateMessage title={t("noWorkspaceTitle")} description={t("noWorkspace")} href="/dashboard" label={t("chooseWorkspace")} />;
   }
 
   if (!allowPending && activeOrganization.status === "pending") {
-    return (
-      <div className="rounded-input bg-surface p-6">
-        <p className="text-title-sm font-medium text-ink">
-          Your organization registration is under review
-        </p>
-        <p className="mt-2 text-body-sm text-ink-muted">
-          Organization features are locked until Super Admin approval.
-        </p>
-        <Link
-          href="/organization/pending"
-          className="mt-4 inline-block text-body-sm font-medium text-primary underline"
-        >
-          View status
-        </Link>
-      </div>
-    );
+    return <GateMessage title={t("pendingTitle")} description={t("pending")} href="/organization/pending" label={t("viewStatus")} />;
   }
 
   if (allowedRoles && !allowedRoles.includes(activeOrganization.role)) {
-    return (
-      <div className="rounded-input bg-surface p-6">
-        <p className="text-title-sm font-medium text-ink">You do not have access</p>
-        <p className="mt-2 text-body-sm text-ink-muted">
-          This page is not available for your role in this organization.
-        </p>
-        <Link
-          href="/organization/classes"
-          className="mt-4 inline-block text-body-sm font-medium text-primary underline"
-        >
-          Go to classes
-        </Link>
-      </div>
-    );
+    return <GateMessage title={t("noAccessTitle")} description={t("noAccess")} href="/organization/classes" label={t("goToClasses")} />;
   }
 
   return <>{children}</>;
