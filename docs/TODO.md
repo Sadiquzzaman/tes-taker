@@ -15,7 +15,6 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Translate the remaining screens (teacher, organisation and admin dashboards, classes, tests, grading, billing, account, landing) — P1-04 covered the shell, sign-in/sign-up and the student exam; do the rest as each screen is rebuilt in P1-05/P1-06.
 - Delete the unused `ObjectiveQuestionSectionCard` and `EssayQuestionSectionCard` (frontend/component/Tests/exam) — nothing imports them, so they were not translated; needs owner approval to delete.
 - Proctoring flag details sent to the teacher's live log stay in English — the student now sees translated text by flag type; translate the teacher view with the teacher screens.
-- Fix Bangla digits in P1-04 messages that use a plain `{count}` (exam total marks, points, word count, recording time, flag counts, the rules' flag limit) — next-intl only localises `{count, number}` and plural `#`; found in P1-02/03, fix in its own PR.
 - Hide sidebar items by feature switch — AppShell shows items by role only; needs the P2-02 entitlements.
 - Notification bell contents — the top-bar bell is decorative until the P2-08 inbox exists.
 - Remove MUI (`@mui/material`, `@mui/x-date-pickers`) once P1-05 moves `PublishSchedule` to the new DatePicker/TimePicker.
