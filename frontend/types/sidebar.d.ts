@@ -1,6 +1,7 @@
 interface SideBarList {
   category: "Platform" | "System" | "Admin" | "Organization";
-  label: string;
+  /** Message key under `nav` (messages/en.json), e.g. "teacherRequests". */
+  label: Exclude<keyof (typeof import("@/messages/en.json"))["nav"], "category">;
   route: string;
   role: RoleUserType[];
   memberRoles?: OrganizationMemberRole[];

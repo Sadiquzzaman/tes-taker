@@ -1,12 +1,14 @@
 import sidebarList from "@/utils/sidebarList";
+import { getTranslations } from "next-intl/server";
 import React from "react";
 import HeaderProfile from "./HeaderProfile";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 import { toggleSidebar } from "@/app/api/actions/toggleSidebar";
 import BellIconSVG from "../svg/BellIconSVG";
-import GlobeIconSVG from "../svg/GlobeIconSVG";
+import LanguageSwitcher from "../Layout/LanguageSwitcher";
 
 const Header = async ({ activeRoute, subText = "" }: { activeRoute: string; subText?: string }) => {
+  const t = await getTranslations();
   const matched =
     sidebarList.find((item) => item.route === activeRoute) ||
     sidebarList.find((item) => activeRoute.startsWith(item.route) && item.route !== "/");
@@ -21,13 +23,13 @@ const Header = async ({ activeRoute, subText = "" }: { activeRoute: string; subT
               <span
                 className={`${subText ? "font-[400] text-[#747775]" : "font-[500] text-[#232A25]"} text-[16px] leading-[20px]`}
               >
-                {matched.label}
+                {t(`nav.${matched.label}`)}
               </span>
               {subText && <span className="font-[500] text-[16px] text-[#232A25] leading-[20px]">/ {subText}</span>}
             </React.Fragment>
           ) : (
             <span className="font-[500] text-[16px] text-[#232A25] leading-[20px]">
-              {subText || "Organization"}
+              {subText || t("shell.organization")}
             </span>
           )}
         </button>
@@ -38,9 +40,7 @@ const Header = async ({ activeRoute, subText = "" }: { activeRoute: string; subT
         <span className="text-[#232A25]">
           <BellIconSVG width={16} />
         </span>
-        <span className="text-[#232A25]">
-          <GlobeIconSVG width={16} />
-        </span>
+        <LanguageSwitcher />
         <HeaderProfile />
       </div>
     </header>
