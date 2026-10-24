@@ -1,6 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
+import { Card, EmptyState, FilterBar, PageHeader, Skeleton, StatTile, StatusPill, Table, type TableColumn } from "@/design/ui";
+import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
 
 type PaymentRow = {
@@ -14,19 +17,18 @@ type PaymentRow = {
   plan?: { name?: string };
 };
 
-const formatDate = (value?: string) => {
-  if (!value) return "—";
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+const TONE: Record<string, "success" | "warning" | "danger" | "neutral"> = {
+  COMPLETED: "success",
+  PENDING: "warning",
+  FAILED: "danger",
+  REFUNDED: "neutral",
 };
 
-const statusStyle = (status: string) => {
-  if (status === "COMPLETED") return "bg-primary-soft text-primary";
-  if (status === "PENDING") return "bg-warning-soft text-warning";
-  return "bg-danger-soft text-danger";
-};
-
+/** The latest payments, with the total collected from completed ones. */
 const AdminPaymentsTable = () => {
+  const t = useTranslations("admin.payments");
+  const tCommon = useTranslations("admin.common");
+  const format = useFormat();
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,88 +43,48 @@ const AdminPaymentsTable = () => {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return payments;
-    return payments.filter((p) => (p.teacher?.full_name ?? "").toLowerCase().includes(q));
+    return q ? payments.filter((p) => (p.teacher?.full_name ?? "").toLowerCase().includes(q)) : payments;
   }, [payments, search]);
 
-  const totalPaid = useMemo(
-    () => filtered.filter((p) => p.status === "COMPLETED").reduce((sum, p) => sum + Number(p.amount), 0),
-    [filtered],
-  );
+  const totalPaid = filtered.filter((p) => p.status === "COMPLETED").reduce((sum, p) => sum + Number(p.amount), 0);
+  const statusLabel = (status: string) => (status in TONE ? t(`statuses.${status as "PENDING"}`) : status);
+
+  const columns: TableColumn<PaymentRow>[] = [
+    {
+      key: "teacher",
+      header: t("teacher"),
+      cell: (row) => (
+        <span className="flex flex-col">
+          <span className="text-ink">{row.teacher?.full_name ?? "—"}</span>
+          {row.teacher?.email ? <span className="text-caption text-ink-muted">{row.teacher.email}</span> : null}
+        </span>
+      ),
+      sortValue: (row) => row.teacher?.full_name,
+    },
+    { key: "plan", header: t("plan"), cell: (row) => row.plan?.name ?? "—", hideOnMobile: true },
+    { key: "amount", header: t("amount"), cell: (row) => `৳${format.number(Number(row.amount))}`, sortValue: (row) => Number(row.amount), align: "right" },
+    { key: "status", header: tCommon("status"), cell: (row) => <StatusPill tone={TONE[row.status] ?? "neutral"}>{statusLabel(row.status)}</StatusPill> },
+    { key: "transaction", header: t("transaction"), cell: (row) => <span className="font-mono text-caption">{row.transaction_id ?? "—"}</span>, hideOnMobile: true },
+    { key: "date", header: t("date"), cell: (row) => format.date(row.created_at), sortValue: (row) => new Date(row.created_at) },
+  ];
 
   return (
-    <>
-      <div className="flex justify-between items-center w-full min-h-[40px] mb-2 sm:mb-4">
-        <div className="text-title-sm md:text-display tracking-tight flex items-center gap-0 flex-wrap mr-4">
-          <p className="font-medium text-ink">Payment</p>
-          <p className="font-normal text-primary italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
-            Details
-          </p>
-        </div>
+    <div className="flex flex-col gap-6 pb-8">
+      <PageHeader title={t("title")} description={t("intro")} />
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_16rem] sm:items-end">
+        <FilterBar search={search} onSearchChange={setSearch} searchPlaceholder={t("search")} />
+        <StatTile label={`${t("collected")} · ${t("collectedHint")}`} value={`৳${format.number(totalPaid)}`} />
       </div>
-
-      <div className="bg-canvas rounded-card p-2 sm:p-4 min-h-[calc(100vh-162px)] flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search teacher by name..."
-            className="border border-border bg-surface rounded-input px-3 py-2 text-sm max-w-sm w-full focus:outline-none focus:border-primary"
-          />
-          <p className="text-sm text-ink-muted">
-            Collected (completed): <strong className="text-primary">৳{totalPaid.toLocaleString()}</strong>
-          </p>
-        </div>
-
-        <div className="bg-surface rounded-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas text-left text-ink">
-              <tr>
-                <th className="p-3">Teacher</th>
-                <th className="p-3">Plan</th>
-                <th className="p-3">Amount</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Transaction</th>
-                <th className="p-3">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="p-6 text-center text-ink-muted">
-                    Loading...
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-6 text-center text-ink-muted">
-                    No payments found
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((payment) => (
-                  <tr key={payment.id} className="border-t border-border">
-                    <td className="p-3">
-                      <p className="text-ink">{payment.teacher?.full_name ?? "—"}</p>
-                      <p className="text-xs text-ink-muted">{payment.teacher?.email ?? ""}</p>
-                    </td>
-                    <td className="p-3 text-primary">{payment.plan?.name ?? "—"}</td>
-                    <td className="p-3">৳{Number(payment.amount).toLocaleString()}</td>
-                    <td className="p-3">
-                      <span className={`text-caption px-2 py-0.5 rounded-full ${statusStyle(payment.status)}`}>
-                        {payment.status}
-                      </span>
-                    </td>
-                    <td className="p-3 font-mono text-xs">{payment.transaction_id ?? "—"}</td>
-                    <td className="p-3">{formatDate(payment.created_at)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </>
+      <Card flush>
+        {loading ? (
+          <div className="p-4" aria-busy="true">
+            <Skeleton lines={6} />
+          </div>
+        ) : (
+          <Table caption={t("title")} columns={columns} rows={filtered} getRowId={(row) => row.id} empty={<EmptyState title={t("empty")} />} />
+        )}
+      </Card>
+    </div>
   );
 };
 

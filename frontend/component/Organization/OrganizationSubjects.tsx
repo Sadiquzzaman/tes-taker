@@ -4,7 +4,7 @@ import { AxiosError } from "axios";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
-import { Button, Card, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Skeleton, Table, type TableColumn } from "@/design/ui";
+import { Button, Card, ConfirmDialog, Drawer, EmptyState, Input, PageHeader, Skeleton, Table, type TableColumn } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 import axiosReq from "@/lib/axios";
@@ -128,7 +128,7 @@ const OrganizationSubjectsContent = () => {
         )}
       </Card>
 
-      <Modal
+      <Drawer
         open={Boolean(draft)}
         onClose={() => setDraft(null)}
         title={draft?.id ? t("editTitle") : t("create")}
@@ -168,7 +168,7 @@ const OrganizationSubjectsContent = () => {
             onChange={(event) => setDraft((current) => (current ? { ...current, code: event.target.value } : current))}
           />
         </form>
-      </Modal>
+      </Drawer>
 
       <ConfirmDialog
         open={Boolean(deleting)}
