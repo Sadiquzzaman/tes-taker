@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import useWorkspace from "@/hooks/organization/useWorkspace";
+import { Badge, ChevronDownIcon, cn, focusRing } from "@/design/ui";
 
 const WorkspaceSwitcher = () => {
   const router = useRouter();
@@ -63,8 +64,8 @@ const WorkspaceSwitcher = () => {
 
   if (contexts.length === 1) {
     return (
-      <div className="max-w-[240px] rounded-[8px] border border-[#E5E5E5] px-3 py-1.5">
-        <span className="block min-w-0 truncate text-[13px] font-[500] text-[#232A25]">{label}</span>
+      <div className="hidden max-w-60 rounded-input border border-border px-3 py-1.5 sm:block">
+        <span className="block min-w-0 truncate text-body-sm font-medium text-ink">{label}</span>
       </div>
     );
   }
@@ -74,22 +75,24 @@ const WorkspaceSwitcher = () => {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex max-w-[240px] items-center gap-2 rounded-[8px] border border-[#E5E5E5] px-3 py-1.5 text-left hover:border-[#49734F]"
-        aria-haspopup="listbox"
+        className={cn(
+          "flex max-w-36 items-center gap-2 rounded-input border border-border px-3 py-1.5 text-left hover:border-primary sm:max-w-60",
+          focusRing,
+        )}
         aria-expanded={open}
       >
-        <span className="min-w-0 truncate text-[13px] font-[500] text-[#232A25]">{label}</span>
-        <span className="text-[10px] text-[#747775]">{open ? "▲" : "▼"}</span>
+        <span className="min-w-0 truncate text-body-sm font-medium text-ink">{label}</span>
+        <ChevronDownIcon className={cn("text-ink-muted transition-transform", open && "rotate-180")} />
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-[280px] max-h-[70vh] overflow-y-auto rounded-[8px] border border-[#E5E5E5] bg-white p-2 shadow-sm">
-          <p className="px-2 pb-2 text-[12px] font-[500] uppercase tracking-[0.02em] text-[#747775]">
+        <div className="absolute right-0 z-40 mt-2 max-h-[70vh] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-card border border-border bg-surface p-2 shadow-overlay">
+          <p className="px-2 pb-2 text-caption font-medium uppercase tracking-wide text-ink-muted">
             {t("shell.workspace.title")}
           </p>
 
           {loading ? (
-            <p className="px-3 py-2 text-[13px] text-[#747775]">{t("common.loading")}</p>
+            <p className="px-3 py-2 text-body-sm text-ink-muted">{t("common.loading")}</p>
           ) : (
             contexts.map((context) => {
               const isActive = activeContext?.key === context.key;
@@ -100,21 +103,18 @@ const WorkspaceSwitcher = () => {
                   key={context.key}
                   type="button"
                   onClick={() => void onSelect(context)}
-                  className={`mb-1 flex w-full flex-col rounded-[8px] px-3 py-2 text-left ${
-                    isActive
-                      ? "bg-[#EAF2EB] text-[#49734F]"
-                      : "text-[#232A25] hover:bg-[#F7F7F7]"
-                  }`}
+                  aria-current={isActive || undefined}
+                  className={cn(
+                    "mb-1 flex w-full flex-col rounded-input px-3 py-2 text-left",
+                    isActive ? "bg-primary-soft text-primary" : "text-ink hover:bg-canvas",
+                    focusRing,
+                  )}
                 >
                   <span className="flex items-center justify-between gap-2">
-                    <span className="truncate text-[14px] font-[500]">{context.label}</span>
-                    {pending && (
-                      <span className="shrink-0 rounded-full bg-[#FFF4E5] px-2 py-0.5 text-[11px] font-[500] text-[#B54708]">
-                        {t("shell.workspace.review")}
-                      </span>
-                    )}
+                    <span className="truncate text-body-sm font-medium">{context.label}</span>
+                    {pending && <Badge tone="warning">{t("shell.workspace.review")}</Badge>}
                   </span>
-                  <span className="text-[12px] text-[#747775]">{context.role_label}</span>
+                  <span className="text-caption text-ink-muted">{context.role_label}</span>
                 </button>
               );
             })

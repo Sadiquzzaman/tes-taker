@@ -1,24 +1,18 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import Image from "next/image";
+import { Avatar } from "@/design/ui";
 import { useHeaderProfile } from "@/hooks/Dashboard/useHeaderProfile";
 
+/** The signed-in user's name and initials in the top bar. */
 const HeaderProfile = () => {
-  const { open, setOpen, user, dropdownRef } = useHeaderProfile();
-  const t = useTranslations("shell");
+  const { user } = useHeaderProfile();
+  const name = user?.full_name || "";
 
   return (
-    <div ref={dropdownRef} className="relative inline-block text-left">
-      <div className="flex items-center gap-3 cursor-pointer" onClick={() => setOpen(!open)}>
-        <span className="hidden sm:block font-medium text-[#232A25] text-[16px] leading-[20px]">
-          {user?.full_name || ""}
-        </span>
-        <span className="w-8 h-8 rounded-full bg-gray-300 relative">
-          <Image src="/assets/image/user.png" alt={t("userAvatar")} fill className="object-cover rounded-full" />
-        </span>
-      </div>
-    </div>
+    <span className="flex items-center gap-3">
+      <span className="hidden max-w-40 truncate text-body-sm font-medium text-ink sm:block">{name}</span>
+      <Avatar name={name || "?"} />
+    </span>
   );
 };
 

@@ -1,45 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { Badge, ChevronRightIcon, cn, EmptyState, focusRing, Skeleton, Spinner } from "@/design/ui";
 import useWorkspace from "@/hooks/organization/useWorkspace";
-import RightArrowIconSVG from "@/component/svg/RightArrowIconSVG";
 
-const isStudentContext = (context: UserContextItem) => {
-  if (context.type === "individual_teacher") {
-    return true;
-  }
-  if (context.type === "organization" && context.member_role === "STUDENT") {
-    return true;
-  }
-  return false;
-};
+const isStudentContext = (context: UserContextItem) =>
+  context.type === "individual_teacher" || (context.type === "organization" && context.member_role === "STUDENT");
 
-const contextSubtitle = (context: UserContextItem) => {
-  if (context.type === "organization") {
-    const idPart =
-      context.organization_public_id || context.organization_number
-        ? `ID ${context.organization_public_id || context.organization_number}`
-        : null;
-    const status =
-      context.organization_status === "pending"
-        ? "Pending approval"
-        : context.organization_status === "approved"
-          ? "Organization"
-          : context.organization_status || "Organization";
-    return [idPart, status].filter(Boolean).join(" · ");
-  }
-  if (context.type === "individual_teacher") {
-    return "Teacher / coaching classes";
-  }
-  return context.role_label;
-};
-
+/** The student home: the organisations and teachers they study with. Opening one switches workspace. */
 const StudentWorkspaceCards = () => {
+  const t = useTranslations("dashboard.student");
   const router = useRouter();
-  const { contexts, selectContext, loading, workspace } = useWorkspace({
-    loadOrganizations: true,
-  });
+  const { contexts, selectContext, loading, workspace } = useWorkspace({ loadOrganizations: true });
   const [selectingKey, setSelectingKey] = useState<string | null>(null);
 
   const studentContexts = useMemo(
@@ -47,17 +21,25 @@ const StudentWorkspaceCards = () => {
     [contexts],
   );
 
-  const isActive = (context: UserContextItem) => {
-    if (context.type === "organization" && workspace.type === "organization") {
-      return workspace.id === context.organization_id;
+  const subtitle = (context: UserContextItem) => {
+    if (context.type === "individual_teacher") {
+      return t("teacher");
     }
-    if (context.type === "individual_teacher" && workspace.type === "individual_teacher") {
-      return workspace.teacherId === context.teacher_id;
+    if (context.type === "organization") {
+      const id = context.organization_public_id || context.organization_number;
+      const status = context.organization_status === "pending" ? t("pendingApproval") : t("organization");
+      return [id ? t("orgId", { id }) : null, status].filter(Boolean).join(" · ");
     }
-    return false;
+    return context.role_label;
   };
 
-  const onOpenWorkspace = async (context: UserContextItem) => {
+  const isActive = (context: UserContextItem) =>
+    (context.type === "organization" && workspace.type === "organization" && workspace.id === context.organization_id) ||
+    (context.type === "individual_teacher" &&
+      workspace.type === "individual_teacher" &&
+      workspace.teacherId === context.teacher_id);
+
+  const open = async (context: UserContextItem) => {
     if (selectingKey) return;
     setSelectingKey(context.key);
     try {
@@ -67,98 +49,78 @@ const StudentWorkspaceCards = () => {
       }
       router.refresh();
     } catch {
-      // Errors surfaced by axios interceptors / toasts.
+      // Errors are shown by the axios interceptors / toasts.
     } finally {
       setSelectingKey(null);
     }
   };
 
-  return (
-    <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 min-h-[calc(100vh-162px)]">
-      <div className="mb-4 px-1 sm:px-2">
-        <p className="font-[500] text-[16px] sm:text-[18px] text-[#232A25] tracking-[-0.02em]">
-          Your workspaces
-        </p>
-        <p className="mt-1 text-[13px] sm:text-[14px] text-[#747775] tracking-[-0.02em]">
-          Choose an organization or teacher to view classes and tests.
-        </p>
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+        {[0, 1, 2].map((item) => (
+          <div key={item} className="rounded-card border border-border bg-surface p-5">
+            <Skeleton lines={3} />
+          </div>
+        ))}
       </div>
+    );
+  }
 
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {[0, 1, 2].map((item) => (
-            <div
-              key={item}
-              className="h-[140px] rounded-[12px] bg-white border border-[#E5E5E5] animate-pulse"
-            />
-          ))}
-        </div>
-      ) : studentContexts.length === 0 ? (
-        <div className="bg-white rounded-[12px] p-6 border border-[#E5E5E5]">
-          <p className="font-[500] text-[16px] text-[#232A25]">No workspaces yet</p>
-          <p className="mt-2 text-[14px] text-[#747775] leading-[20px]">
-            Join a class with an invite link from your teacher or organization. Once you belong to a
-            class, it will appear here.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {studentContexts.map((context) => {
-            const active = isActive(context);
-            const pending = context.organization_status === "pending";
-            const busy = selectingKey === context.key;
+  if (studentContexts.length === 0) {
+    return (
+      <div className="rounded-card border border-border bg-surface">
+        <EmptyState title={t("empty")} description={t("emptyDetail")} />
+      </div>
+    );
+  }
 
-            return (
-              <button
-                key={context.key}
-                type="button"
-                disabled={Boolean(selectingKey) || pending}
-                onClick={() => void onOpenWorkspace(context)}
-                className={`text-left rounded-[12px] bg-white border p-4 sm:p-5 transition-colors disabled:opacity-70 ${
-                  active
-                    ? "border-[#49734F] bg-[#EAF2EB]"
-                    : "border-[#E5E5E5] hover:border-[#49734F]"
-                }`}
+  return (
+    <section aria-label={t("title")} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {studentContexts.map((context) => {
+        const active = isActive(context);
+        const pending = context.organization_status === "pending";
+        const busy = selectingKey === context.key;
+
+        return (
+          <button
+            key={context.key}
+            type="button"
+            disabled={Boolean(selectingKey) || pending}
+            aria-current={active || undefined}
+            onClick={() => void open(context)}
+            className={cn(
+              "flex flex-col gap-4 rounded-card border bg-surface p-5 text-left shadow-card transition-colors duration-(--motion-fast)",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+              active ? "border-primary bg-primary-soft" : "border-border hover:border-primary",
+              focusRing,
+            )}
+          >
+            <span className="flex items-start justify-between gap-3">
+              <span className="flex min-w-0 flex-col gap-1">
+                <span className="truncate text-title-sm font-semibold text-ink">{context.label}</span>
+                <span className="text-body-sm text-ink-muted">{subtitle(context)}</span>
+              </span>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "flex size-8 shrink-0 items-center justify-center rounded-full",
+                  active ? "bg-primary text-ink-inverse" : "bg-canvas text-primary",
+                )}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p
-                      className="font-[500] text-[18px] sm:text-[20px] text-[#232A25] tracking-[-0.04em] truncate"
-                      style={
-                        context.type === "organization"
-                          ? undefined
-                          : { fontFamily: "DM Serif Display", fontStyle: "italic", fontWeight: 400 }
-                      }
-                    >
-                      {context.label}
-                    </p>
-                    <p className="mt-2 text-[13px] text-[#747775] tracking-[-0.02em]">
-                      {contextSubtitle(context)}
-                    </p>
-                  </div>
-                  <span
-                    className={`mt-1 shrink-0 flex items-center justify-center w-8 h-8 rounded-full ${
-                      active ? "bg-[#49734F] text-white" : "bg-[#EFF0F3] text-[#49734F]"
-                    }`}
-                  >
-                    <RightArrowIconSVG className="size-4" />
-                  </span>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center rounded-[8px] bg-[#EFF0F3] px-2.5 py-1 text-[12px] font-[500] text-[#232A25]">
-                    {pending ? "Pending" : "Student"}
-                  </span>
-                  <span className="text-[13px] font-[500] text-[#49734F]">
-                    {busy ? "Opening..." : pending ? "Unavailable" : active ? "Continue" : "Open"}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+                {busy ? <Spinner /> : <ChevronRightIcon />}
+              </span>
+            </span>
+            <span className="flex items-center justify-between gap-2">
+              <Badge tone={pending ? "warning" : "primary"}>{pending ? t("pending") : t("student")}</Badge>
+              <span className="text-body-sm font-medium text-primary">
+                {busy ? t("opening") : pending ? t("unavailable") : active ? t("continue") : t("open")}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </section>
   );
 };
 
