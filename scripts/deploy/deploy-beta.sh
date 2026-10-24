@@ -13,6 +13,8 @@ main() {
   APP_DIR=/opt/instructor/apps/tasktaker
   BRANCH=develop
   COMPOSE="docker compose --env-file .env.production -f docker-compose.prod.yml"
+  # Beta shows the component gallery at /dev/ui (signed-in users only); production leaves it off.
+  export DEV_UI=true
 
   cd "$APP_DIR"
   echo "==> $(date -u +%FT%TZ) deploying $BRANCH in $APP_DIR"
