@@ -1,3 +1,4 @@
+import LanguageSwitcher from "../Layout/LanguageSwitcher";
 import WelcomeBack from "./WelcomeBack";
 import InstructorLogoMarkSVG from "../svg/InstructorLogoMarkSVG";
 
@@ -6,7 +7,8 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="flex w-full h-[100vh] bg-white overflow-hidden">
         <WelcomeBack />
-        <div className="w-full md:w-1/2 h-[100vh] overflow-auto">
+        <div className="relative w-full md:w-1/2 h-[100vh] overflow-auto">
+          <LanguageSwitcher className="absolute right-4 top-4" />
           <div className="flex flex-col min-h-full justify-center">
             <div className="w-full lg:w-4/5 xl:w-3/5 p-12 flex flex-col justify-center align-items-center mx-auto">
               <div className="flex items-center justify-center mb-12">

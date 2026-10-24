@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+// Bangla/English (FND-18): messages and language are set up in i18n/request.ts.
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
   // Emit a self-contained server bundle (.next/standalone) so the production
@@ -12,4 +16,4 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["ketcher-standalone"],
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

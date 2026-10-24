@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AxiosError } from "axios";
 import { useToast } from "@/component/Toast/ToastContext";
@@ -6,6 +7,8 @@ import { validateOrganizationSignUpForm } from "@/utils/auth/validation";
 
 export const useOrganizationSignUpForm = () => {
   const { triggerToast } = useToast();
+  const t = useTranslations("auth.signup");
+  const tv = useTranslations("validation");
   const [view, setView] = useState<"signup" | "otp">("signup");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<OrganizationRegisterInfo>({
@@ -40,7 +43,7 @@ export const useOrganizationSignUpForm = () => {
   };
 
   const handleSignUp = async () => {
-    const errors = validateOrganizationSignUpForm(form);
+    const errors = validateOrganizationSignUpForm(form, tv);
 
     setFormError({
       organization_name: errors.organization_name || "",
@@ -67,22 +70,19 @@ export const useOrganizationSignUpForm = () => {
 
     setLoading(true);
     try {
-      const response = await axiosReq.post(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/auth/register/organization`,
-        requestData,
-      );
+      await axiosReq.post(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/register/organization`, requestData);
       triggerToast({
-        title: "OTP Sent",
-        description: response.data?.payload?.message || response.data?.message || "A verification code has been sent.",
+        title: t("otpSentTitle"),
+        description: t("otpSentDescription"),
         type: "success",
       });
       setView("otp");
     } catch (caught) {
       const error = caught as AxiosError<{ message?: unknown }>;
-      const message = error.response?.data?.message || "Organization signup failed. Please try again.";
+      const message = error.response?.data?.message;
       triggerToast({
-        title: "Sign Up Failed",
-        description: typeof message === "string" ? message : "Organization signup failed. Please try again.",
+        title: t("failedTitle"),
+        description: typeof message === "string" && message ? message : t("organizationFailed"),
         type: "error",
       });
     } finally {

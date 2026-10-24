@@ -52,6 +52,7 @@ const addPenaltyFlag = (state: ProctoringState, payload: AddProctoringFlagPayloa
 
   if (PROCTORING_CONFIG.enableFlagging) {
     state.pendingWarning = {
+      type: payload.type,
       message: payload.message,
       flagCount: state.flags.length,
     };
@@ -157,7 +158,10 @@ export const selectIsExamInteractionBlocked = createSelector(
     proctoringState.isDisqualified || proctoringState.isWarningBlocking || Boolean(proctoringState.activeCountdown),
 );
 
-export const selectProctoringStatusText = (state: RootState) => {
+/** Proctoring status shown to the student (translated under `proctoring.status`). */
+export type ProctoringStatusText = "Disqualified" | "Active" | "Starting" | "Required";
+
+export const selectProctoringStatusText = (state: RootState): ProctoringStatusText => {
   if (state.proctoring.isDisqualified) {
     return "Disqualified";
   }

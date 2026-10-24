@@ -1,10 +1,12 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useHeaderProfile } from "@/hooks/Dashboard/useHeaderProfile";
 
 const HeaderProfile = () => {
   const { open, setOpen, user, dropdownRef } = useHeaderProfile();
+  const t = useTranslations("shell");
 
   return (
     <div ref={dropdownRef} className="relative inline-block text-left">
@@ -13,7 +15,7 @@ const HeaderProfile = () => {
           {user?.full_name || ""}
         </span>
         <span className="w-8 h-8 rounded-full bg-gray-300 relative">
-          <Image src="/assets/image/user.png" alt="User Avatar" fill className="object-cover rounded-full" />
+          <Image src="/assets/image/user.png" alt={t("userAvatar")} fill className="object-cover rounded-full" />
         </span>
       </div>
     </div>

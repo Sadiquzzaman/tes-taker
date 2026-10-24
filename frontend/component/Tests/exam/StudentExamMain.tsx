@@ -4,6 +4,7 @@ import StudentExamSection from "@/component/Tests/exam/StudentExamSection";
 import ExamTimerIconSVG from "@/component/svg/ExamTimerIconSVG";
 import RightArrowIconSVG from "@/component/svg/RightArrowIconSVG";
 import { buildStudentExamViewModel } from "@/utils/tests/studentExamViewModel";
+import { useTranslations } from "next-intl";
 
 interface StudentExamMainProps {
   exam: StudentExamDetails;
@@ -30,6 +31,7 @@ const StudentExamMain = ({
   onCountdownStart,
   onTimeUp,
 }: StudentExamMainProps) => {
+  const t = useTranslations("exam");
   const examView = buildStudentExamViewModel(exam);
   const showSectionTitles = examView.sections.length > 1;
 
@@ -47,14 +49,14 @@ const StudentExamMain = ({
               {exam.test_name}
             </p>
             <p className="mt-3 text-[16px] leading-4 tracking-[-0.02em] text-white/90">
-              <span className="font-[600]">Sub</span>: {examView.summary.subjectSummary}
+              <span className="font-[600]">{t("subject")}</span>: {examView.summary.subjectSummary}
             </p>
           </div>
         </section>
 
         <section className="flex flex-col gap-4 px-1 md:flex-row md:items-center md:justify-between">
           <p className="text-[16px] font-[500] leading-4 tracking-[-0.02em] text-[#232A25]">
-            Total Marks: {examView.summary.totalMarks}
+            {t("totalMarks", { marks: examView.summary.totalMarks })}
           </p>
 
           <div className="flex items-center gap-2 text-[#49734F]">
@@ -96,7 +98,7 @@ const StudentExamMain = ({
             }`}
           >
             <ButtonLoader show={isSubmitLoading} w="w-4" h="h-4" mr="mr-2" />
-            {isSubmitLoading ? "Submitting..." : "Submit Answer"}
+            {isSubmitLoading ? t("submitting") : t("submit")}
             <RightArrowIconSVG className="ml-2 size-4" />
           </button>
         </div>

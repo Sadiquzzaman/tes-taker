@@ -1,5 +1,7 @@
+import { useLocale, useTranslations } from "next-intl";
 import { useVerifyCode } from "@/hooks/auth/useVerifyCode";
-import { maskInputValue, formatTime } from "@/utils/auth/helpers";
+import { formatClock } from "@/i18n/format";
+import { maskInputValue } from "@/utils/auth/helpers";
 import ButtonLoader from "../Loader/ButtonLoadder";
 
 const VerifyCode = ({ value, successTitle, successDescription }: VerifyCodeProps) => {
@@ -15,12 +17,14 @@ const VerifyCode = ({ value, successTitle, successDescription }: VerifyCodeProps
     handleResendCode,
   } = useVerifyCode(value, { successTitle, successDescription });
 
+  const t = useTranslations("auth.otp");
+  const locale = useLocale();
   const isEmail = value.includes("@");
 
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-gray-900">Verify code</h2>
+        <h2 className="text-2xl font-semibold text-gray-900">{t("title")}</h2>
         <div className="flex">
           <div className="w-4 h-1 rotate-0 opacity-100 rounded-[2px] bg-[#E5E5E5] mr-1" />
           <div className="w-4 h-1 rotate-0 opacity-100 rounded-[2px] bg-[#49734F]" />
@@ -53,12 +57,15 @@ const VerifyCode = ({ value, successTitle, successDescription }: VerifyCodeProps
       )}
 
       <label className="text-[#747775] font-normal text-[16px] leading-[125%] tracking-[-0.02em] my-2">
-        We’ve sent a 6-digit code to <span className="font-medium text-[#0F1A12]">{maskInputValue(value)}</span>.
-        {isEmail ? " Don’t forget to check the spam folder." : " Please check your SMS inbox."}
+        {t.rich("sentTo", {
+          target: (chunks) => <span className="font-medium text-[#0F1A12]">{chunks}</span>,
+          value: maskInputValue(value),
+        })}{" "}
+        {isEmail ? t("checkSpam") : t("checkSms")}
       </label>
 
       <label className="text-[#747775] font-normal text-[16px] leading-[125%] tracking-[-0.02em] my-2">
-        Resend available in {formatTime(timeLeft)}{" "}
+        {t("resendIn", { time: formatClock(timeLeft, locale) })}{" "}
         <a
           onClick={timeLeft === 0 ? handleResendCode : undefined}
           style={{ cursor: timeLeft === 0 ? "pointer" : "auto" }}
@@ -66,7 +73,7 @@ const VerifyCode = ({ value, successTitle, successDescription }: VerifyCodeProps
             timeLeft === 0 ? "text-[#232A25] cursor-pointer" : "text-gray-400 cursor-default"
           }`}
         >
-          Resend code
+          {t("resend")}
         </a>
         .
       </label>
@@ -77,7 +84,7 @@ const VerifyCode = ({ value, successTitle, successDescription }: VerifyCodeProps
         disabled={loading}
       >
         <ButtonLoader show={loading} w="w-4" h="h-4" mr="mr-2" />
-        {loading ? "Verifying..." : "Verify & Continue"}
+        {loading ? t("submitting") : t("submit")}
       </button>
     </>
   );

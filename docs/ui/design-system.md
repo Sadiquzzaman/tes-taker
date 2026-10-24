@@ -35,10 +35,19 @@ Dark mode: tokens are named by role (not by colour), so it can be added later wi
 
 - **Edit** `frontend/design/tokens.json`, then run `pnpm tokens` in `frontend/` to regenerate `app/tokens.css`. Never edit `tokens.css` by hand; CI fails if it is out of date (`pnpm tokens:check`, also a frontend test).
 - **Classes** (Tailwind v4): colours `bg-primary`, `bg-primary-soft`, `text-ink`, `text-ink-muted`, `text-ink-inverse`, `bg-canvas`, `bg-surface`, `border-border`, and `text-`/`bg-` for `success`, `warning`, `danger`, `info` (+ `-soft`); type `text-caption` (12), `text-body-sm` (14), `text-body` (16), `text-title-sm` (20), `text-title` (24), `text-display` (32), each with its line height; radius `rounded-input`, `rounded-card`, `rounded-sheet`; elevation `shadow-card`, `shadow-overlay`; motion `ease-fast` / `ease-sheet` with `duration-(--motion-fast)` / `duration-(--motion-sheet)`; fonts `font-sans` (default), `font-bangla`, `font-display` (marketing headings only). Spacing uses Tailwind's default 4 px scale (`p-1` = 4, `p-2` = 8, … `p-12` = 48).
-- **Bangla:** `font-sans` falls back to Hind Siliguri for Bangla characters. The 1.7 line height for Bangla (`--leading-bangla`) is applied with the language switch in P1-04.
+- **Bangla:** `font-sans` falls back to Hind Siliguri for Bangla characters. On Bangla pages (`<html lang="bn">`) the body uses `font-bangla` and the 1.7 line height (`--leading-bangla`), see `app/globals.css`.
 - **Contrast:** every text colour is tested against the backgrounds it is used on (WCAG AA, 4.5:1) in `design/tokens.test.ts`; add a pair there when you introduce a new combination.
 - **Motion:** animations and transitions are switched off when the user prefers reduced motion (`app/globals.css`).
 - Existing screens still use hard-coded values; they move onto the tokens in P1-05.
+
+### Bangla and English (built in P1-04, FND-18)
+
+- **Library:** next-intl, without the language in the URL. The language is the `NEXT_LOCALE` cookie (`en` or `bn`); a visitor gets English until they choose. `frontend/i18n/request.ts` reads it for every request.
+- **Text:** every user-facing string lives in `frontend/messages/en.json` and `bn.json` (same keys; `i18n/messages.test.ts` fails if a key, placeholder or tag is missing, or a Bangla message has no Bangla in it). Use `useTranslations("namespace")` in components (`getTranslations` in async server components), ICU for plurals and choices (`{count, plural, …}`, `{reason, select, …}`), and `t.rich` for links or bold text inside a sentence. Keys are type-checked against `en.json` (`i18n/next-intl.d.ts`).
+- **Numbers and dates:** use `i18n/format.ts` (or the `useFormat()` hook): Bangla digits (২০২৬), dates in the organisation time zone (`Asia/Dhaka`), 24-hour time. Numbers passed to `t(...)` are formatted for the language too.
+- **Switching:** `component/Layout/LanguageSwitcher` (dashboard header and the sign-in pages) sets the cookie, refreshes the page and, when signed in, saves the choice with `PATCH /user/me/locale` (`users.locale`). At sign-in the account's saved language replaces the device's (`lib/authSession.ts`).
+- **Not translated:** what users type (questions, names, notes) and messages that come from the API (until it returns error codes, see `docs/TODO.md`).
+- **Tests:** render components with `renderWithIntl(ui, "bn")` from `i18n/test-utils.tsx`.
 
 ### 3.3 Components (build in P1, in this order)
 

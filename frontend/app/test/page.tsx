@@ -35,6 +35,7 @@ import {
 } from "@/utils/tests/examSessionMedia";
 import { createInitialExamAnswerState } from "@/utils/tests/studentExamAnswers";
 import { loadExamAnswersFromStorage, saveExamAnswersToStorage } from "@/utils/tests/examAnswerStorage";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { RotatingLines } from "react-loader-spinner";
@@ -68,6 +69,7 @@ const isMediaStreamActive = (stream: MediaStream | null) =>
 export default function ParticipateTest() {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const t = useTranslations("exam");
 
   const isProctoringReady = useAppSelector(selectIsProctoringReady);
   const isExamInteractionBlocked = useAppSelector(selectIsExamInteractionBlocked);
@@ -364,7 +366,7 @@ export default function ParticipateTest() {
         <main className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-[920px] px-4 py-8">
             <div className="rounded-[8px] border border-[#DDE5DE] bg-[#F8FBF8] p-4 text-[14px] leading-5 text-[#49734F]">
-              Camera and microphone access were lost. Please return to permissions and try again.
+              {t("mediaLost")}
             </div>
             <button
               type="button"
@@ -374,7 +376,7 @@ export default function ParticipateTest() {
               }}
               className="mt-4 h-11 rounded-[10px] bg-[#49734F] px-5 text-[14px] font-[600] leading-4 text-white"
             >
-              Back to Permissions
+              {t("backToPermissions")}
             </button>
           </div>
         </main>
@@ -390,7 +392,7 @@ export default function ParticipateTest() {
         <main className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-[920px] px-4 py-8">
             <div className="rounded-[8px] border border-[#DDE5DE] bg-[#F8FBF8] p-4 text-[14px] leading-5 text-[#49734F]">
-              Webcam and microphone access are required before loading the test.
+              {t("mediaRequired")}
             </div>
           </div>
         </main>
@@ -425,7 +427,7 @@ export default function ParticipateTest() {
         <ExamHeader />
         <div className="flex min-h-[calc(100vh-162px)] items-center justify-center">
           <p className="text-[24px] font-[600] leading-8 tracking-[-0.04em] text-[#232A25]">
-            Unable to start the test.
+            {t("unableToStart")}
           </p>
         </div>
         {proctoringOverlays}
@@ -458,13 +460,13 @@ export default function ParticipateTest() {
       <div>
         <ExamHeader />
         <div className="flex min-h-[calc(100vh-162px)] flex-col items-center justify-center gap-4 px-4">
-          <p className="text-[24px] font-[600] leading-8 tracking-[-0.04em] text-[#232A25]">Unable to load the test.</p>
+          <p className="text-[24px] font-[600] leading-8 tracking-[-0.04em] text-[#232A25]">{t("unableToLoad")}</p>
           <button
             type="button"
             onClick={() => void refetchExam(testId)}
             className="h-11 rounded-[10px] bg-[#49734F] px-5 text-[14px] font-[600] leading-4 text-white"
           >
-            Retry
+            {t("retry")}
           </button>
         </div>
         {proctoringOverlays}
@@ -477,7 +479,7 @@ export default function ParticipateTest() {
       {needsFullscreen ? (
         <div className="pointer-events-none fixed inset-x-0 top-20 z-40 flex justify-center px-4">
           <div className="rounded-[10px] border border-[#FEDF89] bg-[#FFFAEB] px-4 py-3 text-[13px] leading-5 text-[#B54708] shadow-md">
-            Click anywhere on the exam page to return to fullscreen.
+            {t("returnToFullscreen")}
           </div>
         </div>
       ) : null}
@@ -531,18 +533,10 @@ export default function ParticipateTest() {
           />
           <div className="flex flex-col gap-2">
             <p className="text-[24px] font-[600] leading-7 text-[#232A25]">
-              {submitReason === "timeout"
-                ? "Time is up"
-                : submitReason === "disqualified"
-                  ? "Exam ended"
-                  : "Your answer is submitting"}
+              {t("submittingTitle", { reason: submitReason ?? "manual" })}
             </p>
             <p className="text-[14px] leading-5 text-[#747775]">
-              {submitReason === "timeout"
-                ? "Time is up and your answer is submitting. Please wait a moment."
-                : submitReason === "disqualified"
-                  ? "Your session was disqualified and your answers are being submitted."
-                  : "Your answer is submitting. Please wait a moment."}
+              {t("submittingDescription", { reason: submitReason ?? "manual" })}
             </p>
           </div>
         </div>

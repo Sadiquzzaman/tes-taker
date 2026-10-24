@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
@@ -26,6 +27,8 @@ interface ForgotPasswordOtpResponse {
 export const useForgotPasswordForm = () => {
   const router = useRouter();
   const { triggerToast } = useToast();
+  const t = useTranslations("auth.forgot");
+  const tv = useTranslations("validation");
   const { handleError } = useApiError();
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
@@ -82,21 +85,21 @@ export const useForgotPasswordForm = () => {
     if (channel === "sms") {
       return data?.maskedPhone || "";
     }
-    return [data?.maskedPhone, data?.maskedEmail].filter(Boolean).join(" and ");
+    return [data?.maskedPhone, data?.maskedEmail].filter(Boolean).join(` ${t("and")} `);
   };
 
   const channelToastDescription = (channel: "email" | "sms" | null) => {
     if (channel === "email") {
-      return "We've sent a reset code to your email.";
+      return t("codeSentEmail");
     }
     if (channel === "sms") {
-      return "We've sent a reset code to your phone.";
+      return t("codeSentSms");
     }
-    return "We've sent a reset code.";
+    return t("codeSent");
   };
 
   const sendResetOtp = async (isResend = false) => {
-    const error = validateForgotIdentifier(identifier);
+    const error = validateForgotIdentifier(identifier, tv);
     if (error) {
       setIdentifierError(error);
       return;
@@ -123,7 +126,7 @@ export const useForgotPasswordForm = () => {
       startTimer();
 
       triggerToast({
-        title: "Code sent",
+        title: t("codeSentTitle"),
         description: channelToastDescription(channel),
         type: "success",
       });
@@ -199,7 +202,7 @@ export const useForgotPasswordForm = () => {
 
   const handleVerifyOtp = async () => {
     if (otp.some((digit) => digit === "")) {
-      setOtpError("Please enter the complete OTP code");
+      setOtpError(tv("otpIncomplete"));
       return;
     }
 
@@ -212,8 +215,8 @@ export const useForgotPasswordForm = () => {
 
       setView("reset");
       triggerToast({
-        title: "Code verified",
-        description: "Set your new password to continue.",
+        title: t("codeVerifiedTitle"),
+        description: t("codeVerifiedDescription"),
         type: "success",
       });
     } catch (error) {
@@ -224,7 +227,7 @@ export const useForgotPasswordForm = () => {
   };
 
   const handleResetPassword = async () => {
-    const errors = validateResetPassword(password, confirmPassword);
+    const errors = validateResetPassword(password, confirmPassword, tv);
     setPasswordErrors({
       password: errors.password || "",
       confirm_password: errors.confirm_password || "",
@@ -244,8 +247,8 @@ export const useForgotPasswordForm = () => {
       });
 
       triggerToast({
-        title: "Password updated",
-        description: "Your password has been reset. Please login.",
+        title: t("updatedTitle"),
+        description: t("updatedDescription"),
         type: "success",
       });
 

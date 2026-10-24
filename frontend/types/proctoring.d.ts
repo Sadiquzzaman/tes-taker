@@ -28,6 +28,8 @@ type ProctoringCountdownState = {
 };
 
 type ProctoringWarningState = {
+  /** The student sees the translated text for this type; `message` (English) is the detail for the log. */
+  type: ProctoringFlagType;
   message: string;
   flagCount: number;
 };

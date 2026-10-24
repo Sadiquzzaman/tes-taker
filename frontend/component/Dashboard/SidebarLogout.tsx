@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import { useTranslations } from "next-intl";
 import LogoutIconSVG from "../svg/LogoutIconSVG";
 import { useSidebarLogout } from "@/hooks/Dashboard/useSidebarLogout";
 
 const SidebarLogout = () => {
   const { handleLogout } = useSidebarLogout();
+  const t = useTranslations("shell");
 
   return (
     <div className="w-full">
@@ -14,7 +15,7 @@ const SidebarLogout = () => {
         onClick={handleLogout}
       >
         <LogoutIconSVG width={14} />
-        Sign out
+        {t("signOut")}
       </button>
     </div>
   );

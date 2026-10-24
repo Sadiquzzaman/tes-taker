@@ -2,6 +2,7 @@ import { useToast } from "@/component/Toast/ToastContext";
 import apiClient from "@/lib/axios";
 import { persistAuthSession } from "@/lib/authSession";
 import { restoreLastWorkspace } from "@/lib/restoreLastWorkspace";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useJoinStateManage from "../ui/useJoinStateManage";
@@ -10,20 +11,21 @@ const useLogin = () => {
   const { triggerToast } = useToast();
   const { joinInfo } = useJoinStateManage("login");
   const [loading, setLoading] = useState(false);
-  const { push } = useRouter();
+  const { push, refresh } = useRouter();
+  const t = useTranslations();
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
-  const showLoginSuccessToast = (message?: string) => {
+  const showLoginSuccessToast = () => {
     triggerToast({
-      title: "Login Successful",
-      description: message || "User login successful.",
+      title: t("auth.login.successTitle"),
+      description: t("auth.login.successDescription"),
       type: "success",
     });
   };
 
   const showLoginErrorToast = (message: string) => {
     triggerToast({
-      title: "Login Failed",
+      title: t("auth.login.failedTitle"),
       description: message,
       type: "error",
     });
@@ -46,8 +48,8 @@ const useLogin = () => {
       }
 
       triggerToast({
-        title: "Class Join Failed",
-        description: typeof message === "string" ? message : "Unable to join this class.",
+        title: t("join.classJoinFailedTitle"),
+        description: typeof message === "string" ? message : t("join.classJoinFailed"),
         type: "error",
       });
 
@@ -60,8 +62,8 @@ const useLogin = () => {
     }
 
     triggerToast({
-      title: "Class Join Successful",
-      description: response.data?.message || "You have successfully joined the class.",
+      title: t("join.classJoinedTitle"),
+      description: t("join.classJoined"),
       type: "success",
     });
 
@@ -109,15 +111,19 @@ const useLogin = () => {
       return;
     }
 
-    const message = typeof responseMessage === "string" ? responseMessage : "Login failed. Please try again.";
+    const message = typeof responseMessage === "string" ? responseMessage : t("auth.login.failedDescription");
     showLoginErrorToast(message);
   };
 
   const completeLogin = async (payload: LoginResponsePayload) => {
-    showLoginSuccessToast(payload?.message);
-    await persistAuthSession(payload);
+    showLoginSuccessToast();
+    const localeChanged = await persistAuthSession(payload);
     const restored = await restoreLastWorkspace(payload);
     await handlePostLoginRedirect(restored.payload, restored.href);
+    if (localeChanged) {
+      // The account's saved language differs from this device's: re-render the page in it.
+      refresh();
+    }
   };
 
   const mutate = async (loginInfo: LoginPayload) => {

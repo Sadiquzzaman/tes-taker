@@ -3,12 +3,18 @@ import { IsEmail, IsNotEmpty } from "class-validator";
 import { CustomBaseEntity } from "src/common/common-entities/custom-base.enity";
 import { RolesEnum } from "src/common/enums/roles.enum";
 import {
+  Check,
   Column,
   Entity,
   Index
 } from "typeorm";
 
+/** App languages (FND-18). */
+export const USER_LOCALES = ["bn", "en"] as const;
+export type UserLocale = (typeof USER_LOCALES)[number];
+
 @Entity("users")
+@Check("CHK_users_locale", `"locale" IN ('bn', 'en')`)
 export class UserEntity extends CustomBaseEntity {
   @Column({ name: "full_name", type: "varchar", length: "100" })
   @IsNotEmpty()
@@ -98,6 +104,10 @@ export class UserEntity extends CustomBaseEntity {
   })
   @Index({ unique: true })
   student_public_id: string | null;
+
+  /** Chosen language; NULL = not chosen (organisation default, then English). */
+  @Column({ type: "varchar", name: "locale", length: 5, nullable: true })
+  locale: UserLocale | null;
 
   @Column({
     type: "varchar",

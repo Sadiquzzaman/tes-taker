@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import useSignUpForm from "@/hooks/auth/useSignUpForm";
 import SignUpChoice from "./SignUpChoice";
@@ -20,6 +21,7 @@ const SignUpForm = () => {
     handleFieldChange,
     handleSignUp,
   } = useSignUpForm();
+  const t = useTranslations("auth");
 
   return (
     <>
@@ -39,10 +41,10 @@ const SignUpForm = () => {
           handleFieldChange={handleFieldChange}
           handleSignUp={handleSignUp}
           onBackToChoice={() => setView("choice")}
-          title={signUpInfo.request_teacher ? "Teacher Sign Up" : "Student Sign Up"}
+          title={signUpInfo.request_teacher ? t("signup.teacherTitle") : t("signup.studentTitle")}
           description={
             signUpInfo.request_teacher
-              ? "You will register as a student first. After an administrator approves your teacher request, you will receive teacher permissions."
+              ? t("signup.teacherNote")
               : undefined
           }
         />
@@ -51,15 +53,15 @@ const SignUpForm = () => {
           value={signUpInfo.phone}
           successDescription={
             signUpInfo.request_teacher
-              ? "Your teacher request is pending admin approval. You can sign in as a student until it is approved."
+              ? t("signup.teacherPending")
               : undefined
           }
         />
       )}
       <p className="mt-4 text-center text-[#747775] text-[16px]">
-        Already have an account?{" "}
+        {t("haveAccount")}{" "}
         <Link href={"/login"} className="text-[#232A25] font-medium underline">
-          Log In
+          {t("logIn")}
         </Link>
       </p>
     </>

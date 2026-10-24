@@ -1,4 +1,5 @@
 import axios from "axios";
+import { applyAccountLocale } from "@/i18n/localeCookie";
 import { clearStoredWorkspace } from "./workspace";
 
 const SESSION_SET_TOKEN_PATH = "/session/set-token";
@@ -38,7 +39,11 @@ const getStoredUser = (): LoginResponsePayload | null => {
   }
 };
 
-const persistAuthSession = async (payload: LoginResponsePayload) => {
+/**
+ * Stores the session. Returns true when the account's saved language differs from the one on this
+ * device (the cookie was updated, so the caller should refresh the page to re-render in it).
+ */
+const persistAuthSession = async (payload: LoginResponsePayload): Promise<boolean> => {
   const setTokenResponse = await axios.post(SESSION_SET_TOKEN_PATH, {
     token: payload.access_token,
     refreshToken: payload.refresh_token,
@@ -53,6 +58,7 @@ const persistAuthSession = async (payload: LoginResponsePayload) => {
   }
 
   localStorage.setItem("user", JSON.stringify(payload));
+  return applyAccountLocale(payload.locale);
 };
 
 let refreshPromise: Promise<LoginResponsePayload | null> | null = null;
