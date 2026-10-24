@@ -1,14 +1,26 @@
 @import "tailwindcss";
+/* Design tokens (generated from design/tokens.json; see docs/ui/design-system.md). */
+@import "./tokens.css";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@theme inline {
+/* Older class still used on a few screens; moves to font-sans when those screens adopt the tokens (P1-05). */
+@theme {
+  --font-ins-sans: "Instrument Sans", sans-serif;
 }
 
 body {
-  font-family: "Instrument Sans";
+  /* Instrument Sans for Latin; Bangla characters fall through to Hind Siliguri. */
+  font-family: var(--font-sans);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 button,
