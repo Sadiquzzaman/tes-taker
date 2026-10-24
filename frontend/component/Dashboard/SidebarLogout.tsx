@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { cn, focusRing } from "@/design/ui/cn";
 import LogoutIconSVG from "../svg/LogoutIconSVG";
 import { useSidebarLogout } from "@/hooks/Dashboard/useSidebarLogout";
 
@@ -11,7 +12,11 @@ const SidebarLogout = () => {
   return (
     <div className="w-full">
       <button
-        className="bg-[white] text-[#232A25] hover:bg-[#49734F] hover:text-white rounded-lg px-4 py-2 flex items-center gap-2 font-medium w-full"
+        className={cn(
+          "flex w-full items-center gap-2.5 rounded-input px-3 py-2 text-body-sm font-medium text-ink transition-colors duration-(--motion-fast) hover:bg-danger-soft hover:text-danger",
+          focusRing,
+        )}
+        type="button"
         onClick={handleLogout}
       >
         <LogoutIconSVG width={14} />
