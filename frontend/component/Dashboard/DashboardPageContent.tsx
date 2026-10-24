@@ -1,104 +1,73 @@
 "use client";
 
-import React from "react";
-import NameSection from "@/component/Dashboard/NameSection";
-import NeedsMarking from "@/component/Dashboard/NeedsMarking";
-import LiveTest from "@/component/Dashboard/LiveTest";
-import TotalStudents from "@/component/Dashboard/TotalStudents";
-import TopStudents from "@/component/Dashboard/TopStudents";
-import UpcomingTests from "@/component/Dashboard/UpcomingTests";
-import Calendar from "@/component/Dashboard/Calendar";
-import MyClasses from "@/component/Dashboard/MyClasses";
-import MyActivity from "@/component/Dashboard/MyActivity";
-import StudentWorkspaceCards from "@/component/Dashboard/StudentWorkspaceCards";
+import { useTranslations } from "next-intl";
+import { Card, ErrorState } from "@/design/ui";
 import { DashboardProvider, useDashboard } from "@/context/DashboardContext";
-import { getStoredUser } from "@/lib/authSession";
 import { useIsClient } from "@/hooks/useBrowserStorage";
+import { getStoredUser } from "@/lib/authSession";
+import Calendar from "./Calendar";
+import LiveTest from "./LiveTest";
+import MyActivity from "./MyActivity";
+import MyClasses from "./MyClasses";
+import NameSection from "./NameSection";
+import NeedsMarking from "./NeedsMarking";
+import StartingSoon from "./StartingSoon";
+import StudentWorkspaceCards from "./StudentWorkspaceCards";
+import TopStudents from "./TopStudents";
+import TotalStudents from "./TotalStudents";
+import UpcomingTests from "./UpcomingTests";
 
-const DashboardErrorBanner = () => {
-  const { error, refetch } = useDashboard();
+/** Teacher home ("Today" first, design-system §3.4): what needs action now, then the overview. */
+const TeacherDashboard = () => {
+  const t = useTranslations("dashboard");
+  const { data, loading, error, refetch } = useDashboard();
 
-  if (!error) {
-    return null;
+  if (error && !loading && !data) {
+    return (
+      <Card>
+        <ErrorState description={t("loadFailed")} onRetry={() => void refetch()} />
+      </Card>
+    );
   }
 
   return (
-    <div className="mb-4 rounded-[12px] border border-[#F2C6C6] bg-[#FFF5F5] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <p className="font-[400] text-[14px] leading-[16px] text-[#232A25]">
-        {error || "Failed to load dashboard data."}
-      </p>
-      <button
-        type="button"
-        onClick={() => void refetch()}
-        className="bg-[#49734F] text-white rounded-[8px] px-4 py-2 font-[500] text-[14px] leading-[16px] w-fit"
-      >
-        Retry
-      </button>
+    <div className="flex flex-col gap-6">
+      <section aria-label={t("today.label")} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <NeedsMarking />
+        <LiveTest />
+        <StartingSoon />
+      </section>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <UpcomingTests />
+        </div>
+        <TotalStudents />
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <MyClasses />
+        <TopStudents />
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Calendar />
+        <MyActivity />
+      </div>
     </div>
   );
 };
-
-const TeacherDashboardGrid = () => (
-  <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 flex flex-col gap-6 min-h-[calc(100vh-162px)]">
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-      <div className="sm:col-span-2 md:col-span-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
-        <div className="w-full">
-          <NeedsMarking />
-        </div>
-        <div className="w-full">
-          <LiveTest />
-        </div>
-        <div className="w-full">
-          <TotalStudents />
-        </div>
-        <div className="w-full hidden sm:block md:hidden">
-          <MyActivity />
-        </div>
-        <div className="col-span-1 sm:col-span-2">
-          <div className="w-full">
-            <UpcomingTests />
-          </div>
-        </div>
-        <div className="w-full">
-          <MyClasses />
-        </div>
-        <div className="w-full hidden sm:block md:hidden">
-          <Calendar />
-        </div>
-      </div>
-
-      <div className="w-full sm:col-span-2 md:col-span-3 lg:col-span-1">
-        <TopStudents />
-      </div>
-      <div className="sm:hidden md:block md:col-span-3 lg:col-span-2">
-        <div className="w-full h-full">
-          <Calendar />
-        </div>
-      </div>
-      <div className=" sm:hidden md:block md:col-span-3 lg:col-span-2">
-        <div className="w-full h-full">
-          <MyActivity />
-        </div>
-      </div>
-    </div>
-  </div>
-);
 
 const DashboardInner = () => {
   const isClient = useIsClient();
-  const role = isClient ? (getStoredUser()?.role as string) || null : null;
-
-  const isStudent = role === "STUDENT";
+  const isStudent = isClient && getStoredUser()?.role === "STUDENT";
 
   return (
-    <>
+    <div className="flex flex-col gap-6 pb-8">
       <NameSection variant={isStudent ? "student" : "teacher"} />
-      {!isStudent && <DashboardErrorBanner />}
-      {isStudent ? <StudentWorkspaceCards /> : <TeacherDashboardGrid />}
-    </>
+      {isStudent ? <StudentWorkspaceCards /> : <TeacherDashboard />}
+    </div>
   );
 };
 
+/** /dashboard: the teacher's "Today" home, or the student's list of workspaces. */
 const DashboardPageContent = () => (
   <DashboardProvider>
     <DashboardInner />

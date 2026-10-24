@@ -5,10 +5,16 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  // The component library uses design tokens only (docs/ui/design-system.md §3.5).
+  // The component library, and each screen once P1-05 has rebuilt it, use design tokens only
+  // (docs/ui/design-system.md §3.5). Add a folder here when its screens move to design/ui.
   {
-    files: ["design/ui/**/*.{ts,tsx}"],
-    ignores: ["design/ui/**/*.test.{ts,tsx}"],
+    files: ["design/ui/**/*.{ts,tsx}", "component/Dashboard/**/*.{ts,tsx}", "component/Tests/CreateTestActionButton.tsx"],
+    ignores: [
+      "**/*.test.{ts,tsx}",
+      // Replaced in P1-05; kept until their deletion is approved (docs/TODO.md).
+      "component/Dashboard/DashboardEmptyState.tsx",
+      "component/Dashboard/DashboardWidgetSkeleton.tsx",
+    ],
     rules: {
       "no-restricted-syntax": [
         "error",

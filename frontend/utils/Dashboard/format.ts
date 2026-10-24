@@ -1,37 +1,13 @@
-export function formatRemainingTime(totalSeconds: number): string {
-  const seconds = Math.max(0, totalSeconds);
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-}
-
-export function formatExamDuration(minutes: number | null): string {
+/** How a test's length is written: "45 min", "2 h" or "1 h 30 min" (keys under dashboard.duration). */
+export function durationMessage(
+  minutes: number | null,
+): { key: "minutes" | "hours" | "hoursMinutes"; values: { hours: number; minutes: number } } | null {
   if (!minutes) {
-    return "—";
-  }
-  if (minutes < 60) {
-    return `${minutes} m`;
+    return null;
   }
   const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  if (remainingMinutes === 0) {
-    return `${String(hours).padStart(2, "0")} h`;
-  }
-  return `${String(hours).padStart(2, "0")} h, ${remainingMinutes} m`;
-}
-
-export function formatExamStart(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
-
-export function formatAvgScore(percent: number | null): string {
-  if (percent == null) {
-    return "—";
-  }
-  return `${Math.round(percent)}%`;
+  const rest = minutes % 60;
+  if (hours === 0) return { key: "minutes", values: { hours, minutes: rest } };
+  if (rest === 0) return { key: "hours", values: { hours, minutes: rest } };
+  return { key: "hoursMinutes", values: { hours, minutes: rest } };
 }

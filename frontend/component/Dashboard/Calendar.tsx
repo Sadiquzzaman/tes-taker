@@ -1,218 +1,107 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import ChevronLeftIconSVG from "../svg/ChevronLeftIconSVG";
-import ChevronRightIconSVG from "../svg/ChevronRightIconSVG";
+import { useTranslations } from "next-intl";
+import { useMemo, useState } from "react";
+import { Card, ChevronLeftIcon, ChevronRightIcon, cn, IconButton, Skeleton } from "@/design/ui";
 import { useDashboard } from "@/context/DashboardContext";
-import { getMonthName, getDaysInMonth, getPrevMonthYear, WEEK_DAYS } from "@/utils/Dashboard/calendar";
-import DashboardWidgetSkeleton from "./DashboardWidgetSkeleton";
+import useFormat from "@/i18n/useFormat";
 import { useIsClient } from "@/hooks/useBrowserStorage";
+import { monthGrid, monthTitle, todayInTimeZone, weekDayNames } from "@/utils/Dashboard/calendar";
 
+/** A month of the teacher's tests: days with tests are marked; today is highlighted (Dhaka time). */
 const Calendar = () => {
-  const { data, loading, calendarYear, calendarMonth, setCalendarMonth, setCalendarYear } = useDashboard();
-  const [isWide, setIsWide] = useState(false);
-  const [yearPopupOpen, setYearPopupOpen] = useState(false);
-  const yearPopupRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations("dashboard.calendar");
+  const format = useFormat();
+  const { data, loading, calendarYear: year, calendarMonth: month, setCalendarMonth, setCalendarYear } = useDashboard();
   const isClient = useIsClient();
-  const [today, setToday] = useState<{ day: number; month: number; year: number } | null>(null);
-  // Today's date is read once in the browser so the server render does not depend on its clock.
+  // Read the clock only in the browser, so the server render does not depend on it.
+  const [today, setToday] = useState<ReturnType<typeof todayInTimeZone> | null>(null);
   if (isClient && today === null) {
-    const now = new Date();
-    setToday({ day: now.getDate(), month: now.getMonth() + 1, year: now.getFullYear() });
+    setToday(todayInTimeZone());
   }
 
-  const month = calendarMonth;
-  const year = calendarYear;
-
-  const eventDays = useMemo(() => {
-    const set = new Set<number>();
-    (data?.calendar_events ?? []).forEach((event) => {
+  const testsByDay = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const event of data?.calendar_events ?? []) {
       if (event.year === year && event.month === month) {
-        set.add(event.day);
+        counts.set(event.day, (counts.get(event.day) ?? 0) + event.test_count);
       }
-    });
-    return set;
+    }
+    return counts;
   }, [data?.calendar_events, month, year]);
 
-  const hasEventsThisMonth = eventDays.size > 0;
-
-  useEffect(() => {
-    const check = () => setIsWide(window.innerWidth >= 900);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (yearPopupRef.current && !yearPopupRef.current.contains(e.target as Node)) {
-        setYearPopupOpen(false);
-      }
-    };
-    if (yearPopupOpen) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [yearPopupOpen]);
-
-  const handleDecreaseMonth = () => {
-    if (month === 1) {
-      setCalendarMonth(12);
-      setCalendarYear(year - 1);
-    } else {
-      setCalendarMonth(month - 1);
-    }
+  const moveMonth = (delta: number) => {
+    const index = year * 12 + (month - 1) + delta;
+    setCalendarYear(Math.floor(index / 12));
+    setCalendarMonth((index % 12) + 1);
   };
 
-  const handleIncreaseMonth = () => {
-    if (month === 12) {
-      setCalendarMonth(1);
-      setCalendarYear(year + 1);
-    } else {
-      setCalendarMonth(month + 1);
-    }
-  };
-
-  const datePerRow = isWide ? 14 : 7;
-  const firstDayOfMonth = new Date(year, month - 1, 1).getDay();
-  const daysInMonth = getDaysInMonth(month, year);
-  const prev = getPrevMonthYear(month, year);
-  const daysInPrevMonth = getDaysInMonth(prev.month, prev.year);
-  const totalCells = Math.ceil((firstDayOfMonth + daysInMonth) / datePerRow) * datePerRow;
-  const trailingDays = totalCells - (firstDayOfMonth + daysInMonth);
-
-  const calendarCells: CalendarCell[] = [];
-  for (let i = firstDayOfMonth - 1; i >= 0; i--) calendarCells.push({ day: daysInPrevMonth - i, currentMonth: false });
-  for (let i = 1; i <= daysInMonth; i++) calendarCells.push({ day: i, currentMonth: true });
-  for (let i = 1; i <= trailingDays; i++) calendarCells.push({ day: i, currentMonth: false });
-
-  const weeks: CalendarCell[][] = [];
-  for (let i = 0; i < calendarCells.length; i += 7) weeks.push(calendarCells.slice(i, i + 7));
-
-  const pairedWeeks: CalendarCell[][] = [];
-  if (isWide) {
-    for (let i = 0; i < weeks.length; i += 2) pairedWeeks.push([...(weeks[i] || []), ...(weeks[i + 1] || [])]);
-  }
-
-  const cols = isWide ? 14 : 7;
-  const headers = isWide ? [...WEEK_DAYS, ...WEEK_DAYS] : WEEK_DAYS;
-  const rows = isWide ? pairedWeeks : weeks;
-
-  const yearRange: number[] = [];
-  for (
-    let y = (today?.year || new Date().getFullYear()) - 10;
-    y <= (today?.year || new Date().getFullYear()) + 10;
-    y++
-  ) {
-    yearRange.push(y);
-  }
-
-  const hasTest = (day: number, currentMonth: boolean) => currentMonth && eventDays.has(day);
+  const dayNames = weekDayNames(format.locale);
+  const isToday = (day: number) => today?.day === day && today.month === month && today.year === year;
 
   return (
-    <div className="p-4 bg-[#ffffff] rounded-[12px] flex flex-col text-white w-full h-full min-h-[220px]">
-      <div className="flex justify-between items-center">
-        <div className="font-[500] text-[14px] leading-[16px] text-[#232A25] tracking-[-0.02em]">Calendar</div>
-        <div className="flex gap-1 items-center">
-          <button type="button" className="mr-2 text-[#232A25]" onClick={handleDecreaseMonth}>
-            <ChevronLeftIconSVG className="size-4" strokeWidth={2.5} />
-          </button>
-          <div ref={yearPopupRef} className="relative">
-            <button
-              type="button"
-              className="mb-[1px] text-center font-[500] text-[14px] leading-[16px] text-[#232A25] tracking-[-0.02em] w-28 hover:opacity-70 transition-opacity"
-              onClick={() => setYearPopupOpen((v) => !v)}
-            >
-              {getMonthName(month, year)} {year}
-            </button>
-            {yearPopupOpen && (
-              <div className="absolute top-7 left-1/2 -translate-x-1/2 z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-3 w-52">
-                <div className="text-[12px] font-[500] text-[#747775] mb-2 text-center">Select Year</div>
-                <div className="grid grid-cols-3 gap-1 max-h-48 overflow-y-auto">
-                  {yearRange.map((y) => (
-                    <button
-                      type="button"
-                      key={y}
-                      onClick={() => {
-                        setCalendarYear(y);
-                        setYearPopupOpen(false);
-                      }}
-                      className={`text-[13px] py-1 rounded-lg font-[500] transition-colors
-                        ${y === year ? "bg-[#49734F] text-white" : "text-[#232A25] hover:bg-[#EFF0F3]"}`}
-                    >
-                      {y}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          <button type="button" className="ml-2 text-[#232A25]" onClick={handleIncreaseMonth}>
-            <ChevronRightIconSVG className="size-4" strokeWidth={2.5} />
-          </button>
+    <Card
+      title={t("title")}
+      className="h-full"
+      actions={
+        <div className="flex items-center gap-1">
+          <IconButton size="sm" label={t("previousMonth")} icon={<ChevronLeftIcon />} onClick={() => moveMonth(-1)} />
+          <span className="min-w-32 text-center text-body-sm font-medium text-ink" aria-live="polite">
+            {monthTitle(month, year, format.locale)}
+          </span>
+          <IconButton size="sm" label={t("nextMonth")} icon={<ChevronRightIcon />} onClick={() => moveMonth(1)} />
         </div>
-      </div>
-
+      }
+    >
       {loading ? (
-        <div className="mt-4">
-          <DashboardWidgetSkeleton lines={6} />
-        </div>
+        <Skeleton lines={6} />
       ) : (
         <>
-          <div className="mt-4" style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-            {headers.map((shortName, index) => (
-              <span
-                key={index}
-                className="text-[14px] leading-[20px] text-[#747775] text-center font-[500] tracking-[-0.02em]"
-              >
-                {shortName}
-              </span>
-            ))}
-          </div>
-          <div className="mt-2 flex flex-col gap-1">
-            {rows.map((rowCells, rIdx) => (
-              <div key={rIdx} style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-                {rowCells.map((cell, cIdx) => {
-                  const isToday =
-                    today && cell.currentMonth && cell.day === today.day && month === today.month && year === today.year;
-                  const showDot = hasTest(cell.day, cell.currentMonth);
-                  return (
-                    <div
-                      key={cIdx}
-                      className="flex flex-col gap-1 items-center justify-center h-10 w-full"
-                      style={{
-                        fontSize: "14px",
-                        lineHeight: "20px",
-                        fontWeight: 400,
-                        borderRadius: isToday ? "10px" : undefined,
-                        background: isToday ? "#49734F" : "transparent",
-                        color: isToday ? "#ffffff" : cell.currentMonth ? "#232A25" : "#B0B4B9",
-                        textAlign: "center",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      <div>{cell.day}</div>
-                      {showDot && (
-                        <div
-                          className="w-1 h-1 rounded-full"
-                          style={{
-                            background: isToday ? "white" : cell.currentMonth ? "#49734F" : "#B0B4B9",
-                          }}
-                        />
-                      )}
-                      {!showDot && <div className="w-1 h-1" />}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-          {!hasEventsThisMonth && (
-            <p className="mt-3 font-[400] text-[12px] leading-[16px] tracking-[-0.02em] text-[#747775] text-center">
-              No scheduled events this month.
-            </p>
-          )}
+          <table className="w-full table-fixed border-collapse text-center text-body-sm">
+            <caption className="sr-only">{monthTitle(month, year, format.locale)}</caption>
+            <thead>
+              <tr>
+                {dayNames.map((name) => (
+                  <th key={name} scope="col" className="pb-2 text-caption font-medium text-ink-muted">
+                    {name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {monthGrid(month, year).map((week, weekIndex) => (
+                <tr key={weekIndex}>
+                  {week.map((day, dayIndex) => {
+                    const tests = day ? (testsByDay.get(day) ?? 0) : 0;
+                    return (
+                      <td key={dayIndex} className="p-0.5">
+                        {day ? (
+                          <span
+                            aria-current={isToday(day) ? "date" : undefined}
+                            className={cn(
+                              "mx-auto flex h-9 w-full max-w-10 flex-col items-center justify-center rounded-input",
+                              isToday(day) ? "bg-primary font-semibold text-ink-inverse" : "text-ink",
+                            )}
+                          >
+                            {format.number(day)}
+                            <span
+                              aria-hidden="true"
+                              className={cn("size-1 rounded-full", tests ? (isToday(day) ? "bg-ink-inverse" : "bg-primary") : "bg-transparent")}
+                            />
+                            {tests ? <span className="sr-only">{t("hasTests", { count: tests })}</span> : null}
+                          </span>
+                        ) : null}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {testsByDay.size === 0 ? <p className="mt-3 text-center text-caption text-ink-muted">{t("noEvents")}</p> : null}
         </>
       )}
-    </div>
+    </Card>
   );
 };
 

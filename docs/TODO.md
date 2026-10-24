@@ -20,3 +20,7 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Remove MUI (`@mui/material`, `@mui/x-date-pickers`) once P1-05 moves `PublishSchedule` to the new DatePicker/TimePicker.
 - Delete files the new components replaced, after owner approval: `component/Toast/ToastItem.tsx` (now a wrapper), `app/api/actions/toggleSidebar.ts` and `component/svg/SidebarToggleIconSVG.tsx` (unused since the AppShell), and the old `Ui/` inputs and `CreateModal` once P1-05 has moved their screens.
 - Dark mode — not in the plan yet; the tokens are ready for a second set of values.
+- Build the Docker images in GitHub Actions and have beta only pull them — beta (3.8 GB RAM) ran out of memory building the frontend on 2026-10-24; a 4 GB swap file fixed it for now.
+- Translate the dashboard activity chart's labels ("Jan", "Mon", "Oct 5") — the API builds them as English text (`dashboard.service.ts`); return dates instead and format them in the browser.
+- A real student home (next exam with a countdown, latest result, weak topics; review §4.5) — needs new API data; P1-05 rebuilt the existing workspace list only.
+- Delete `component/Dashboard/DashboardEmptyState.tsx` and `DashboardWidgetSkeleton.tsx` — replaced by EmptyState and Skeleton in P1-05; needs owner approval.
