@@ -1,16 +1,16 @@
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
-import PageLayout from "@/component/Layout";
 import AccountBilling from "@/component/Account/AccountBilling";
+import PageLayout from "@/component/Layout";
+import { PageHeader, Skeleton } from "@/design/ui";
 
-export default function BillingPage() {
+export default async function BillingPage() {
+  const t = await getTranslations("billing");
   return (
-    <PageLayout route="/billing" subText="Billing & Plans">
-      <div className="flex flex-col gap-4">
-        <div>
-          <h1 className="text-title font-semibold text-ink">Billing & Plans</h1>
-          <p className="text-sm text-ink-muted">Choose a plan and upgrade your account.</p>
-        </div>
-        <Suspense fallback={<div className="rounded-2xl border border-border bg-surface p-6 animate-pulse h-40" />}>
+    <PageLayout route="/billing" subText={t("title")}>
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 pb-8">
+        <PageHeader title={t("title")} description={t("intro")} />
+        <Suspense fallback={<Skeleton className="h-40 rounded-card" />}>
           <AccountBilling />
         </Suspense>
       </div>

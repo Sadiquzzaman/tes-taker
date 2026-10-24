@@ -7,6 +7,7 @@ export { default as Link, type LinkProps } from "./Link";
 export { default as Spinner } from "./Spinner";
 export { default as Field, controlClasses, type FieldProps } from "./Field";
 export { default as Input, type InputProps } from "./Input";
+export { default as PasswordInput, type PasswordInputProps } from "./PasswordInput";
 export { default as Textarea, type TextareaProps } from "./Textarea";
 export { default as Select, type SelectProps, type SelectOption } from "./Select";
 export { default as Combobox, type ComboboxProps, type ComboboxOptionItem } from "./Combobox";

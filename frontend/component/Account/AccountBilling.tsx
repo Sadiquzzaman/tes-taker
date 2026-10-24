@@ -1,186 +1,179 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+import { Badge, Button, Card, cn, EmptyState, ErrorState, RadioGroup, Skeleton } from "@/design/ui";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import useGetPlans from "@/hooks/api/subscription/useGetPlans";
-import axiosReq from "@/lib/axios";
 import { useApiError } from "@/hooks/api/useApiError";
+import useFormat from "@/i18n/useFormat";
+import axiosReq from "@/lib/axios";
 
-type BillingCycle = "MONTHLY" | "HALF_YEARLY" | "YEARLY";
+const CYCLES: BillingCycle[] = ["MONTHLY", "HALF_YEARLY", "YEARLY"];
 
-const cycleLabels: Record<BillingCycle, string> = {
-  MONTHLY: "Monthly",
-  HALF_YEARLY: "Half-yearly",
-  YEARLY: "Yearly",
-};
-
-const getPrice = (plan: SubscriptionPlan, cycle: BillingCycle) => {
+export const getPrice = (plan: SubscriptionPlan, cycle: BillingCycle) => {
   if (cycle === "MONTHLY") return Number(plan.price_monthly);
   if (cycle === "HALF_YEARLY") return Number(plan.price_half_yearly);
   return Number(plan.price_yearly);
 };
 
-const getPlanButtonState = (plan: SubscriptionPlan, currentSortOrder: number, currentSlug?: string) => {
-  const planSortOrder = plan.sort_order ?? 0;
-
-  if (plan.slug === currentSlug) {
-    return { disabled: true, label: "Current plan" };
-  }
-
-  if (planSortOrder <= currentSortOrder) {
-    return { disabled: true, label: "Downgrade unavailable" };
-  }
-
-  return { disabled: false, label: "Upgrade" };
+/** Whether a plan can be bought from here: the current plan and lower ones cannot. */
+export const getPlanState = (plan: SubscriptionPlan, currentSortOrder: number, currentSlug?: string) => {
+  if (plan.slug === currentSlug) return "current" as const;
+  if ((plan.sort_order ?? 0) <= currentSortOrder) return "downgrade" as const;
+  return "upgrade" as const;
 };
 
+/** The teacher's plan and usage, and the paid plans they can upgrade to. */
 const AccountBilling = () => {
+  const t = useTranslations("billing");
+  const format = useFormat();
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-  const { entitlements, loading: entitlementsLoading, refetch } = useEntitlements();
+  const { entitlements, loading: entitlementsLoading, error, refetch } = useEntitlements();
   const { plans, loading: plansLoading } = useGetPlans();
   const { handleError } = useApiError();
-  const searchParams = useSearchParams();
-  const highlightSlug = searchParams.get("plan");
+  const highlightSlug = useSearchParams().get("plan");
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("MONTHLY");
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
-  const currentPlan = useMemo(
-    () => plans.find((plan) => plan.slug === entitlements?.plan?.slug),
-    [plans, entitlements?.plan?.slug],
-  );
-  const currentSortOrder = currentPlan?.sort_order ?? 0;
+  const currentSlug = entitlements?.plan?.slug;
+  const currentSortOrder = plans.find((plan) => plan.slug === currentSlug)?.sort_order ?? 0;
 
   useEffect(() => {
     if (!highlightSlug || plansLoading) return;
-    const el = document.getElementById(`plan-${highlightSlug}`);
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    document.getElementById(`plan-${highlightSlug}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [highlightSlug, plansLoading]);
 
   const handleCheckout = async (plan: SubscriptionPlan) => {
     // Free plans have nothing to pay for; the displayed price is never sent to the server.
     if (!getPrice(plan, billingCycle)) return;
-
     setCheckoutLoading(plan.id);
-
     try {
       const subscribeRes = await axiosReq.post(`${baseUrl}/subscriptions/subscribe`, {
         plan_id: plan.id,
         billing_cycle: billingCycle,
       });
-
       const subscription = subscribeRes.data?.payload;
       if (!subscription?.id) throw new Error("No subscription returned");
 
       // The server reads the price from the pending subscription; never send an amount.
-      const paymentRes = await axiosReq.post(`${baseUrl}/payments/initiate`, {
-        subscriptionId: subscription.id,
-      });
-
+      const paymentRes = await axiosReq.post(`${baseUrl}/payments/initiate`, { subscriptionId: subscription.id });
       const gatewayUrl = paymentRes.data?.payload?.gatewayPageUrl ?? paymentRes.data?.gatewayPageUrl;
       if (gatewayUrl) {
         window.location.href = gatewayUrl;
         return;
       }
-
       throw new Error("No gateway URL returned");
-    } catch (error) {
-      handleError(error as AxiosError<ApiError>);
+    } catch (checkoutError) {
+      handleError(checkoutError as AxiosError<ApiError>);
     } finally {
       setCheckoutLoading(null);
     }
   };
 
   if (entitlementsLoading) {
-    return <div className="rounded-2xl border border-border bg-surface p-6 animate-pulse h-40" />;
+    return (
+      <Card title={t("title")} aria-busy="true">
+        <Skeleton lines={4} />
+      </Card>
+    );
   }
 
+  if (error) {
+    return (
+      <Card title={t("title")}>
+        <ErrorState title={t("loadFailed")} onRetry={() => void refetch()} />
+      </Card>
+    );
+  }
+
+  const usage = entitlements?.usage;
+  const usageText = (used: number, limit?: number) => (limit ? t("usageOf", { used, limit }) : format.number(used));
+  const paidPlans = plans
+    .filter((plan) => getPrice(plan, billingCycle) > 0)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
   return (
-    <div className="rounded-2xl border border-border bg-surface p-6 flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <p className="text-title-sm font-semibold text-ink">Billing & plan</p>
-          <p className="text-sm text-ink-muted">
-            Current plan: <strong>{entitlements?.plan?.name ?? "Free"}</strong>
-          </p>
-        </div>
-        <button type="button" onClick={() => void refetch()} className="text-sm text-primary hover:underline">
-          Refresh usage
-        </button>
-      </div>
+    <Card
+      title={t("title")}
+      description={t.rich("currentPlan", {
+        plan: entitlements?.plan?.name ?? t("free"),
+        b: (chunks) => <strong className="font-semibold text-ink">{chunks}</strong>,
+      })}
+      actions={
+        <Button variant="ghost" size="sm" onClick={() => void refetch()}>
+          {t("refresh")}
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        {usage ? (
+          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-input bg-canvas p-3">
+              <dt className="text-body-sm text-ink-muted">{t("examsThisMonth")}</dt>
+              <dd className="text-body font-semibold text-ink">
+                {usageText(usage.exams_used_this_month, entitlements?.limits?.max_exams_per_month)}
+              </dd>
+            </div>
+            <div className="rounded-input bg-canvas p-3">
+              <dt className="text-body-sm text-ink-muted">{t("totalExams")}</dt>
+              <dd className="text-body font-semibold text-ink">{usageText(usage.total_exams_used, entitlements?.limits?.max_total_exams)}</dd>
+            </div>
+          </dl>
+        ) : null}
 
-      {entitlements?.usage && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-ink-muted">
-          <div className="rounded-input bg-canvas p-3">
-            Exams this month: {entitlements.usage.exams_used_this_month}
-            {entitlements.limits?.max_exams_per_month ? ` / ${entitlements.limits.max_exams_per_month}` : ""}
-          </div>
-          <div className="rounded-input bg-canvas p-3">
-            Total exams used: {entitlements.usage.total_exams_used}
-            {entitlements.limits?.max_total_exams ? ` / ${entitlements.limits.max_total_exams}` : ""}
-          </div>
-        </div>
-      )}
+        <RadioGroup
+          inline
+          legend={t("cycle")}
+          name="billing-cycle"
+          value={billingCycle}
+          onChange={(value) => setBillingCycle(value as BillingCycle)}
+          options={CYCLES.map((cycle) => ({ value: cycle, label: t(`cycles.${cycle}`) }))}
+        />
 
-      <div className="flex gap-2 flex-wrap">
-        {(Object.keys(cycleLabels) as BillingCycle[]).map((cycle) => (
-          <button
-            key={cycle}
-            type="button"
-            onClick={() => setBillingCycle(cycle)}
-            className={`px-3 py-1.5 rounded-input text-sm ${
-              billingCycle === cycle ? "bg-primary text-ink-inverse" : "bg-canvas text-ink"
-            }`}
-          >
-            {cycleLabels[cycle]}
-          </button>
-        ))}
-      </div>
-
-      {!plansLoading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {plans
-            .filter((plan) => getPrice(plan, billingCycle) > 0)
-            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-            .map((plan) => {
-              const buttonState = getPlanButtonState(plan, currentSortOrder, entitlements?.plan?.slug);
-              const isDisabled = buttonState.disabled || checkoutLoading === plan.id;
-
+        {plansLoading ? (
+          <Skeleton lines={3} />
+        ) : !paidPlans.length ? (
+          <EmptyState title={t("noPlans")} />
+        ) : (
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {paidPlans.map((plan) => {
+              const state = getPlanState(plan, currentSortOrder, currentSlug);
+              const highlighted = Boolean(highlightSlug) && plan.slug === highlightSlug;
               return (
-                <div
+                <li
                   key={plan.id}
                   id={`plan-${plan.slug}`}
-                  className={`border rounded-input p-4 flex flex-col gap-3 ${
-                    highlightSlug && plan.slug === highlightSlug
-                      ? "border-primary ring-2 ring-primary"
-                      : plan.slug === entitlements?.plan?.slug
-                        ? "border-primary"
-                        : "border-border"
-                  }`}
+                  className={cn(
+                    "flex flex-col gap-3 rounded-card border p-4",
+                    highlighted ? "border-primary ring-2 ring-primary" : state === "current" ? "border-primary" : "border-border",
+                  )}
                 >
-                  <div>
-                    <p className="font-semibold text-ink">{plan.name ?? plan.display_name}</p>
-                    <p className="text-sm text-primary">৳{getPrice(plan, billingCycle).toLocaleString()}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-body font-semibold text-ink">{plan.name ?? plan.display_name}</p>
+                    {state === "current" ? <Badge tone="primary">{t("current")}</Badge> : null}
                   </div>
-                  <button
-                    type="button"
-                    disabled={isDisabled}
-                    onClick={() => void handleCheckout(plan)}
-                    className={`py-2 rounded-input text-sm disabled:opacity-60 ${
-                      buttonState.disabled
-                        ? "bg-canvas text-ink-muted cursor-not-allowed"
-                        : "bg-primary text-ink-inverse"
-                    }`}
-                  >
-                    {checkoutLoading === plan.id ? "Processing..." : buttonState.label}
-                  </button>
-                </div>
+                  <p className="flex items-baseline gap-1.5">
+                    <span className="text-title font-semibold text-ink">৳{format.number(getPrice(plan, billingCycle))}</span>
+                    <span className="text-body-sm text-ink-muted">{t(`per.${billingCycle}`)}</span>
+                  </p>
+                  {plan.description ? <p className="text-body-sm text-ink-muted">{plan.description}</p> : null}
+                  {state === "upgrade" ? (
+                    <Button loading={checkoutLoading === plan.id} disabled={Boolean(checkoutLoading)} onClick={() => void handleCheckout(plan)}>
+                      {t("upgrade")}
+                    </Button>
+                  ) : state === "downgrade" ? (
+                    <p className="text-body-sm text-ink-muted">{t("downgradeHint")}</p>
+                  ) : null}
+                </li>
               );
             })}
-        </div>
-      )}
-    </div>
+          </ul>
+        )}
+      </div>
+    </Card>
   );
 };
 

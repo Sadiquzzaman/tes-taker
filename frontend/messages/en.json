@@ -157,6 +157,13 @@
       "loginTest": "Login Required to participate in {name} test",
       "signupClass": "Sign Up Required to Join {name}",
       "signupTest": "Sign Up Required to participate in {name} test"
+    },
+    "google": {
+      "signingIn": "Signing you in with Google…",
+      "failedTitle": "Google sign-in failed",
+      "missingData": "Google did not send the sign-in details. Please try again.",
+      "failed": "Sign-in could not be completed. Please try again.",
+      "doneDescription": "Signed in with Google."
     }
   },
   "validation": {
@@ -439,6 +446,10 @@
       "closeMenu": "Close menu",
       "notifications": "Notifications",
       "navigation": "Main navigation"
+    },
+    "password": {
+      "show": "Show password",
+      "hide": "Hide password"
     }
   },
   "dashboard": {
@@ -1302,6 +1313,123 @@
       "correctOption": "correct answer",
       "matched": "correct match",
       "notMatched": "wrong match"
+    }
+  },
+  "account": {
+    "title": "Account",
+    "loadFailed": "Your profile did not load.",
+    "fullName": "Full name",
+    "role": "Role",
+    "email": "Email",
+    "phone": "Phone",
+    "status": "Account status",
+    "memberSince": "Member since",
+    "notProvided": "Not provided",
+    "verified": "Verified",
+    "unverified": "Not verified",
+    "roles": {
+      "STUDENT": "Student",
+      "TEACHER": "Teacher"
+    },
+    "changePassword": {
+      "title": "Change password",
+      "intro": "Enter your current password, then the new one twice.",
+      "current": "Current password",
+      "currentPlaceholder": "Enter current password",
+      "new": "New password",
+      "newPlaceholder": "Enter new password",
+      "confirm": "Confirm new password",
+      "confirmPlaceholder": "Enter new password again",
+      "submit": "Change password"
+    },
+    "teacherRequest": {
+      "title": "Become a teacher",
+      "intro": "Ask for a teacher account. An admin will approve or reject your request.",
+      "statusLabel": "Request status",
+      "status": {
+        "pending": "Waiting for review",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "sentOn": "Sent {date}",
+      "submit": "Ask to become a teacher",
+      "again": "Ask again",
+      "pendingNote": "Your request is waiting for review. You can have one open request at a time.",
+      "approvedNote": "Approved. If you don't see the teacher menus yet, log out and log in again.",
+      "doneTitle": "Request sent",
+      "doneDetail": "An admin will review your request to become a teacher."
+    }
+  },
+  "billing": {
+    "title": "Billing and plans",
+    "intro": "Choose a plan and upgrade your account.",
+    "currentPlan": "Current plan: <b>{plan}</b>",
+    "free": "Free",
+    "refresh": "Refresh usage",
+    "examsThisMonth": "Tests this month",
+    "totalExams": "Tests in total",
+    "usageOf": "{used, number} of {limit, number}",
+    "cycle": "Billing period",
+    "cycles": {
+      "MONTHLY": "Monthly",
+      "HALF_YEARLY": "Every 6 months",
+      "YEARLY": "Yearly"
+    },
+    "per": {
+      "MONTHLY": "per month",
+      "HALF_YEARLY": "per 6 months",
+      "YEARLY": "per year"
+    },
+    "current": "Current plan",
+    "downgrade": "Lower plan",
+    "downgradeHint": "Contact support to move to a lower plan.",
+    "upgrade": "Upgrade",
+    "noPlans": "No paid plans are available for this billing period.",
+    "loadFailed": "Your plan did not load."
+  },
+  "payment": {
+    "reference": "Reference",
+    "backToBilling": "Back to billing",
+    "goToAccount": "Go to account",
+    "cancelled": {
+      "title": "Payment cancelled",
+      "detail": "You cancelled the payment. Nothing was charged."
+    },
+    "failed": {
+      "title": "Payment failed",
+      "detail": "Your payment could not be completed. Please try again."
+    },
+    "checking": {
+      "title": "Checking your payment",
+      "detail": "This takes a few seconds. Please keep this page open."
+    },
+    "paid": {
+      "title": "Payment successful",
+      "detail": "Your subscription is now active."
+    },
+    "pending": {
+      "title": "Payment processing",
+      "detail": "Your payment is still being confirmed. This can take a moment."
+    },
+    "issue": {
+      "title": "There is a problem with this payment",
+      "cancelled": "This payment was cancelled.",
+      "failed": "This payment did not go through.",
+      "notVisible": "Log in with the account that made this payment to see its status.",
+      "unconfirmed": "We could not confirm your payment. Contact support if you were charged.",
+      "missingReference": "This link has no payment reference."
+    },
+    "status": "Status",
+    "amount": "Amount",
+    "method": "Payment method",
+    "subscription": "Subscription",
+    "active": "Active",
+    "waiting": "Waiting",
+    "statuses": {
+      "PENDING": "Pending",
+      "PAID": "Paid",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled"
     }
   }
 }

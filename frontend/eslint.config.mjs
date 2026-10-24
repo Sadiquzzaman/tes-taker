@@ -28,6 +28,12 @@ const eslintConfig = defineConfig([
       "app/grading/**/*.{ts,tsx}",
       "hooks/grading/**/*.{ts,tsx}",
       "utils/grading/**/*.{ts,tsx}",
+      "component/Account/**/*.{ts,tsx}",
+      "component/Payment/**/*.{ts,tsx}",
+      "app/account/**/*.{ts,tsx}",
+      "app/billing/**/*.{ts,tsx}",
+      "app/payment/**/*.{ts,tsx}",
+      "app/auth/**/*.{ts,tsx}",
     ],
     ignores: [
       "**/*.test.{ts,tsx}",
