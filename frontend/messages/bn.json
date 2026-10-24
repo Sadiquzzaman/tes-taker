@@ -219,22 +219,22 @@
   "exam": {
     "backToTests": "পরীক্ষার তালিকায় ফিরুন",
     "subject": "বিষয়",
-    "totalMarks": "মোট নম্বর: {marks}",
+    "totalMarks": "মোট নম্বর: {marks, number}",
     "countdown": "{minutes} মিনিট {seconds} সেকেন্ড",
     "submit": "উত্তর জমা দিন",
     "submitting": "জমা হচ্ছে...",
     "questionCount": "{count, plural, other {#টি প্রশ্ন}}",
-    "points": "নম্বর: {points}",
-    "negativeMarking": "নেতিবাচক নম্বর: {mark}",
-    "wordCount": "শব্দসংখ্যা {count}",
-    "wordCountLimit": "শব্দসংখ্যা {count} / {limit}",
+    "points": "নম্বর: {points, number}",
+    "negativeMarking": "নেতিবাচক নম্বর: {mark, number}",
+    "wordCount": "শব্দসংখ্যা {count, number}",
+    "wordCountLimit": "শব্দসংখ্যা {count, number} / {limit, number}",
     "writeAnswer": "এখানে উত্তর লিখুন",
     "writeEssay": "এখানে আপনার রচনা লিখুন",
     "noAudioSupport": "আপনার ব্রাউজারে অডিও চালানো যায় না।",
     "startRecording": "রেকর্ড শুরু করুন",
     "reRecord": "আবার রেকর্ড করুন",
     "stopRecording": "রেকর্ড থামান",
-    "recordingTimeLeft": "বাকি সময়: {seconds} সেকেন্ড",
+    "recordingTimeLeft": "বাকি সময়: {seconds, number} সেকেন্ড",
     "micRequiredToRecord": "উত্তর রেকর্ড করতে মাইক্রোফোনের অনুমতি লাগবে।",
     "dragToReorder": "টেনে ক্রম বদলান",
     "mediaLost": "ক্যামেরা ও মাইক্রোফোনের সংযোগ বিচ্ছিন্ন হয়েছে। অনুমতির ধাপে ফিরে আবার চেষ্টা করুন।",
@@ -296,7 +296,7 @@
         "tabs": "অন্য কোনো ট্যাব খুলবেন না।",
         "time": "নির্ধারিত সময়ের মধ্যে পরীক্ষা শেষ করুন।",
         "flags": "প্রক্টর আপনার কার্যকলাপ চিহ্নিত (ফ্ল্যাগ) করতে পারেন।",
-        "limit": "{count}টি ফ্ল্যাগ পেলে পরীক্ষা বাতিল হয়ে যাবে।"
+        "limit": "{count, number}টি ফ্ল্যাগ পেলে পরীক্ষা বাতিল হয়ে যাবে।"
       },
       "accept": "আমি নিয়মগুলো পড়েছি ও বুঝেছি।",
       "startTest": "পরীক্ষা শুরু করুন",
@@ -330,7 +330,7 @@
     "noViolations": "এখনো কোনো নিয়মভঙ্গ পাওয়া যায়নি।",
     "warningTitle": "সতর্কতা!",
     "warningSubtitle": "সন্দেহজনক কার্যকলাপ পাওয়া গেছে।",
-    "currentFlagCount": "বর্তমান ফ্ল্যাগ সংখ্যা: {count}",
+    "currentFlagCount": "বর্তমান ফ্ল্যাগ সংখ্যা: {count, number}",
     "continueCarefully": "সাবধানে পরীক্ষা চালিয়ে যান।",
     "understand": "বুঝেছি",
     "disqualifiedTitle": "বাতিল",
@@ -344,7 +344,7 @@
         "title": "একাধিক ডিসপ্লে পাওয়া গেছে",
         "message": "একাধিক ডিসপ্লে পাওয়া গেছে। সময় শেষ হওয়ার আগে বাড়তি ডিসপ্লে খুলে ফেলুন।"
       },
-      "resolveWithin": "বাতিল এড়াতে {seconds} সেকেন্ডের মধ্যে সমাধান করুন।"
+      "resolveWithin": "বাতিল এড়াতে {seconds, number} সেকেন্ডের মধ্যে সমাধান করুন।"
     },
     "flags": {
       "tab-switch": "আপনি অন্য ট্যাবে গেছেন।",

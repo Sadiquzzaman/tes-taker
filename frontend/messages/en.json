@@ -219,22 +219,22 @@
   "exam": {
     "backToTests": "Back to Tests",
     "subject": "Sub",
-    "totalMarks": "Total Marks: {marks}",
+    "totalMarks": "Total Marks: {marks, number}",
     "countdown": "{minutes} min {seconds} sec",
     "submit": "Submit Answer",
     "submitting": "Submitting...",
     "questionCount": "{count, plural, one {# Question} other {# Questions}}",
-    "points": "Points: {points}",
-    "negativeMarking": "Negative marking: {mark}",
-    "wordCount": "Word count {count}",
-    "wordCountLimit": "Word count {count} / {limit}",
+    "points": "Points: {points, number}",
+    "negativeMarking": "Negative marking: {mark, number}",
+    "wordCount": "Word count {count, number}",
+    "wordCountLimit": "Word count {count, number} / {limit, number}",
     "writeAnswer": "Write answer here",
     "writeEssay": "Write your essay here",
     "noAudioSupport": "Your browser does not support the audio element.",
     "startRecording": "Start recording",
     "reRecord": "Re-record answer",
     "stopRecording": "Stop recording",
-    "recordingTimeLeft": "Time left: {seconds}s",
+    "recordingTimeLeft": "Time left: {seconds, number}s",
     "micRequiredToRecord": "Microphone access is required to record your answer.",
     "dragToReorder": "Drag to reorder",
     "mediaLost": "Camera and microphone access were lost. Please return to permissions and try again.",
@@ -296,7 +296,7 @@
         "tabs": "Do not open additional tabs.",
         "time": "Finish the test within the allotted time.",
         "flags": "Proctor can flag your activity.",
-        "limit": "If you receive {count} flags, the test will be terminated."
+        "limit": "If you receive {count, number} flags, the test will be terminated."
       },
       "accept": "I read and understand the rules.",
       "startTest": "Start Test",
@@ -330,7 +330,7 @@
     "noViolations": "No violations detected yet.",
     "warningTitle": "Warning!",
     "warningSubtitle": "Suspicious activity detected.",
-    "currentFlagCount": "Current flag count: {count}",
+    "currentFlagCount": "Current flag count: {count, number}",
     "continueCarefully": "Please continue carefully.",
     "understand": "I Understand",
     "disqualifiedTitle": "Disqualified",
@@ -344,7 +344,7 @@
         "title": "Multiple Displays Detected",
         "message": "Multiple displays detected. Disconnect extra displays within the countdown."
       },
-      "resolveWithin": "Resolve this within {seconds} seconds to avoid disqualification."
+      "resolveWithin": "Resolve this within {seconds, number} seconds to avoid disqualification."
     },
     "flags": {
       "tab-switch": "You switched to another tab.",
