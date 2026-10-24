@@ -13,7 +13,7 @@ import {
 import { useAppDispatch } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useRef, type ChangeEvent } from "react";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
-import Tooltip from "@/Ui/Tooltip";
+import { Tooltip } from "@/design/ui";
 import Link from "next/link";
 import type { ParsedPastedQuestion } from "@/utils/exam/parsePastedQuestion";
 import { QUESTION_BUILDER_GAPS } from "./shared";
@@ -239,9 +239,9 @@ function QuestionCardHeader({
                 content={
                   !canUploadImages ? (
                     <span>
-                      Not in your plan. Please upgrade.{" "}
+                      {t("notInPlan")}{" "}
                       <Link href="/billing" className="underline text-primary">
-                        Upgrade
+                        {t("upgrade")}
                       </Link>
                     </span>
                   ) : null

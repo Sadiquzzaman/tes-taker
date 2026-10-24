@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import Tooltip from "@/Ui/Tooltip";
-import { Button, buttonClasses } from "@/design/ui";
+import { Button, buttonClasses, Tooltip } from "@/design/ui";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 import CreateActionPlusIconSVG from "../svg/CreateActionPlusIconSVG";

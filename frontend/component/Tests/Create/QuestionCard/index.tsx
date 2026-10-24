@@ -227,7 +227,7 @@ function QuestionCard({
 
         {hasTextAnswerEditor ? (
           <div className="flex flex-col gap-2">
-            <p className="text-body-sm font-medium text-ink">Correct answer</p>
+            <p className="text-body-sm font-medium text-ink">{t("correctAnswer")}</p>
             <QuestionCardTextAnswer
               answerValues={question.answer?.type === "text" ? answerValues : []}
               activateCard={activateCard}

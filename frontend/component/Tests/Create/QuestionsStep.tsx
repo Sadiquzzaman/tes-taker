@@ -4,7 +4,7 @@ import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 import axiosReq from "@/lib/axios";
-import Tooltip from "@/Ui/Tooltip";
+import { Button, cn, Tooltip } from "@/design/ui";
 import Link from "next/link";
 import {
   getSubjectQuestionCount,
@@ -22,7 +22,6 @@ import QuestionCard from "./QuestionCard";
 import QuestionSubjectTabs from "./QuestionSubjectTabs";
 import { useToast } from "@/component/Toast/ToastContext";
 import { useTranslations } from "next-intl";
-import { Button, cn } from "@/design/ui";
 import useQuestionTypeText from "./useQuestionTypeText";
 
 const QUESTION_CARD_GAP = 16;

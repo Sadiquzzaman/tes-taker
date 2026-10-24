@@ -24,7 +24,7 @@ const EditorGraphView = ({ node, selected, getPos }: NodeViewProps) => {
           <GraphRenderer definition={definition} />
         ) : previewSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={previewSrc} alt="Graph" className="rte-graph-fallback-img" />
+          <img src={previewSrc} alt={t("alt")} className="rte-graph-fallback-img" />
         ) : (
           <p className="rte-modal__hint">{t("invalid")}</p>
         )}
@@ -46,7 +46,7 @@ const EditorGraphView = ({ node, selected, getPos }: NodeViewProps) => {
             );
           }}
         >
-          Edit graph
+          {t("edit")}
         </button>
       </div>
     </NodeViewWrapper>

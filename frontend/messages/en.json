@@ -1104,7 +1104,9 @@
       "matchingHint": "Write each pair in the right order (left – right). Students see them shuffled.",
       "alternativePlaceholder": "Add an alternative answer",
       "correctAnswer": "Correct answer",
-      "alternativeAnswer": "Alternative answer"
+      "alternativeAnswer": "Alternative answer",
+      "notInPlan": "Not in your plan.",
+      "upgrade": "Upgrade"
     },
     "review": {
       "summary": "Test summary",
@@ -1890,7 +1892,9 @@
       "remove": "Remove"
     },
     "graph": {
-      "invalid": "This graph could not be drawn."
+      "invalid": "This graph could not be drawn.",
+      "alt": "Graph",
+      "edit": "Edit graph"
     }
   }
 }
