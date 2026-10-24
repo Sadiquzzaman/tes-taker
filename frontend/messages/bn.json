@@ -1,0 +1,382 @@
+{
+  "common": {
+    "loading": "লোড হচ্ছে..."
+  },
+  "language": {
+    "switchTo": "English",
+    "switchToLabel": "ভাষা ইংরেজিতে বদলান",
+    "saveFailed": "এই ডিভাইসে ভাষা বদলানো হয়েছে, কিন্তু আপনার অ্যাকাউন্টে সংরক্ষণ করা যায়নি।"
+  },
+  "nav": {
+    "category": {
+      "Platform": "প্ল্যাটফর্ম",
+      "System": "সিস্টেম",
+      "Organization": "প্রতিষ্ঠান",
+      "Admin": "অ্যাডমিন"
+    },
+    "plans": "প্ল্যান",
+    "payments": "পেমেন্ট",
+    "teachers": "শিক্ষক",
+    "users": "ব্যবহারকারী",
+    "teacherRequests": "শিক্ষকের আবেদন",
+    "organizations": "প্রতিষ্ঠান",
+    "subjects": "বিষয়",
+    "dashboard": "ড্যাশবোর্ড",
+    "classes": "ক্লাস",
+    "tests": "পরীক্ষা",
+    "grading": "মূল্যায়ন",
+    "billing": "বিল ও প্ল্যান",
+    "overview": "সারসংক্ষেপ",
+    "assistants": "সহকারী",
+    "students": "শিক্ষার্থী",
+    "assignments": "দায়িত্ব বণ্টন",
+    "account": "অ্যাকাউন্ট",
+    "help": "সাহায্য"
+  },
+  "shell": {
+    "organization": "প্রতিষ্ঠান",
+    "signOut": "সাইন আউট",
+    "toggleSidebar": "সাইডবার খুলুন বা বন্ধ করুন",
+    "userAvatar": "ব্যবহারকারীর ছবি",
+    "workspace": {
+      "title": "ওয়ার্কস্পেস",
+      "myTeaching": "আমার শিক্ষাদান",
+      "classes": "ক্লাস",
+      "fallback": "ওয়ার্কস্পেস",
+      "review": "পর্যালোচনায়"
+    }
+  },
+  "auth": {
+    "or": "অথবা",
+    "welcomeBack": "আবার স্বাগতম",
+    "tagline": "ক্লাস পরিচালনা, পরীক্ষা তৈরি আর ফলাফল দেখা — <highlight>সবচেয়ে সহজ উপায়ে</highlight>",
+    "illustrationAlt": "লগইন ছবি",
+    "continueWithGoogle": "Google দিয়ে এগিয়ে যান",
+    "showPassword": "পাসওয়ার্ড দেখান",
+    "hidePassword": "পাসওয়ার্ড লুকান",
+    "haveAccount": "আগে থেকেই অ্যাকাউন্ট আছে?",
+    "noAccount": "অ্যাকাউন্ট নেই?",
+    "logIn": "লগ ইন",
+    "signUp": "সাইন আপ",
+    "signingUp": "সাইন আপ হচ্ছে...",
+    "backToAccountType": "অ্যাকাউন্টের ধরন বাছাইয়ে ফিরে যান",
+    "agreeTerms": "আমি <terms>সেবার শর্তাবলি</terms> ও <privacy>গোপনীয়তা নীতি</privacy> মেনে নিচ্ছি।",
+    "fields": {
+      "emailOrPhone": "ইমেইল বা ফোন",
+      "emailOrPhonePlaceholder": "ইমেইল বা 01XXXXXXXXX",
+      "enterEmailOrPhone": "ইমেইল বা ফোন নম্বর লিখুন",
+      "password": "পাসওয়ার্ড",
+      "passwordPlaceholder": "পাসওয়ার্ড লিখুন",
+      "confirmPassword": "পাসওয়ার্ড নিশ্চিত করুন",
+      "confirmPasswordPlaceholder": "পাসওয়ার্ড আবার লিখুন",
+      "newPassword": "নতুন পাসওয়ার্ড",
+      "newPasswordPlaceholder": "নতুন পাসওয়ার্ড লিখুন",
+      "confirmNewPasswordPlaceholder": "নতুন পাসওয়ার্ড আবার লিখুন",
+      "fullName": "পুরো নাম",
+      "fullNamePlaceholder": "যেমন: রহিম উদ্দিন",
+      "ownerFullName": "মালিকের পুরো নাম",
+      "phone": "ফোন",
+      "phonePlaceholder": "ফোন নম্বর লিখুন",
+      "email": "ইমেইল",
+      "emailPlaceholder": "ইমেইল ঠিকানা লিখুন",
+      "organizationName": "প্রতিষ্ঠান / স্কুলের নাম",
+      "organizationNamePlaceholder": "যেমন: এবিসি স্কুল"
+    },
+    "login": {
+      "title": "লগইন",
+      "forgotPassword": "পাসওয়ার্ড ভুলে গেছেন?",
+      "submit": "সাইন ইন",
+      "submitting": "লগ ইন হচ্ছে...",
+      "successTitle": "লগইন সফল হয়েছে",
+      "successDescription": "আপনি সাইন ইন করেছেন।",
+      "failedTitle": "লগইন হয়নি",
+      "failedDescription": "লগইন হয়নি। আবার চেষ্টা করুন।"
+    },
+    "signup": {
+      "title": "সাইন আপ",
+      "choose": "কীভাবে Instructor-এ যোগ দিতে চান, বেছে নিন।",
+      "student": "শিক্ষার্থী",
+      "studentDescription": "ক্লাসে যোগ দিতে ও পরীক্ষা দিতে শিক্ষার্থী অ্যাকাউন্ট খুলুন।",
+      "teacher": "শিক্ষক হিসেবে সাইন আপ",
+      "teacherDescription": "অ্যাকাউন্ট খুলে শিক্ষক হওয়ার আবেদন করুন। পড়ানো শুরুর আগে একজন অ্যাডমিনকে অনুমোদন দিতে হবে।",
+      "organization": "প্রতিষ্ঠান",
+      "organizationDescription": "স্কুল বা প্রতিষ্ঠান নিবন্ধন করুন। ব্যবহারের আগে একজন অ্যাডমিন অনুমোদন দেবেন।",
+      "studentTitle": "শিক্ষার্থী সাইন আপ",
+      "teacherTitle": "শিক্ষক সাইন আপ",
+      "teacherNote": "প্রথমে আপনি শিক্ষার্থী হিসেবে নিবন্ধিত হবেন। অ্যাডমিন আপনার শিক্ষক আবেদন অনুমোদন করলে শিক্ষকের অনুমতি পাবেন।",
+      "teacherPending": "আপনার শিক্ষক আবেদন অ্যাডমিনের অনুমোদনের অপেক্ষায় আছে। অনুমোদন না হওয়া পর্যন্ত শিক্ষার্থী হিসেবে সাইন ইন করতে পারবেন।",
+      "organizationTitle": "প্রতিষ্ঠান সাইন আপ",
+      "organizationRegistered": "প্রতিষ্ঠান নিবন্ধিত হয়েছে",
+      "organizationRegisteredDescription": "নিশ্চিতকরণ বার্তা থেকে আপনার প্রতিষ্ঠান নম্বরটি সংরক্ষণ করুন। SUPER_ADMIN অনুমোদনের পর ফোন ও পাসওয়ার্ড দিয়ে সাইন ইন করুন।",
+      "organizationNumber": "আপনার প্রতিষ্ঠান নম্বর {number}। এটি SUPER_ADMIN অনুমোদনের অপেক্ষায় আছে। অনুমোদনের পর ফোন ও পাসওয়ার্ড দিয়ে সাইন ইন করুন।",
+      "otpSentTitle": "OTP পাঠানো হয়েছে",
+      "otpSentDescription": "একটি যাচাই কোড পাঠানো হয়েছে।",
+      "failedTitle": "সাইন আপ হয়নি",
+      "organizationFailed": "প্রতিষ্ঠান নিবন্ধন হয়নি। আবার চেষ্টা করুন।"
+    },
+    "otp": {
+      "title": "কোড যাচাই",
+      "sentTo": "<target>{value}</target>-এ একটি ৬ অঙ্কের কোড পাঠানো হয়েছে।",
+      "sent": "একটি ৬ অঙ্কের কোড পাঠানো হয়েছে।",
+      "checkSpam": "স্প্যাম ফোল্ডারও দেখে নিন।",
+      "checkEmail": "আপনার ইমেইল ইনবক্স দেখুন।",
+      "checkSms": "আপনার SMS ইনবক্স দেখুন।",
+      "checkInbox": "আপনার ইনবক্স দেখুন।",
+      "resendIn": "{time} পরে আবার পাঠানো যাবে",
+      "resend": "কোড আবার পাঠান",
+      "submit": "যাচাই করে এগিয়ে যান",
+      "submitting": "যাচাই হচ্ছে...",
+      "verifiedTitle": "কোড যাচাই হয়েছে",
+      "verifiedDescription": "OTP সফলভাবে যাচাই হয়েছে।",
+      "failedTitle": "যাচাই হয়নি",
+      "failedDescription": "OTP যাচাই হয়নি। আবার চেষ্টা করুন।"
+    },
+    "forgot": {
+      "title": "পাসওয়ার্ড ভুলে গেছেন",
+      "intro": "আপনার ইমেইল বা ফোন নম্বর লিখুন, পাসওয়ার্ড রিসেট করার জন্য আমরা একটি যাচাই কোড পাঠাব।",
+      "send": "কোড পাঠান",
+      "sending": "কোড পাঠানো হচ্ছে...",
+      "resetTitle": "নতুন পাসওয়ার্ড দিন",
+      "reset": "পাসওয়ার্ড রিসেট করুন",
+      "resetting": "হালনাগাদ হচ্ছে...",
+      "remember": "পাসওয়ার্ড মনে পড়েছে?",
+      "codeSentTitle": "কোড পাঠানো হয়েছে",
+      "codeSentEmail": "আপনার ইমেইলে একটি রিসেট কোড পাঠানো হয়েছে।",
+      "codeSentSms": "আপনার ফোনে একটি রিসেট কোড পাঠানো হয়েছে।",
+      "codeSent": "একটি রিসেট কোড পাঠানো হয়েছে।",
+      "codeVerifiedTitle": "কোড যাচাই হয়েছে",
+      "codeVerifiedDescription": "এগিয়ে যেতে নতুন পাসওয়ার্ড দিন।",
+      "updatedTitle": "পাসওয়ার্ড হালনাগাদ হয়েছে",
+      "updatedDescription": "আপনার পাসওয়ার্ড রিসেট হয়েছে। লগইন করুন।",
+      "and": "ও"
+    },
+    "changePassword": {
+      "doneTitle": "পাসওয়ার্ড বদলানো হয়েছে",
+      "doneDescription": "আপনার পাসওয়ার্ড সফলভাবে হালনাগাদ হয়েছে।"
+    },
+    "joinHeader": {
+      "loginClass": "{name}-এ যোগ দিতে লগইন করুন",
+      "loginTest": "{name} পরীক্ষায় অংশ নিতে লগইন করুন",
+      "signupClass": "{name}-এ যোগ দিতে সাইন আপ করুন",
+      "signupTest": "{name} পরীক্ষায় অংশ নিতে সাইন আপ করুন"
+    }
+  },
+  "validation": {
+    "identifierRequired": "আপনার ইমেইল বা ফোন নম্বর লিখুন",
+    "phoneLength": "ফোন নম্বর ১১ অঙ্কের হতে হবে",
+    "phoneInvalidBd": "বাংলাদেশি ফোন নম্বরটি সঠিক নয়",
+    "emailInvalidShort": "ইমেইল ঠিকানাটি সঠিক নয়",
+    "identifierInvalid": "সঠিক ইমেইল বা ফোন নম্বর লিখুন",
+    "organizationNumberRequired": "প্রতিষ্ঠান নম্বর লিখুন",
+    "organizationNumberShort": "প্রতিষ্ঠান নম্বর অন্তত ৬ অঙ্কের হতে হবে",
+    "phoneRequired": "ফোন নম্বর লিখুন",
+    "phoneInvalid": "সঠিক ১১ অঙ্কের ফোন নম্বর লিখুন",
+    "fullNameRequired": "আপনার পুরো নাম লিখুন",
+    "emailRequired": "আপনার ইমেইল ঠিকানা লিখুন",
+    "emailInvalid": "মনে হচ্ছে ইমেইল ঠিকানাটি সঠিক নয়!",
+    "organizationNameRequired": "আপনার প্রতিষ্ঠান বা স্কুলের নাম লিখুন",
+    "termsRequired": "সেবার শর্তাবলি ও গোপনীয়তা নীতি মেনে নিতে হবে",
+    "passwordRequired": "{field, select, newPassword {নতুন পাসওয়ার্ড লিখুন} other {পাসওয়ার্ড লিখুন}}",
+    "passwordShort": "{field, select, newPassword {নতুন পাসওয়ার্ড} other {পাসওয়ার্ড}} অন্তত ৮ অক্ষরের হতে হবে।",
+    "passwordUppercase": "{field, select, newPassword {নতুন পাসওয়ার্ডে} other {পাসওয়ার্ডে}} অন্তত একটি বড় হাতের অক্ষর (A-Z) থাকতে হবে।",
+    "passwordLowercase": "{field, select, newPassword {নতুন পাসওয়ার্ডে} other {পাসওয়ার্ডে}} অন্তত একটি ছোট হাতের অক্ষর (a-z) থাকতে হবে।",
+    "passwordNumber": "{field, select, newPassword {নতুন পাসওয়ার্ডে} other {পাসওয়ার্ডে}} অন্তত একটি সংখ্যা (0-9) থাকতে হবে।",
+    "passwordSpecial": "{field, select, newPassword {নতুন পাসওয়ার্ডে} other {পাসওয়ার্ডে}} অন্তত একটি বিশেষ চিহ্ন (যেমন @, #, !) থাকতে হবে।",
+    "confirmPasswordRequired": "পাসওয়ার্ড নিশ্চিত করুন",
+    "passwordMismatch": "পাসওয়ার্ড ও নিশ্চিত পাসওয়ার্ড মিলছে না",
+    "currentPasswordRequired": "আপনার বর্তমান পাসওয়ার্ড লিখুন",
+    "newPasswordSame": "নতুন পাসওয়ার্ড বর্তমান পাসওয়ার্ড থেকে আলাদা হতে হবে",
+    "confirmNewPasswordRequired": "নতুন পাসওয়ার্ড নিশ্চিত করুন",
+    "newPasswordMismatch": "নতুন পাসওয়ার্ড ও নিশ্চিত পাসওয়ার্ড মিলছে না",
+    "otpIncomplete": "পুরো OTP কোডটি লিখুন"
+  },
+  "join": {
+    "loadingTitle": "অনুরোধ লোড হচ্ছে",
+    "checkingClass": "আপনার ক্লাসে যোগ দেওয়ার অনুরোধ যাচাই করা হচ্ছে।",
+    "checkingTest": "আপনার পরীক্ষায় যোগ দেওয়ার অনুরোধ যাচাই করা হচ্ছে।",
+    "unavailableTitle": "অনুরোধটি পাওয়া যাচ্ছে না",
+    "notEligibleTitle": "যোগ্য নন",
+    "noRequest": "এই সেশনে যোগ দেওয়ার কোনো অনুরোধ পাওয়া যায়নি।",
+    "classDetailsMissing": "যোগ দেওয়ার প্রয়োজনীয় তথ্য নেই। ক্লাসের আমন্ত্রণ লিংক থেকে আবার চেষ্টা করুন।",
+    "testDetailsMissing": "যোগ দেওয়ার প্রয়োজনীয় তথ্য নেই। পরীক্ষার লিংক থেকে আবার চেষ্টা করুন।",
+    "incomplete": "যোগ দেওয়ার তথ্য অসম্পূর্ণ।",
+    "notEligible": "আপনি এই পরীক্ষায় যোগ দেওয়ার যোগ্য নন।",
+    "unreadable": "সংরক্ষিত তথ্য পড়া যায়নি।",
+    "pendingTitle": "অনুরোধ অপেক্ষমাণ, {name}",
+    "welcomeTitle": "স্বাগতম, {name}",
+    "pendingDescription": "আপনি যোগ দেওয়ার অনুরোধ করেছেন<br></br>ক্লাস: {className}<br></br>শিক্ষক: {teacher}।",
+    "joinedDescription": "আপনি ক্লাসে যোগ দিয়েছেন: {className}<br></br>শিক্ষক: {teacher}।",
+    "test": "পরীক্ষা",
+    "teacher": "শিক্ষক",
+    "time": "সময়",
+    "minutes": "{minutes, plural, other {# মিনিট}}",
+    "startTest": "পরীক্ষা শুরু করুন",
+    "classJoinFailedTitle": "ক্লাসে যোগ দেওয়া যায়নি",
+    "classJoinFailed": "এই ক্লাসে যোগ দেওয়া যাচ্ছে না।",
+    "classJoinedTitle": "ক্লাসে যোগ দিয়েছেন",
+    "classJoined": "আপনি সফলভাবে ক্লাসে যোগ দিয়েছেন।",
+    "continue": "এগিয়ে যান"
+  },
+  "exam": {
+    "backToTests": "পরীক্ষার তালিকায় ফিরুন",
+    "subject": "বিষয়",
+    "totalMarks": "মোট নম্বর: {marks}",
+    "countdown": "{minutes} মিনিট {seconds} সেকেন্ড",
+    "submit": "উত্তর জমা দিন",
+    "submitting": "জমা হচ্ছে...",
+    "questionCount": "{count, plural, other {#টি প্রশ্ন}}",
+    "points": "নম্বর: {points}",
+    "negativeMarking": "নেতিবাচক নম্বর: {mark}",
+    "wordCount": "শব্দসংখ্যা {count}",
+    "wordCountLimit": "শব্দসংখ্যা {count} / {limit}",
+    "writeAnswer": "এখানে উত্তর লিখুন",
+    "writeEssay": "এখানে আপনার রচনা লিখুন",
+    "noAudioSupport": "আপনার ব্রাউজারে অডিও চালানো যায় না।",
+    "startRecording": "রেকর্ড শুরু করুন",
+    "reRecord": "আবার রেকর্ড করুন",
+    "stopRecording": "রেকর্ড থামান",
+    "recordingTimeLeft": "বাকি সময়: {seconds} সেকেন্ড",
+    "micRequiredToRecord": "উত্তর রেকর্ড করতে মাইক্রোফোনের অনুমতি লাগবে।",
+    "dragToReorder": "টেনে ক্রম বদলান",
+    "mediaLost": "ক্যামেরা ও মাইক্রোফোনের সংযোগ বিচ্ছিন্ন হয়েছে। অনুমতির ধাপে ফিরে আবার চেষ্টা করুন।",
+    "backToPermissions": "অনুমতির ধাপে ফিরুন",
+    "mediaRequired": "পরীক্ষা লোড করার আগে ওয়েবক্যাম ও মাইক্রোফোনের অনুমতি দিতে হবে।",
+    "unableToStart": "পরীক্ষা শুরু করা যায়নি।",
+    "unableToLoad": "পরীক্ষা লোড করা যায়নি।",
+    "returnToFullscreen": "ফুলস্ক্রিনে ফিরতে পরীক্ষার পাতার যেকোনো জায়গায় ক্লিক করুন।",
+    "submittingTitle": "{reason, select, timeout {সময় শেষ} disqualified {পরীক্ষা শেষ} other {আপনার উত্তর জমা হচ্ছে}}",
+    "submittingDescription": "{reason, select, timeout {সময় শেষ, আপনার উত্তর জমা হচ্ছে। একটু অপেক্ষা করুন।} disqualified {আপনার সেশন বাতিল হয়েছে, আপনার উত্তর জমা হচ্ছে।} other {আপনার উত্তর জমা হচ্ছে। একটু অপেক্ষা করুন।}}",
+    "message": {
+      "not-started": {
+        "title": "পরীক্ষা এখনো শুরু হয়নি",
+        "description": "পরীক্ষাটি এখনো খোলেনি। নির্ধারিত সময় হলে আবার আসুন।"
+      },
+      "exam-ended": {
+        "title": "পরীক্ষা শেষ হয়ে গেছে",
+        "description": "পরীক্ষার সময় শেষ। এই পরীক্ষায় আর প্রবেশ বা জমা দেওয়া যাবে না।"
+      },
+      "already-submitted": {
+        "title": "আগেই জমা দেওয়া হয়েছে",
+        "description": "আপনি এই পরীক্ষা আগেই জমা দিয়েছেন, আবার যোগ দেওয়া যাবে না।"
+      },
+      "disqualified": {
+        "title": "পরীক্ষা শেষ",
+        "description": "আপনার সেশন বাতিল হয়েছে। আপনার উত্তরগুলো সংরক্ষিত হয়েছে।"
+      },
+      "time-up": {
+        "title": "সময় শেষ",
+        "description": "আপনার পরীক্ষার সময় শেষ, উত্তরগুলো স্বয়ংক্রিয়ভাবে জমা হয়েছে।"
+      },
+      "not-assigned": {
+        "title": "প্রবেশাধিকার নেই",
+        "description": "এই পরীক্ষাটি আপনার জন্য নির্ধারিত নয়।"
+      },
+      "exam-full": {
+        "title": "পরীক্ষার আসন পূর্ণ",
+        "description": "আপনার শিক্ষকের প্ল্যানের শিক্ষার্থী-সীমা পূর্ণ হয়ে গেছে, তাই আর কেউ এই পরীক্ষা শুরু করতে পারবে না। আপনার শিক্ষকের সঙ্গে যোগাযোগ করুন।"
+      }
+    },
+    "permissions": {
+      "loginSuccessful": "লগইন সফল হয়েছে",
+      "intro": "পরীক্ষা শুরুর আগে ক্যামেরা ও মাইক্রোফোনের অনুমতি দিন।",
+      "cameraTitle": "ক্যামেরা",
+      "cameraAction": "ক্যামেরার অনুমতি দিন",
+      "microphoneTitle": "মাইক্রোফোন",
+      "microphoneAction": "মাইক্রোফোনের অনুমতি দিন",
+      "status": {
+        "granted": "অনুমতি দেওয়া হয়েছে",
+        "denied": "অনুমতি দেওয়া হয়নি",
+        "unsupported": "সমর্থিত নয়",
+        "pending": "অনুমতি দিন।"
+      },
+      "nextStep": "পরের ধাপ",
+      "rulesTitle": "পরীক্ষার নিয়ম",
+      "rules": {
+        "media": "ক্যামেরা ও মাইক চালু রাখুন।",
+        "read": "প্রশ্নপত্র ও নির্দেশনা মনোযোগ দিয়ে পড়ুন।",
+        "tabs": "অন্য কোনো ট্যাব খুলবেন না।",
+        "time": "নির্ধারিত সময়ের মধ্যে পরীক্ষা শেষ করুন।",
+        "flags": "প্রক্টর আপনার কার্যকলাপ চিহ্নিত (ফ্ল্যাগ) করতে পারেন।",
+        "limit": "{count}টি ফ্ল্যাগ পেলে পরীক্ষা বাতিল হয়ে যাবে।"
+      },
+      "accept": "আমি নিয়মগুলো পড়েছি ও বুঝেছি।",
+      "startTest": "পরীক্ষা শুরু করুন",
+      "back": "পেছনে"
+    },
+    "retry": "আবার চেষ্টা করুন"
+  },
+  "proctoring": {
+    "title": "প্রক্টরিং",
+    "status": {
+      "Disqualified": "বাতিল",
+      "Active": "চালু",
+      "Starting": "শুরু হচ্ছে",
+      "Required": "প্রয়োজন"
+    },
+    "risk": {
+      "label": "ঝুঁকির মাত্রা",
+      "Normal": "স্বাভাবিক",
+      "Suspicious": "সন্দেহজনক",
+      "High Risk": "উচ্চ ঝুঁকি",
+      "Likely Cheating": "সম্ভাব্য অসদুপায়"
+    },
+    "flagCount": "ফ্ল্যাগ সংখ্যা",
+    "flaggedCount": "ফ্ল্যাগ সংখ্যা",
+    "fullscreen": "ফুলস্ক্রিন",
+    "webcamPreview": "ওয়েবক্যামের দৃশ্য",
+    "board": "স্বচ্ছতা বোর্ড",
+    "openBoard": "স্বচ্ছতা বোর্ড খুলুন",
+    "ownViewNote": "দ্রষ্টব্য: এই ক্যামেরা-দৃশ্য শুধু আপনি নিজে দেখছেন।",
+    "monitoring": "নজরদারি",
+    "noViolations": "এখনো কোনো নিয়মভঙ্গ পাওয়া যায়নি।",
+    "warningTitle": "সতর্কতা!",
+    "warningSubtitle": "সন্দেহজনক কার্যকলাপ পাওয়া গেছে।",
+    "currentFlagCount": "বর্তমান ফ্ল্যাগ সংখ্যা: {count}",
+    "continueCarefully": "সাবধানে পরীক্ষা চালিয়ে যান।",
+    "understand": "বুঝেছি",
+    "disqualifiedTitle": "বাতিল",
+    "disqualifiedDescription": "সর্বোচ্চ অনুমোদিত নিয়মভঙ্গের সীমা পেরিয়ে যাওয়ায় আপনাকে পরীক্ষা থেকে বাতিল করা হয়েছে।",
+    "countdown": {
+      "screen-share": {
+        "title": "স্ক্রিন শেয়ার প্রয়োজন",
+        "message": "স্ক্রিন শেয়ার বন্ধ হয়ে গেছে। বাতিল এড়াতে সময় শেষ হওয়ার আগে আবার চালু করুন।"
+      },
+      "double-display": {
+        "title": "একাধিক ডিসপ্লে পাওয়া গেছে",
+        "message": "একাধিক ডিসপ্লে পাওয়া গেছে। সময় শেষ হওয়ার আগে বাড়তি ডিসপ্লে খুলে ফেলুন।"
+      },
+      "resolveWithin": "বাতিল এড়াতে {seconds} সেকেন্ডের মধ্যে সমাধান করুন।"
+    },
+    "flags": {
+      "tab-switch": "আপনি অন্য ট্যাবে গেছেন।",
+      "window-blur": "আপনি পরীক্ষার উইন্ডো ছেড়ে গেছেন।",
+      "fullscreen-exit": "আপনি ফুলস্ক্রিন থেকে বেরিয়ে গেছেন।",
+      "no-face": "ক্যামেরায় আপনার মুখ দেখা যাচ্ছে না।",
+      "multiple-faces": "একাধিক মুখ দেখা গেছে।",
+      "looking-away": "আপনি স্ক্রিন থেকে চোখ সরিয়েছেন।",
+      "phone-detected": "একটি ফোন দেখা গেছে।",
+      "paste-attempt": "পেস্ট করা যাবে না।",
+      "restricted-action": "পরীক্ষার সময় এই কাজটি করা যাবে না।",
+      "voice-detected": "কথার শব্দ পাওয়া গেছে।",
+      "idle-too-long": "অনেকক্ষণ মাউস বা কিবোর্ড ব্যবহার হয়নি।",
+      "devtools-open": "ডেভেলপার টুলস খোলা হয়েছে।",
+      "screen-sharing": "স্ক্রিন শেয়ার শনাক্ত হয়েছে।",
+      "camera-blocked": "আপনার ক্যামেরা বন্ধ বা ঢাকা আছে।",
+      "screen-share-stopped": "স্ক্রিন শেয়ার বন্ধ হয়ে গেছে।",
+      "double-display": "একাধিক ডিসপ্লে পাওয়া গেছে।"
+    },
+    "flagList": {
+      "open": "ফ্ল্যাগের তালিকা",
+      "title": "ফ্ল্যাগের তালিকা",
+      "devNote": "শুধু ডেভেলপমেন্টের জন্য: Redux প্রক্টরিং অবস্থা থেকে তালিকা।",
+      "copy": "JSON কপি করুন",
+      "copied": "কপি হয়েছে",
+      "type": "ফ্ল্যাগের ধরন",
+      "penalty": "পেনাল্টি",
+      "empty": "এখনো কোনো ফ্ল্যাগ নেই।",
+      "close": "বন্ধ করুন"
+    },
+    "close": "বন্ধ করুন",
+    "retry": "আবার চেষ্টা করুন"
+  }
+}

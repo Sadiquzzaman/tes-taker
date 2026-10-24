@@ -1,0 +1,382 @@
+{
+  "common": {
+    "loading": "Loading..."
+  },
+  "language": {
+    "switchTo": "বাংলা",
+    "switchToLabel": "Switch language to Bangla",
+    "saveFailed": "Your language was changed on this device, but could not be saved to your account."
+  },
+  "nav": {
+    "category": {
+      "Platform": "Platform",
+      "System": "System",
+      "Organization": "Organization",
+      "Admin": "Admin"
+    },
+    "plans": "Plans",
+    "payments": "Payments",
+    "teachers": "Teachers",
+    "users": "Users",
+    "teacherRequests": "Teacher Requests",
+    "organizations": "Organizations",
+    "subjects": "Subjects",
+    "dashboard": "Dashboard",
+    "classes": "Classes",
+    "tests": "Tests",
+    "grading": "Grading",
+    "billing": "Billing & Plans",
+    "overview": "Overview",
+    "assistants": "Assistants",
+    "students": "Students",
+    "assignments": "Assignments",
+    "account": "Account",
+    "help": "Help"
+  },
+  "shell": {
+    "organization": "Organization",
+    "signOut": "Sign out",
+    "toggleSidebar": "Toggle sidebar",
+    "userAvatar": "User avatar",
+    "workspace": {
+      "title": "Workspaces",
+      "myTeaching": "My Teaching",
+      "classes": "Classes",
+      "fallback": "Workspace",
+      "review": "Review"
+    }
+  },
+  "auth": {
+    "or": "OR",
+    "welcomeBack": "Welcome Back",
+    "tagline": "Manage classes, create tests, and review results the <highlight>most convenient way</highlight>",
+    "illustrationAlt": "Login illustration",
+    "continueWithGoogle": "Continue with Google",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "haveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "logIn": "Log In",
+    "signUp": "Sign Up",
+    "signingUp": "Signing Up...",
+    "backToAccountType": "Back to account type",
+    "agreeTerms": "I agree to the <terms>Terms of Service</terms> and the <privacy>Privacy Policy</privacy>.",
+    "fields": {
+      "emailOrPhone": "Email or phone",
+      "emailOrPhonePlaceholder": "Email or 01XXXXXXXXX",
+      "enterEmailOrPhone": "Enter email or phone",
+      "password": "Password",
+      "passwordPlaceholder": "Enter password",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Confirm password",
+      "newPassword": "New password",
+      "newPasswordPlaceholder": "Enter new password",
+      "confirmNewPasswordPlaceholder": "Confirm new password",
+      "fullName": "Full name",
+      "fullNamePlaceholder": "e.g., John Doe",
+      "ownerFullName": "Owner full name",
+      "phone": "Phone",
+      "phonePlaceholder": "Enter phone number",
+      "email": "Email",
+      "emailPlaceholder": "Enter email address",
+      "organizationName": "Organization / school name",
+      "organizationNamePlaceholder": "e.g., ABC School"
+    },
+    "login": {
+      "title": "Login",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign in",
+      "submitting": "Logging in...",
+      "successTitle": "Login Successful",
+      "successDescription": "You are signed in.",
+      "failedTitle": "Login Failed",
+      "failedDescription": "Login failed. Please try again."
+    },
+    "signup": {
+      "title": "Sign Up",
+      "choose": "Choose how you want to join Instructor.",
+      "student": "Student",
+      "studentDescription": "Create a student account to join classes and take tests.",
+      "teacher": "Sign Up as Teacher",
+      "teacherDescription": "Create an account and request teacher access. An admin must approve before you can teach.",
+      "organization": "Organization",
+      "organizationDescription": "Register a school or organization. An admin will approve before you can use it.",
+      "studentTitle": "Student Sign Up",
+      "teacherTitle": "Teacher Sign Up",
+      "teacherNote": "You will register as a student first. After an administrator approves your teacher request, you will receive teacher permissions.",
+      "teacherPending": "Your teacher request is pending admin approval. You can sign in as a student until it is approved.",
+      "organizationTitle": "Organization Sign Up",
+      "organizationRegistered": "Organization registered",
+      "organizationRegisteredDescription": "Save your organization number from the confirmation toast. After SUPER_ADMIN approval, sign in with your phone and password.",
+      "organizationNumber": "Your organization number is {number}. It is awaiting SUPER_ADMIN approval. Sign in with your phone and password after approval.",
+      "otpSentTitle": "OTP Sent",
+      "otpSentDescription": "A verification code has been sent.",
+      "failedTitle": "Sign Up Failed",
+      "organizationFailed": "Organization signup failed. Please try again."
+    },
+    "otp": {
+      "title": "Verify code",
+      "sentTo": "We've sent a 6-digit code to <target>{value}</target>.",
+      "sent": "We've sent a 6-digit code.",
+      "checkSpam": "Don't forget to check the spam folder.",
+      "checkEmail": "Please check your email inbox.",
+      "checkSms": "Please check your SMS inbox.",
+      "checkInbox": "Please check your inbox.",
+      "resendIn": "Resend available in {time}",
+      "resend": "Resend code",
+      "submit": "Verify & Continue",
+      "submitting": "Verifying...",
+      "verifiedTitle": "Code Verified",
+      "verifiedDescription": "OTP verified successfully.",
+      "failedTitle": "Verification Failed",
+      "failedDescription": "OTP verification failed. Please try again."
+    },
+    "forgot": {
+      "title": "Forgot password",
+      "intro": "Enter your email or phone number and we'll send you a verification code to reset your password.",
+      "send": "Send code",
+      "sending": "Sending code...",
+      "resetTitle": "Set new password",
+      "reset": "Reset password",
+      "resetting": "Updating...",
+      "remember": "Remember your password?",
+      "codeSentTitle": "Code sent",
+      "codeSentEmail": "We've sent a reset code to your email.",
+      "codeSentSms": "We've sent a reset code to your phone.",
+      "codeSent": "We've sent a reset code.",
+      "codeVerifiedTitle": "Code verified",
+      "codeVerifiedDescription": "Set your new password to continue.",
+      "updatedTitle": "Password updated",
+      "updatedDescription": "Your password has been reset. Please login.",
+      "and": "and"
+    },
+    "changePassword": {
+      "doneTitle": "Password changed",
+      "doneDescription": "Your password has been updated successfully."
+    },
+    "joinHeader": {
+      "loginClass": "Login Required to Join {name}",
+      "loginTest": "Login Required to participate in {name} test",
+      "signupClass": "Sign Up Required to Join {name}",
+      "signupTest": "Sign Up Required to participate in {name} test"
+    }
+  },
+  "validation": {
+    "identifierRequired": "Please enter your email or phone number",
+    "phoneLength": "Phone number must be 11 digits",
+    "phoneInvalidBd": "Invalid Bangladeshi phone number",
+    "emailInvalidShort": "Invalid email address",
+    "identifierInvalid": "Enter a valid email or phone number",
+    "organizationNumberRequired": "Please enter organization number",
+    "organizationNumberShort": "Organization number must be at least 6 digits",
+    "phoneRequired": "Please enter a phone number",
+    "phoneInvalid": "Please enter a valid 11-digit phone number",
+    "fullNameRequired": "Please enter your full name",
+    "emailRequired": "Please enter your email address",
+    "emailInvalid": "It looks like the email you entered is invalid!",
+    "organizationNameRequired": "Please enter your organization or school name",
+    "termsRequired": "You must agree to the Terms of Service and Privacy Policy",
+    "passwordRequired": "{field, select, newPassword {Please enter a new password} other {Please enter a password}}",
+    "passwordShort": "{field, select, newPassword {New password} other {Password}} must be at least 8 characters.",
+    "passwordUppercase": "{field, select, newPassword {New password} other {Password}} must include at least one uppercase letter.",
+    "passwordLowercase": "{field, select, newPassword {New password} other {Password}} must include at least one lowercase letter.",
+    "passwordNumber": "{field, select, newPassword {New password} other {Password}} must include at least one number.",
+    "passwordSpecial": "{field, select, newPassword {New password} other {Password}} must include at least one special character.",
+    "confirmPasswordRequired": "Please confirm your password",
+    "passwordMismatch": "Password and Confirm password do not match",
+    "currentPasswordRequired": "Please enter your current password",
+    "newPasswordSame": "New password must be different from the current password",
+    "confirmNewPasswordRequired": "Please confirm your new password",
+    "newPasswordMismatch": "New password and Confirm password do not match",
+    "otpIncomplete": "Please enter the complete OTP code"
+  },
+  "join": {
+    "loadingTitle": "Loading request",
+    "checkingClass": "Checking your class request.",
+    "checkingTest": "Checking your test join request.",
+    "unavailableTitle": "Request unavailable",
+    "notEligibleTitle": "Not Eligible",
+    "noRequest": "No join request was found for this session.",
+    "classDetailsMissing": "Required join details are missing. Please try the class invite flow again.",
+    "testDetailsMissing": "Required join details are missing. Please try the test join flow again.",
+    "incomplete": "The join information is incomplete.",
+    "notEligible": "You are not eligible to join this test.",
+    "unreadable": "Stored join information could not be read.",
+    "pendingTitle": "Request pending {name}",
+    "welcomeTitle": "Welcome {name}",
+    "pendingDescription": "You have requested to join<br></br>Class: {className}<br></br>Teacher: {teacher}.",
+    "joinedDescription": "You have joined Class: {className}<br></br>Teacher: {teacher}.",
+    "test": "Test",
+    "teacher": "Teacher",
+    "time": "Time",
+    "minutes": "{minutes, plural, one {# minute} other {# minutes}}",
+    "startTest": "Start Test",
+    "classJoinFailedTitle": "Class Join Failed",
+    "classJoinFailed": "Unable to join this class.",
+    "classJoinedTitle": "Class Join Successful",
+    "classJoined": "You have successfully joined the class.",
+    "continue": "Continue"
+  },
+  "exam": {
+    "backToTests": "Back to Tests",
+    "subject": "Sub",
+    "totalMarks": "Total Marks: {marks}",
+    "countdown": "{minutes} min {seconds} sec",
+    "submit": "Submit Answer",
+    "submitting": "Submitting...",
+    "questionCount": "{count, plural, one {# Question} other {# Questions}}",
+    "points": "Points: {points}",
+    "negativeMarking": "Negative marking: {mark}",
+    "wordCount": "Word count {count}",
+    "wordCountLimit": "Word count {count} / {limit}",
+    "writeAnswer": "Write answer here",
+    "writeEssay": "Write your essay here",
+    "noAudioSupport": "Your browser does not support the audio element.",
+    "startRecording": "Start recording",
+    "reRecord": "Re-record answer",
+    "stopRecording": "Stop recording",
+    "recordingTimeLeft": "Time left: {seconds}s",
+    "micRequiredToRecord": "Microphone access is required to record your answer.",
+    "dragToReorder": "Drag to reorder",
+    "mediaLost": "Camera and microphone access were lost. Please return to permissions and try again.",
+    "backToPermissions": "Back to Permissions",
+    "mediaRequired": "Webcam and microphone access are required before loading the test.",
+    "unableToStart": "Unable to start the test.",
+    "unableToLoad": "Unable to load the test.",
+    "returnToFullscreen": "Click anywhere on the exam page to return to fullscreen.",
+    "submittingTitle": "{reason, select, timeout {Time is up} disqualified {Exam ended} other {Your answer is submitting}}",
+    "submittingDescription": "{reason, select, timeout {Time is up and your answer is submitting. Please wait a moment.} disqualified {Your session was disqualified and your answers are being submitted.} other {Your answer is submitting. Please wait a moment.}}",
+    "message": {
+      "not-started": {
+        "title": "Exam has not started",
+        "description": "This exam is not open yet. Please return when the scheduled start time arrives."
+      },
+      "exam-ended": {
+        "title": "Exam has ended",
+        "description": "The exam window is closed. You can no longer enter or submit this test."
+      },
+      "already-submitted": {
+        "title": "Already submitted",
+        "description": "You have already submitted this exam and cannot rejoin it."
+      },
+      "disqualified": {
+        "title": "Exam ended",
+        "description": "Your session was disqualified. Your answers have been recorded."
+      },
+      "time-up": {
+        "title": "Time is up",
+        "description": "Your exam time has ended and your answers were submitted automatically."
+      },
+      "not-assigned": {
+        "title": "Access denied",
+        "description": "You are not assigned to this exam."
+      },
+      "exam-full": {
+        "title": "Exam is full",
+        "description": "This exam has reached the student limit of your teacher's plan, so no more students can start it. Please contact your teacher."
+      }
+    },
+    "permissions": {
+      "loginSuccessful": "Login Successful",
+      "intro": "Please allow camera and microphone access before starting the test.",
+      "cameraTitle": "Camera Device",
+      "cameraAction": "Allow Camera Access",
+      "microphoneTitle": "Microphone",
+      "microphoneAction": "Allow Microphone Access",
+      "status": {
+        "granted": "Granted",
+        "denied": "Denied",
+        "unsupported": "Unsupported",
+        "pending": "Please set it up."
+      },
+      "nextStep": "Next Step",
+      "rulesTitle": "Test Rules",
+      "rules": {
+        "media": "Stay camera and mic on.",
+        "read": "Read the test paper/instructions carefully.",
+        "tabs": "Do not open additional tabs.",
+        "time": "Finish the test within the allotted time.",
+        "flags": "Proctor can flag your activity.",
+        "limit": "If you receive {count} flags, the test will be terminated."
+      },
+      "accept": "I read and understand the rules.",
+      "startTest": "Start Test",
+      "back": "Back"
+    },
+    "retry": "Retry"
+  },
+  "proctoring": {
+    "title": "Proctoring",
+    "status": {
+      "Disqualified": "Disqualified",
+      "Active": "Active",
+      "Starting": "Starting",
+      "Required": "Required"
+    },
+    "risk": {
+      "label": "Risk Level",
+      "Normal": "Normal",
+      "Suspicious": "Suspicious",
+      "High Risk": "High Risk",
+      "Likely Cheating": "Likely Cheating"
+    },
+    "flagCount": "Flag Count",
+    "flaggedCount": "Flagged count",
+    "fullscreen": "Fullscreen",
+    "webcamPreview": "Webcam preview",
+    "board": "Transparency Board",
+    "openBoard": "Open transparency board",
+    "ownViewNote": "N.B. This camera view is only for your own monitor.",
+    "monitoring": "Monitoring",
+    "noViolations": "No violations detected yet.",
+    "warningTitle": "Warning!",
+    "warningSubtitle": "Suspicious activity detected.",
+    "currentFlagCount": "Current flag count: {count}",
+    "continueCarefully": "Please continue carefully.",
+    "understand": "I Understand",
+    "disqualifiedTitle": "Disqualified",
+    "disqualifiedDescription": "You have been disqualified from the examination because the maximum allowed violations have been exceeded.",
+    "countdown": {
+      "screen-share": {
+        "title": "Screen Share Required",
+        "message": "Screen sharing stopped. Resume within the countdown to avoid disqualification."
+      },
+      "double-display": {
+        "title": "Multiple Displays Detected",
+        "message": "Multiple displays detected. Disconnect extra displays within the countdown."
+      },
+      "resolveWithin": "Resolve this within {seconds} seconds to avoid disqualification."
+    },
+    "flags": {
+      "tab-switch": "You switched to another tab.",
+      "window-blur": "You left the exam window.",
+      "fullscreen-exit": "You left fullscreen.",
+      "no-face": "Your face is not visible to the camera.",
+      "multiple-faces": "More than one face was detected.",
+      "looking-away": "You looked away from the screen.",
+      "phone-detected": "A phone was detected.",
+      "paste-attempt": "Pasting is not allowed.",
+      "restricted-action": "That action is not allowed during the exam.",
+      "voice-detected": "Voices were detected.",
+      "idle-too-long": "No mouse or keyboard activity was detected for a while.",
+      "devtools-open": "Developer tools were opened.",
+      "screen-sharing": "Screen sharing was detected.",
+      "camera-blocked": "Your camera is blocked or covered.",
+      "screen-share-stopped": "Screen sharing stopped.",
+      "double-display": "Multiple displays were detected."
+    },
+    "flagList": {
+      "open": "List of Flag",
+      "title": "Flag List",
+      "devNote": "Dev-only list from Redux proctoring state.",
+      "copy": "Copy JSON",
+      "copied": "Copied",
+      "type": "Flag Type",
+      "penalty": "Penalty",
+      "empty": "No flags yet.",
+      "close": "Close"
+    },
+    "close": "Close",
+    "retry": "Retry"
+  }
+}
