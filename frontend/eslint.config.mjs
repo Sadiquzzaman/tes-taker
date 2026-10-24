@@ -8,8 +8,21 @@ const eslintConfig = defineConfig([
   // The component library, and each screen once P1-05 has rebuilt it, use design tokens only
   // (docs/ui/design-system.md §3.5). Add a folder here when its screens move to design/ui.
   {
-    files: ["design/ui/**/*.{ts,tsx}", "component/Dashboard/**/*.{ts,tsx}", "component/Tests/CreateTestActionButton.tsx"],
-    ignores: ["**/*.test.{ts,tsx}"],
+    files: [
+      "design/ui/**/*.{ts,tsx}",
+      "component/Dashboard/**/*.{ts,tsx}",
+      "component/Classes/**/*.{ts,tsx}",
+      "component/JoinClass/**/*.{ts,tsx}",
+      "app/classes/**/*.{ts,tsx}",
+      "component/Tests/CreateTestActionButton.tsx",
+    ],
+    ignores: [
+      "**/*.test.{ts,tsx}",
+      // Rebuilt with the Tests area later in P1-05.
+      "component/Classes/TestCard.tsx",
+      // No longer used; deletion pending owner approval.
+      "component/Classes/StudentBadges.tsx",
+    ],
     rules: {
       "no-restricted-syntax": [
         "error",

@@ -3,12 +3,14 @@ import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setOpenShareClassModal } from "@/lib/features/classSlice";
 import { useToast } from "@/component/Toast/ToastContext";
 import { buildClassJoinLink } from "@/utils/frontendAppUrl";
+import { useTranslations } from "next-intl";
 
 export default function useShareClass() {
   const { openShareClassModal: classData } = useAppSelector((state) => state.class);
   const open = Boolean(classData);
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
+  const t = useTranslations("classes.shareModal");
   const [classLink, setClassLink] = useState("");
   // Keep the last link while the modal closes, so the text does not go blank.
   const nextClassLink = classData?.id ? buildClassJoinLink(classData.id) : null;
@@ -21,14 +23,14 @@ export default function useShareClass() {
   };
 
   const shareWhatsApp = () => {
-    const message = `Join my class: ${classLink}`;
+    const message = t("message", { link: classLink });
     const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   };
 
   const shareGmail = () => {
-    const subject = "Join my class";
-    const body = `Join my class using this link:\n${classLink}`;
+    const subject = t("subject");
+    const body = t("message", { link: classLink });
     window.open(
       `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
       "_blank",
@@ -40,7 +42,7 @@ export default function useShareClass() {
   };
 
   const shareTelegram = () => {
-    const message = `Join my class`;
+    const message = t("subject");
     window.open(
       `https://t.me/share/url?url=${encodeURIComponent(classLink)}&text=${encodeURIComponent(message)}`,
       "_blank",
@@ -56,8 +58,8 @@ export default function useShareClass() {
       await navigator.clipboard.writeText(classLink);
       triggerToast({
         type: "success",
-        title: "Link copied!",
-        description: "Link successfully copied to clipboard!",
+        title: t("copiedTitle"),
+        description: t("copiedDetail"),
       });
     } catch (err) {
       console.error("Failed to copy: ", err);

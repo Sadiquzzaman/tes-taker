@@ -1,85 +1,54 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Button, cn } from "@/design/ui";
 import InviteIconSVG from "../svg/InviteIconSVG";
 
+/** The class invite page: who invited you, and sign up or log in to join. */
 const JoinClassModal = ({ classData, classId, apiResponse, errorMessage }: JoinClassModalProps) => {
+  const t = useTranslations("classes.join");
   const router = useRouter();
   const isError = Boolean(errorMessage);
   const title = isError
-    ? "Class unavailable"
-    : `Join '${classData?.class_name ?? ""}' class by ${classData?.created_user_name ?? ""}`;
-  const description = isError ? errorMessage : classData?.description || "No description available for this class.";
+    ? t("unavailable")
+    : t("title", { className: classData?.class_name ?? "", teacher: classData?.created_user_name ?? "" });
+  const description = isError ? errorMessage : classData?.description || t("noDescription");
 
   const persistJoinSession = () => {
     if (!apiResponse) {
       return;
     }
-
     sessionStorage.setItem(
       "joinSessionInfo",
-      JSON.stringify({
-        id: classId,
-        className: apiResponse?.payload?.class_name,
-        ...apiResponse?.payload,
-        joinType: "class",
-      }),
+      JSON.stringify({ id: classId, className: apiResponse?.payload?.class_name, ...apiResponse?.payload, joinType: "class" }),
     );
   };
 
-  const handleLogin = () => {
+  const go = (path: "/login" | "/signup") => {
     persistJoinSession();
-    router.push("/login");
-  };
-
-  const handleSignUp = () => {
-    persistJoinSession();
-    router.push("/signup");
+    router.push(path);
   };
 
   return (
-    <div className="flex w-full items-center justify-center font-ins-sans">
-      <div className="flex w-full max-w-[460px] flex-col justify-center rounded-xl border-l border-l-border bg-surface shadow-lg max-md:max-w-full">
-        <div className="flex flex-col items-start justify-center gap-6 p-6">
-          <div className={isError ? "text-danger" : "text-primary"}>
+    <div className="flex w-full items-center justify-center">
+      <div className="flex w-full max-w-md flex-col rounded-card border border-border bg-surface shadow-overlay">
+        <div className="flex flex-col gap-6 p-6">
+          <span className={isError ? "text-danger" : "text-primary"}>
             <InviteIconSVG width={40} />
-          </div>
-
-          <div className="flex w-full flex-col items-start gap-2">
-            <p className="w-full text-title font-medium text-ink">{title}</p>
-            <p
-              className={
-                isError
-                  ? "w-full text-body font-normal leading-5 text-danger"
-                  : "w-full text-body font-normal leading-5 text-ink-muted"
-              }
-            >
-              {description}
-            </p>
+          </span>
+          <div className="flex flex-col gap-2">
+            <h1 className="text-title font-semibold text-ink">{title}</h1>
+            <p className={cn("text-body", isError ? "text-danger" : "text-ink-muted")}>{description}</p>
           </div>
         </div>
-
         {!isError ? (
-          <>
-            <div className="h-px w-full bg-border" />
-
-            <div className="flex items-center justify-end gap-3 p-6">
-              <button
-                type="button"
-                onClick={handleSignUp}
-                className="flex h-10 items-center justify-center rounded-lg border border-primary px-4 text-body-sm font-medium leading-4 text-primary transition-colors hover:bg-primary-soft"
-              >
-                Sign Up
-              </button>
-              <button
-                type="button"
-                onClick={handleLogin}
-                className="flex h-10 items-center justify-center rounded-lg bg-primary px-4 pl-[14px] text-body-sm font-medium leading-4 text-ink-inverse transition-colors hover:bg-primary-hover"
-              >
-                Login
-              </button>
-            </div>
-          </>
+          <div className="flex flex-col-reverse gap-2 border-t border-border p-4 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={() => go("/signup")}>
+              {t("signUp")}
+            </Button>
+            <Button onClick={() => go("/login")}>{t("logIn")}</Button>
+          </div>
         ) : null}
       </div>
     </div>

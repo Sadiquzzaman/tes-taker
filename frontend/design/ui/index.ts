@@ -21,6 +21,7 @@ export { default as StatTile, type StatTileProps } from "./StatTile";
 export { default as Badge, StatusPill, type BadgeProps, type BadgeTone } from "./Badge";
 export { default as Avatar, initialsOf, type AvatarProps } from "./Avatar";
 export { default as Tag, type TagProps } from "./Tag";
+export { default as TagInput, type TagInputProps } from "./TagInput";
 export { default as Table, type TableProps, type TableColumn, type SortDirection } from "./Table";
 export { default as Tabs, type TabsProps, type TabItem } from "./Tabs";
 export { default as Breadcrumb, type BreadcrumbItem } from "./Breadcrumb";
