@@ -127,7 +127,9 @@
       "verifiedTitle": "Code Verified",
       "verifiedDescription": "OTP verified successfully.",
       "failedTitle": "Verification Failed",
-      "failedDescription": "OTP verification failed. Please try again."
+      "failedDescription": "OTP verification failed. Please try again.",
+      "code": "Verification code",
+      "digit": "Digit {number, number} of {total, number}"
     },
     "forgot": {
       "title": "Forgot password",
@@ -164,7 +166,8 @@
       "missingData": "Google did not send the sign-in details. Please try again.",
       "failed": "Sign-in could not be completed. Please try again.",
       "doneDescription": "Signed in with Google."
-    }
+    },
+    "home": "Instructor home"
   },
   "validation": {
     "identifierRequired": "Please enter your email or phone number",

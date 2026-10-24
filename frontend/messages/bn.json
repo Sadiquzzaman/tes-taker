@@ -127,7 +127,9 @@
       "verifiedTitle": "কোড যাচাই হয়েছে",
       "verifiedDescription": "OTP সফলভাবে যাচাই হয়েছে।",
       "failedTitle": "যাচাই হয়নি",
-      "failedDescription": "OTP যাচাই হয়নি। আবার চেষ্টা করুন।"
+      "failedDescription": "OTP যাচাই হয়নি। আবার চেষ্টা করুন।",
+      "code": "যাচাই কোড",
+      "digit": "{total, number}টির মধ্যে {number, number} নম্বর ঘর"
     },
     "forgot": {
       "title": "পাসওয়ার্ড ভুলে গেছেন",
@@ -164,7 +166,8 @@
       "missingData": "Google সাইন ইনের তথ্য পাঠায়নি। আবার চেষ্টা করুন।",
       "failed": "সাইন ইন সম্পন্ন হয়নি। আবার চেষ্টা করুন।",
       "doneDescription": "Google দিয়ে সাইন ইন হয়েছে।"
-    }
+    },
+    "home": "Instructor হোম"
   },
   "validation": {
     "identifierRequired": "আপনার ইমেইল বা ফোন নম্বর লিখুন",
