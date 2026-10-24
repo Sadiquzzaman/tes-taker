@@ -1,4 +1,4 @@
-type ToastType = "success" | "error" | "warning";
+type ToastType = "success" | "error" | "warning" | "info";
 
 interface Toast {
   id: number;
