@@ -15,12 +15,12 @@ The UI gets better by building **one design system first (P1)** and then rebuild
 
 ### 3.2 Tokens
 
-All tokens are defined once in `frontend/ui/tokens.json` and generated into Tailwind `@theme` (web) and `ThemeData` (Flutter). Nothing outside the token file uses a raw value.
+All tokens are defined once in `frontend/design/tokens.json` and generated into Tailwind `@theme` (web, `frontend/app/tokens.css`) and `ThemeData` (Flutter, from P4). Nothing outside the token file uses a raw value.
 
 | Group | Tokens |
 | --- | --- |
 | Colour — brand | `primary` #49734F (existing), `primary-hover` #3D6242 (existing), `primary-soft` (tint for selected rows and badges) |
-| Colour — text | `ink` #232A25 (existing), `ink-muted` #747775 (existing), `ink-inverse` |
+| Colour — text | `ink` #232A25 (existing), `ink-muted` #6B6E6C (was #747775, darkened to pass WCAG AA on canvas and primary-soft), `ink-inverse` |
 | Colour — surfaces | `canvas` (warm off-white), `surface` (white), `surface-raised`, `border` #E5E5E5 (existing) |
 | Colour — status | `success`, `warning` (amber, "needs action"), `danger`, `info`, each with a soft background |
 | Type | Latin: Instrument Sans (existing brand). Bangla: Hind Siliguri. Marketing headings only: DM Serif Display. Scale: 12 / 14 / 16 / 20 / 24 / 32; line height 1.5 Latin, 1.7 Bangla |
@@ -30,6 +30,15 @@ All tokens are defined once in `frontend/ui/tokens.json` and generated into Tail
 | Motion | 150 ms ease-out for hover and focus; 250 ms for sheets; respects reduced motion |
 
 Dark mode: tokens are named by role (not by colour), so it can be added later without touching screens.
+
+### Using the tokens (built in P1-01)
+
+- **Edit** `frontend/design/tokens.json`, then run `pnpm tokens` in `frontend/` to regenerate `app/tokens.css`. Never edit `tokens.css` by hand; CI fails if it is out of date (`pnpm tokens:check`, also a frontend test).
+- **Classes** (Tailwind v4): colours `bg-primary`, `bg-primary-soft`, `text-ink`, `text-ink-muted`, `text-ink-inverse`, `bg-canvas`, `bg-surface`, `border-border`, and `text-`/`bg-` for `success`, `warning`, `danger`, `info` (+ `-soft`); type `text-caption` (12), `text-body-sm` (14), `text-body` (16), `text-title-sm` (20), `text-title` (24), `text-display` (32), each with its line height; radius `rounded-input`, `rounded-card`, `rounded-sheet`; elevation `shadow-card`, `shadow-overlay`; motion `ease-fast` / `ease-sheet` with `duration-(--motion-fast)` / `duration-(--motion-sheet)`; fonts `font-sans` (default), `font-bangla`, `font-display` (marketing headings only). Spacing uses Tailwind's default 4 px scale (`p-1` = 4, `p-2` = 8, … `p-12` = 48).
+- **Bangla:** `font-sans` falls back to Hind Siliguri for Bangla characters. The 1.7 line height for Bangla (`--leading-bangla`) is applied with the language switch in P1-04.
+- **Contrast:** every text colour is tested against the backgrounds it is used on (WCAG AA, 4.5:1) in `design/tokens.test.ts`; add a pair there when you introduce a new combination.
+- **Motion:** animations and transitions are switched off when the user prefers reduced motion (`app/globals.css`).
+- Existing screens still use hard-coded values; they move onto the tokens in P1-05.
 
 ### 3.3 Components (build in P1, in this order)
 

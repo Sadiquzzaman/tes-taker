@@ -124,12 +124,12 @@ The UI gets better by building **one design system first (P1)** and then rebuild
 
 ### 3.2 Tokens
 
-All tokens are defined once in `frontend/ui/tokens.json` and generated into Tailwind `@theme` (web) and `ThemeData` (Flutter). Nothing outside the token file uses a raw value.
+All tokens are defined once in `frontend/design/tokens.json` and generated into Tailwind `@theme` (web, `frontend/app/tokens.css`) and `ThemeData` (Flutter, from P4). Nothing outside the token file uses a raw value.
 
 | Group | Tokens |
 | --- | --- |
 | Colour — brand | `primary` #49734F (existing), `primary-hover` #3D6242 (existing), `primary-soft` (tint for selected rows and badges) |
-| Colour — text | `ink` #232A25 (existing), `ink-muted` #747775 (existing), `ink-inverse` |
+| Colour — text | `ink` #232A25 (existing), `ink-muted` #6B6E6C (was #747775, darkened to pass WCAG AA on canvas and primary-soft), `ink-inverse` |
 | Colour — surfaces | `canvas` (warm off-white), `surface` (white), `surface-raised`, `border` #E5E5E5 (existing) |
 | Colour — status | `success`, `warning` (amber, "needs action"), `danger`, `info`, each with a soft background |
 | Type | Latin: Instrument Sans (existing brand). Bangla: Hind Siliguri. Marketing headings only: DM Serif Display. Scale: 12 / 14 / 16 / 20 / 24 / 32; line height 1.5 Latin, 1.7 Bangla |
