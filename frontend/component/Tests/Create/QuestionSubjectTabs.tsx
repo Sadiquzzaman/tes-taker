@@ -1,6 +1,8 @@
 import PlusIcon from "@/component/svg/PlusIcon";
 import CrossIconSVG from "@/component/svg/CrossIconSVG";
+import { useTranslations } from "next-intl";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { Button, cn, focusRing } from "@/design/ui";
 import AddQuestionSubjectModal from "./AddQuestionSubjectModal";
 import RemoveSubjectConfirmationModal from "./RemoveSubjectConfirmationModal";
 
@@ -13,6 +15,7 @@ const QuestionSubjectTabs = memo(
     onAddSubject,
     onRemoveSubject,
   }: QuestionSubjectTabsProps) => {
+    const t = useTranslations("createTest.subjects");
     const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
     const [subjectPendingRemoval, setSubjectPendingRemoval] = useState<Pick<SubjectItem, "id" | "name"> | null>(null);
     const subjectScrollRef = useRef<HTMLDivElement>(null);
@@ -85,10 +88,12 @@ const QuestionSubjectTabs = memo(
 
     return (
       <>
-        <div className="flex w-fit max-w-full items-center gap-2 rounded-input bg-canvas h-10 p-1">
+        <div className="flex max-w-full flex-wrap items-center gap-2">
           <div
             ref={subjectScrollRef}
-            className="flex min-w-0 items-center gap-2 overflow-x-auto h-full scrollbar-hide cursor-grab"
+            role="tablist"
+            aria-label={t("label")}
+            className="scrollbar-hide flex min-w-0 items-center gap-1 overflow-x-auto rounded-input bg-canvas p-1"
             onMouseDown={handleSubjectScrollMouseDown}
             onMouseMove={handleSubjectScrollMouseMove}
             onMouseUp={handleSubjectScrollMouseUp}
@@ -96,32 +101,32 @@ const QuestionSubjectTabs = memo(
           >
             {subjects.map((subject) => {
               const isActiveSubject = subject.id === activeSubjectId;
-
               return (
                 <div
                   key={subject.id}
                   ref={(node) => {
                     subjectButtonRefs.current[subject.id] = node;
                   }}
-                  onClick={() => onSelectSubject(subject.id)}
-                  className={`rounded-sm h-full flex-shrink-0 flex items-center justify-center px-3 text-body-sm font-normal whitespace-nowrap ${
-                    isActiveSubject ? "bg-primary text-ink-inverse" : "bg-surface text-ink"
-                  }`}
+                  className={cn(
+                    "flex h-8 shrink-0 items-center rounded-sm text-body-sm",
+                    isActiveSubject ? "bg-primary text-ink-inverse" : "bg-surface text-ink",
+                  )}
                 >
-                  {subject.name}
                   <button
                     type="button"
-                    className={`ml-2 flex h-4 w-4 items-center justify-center rounded-full border ${
-                      isActiveSubject ? "border-surface/40 text-ink-inverse" : "border-border text-ink-muted"
-                    }`}
-                    onMouseDown={(event) => {
-                      event.stopPropagation();
-                    }}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setSubjectPendingRemoval({ id: subject.id, name: subject.name });
-                    }}
-                    aria-label={`Remove ${subject.name} subject`}
+                    role="tab"
+                    aria-selected={isActiveSubject}
+                    onClick={() => onSelectSubject(subject.id)}
+                    className={cn("h-full whitespace-nowrap rounded-sm pl-3 pr-1", focusRing)}
+                  >
+                    {subject.name}
+                  </button>
+                  <button
+                    type="button"
+                    className={cn("mr-1 flex size-5 items-center justify-center rounded-full", isActiveSubject ? "hover:bg-primary-hover" : "text-ink-muted hover:bg-canvas", focusRing)}
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onClick={() => setSubjectPendingRemoval({ id: subject.id, name: subject.name })}
+                    aria-label={t("remove", { name: subject.name })}
                   >
                     <CrossIconSVG />
                   </button>
@@ -129,14 +134,9 @@ const QuestionSubjectTabs = memo(
               );
             })}
           </div>
-          <button
-            type="button"
-            onClick={() => setIsAddSubjectModalOpen(true)}
-            className="flex flex-shrink-0 items-center justify-center px-1 text-body-sm font-normal text-ink whitespace-nowrap"
-          >
-            <PlusIcon />
-            <span className="ml-1">Add Subject</span>
-          </button>
+          <Button variant="secondary" size="sm" leftIcon={<PlusIcon />} onClick={() => setIsAddSubjectModalOpen(true)}>
+            {t("add")}
+          </Button>
         </div>
 
         <AddQuestionSubjectModal

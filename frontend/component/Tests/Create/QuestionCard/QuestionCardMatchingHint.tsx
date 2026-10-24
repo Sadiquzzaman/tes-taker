@@ -1,9 +1,11 @@
 import { memo } from "react";
+import { useTranslations } from "next-intl";
 
 function QuestionCardMatchingHint() {
+  const t = useTranslations("createTest.card");
   return (
-    <p className="text-body font-normal text-danger">
-      Write the sentences in order (Left-Right), they will be shuffled automatically
+    <p className="text-body-sm text-warning">
+      {t("matchingHint")}
     </p>
   );
 }

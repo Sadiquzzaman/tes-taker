@@ -1,6 +1,9 @@
 "use client";
 
 import { cancelDragging, moveGlobalQuestion, startDragging, updateDragging } from "@/lib/features/createTestSlice";
+import { useTranslations } from "next-intl";
+import { Badge, cn, focusRing, IconButton } from "@/design/ui";
+import { ChevronDownIcon, ChevronUpIcon } from "@/design/ui/icons";
 import { isPassageQuestionItem } from "@/lib/features/create-test/createTestDomain";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
@@ -35,6 +38,8 @@ const getRowOffset = (questionIndex: number, dragState: DragState | null) => {
 };
 
 const ReorderStep = memo(() => {
+  const t = useTranslations("createTest.reorder");
+  const tc = useTranslations("createTest");
   const dispatch = useAppDispatch();
   const { subjects, questionOrder, dragState } = useAppSelector((state) => state.createTest) as CreateTestState;
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -45,7 +50,7 @@ const ReorderStep = memo(() => {
   const flatQuestions = useMemo(() => {
     const byId = new Map<
       string,
-      { id: string; subjectId: string; subjectName: string; title: string; points: number }
+      { id: string; subjectId: string; subjectName: string; title: string; points: number; isPassage: boolean }
     >();
 
     for (const subject of subjects) {
@@ -55,16 +60,18 @@ const ReorderStep = memo(() => {
             id: question.id,
             subjectId: subject.id,
             subjectName: subject.name,
-            title: stripHtml(question.passageText) || "Passage question",
+            title: stripHtml(question.passageText) || "",
             points: question.childQuestions.reduce((total, child) => total + child.points, 0),
+            isPassage: true,
           });
         } else {
           byId.set(question.id, {
             id: question.id,
             subjectId: subject.id,
             subjectName: subject.name,
-            title: stripHtml(question.text) || "Untitled question",
+            title: stripHtml(question.text) || "",
             points: question.points,
+            isPassage: false,
           });
         }
       }
@@ -79,6 +86,7 @@ const ReorderStep = memo(() => {
       subjectName: string;
       title: string;
       points: number;
+      isPassage: boolean;
     }[];
   }, [questionOrder, subjects]);
 
@@ -183,13 +191,10 @@ const ReorderStep = memo(() => {
 
   return (
     <section className="flex w-full flex-1 flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-title font-semibold leading-6 tracking-tight text-ink-muted">Reorder</h2>
+      <div className="flex flex-col gap-1">
+        <h2 className="text-title-sm font-semibold text-ink">{t("title")}</h2>
+        <p className="text-body-sm text-ink-muted">{t("intro")}</p>
       </div>
-      <div className="w-full border-b border-border" />
-      <p className="text-body-sm font-normal text-ink-muted">
-        Drag questions to set the order students will see on the exam.
-      </p>
 
       <div ref={listRef} className="relative flex flex-col gap-2">
         {flatQuestions.map((question, index) => {
@@ -210,20 +215,35 @@ const ReorderStep = memo(() => {
               <button
                 type="button"
                 onPointerDown={(event) => handleDragHandlePointerDown(question.id, event)}
-                className="cursor-grab touch-none text-ink-muted active:cursor-grabbing"
-                aria-label="Drag to reorder"
+                className={cn("cursor-grab touch-none rounded-sm px-1 text-ink-muted active:cursor-grabbing", focusRing)}
+                aria-label={t("drag")}
+                tabIndex={-1}
               >
                 ⋮⋮
               </button>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-body-sm font-semibold text-primary">Q{index + 1}</span>
-                  <span className="rounded-sm bg-canvas px-2 py-0.5 text-caption text-ink-muted">
-                    {question.subjectName}
-                  </span>
-                  <span className="text-caption text-ink-muted">{question.points} pts</span>
+                  <span className="text-body-sm font-semibold text-primary">{t("questionNumber", { number: index + 1 })}</span>
+                  <Badge>{question.subjectName}</Badge>
+                  <span className="text-caption text-ink-muted">{tc("pointsCount", { points: question.points })}</span>
                 </div>
-                <p className="truncate text-body-sm text-ink">{question.title}</p>
+                <p className="truncate text-body-sm text-ink">{question.title || (question.isPassage ? t("passageQuestion") : t("untitled"))}</p>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <IconButton
+                  size="sm"
+                  label={t("moveUp", { number: index + 1 })}
+                  icon={<ChevronUpIcon />}
+                  disabled={index === 0}
+                  onClick={() => dispatch(moveGlobalQuestion({ questionId: question.id, targetIndex: index - 1 }))}
+                />
+                <IconButton
+                  size="sm"
+                  label={t("moveDown", { number: index + 1 })}
+                  icon={<ChevronDownIcon />}
+                  disabled={index === flatQuestions.length - 1}
+                  onClick={() => dispatch(moveGlobalQuestion({ questionId: question.id, targetIndex: index + 1 }))}
+                />
               </div>
             </div>
           );

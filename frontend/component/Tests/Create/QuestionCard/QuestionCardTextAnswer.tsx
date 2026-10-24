@@ -1,4 +1,5 @@
 import { updateQuestionAnswerValue } from "@/lib/features/createTestSlice";
+import { useTranslations } from "next-intl";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo } from "react";
 import { QUESTION_BUILDER_GAPS } from "./shared";
@@ -12,6 +13,7 @@ function QuestionCardTextAnswer({
   showAlternativeAnswerInput,
   subjectId,
 }: QuestionCardTextAnswerProps) {
+  const t = useTranslations("createTest.card");
   const dispatch = useAppDispatch();
   const primaryAnswerValue = answerValues[0] ?? "";
   const alternativeAnswerValue = answerValues[1] ?? "";
@@ -46,7 +48,7 @@ function QuestionCardTextAnswer({
           className={`box-border flex items-center justify-center ${QUESTION_BUILDER_GAPS.textAnswerInput} rounded-input px-3 py-2.5 ${
             isAlternativeAnswerEnabled
               ? "border border-ink"
-              : "border border-dashed border-[#D6D7D4] bg-[#F7F7F5]"
+              : "border border-dashed border-border bg-canvas"
           }`}
         >
           <input
@@ -65,11 +67,11 @@ function QuestionCardTextAnswer({
             }
             onFocus={activateCard}
             disabled={!isAlternativeAnswerEnabled}
-            placeholder="Add alternative answer"
+            placeholder={t("alternativePlaceholder")}
             className={`h-5 w-full bg-transparent text-body font-normal outline-none ${
               isAlternativeAnswerEnabled
                 ? "text-ink placeholder:text-ink-muted"
-                : "cursor-not-allowed text-[#B0B0AD] placeholder:text-[#B0B0AD]"
+                : "cursor-not-allowed text-ink-muted/60 placeholder:text-ink-muted/60"
             }`}
           />
         </div>

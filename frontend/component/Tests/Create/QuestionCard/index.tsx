@@ -1,4 +1,6 @@
 import DragHandleIcon from "@/component/svg/DragHandleIcon";
+import { useTranslations } from "next-intl";
+import useQuestionTypeText from "../useQuestionTypeText";
 import { useToast } from "@/component/Toast/ToastContext";
 import { setActiveQuestionId } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
@@ -38,6 +40,8 @@ function QuestionCard({
   overlayStyle,
   onDragHandlePointerDown,
 }: QuestionCardProps) {
+  const t = useTranslations("createTest.card");
+  const typeText = useQuestionTypeText();
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -82,7 +86,7 @@ function QuestionCard({
     (file: File) => {
       if (!file.type.startsWith("image/")) {
         triggerToast({
-          description: "Please select a valid image file.",
+          description: t("invalidImage"),
           type: "error",
         });
         return false;
@@ -90,7 +94,7 @@ function QuestionCard({
 
       if (file.size > MAX_IMAGE_SIZE_BYTES) {
         triggerToast({
-          description: "Image size must be 20 MB or less.",
+          description: t("imageTooLarge"),
           type: "error",
         });
         return false;
@@ -98,7 +102,7 @@ function QuestionCard({
 
       return true;
     },
-    [triggerToast],
+    [t, triggerToast],
   );
 
   const scrollElementIntoView = useCallback(
@@ -227,7 +231,7 @@ function QuestionCard({
             <QuestionCardTextAnswer
               answerValues={question.answer?.type === "text" ? answerValues : []}
               activateCard={activateCard}
-              placeholder={answerInputPlaceholder}
+              placeholder={typeText.prompt(answerInputPlaceholder)}
               parentPassageId={parentPassageId}
               questionId={question.id}
               showAlternativeAnswerInput={showAlternativeAnswerInput}
@@ -255,7 +259,7 @@ function QuestionCard({
           type="button"
           onPointerDown={(event) => onDragHandlePointerDown(subjectId, question.id, event)}
           className="flex-shrink-0 cursor-grab touch-none text-ink-muted transition-colors hover:text-ink active:cursor-grabbing"
-          aria-label="Drag to reorder"
+          aria-label={t("drag")}
         >
           <DragHandleIcon />
         </button>

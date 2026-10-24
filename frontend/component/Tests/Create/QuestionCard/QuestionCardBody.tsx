@@ -1,4 +1,5 @@
 import PlusIcon from "@/component/svg/PlusIcon";
+import { useTranslations } from "next-intl";
 import TrashIcon from "@/component/svg/TrashIcon";
 import UploadImageIconSVG from "@/component/svg/UploadImageIconSVG";
 import { useToast } from "@/component/Toast/ToastContext";
@@ -35,6 +36,7 @@ function QuestionCardBody({
   usesMultipleAnswers,
   validateImageFile,
 }: QuestionCardBodyProps) {
+  const t = useTranslations("createTest.card");
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
   const optionInputRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
@@ -90,12 +92,12 @@ function QuestionCardBody({
         triggerToast({
           description: Array.isArray(message)
             ? message[0]
-            : message || "Unable to upload image right now.",
+            : message || t("uploadFailed"),
           type: "error",
         });
       }
     },
-    [activateCard, dispatch, parentPassageId, questionId, subjectId, triggerToast, validateImageFile],
+    [activateCard, dispatch, parentPassageId, questionId, subjectId, t, triggerToast, validateImageFile],
   );
 
   const handleAddImageOptionChange = useCallback(
@@ -127,21 +129,12 @@ function QuestionCardBody({
         triggerToast({
           description: Array.isArray(message)
             ? message[0]
-            : message || "Unable to upload image right now.",
+            : message || t("uploadFailed"),
           type: "error",
         });
       }
     },
-    [
-      activateCard,
-      dispatch,
-      parentPassageId,
-      questionId,
-      scrollToOptionListEndIfNeeded,
-      subjectId,
-      triggerToast,
-      validateImageFile,
-    ],
+    [activateCard, dispatch, parentPassageId, questionId, scrollToOptionListEndIfNeeded, subjectId, t, triggerToast, validateImageFile],
   );
 
   const handleAddOptionWithScroll = useCallback(() => {
@@ -173,7 +166,7 @@ function QuestionCardBody({
 
   return (
     <div className={`flex flex-col ${QUESTION_BUILDER_GAPS.bodyStack}`}>
-      {options.map((option) => {
+      {options.map((option, optionIndex) => {
         const isSelected = usesMultipleAnswers
           ? selectedOptionIds.includes(option.id)
           : selectedOptionIds[0] === option.id;
@@ -225,7 +218,7 @@ function QuestionCardBody({
                     );
                   }}
                   onFocus={activateCard}
-                  placeholder="Option"
+                  placeholder={t("option")}
                   rows={1}
                   className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-body font-normal text-ink outline-none placeholder:text-ink-muted"
                 />
@@ -238,7 +231,7 @@ function QuestionCardBody({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={resolveMediaUrl(option.image)}
-                      alt={`Option image for question ${questionNumber}`}
+                      alt={t("optionImageAlt", { number: questionNumber })}
                       className="h-full w-full object-cover"
                       onLoad={() =>
                         console.debug("[media] option preview loaded", {
@@ -256,15 +249,15 @@ function QuestionCardBody({
                     <div className={`flex items-center ${QUESTION_BUILDER_GAPS.optionActionButtons}`}>
                       <button
                         type="button"
-                        title="Replace option image"
+                        title={t("replaceOptionImage")}
                         onClick={() => optionImageInputRefs.current[option.id]?.click()}
-                        aria-label="Replace option image"
+                        aria-label={t("replaceOptionImage")}
                       >
                         <UploadImageIconSVG />
                       </button>
                       <button
                         type="button"
-                        title="Remove option image"
+                        title={t("removeOptionImage")}
                         onClick={() =>
                           dispatch(
                             updateOptionImage({
@@ -277,7 +270,7 @@ function QuestionCardBody({
                           )
                         }
                         className="flex items-center justify-center rounded-input text-danger transition-colors duration-150"
-                        aria-label="Remove option image"
+                        aria-label={t("removeOptionImage")}
                       >
                         <TrashIcon />
                       </button>
@@ -319,8 +312,8 @@ function QuestionCardBody({
                         }),
                       )
                     }
-                    className="flex items-center justify-center rounded-input text-danger opacity-0 transition-all duration-150 group-hover:opacity-100"
-                    aria-label="Delete option"
+                    className="flex items-center justify-center rounded-input text-danger opacity-0 transition-all duration-150 group-hover:opacity-100 focus-visible:opacity-100"
+                    aria-label={t("deleteOption", { number: optionIndex + 1 })}
                   >
                     <TrashIcon />
                   </button>
@@ -346,7 +339,7 @@ function QuestionCardBody({
             }`}
           >
             {canAddMoreOptions ? <PlusIcon width={16} /> : null}
-            <span>{canAddMoreOptions ? "Click to add a new option" : `Maximum ${maxOptions} options added`}</span>
+            <span>{canAddMoreOptions ? t("addOption") : t("maxOptions", { max: maxOptions })}</span>
           </button>
           {canEditOptionImage && canAddMoreOptions ? (
             <>
@@ -359,11 +352,11 @@ function QuestionCardBody({
               />
               <button
                 type="button"
-                title="Add new option with image"
+                title={t("addOptionImage")}
                 onClick={() => addOptionImageInputRef.current?.click()}
                 disabled={!canAddMoreOptions}
                 className="flex shrink-0 items-center justify-center rounded-input text-ink-muted transition-colors duration-150 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-ink-muted"
-                aria-label="Add new option with image"
+                aria-label={t("addOptionImage")}
               >
                 <UploadImageIconSVG />
               </button>

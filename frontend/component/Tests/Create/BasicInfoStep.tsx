@@ -1,7 +1,5 @@
 import { addSubject, removeSubject, setFormField, setPublishField, setSingleSubject, setTestAudience } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import DropDownComponent from "@/Ui/DropDownComponent";
-import NormalInput from "@/Ui/NormalInput";
 import Tooltip from "@/Ui/Tooltip";
 import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
 import useGetAllClass from "@/hooks/api/class/useGetAllClass";
@@ -10,6 +8,8 @@ import useWorkspace from "@/hooks/organization/useWorkspace";
 import { getStoredUser } from "@/lib/authSession";
 import axiosReq from "@/lib/axios";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Card, Checkbox, Combobox, Input, RadioGroup } from "@/design/ui";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { EXAM_CATEGORIES, IELTS_MODULES } from "@/constants/examCategory";
 
@@ -22,7 +22,10 @@ const toSubjectOption = (subject: AssignedClassSubject) => ({
   value: subject.code?.trim() || subject.name,
 });
 
+/** Step 1: the test's name, class, type, subject(s), duration and marking rules. */
 const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
+  const t = useTranslations("createTest.basic");
+  const tc = useTranslations("createTest");
   const dispatch = useAppDispatch();
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
   const subjectCatalog = useAppSelector((state) => state.subject.subjects);
@@ -214,20 +217,12 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
   );
 
   const modelTestCheckbox = (
-    <label
-      className={`flex items-center gap-2 py-1 ${canCreateModelTests ? "" : "cursor-not-allowed opacity-60"}`}
-    >
-      <input
-        type="checkbox"
-        checked={formState.isModelTest}
-        disabled={!canCreateModelTests}
-        onChange={(e) => handleModelTestChange(e.target.checked)}
-        className="h-5 w-5 rounded border-ink-muted text-primary focus:ring-0 disabled:cursor-not-allowed"
-      />
-      <span className="text-body font-medium text-ink">
-        Is model test?
-      </span>
-    </label>
+    <Checkbox
+      label={t("modelTest")}
+      checked={formState.isModelTest}
+      disabled={!canCreateModelTests}
+      onChange={(event) => handleModelTestChange(event.target.checked)}
+    />
   );
 
   const handleExamCategoryChange = useCallback(
@@ -285,212 +280,159 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
     return new Set(subjects.filter((s) => s.id.startsWith("ielts.")).map((s) => s.id));
   }, [subjects]);
 
+  const subjectCombobox = (label: string, options: Array<{ label: string; value: string }>) => (
+    <Combobox
+      label={label}
+      placeholder={t("selectSubject")}
+      value={selectedSubjectValue || null}
+      onChange={(value) => value && handleSubjectChange(value)}
+      options={options.map(({ label: optionLabel, value }) => ({ label: optionLabel, value }))}
+    />
+  );
+
   const orgSubjectSection = !formState.isModelTest && (
     <div className="flex flex-col gap-2">
       {!publishState.selectedClassId ? (
-        <p className="text-sm text-ink-muted">Select a class to choose an organization subject.</p>
+        <p className="text-body-sm text-ink-muted">{t("pickClassFirst")}</p>
       ) : assignedLoading ? (
-        <p className="text-sm text-ink-muted">Loading assigned subjects...</p>
+        <p className="text-body-sm text-ink-muted">{t("loadingSubjects")}</p>
       ) : assignedSubjects.length === 0 ? (
-        <p className="text-sm text-danger">You are not assigned to a subject in this class.</p>
+        <p className="text-body-sm text-danger">{t("noSubject")}</p>
       ) : assignedSubjects.length === 1 ? (
-        <p className="text-body font-medium text-ink">
-          Organization subject: {assignedSubjectLabel(assignedSubjects[0])}
-        </p>
+        <div className="flex flex-col gap-1">
+          <p className="text-body-sm font-medium text-ink">{t("orgSubject")}</p>
+          <p className="rounded-input bg-canvas px-3 py-2.5 text-body text-ink">{assignedSubjectLabel(assignedSubjects[0])}</p>
+        </div>
       ) : (
-        <>
-          <label className="text-body font-medium text-ink">
-            Organization Subject
-          </label>
-          <DropDownComponent
-            placeholder="Select organization subject"
-            value={selectedSubjectValue}
-            handleChange={handleSubjectChange}
-            isSearchable={true}
-            maxOuputInDropdownList={5}
-            list={orgSubjectOptions.map(({ label, value }) => ({ label, value }))}
-          />
-        </>
+        subjectCombobox(t("orgSubject"), orgSubjectOptions)
       )}
     </div>
   );
 
+  const isIelts = formState.examCategory === "ielts";
+
   return (
-    <section className="flex w-full flex-1 flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-title font-semibold leading-6 tracking-tight text-ink-muted">Basic Info</h2>
-      </div>
-      <div className="w-full border-b border-border" />
-
-      <div className="flex w-full flex-col gap-2">
-        <p className="text-body font-medium text-ink">Test name</p>
-        <NormalInput
-          value={formState.testName}
-          onChange={(e) => updateField("testName", e.target.value)}
-          parentClassName="h-[44px] w-full rounded-input border-border"
-          inputClassName="px-2 text-body font-normal placeholder:text-ink-muted"
-          placeholder="e.g., Algebra Midterm Assessment"
-          afterIcon={null}
-        />
-      </div>
-
-      {!isIndividual && (
-        <div className="flex flex-col gap-2">
-          <label className="text-body font-medium text-ink">
-            {formState.examCategory === "ielts" ? "Batch" : "Class"}
-          </label>
-          {orgClassOptions.length === 0 ? (
-            <p className="text-sm text-danger">
-              {formState.examCategory === "ielts"
-                ? "You are not assigned to a subject in any batch."
-                : "You are not assigned to a subject in any class."}
-            </p>
-          ) : (
-            <DropDownComponent
-              placeholder={formState.examCategory === "ielts" ? "Select batch" : "Select class"}
-              value={publishState.selectedClassId}
-              handleChange={handleClassChange}
-              isSearchable={true}
-              maxOuputInDropdownList={5}
-              list={orgClassOptions}
-            />
-          )}
-        </div>
-      )}
-
-      <div className="flex w-full flex-col gap-2">
-        <label className="text-body font-medium text-ink">Exam Category</label>
-        <div className="flex gap-3">
-          {EXAM_CATEGORIES.map((cat) => (
-            <label key={cat.value} className="flex items-center gap-2 py-1 cursor-pointer">
-              <input
-                type="radio"
-                name="examCategory"
-                value={cat.value}
-                checked={formState.examCategory === cat.value}
-                onChange={() => handleExamCategoryChange(cat.value)}
-                className="h-4 w-4 border-ink-muted text-primary focus:ring-0"
-              />
-              <span className="text-body font-medium text-ink">
-                {cat.label}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {formState.examCategory === "ielts" ? (
-        <div className="flex flex-col gap-2">
-          <label className="text-body font-medium text-ink">
-            IELTS Modules (select at least one)
-          </label>
-          <div className="flex flex-col gap-2">
-            {IELTS_MODULES.map((module) => (
-              <label key={module.id} className="flex items-center gap-2 py-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedIeltsModules.has(module.id)}
-                  onChange={(e) => handleIeltsModuleToggle(module, e.target.checked)}
-                  className="h-5 w-5 rounded border-ink-muted text-primary focus:ring-0"
-                />
-                <span className="text-body font-medium text-ink">
-                  {module.label}
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <>
-          {canCreateModelTests ? (
-            modelTestCheckbox
-          ) : (
-            <Tooltip
-              content={
-                <span>
-                  Model tests are available on Pro.{" "}
-                  <Link href="/billing" className="underline text-primary">
-                    Upgrade
-                  </Link>
-                </span>
-              }
-            >
-              {modelTestCheckbox}
-            </Tooltip>
-          )}
-
-          {!isIndividual
-            ? orgSubjectSection
-            : !formState.isModelTest ? (
-                <div className="flex flex-col gap-2">
-                  <label className="text-body font-medium text-ink">Subject</label>
-                  <DropDownComponent
-                    placeholder="Select subject"
-                    value={selectedSubjectValue}
-                    handleChange={handleSubjectChange}
-                    isSearchable={true}
-                    maxOuputInDropdownList={5}
-                    list={catalogSubjectOptions.map(({ label, value }) => ({ label, value }))}                  />
-                </div>
-              ) : null}
-        </>
-      )}
-
-      <div className="flex w-full flex-col gap-2">
-        <p className="text-body font-medium text-ink">Duration</p>
-        <NormalInput
-          value={formState.duration}
-          onChange={(e) => updateField("duration", e.target.value)}
-          parentClassName="h-[44px] w-full rounded-input border-border"
-          inputClassName="px-2 text-body font-normal placeholder:text-ink-muted"
-          placeholder="e.g., 90"
-          afterIcon={null}
-          afterText={<div className="text-ink-muted">minutes</div>}
-          type="number"
-        />
-      </div>
-      <div className="flex w-full flex-col gap-2">
-        <p className="text-body font-medium text-ink">
-          Passing score (Optional)
-        </p>
-        <NormalInput
-          value={formState.passingScore}
-          onChange={(e) => updateField("passingScore", e.target.value)}
-          parentClassName="h-[44px] w-full rounded-input border-border"
-          inputClassName="px-2 text-body font-normal placeholder:text-ink-muted"
-          placeholder="e.g., 40"
-          afterIcon={null}
-          type="number"
-        />
-      </div>
-
-      <div className="flex w-full justify-between gap-2">
-        <label className="flex items-center gap-2 py-2">
-          <input
-            type="checkbox"
-            checked={formState.allowNegativeMarking}
-            onChange={(e) => updateField("allowNegativeMarking", e.target.checked)}
-            className="h-5 w-5 rounded border-ink-muted text-primary focus:ring-0"
+    <section className="flex w-full flex-1 flex-col gap-6">
+      <Card title={tc("steps.Basic info")}>
+        <div className="flex flex-col gap-5">
+          <Input
+            label={t("name")}
+            required
+            value={formState.testName}
+            onChange={(event) => updateField("testName", event.target.value)}
+            placeholder={t("namePlaceholder")}
           />
-          <span className="text-body font-medium text-ink">
-            Negative marking
-          </span>
-        </label>
-        {formState.allowNegativeMarking && (
-          <div className="w-48">
-            <NormalInput
-              value={formState.negativeMarking}
-              onChange={(e) => updateField("negativeMarking", e.target.value)}
-              parentClassName="h-[44px] w-full rounded-input border-border"
-              inputClassName="px-2 text-body font-normal placeholder:text-ink-muted"
-              placeholder="e.g., 40"
-              afterIcon={null}
-              afterText={<div className="text-ink-muted">%</div>}
+
+          {!isIndividual ? (
+            orgClassOptions.length === 0 ? (
+              <p className="text-body-sm text-danger">{isIelts ? t("noBatch") : t("noClass")}</p>
+            ) : (
+              <Combobox
+                label={isIelts ? t("batch") : t("class")}
+                required
+                placeholder={isIelts ? t("selectBatch") : t("selectClass")}
+                value={publishState.selectedClassId || null}
+                onChange={(value) => value && handleClassChange(value)}
+                options={orgClassOptions}
+              />
+            )
+          ) : null}
+
+          <RadioGroup
+            legend={t("category")}
+            name="examCategory"
+            inline
+            value={formState.examCategory ?? "academic"}
+            onChange={(value) => handleExamCategoryChange(value as "academic" | "ielts")}
+            options={EXAM_CATEGORIES.map((cat) => ({ value: cat.value, label: cat.value === "academic" ? t("academic") : "IELTS" }))}
+          />
+
+          {isIelts ? (
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-1 text-body-sm font-medium text-ink">{t("ieltsModules")}</legend>
+              <p className="-mt-1 text-caption text-ink-muted">{t("ieltsModulesHint")}</p>
+              {IELTS_MODULES.map((module) => (
+                <Checkbox
+                  key={module.id}
+                  label={tc.has(`ielts.${module.label}` as never) ? tc(`ielts.${module.label}` as never) : module.label}
+                  checked={selectedIeltsModules.has(module.id)}
+                  onChange={(event) => handleIeltsModuleToggle(module, event.target.checked)}
+                />
+              ))}
+            </fieldset>
+          ) : (
+            <>
+              {canCreateModelTests ? (
+                modelTestCheckbox
+              ) : (
+                <Tooltip
+                  content={
+                    <span>
+                      {t("modelTestLocked")}{" "}
+                      <Link href="/billing" className="text-primary underline">
+                        {t("upgrade")}
+                      </Link>
+                    </span>
+                  }
+                >
+                  {modelTestCheckbox}
+                </Tooltip>
+              )}
+              {!isIndividual
+                ? orgSubjectSection
+                : !formState.isModelTest
+                  ? subjectCombobox(t("subject"), catalogSubjectOptions)
+                  : null}
+            </>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label={t("duration")}
+              required
               type="number"
+              min={1}
+              inputMode="numeric"
+              value={formState.duration}
+              onChange={(event) => updateField("duration", event.target.value)}
+              placeholder={t("durationPlaceholder")}
+              trailing={t("minutes")}
+            />
+            <Input
+              label={t("passingScore")}
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={formState.passingScore}
+              onChange={(event) => updateField("passingScore", event.target.value)}
+              placeholder={t("passingPlaceholder")}
             />
           </div>
-        )}
-      </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <Checkbox
+              label={t("negativeMarking")}
+              hint={t("negativeMarkingHint")}
+              checked={formState.allowNegativeMarking}
+              onChange={(event) => updateField("allowNegativeMarking", event.target.checked)}
+            />
+            {formState.allowNegativeMarking ? (
+              <Input
+                label={t("negativePercent")}
+                fieldClassName="sm:w-48"
+                type="number"
+                min={0}
+                max={100}
+                inputMode="decimal"
+                value={formState.negativeMarking}
+                onChange={(event) => updateField("negativeMarking", event.target.value)}
+                placeholder="25"
+                trailing="%"
+              />
+            ) : null}
+          </div>
+        </div>
+      </Card>
     </section>
   );
 });

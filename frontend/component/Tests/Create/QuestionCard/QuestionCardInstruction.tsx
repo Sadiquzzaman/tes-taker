@@ -1,4 +1,5 @@
 import { RichTextEditor } from "@/component/RichTextEditor";
+import { useTranslations } from "next-intl";
 import { updateQuestionInstruction } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo } from "react";
@@ -10,6 +11,7 @@ function QuestionCardInstruction({
   questionId,
   subjectId,
 }: QuestionCardInstructionProps) {
+  const t = useTranslations("createTest.card");
   const dispatch = useAppDispatch();
 
   return (
@@ -27,7 +29,7 @@ function QuestionCardInstruction({
             }),
           )
         }
-        placeholder="Add instruction (optional)"
+        placeholder={t("instructionPlaceholder")}
         minHeightClassName="min-h-[40px]"
         allowImages={false}
         variant="lite"

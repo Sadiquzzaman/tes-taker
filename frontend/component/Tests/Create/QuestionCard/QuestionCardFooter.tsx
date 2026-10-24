@@ -1,4 +1,6 @@
 import CopyIconSVG from "@/component/svg/CopyIconSVG";
+import { useTranslations } from "next-intl";
+import useQuestionTypeText from "../useQuestionTypeText";
 import ShuffleIcon from "@/component/svg/ShuffleIcon";
 import TrashIcon from "@/component/svg/TrashIcon";
 import TriangleDownFilledIconSVG from "@/component/svg/TriangleDownFilledIconSVG";
@@ -34,6 +36,8 @@ function QuestionCardFooter({
   showDuplicateButton = true,
   subjectId,
 }: QuestionCardFooterProps) {
+  const t = useTranslations("createTest.card");
+  const typeText = useQuestionTypeText();
   const dispatch = useAppDispatch();
   const subjects = useAppSelector((state) => state.createTest.subjects);
   const isModelTest = useAppSelector((state) => state.createTest.formState.isModelTest);
@@ -45,7 +49,7 @@ function QuestionCardFooter({
   const subtypeOptions =
     createTestQuestionCategoryOptions.find((category) => category.id === questionType)?.tabs.filter((tab) => tab.isSupported) ??
     [];
-  let pointsLabel: ReactNode = "Points";
+  let pointsLabel: ReactNode = t("points");
   const showSubjectPicker = isModelTest && !parentPassageId;
 
   const subjectOptions = useMemo(() => {
@@ -81,14 +85,12 @@ function QuestionCardFooter({
   };
 
   if (questionType === "ungraded" && questionSubType === CREATE_TEST_UNGRADED_ESSAY_SUBTYPE_ID) {
-    pointsLabel = "Max Points";
+    pointsLabel = t("maxPoints");
   }
 
   if (isMatchingOrdering) {
     pointsLabel = (
-      <span>
-        Points per <span className="font-bold text-warning">match</span>
-      </span>
+      <span>{t.rich("pointsPerMatch", { b: (chunks) => <span className="font-bold text-warning">{chunks}</span> })}</span>
     );
   }
 
@@ -130,7 +132,7 @@ function QuestionCardFooter({
     <div className={`flex items-center justify-between ${QUESTION_BUILDER_GAPS.footerOuter}`}>
       <div className={`flex flex-wrap items-center ${QUESTION_BUILDER_GAPS.footerGroup}`}>
         <label className="flex items-center gap-2 text-body-sm text-ink">
-          <span>Type</span>
+          <span>{t("type")}</span>
           <select
             className="h-8 rounded-input border border-border bg-surface px-2 text-body-sm"
             value={questionSubType}
@@ -160,14 +162,14 @@ function QuestionCardFooter({
           >
             {subtypeOptions.map((option) => (
               <option key={option.id} value={option.id}>
-                {option.label}
+                {typeText.type(questionType, option.id, option.label)}
               </option>
             ))}
           </select>
         </label>
         {showSubjectPicker ? (
           <label className="flex items-center gap-2 text-body-sm text-ink">
-            <span>Subject</span>
+            <span>{t("subject")}</span>
             <select
               className="h-8 max-w-[160px] rounded-input border border-border bg-surface px-2 text-body-sm"
               value={subjectId}
@@ -227,7 +229,7 @@ function QuestionCardFooter({
             <button
               type="button"
               className="flex h-8 w-8 items-center justify-center rounded-input bg-primary text-ink-inverse"
-              aria-label="Shuffle is mandatory for matching"
+              aria-label={t("shuffleMandatory")}
             >
               <ShuffleIcon />
             </button>
@@ -240,7 +242,7 @@ function QuestionCardFooter({
             type="button"
             onClick={() => dispatch(shuffleOptions({ subjectId, questionId, parentPassageId }))}
             className="flex h-8 w-8 items-center justify-center rounded-input text-ink transition-colors duration-150 hover:bg-primary hover:text-ink-inverse"
-            aria-label="Shuffle options"
+            aria-label={t("shuffle")}
           >
             <ShuffleIcon />
           </button>
@@ -250,7 +252,7 @@ function QuestionCardFooter({
             type="button"
             onClick={() => dispatch(duplicateQuestion({ subjectId, questionId, parentPassageId }))}
             className="flex h-8 w-8 items-center justify-center rounded-input text-ink transition-colors duration-150 hover:bg-primary hover:text-ink-inverse"
-            aria-label="Duplicate question"
+            aria-label={t("duplicate")}
           >
             <CopyIconSVG />
           </button>
@@ -260,7 +262,7 @@ function QuestionCardFooter({
             type="button"
             onClick={() => dispatch(deleteQuestion({ subjectId, questionId, parentPassageId }))}
             className="flex h-8 w-8 items-center justify-center rounded-input text-ink transition-colors duration-150 hover:bg-primary hover:text-ink-inverse"
-            aria-label="Delete question"
+            aria-label={t("delete")}
           >
             <TrashIcon />
           </button>

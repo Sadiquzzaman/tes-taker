@@ -1,127 +1,124 @@
+"use client";
+
+import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { RichTextContent } from "@/component/RichTextEditor";
+import { Card } from "@/design/ui";
+import useFormat from "@/i18n/useFormat";
 import { getSubjectQuestionCount, getSubjectTotalMarks, isPassageQuestionItem } from "@/lib/features/create-test/createTestDomain";
 import { useAppSelector } from "@/lib/hooks";
+import useQuestionTypeText from "./useQuestionTypeText";
 
+/** One question as students will see it. */
+const QuestionPreview = ({ question, number }: { question: QuestionItem; number: number }) => {
+  const t = useTranslations("createTest.review");
+  const typeText = useQuestionTypeText();
+
+  return (
+    <div className="flex flex-col gap-2 rounded-input border border-border p-3">
+      <p className="text-caption font-medium text-ink-muted">
+        {t("questionMeta", { number, type: typeText.type(question.type, question.subType, question.subType), points: question.points })}
+      </p>
+      {question.instruction ? <RichTextContent html={question.instruction} className="text-body-sm" /> : null}
+      <RichTextContent html={question.text} />
+      {question.image ? (
+        <Image src={question.image} alt="" width={0} height={0} sizes="100vw" unoptimized className="h-auto max-h-48 w-auto rounded-input object-contain" />
+      ) : null}
+      {question.options?.length ? (
+        <ol className="flex flex-col gap-1 text-body-sm text-ink">
+          {question.options.map((option, index) => (
+            <li key={option.id}>
+              {String.fromCharCode(65 + index)}. {option.text}
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {question.matchingOptions ? (
+        <div className="grid grid-cols-2 gap-3 text-body-sm">
+          <ul>
+            {question.matchingOptions.left.map((option) => (
+              <li key={option.id}>{option.text}</li>
+            ))}
+          </ul>
+          <ul>
+            {question.matchingOptions.right.map((option) => (
+              <li key={option.id}>{option.text}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+/** Step 3: the test's settings at a glance, then a read-only preview of every question. */
 const ReviewStep = () => {
+  const t = useTranslations("createTest.review");
+  const format = useFormat();
   const { formState, subjects } = useAppSelector((state) => state.createTest);
   const totalQuestions = subjects.reduce((total, subject) => total + getSubjectQuestionCount(subject), 0);
   const totalMarks = subjects.reduce((total, subject) => total + getSubjectTotalMarks(subject), 0);
 
-  const divSection = ({ label, value }: { label: string; value: string }) => (
-    <div className="flex">
-      <div className="w-[40%]">
-        <p className="text-body font-medium text-ink-muted">{label}</p>
-      </div>
-      <div className="flex-1">
-        <p className="text-body font-normal text-ink">{value}</p>
-      </div>
-    </div>
-  );
+  const facts = [
+    { key: "name", label: t("name"), value: formState.testName || "—" },
+    { key: "subjects", label: t("subjects"), value: subjects.map((subject) => subject.name).join(", ") || "—" },
+    { key: "duration", label: t("duration"), value: t("minutes", { minutes: Number(formState.duration) || 0 }) },
+    { key: "questions", label: t("questions"), value: format.number(totalQuestions) },
+    { key: "marks", label: t("marks"), value: format.number(totalMarks) },
+    { key: "passing", label: t("passing"), value: formState.passingScore ? format.number(Number(formState.passingScore)) : t("none") },
+    { key: "negative", label: t("negative"), value: formState.negativeMarking ? `${format.number(Number(formState.negativeMarking))}%` : t("none") },
+  ];
 
-  let questionNumber = 1;
+  // Number questions in order across subjects and passages.
+  const numbers = new Map<string, number>();
+  for (const subject of subjects) {
+    for (const question of subject.questions) {
+      for (const item of isPassageQuestionItem(question) ? question.childQuestions : [question]) {
+        numbers.set(item.id, numbers.size + 1);
+      }
+    }
+  }
 
   return (
-    <section className="flex h-full w-full flex-1 flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-title font-semibold leading-6 tracking-tight text-ink-muted">Test Summary</h2>
-      </div>
-      <div className="w-full border-b border-border" />
-      <div className="flex flex-col gap-3">
-        {divSection({ label: "Test name", value: formState.testName })}
-        {divSection({ label: "Subject", value: subjects.map((subject) => subject.name).join(", ") || "N/A" })}
-        {divSection({ label: "Duration", value: `${formState.duration} minutes` })}
-        {divSection({ label: "Total Questions", value: totalQuestions.toString() })}
-        {divSection({ label: "Total Marks", value: totalMarks.toString() })}
-        {divSection({ label: "Passing Score", value: formState.passingScore })}
-        {divSection({
-          label: "Negative Score",
-          value: formState.negativeMarking ? `${formState.negativeMarking}%` : "N/A",
-        })}
-      </div>
-
-      <div className="mt-4 flex items-center justify-between">
-        <h2 className="text-title font-semibold leading-6 tracking-tight text-ink-muted">Test Preview</h2>
-      </div>
-      <div className="w-full border-b border-border" />
-
-      <div className="flex flex-col gap-6 rounded-sheet bg-canvas p-4 md:p-6">
-        {!subjects.length ? (
-          <p className="text-body-sm text-ink-muted">Add questions to preview this exam.</p>
-        ) : (
-          subjects.map((subject) => (
-            <div key={subject.id} className="flex flex-col gap-4 rounded-card bg-surface p-4">
-              <h3 className="text-title-sm font-semibold text-ink">{subject.name}</h3>
-              {subject.questions.map((question) => {
-                if (isPassageQuestionItem(question)) {
-                  return (
-                    <div key={question.id} className="flex flex-col gap-3 border-t border-border pt-3">
-                      <p className="text-body-sm font-semibold uppercase tracking-wide text-ink-muted">Passage</p>
-                      <RichTextContent html={question.passageText} />
-                      {question.childQuestions.map((child) => {
-                        const number = questionNumber;
-                        questionNumber += 1;
-                        return (
-                          <div key={child.id} className="flex flex-col gap-2 rounded-input border border-border p-3">
-                            <p className="text-caption font-medium text-ink-muted">
-                              {number}. {child.subType} · {child.points} pts
-                            </p>
-                            {child.instruction ? <RichTextContent html={child.instruction} className="text-body-sm" /> : null}
-                            <RichTextContent html={child.text} />
-                            {child.image ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={child.image} alt="" className="max-h-48 rounded-input object-contain" />
-                            ) : null}
-                            {child.options?.map((option, index) => (
-                              <p key={option.id} className="text-body-sm text-ink">
-                                {String.fromCharCode(65 + index)}. {option.text}
-                              </p>
-                            ))}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                }
-
-                const number = questionNumber;
-                questionNumber += 1;
-                return (
-                  <div key={question.id} className="flex flex-col gap-2 border-t border-border pt-3">
-                    <p className="text-caption font-medium text-ink-muted">
-                      {number}. {question.subType} · {question.points} pts
-                    </p>
-                    {question.instruction ? <RichTextContent html={question.instruction} className="text-body-sm" /> : null}
-                    <RichTextContent html={question.text} />
-                    {question.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={question.image} alt="" className="max-h-48 rounded-input object-contain" />
-                    ) : null}
-                    {question.options?.map((option, index) => (
-                      <p key={option.id} className="text-body-sm text-ink">
-                        {String.fromCharCode(65 + index)}. {option.text}
-                      </p>
-                    ))}
-                    {question.matchingOptions ? (
-                      <div className="grid grid-cols-2 gap-3 text-body-sm">
-                        <div>
-                          {question.matchingOptions.left.map((option) => (
-                            <p key={option.id}>{option.text}</p>
-                          ))}
-                        </div>
-                        <div>
-                          {question.matchingOptions.right.map((option) => (
-                            <p key={option.id}>{option.text}</p>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
+    <section className="flex w-full flex-1 flex-col gap-6">
+      <Card title={t("summary")}>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+          {facts.map((fact) => (
+            <div key={fact.key} className="flex flex-col gap-0.5">
+              <dt className="text-body-sm text-ink-muted">{fact.label}</dt>
+              <dd className="text-body font-medium text-ink">{fact.value}</dd>
             </div>
-          ))
+          ))}
+        </dl>
+      </Card>
+
+      <Card title={t("preview")}>
+        {!subjects.length ? (
+          <p className="text-body-sm text-ink-muted">{t("empty")}</p>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {subjects.map((subject) => (
+              <section key={subject.id} className="flex flex-col gap-3">
+                <h3 className="text-body font-semibold text-ink">{subject.name}</h3>
+                {subject.questions.map((question) => {
+                  if (isPassageQuestionItem(question)) {
+                    return (
+                      <div key={question.id} className="flex flex-col gap-3 rounded-input bg-canvas p-3">
+                        <p className="text-caption font-semibold uppercase tracking-wide text-ink-muted">{t("passage")}</p>
+                        <RichTextContent html={question.passageText} />
+                        {question.childQuestions.map((child) => (
+                          <QuestionPreview key={child.id} question={child} number={numbers.get(child.id) ?? 0} />
+                        ))}
+                      </div>
+                    );
+                  }
+                  return <QuestionPreview key={question.id} question={question} number={numbers.get(question.id) ?? 0} />;
+                })}
+              </section>
+            ))}
+          </div>
         )}
-      </div>
+      </Card>
     </section>
   );
 };

@@ -1,136 +1,39 @@
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { DatePicker, TimePicker } from "@mui/x-date-pickers";
-import dayjs, { Dayjs } from "dayjs";
-import { useState } from "react";
-import ScheduleCalendarIconSVG from "@/component/svg/ScheduleCalendarIconSVG";
-import ScheduleClockIconSVG from "@/component/svg/ScheduleClockIconSVG";
-import { setPublishField } from "@/lib/features/createTestSlice";
+"use client";
 
+import { useTranslations } from "next-intl";
+import { DatePicker, TimePicker } from "@/design/ui";
+import { fromZonedParts, toZonedParts } from "@/i18n/zonedTime";
+import { setPublishField } from "@/lib/features/createTestSlice";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+
+/** When a scheduled test opens and closes, as date and time in the organisation's time zone. */
 const PublishSchedule = () => {
+  const t = useTranslations("createTest.publish");
   const dispatch = useAppDispatch();
   const publishState = useAppSelector((state) => (state.createTest as CreateTestState).publishState);
 
-  const mergeToISO = (existingISO: string, newValue: Dayjs | null, type: "date" | "time") => {
-    if (!newValue) return "";
+  const row = (field: "scheduleAt" | "endingAt", legend: string) => {
+    const { date, time } = toZonedParts(publishState[field]);
+    const update = (nextDate: string, nextTime: string) =>
+      dispatch(setPublishField({ field, value: fromZonedParts(nextDate, nextTime) }));
 
-    const base = existingISO ? dayjs(existingISO) : dayjs();
-
-    if (type === "date") {
-      return base.year(newValue.year()).month(newValue.month()).date(newValue.date()).toISOString();
-    }
-
-    if (type === "time") {
-      return base.hour(newValue.hour()).minute(newValue.minute()).second(0).toISOString();
-    }
-
-    return base.toISOString();
-  };
-
-  const updateDateTime = (value: Dayjs | null, type: "date" | "time", field: "scheduleAt" | "endingAt") => {
-    const updated = mergeToISO(publishState[field], value, type);
-
-    dispatch(
-      setPublishField({
-        field,
-        value: updated,
-      }),
+    return (
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1 text-body-sm font-medium text-ink">{legend}</legend>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <DatePicker label={t("date")} value={date} onChange={(value) => update(value, time)} />
+          <TimePicker label={t("time")} value={time} onChange={(value) => update(date || toZonedParts(new Date().toISOString()).date, value)} />
+        </div>
+      </fieldset>
     );
   };
 
-  const [openPicker, setOpenPicker] = useState<null | "scheduleDate" | "scheduleTime" | "endingDate" | "endingTime">(
-    null,
-  );
-
-  const pickerSx = (value: "scheduleDate" | "scheduleTime" | "endingDate" | "endingTime") => ({
-    textField: {
-      onClick: () => setOpenPicker(value),
-      sx: {
-        width: "100%",
-      },
-      slotProps: {
-        input: {
-          sx: {
-            fontWeight: 400,
-            color: "#232A25",
-            caretColor: "transparent",
-            cursor: "pointer",
-            borderRadius: "8px",
-            height: "44px",
-            borderColor: "#E5E5E5",
-            "& fieldset": {
-              borderColor: "#E5E5E5",
-            },
-
-            "&:hover fieldset": {
-              borderColor: "#E5E5E5",
-            },
-
-            "&.Mui-focused fieldset": {
-              borderColor: "#E5E5E5",
-              borderWidth: "1px", // prevent thicker border on focus
-            },
-          },
-        },
-      },
-    },
-  });
-
   return (
-    <>
-      <div className="flex flex-col gap-2">
-        <p className="text-body font-medium text-ink">
-          Schedule Date &amp; Time
-        </p>
-        <div className="flex gap-3">
-          <DatePicker
-            value={publishState.scheduleAt ? dayjs(publishState.scheduleAt) : null}
-            format="MMM DD, YYYY"
-            // open={openPicker === "scheduleDate"}
-            // onOpen={() => setOpenPicker("scheduleDate")}
-            // onClose={() => setOpenPicker(null)}
-            onChange={(value) => updateDateTime(value, "date", "scheduleAt")}
-            slots={{ openPickerIcon: ScheduleCalendarIconSVG }}
-            slotProps={pickerSx("scheduleDate")}
-          />
-          <TimePicker
-            value={publishState.scheduleAt ? dayjs(publishState.scheduleAt) : null}
-            format="hh:mm A"
-            // open={openPicker === "scheduleTime"}
-            // onOpen={() => setOpenPicker("scheduleTime")}
-            // onClose={() => setOpenPicker(null)}
-            onChange={(value) => updateDateTime(value, "time", "scheduleAt")}
-            slots={{ openPickerIcon: ScheduleClockIconSVG }}
-            slotProps={pickerSx("scheduleTime")}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <p className="text-body font-medium text-ink">Test ending by</p>
-        <div className="flex gap-3">
-          <DatePicker
-            value={publishState.endingAt ? dayjs(publishState.endingAt) : null}
-            format="MMM DD, YYYY"
-            // open={openPicker === "endingDate"}
-            // onOpen={() => setOpenPicker("endingDate")}
-            // onClose={() => setOpenPicker(null)}
-            onChange={(value) => updateDateTime(value, "date", "endingAt")}
-            slots={{ openPickerIcon: ScheduleCalendarIconSVG }}
-            slotProps={pickerSx("endingDate")}
-          />
-          <TimePicker
-            value={publishState.endingAt ? dayjs(publishState.endingAt) : null}
-            format="hh:mm A"
-            // open={openPicker === "endingTime"}
-            // onOpen={() => setOpenPicker("endingTime")}
-            // onClose={() => setOpenPicker(null)}
-            onChange={(value) => updateDateTime(value, "time", "endingAt")}
-            slots={{ openPickerIcon: ScheduleClockIconSVG }}
-            slotProps={pickerSx("endingTime")}
-          />
-        </div>
-      </div>
-    </>
+    <div className="flex flex-col gap-4 rounded-input border border-border p-4">
+      {row("scheduleAt", t("startsAt"))}
+      {row("endingAt", t("endsAt"))}
+      <p className="text-caption text-ink-muted">{t("timeZoneNote")}</p>
+    </div>
   );
 };
 

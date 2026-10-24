@@ -1,4 +1,6 @@
 import TrashIcon from "@/component/svg/TrashIcon";
+import { useTranslations } from "next-intl";
+import useQuestionTypeText from "../useQuestionTypeText";
 import UploadImageIconSVG from "@/component/svg/UploadImageIconSVG";
 import { RichTextEditor } from "@/component/RichTextEditor";
 import { useToast } from "@/component/Toast/ToastContext";
@@ -31,6 +33,8 @@ function QuestionCardHeader({
   validateImageFile,
   fullSubtype,
 }: QuestionCardHeaderProps) {
+  const t = useTranslations("createTest.card");
+  const typeText = useQuestionTypeText();
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
   const { hasFeature } = useEntitlements();
@@ -66,12 +70,12 @@ function QuestionCardHeader({
         triggerToast({
           description: Array.isArray(message)
             ? message[0]
-            : message || "Unable to upload image right now.",
+            : message || t("uploadFailed"),
           type: "error",
         });
       }
     },
-    [activateCard, dispatch, parentPassageId, questionId, subjectId, triggerToast, validateImageFile],
+    [activateCard, dispatch, parentPassageId, questionId, subjectId, t, triggerToast, validateImageFile],
   );
 
   const handleInlineImageUpload = useCallback(
@@ -98,13 +102,13 @@ function QuestionCardHeader({
         triggerToast({
           description: Array.isArray(message)
             ? message[0]
-            : message || "Unable to upload image right now.",
+            : message || t("uploadFailed"),
           type: "error",
         });
         return null;
       }
     },
-    [triggerToast, validateImageFile],
+    [t, triggerToast, validateImageFile],
   );
 
   const handleStructuredPaste = useCallback(
@@ -124,12 +128,12 @@ function QuestionCardHeader({
       triggerToast({
         description:
           parsed.options.length > 0
-            ? "Question, options, and answer were detected from your paste."
-            : "Question text was detected from your paste.",
+            ? t("pastedFull")
+            : t("pastedText"),
         type: "success",
       });
     },
-    [activateCard, dispatch, parentPassageId, questionId, subjectId, triggerToast],
+    [activateCard, dispatch, parentPassageId, questionId, subjectId, t, triggerToast],
   );
 
   useEffect(() => {
@@ -165,7 +169,7 @@ function QuestionCardHeader({
                 )
               }
               onFocus={activateCard}
-              placeholder={fullSubtype.headerPayload}
+              placeholder={typeText.prompt(fullSubtype.headerPayload)}
               autoFocus={shouldAutoFocus}
               allowImages={canUploadImages}
               onImageFile={canUploadImages ? handleInlineImageUpload : undefined}
@@ -181,7 +185,7 @@ function QuestionCardHeader({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={resolveMediaUrl(questionImage)}
-                    alt={`Question ${questionNumber} image`}
+                    alt={t("questionImageAlt", { number: questionNumber })}
                     className="h-full w-full object-cover"
                     onLoad={() =>
                       console.debug("[media] question preview loaded", {
@@ -199,20 +203,20 @@ function QuestionCardHeader({
                 <div className={`flex items-center ${QUESTION_BUILDER_GAPS.headerImageActions}`}>
                   <button
                     type="button"
-                    title="Replace question image"
+                    title={t("replaceQuestionImage")}
                     onClick={() => questionImageInputRef.current?.click()}
-                    aria-label="Replace question image"
+                    aria-label={t("replaceQuestionImage")}
                   >
                     <UploadImageIconSVG />
                   </button>
                   <button
                     type="button"
-                    title="Remove question image"
+                    title={t("removeQuestionImage")}
                     onClick={() =>
                       dispatch(updateQuestionImage({ subjectId, questionId, image: null, parentPassageId }))
                     }
                     className="flex h-9 w-9 items-center justify-center rounded-input text-danger transition-colors duration-150"
-                    aria-label="Remove question image"
+                    aria-label={t("removeQuestionImage")}
                   >
                     <TrashIcon />
                   </button>
@@ -245,11 +249,11 @@ function QuestionCardHeader({
               >
                 <button
                   type="button"
-                  title="Upload question image"
+                  title={t("uploadQuestionImage")}
                   onClick={() => canUploadImages && questionImageInputRef.current?.click()}
                   disabled={!canUploadImages}
                   className={!canUploadImages ? "opacity-50 cursor-not-allowed" : ""}
-                  aria-label="Upload question image"
+                  aria-label={t("uploadQuestionImage")}
                 >
                   <UploadImageIconSVG />
                 </button>

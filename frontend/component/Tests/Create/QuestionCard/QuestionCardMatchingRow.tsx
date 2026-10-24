@@ -1,4 +1,5 @@
 import QuestionCardMatchingConnectorIconSVG from "@/component/svg/QuestionCardMatchingConnectorIconSVG";
+import { useTranslations } from "next-intl";
 import TrashIcon from "@/component/svg/TrashIcon";
 import { memo, type ChangeEvent } from "react";
 import { QUESTION_BUILDER_GAPS, resizeTextarea } from "./shared";
@@ -26,6 +27,7 @@ function QuestionCardMatchingRow({
   setLeftInputRef,
   setRightInputRef,
 }: QuestionCardMatchingRowProps) {
+  const t = useTranslations("createTest.card");
   return (
     <div
       className={`group flex items-center ${QUESTION_BUILDER_GAPS.matchingRow} rounded-sm px-0 py-1 hover:bg-warning-soft focus-within:bg-warning-soft`}
@@ -46,7 +48,7 @@ function QuestionCardMatchingRow({
             onLeftChange(event);
           }}
           onFocus={activateCard}
-          placeholder="Add a choice"
+          placeholder={t("choicePlaceholder")}
           rows={1}
           className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-body font-normal leading-4 text-ink outline-none placeholder:text-[rgba(116,119,117,0.5)]"
         />
@@ -70,7 +72,7 @@ function QuestionCardMatchingRow({
             onRightChange(event);
           }}
           onFocus={activateCard}
-          placeholder="Add a choice"
+          placeholder={t("choicePlaceholder")}
           rows={1}
           className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-body font-normal leading-4 text-ink outline-none placeholder:text-[rgba(116,119,117,0.5)]"
         />
@@ -79,7 +81,7 @@ function QuestionCardMatchingRow({
         type="button"
         onClick={onRemove}
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-input text-danger opacity-0 transition-all duration-150 group-hover:opacity-100 focus:opacity-100"
-        aria-label={`Delete matching pair ${index + 1}`}
+        aria-label={t("deletePair", { number: index + 1 })}
       >
         <TrashIcon />
       </button>

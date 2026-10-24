@@ -16,14 +16,17 @@ const eslintConfig = defineConfig([
       "app/classes/**/*.{ts,tsx}",
       "component/Share/**/*.{ts,tsx}",
       "component/JoinTest/**/*.{ts,tsx}",
-      "component/Tests/{CreateTestActionButton,TestsNameSection,TestList,ExamDetails,StudentExamResults,ShareTestModal}.tsx",
+      "component/Tests/{CreateTestActionButton,TestsNameSection,TestList,ExamDetails,StudentExamResults,ShareTestModal,CreateTestForm}.tsx",
+      "component/Tests/Create/**/*.{ts,tsx}",
       "app/tests/page.tsx",
+      "app/tests/create/**/*.{ts,tsx}",
       "app/tests/[[]id]/**/*.{ts,tsx}",
     ],
     ignores: [
       "**/*.test.{ts,tsx}",
       // No longer used; deletion pending owner approval.
       "component/Classes/StudentBadges.tsx",
+      "component/Tests/Create/CreateModal.tsx",
     ],
     rules: {
       "no-restricted-syntax": [
