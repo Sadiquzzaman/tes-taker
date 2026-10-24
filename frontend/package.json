@@ -8,6 +8,8 @@
     "start": "next start",
     "format": "prettier --write .",
     "lint": "eslint",
+    "tokens": "node scripts/build-tokens.mjs",
+    "tokens:check": "node scripts/build-tokens.mjs --check",
     "test": "vitest run"
   },
   "dependencies": {
