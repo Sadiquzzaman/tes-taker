@@ -36,7 +36,6 @@
   "shell": {
     "organization": "Organization",
     "signOut": "Sign out",
-    "userAvatar": "User avatar",
     "workspace": {
       "title": "Workspaces",
       "myTeaching": "My Teaching",
@@ -423,6 +422,118 @@
       "closeMenu": "Close menu",
       "notifications": "Notifications",
       "navigation": "Main navigation"
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome, {name}",
+    "welcomeFallback": "Welcome",
+    "teacherIntro": "Here is what needs your attention today.",
+    "loadFailed": "The dashboard did not load.",
+    "viewAll": "View all",
+    "untitledTest": "Untitled test",
+    "noClass": "No class",
+    "createTest": "Create test",
+    "createClass": "Create class",
+    "examLimitReached": "You have reached your exam limit.",
+    "upgrade": "Upgrade",
+    "today": {
+      "label": "Today",
+      "needsMarking": "Needs marking",
+      "needsMarkingDetail": "{count, plural, =0 {Nothing waiting for review.} one {# submission waiting for review.} other {# submissions waiting for review.}}",
+      "goToMarking": "Go to marking",
+      "liveNow": "Live now",
+      "noLive": "No test is running right now.",
+      "timeLeft": "{time} left",
+      "participants": "{count, plural, one {# taking it} other {# taking it}}",
+      "submitted": "{count, number} submitted",
+      "previousLive": "Previous live test",
+      "nextLive": "Next live test",
+      "liveOf": "{current, number} of {total, number}",
+      "startingSoon": "Starting soon",
+      "nothingScheduled": "No test is scheduled.",
+      "viewTests": "View tests"
+    },
+    "upcoming": {
+      "title": "Upcoming tests",
+      "caption": "Upcoming tests",
+      "test": "Test",
+      "class": "Class",
+      "starts": "Starts",
+      "duration": "Duration",
+      "students": "Students",
+      "empty": "No upcoming tests",
+      "emptyDetail": "Scheduled tests will appear here."
+    },
+    "duration": {
+      "minutes": "{minutes, number} min",
+      "hours": "{hours, number} h",
+      "hoursMinutes": "{hours, number} h {minutes, number} min"
+    },
+    "students": {
+      "title": "Students",
+      "total": "Total",
+      "active": "Active",
+      "pending": "Pending",
+      "add": "Add students",
+      "empty": "No students yet",
+      "emptyDetail": "Add students to your classes to start tracking performance."
+    },
+    "classes": {
+      "title": "My classes",
+      "series": "Students",
+      "tooltip": "{count, plural, one {# student} other {# students}}",
+      "chartLabel": "Students in each class",
+      "empty": "No classes yet",
+      "emptyDetail": "Create your first class to start inviting students."
+    },
+    "top": {
+      "title": "Top students",
+      "class": "Class",
+      "search": "Search students",
+      "caption": "Top students in {className}",
+      "student": "Student",
+      "tests": "Tests",
+      "avgScore": "Avg score",
+      "empty": "No results yet",
+      "emptyDetail": "Top students appear here once submissions are marked.",
+      "noMatch": "No students match your search.",
+      "more": "{count, plural, one {and # more student} other {and # more students}}"
+    },
+    "calendar": {
+      "title": "Calendar",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "hasTests": "{count, plural, one {# test} other {# tests}}",
+      "today": "Today",
+      "noEvents": "No tests scheduled this month."
+    },
+    "activity": {
+      "title": "My activity",
+      "period": "Period",
+      "monthly": "Monthly",
+      "weekly": "Weekly",
+      "daily": "Daily",
+      "exams": "Exams",
+      "chartLabel": "Exams over time",
+      "tooltipExams": "{count, plural, one {# exam} other {# exams}}",
+      "tooltipParticipants": "{count, plural, one {# participant} other {# participants}}",
+      "empty": "Activity appears once students start taking tests."
+    },
+    "student": {
+      "title": "Your workspaces",
+      "intro": "Choose an organisation or teacher to see your classes and tests.",
+      "empty": "No workspaces yet",
+      "emptyDetail": "Join a class with an invite link from your teacher or organisation. It will appear here.",
+      "orgId": "ID {id}",
+      "pendingApproval": "Pending approval",
+      "organization": "Organisation",
+      "teacher": "Teacher / coaching classes",
+      "pending": "Pending",
+      "student": "Student",
+      "open": "Open",
+      "continue": "Continue",
+      "opening": "Opening…",
+      "unavailable": "Unavailable"
     }
   }
 }

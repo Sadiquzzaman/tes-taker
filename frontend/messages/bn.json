@@ -36,7 +36,6 @@
   "shell": {
     "organization": "প্রতিষ্ঠান",
     "signOut": "সাইন আউট",
-    "userAvatar": "ব্যবহারকারীর ছবি",
     "workspace": {
       "title": "ওয়ার্কস্পেস",
       "myTeaching": "আমার শিক্ষাদান",
@@ -423,6 +422,118 @@
       "closeMenu": "মেনু বন্ধ করুন",
       "notifications": "নোটিফিকেশন",
       "navigation": "প্রধান মেনু"
+    }
+  },
+  "dashboard": {
+    "welcome": "স্বাগতম, {name}",
+    "welcomeFallback": "স্বাগতম",
+    "teacherIntro": "আজ যেগুলোতে আপনার মনোযোগ দরকার।",
+    "loadFailed": "ড্যাশবোর্ড লোড হয়নি।",
+    "viewAll": "সব দেখুন",
+    "untitledTest": "নামহীন পরীক্ষা",
+    "noClass": "কোনো ক্লাস নেই",
+    "createTest": "পরীক্ষা তৈরি করুন",
+    "createClass": "ক্লাস তৈরি করুন",
+    "examLimitReached": "আপনার পরীক্ষার সীমা পূর্ণ হয়েছে।",
+    "upgrade": "আপগ্রেড করুন",
+    "today": {
+      "label": "আজ",
+      "needsMarking": "মূল্যায়ন বাকি",
+      "needsMarkingDetail": "{count, plural, =0 {পর্যালোচনার জন্য কিছু অপেক্ষায় নেই।} other {#টি জমা পর্যালোচনার অপেক্ষায়।}}",
+      "goToMarking": "মূল্যায়নে যান",
+      "liveNow": "এখন চলছে",
+      "noLive": "এই মুহূর্তে কোনো পরীক্ষা চলছে না।",
+      "timeLeft": "বাকি {time}",
+      "participants": "{count, plural, other {#জন দিচ্ছে}}",
+      "submitted": "{count, number}জন জমা দিয়েছে",
+      "previousLive": "আগের চলমান পরীক্ষা",
+      "nextLive": "পরের চলমান পরীক্ষা",
+      "liveOf": "{total, number}টির মধ্যে {current, number}",
+      "startingSoon": "শিগগির শুরু",
+      "nothingScheduled": "কোনো পরীক্ষা নির্ধারিত নেই।",
+      "viewTests": "পরীক্ষাগুলো দেখুন"
+    },
+    "upcoming": {
+      "title": "আসন্ন পরীক্ষা",
+      "caption": "আসন্ন পরীক্ষা",
+      "test": "পরীক্ষা",
+      "class": "ক্লাস",
+      "starts": "শুরু",
+      "duration": "সময়",
+      "students": "শিক্ষার্থী",
+      "empty": "কোনো আসন্ন পরীক্ষা নেই",
+      "emptyDetail": "নির্ধারিত পরীক্ষাগুলো এখানে দেখা যাবে।"
+    },
+    "duration": {
+      "minutes": "{minutes, number} মিনিট",
+      "hours": "{hours, number} ঘণ্টা",
+      "hoursMinutes": "{hours, number} ঘণ্টা {minutes, number} মিনিট"
+    },
+    "students": {
+      "title": "শিক্ষার্থী",
+      "total": "মোট",
+      "active": "সক্রিয়",
+      "pending": "অপেক্ষমাণ",
+      "add": "শিক্ষার্থী যোগ করুন",
+      "empty": "এখনো কোনো শিক্ষার্থী নেই",
+      "emptyDetail": "ফলাফল দেখতে আপনার ক্লাসে শিক্ষার্থী যোগ করুন।"
+    },
+    "classes": {
+      "title": "আমার ক্লাস",
+      "series": "শিক্ষার্থী",
+      "tooltip": "{count, plural, other {#জন শিক্ষার্থী}}",
+      "chartLabel": "প্রতিটি ক্লাসের শিক্ষার্থী",
+      "empty": "এখনো কোনো ক্লাস নেই",
+      "emptyDetail": "শিক্ষার্থী আমন্ত্রণ জানাতে প্রথম ক্লাসটি তৈরি করুন।"
+    },
+    "top": {
+      "title": "সেরা শিক্ষার্থী",
+      "class": "ক্লাস",
+      "search": "শিক্ষার্থী খুঁজুন",
+      "caption": "{className}-এর সেরা শিক্ষার্থী",
+      "student": "শিক্ষার্থী",
+      "tests": "পরীক্ষা",
+      "avgScore": "গড় নম্বর",
+      "empty": "এখনো কোনো ফলাফল নেই",
+      "emptyDetail": "জমা দেওয়া খাতা মূল্যায়নের পর সেরা শিক্ষার্থীরা এখানে দেখা যাবে।",
+      "noMatch": "আপনার খোঁজার সঙ্গে কোনো শিক্ষার্থী মেলেনি।",
+      "more": "{count, plural, other {আরও #জন শিক্ষার্থী}}"
+    },
+    "calendar": {
+      "title": "ক্যালেন্ডার",
+      "previousMonth": "আগের মাস",
+      "nextMonth": "পরের মাস",
+      "hasTests": "{count, plural, other {#টি পরীক্ষা}}",
+      "today": "আজ",
+      "noEvents": "এই মাসে কোনো পরীক্ষা নির্ধারিত নেই।"
+    },
+    "activity": {
+      "title": "আমার কার্যক্রম",
+      "period": "সময়কাল",
+      "monthly": "মাসিক",
+      "weekly": "সাপ্তাহিক",
+      "daily": "দৈনিক",
+      "exams": "পরীক্ষা",
+      "chartLabel": "সময়ের সঙ্গে পরীক্ষার সংখ্যা",
+      "tooltipExams": "{count, plural, other {#টি পরীক্ষা}}",
+      "tooltipParticipants": "{count, plural, other {#জন অংশগ্রহণকারী}}",
+      "empty": "শিক্ষার্থীরা পরীক্ষা দেওয়া শুরু করলে কার্যক্রম এখানে দেখা যাবে।"
+    },
+    "student": {
+      "title": "আপনার ওয়ার্কস্পেস",
+      "intro": "আপনার ক্লাস ও পরীক্ষা দেখতে একটি প্রতিষ্ঠান বা শিক্ষক বেছে নিন।",
+      "empty": "এখনো কোনো ওয়ার্কস্পেস নেই",
+      "emptyDetail": "শিক্ষক বা প্রতিষ্ঠানের দেওয়া আমন্ত্রণ লিংক দিয়ে ক্লাসে যোগ দিন। সেটি এখানে দেখা যাবে।",
+      "orgId": "আইডি {id}",
+      "pendingApproval": "অনুমোদনের অপেক্ষায়",
+      "organization": "প্রতিষ্ঠান",
+      "teacher": "শিক্ষক / কোচিং ক্লাস",
+      "pending": "অপেক্ষমাণ",
+      "student": "শিক্ষার্থী",
+      "open": "খুলুন",
+      "continue": "চালিয়ে যান",
+      "opening": "খোলা হচ্ছে…",
+      "unavailable": "পাওয়া যাচ্ছে না"
     }
   }
 }
