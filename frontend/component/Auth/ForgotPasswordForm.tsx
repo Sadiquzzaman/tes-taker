@@ -1,10 +1,11 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import AuthInput from "@/Ui/AuthInput";
 import ButtonLoader from "../Loader/ButtonLoadder";
 import useForgotPasswordForm from "@/hooks/auth/useForgotPasswordForm";
-import { formatTime } from "@/utils/auth/helpers";
+import { formatClock } from "@/i18n/format";
 
 const StepIndicator = ({ step }: { step: 1 | 2 | 3 }) => (
   <div className="flex gap-0.5 ml-2">
@@ -40,13 +41,15 @@ const ForgotPasswordForm = () => {
     handlePasswordChange,
     handleResetPassword,
   } = useForgotPasswordForm();
+  const t = useTranslations("auth");
+  const locale = useLocale();
 
   const otpInboxHint =
     deliveryChannel === "email"
-      ? "Please check your email inbox."
+      ? t("otp.checkEmail")
       : deliveryChannel === "sms"
-        ? "Please check your SMS inbox."
-        : "Please check your inbox.";
+        ? t("otp.checkSms")
+        : t("otp.checkInbox");
 
   return (
     <div className="w-full max-w-[420px] mx-auto flex flex-col gap-8">
@@ -54,20 +57,20 @@ const ForgotPasswordForm = () => {
         <>
           <div className="flex flex-row justify-between items-center mb-2">
             <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
-              Forgot password
+              {t("forgot.title")}
             </h2>
             <StepIndicator step={1} />
           </div>
           <p className="text-[#747775] font-normal text-[16px] leading-[125%] tracking-[-0.02em] -mt-4">
-            Enter your email or phone number and we&apos;ll send you a verification code to reset your password.
+            {t("forgot.intro")}
           </p>
           <div className="flex flex-col gap-4">
             <AuthInput
               value={identifier}
               onChange={(e) => handleIdentifierChange(e.target.value)}
               formError={identifierError}
-              placeholder="Enter email or phone"
-              label="Email or phone"
+              placeholder={t("fields.enterEmailOrPhone")}
+              label={t("fields.emailOrPhone")}
             />
             <button
               onClick={handleRequestOtp}
@@ -75,7 +78,7 @@ const ForgotPasswordForm = () => {
               className="w-full mt-4 bg-[#49734F] text-white py-3 rounded-lg font-medium hover:bg-green-800 transition flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-gray-400"
             >
               <ButtonLoader show={requestLoading} w="w-4" h="h-4" mr="mr-2" />
-              {requestLoading ? "Sending code..." : "Send code"}
+              {requestLoading ? t("forgot.sending") : t("forgot.send")}
             </button>
           </div>
         </>
@@ -85,7 +88,7 @@ const ForgotPasswordForm = () => {
         <>
           <div className="flex flex-row justify-between items-center mb-2">
             <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
-              Verify code
+              {t("otp.title")}
             </h2>
             <StepIndicator step={2} />
           </div>
@@ -115,12 +118,17 @@ const ForgotPasswordForm = () => {
             )}
 
             <label className="text-[#747775] font-normal text-[16px] leading-[125%] tracking-[-0.02em] mt-2">
-              We&apos;ve sent a 6-digit code{maskedTarget ? " to " : ""}
-              {maskedTarget && <span className="font-medium text-[#0F1A12]">{maskedTarget}</span>}. {otpInboxHint}
+              {maskedTarget
+                ? t.rich("otp.sentTo", {
+                    target: (chunks) => <span className="font-medium text-[#0F1A12]">{chunks}</span>,
+                    value: maskedTarget,
+                  })
+                : t("otp.sent")}{" "}
+              {otpInboxHint}
             </label>
 
             <label className="text-[#747775] font-normal text-[16px] leading-[125%] tracking-[-0.02em]">
-              Resend available in {formatTime(timeLeft)}{" "}
+              {t("otp.resendIn", { time: formatClock(timeLeft, locale) })}{" "}
               <a
                 onClick={timeLeft === 0 ? handleResendCode : undefined}
                 style={{ cursor: timeLeft === 0 ? "pointer" : "auto" }}
@@ -128,7 +136,7 @@ const ForgotPasswordForm = () => {
                   timeLeft === 0 ? "text-[#232A25] cursor-pointer" : "text-gray-400 cursor-default"
                 }`}
               >
-                Resend code
+                {t("otp.resend")}
               </a>
               .
             </label>
@@ -139,7 +147,7 @@ const ForgotPasswordForm = () => {
               className="w-full mt-4 bg-[#49734F] text-white py-3 rounded-lg font-medium hover:bg-green-800 transition flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-gray-400"
             >
               <ButtonLoader show={verifyLoading} w="w-4" h="h-4" mr="mr-2" />
-              {verifyLoading ? "Verifying..." : "Verify & Continue"}
+              {verifyLoading ? t("otp.submitting") : t("otp.submit")}
             </button>
           </div>
         </>
@@ -149,7 +157,7 @@ const ForgotPasswordForm = () => {
         <>
           <div className="flex flex-row justify-between items-center mb-2">
             <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
-              Set new password
+              {t("forgot.resetTitle")}
             </h2>
             <StepIndicator step={3} />
           </div>
@@ -159,16 +167,16 @@ const ForgotPasswordForm = () => {
               onChange={(e) => handlePasswordChange("password", e.target.value)}
               type="password"
               formError={passwordErrors.password}
-              placeholder="Enter new password"
-              label="New password"
+              placeholder={t("fields.newPasswordPlaceholder")}
+              label={t("fields.newPassword")}
             />
             <AuthInput
               value={confirmPassword}
               onChange={(e) => handlePasswordChange("confirm_password", e.target.value)}
               type="password"
               formError={passwordErrors.confirm_password}
-              placeholder="Confirm new password"
-              label="Confirm password"
+              placeholder={t("fields.confirmNewPasswordPlaceholder")}
+              label={t("fields.confirmPassword")}
             />
             <button
               onClick={handleResetPassword}
@@ -176,16 +184,16 @@ const ForgotPasswordForm = () => {
               className="w-full mt-4 bg-[#49734F] text-white py-3 rounded-lg font-medium hover:bg-green-800 transition flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-gray-400"
             >
               <ButtonLoader show={resetLoading} w="w-4" h="h-4" mr="mr-2" />
-              {resetLoading ? "Updating..." : "Reset password"}
+              {resetLoading ? t("forgot.resetting") : t("forgot.reset")}
             </button>
           </div>
         </>
       )}
 
       <p className="mt-2 text-center text-[#747775] text-[16px]">
-        Remember your password?{" "}
+        {t("forgot.remember")}{" "}
         <Link href="/login" className="text-[#232A25] font-medium underline">
-          Log In
+          {t("logIn")}
         </Link>
       </p>
     </div>

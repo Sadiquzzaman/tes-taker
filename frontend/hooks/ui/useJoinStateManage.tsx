@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 import { useStorageItem } from "@/hooks/useBrowserStorage";
 
@@ -14,6 +15,7 @@ type JoinInfo = JoinSessionInfo & { headerText: string };
 
 const useJoinStateManage = (page: "login" | "signup") => {
   const joinSessionInfo = useStorageItem("session", "joinSessionInfo");
+  const t = useTranslations("auth.joinHeader");
 
   const joinInfo = useMemo<JoinInfo | null>(() => {
     if (!joinSessionInfo) {
@@ -21,19 +23,18 @@ const useJoinStateManage = (page: "login" | "signup") => {
     }
 
     const parsedInfo = JSON.parse(joinSessionInfo) as JoinSessionInfo;
-    const pageName = page === "login" ? "Login" : page === "signup" ? "Sign Up" : "";
     const headerText =
       parsedInfo?.joinType === "class"
-        ? `${pageName} Required to Join ${parsedInfo.class_name}`
+        ? t(page === "login" ? "loginClass" : "signupClass", { name: String(parsedInfo.class_name ?? "") })
         : parsedInfo?.joinType === "test"
-          ? `${pageName} Required to participate in ${parsedInfo.test_name} test`
+          ? t(page === "login" ? "loginTest" : "signupTest", { name: String(parsedInfo.test_name ?? "") })
           : "";
 
     return {
       ...parsedInfo,
       headerText,
     };
-  }, [joinSessionInfo, page]);
+  }, [joinSessionInfo, page, t]);
 
   return { joinInfo };
 };

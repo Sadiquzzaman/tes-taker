@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 
 const SignUpChoice = ({
@@ -9,16 +10,18 @@ const SignUpChoice = ({
   onSelectStudent: () => void;
   onSelectTeacher: () => void;
 }) => {
+  const t = useTranslations("auth.signup");
+
   return (
     <div className="w-full max-w-[420px] mx-auto flex flex-col gap-8">
       <div className="flex flex-row justify-between items-center mb-2">
         <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
-          Sign Up
+          {t("title")}
         </h2>
       </div>
 
       <p className="text-[#747775] text-[16px] leading-[20px] -mt-4">
-        Choose how you want to join Instructor.
+        {t("choose")}
       </p>
 
       <div className="flex flex-col gap-3">
@@ -27,9 +30,9 @@ const SignUpChoice = ({
           onClick={onSelectStudent}
           className="w-full text-left rounded-lg border border-[#E5E5E5] px-4 py-4 hover:border-[#49734F] transition"
         >
-          <p className="text-[18px] font-semibold text-[#232A25]">Student</p>
+          <p className="text-[18px] font-semibold text-[#232A25]">{t("student")}</p>
           <p className="mt-1 text-[14px] text-[#747775]">
-            Create a student account to join classes and take tests.
+            {t("studentDescription")}
           </p>
         </button>
 
@@ -38,9 +41,9 @@ const SignUpChoice = ({
           onClick={onSelectTeacher}
           className="w-full text-left rounded-lg border border-[#E5E5E5] px-4 py-4 hover:border-[#49734F] transition"
         >
-          <p className="text-[18px] font-semibold text-[#232A25]">Sign Up as Teacher</p>
+          <p className="text-[18px] font-semibold text-[#232A25]">{t("teacher")}</p>
           <p className="mt-1 text-[14px] text-[#747775]">
-            Create an account and request teacher access. An admin must approve before you can teach.
+            {t("teacherDescription")}
           </p>
         </button>
 
@@ -48,9 +51,9 @@ const SignUpChoice = ({
           href="/signup/organization"
           className="w-full text-left rounded-lg border border-[#E5E5E5] px-4 py-4 hover:border-[#49734F] transition"
         >
-          <p className="text-[18px] font-semibold text-[#232A25]">Organization</p>
+          <p className="text-[18px] font-semibold text-[#232A25]">{t("organization")}</p>
           <p className="mt-1 text-[14px] text-[#747775]">
-            Register a school or organization. An admin will approve before you can use it.
+            {t("organizationDescription")}
           </p>
         </Link>
       </div>

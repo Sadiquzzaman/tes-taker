@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import useLogin from "@/hooks/api/useLogin";
 import useJoinStateManage from "@/hooks/ui/useJoinStateManage";
@@ -5,6 +6,7 @@ import { validateLoginForm } from "@/utils/auth/validation";
 
 export const useLoginForm = () => {
   const { joinInfo } = useJoinStateManage("login");
+  const tv = useTranslations("validation");
   const [loginInfo, setLoginInfo] = useState<LoginInfo>({
     identifier: "",
     password: "",
@@ -21,7 +23,7 @@ export const useLoginForm = () => {
   };
 
   const handleSubmit = () => {
-    const errors = validateLoginForm(loginInfo);
+    const errors = validateLoginForm(loginInfo, tv);
     if (errors.identifier || errors.password) {
       setFormError({
         identifier: errors.identifier || "",

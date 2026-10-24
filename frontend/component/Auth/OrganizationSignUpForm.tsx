@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import AuthInput from "@/Ui/AuthInput";
 import ButtonLoader from "@/component/Loader/ButtonLoadder";
@@ -9,19 +10,20 @@ import useOrganizationSignUpForm from "@/hooks/auth/useOrganizationSignUpForm";
 const OrganizationSignUpForm = () => {
   const { view, form, formError, checkboxError, loading, handleFieldChange, handleSignUp } =
     useOrganizationSignUpForm();
+  const t = useTranslations("auth");
 
   if (view === "otp") {
     return (
       <>
         <VerifyCode
           value={form.phone}
-          successTitle="Organization registered"
-          successDescription="Save your organization number from the confirmation toast. After SUPER_ADMIN approval, sign in with your phone and password."
+          successTitle={t("signup.organizationRegistered")}
+          successDescription={t("signup.organizationRegisteredDescription")}
         />
         <p className="mt-4 text-center text-[#747775] text-[16px]">
-          Already have an account?{" "}
+          {t("haveAccount")}{" "}
           <Link href={"/login"} className="text-[#232A25] font-medium underline">
-            Log In
+            {t("logIn")}
           </Link>
         </p>
       </>
@@ -33,7 +35,7 @@ const OrganizationSignUpForm = () => {
       <div className="w-full max-w-[420px] mx-auto flex flex-col gap-8">
         <div className="flex flex-row justify-between items-center mb-2">
           <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
-            Organization Sign Up
+            {t("signup.organizationTitle")}
           </h2>
           <div className="flex gap-0.5 ml-2">
             <div className="w-4 h-1 rounded-[2px] bg-[#49734F]" />
@@ -42,7 +44,7 @@ const OrganizationSignUpForm = () => {
         </div>
 
         <Link href="/signup" className="text-[#49734F] text-[14px] font-medium underline -mt-4">
-          Back to account type
+          {t("backToAccountType")}
         </Link>
 
         <div className="flex flex-col gap-3">
@@ -50,46 +52,46 @@ const OrganizationSignUpForm = () => {
             value={form.organization_name}
             onChange={(e) => handleFieldChange("organization_name", e.target.value)}
             formError={formError.organization_name}
-            placeholder="e.g., ABC School"
-            label="Organization / school name"
+            placeholder={t("fields.organizationNamePlaceholder")}
+            label={t("fields.organizationName")}
           />
           <AuthInput
             value={form.full_name}
             onChange={(e) => handleFieldChange("full_name", e.target.value)}
             formError={formError.full_name}
-            placeholder="e.g., John Doe"
-            label="Owner full name"
+            placeholder={t("fields.fullNamePlaceholder")}
+            label={t("fields.ownerFullName")}
           />
           <AuthInput
             value={form.phone}
             onChange={(e) => handleFieldChange("phone", e.target.value)}
             type="number"
             formError={formError.phone}
-            placeholder="Enter phone number"
-            label="Phone"
+            placeholder={t("fields.phonePlaceholder")}
+            label={t("fields.phone")}
           />
           <AuthInput
             value={form.password}
             onChange={(e) => handleFieldChange("password", e.target.value)}
             type="password"
             formError={formError.password}
-            placeholder="Enter password"
-            label="Password"
+            placeholder={t("fields.passwordPlaceholder")}
+            label={t("fields.password")}
           />
           <AuthInput
             value={form.confirm_password}
             onChange={(e) => handleFieldChange("confirm_password", e.target.value)}
             type="password"
             formError={formError.confirm_password}
-            placeholder="Confirm password"
-            label="Confirm Password"
+            placeholder={t("fields.confirmPasswordPlaceholder")}
+            label={t("fields.confirmPassword")}
           />
           <AuthInput
             value={form.email || ""}
             onChange={(e) => handleFieldChange("email", e.target.value)}
             formError={formError.email}
-            placeholder="Enter email address"
-            label="Email"
+            placeholder={t("fields.emailPlaceholder")}
+            label={t("fields.email")}
           />
 
           <div className="flex flex-row items-center gap-2 py-2">
@@ -101,15 +103,18 @@ const OrganizationSignUpForm = () => {
               className="w-5 h-5 accent-[#49734F] border border-[#E5E5E5] rounded focus:ring-2 focus:ring-green-500"
             />
             <label htmlFor="org-terms" className="text-[#747775] font-regular text-[16px]">
-              I agree to the{" "}
-              <a href="#" className="underline font-medium">
-                Terms of Service
-              </a>{" "}
-              and the{" "}
-              <a href="#" className="underline font-medium">
-                Privacy Policy
-              </a>
-              .
+              {t.rich("agreeTerms", {
+                terms: (chunks) => (
+                  <a href="#" className="underline font-medium">
+                    {chunks}
+                  </a>
+                ),
+                privacy: (chunks) => (
+                  <a href="#" className="underline font-medium">
+                    {chunks}
+                  </a>
+                ),
+              })}
             </label>
           </div>
 
@@ -125,14 +130,14 @@ const OrganizationSignUpForm = () => {
             disabled={loading}
           >
             <ButtonLoader show={loading} w="w-4" h="h-4" mr="mr-2" />
-            {loading ? "Signing Up..." : "Sign Up"}
+            {loading ? t("signingUp") : t("signUp")}
           </button>
         </div>
       </div>
       <p className="mt-4 text-center text-[#747775] text-[16px]">
-        Already have an account?{" "}
+        {t("haveAccount")}{" "}
         <Link href={"/login"} className="text-[#232A25] font-medium underline">
-          Log In
+          {t("logIn")}
         </Link>
       </p>
     </>

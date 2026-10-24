@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { UserRoleEnum } from "@/utils/enum";
 import useRegister from "@/hooks/api/useRegister";
@@ -17,6 +18,7 @@ const hasJoinSession = () => {
 
 export const useSignUpForm = () => {
   const { joinInfo } = useJoinStateManage("signup");
+  const tv = useTranslations("validation");
   const [view, setView] = useState<SignUpPageView>(hasJoinSession() ? "signup" : "choice");
   const [signUpInfo, setSignUpInfo] = useState<SignUpInfo>({
     full_name: "",
@@ -59,7 +61,7 @@ export const useSignUpForm = () => {
   };
 
   const handleSignUp = () => {
-    const errors = validateSignUpForm(signUpInfo);
+    const errors = validateSignUpForm(signUpInfo, tv);
 
     setFormError({
       full_name: errors.full_name || "",
