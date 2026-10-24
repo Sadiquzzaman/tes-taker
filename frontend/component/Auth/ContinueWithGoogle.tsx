@@ -17,7 +17,7 @@ const ContinueWithGoogle = () => {
     <button
       type="button"
       onClick={handleGoogleSignIn}
-      className="w-full flex items-center justify-center gap-2 bg-[#EFF0F3] py-3 rounded-lg text-[#232A25] font-normal hover:bg-gray-200 transition"
+      className="w-full flex items-center justify-center gap-2 bg-canvas py-3 rounded-lg text-ink font-normal hover:bg-border transition"
     >
       <GoogleIconSVG width={16} />
       {t("continueWithGoogle")}

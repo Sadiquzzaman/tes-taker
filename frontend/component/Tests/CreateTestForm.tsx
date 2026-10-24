@@ -86,7 +86,7 @@ const CreateTestForm = () => {
   return (
     <div className="flex min-h-[calc(100vh-96px)] flex-col overflow-hidden lg:h-[calc(100vh-96px)]">
       {/* <div className="flex items-center justify-between pr-8">
-        <p className="text-[32px] font-[600] leading-[32px] tracking-[-0.04em] text-[#232A25]">Create Test</p>
+        <p className="text-display font-semibold tracking-tight text-ink">Create Test</p>
         <Link href="/tests">
           <CloseIconSVG />
         </Link>

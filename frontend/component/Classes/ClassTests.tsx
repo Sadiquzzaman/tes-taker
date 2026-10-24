@@ -25,13 +25,13 @@ const ClassTests = ({ testList, role }: { testList: TestListItem[]; role: RoleUs
   }, [activeTestTab.value, testList]);
 
   return (
-    <div className="p-2 sm:p-4 bg-white rounded-[8px] h-full">
+    <div className="p-2 sm:p-4 bg-surface rounded-input h-full">
       <div className="flex justify-between items-center">
-        <p className="font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">Tests</p>
+        <p className="font-medium text-title text-ink">Tests</p>
 
         {canCreateTest && (
           <Link href="/tests/create">
-            <button className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] bg-[#49734F] rounded-[8px] font-[500] text-white font-medium text-[12px] sm:text-[14px]">
+            <button className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] bg-primary rounded-input font-medium text-ink-inverse font-medium text-caption sm:text-body-sm">
               <FileIconSVG width={16} />
               <span className="capitalize mb-[2px]">Create Test</span>
             </button>
@@ -39,12 +39,12 @@ const ClassTests = ({ testList, role }: { testList: TestListItem[]; role: RoleUs
         )}
       </div>
       <div className="py-4 flex flex-col sm:flex-row justify-start sm:justify-between items-start sm:items-center w-full min-h-10 mb-2">
-        <div className="flex w-fit rounded-md bg-gray-100 p-0.5">
+        <div className="flex w-fit rounded-md bg-canvas p-0.5">
           {classTestTabList.map((tab) => (
             <button
               key={tab.value}
-              className={`px-4 py-2 text-sm rounded leading-[20px] tracking-[-0.02em] ${
-                activeTestTab.value === tab.value ? "font-[400] bg-white shadow text-[#232A25]" : "text-[#747775]"
+              className={`px-4 py-2 text-sm rounded ${
+                activeTestTab.value === tab.value ? "font-normal bg-surface shadow text-ink" : "text-ink-muted"
               }`}
               onClick={() => setActiveTestTab(tab)}
             >
@@ -61,7 +61,7 @@ const ClassTests = ({ testList, role }: { testList: TestListItem[]; role: RoleUs
       {filteredTestList.length === 0 && (
         <div className="w-full min-h-[100px] flex items-center justify-center">
           <div className="text-center">
-            <p className="font-[600] text-[24px] leading-[32px] tracking-[-0.04em] text-[#232A25]">Test not found</p>
+            <p className="font-semibold text-title tracking-tight text-ink">Test not found</p>
           </div>
         </div>
       )}

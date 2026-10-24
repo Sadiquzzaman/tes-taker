@@ -9,17 +9,17 @@ const CreateTestStepSidebar = ({ currentStep }: CreateTestStepSidebarProps) => {
   const progressWidth = `${(currentStepIndex / (createTestSteps.length - 1)) * 100}%`;
 
   return (
-    <aside className="w-full rounded-[12px] bg-[rgba(239,240,243,0.75)] px-4 py-2 lg:p-5 lg:h-full lg:w-[260px] lg:min-w-[260px]">
+    <aside className="w-full rounded-card bg-[rgba(239,240,243,0.75)] px-4 py-2 lg:p-5 lg:h-full lg:w-[260px] lg:min-w-[260px]">
       <div className="flex h-full flex-col gap-6">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">Steps</p>
-            <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
+            <p className="text-body-sm font-normal text-ink-muted">Steps</p>
+            <p className="text-body-sm font-normal text-ink-muted">
               {currentStepIndex + 1}/{createTestSteps.length}
             </p>
           </div>
-          <div className="hidden h-1 w-full overflow-hidden rounded-[19px] bg-[#E5E5E5] lg:block">
-            <div className="h-1 rounded-[19px] bg-[#49734F]" style={{ width: progressWidth }} />
+          <div className="hidden h-1 w-full overflow-hidden rounded-[19px] bg-border lg:block">
+            <div className="h-1 rounded-[19px] bg-primary" style={{ width: progressWidth }} />
           </div>
         </div>
 
@@ -40,18 +40,18 @@ const CreateTestStepSidebar = ({ currentStep }: CreateTestStepSidebarProps) => {
                 ) : (
                   <span
                     className={`relative h-4 w-4 rounded-full border ${
-                      isActive ? "border-[#49734F] bg-white" : "border-[#747775] bg-transparent"
+                      isActive ? "border-primary bg-surface" : "border-ink-muted bg-transparent"
                     }`}
                   >
                     {isActive ? (
-                      <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#49734F]" />
+                      <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" />
                     ) : null}
                   </span>
                 )}
 
                 <span
-                  className={`text-[16px] font-[500] leading-4 tracking-[-0.02em] ${
-                    isActive ? "text-[#49734F]" : isCompleted ? "text-[#232A25]" : "text-[#747775]"
+                  className={`text-body font-medium leading-4 ${
+                    isActive ? "text-primary" : isCompleted ? "text-ink" : "text-ink-muted"
                   }`}
                 >
                   {step}

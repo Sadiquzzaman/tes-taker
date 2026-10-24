@@ -13,7 +13,7 @@ export default async function CreateClassesPage() {
     <PageLayout route={backHref} subText="Create class">
       <div className="w-full max-w-[800px] mx-auto py-8 flex flex-col">
         <div className="flex justify-between items-center">
-          <p className={`font-[600] text-[32px] leading-[32px] tracking-[-0.04em] text-[#232A25]`}>Create Class</p>
+          <p className={`font-semibold text-display tracking-tight text-ink`}>Create Class</p>
           <Link href={backHref}>
             <CloseIconSVG />
           </Link>

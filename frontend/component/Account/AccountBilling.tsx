@@ -93,30 +93,30 @@ const AccountBilling = () => {
   };
 
   if (entitlementsLoading) {
-    return <div className="rounded-2xl border border-[#E5E5E5] bg-white p-6 animate-pulse h-40" />;
+    return <div className="rounded-2xl border border-border bg-surface p-6 animate-pulse h-40" />;
   }
 
   return (
-    <div className="rounded-2xl border border-[#E5E5E5] bg-white p-6 flex flex-col gap-4">
+    <div className="rounded-2xl border border-border bg-surface p-6 flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-[20px] font-[600] text-[#232A25]">Billing & plan</p>
-          <p className="text-sm text-[#747775]">
+          <p className="text-title-sm font-semibold text-ink">Billing & plan</p>
+          <p className="text-sm text-ink-muted">
             Current plan: <strong>{entitlements?.plan?.name ?? "Free"}</strong>
           </p>
         </div>
-        <button type="button" onClick={() => void refetch()} className="text-sm text-[#49734F] hover:underline">
+        <button type="button" onClick={() => void refetch()} className="text-sm text-primary hover:underline">
           Refresh usage
         </button>
       </div>
 
       {entitlements?.usage && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-[#747775]">
-          <div className="rounded-[8px] bg-[#EFF0F3] p-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-ink-muted">
+          <div className="rounded-input bg-canvas p-3">
             Exams this month: {entitlements.usage.exams_used_this_month}
             {entitlements.limits?.max_exams_per_month ? ` / ${entitlements.limits.max_exams_per_month}` : ""}
           </div>
-          <div className="rounded-[8px] bg-[#EFF0F3] p-3">
+          <div className="rounded-input bg-canvas p-3">
             Total exams used: {entitlements.usage.total_exams_used}
             {entitlements.limits?.max_total_exams ? ` / ${entitlements.limits.max_total_exams}` : ""}
           </div>
@@ -129,8 +129,8 @@ const AccountBilling = () => {
             key={cycle}
             type="button"
             onClick={() => setBillingCycle(cycle)}
-            className={`px-3 py-1.5 rounded-[6px] text-sm ${
-              billingCycle === cycle ? "bg-[#49734F] text-white" : "bg-[#EFF0F3] text-[#232A25]"
+            className={`px-3 py-1.5 rounded-input text-sm ${
+              billingCycle === cycle ? "bg-primary text-ink-inverse" : "bg-canvas text-ink"
             }`}
           >
             {cycleLabels[cycle]}
@@ -151,26 +151,26 @@ const AccountBilling = () => {
                 <div
                   key={plan.id}
                   id={`plan-${plan.slug}`}
-                  className={`border rounded-[8px] p-4 flex flex-col gap-3 ${
+                  className={`border rounded-input p-4 flex flex-col gap-3 ${
                     highlightSlug && plan.slug === highlightSlug
-                      ? "border-[#49734F] ring-2 ring-[#49734F]"
+                      ? "border-primary ring-2 ring-primary"
                       : plan.slug === entitlements?.plan?.slug
-                        ? "border-[#49734F]"
-                        : "border-[#EFF0F3]"
+                        ? "border-primary"
+                        : "border-border"
                   }`}
                 >
                   <div>
-                    <p className="font-semibold text-[#232A25]">{plan.name ?? plan.display_name}</p>
-                    <p className="text-sm text-[#49734F]">৳{getPrice(plan, billingCycle).toLocaleString()}</p>
+                    <p className="font-semibold text-ink">{plan.name ?? plan.display_name}</p>
+                    <p className="text-sm text-primary">৳{getPrice(plan, billingCycle).toLocaleString()}</p>
                   </div>
                   <button
                     type="button"
                     disabled={isDisabled}
                     onClick={() => void handleCheckout(plan)}
-                    className={`py-2 rounded-[6px] text-sm disabled:opacity-60 ${
+                    className={`py-2 rounded-input text-sm disabled:opacity-60 ${
                       buttonState.disabled
-                        ? "bg-[#EFF0F3] text-[#747775] cursor-not-allowed"
-                        : "bg-[#49734F] text-white"
+                        ? "bg-canvas text-ink-muted cursor-not-allowed"
+                        : "bg-primary text-ink-inverse"
                     }`}
                   >
                     {checkoutLoading === plan.id ? "Processing..." : buttonState.label}

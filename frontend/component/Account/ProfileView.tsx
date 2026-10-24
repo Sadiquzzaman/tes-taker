@@ -16,9 +16,9 @@ const formatDate = (value?: string) => {
 };
 
 const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div className="flex flex-col gap-1 border-b border-[#E5E5E5] py-4 last:border-b-0">
-    <p className="text-[13px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]">{label}</p>
-    <p className="text-[16px] font-[500] leading-[20px] tracking-[-0.02em] text-[#232A25] break-words">{value}</p>
+  <div className="flex flex-col gap-1 border-b border-border py-4 last:border-b-0">
+    <p className="text-body-sm font-normal text-ink-muted">{label}</p>
+    <p className="text-body font-medium text-ink break-words">{value}</p>
   </div>
 );
 
@@ -44,10 +44,10 @@ const ProfileView = () => {
   if (error || !profile) {
     return (
       <div className="flex min-h-[300px] flex-col items-center justify-center gap-4">
-        <p className="text-[16px] font-[500] text-[#232A25]">We couldn&apos;t load your profile.</p>
+        <p className="text-body font-medium text-ink">We couldn&apos;t load your profile.</p>
         <button
           onClick={() => void refetch()}
-          className="px-4 h-10 flex items-center justify-center rounded-[8px] bg-[#49734F] text-white text-[14px] font-[500] tracking-[-0.02em]"
+          className="px-4 h-10 flex items-center justify-center rounded-input bg-primary text-ink-inverse text-body-sm font-medium"
         >
           Try again
         </button>
@@ -59,24 +59,24 @@ const ProfileView = () => {
 
   return (
     <div className="w-full max-w-[800px] mx-auto py-8 flex flex-col gap-6">
-      <p className="font-[600] text-[32px] leading-[32px] tracking-[-0.04em] text-[#232A25]">Account</p>
+      <p className="font-semibold text-display tracking-tight text-ink">Account</p>
 
-      <div className="rounded-2xl border border-[#E5E5E5] bg-white">
-        <div className="flex flex-col gap-4 border-b border-[#E5E5E5] p-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="rounded-2xl border border-border bg-surface">
+        <div className="flex flex-col gap-4 border-b border-border p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <span className="relative h-16 w-16 overflow-hidden rounded-full bg-gray-200">
+            <span className="relative h-16 w-16 overflow-hidden rounded-full bg-border">
               <Image src="/assets/image/user.png" alt="User avatar" fill className="object-cover" />
             </span>
             <div className="flex flex-col gap-1">
-              <p className="text-[20px] font-[600] leading-[24px] tracking-[-0.02em] text-[#232A25]">
+              <p className="text-title-sm font-semibold text-ink">
                 {profile.full_name}
               </p>
-              <p className="text-[14px] font-[400] leading-[18px] tracking-[-0.02em] text-[#747775]">
+              <p className="text-body-sm font-normal text-ink-muted">
                 {profile.email || profile.phone}
               </p>
             </div>
           </div>
-          <span className="w-fit rounded-full bg-[#EAF2EB] px-3 py-1 text-[13px] font-[500] capitalize tracking-[-0.02em] text-[#49734F]">
+          <span className="w-fit rounded-full bg-primary-soft px-3 py-1 text-body-sm font-medium capitalize text-primary">
             {profile.role?.toLowerCase()}
           </span>
         </div>
@@ -90,11 +90,11 @@ const ProfileView = () => {
             label="Account status"
             value={
               <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[13px] font-[500] ${
-                  isVerified ? "bg-[#EAF2EB] text-[#49734F]" : "bg-[#FFF4E5] text-[#B54708]"
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-body-sm font-medium ${
+                  isVerified ? "bg-primary-soft text-primary" : "bg-warning-soft text-warning"
                 }`}
               >
-                <span className={`h-1.5 w-1.5 rounded-full ${isVerified ? "bg-[#49734F]" : "bg-[#B54708]"}`} />
+                <span className={`h-1.5 w-1.5 rounded-full ${isVerified ? "bg-primary" : "bg-warning"}`} />
                 {isVerified ? "Verified" : "Unverified"}
               </span>
             }
@@ -106,7 +106,7 @@ const ProfileView = () => {
       {profile.role === "STUDENT" && <TeacherRequestPanel />}
 
       {profile.role === "TEACHER" && (
-        <Suspense fallback={<div className="rounded-2xl border border-[#E5E5E5] bg-white p-6 animate-pulse h-40" />}>
+        <Suspense fallback={<div className="rounded-2xl border border-border bg-surface p-6 animate-pulse h-40" />}>
           <AccountBilling />
         </Suspense>
       )}

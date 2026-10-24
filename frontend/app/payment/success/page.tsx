@@ -5,8 +5,8 @@ export default function PaymentSuccessPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[#EFF0F3]">
-          <p className="text-[#747775]">Verifying payment...</p>
+        <div className="min-h-screen flex items-center justify-center bg-canvas">
+          <p className="text-ink-muted">Verifying payment...</p>
         </div>
       }
     >

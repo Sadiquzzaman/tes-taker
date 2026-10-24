@@ -38,8 +38,8 @@ const AddQuestionSubjectModal = ({ open, onClose, onSelect, subjectOptions }: Ad
     <>
       <CreateModal open={open} onClose={handleClose} maxWidthClassName="max-w-[420px]" panelClassName="p-5 sm:p-6">
         <div className="flex flex-col gap-1">
-          <p className="text-[20px] font-[600] leading-[24px] tracking-[-0.03em] text-[#232A25]">Add Subject</p>
-          <p className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]">
+          <p className="text-title-sm font-semibold tracking-tight text-ink">Add Subject</p>
+          <p className="text-body-sm font-normal text-ink-muted">
             Search the subject catalog and add a subject to this model test.
           </p>
         </div>
@@ -51,28 +51,28 @@ const AddQuestionSubjectModal = ({ open, onClose, onSelect, subjectOptions }: Ad
                 value={searchText}
                 onChange={(event) => setSearchText(event.target.value)}
                 placeholder="Search subject"
-                parentClassName="h-[44px] w-full rounded-[8px] border-[#E5E5E5]"
-                inputClassName="px-2 text-[16px] font-[400] leading-[125%] placeholder:text-[#747775]"
+                parentClassName="h-[44px] w-full rounded-input border-border"
+                inputClassName="px-2 text-body font-normal placeholder:text-ink-muted"
                 afterIcon={null}
               />
             </div>
           </div>
         </div>
 
-        <div className="mt-4 max-h-[280px] overflow-y-auto rounded-[12px] border border-[#E5E5E5] bg-white p-2">
+        <div className="mt-4 max-h-[280px] overflow-y-auto rounded-card border border-border bg-surface p-2">
           {filteredSubjectOptions.length > 0 ? (
             filteredSubjectOptions.map((subject) => (
               <button
                 key={subject.id}
                 type="button"
                 onClick={() => handleSelect(subject)}
-                className="flex w-full items-center rounded-[8px] px-3 py-2 text-left text-[14px] font-[500] leading-[16px] text-[#232A25] transition-colors hover:bg-[#49734F0D]"
+                className="flex w-full items-center rounded-input px-3 py-2 text-left text-body-sm font-medium text-ink transition-colors hover:bg-primary-soft"
               >
                 {subject.label}
               </button>
             ))
           ) : (
-            <div className="px-3 py-6 text-center text-[14px] font-[400] leading-[16px] text-[#747775]">
+            <div className="px-3 py-6 text-center text-body-sm font-normal text-ink-muted">
               No subjects found
             </div>
           )}

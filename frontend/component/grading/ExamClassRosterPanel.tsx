@@ -72,17 +72,17 @@ const ExamClassRosterPanel = ({ examId }: { examId: string }) => {
   }, [examId]);
 
   if (error) {
-    return <p className="text-[14px] text-[#D24B44]">{error}</p>;
+    return <p className="text-body-sm text-danger">{error}</p>;
   }
 
   if (!payload) {
-    return <p className="text-[14px] text-[#747775]">Loading class roster…</p>;
+    return <p className="text-body-sm text-ink-muted">Loading class roster…</p>;
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-[8px] bg-white p-4">
+    <div className="flex flex-col gap-4 rounded-input bg-surface p-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-[20px] font-[600] text-[#232A25]">Class exam dashboard</h3>
+        <h3 className="text-title-sm font-semibold text-ink">Class exam dashboard</h3>
       </div>
       <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
         {(
@@ -94,17 +94,17 @@ const ExamClassRosterPanel = ({ examId }: { examId: string }) => {
             ["Disqualified", payload.counts.disqualified],
           ] as const
         ).map(([label, value]) => (
-          <div key={label} className="rounded-[8px] border border-[#E5E5E5] p-3">
-            <p className="text-[12px] text-[#747775]">{label}</p>
-            <p className="text-[22px] font-[600] text-[#232A25]">{value}</p>
+          <div key={label} className="rounded-input border border-border p-3">
+            <p className="text-caption text-ink-muted">{label}</p>
+            <p className="text-title font-semibold text-ink">{value}</p>
           </div>
         ))}
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-[960px] w-full text-left text-[13px]">
+        <table className="min-w-[960px] w-full text-left text-body-sm">
           <thead>
-            <tr className="border-b border-[#EFF0F3] text-[#232A25]">
+            <tr className="border-b border-border text-ink">
               <th className="p-2">Student</th>
               <th className="p-2">Status</th>
               <th className="p-2">Submitted</th>
@@ -118,7 +118,7 @@ const ExamClassRosterPanel = ({ examId }: { examId: string }) => {
           <tbody>
             {payload.students.map((student) => (
               <Fragment key={student.student_id}>
-                <tr className="border-b border-[#EFF0F3] text-[#747775]">
+                <tr className="border-b border-border text-ink-muted">
                   <td className="p-2">{student.student_name || "Anonymous"}</td>
                   <td className="p-2">{student.status}</td>
                   <td className="p-2">{student.submitted_at ? new Date(student.submitted_at).toLocaleString() : "—"}</td>
@@ -135,7 +135,7 @@ const ExamClassRosterPanel = ({ examId }: { examId: string }) => {
                   <td className="p-2">
                     <button
                       type="button"
-                      className="text-[#49734F] underline"
+                      className="text-primary underline"
                       onClick={() =>
                         setExpandedId((current) => (current === student.student_id ? null : student.student_id))
                       }
@@ -146,14 +146,14 @@ const ExamClassRosterPanel = ({ examId }: { examId: string }) => {
                 </tr>
                 {expandedId === student.student_id ? (
                   <tr className="bg-[#F7F8F7]">
-                    <td colSpan={8} className="p-3 text-[13px] text-[#232A25]">
+                    <td colSpan={8} className="p-3 text-body-sm text-ink">
                       <p>
                         <strong>Browser switches:</strong> {student.browser_switch_count} ·{" "}
                         <strong>Tab switches:</strong> {student.tab_switch_count} ·{" "}
                         <strong>Red-flag points:</strong> {student.proctoring_summary.total_red_flag_points}
                       </p>
                       {student.disqualification_reason ? (
-                        <p className="mt-1 text-[#D24B44]">
+                        <p className="mt-1 text-danger">
                           <strong>Disqualification:</strong> {student.disqualification_reason}
                         </p>
                       ) : null}

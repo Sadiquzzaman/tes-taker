@@ -29,8 +29,8 @@ const StudentExamSection = ({
     <section className="flex flex-col gap-4">
       {showTitle ? (
         <div className="px-1 pt-1">
-          <p className="text-[14px] font-[600] uppercase tracking-[0.08em] text-[#49734F]">{section.title}</p>
-          <p className="mt-1 text-[13px] leading-5 text-[#747775]">{t("questionCount", { count: section.questionCount })}</p>
+          <p className="text-body-sm font-semibold uppercase tracking-[0.08em] text-primary">{section.title}</p>
+          <p className="mt-1 text-body-sm leading-5 text-ink-muted">{t("questionCount", { count: section.questionCount })}</p>
         </div>
       ) : null}
 

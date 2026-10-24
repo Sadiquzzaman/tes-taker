@@ -34,76 +34,76 @@ const ShareClassModal = () => {
       />
       <div
         className={`
-        relative bg-white overflow-auto w-full sm:w-[584px]
+        relative bg-surface overflow-auto w-full sm:w-[584px]
         sm:rounded-xl transform transition-all duration-1000
         ${open ? "translate-y-0 opacity-100" : "-translate-y-20 opacity-0"}`}
       >
         <div className="p-4 sm:p-8">
           <div className="pb-4 flex justify-between items-center">
-            <p className="font-[400] text-[20px] leading-[20px] tracking-[-0.02em] text-[#747775]">
+            <p className="font-normal text-title-sm text-ink-muted">
               {classData?.type === "new" ? "Successfully created" : "Share class"}
             </p>
-            <button className="text-[#747775]" onClick={handleClose}>
+            <button className="text-ink-muted" onClick={handleClose}>
               <CrossIconSVG width={24} />
             </button>
           </div>
           {classData?.type === "new" ? (
-            <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
+            <p className="py-4 font-medium text-title text-ink">
               ‘{classData?.class_name}’ created successfully with{" "}
-              <span className="text-[#49734F]">{classData?.classStudents.length} active invitation</span>
+              <span className="text-primary">{classData?.classStudents.length} active invitation</span>
             </p>
           ) : (
-            <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
+            <p className="py-4 font-medium text-title text-ink">
               Share ‘{classData?.class_name}’
             </p>
           )}
 
-          <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
+          <p className="pb-4 font-normal text-body text-ink-muted">
             Anyone with the link will be able send a joining request in this class.{" "}
           </p>
           <div className="py-4">
-            <p className="font-[600] text-[14px] leading-[125%] tracking-[-0.02em] text-[#0F1A12]"> Class join link</p>
-            <div className="w-full flex justify-between items-center bg-[#EFF0F3] rounded-lg px-4 py-2 mt-2 gap-2">
-              <p className="font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#2765EC]">{classLink}</p>
+            <p className="font-semibold text-body-sm text-ink"> Class join link</p>
+            <div className="w-full flex justify-between items-center bg-canvas rounded-lg px-4 py-2 mt-2 gap-2">
+              <p className="font-normal text-body text-info">{classLink}</p>
               <div
                 onClick={handleCopyLink}
-                className="min-w-[72px] h-8 text-white bg-[#232A25] rounded-lg flex items-center justify-center cursor-pointer gap-2 px-2"
+                className="min-w-[72px] h-8 text-ink-inverse bg-ink rounded-lg flex items-center justify-center cursor-pointer gap-2 px-2"
               >
                 <CopyIconSVG width={14} />
-                <p className="font-[500] text-[14px] leading-[16px] tracking-[-0.02em]">Copy</p>
+                <p className="font-medium text-body-sm">Copy</p>
               </div>
             </div>
           </div>
           <div className="pt-4">
-            <p className="font-[600] text-[14px] leading-[125%] tracking-[-0.02em] text-[#0F1A12]"> Share directly</p>
-            <div className="w-full flex items-center bg-white rounded-lg px-4 py-2 mt-2 gap-8">
+            <p className="font-semibold text-body-sm text-ink"> Share directly</p>
+            <div className="w-full flex items-center bg-surface rounded-lg px-4 py-2 mt-2 gap-8">
               <div className="cursor-pointer flex flex-col items-center" onClick={shareWhatsApp}>
                 <Image src={WhatsAppImage} alt="WhatsApp" width={48} height={48} />
-                <p className="font-[400] text-[10px] leading-[12px] tracking-[-0.02em] text-[#747775]">WhatsApp</p>
+                <p className="font-normal text-caption text-ink-muted">WhatsApp</p>
               </div>
               <div className="cursor-pointer flex flex-col items-center" onClick={shareMessenger}>
                 <Image src={MessengerImage} alt="Messenger" width={48} height={48} />
-                <p className="font-[400] text-[10px] leading-[12px] tracking-[-0.02em] text-[#747775]">Messenger</p>
+                <p className="font-normal text-caption text-ink-muted">Messenger</p>
               </div>
               <div className="cursor-pointer flex flex-col items-center" onClick={shareTelegram}>
                 <Image src={TelegramImage} alt="Telegram" width={48} height={48} />
-                <p className="font-[400] text-[10px] leading-[12px] tracking-[-0.02em] text-[#747775]">Telegram</p>
+                <p className="font-normal text-caption text-ink-muted">Telegram</p>
               </div>
               <div className="cursor-pointer flex flex-col items-center" onClick={shareLinkedIn}>
                 <Image src={LinkedInImage} alt="LinkedIn" width={48} height={48} />
-                <p className="font-[400] text-[10px] leading-[12px] tracking-[-0.02em] text-[#747775]">LinkedIn</p>
+                <p className="font-normal text-caption text-ink-muted">LinkedIn</p>
               </div>
               <div className="cursor-pointer flex flex-col items-center" onClick={shareGmail}>
                 <Image src={GmailImage} alt="Gmail" width={48} height={48} />
-                <p className="font-[400] text-[10px] leading-[12px] tracking-[-0.02em] text-[#747775]">Gmail</p>
+                <p className="font-normal text-caption text-ink-muted">Gmail</p>
               </div>
             </div>
           </div>
         </div>
-        <div className="p-4 sm:p-8 border-t border-[#E5E5E5] flex justify-end items-center">
+        <div className="p-4 sm:p-8 border-t border-border flex justify-end items-center">
           <button
             onClick={handleClose}
-            className="bg-[#49734F] text-white rounded-lg w-[90px] h-[40px] flex justify-center items-center text-[14px] leading-[16px] tracking-[-0.02em] font-[500]"
+            className="bg-primary text-ink-inverse rounded-lg w-[90px] h-[40px] flex justify-center items-center text-body-sm font-medium"
           >
             Continue
           </button>

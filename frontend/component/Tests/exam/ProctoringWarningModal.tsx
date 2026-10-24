@@ -20,28 +20,28 @@ const ProctoringWarningModal = () => {
     <CreateModal open={isOpen} onClose={() => {}} maxWidthClassName="max-w-[460px]" panelClassName="p-6 sm:p-7">
       <div className="flex flex-col gap-5">
         <div className="flex items-start gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#FEF0C7] text-[#DC6803]">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning">
             <ImportantIconSvg />
           </div>
           <div className="flex flex-col gap-2">
-            <p className="text-[24px] font-[600] leading-7 tracking-[-0.04em] text-[#232A25]">{t("warningTitle")}</p>
-            <p className="text-[14px] leading-5 text-[#747775]">{t("warningSubtitle")}</p>
+            <p className="text-title font-semibold leading-7 tracking-tight text-ink">{t("warningTitle")}</p>
+            <p className="text-body-sm leading-5 text-ink-muted">{t("warningSubtitle")}</p>
           </div>
         </div>
 
-        <div className="rounded-[12px] border border-[#FEDF89] bg-[#FFFAEB] p-4">
-          <p className="text-[14px] leading-5 text-[#232A25]">{t(`flags.${pendingWarning.type}`)}</p>
-          <p className="mt-2 text-[14px] font-[600] leading-5 text-[#B54708]">
+        <div className="rounded-card border border-warning-soft bg-warning-soft p-4">
+          <p className="text-body-sm leading-5 text-ink">{t(`flags.${pendingWarning.type}`)}</p>
+          <p className="mt-2 text-body-sm font-semibold leading-5 text-warning">
             {t("currentFlagCount", { count: pendingWarning.flagCount })}
           </p>
         </div>
 
-        <p className="text-[14px] leading-5 text-[#747775]">{t("continueCarefully")}</p>
+        <p className="text-body-sm leading-5 text-ink-muted">{t("continueCarefully")}</p>
 
         <button
           type="button"
           onClick={() => dispatch(dismissProctoringWarning())}
-          className="h-11 rounded-[10px] bg-[#49734F] px-5 text-[14px] font-[600] leading-4 text-white"
+          className="h-11 rounded-card bg-primary px-5 text-body-sm font-semibold leading-4 text-ink-inverse"
         >
           {t("understand")}
         </button>

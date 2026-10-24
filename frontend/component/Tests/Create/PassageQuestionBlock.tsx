@@ -80,8 +80,8 @@ function PassageQuestionBlock({
       } ${isDragging ? "opacity-0" : "opacity-100"}`}
     >
       <div
-        className={`flex w-full flex-col ${QUESTION_BUILDER_GAPS.passageInner} rounded-[8px] border p-5 transition-[opacity,transform,box-shadow] duration-200 ${
-          isActive ? "border-transparent bg-[#FDF3E5]" : "border-[#E5E5E5] bg-white"
+        className={`flex w-full flex-col ${QUESTION_BUILDER_GAPS.passageInner} rounded-input border p-5 transition-[opacity,transform,box-shadow] duration-200 ${
+          isActive ? "border-transparent bg-warning-soft" : "border-border bg-surface"
         }`}
       >
         <div
@@ -91,10 +91,10 @@ function PassageQuestionBlock({
           <div className={`flex items-start justify-between ${QUESTION_BUILDER_GAPS.passageHeaderRow}`}>
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[12px] font-[500] leading-[14px] tracking-[-0.02em] text-[#747775]">
+                <p className="text-caption font-medium text-ink-muted">
                   Instruction language
                 </p>
-                <div className="flex items-center rounded-[6px] border border-[#E5E5E5] bg-white p-0.5">
+                <div className="flex items-center rounded-input border border-border bg-surface p-0.5">
                   {(
                     [
                       { id: "bn", label: "Bangla" },
@@ -116,8 +116,8 @@ function PassageQuestionBlock({
                             }),
                           );
                         }}
-                        className={`rounded-[4px] px-2.5 py-1 text-[12px] font-[500] leading-[14px] tracking-[-0.02em] transition-colors ${
-                          isSelected ? "bg-[#49734F] text-white" : "bg-transparent text-[#232A25] hover:bg-[#F3F4F6]"
+                        className={`rounded-sm px-2.5 py-1 text-caption font-medium transition-colors ${
+                          isSelected ? "bg-primary text-ink-inverse" : "bg-transparent text-ink hover:bg-canvas"
                         }`}
                       >
                         {option.label}
@@ -126,14 +126,14 @@ function PassageQuestionBlock({
                   })}
                 </div>
               </div>
-              <p className="max-w-[480px] text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+              <p className="max-w-[480px] text-body font-medium text-ink">
                 {instructionLabel}
               </p>
             </div>
             <button
               type="button"
               onClick={() => dispatch(deleteQuestion({ subjectId, questionId: passage.id }))}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-[#D24B44] transition-colors hover:bg-[#D24B44] hover:text-white"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-input text-danger transition-colors hover:bg-danger hover:text-ink-inverse"
               aria-label="Delete passage block"
             >
               <TrashIcon />
@@ -154,11 +154,11 @@ function PassageQuestionBlock({
             placeholder="Write your passage here..."
             autoFocus={shouldAutoFocusPassage}
             minHeightClassName="min-h-[96px]"
-            className="border-[#E5E5E5] bg-white"
+            className="border-border bg-surface"
           />
           {subjectId.startsWith("ielts.listening") || subjectId.includes("listening") ? (
             <div className="flex flex-col gap-2 mt-2">
-              <label className="text-[14px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+              <label className="text-body-sm font-medium text-ink">
                 Audio URL (optional)
               </label>
               <NormalInput
@@ -172,8 +172,8 @@ function PassageQuestionBlock({
                     }),
                   )
                 }
-                parentClassName="h-[40px] w-full rounded-[6px] border-[#E5E5E5]"
-                inputClassName="px-2 text-[14px] font-[400] leading-[125%] placeholder:text-[#747775]"
+                parentClassName="h-[40px] w-full rounded-input border-border"
+                inputClassName="px-2 text-body-sm font-normal placeholder:text-ink-muted"
                 placeholder="https://example.com/audio.mp3"
                 afterIcon={null}
               />
@@ -214,7 +214,7 @@ function PassageQuestionBlock({
         <button
           type="button"
           onPointerDown={(event) => onDragHandlePointerDown(subjectId, passage.id, event)}
-          className="flex-shrink-0 cursor-grab touch-none text-[#747775] transition-colors hover:text-[#232A25] active:cursor-grabbing"
+          className="flex-shrink-0 cursor-grab touch-none text-ink-muted transition-colors hover:text-ink active:cursor-grabbing"
           aria-label="Drag passage block"
         >
           <DragHandleIcon />

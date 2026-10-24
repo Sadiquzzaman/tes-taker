@@ -29,9 +29,9 @@ const ProctoringMobileFab = ({ mediaStream }: ProctoringMobileFabProps) => {
         style={{ backgroundColor: fabColors.background, color: fabColors.text }}
         aria-label={t("openBoard")}
       >
-        <span className="relative text-[20px] font-[700]">
+        <span className="relative text-title-sm font-bold">
           {flagCount > 0 ? (
-            <span className="absolute -right-3 -top-3 flex size-5 items-center justify-center rounded-full bg-[#D92D20] text-[10px] text-white">
+            <span className="absolute -right-3 -top-3 flex size-5 items-center justify-center rounded-full bg-danger text-caption text-ink-inverse">
               {flagCount}
             </span>
           ) : null}
@@ -47,28 +47,28 @@ const ProctoringMobileFab = ({ mediaStream }: ProctoringMobileFabProps) => {
       >
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <p className="text-[20px] font-[600] leading-6 text-[#232A25]">{t("board")}</p>
+            <p className="text-title-sm font-semibold leading-6 text-ink">{t("board")}</p>
             <button
               type="button"
               onClick={() => setIsBoardOpen(false)}
-              className="rounded-[8px] border border-[#DDE5DE] px-3 py-1.5 text-[12px] font-[500] text-[#232A25]"
+              className="rounded-input border border-border px-3 py-1.5 text-caption font-medium text-ink"
             >
               {t("close")}
             </button>
           </div>
 
-          <p className="text-[12px] leading-4 text-[#747775]">{t("ownViewNote")}</p>
+          <p className="text-caption leading-4 text-ink-muted">{t("ownViewNote")}</p>
 
           <ProctoringVideoPreview
             mediaStream={mediaStream}
-            className="h-[140px] w-full rounded-[10px] bg-[#0F1A12] object-cover"
+            className="h-[140px] w-full rounded-card bg-ink object-cover"
           />
 
           <ProctoringFlagBadge flagCount={flagCount} label={t("flaggedCount")} />
 
-          <div className="rounded-[10px] border border-[#E6ECE7] bg-white px-4 py-3">
-            <p className="text-[12px] font-[500] leading-4 text-[#747775]">{t("risk.label")}</p>
-            <p className="mt-1 text-[16px] font-[600] leading-5 text-[#232A25]">{t(`risk.${riskLevel}`)}</p>
+          <div className="rounded-card border border-border bg-surface px-4 py-3">
+            <p className="text-caption font-medium leading-4 text-ink-muted">{t("risk.label")}</p>
+            <p className="mt-1 text-body font-semibold leading-5 text-ink">{t(`risk.${riskLevel}`)}</p>
           </div>
 
           <ProctoringMonitoringLog flags={flags} />

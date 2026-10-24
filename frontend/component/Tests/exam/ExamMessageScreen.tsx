@@ -31,9 +31,9 @@ const MESSAGE_TONE: Record<ExamMessageVariant, "neutral" | "warning" | "success"
 };
 
 const toneStyles = {
-  neutral: "bg-[#EFF0F3] text-[#232A25]",
-  warning: "bg-[#FEE4E2] text-[#D92D20]",
-  success: "bg-[#EAF2EB] text-[#49734F]",
+  neutral: "bg-canvas text-ink",
+  warning: "bg-danger-soft text-danger",
+  success: "bg-primary-soft text-primary",
 };
 
 const ExamMessageScreen = ({ variant, reason, onAction, actionLabel }: ExamMessageScreenProps) => {
@@ -45,25 +45,25 @@ const ExamMessageScreen = ({ variant, reason, onAction, actionLabel }: ExamMessa
     <CreateModal open onClose={() => {}} maxWidthClassName="max-w-[520px]" panelClassName="p-6 sm:p-8">
       <div className="flex flex-col items-center gap-4 text-center">
         <div
-          className={`flex size-14 items-center justify-center rounded-full text-[24px] font-[700] ${toneStyles[tone]}`}
+          className={`flex size-14 items-center justify-center rounded-full text-title font-bold ${toneStyles[tone]}`}
         >
           !
         </div>
-        <p className="text-[24px] font-[600] leading-7 tracking-[-0.04em] text-[#232A25]">{t(`message.${variant}.title`)}</p>
-        <p className="text-[14px] leading-6 text-[#747775]">{t(`message.${variant}.description`)}</p>
-        {reason ? <p className="text-[13px] leading-5 text-[#B93815]">{reason}</p> : null}
+        <p className="text-title font-semibold leading-7 tracking-tight text-ink">{t(`message.${variant}.title`)}</p>
+        <p className="text-body-sm leading-6 text-ink-muted">{t(`message.${variant}.description`)}</p>
+        {reason ? <p className="text-body-sm leading-5 text-danger">{reason}</p> : null}
         {onAction ? (
           <button
             type="button"
             onClick={onAction}
-            className="mt-2 h-11 rounded-[10px] bg-[#49734F] px-5 text-[14px] font-[600] leading-4 text-white"
+            className="mt-2 h-11 rounded-card bg-primary px-5 text-body-sm font-semibold leading-4 text-ink-inverse"
           >
             {actionLabel ?? defaultActionLabel}
           </button>
         ) : (
           <Link
             href="/classes"
-            className="mt-2 inline-flex h-11 items-center justify-center rounded-[10px] bg-[#49734F] px-5 text-[14px] font-[600] leading-4 text-white"
+            className="mt-2 inline-flex h-11 items-center justify-center rounded-card bg-primary px-5 text-body-sm font-semibold leading-4 text-ink-inverse"
           >
             {actionLabel ?? defaultActionLabel}
           </Link>

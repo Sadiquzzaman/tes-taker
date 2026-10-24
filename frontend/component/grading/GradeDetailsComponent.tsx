@@ -40,7 +40,7 @@ const GradeDetailsComponent = ({ classId }: { classId: string }) => {
         <GradeDetailsStats />
       </div>
 
-      <div className="flex min-h-[calc(100vh-320px)] min-w-0 flex-col gap-6 rounded-[12px] bg-[#EFF0F3BF] p-2 sm:p-4">
+      <div className="flex min-h-[calc(100vh-320px)] min-w-0 flex-col gap-6 rounded-card bg-canvas p-2 sm:p-4">
         <ExamClassRosterPanel examId={classId} />
         <StudentSubmissionsTable />
         <GradingModel />

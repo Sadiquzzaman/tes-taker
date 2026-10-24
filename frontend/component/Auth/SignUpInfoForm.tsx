@@ -18,25 +18,25 @@ const SignUpInfoForm = ({
   return (
     <div className="w-full max-w-[420px] mx-auto flex flex-col gap-8">
       <div className="flex flex-row justify-between items-center mb-2">
-        <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
+        <h2 className="text-display font-semibold text-ink capitalize">
           {title ?? t("signup.studentTitle")}
         </h2>
         <div className="flex gap-0.5 ml-2">
-          <div className="w-4 h-1 rounded-[2px] bg-[#49734F]" />
-          <div className="w-4 h-1 rounded-[2px] bg-[#E5E5E5]" />
+          <div className="w-4 h-1 rounded-sm bg-primary" />
+          <div className="w-4 h-1 rounded-sm bg-border" />
         </div>
       </div>
       {onBackToChoice && (
         <button
           type="button"
           onClick={onBackToChoice}
-          className="text-left text-[#49734F] text-[14px] font-medium underline -mt-4"
+          className="text-left text-primary text-body-sm font-medium underline -mt-4"
         >
           {t("backToAccountType")}
         </button>
       )}
       {description && (
-        <p className="text-[#747775] text-[14px] leading-[20px] -mt-4">{description}</p>
+        <p className="text-ink-muted text-body-sm -mt-4">{description}</p>
       )}
       <div className="flex flex-col gap-3">
         <AuthInput
@@ -84,9 +84,9 @@ const SignUpInfoForm = ({
             type="checkbox"
             checked={signUpInfo.agreed}
             onChange={(e) => handleFieldChange("agreed", e.target.checked)}
-            className="w-5 h-5 accent-[#49734F] border border-[#E5E5E5] rounded focus:ring-2 focus:ring-green-500"
+            className="w-5 h-5 accent-primary border border-border rounded focus:ring-2 focus:ring-primary"
           />
-          <label htmlFor="terms" className="text-[#747775] font-regular text-[16px]">
+          <label htmlFor="terms" className="text-ink-muted font-regular text-body">
             {t.rich("agreeTerms", {
               terms: (chunks) => (
                 <a href="#" className="underline font-medium">
@@ -103,14 +103,14 @@ const SignUpInfoForm = ({
         </div>
 
         {checkboxError && (
-          <p className="font-normal text-[16px] leading-[125%] tracking-[-0.02em] text-[#D24B44] align-middle">
+          <p className="font-normal text-body text-danger align-middle">
             {checkboxError}
           </p>
         )}
 
         <button
           onClick={handleSignUp}
-          className="w-full mt-4 bg-[#49734F] text-white py-3 rounded-lg font-medium mb-4 hover:bg-green-800 transition flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-gray-400"
+          className="w-full mt-4 bg-primary text-ink-inverse py-3 rounded-lg font-medium mb-4 hover:bg-primary transition flex items-center justify-center gap-2 disabled:bg-ink-muted disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-ink-muted"
           disabled={loading}
         >
           <ButtonLoader show={loading} w="w-4" h="h-4" mr="mr-2" />
@@ -119,9 +119,9 @@ const SignUpInfoForm = ({
       </div>
 
       <div className="flex flex-row items-center gap-5 my-0">
-        <hr className="flex-grow border-[#E5E5E5]" />
-        <span className="text-[#747775] text-[14px]">{t("or")}</span>
-        <hr className="flex-grow border-[#E5E5E5]" />
+        <hr className="flex-grow border-border" />
+        <span className="text-ink-muted text-body-sm">{t("or")}</span>
+        <hr className="flex-grow border-border" />
       </div>
       <ContinueWithGoogle />
     </div>

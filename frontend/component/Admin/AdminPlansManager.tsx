@@ -164,25 +164,25 @@ const AdminPlansManager = () => {
   return (
     <>
       <div className="flex justify-between items-center w-full min-h-[40px] mb-2 sm:mb-4">
-        <div className="text-[20px] md:text-[32px] tracking-[-0.04em] flex items-center gap-0 flex-wrap mr-4">
-          <p className="font-[500] text-[#232A25]">Subscription</p>
-          <p className="font-[400] text-[#49734F] italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
+        <div className="text-title-sm md:text-display tracking-tight flex items-center gap-0 flex-wrap mr-4">
+          <p className="font-medium text-ink">Subscription</p>
+          <p className="font-normal text-primary italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
             Plans
           </p>
         </div>
         <button
           type="button"
           onClick={openCreate}
-          className="flex items-center justify-center gap-2 h-[40px] px-4 bg-[#232A25] rounded-xl font-[500] text-white text-[14px]"
+          className="flex items-center justify-center gap-2 h-[40px] px-4 bg-ink rounded-xl font-medium text-ink-inverse text-body-sm"
         >
           + Add plan
         </button>
       </div>
 
-      <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 min-h-[calc(100vh-162px)]">
-        <div className="bg-white rounded-[12px] overflow-x-auto">
+      <div className="bg-canvas rounded-card p-2 sm:p-4 min-h-[calc(100vh-162px)]">
+        <div className="bg-surface rounded-card overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-[#EFF0F3] text-left text-[#232A25]">
+            <thead className="bg-canvas text-left text-ink">
               <tr>
                 <th className="p-3">Plan</th>
                 <th className="p-3">Monthly</th>
@@ -195,30 +195,30 @@ const AdminPlansManager = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-[#747775]">
+                  <td colSpan={6} className="p-6 text-center text-ink-muted">
                     Loading...
                   </td>
                 </tr>
               ) : plans.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-[#747775]">
+                  <td colSpan={6} className="p-6 text-center text-ink-muted">
                     No plans yet
                   </td>
                 </tr>
               ) : (
                 plans.map((plan) => (
-                  <tr key={plan.id} className="border-t border-[#EFF0F3]">
+                  <tr key={plan.id} className="border-t border-border">
                     <td className="p-3">
-                      <p className="font-medium text-[#232A25]">{plan.name ?? plan.display_name}</p>
-                      <p className="text-xs text-[#747775]">{plan.slug}</p>
+                      <p className="font-medium text-ink">{plan.name ?? plan.display_name}</p>
+                      <p className="text-xs text-ink-muted">{plan.slug}</p>
                     </td>
                     <td className="p-3">৳{Number(plan.price_monthly).toLocaleString()}</td>
                     <td className="p-3">৳{Number(plan.price_half_yearly).toLocaleString()}</td>
                     <td className="p-3">৳{Number(plan.price_yearly).toLocaleString()}</td>
                     <td className="p-3">
                       <span
-                        className={`text-[12px] px-2 py-0.5 rounded-full ${
-                          plan.is_plan_active ? "bg-[#EAF2EB] text-[#49734F]" : "bg-[#FFF4E5] text-[#B54708]"
+                        className={`text-caption px-2 py-0.5 rounded-full ${
+                          plan.is_plan_active ? "bg-primary-soft text-primary" : "bg-warning-soft text-warning"
                         }`}
                       >
                         {plan.is_plan_active ? "Active" : "Disabled"}
@@ -229,21 +229,21 @@ const AdminPlansManager = () => {
                         <button
                           type="button"
                           onClick={() => openEdit(plan)}
-                          className="px-3 py-1.5 text-xs border border-[#49734F] text-[#49734F] rounded-[6px]"
+                          className="px-3 py-1.5 text-xs border border-primary text-primary rounded-input"
                         >
                           Edit
                         </button>
                         <button
                           type="button"
                           onClick={() => void toggleActive(plan)}
-                          className="px-3 py-1.5 text-xs border border-[#B54708] text-[#B54708] rounded-[6px]"
+                          className="px-3 py-1.5 text-xs border border-warning text-warning rounded-input"
                         >
                           {plan.is_plan_active ? "Disable" : "Enable"}
                         </button>
                         <button
                           type="button"
                           onClick={() => void hardDelete(plan)}
-                          className="px-3 py-1.5 text-xs bg-[#C0392B] text-white rounded-[6px]"
+                          className="px-3 py-1.5 text-xs bg-danger text-ink-inverse rounded-input"
                         >
                           Delete
                         </button>
@@ -259,17 +259,17 @@ const AdminPlansManager = () => {
 
       {editing && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-[12px] w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 flex flex-col gap-5">
+          <div className="bg-surface rounded-card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 flex flex-col gap-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-[#232A25]">{isNew ? "Add plan" : "Edit plan"}</h2>
-              <button type="button" onClick={() => setEditing(null)} className="text-[#747775] text-xl leading-none">
+              <h2 className="text-xl font-semibold text-ink">{isNew ? "Add plan" : "Edit plan"}</h2>
+              <button type="button" onClick={() => setEditing(null)} className="text-ink-muted text-xl leading-none">
                 ×
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-[#747775]">Name</span>
+                <span className="text-ink-muted">Name</span>
                 <input
                   value={editing.name}
                   onChange={(e) =>
@@ -279,38 +279,38 @@ const AdminPlansManager = () => {
                       slug: isNew ? slugify(e.target.value) : editing.slug,
                     })
                   }
-                  className="border border-[#EFF0F3] rounded-[6px] px-3 py-2"
+                  className="border border-border rounded-input px-3 py-2"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-[#747775]">Slug</span>
+                <span className="text-ink-muted">Slug</span>
                 <input
                   value={editing.slug}
                   onChange={(e) => setEditing({ ...editing, slug: slugify(e.target.value) })}
-                  className="border border-[#EFF0F3] rounded-[6px] px-3 py-2"
+                  className="border border-border rounded-input px-3 py-2"
                 />
               </label>
             </div>
 
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-[#747775]">Description</span>
+              <span className="text-ink-muted">Description</span>
               <textarea
                 value={editing.description}
                 onChange={(e) => setEditing({ ...editing, description: e.target.value })}
                 rows={2}
-                className="border border-[#EFF0F3] rounded-[6px] px-3 py-2"
+                className="border border-border rounded-input px-3 py-2"
               />
             </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {(["price_monthly", "price_half_yearly", "price_yearly"] as const).map((field) => (
                 <label key={field} className="flex flex-col gap-1 text-sm">
-                  <span className="text-[#747775] capitalize">{field.replace("price_", "").replace("_", " ")}</span>
+                  <span className="text-ink-muted capitalize">{field.replace("price_", "").replace("_", " ")}</span>
                   <input
                     type="number"
                     value={editing[field]}
                     onChange={(e) => setEditing({ ...editing, [field]: Number(e.target.value) })}
-                    className="border border-[#EFF0F3] rounded-[6px] px-3 py-2"
+                    className="border border-border rounded-input px-3 py-2"
                   />
                 </label>
               ))}
@@ -318,7 +318,7 @@ const AdminPlansManager = () => {
 
             {Object.entries(groupedFeatures).map(([group, features]) => (
               <div key={group}>
-                <h3 className="font-semibold text-[#232A25] mb-3">{group}</h3>
+                <h3 className="font-semibold text-ink mb-3">{group}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {features.map((feature) => (
                     <div key={feature.key} className="flex items-center justify-between gap-3 text-sm">
@@ -339,11 +339,11 @@ const AdminPlansManager = () => {
             ))}
 
             <div>
-              <h3 className="font-semibold text-[#232A25] mb-3">Limits</h3>
+              <h3 className="font-semibold text-ink mb-3">Limits</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {catalog?.limits.map((limit) => (
                   <label key={limit.key} className="flex flex-col gap-1 text-sm">
-                    <span className="text-[#747775]">{limit.label}</span>
+                    <span className="text-ink-muted">{limit.label}</span>
                     <input
                       type="number"
                       value={Number(editing.limits[limit.key] ?? 0)}
@@ -353,7 +353,7 @@ const AdminPlansManager = () => {
                           limits: { ...editing.limits, [limit.key]: Number(e.target.value) },
                         })
                       }
-                      className="border border-[#EFF0F3] rounded-[6px] px-3 py-2"
+                      className="border border-border rounded-input px-3 py-2"
                     />
                   </label>
                 ))}
@@ -370,7 +370,7 @@ const AdminPlansManager = () => {
               <button
                 type="button"
                 onClick={() => setEditing(null)}
-                className="px-4 h-[40px] rounded-[8px] border border-[#EFF0F3] text-[#232A25] text-sm"
+                className="px-4 h-[40px] rounded-input border border-border text-ink text-sm"
               >
                 Cancel
               </button>
@@ -378,7 +378,7 @@ const AdminPlansManager = () => {
                 type="button"
                 disabled={saving}
                 onClick={() => void handleSave()}
-                className="px-4 h-[40px] rounded-[8px] bg-[#49734F] text-white text-sm disabled:opacity-60"
+                className="px-4 h-[40px] rounded-input bg-primary text-ink-inverse text-sm disabled:opacity-60"
               >
                 {saving ? "Saving..." : isNew ? "Create plan" : "Save changes"}
               </button>

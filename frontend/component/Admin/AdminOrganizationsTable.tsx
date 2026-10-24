@@ -17,10 +17,10 @@ const formatDate = (value?: string | null) => {
 };
 
 const statusStyles: Record<OrganizationStatus, string> = {
-  pending: "bg-[#FFF4E5] text-[#B54708]",
-  approved: "bg-[#EAF2EB] text-[#49734F]",
-  rejected: "bg-[#FEECEC] text-[#D24B44]",
-  inactive: "bg-[#EFF0F3] text-[#747775]",
+  pending: "bg-warning-soft text-warning",
+  approved: "bg-primary-soft text-primary",
+  rejected: "bg-danger-soft text-danger",
+  inactive: "bg-canvas text-ink-muted",
 };
 
 const AdminOrganizationsTable = () => {
@@ -107,13 +107,13 @@ const AdminOrganizationsTable = () => {
   };
 
   return (
-    <div className="rounded-[8px] bg-white p-4">
+    <div className="rounded-input bg-surface p-4">
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-[24px] font-[500] leading-[24px] tracking-[-0.02em] text-[#232A25]">
-            Organization <span className="font-[400] italic text-[#49734F]">Requests</span>
+          <p className="text-title font-medium text-ink">
+            Organization <span className="font-normal italic text-primary">Requests</span>
           </p>
-          <p className="mt-2 text-[14px] text-[#747775]">
+          <p className="mt-2 text-body-sm text-ink-muted">
             Review and approve or reject organization registrations.
           </p>
         </div>
@@ -125,7 +125,7 @@ const AdminOrganizationsTable = () => {
               setCurrentPage(1);
               setStatusFilter(event.target.value as OrganizationStatus | "");
             }}
-            className="h-10 rounded-[8px] border border-[#E5E5E5] px-3 text-[14px] text-[#232A25]"
+            className="h-10 rounded-input border border-border px-3 text-body-sm text-ink"
           >
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
@@ -138,11 +138,11 @@ const AdminOrganizationsTable = () => {
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Search organization name"
-              className="h-10 w-full rounded-[8px] border border-[#E5E5E5] px-3 text-[14px] text-[#232A25]"
+              className="h-10 w-full rounded-input border border-border px-3 text-body-sm text-ink"
             />
             <button
               type="submit"
-              className="h-10 shrink-0 rounded-[8px] bg-[#49734F] px-4 text-[14px] font-[500] text-white"
+              className="h-10 shrink-0 rounded-input bg-primary px-4 text-body-sm font-medium text-ink-inverse"
             >
               Search
             </button>
@@ -151,50 +151,50 @@ const AdminOrganizationsTable = () => {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-[14px]">
+        <table className="min-w-full text-left text-body-sm">
           <thead>
-            <tr className="border-b border-[#E5E5E5] text-[#747775]">
-              <th className="px-3 py-3 font-[500]">Organization</th>
-              <th className="px-3 py-3 font-[500]">Number</th>
-              <th className="px-3 py-3 font-[500]">Owner</th>
-              <th className="px-3 py-3 font-[500]">Request Date</th>
-              <th className="px-3 py-3 font-[500]">Status</th>
-              <th className="px-3 py-3 font-[500]">Actions</th>
+            <tr className="border-b border-border text-ink-muted">
+              <th className="px-3 py-3 font-medium">Organization</th>
+              <th className="px-3 py-3 font-medium">Number</th>
+              <th className="px-3 py-3 font-medium">Owner</th>
+              <th className="px-3 py-3 font-medium">Request Date</th>
+              <th className="px-3 py-3 font-medium">Status</th>
+              <th className="px-3 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-[#747775]">
+                <td colSpan={6} className="px-3 py-8 text-center text-ink-muted">
                   Loading organizations...
                 </td>
               </tr>
             ) : organizations.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-[#747775]">
+                <td colSpan={6} className="px-3 py-8 text-center text-ink-muted">
                   No organizations found.
                 </td>
               </tr>
             ) : (
               organizations.map((item) => (
-                <tr key={item.id} className="border-b border-[#F0F0F0]">
-                  <td className="px-3 py-3 text-[#232A25]">{item.name || "—"}</td>
-                  <td className="px-3 py-3 text-[#232A25]">
+                <tr key={item.id} className="border-b border-border">
+                  <td className="px-3 py-3 text-ink">{item.name || "—"}</td>
+                  <td className="px-3 py-3 text-ink">
                     <div>{item.public_id || "—"}</div>
-                    <div className="text-[12px] text-[#747775]">
+                    <div className="text-caption text-ink-muted">
                       {item.organization_number ?? ""}
                     </div>
                   </td>
-                  <td className="px-3 py-3 text-[#232A25]">
+                  <td className="px-3 py-3 text-ink">
                     <div>{item.owner?.full_name || "—"}</div>
-                    <div className="text-[12px] text-[#747775]">
+                    <div className="text-caption text-ink-muted">
                       {item.owner?.email || item.owner?.phone || ""}
                     </div>
                   </td>
-                  <td className="px-3 py-3 text-[#232A25]">{formatDate(item.created_at)}</td>
+                  <td className="px-3 py-3 text-ink">{formatDate(item.created_at)}</td>
                   <td className="px-3 py-3">
                     <span
-                      className={`rounded-full px-2.5 py-1 text-[12px] font-[500] capitalize ${statusStyles[item.status]}`}
+                      className={`rounded-full px-2.5 py-1 text-caption font-medium capitalize ${statusStyles[item.status]}`}
                     >
                       {item.status}
                     </span>
@@ -207,7 +207,7 @@ const AdminOrganizationsTable = () => {
                             type="button"
                             disabled={actingId === item.id}
                             onClick={() => void handleApprove(item.id)}
-                            className="h-8 rounded-[8px] bg-[#49734F] px-3 text-[13px] font-[500] text-white disabled:opacity-60"
+                            className="h-8 rounded-input bg-primary px-3 text-body-sm font-medium text-ink-inverse disabled:opacity-60"
                           >
                             Approve
                           </button>
@@ -218,7 +218,7 @@ const AdminOrganizationsTable = () => {
                               setRejectingId(item.id);
                               setRejectReason("");
                             }}
-                            className="h-8 rounded-[8px] border border-[#D24B44] px-3 text-[13px] font-[500] text-[#D24B44] disabled:opacity-60"
+                            className="h-8 rounded-input border border-danger px-3 text-body-sm font-medium text-danger disabled:opacity-60"
                           >
                             Reject
                           </button>
@@ -229,13 +229,13 @@ const AdminOrganizationsTable = () => {
                               value={rejectReason}
                               onChange={(event) => setRejectReason(event.target.value)}
                               placeholder="Rejection reason (optional)"
-                              className="h-8 w-full rounded-[8px] border border-[#E5E5E5] px-3 text-[13px]"
+                              className="h-8 w-full rounded-input border border-border px-3 text-body-sm"
                             />
                             <button
                               type="button"
                               disabled={actingId === item.id}
                               onClick={() => void handleReject(item.id)}
-                              className="h-8 shrink-0 rounded-[8px] bg-[#D24B44] px-3 text-[13px] font-[500] text-white disabled:opacity-60"
+                              className="h-8 shrink-0 rounded-input bg-danger px-3 text-body-sm font-medium text-ink-inverse disabled:opacity-60"
                             >
                               Confirm reject
                             </button>
@@ -243,7 +243,7 @@ const AdminOrganizationsTable = () => {
                         )}
                       </div>
                     ) : (
-                      <span className="text-[#747775]">
+                      <span className="text-ink-muted">
                         {item.rejected_reason ? item.rejected_reason : "—"}
                       </span>
                     )}
@@ -260,19 +260,19 @@ const AdminOrganizationsTable = () => {
           type="button"
           onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
           disabled={currentPage <= 1}
-          className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#E5E5E5] disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-input border border-border disabled:opacity-40"
           aria-label="Previous page"
         >
           <PaginationChevronLeftIconSVG />
         </button>
-        <span className="text-[13px] text-[#747775]">
+        <span className="text-body-sm text-ink-muted">
           Page {currentPage} of {totalPages}
         </span>
         <button
           type="button"
           onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
           disabled={currentPage >= totalPages}
-          className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#E5E5E5] disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-input border border-border disabled:opacity-40"
           aria-label="Next page"
         >
           <PaginationChevronRightIconSVG />

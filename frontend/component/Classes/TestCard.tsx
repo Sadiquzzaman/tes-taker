@@ -111,21 +111,21 @@ const TestCard = ({
       className={`w-full p-2 sm:p-4 flex flex-col items-center gap-6 rounded-lg`}
     >
       <div className="w-full flex justify-between items-center">
-        <h2 className="text-[18px] font-[500] leading-[100%] tracking-[-0.02em] text-[#49734F]">
+        <h2 className="text-title-sm font-medium text-primary">
           {testData.test_name}
         </h2>
         <div className="flex items-center gap-2">
           {categoryLabel ? (
-            <span className="rounded-[27px] border border-[#49734F] bg-[rgba(73,115,79,0.12)] px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] text-[#49734F]">
+            <span className="rounded-full border border-primary bg-[rgba(73,115,79,0.12)] px-2 py-1 text-caption font-medium text-primary">
               {categoryLabel}
             </span>
           ) : null}
           {isTeacher && "is_active" in testData && (
             <span
-              className={`px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] rounded-[27px] box-border border ${
+              className={`px-2 py-1 text-caption font-medium rounded-full box-border border ${
                 isExamDisabled
-                  ? "text-[#B42318] border-[#B42318] bg-[#B4231815]"
-                  : "text-[#49734F] border-[#49734F] bg-[rgba(73,115,79,0.15)]"
+                  ? "text-danger border-danger bg-danger-soft"
+                  : "text-primary border-primary bg-[rgba(73,115,79,0.15)]"
               }`}
             >
               {isExamDisabled ? "Disabled" : "Enabled"}
@@ -133,7 +133,7 @@ const TestCard = ({
           )}
           <span
             style={{ background: statusColors[testStatus] }}
-            className={`px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] text-[${statusTextColors[testStatus]}] border border-[${statusTextColors[testStatus]}] rounded-[27px] box-border`}
+            className={`px-2 py-1 text-caption font-medium text-[${statusTextColors[testStatus]}] border border-[${statusTextColors[testStatus]}] rounded-full box-border`}
           >
             {testStatus}
           </span>
@@ -142,61 +142,61 @@ const TestCard = ({
       <div className="w-full flex flex-wrap items-center justify-between gap-y-2">
         {from === "testList" && (
           <div className="w-1/2 lg:flex-1">
-            <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Audience </p>
-            <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
+            <p className="font-normal text-body-sm text-ink-muted">Audience </p>
+            <p className="font-semibold text-body text-ink pt-2">
               {audienceName}
             </p>
           </div>
         )}
         <div className="w-1/2 lg:flex-1">
-          <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">
+          <p className="font-normal text-body-sm text-ink-muted">
             {categoryLabel === "IELTS" ? "Modules" : "Subject"}
           </p>
-          <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
+          <p className="font-semibold text-body text-ink pt-2">
             {primarySubjectName}
           </p>
         </div>
         <div className="w-1/2 lg:flex-1">
-          <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Participants</p>
-          <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
+          <p className="font-normal text-body-sm text-ink-muted">Participants</p>
+          <p className="font-semibold text-body text-ink pt-2">
             {participantCount}
           </p>
         </div>
         <div className="w-1/2 lg:flex-1">
-          <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Submitted</p>
-          <p className="font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25] pt-2">
+          <p className="font-normal text-body-sm text-ink-muted">Submitted</p>
+          <p className="font-semibold text-body text-ink pt-2">
             {submittedCount}
           </p>
         </div>
       </div>
       <div className="w-full flex flex-col gap-4">
         <div className="w-full flex items center justify-between">
-          <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">Submission progress</p>
-          <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775]">
+          <p className="font-normal text-body-sm text-ink-muted">Submission progress</p>
+          <p className="font-normal text-body-sm text-ink-muted">
             {submittedCount}/{participantCount}
           </p>
         </div>
-        <div className="w-full h-1 rounded-[23px] bg-[#E5E5E5]">
+        <div className="w-full h-1 rounded-[23px] bg-border">
           <div
             style={{ background: statusTextColors[testStatus], width: `${submissionProgress}%` }}
             className="h-full rounded-[23px]"
           ></div>
         </div>
       </div>
-      <div className="w-full flex items-center justify-between text-[#232A25] gap-2">
+      <div className="w-full flex items-center justify-between text-ink gap-2">
         <div className="flex items-center gap-2">
           <CalenderIconSVG />
-          <p className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em]">
+          <p className="font-normal text-body-sm">
             {startAt && endAt
               ? `${new Date(startAt).toLocaleString("en-US", formatOptions)} - ${new Date(endAt).toLocaleString("en-US", formatOptions)}`
               : "N/A"}
           </p>
         </div>
-        <div className="flex items-center gap-2 text-[#747775]">
+        <div className="flex items-center gap-2 text-ink-muted">
           {from === "testList" && isTeacher && (
             <button
               title="Share Tests"
-              className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]"
+              className="w-8 h-8 flex justify-center items-center rounded-input hover:bg-canvas"
               onClick={() => {
                 if (isTeacherExamListItem(testData)) {
                   dispatch(setNewTestCreated({ type: "existing", test: testData }));
@@ -212,7 +212,7 @@ const TestCard = ({
               type="button"
               title="Download questions"
               disabled={downloading}
-              className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3] disabled:opacity-50"
+              className="w-8 h-8 flex justify-center items-center rounded-input hover:bg-canvas disabled:opacity-50"
               onClick={handleDownload}
             >
               <DownloadIconSVG width={16} />
@@ -223,7 +223,7 @@ const TestCard = ({
             <Link
               href={`/grading/details/${testData.id}`}
               onClick={(event) => event.stopPropagation()}
-              className="px-3 py-2 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] rounded-lg bg-[#232A25] text-white hover:bg-[#3f6244]"
+              className="px-3 py-2 text-caption font-medium rounded-lg bg-ink text-ink-inverse hover:bg-primary-hover"
             >
               Grade Test
             </Link>
@@ -233,7 +233,7 @@ const TestCard = ({
             <button
               type="button"
               onClick={handleStudentOngoingTestAction}
-              className="flex items-center justify-center gap-2 rounded-[8px] bg-[#49734F] px-3 py-2 text-[12px] font-[500] leading-[16px] tracking-[-0.02em] text-white transition-colors duration-200 hover:bg-[#3f6244]"
+              className="flex items-center justify-center gap-2 rounded-input bg-primary px-3 py-2 text-caption font-medium text-ink-inverse transition-colors duration-200 hover:bg-primary-hover"
             >
               <PlayIconSVG className="size-4" />
               <span className="capitalize">Start Test</span>
@@ -242,7 +242,7 @@ const TestCard = ({
             <button
               type="button"
               onClick={handlePrimaryAction}
-              className="px-3 py-2 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] border rounded-lg transition-all duration-200"
+              className="px-3 py-2 text-caption font-medium border rounded-lg transition-all duration-200"
               style={{
                 color: statusTextColors[testStatus],
                 borderColor: statusTextColors[testStatus],

@@ -39,19 +39,19 @@ const JoinClassModal = ({ classData, classId, apiResponse, errorMessage }: JoinC
 
   return (
     <div className="flex w-full items-center justify-center font-ins-sans">
-      <div className="flex w-full max-w-[460px] flex-col justify-center rounded-xl border-l border-l-[#E5E5E5] bg-white shadow-lg max-md:max-w-full">
+      <div className="flex w-full max-w-[460px] flex-col justify-center rounded-xl border-l border-l-border bg-surface shadow-lg max-md:max-w-full">
         <div className="flex flex-col items-start justify-center gap-6 p-6">
-          <div className={isError ? "text-[#B93815]" : "text-[#49734F]"}>
+          <div className={isError ? "text-danger" : "text-primary"}>
             <InviteIconSVG width={40} />
           </div>
 
           <div className="flex w-full flex-col items-start gap-2">
-            <p className="w-full text-[24px] font-medium leading-[29px] tracking-[-0.02em] text-[#232A25]">{title}</p>
+            <p className="w-full text-title font-medium text-ink">{title}</p>
             <p
               className={
                 isError
-                  ? "w-full text-[16px] font-normal leading-5 tracking-[-0.02em] text-[#B93815]"
-                  : "w-full text-[16px] font-normal leading-5 tracking-[-0.02em] text-[#747775]"
+                  ? "w-full text-body font-normal leading-5 text-danger"
+                  : "w-full text-body font-normal leading-5 text-ink-muted"
               }
             >
               {description}
@@ -61,20 +61,20 @@ const JoinClassModal = ({ classData, classId, apiResponse, errorMessage }: JoinC
 
         {!isError ? (
           <>
-            <div className="h-px w-full bg-[#E5E5E5]" />
+            <div className="h-px w-full bg-border" />
 
             <div className="flex items-center justify-end gap-3 p-6">
               <button
                 type="button"
                 onClick={handleSignUp}
-                className="flex h-10 items-center justify-center rounded-lg border border-[#49734F] px-4 text-[14px] font-medium leading-4 tracking-[-0.02em] text-[#49734F] transition-colors hover:bg-[#49734F10]"
+                className="flex h-10 items-center justify-center rounded-lg border border-primary px-4 text-body-sm font-medium leading-4 text-primary transition-colors hover:bg-primary-soft"
               >
                 Sign Up
               </button>
               <button
                 type="button"
                 onClick={handleLogin}
-                className="flex h-10 items-center justify-center rounded-lg bg-[#49734F] px-4 pl-[14px] text-[14px] font-medium leading-4 tracking-[-0.02em] text-white transition-colors hover:bg-[#3f6244]"
+                className="flex h-10 items-center justify-center rounded-lg bg-primary px-4 pl-[14px] text-body-sm font-medium leading-4 text-ink-inverse transition-colors hover:bg-primary-hover"
               >
                 Login
               </button>

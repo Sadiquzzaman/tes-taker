@@ -12,7 +12,7 @@ const CreateTestFooter = ({ currentStep, isFirstStep, isSubmitting, onBack, onNe
     <div className="mt-auto flex flex-col gap-3 pt-4 md:flex-row md:items-center md:justify-between md:pr-8">
       <Link
         href="/tests"
-        className="flex h-9 w-full items-center justify-center rounded-[8px] bg-[#EFF0F3] px-4 text-[14px] font-[500] leading-4 tracking-[-0.02em] text-[#232A25] md:w-auto"
+        className="flex h-9 w-full items-center justify-center rounded-input bg-canvas px-4 text-body-sm font-medium leading-4 text-ink md:w-auto"
       >
         Cancel
       </Link>
@@ -22,7 +22,7 @@ const CreateTestFooter = ({ currentStep, isFirstStep, isSubmitting, onBack, onNe
           type="button"
           onClick={onBack}
           disabled={isBackDisabled}
-          className="flex h-9 flex-1 items-center justify-center gap-1 rounded-[8px] bg-[#EFF0F3] px-4 text-[14px] font-[500] leading-4 tracking-[-0.02em] text-[#747775] disabled:cursor-not-allowed disabled:opacity-60 md:flex-none"
+          className="flex h-9 flex-1 items-center justify-center gap-1 rounded-input bg-canvas px-4 text-body-sm font-medium leading-4 text-ink-muted disabled:cursor-not-allowed disabled:opacity-60 md:flex-none"
         >
           <MusicPreviousIconSVG />
           <div className="mb-[2px]">Back</div>
@@ -33,7 +33,7 @@ const CreateTestFooter = ({ currentStep, isFirstStep, isSubmitting, onBack, onNe
             void onNext();
           }}
           disabled={isNextDisabled}
-          className="flex h-9 flex-1 items-center justify-center gap-1 rounded-[8px] bg-[#49734F] px-4 text-[14px] font-[500] leading-4 tracking-[-0.02em] text-white disabled:cursor-not-allowed disabled:opacity-60 md:flex-none"
+          className="flex h-9 flex-1 items-center justify-center gap-1 rounded-input bg-primary px-4 text-body-sm font-medium leading-4 text-ink-inverse disabled:cursor-not-allowed disabled:opacity-60 md:flex-none"
         >
           <div className="mb-[2px]">
             {isSubmitting && isPublishStep ? "Publishing..." : isPublishStep ? "Publish Test" : "Next"}

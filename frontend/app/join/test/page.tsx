@@ -88,49 +88,49 @@ const JoinTest = () => {
   return (
     <AuthLayout>
       <div className="flex w-full items-center justify-center font-ins-sans">
-        <div className="flex w-full max-w-[460px] flex-col justify-center rounded-xl border-l border-l-[#E5E5E5] bg-white shadow-lg max-md:max-w-full">
+        <div className="flex w-full max-w-[460px] flex-col justify-center rounded-xl border-l border-l-border bg-surface shadow-lg max-md:max-w-full">
           <div className="flex flex-col items-start justify-center gap-6 p-6">
-            <div className={pageState.status === "error" ? "text-[#B93815]" : "text-[#5F8A66]"}>
+            <div className={pageState.status === "error" ? "text-danger" : "text-primary"}>
               <SuccessIconSVG width={40} />
             </div>
 
             <div className="flex w-full flex-col items-start gap-2">
-              <p className="w-full text-[24px] font-medium leading-[29px] tracking-[-0.02em] text-[#232A25]">
+              <p className="w-full text-title font-medium text-ink">
                 {title}
               </p>
               {pageState.status === "error" && pageState.errorKey && (
-                <p className="w-full text-[16px] font-normal leading-5 tracking-[-0.02em] text-[#B93815]">
+                <p className="w-full text-body font-normal leading-5 text-danger">
                   {t(pageState.errorKey)}
                 </p>
               )}{" "}
               {pageState.status === "loading" && (
-                <p className="w-full text-[16px] font-normal leading-5 tracking-[-0.02em] text-[#747775]">
+                <p className="w-full text-body font-normal leading-5 text-ink-muted">
                   {t("checkingTest")}
                 </p>
               )}
               {pageState?.status === "success" && (
                 <div className="flex flex-col gap-2 w-full">
                   <div className="flex flex-row items-center w-full">
-                    <div className="w-[25%] font-[600] text-[16px] leading-5 tracking-[-0.02em] text-[#747775]">
+                    <div className="w-[25%] font-semibold text-body leading-5 text-ink-muted">
                       {t("test")}
                     </div>
-                    <div className="w-[75%] font-[500] text-[16px] leading-5 tracking-[-0.02em] text-[#747775]">
+                    <div className="w-[75%] font-medium text-body leading-5 text-ink-muted">
                       {pageState.test}
                     </div>
                   </div>
                   <div className="flex flex-row items-center w-full">
-                    <div className="w-[25%] font-[600] text-[16px] leading-5 tracking-[-0.02em] text-[#747775]">
+                    <div className="w-[25%] font-semibold text-body leading-5 text-ink-muted">
                       {t("teacher")}
                     </div>
-                    <div className="w-[75%] font-[500] text-[16px] leading-5 tracking-[-0.02em] text-[#747775]">
+                    <div className="w-[75%] font-medium text-body leading-5 text-ink-muted">
                       {pageState.teacher}
                     </div>
                   </div>
                   <div className="flex flex-row items-center w-full">
-                    <div className="w-[25%] font-[600] text-[16px] leading-5 tracking-[-0.02em] text-[#747775]">
+                    <div className="w-[25%] font-semibold text-body leading-5 text-ink-muted">
                       {t("time")}
                     </div>
-                    <div className="w-[75%] font-[500] text-[16px] leading-5 tracking-[-0.02em] text-[#747775]">
+                    <div className="w-[75%] font-medium text-body leading-5 text-ink-muted">
                       {Number.isFinite(pageState.time) ? t("minutes", { minutes: pageState.time ?? 0 }) : ""}
                     </div>
                   </div>
@@ -141,13 +141,13 @@ const JoinTest = () => {
 
           {pageState.status === "success" && (
             <>
-              <div className="h-px w-full bg-[#E5E5E5]" />
+              <div className="h-px w-full bg-border" />
 
               <div className="flex items-center justify-end p-4">
                 <button
                   type="button"
                   onClick={handleStartTest}
-                  className="flex h-10 items-center justify-center rounded-lg bg-[#5F8A66] px-4 text-[14px] font-medium leading-4 tracking-[-0.02em] text-white transition-colors hover:bg-[#4f7655]"
+                  className="flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-body-sm font-medium leading-4 text-ink-inverse transition-colors hover:bg-primary-hover"
                 >
                   {t("startTest")}
                 </button>
@@ -156,13 +156,13 @@ const JoinTest = () => {
           )}
           {pageState.status === "error" && (
             <>
-              <div className="h-px w-full bg-[#E5E5E5]" />
+              <div className="h-px w-full bg-border" />
 
               <div className="flex items-center justify-end p-4">
                 <button
                   type="button"
                   onClick={handleContinue}
-                  className="flex h-10 items-center justify-center rounded-lg bg-[#5F8A66] px-4 text-[14px] font-medium leading-4 tracking-[-0.02em] text-white transition-colors hover:bg-[#4f7655]"
+                  className="flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-body-sm font-medium leading-4 text-ink-inverse transition-colors hover:bg-primary-hover"
                 >
                   {t("continue")}
                 </button>

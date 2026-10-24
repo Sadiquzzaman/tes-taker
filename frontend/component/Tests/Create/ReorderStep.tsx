@@ -184,10 +184,10 @@ const ReorderStep = memo(() => {
   return (
     <section className="flex w-full flex-1 flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-[24px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Reorder</h2>
+        <h2 className="text-title font-semibold leading-6 tracking-tight text-ink-muted">Reorder</h2>
       </div>
-      <div className="w-full border-b border-[#E5E5E5]" />
-      <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
+      <div className="w-full border-b border-border" />
+      <p className="text-body-sm font-normal text-ink-muted">
         Drag questions to set the order students will see on the exam.
       </p>
 
@@ -205,25 +205,25 @@ const ReorderStep = memo(() => {
                 transition: "transform 180ms ease",
                 opacity: isDragging ? 0.35 : 1,
               }}
-              className="flex items-center gap-3 rounded-[8px] border border-[#E5E5E5] bg-white px-3 py-3"
+              className="flex items-center gap-3 rounded-input border border-border bg-surface px-3 py-3"
             >
               <button
                 type="button"
                 onPointerDown={(event) => handleDragHandlePointerDown(question.id, event)}
-                className="cursor-grab touch-none text-[#747775] active:cursor-grabbing"
+                className="cursor-grab touch-none text-ink-muted active:cursor-grabbing"
                 aria-label="Drag to reorder"
               >
                 ⋮⋮
               </button>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-[600] text-[#49734F]">Q{index + 1}</span>
-                  <span className="rounded-[4px] bg-[#EFF0F3] px-2 py-0.5 text-[12px] text-[#747775]">
+                  <span className="text-body-sm font-semibold text-primary">Q{index + 1}</span>
+                  <span className="rounded-sm bg-canvas px-2 py-0.5 text-caption text-ink-muted">
                     {question.subjectName}
                   </span>
-                  <span className="text-[12px] text-[#747775]">{question.points} pts</span>
+                  <span className="text-caption text-ink-muted">{question.points} pts</span>
                 </div>
-                <p className="truncate text-[14px] text-[#232A25]">{question.title}</p>
+                <p className="truncate text-body-sm text-ink">{question.title}</p>
               </div>
             </div>
           );
@@ -231,16 +231,16 @@ const ReorderStep = memo(() => {
 
         {dragState && draggedItem ? (
           <div
-            className="pointer-events-none fixed z-50 flex items-center gap-3 rounded-[8px] border border-[#49734F] bg-white px-3 py-3 shadow-lg"
+            className="pointer-events-none fixed z-50 flex items-center gap-3 rounded-input border border-primary bg-surface px-3 py-3 shadow-lg"
             style={{
               top: dragState.pointerY - dragState.pointerOffsetY,
               left: dragState.left,
               width: dragState.width,
             }}
           >
-            <span className="text-[#747775]">⋮⋮</span>
+            <span className="text-ink-muted">⋮⋮</span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[14px] text-[#232A25]">{draggedItem.title}</p>
+              <p className="truncate text-body-sm text-ink">{draggedItem.title}</p>
             </div>
           </div>
         ) : null}

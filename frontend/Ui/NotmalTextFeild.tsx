@@ -51,7 +51,7 @@ const NotmalTextFeild = ({
 
   return (
     <div
-      className={`flex w-full min-h-[36px] items-start rounded-md border border-[#C6CFCF] px-2 py-[6px] ${parentClassName}`}
+      className={`flex w-full min-h-[36px] items-start rounded-md border border-border px-2 py-[6px] ${parentClassName}`}
     >
       <textarea
         ref={handleTextareaRef}
@@ -61,7 +61,7 @@ const NotmalTextFeild = ({
         onFocus={onFocus}
         rows={rows}
         disabled={disabled}
-        className={`w-full resize-none bg-transparent text-[12px] font-[500] leading-[16px] text-[#232A25] placeholder:font-[400] placeholder:text-[#989eaf] align-middle focus:outline-none ${inputClassName}`}
+        className={`w-full resize-none bg-transparent text-caption font-medium text-ink placeholder:font-normal placeholder:text-ink-muted align-middle focus:outline-none ${inputClassName}`}
       />
     </div>
   );

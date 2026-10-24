@@ -146,18 +146,18 @@ function QuestionCard({
       onPointerDownCapture={isDragOverlay ? undefined : activateCard}
       onFocusCapture={isDragOverlay ? undefined : activateCard}
       className={`flex w-full items-center ${QUESTION_BUILDER_GAPS.blockOuter} ${
-        isDragOverlay ? "fixed z-50 bg-[#FDF3E5] pointer-events-none shadow-[0px_24px_60px_rgba(15,26,18,0.18)]" : ""
+        isDragOverlay ? "fixed z-50 bg-warning-soft pointer-events-none shadow-[0px_24px_60px_rgba(15,26,18,0.18)]" : ""
       } ${isDragging ? "opacity-0" : "opacity-100"}`}
     >
       <div
-        className={`w-full flex flex-col ${cardInnerGap} rounded-[8px] transition-[opacity,transform,box-shadow] duration-200 ${
+        className={`w-full flex flex-col ${cardInnerGap} rounded-input transition-[opacity,transform,box-shadow] duration-200 ${
           borderless
             ? isActive
-              ? "border-none bg-[#FDF3E5] p-0"
-              : "border-none bg-white p-0"
+              ? "border-none bg-warning-soft p-0"
+              : "border-none bg-surface p-0"
             : isActive
-              ? "border border-transparent bg-[#FDF3E5] p-5 max-[600px]:p-3"
-              : "border border-[#E5E5E5] bg-white p-5 max-[600px]:p-3"
+              ? "border border-transparent bg-warning-soft p-5 max-[600px]:p-3"
+              : "border border-border bg-surface p-5 max-[600px]:p-3"
         }`}
       >
         <QuestionCardInstruction
@@ -223,7 +223,7 @@ function QuestionCard({
 
         {hasTextAnswerEditor ? (
           <div className="flex flex-col gap-2">
-            <p className="text-[14px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">Correct answer</p>
+            <p className="text-body-sm font-medium text-ink">Correct answer</p>
             <QuestionCardTextAnswer
               answerValues={question.answer?.type === "text" ? answerValues : []}
               activateCard={activateCard}
@@ -254,7 +254,7 @@ function QuestionCard({
         <button
           type="button"
           onPointerDown={(event) => onDragHandlePointerDown(subjectId, question.id, event)}
-          className="flex-shrink-0 cursor-grab touch-none text-[#747775] transition-colors hover:text-[#232A25] active:cursor-grabbing"
+          className="flex-shrink-0 cursor-grab touch-none text-ink-muted transition-colors hover:text-ink active:cursor-grabbing"
           aria-label="Drag to reorder"
         >
           <DragHandleIcon />

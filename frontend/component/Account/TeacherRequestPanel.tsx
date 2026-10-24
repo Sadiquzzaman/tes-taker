@@ -7,9 +7,9 @@ import { useToast } from "@/component/Toast/ToastContext";
 import { useApiError } from "@/hooks/api/useApiError";
 
 const statusStyles: Record<TeacherRequestStatus, string> = {
-  pending: "bg-[#FFF4E5] text-[#B54708]",
-  approved: "bg-[#EAF2EB] text-[#49734F]",
-  rejected: "bg-[#FEECEC] text-[#D24B44]",
+  pending: "bg-warning-soft text-warning",
+  approved: "bg-primary-soft text-primary",
+  rejected: "bg-danger-soft text-danger",
 };
 
 const TeacherRequestPanel = () => {
@@ -57,33 +57,33 @@ const TeacherRequestPanel = () => {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-[#E5E5E5] bg-white p-6 animate-pulse h-28" />
+      <div className="rounded-2xl border border-border bg-surface p-6 animate-pulse h-28" />
     );
   }
 
   const canSubmit = !request || request.status === "rejected";
 
   return (
-    <div className="rounded-2xl border border-[#E5E5E5] bg-white p-6 flex flex-col gap-4">
+    <div className="rounded-2xl border border-border bg-surface p-6 flex flex-col gap-4">
       <div>
-        <p className="text-[20px] font-[600] leading-[24px] tracking-[-0.02em] text-[#232A25]">
+        <p className="text-title-sm font-semibold text-ink">
           Become a Teacher
         </p>
-        <p className="mt-2 text-[14px] leading-[18px] tracking-[-0.02em] text-[#747775]">
+        <p className="mt-2 text-body-sm text-ink-muted">
           Request a teacher account. An admin will review and approve or reject your request.
         </p>
       </div>
 
       {request && (
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-[14px] text-[#747775]">Status:</span>
+          <span className="text-body-sm text-ink-muted">Status:</span>
           <span
-            className={`rounded-full px-3 py-1 text-[13px] font-[500] capitalize ${statusStyles[request.status]}`}
+            className={`rounded-full px-3 py-1 text-body-sm font-medium capitalize ${statusStyles[request.status]}`}
           >
             {request.status}
           </span>
           {request.created_at && (
-            <span className="text-[13px] text-[#747775]">
+            <span className="text-body-sm text-ink-muted">
               Submitted {new Date(request.created_at).toLocaleDateString()}
             </span>
           )}
@@ -95,7 +95,7 @@ const TeacherRequestPanel = () => {
           type="button"
           disabled={submitting}
           onClick={() => void handleSubmit()}
-          className="w-fit px-4 h-10 flex items-center justify-center rounded-[8px] bg-[#49734F] text-white text-[14px] font-[500] tracking-[-0.02em] disabled:opacity-60"
+          className="w-fit px-4 h-10 flex items-center justify-center rounded-input bg-primary text-ink-inverse text-body-sm font-medium disabled:opacity-60"
         >
           {submitting
             ? "Submitting..."
@@ -106,13 +106,13 @@ const TeacherRequestPanel = () => {
       )}
 
       {request?.status === "pending" && (
-        <p className="text-[13px] text-[#747775]">
+        <p className="text-body-sm text-ink-muted">
           Your request is pending review. You can submit only one active request at a time.
         </p>
       )}
 
       {request?.status === "approved" && (
-        <p className="text-[13px] text-[#49734F]">
+        <p className="text-body-sm text-primary">
           Approved. Sign out and sign back in if your teacher menus are not visible yet.
         </p>
       )}

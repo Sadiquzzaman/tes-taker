@@ -8,9 +8,9 @@ import useWorkspace from "@/hooks/organization/useWorkspace";
 import OrganizationWorkspaceGate from "./OrganizationWorkspaceGate";
 
 const StatCard = ({ label, value }: { label: string; value: string | number }) => (
-  <div className="rounded-[12px] bg-white p-4">
-    <p className="text-[13px] text-[#747775]">{label}</p>
-    <p className="mt-2 text-[28px] font-[500] text-[#232A25]">{value}</p>
+  <div className="rounded-card bg-surface p-4">
+    <p className="text-body-sm text-ink-muted">{label}</p>
+    <p className="mt-2 text-display font-medium text-ink">{value}</p>
   </div>
 );
 
@@ -49,17 +49,17 @@ const OrganizationOverviewContent = () => {
   return (
     <div>
       <div className="mb-4 flex justify-between items-center w-full min-h-[40px]">
-        <div className="text-[20px] md:text-[32px] tracking-[-0.04em] flex items-center gap-0 flex-wrap mr-4">
-          <p className="font-[500] text-[#232A25]">Organization</p>
-          <p className="font-[400] text-[#49734F] italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
+        <div className="text-title-sm md:text-display tracking-tight flex items-center gap-0 flex-wrap mr-4">
+          <p className="font-medium text-ink">Organization</p>
+          <p className="font-normal text-primary italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
             {activeOrganization?.name || "Overview"}
           </p>
         </div>
       </div>
 
-      <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 min-h-[calc(100vh-162px)]">
+      <div className="bg-canvas rounded-card p-2 sm:p-4 min-h-[calc(100vh-162px)]">
         {loading ? (
-          <p className="p-4 text-[14px] text-[#747775]">Loading organization...</p>
+          <p className="p-4 text-body-sm text-ink-muted">Loading organization...</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard label="Teachers" value={detail?.teachers_count ?? "—"} />
@@ -69,16 +69,16 @@ const OrganizationOverviewContent = () => {
           </div>
         )}
 
-        <div className="mt-4 rounded-[12px] bg-white p-4">
-          <p className="text-[16px] font-[500] text-[#232A25]">Organization number</p>
-          <p className="mt-1 text-[20px] font-[500] text-[#49734F]">
+        <div className="mt-4 rounded-card bg-surface p-4">
+          <p className="text-body font-medium text-ink">Organization number</p>
+          <p className="mt-1 text-title-sm font-medium text-primary">
             {detail?.organization_number ?? activeOrganization?.organization_number ?? "—"}
           </p>
-          <p className="mt-4 text-[16px] font-[500] text-[#232A25]">Status</p>
-          <p className="mt-1 text-[14px] capitalize text-[#49734F]">
+          <p className="mt-4 text-body font-medium text-ink">Status</p>
+          <p className="mt-1 text-body-sm capitalize text-primary">
             {detail?.status || activeOrganization?.status || "approved"}
           </p>
-          <p className="mt-3 text-[14px] text-[#747775]">
+          <p className="mt-3 text-body-sm text-ink-muted">
             Your role: {activeOrganization?.role || "—"}
           </p>
         </div>

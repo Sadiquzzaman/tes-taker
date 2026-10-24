@@ -22,17 +22,17 @@ const Switch = ({ checked, onChange, disabled = false, id, label }: SwitchProps)
         disabled={disabled}
         onClick={() => !disabled && onChange(!checked)}
         className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${
-          checked ? "bg-[#49734F]" : "bg-[#747775]/40"
+          checked ? "bg-primary" : "bg-ink-muted/40"
         }`}
       >
         <span
-          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${
+          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-surface shadow transition-transform duration-200 ${
             checked ? "translate-x-5" : "translate-x-0"
           }`}
         />
       </button>
       {label && (
-        <span className="text-sm text-[#232A25]" style={{ fontFamily: "Instrument Sans, sans-serif" }}>
+        <span className="text-sm text-ink">
           {label}
         </span>
       )}

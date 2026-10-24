@@ -20,9 +20,9 @@ const OrganizationSignUpForm = () => {
           successTitle={t("signup.organizationRegistered")}
           successDescription={t("signup.organizationRegisteredDescription")}
         />
-        <p className="mt-4 text-center text-[#747775] text-[16px]">
+        <p className="mt-4 text-center text-ink-muted text-body">
           {t("haveAccount")}{" "}
-          <Link href={"/login"} className="text-[#232A25] font-medium underline">
+          <Link href={"/login"} className="text-ink font-medium underline">
             {t("logIn")}
           </Link>
         </p>
@@ -34,16 +34,16 @@ const OrganizationSignUpForm = () => {
     <>
       <div className="w-full max-w-[420px] mx-auto flex flex-col gap-8">
         <div className="flex flex-row justify-between items-center mb-2">
-          <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
+          <h2 className="text-display font-semibold text-ink capitalize">
             {t("signup.organizationTitle")}
           </h2>
           <div className="flex gap-0.5 ml-2">
-            <div className="w-4 h-1 rounded-[2px] bg-[#49734F]" />
-            <div className="w-4 h-1 rounded-[2px] bg-[#E5E5E5]" />
+            <div className="w-4 h-1 rounded-sm bg-primary" />
+            <div className="w-4 h-1 rounded-sm bg-border" />
           </div>
         </div>
 
-        <Link href="/signup" className="text-[#49734F] text-[14px] font-medium underline -mt-4">
+        <Link href="/signup" className="text-primary text-body-sm font-medium underline -mt-4">
           {t("backToAccountType")}
         </Link>
 
@@ -100,9 +100,9 @@ const OrganizationSignUpForm = () => {
               type="checkbox"
               checked={form.agreed}
               onChange={(e) => handleFieldChange("agreed", e.target.checked)}
-              className="w-5 h-5 accent-[#49734F] border border-[#E5E5E5] rounded focus:ring-2 focus:ring-green-500"
+              className="w-5 h-5 accent-primary border border-border rounded focus:ring-2 focus:ring-primary"
             />
-            <label htmlFor="org-terms" className="text-[#747775] font-regular text-[16px]">
+            <label htmlFor="org-terms" className="text-ink-muted font-regular text-body">
               {t.rich("agreeTerms", {
                 terms: (chunks) => (
                   <a href="#" className="underline font-medium">
@@ -119,14 +119,14 @@ const OrganizationSignUpForm = () => {
           </div>
 
           {checkboxError && (
-            <p className="font-normal text-[16px] leading-[125%] tracking-[-0.02em] text-[#D24B44] align-middle">
+            <p className="font-normal text-body text-danger align-middle">
               {checkboxError}
             </p>
           )}
 
           <button
             onClick={() => void handleSignUp()}
-            className="w-full mt-4 bg-[#49734F] text-white py-3 rounded-lg font-medium mb-4 hover:bg-green-800 transition flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-gray-400"
+            className="w-full mt-4 bg-primary text-ink-inverse py-3 rounded-lg font-medium mb-4 hover:bg-primary transition flex items-center justify-center gap-2 disabled:bg-ink-muted disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-ink-muted"
             disabled={loading}
           >
             <ButtonLoader show={loading} w="w-4" h="h-4" mr="mr-2" />
@@ -134,9 +134,9 @@ const OrganizationSignUpForm = () => {
           </button>
         </div>
       </div>
-      <p className="mt-4 text-center text-[#747775] text-[16px]">
+      <p className="mt-4 text-center text-ink-muted text-body">
         {t("haveAccount")}{" "}
-        <Link href={"/login"} className="text-[#232A25] font-medium underline">
+        <Link href={"/login"} className="text-ink font-medium underline">
           {t("logIn")}
         </Link>
       </p>

@@ -36,8 +36,8 @@ const StudentExamPassageCard = ({
   const instructionLabel = getPassageInstructionByLanguage(instructionLanguage);
 
   const passagePanel = (
-    <div className="rounded-[8px] px-2 py-2">
-      <p className="text-[20px] font-[500] leading-[1.1] tracking-[-0.02em] text-[#232A25]">
+    <div className="rounded-input px-2 py-2">
+      <p className="text-title-sm font-medium text-ink">
         {item.title ? item.title : `${instructionLabel} (${questionRange})`}
       </p>
       {item.audioUrl ? (
@@ -47,7 +47,7 @@ const StudentExamPassageCard = ({
       ) : null}
       <RichTextContent
         html={item.passageText}
-        className="mt-3 text-[16px] leading-[1.35] tracking-[-0.02em] text-[#0F1A12]"
+        className="mt-3 text-body text-ink"
       />
     </div>
   );
@@ -72,7 +72,7 @@ const StudentExamPassageCard = ({
   if (splitLayout) {
     return (
       <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-        <div className="max-h-[70vh] overflow-y-auto rounded-[8px] bg-white p-3 lg:sticky lg:top-2">
+        <div className="max-h-[70vh] overflow-y-auto rounded-input bg-surface p-3 lg:sticky lg:top-2">
           {passagePanel}
         </div>
         <div className="max-h-[70vh] overflow-y-auto">{questionsPanel}</div>

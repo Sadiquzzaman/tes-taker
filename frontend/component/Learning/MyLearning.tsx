@@ -24,10 +24,10 @@ export default function MyLearningPage() {
   return (
     <div className="min-h-[calc(100vh-162px)]">
       <div className="mb-4">
-        <h1 className="text-[28px] md:text-[32px] font-[500] text-[#232A25] tracking-[-0.04em]">
+        <h1 className="text-display md:text-display font-medium text-ink tracking-tight">
           My Learning
         </h1>
-        <p className="mt-1 text-[14px] text-[#747775]">
+        <p className="mt-1 text-body-sm text-ink-muted">
           Classes and tests across every organization and teacher you belong to.
         </p>
       </div>
@@ -38,10 +38,10 @@ export default function MyLearningPage() {
             key={item.id}
             type="button"
             onClick={() => setFilter(item.id)}
-            className={`rounded-[8px] px-3 py-1.5 text-[13px] border ${
+            className={`rounded-input px-3 py-1.5 text-body-sm border ${
               filter === item.id
-                ? "bg-[#EAF2EB] border-[#49734F] text-[#49734F]"
-                : "bg-white border-[#E5E5E5] text-[#232A25]"
+                ? "bg-primary-soft border-primary text-primary"
+                : "bg-surface border-border text-ink"
             }`}
           >
             {item.label}
@@ -49,24 +49,24 @@ export default function MyLearningPage() {
         ))}
       </div>
 
-      <div className="bg-[#EFF0F3BF] rounded-[12px] p-4 sm:p-6">
+      <div className="bg-canvas rounded-card p-4 sm:p-6">
         {visible.length === 0 ? (
-          <div className="bg-white rounded-[12px] p-6 text-[14px] text-[#747775]">
+          <div className="bg-surface rounded-card p-6 text-body-sm text-ink-muted">
             You are not enrolled in any organizations yet. Join a class invite to get started, or open
             Classes from the sidebar for personal class memberships.
           </div>
         ) : (
           <div className="flex flex-col gap-3">
             {visible.map((org) => (
-              <div key={org.id} className="bg-white rounded-[12px] p-4 border border-[#E5E5E5]">
-                <p className="text-[16px] font-[500] text-[#232A25]">{org.name}</p>
-                <p className="text-[12px] text-[#747775] mt-1">
+              <div key={org.id} className="bg-surface rounded-card p-4 border border-border">
+                <p className="text-body font-medium text-ink">{org.name}</p>
+                <p className="text-caption text-ink-muted mt-1">
                   {org.public_id || org.organization_number
                     ? `ID ${org.public_id || org.organization_number} · `
                     : ""}
                   Role {org.role} · Status {org.status}
                 </p>
-                <p className="text-[13px] text-[#747775] mt-3">
+                <p className="text-body-sm text-ink-muted mt-3">
                   Use the workspace switcher to enter this organization, then open Classes or Tests.
                 </p>
               </div>

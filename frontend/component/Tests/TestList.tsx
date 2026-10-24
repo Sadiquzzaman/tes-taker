@@ -78,7 +78,7 @@ const TestList = ({ role }: TestListProps) => {
     return (
       <div className="w-full min-h-[calc(100vh-400px)] flex items-center justify-center">
         <div className="text-center">
-          <p className="font-[600] text-[24px] leading-[32px] tracking-[-0.04em] text-[#232A25]">Test not found</p>
+          <p className="font-semibold text-title tracking-tight text-ink">Test not found</p>
         </div>
       </div>
     );

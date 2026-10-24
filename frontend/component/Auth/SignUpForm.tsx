@@ -26,7 +26,7 @@ const SignUpForm = () => {
   return (
     <>
       {joinInfo?.id && view !== "choice" && (
-        <h4 className="mb-8 text-center text-[16px] font-semibold text-[#49734F] leading-[19px] tracking-[-0.02em] capitalize">
+        <h4 className="mb-8 text-center text-body font-semibold text-primary capitalize">
           {joinInfo.headerText}
         </h4>
       )}
@@ -58,9 +58,9 @@ const SignUpForm = () => {
           }
         />
       )}
-      <p className="mt-4 text-center text-[#747775] text-[16px]">
+      <p className="mt-4 text-center text-ink-muted text-body">
         {t("haveAccount")}{" "}
-        <Link href={"/login"} className="text-[#232A25] font-medium underline">
+        <Link href={"/login"} className="text-ink font-medium underline">
           {t("logIn")}
         </Link>
       </p>

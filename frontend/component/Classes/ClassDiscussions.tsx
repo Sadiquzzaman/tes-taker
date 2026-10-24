@@ -391,8 +391,8 @@ const ClassDiscussions = ({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[14px] font-semibold text-[#101828]">{className}</p>
-          <p className="text-[12px] text-[#667085]">Discussions are scoped by subject</p>
+          <p className="text-body-sm font-semibold text-ink">{className}</p>
+          <p className="text-caption text-ink-muted">Discussions are scoped by subject</p>
         </div>
         <div className="min-w-[220px]">
           <DropDownComponent
@@ -409,14 +409,14 @@ const ClassDiscussions = ({
         </div>
       </div>
 
-      {subjectsError ? <p className="text-[13px] text-[#B42318]">{subjectsError}</p> : null}
+      {subjectsError ? <p className="text-body-sm text-danger">{subjectsError}</p> : null}
 
-      <div className="inline-flex rounded-full bg-[#F2F4F7] p-1">
+      <div className="inline-flex rounded-full bg-canvas p-1">
         <button
           type="button"
           onClick={() => setMode("public")}
-          className={`rounded-full px-4 py-1.5 text-[13px] font-medium ${
-            mode === "public" ? "bg-white text-[#49734F] shadow-sm" : "text-[#667085]"
+          className={`rounded-full px-4 py-1.5 text-body-sm font-medium ${
+            mode === "public" ? "bg-surface text-primary shadow-sm" : "text-ink-muted"
           }`}
         >
           Class Discussion
@@ -424,8 +424,8 @@ const ClassDiscussions = ({
         <button
           type="button"
           onClick={() => setMode("private")}
-          className={`rounded-full px-4 py-1.5 text-[13px] font-medium ${
-            mode === "private" ? "bg-white text-[#49734F] shadow-sm" : "text-[#667085]"
+          className={`rounded-full px-4 py-1.5 text-body-sm font-medium ${
+            mode === "private" ? "bg-surface text-primary shadow-sm" : "text-ink-muted"
           }`}
         >
           Private Discussion
@@ -433,7 +433,7 @@ const ClassDiscussions = ({
       </div>
 
       {!selectedSubjectId && !loadingSubjects ? (
-        <p className="rounded-[12px] border border-dashed border-[#D0D5DD] px-4 py-8 text-center text-[13px] text-[#667085]">
+        <p className="rounded-card border border-dashed border-border px-4 py-8 text-center text-body-sm text-ink-muted">
           Select a subject to open discussions.
         </p>
       ) : null}

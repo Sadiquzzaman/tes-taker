@@ -15,12 +15,12 @@ const ProctoringCountdownModal = () => {
   return (
     <CreateModal open onClose={() => {}} maxWidthClassName="max-w-[460px]" panelClassName="p-6 sm:p-7">
       <div className="flex flex-col items-center gap-4 text-center">
-        <p className="text-[24px] font-[600] leading-7 tracking-[-0.04em] text-[#232A25]">{t(`${activeCountdown.type}.title`)}</p>
-        <div className="flex size-24 items-center justify-center rounded-full border-4 border-[#F79009] text-[32px] font-[700] text-[#F79009]">
+        <p className="text-title font-semibold leading-7 tracking-tight text-ink">{t(`${activeCountdown.type}.title`)}</p>
+        <div className="flex size-24 items-center justify-center rounded-full border-4 border-warning text-display font-bold text-warning">
           {activeCountdown.secondsRemaining}
         </div>
-        <p className="text-[14px] leading-6 text-[#747775]">{t(`${activeCountdown.type}.message`)}</p>
-        <p className="text-[13px] leading-5 text-[#B54708]">
+        <p className="text-body-sm leading-6 text-ink-muted">{t(`${activeCountdown.type}.message`)}</p>
+        <p className="text-body-sm leading-5 text-warning">
           {t("resolveWithin", { seconds: activeCountdown.secondsRemaining })}
         </p>
       </div>

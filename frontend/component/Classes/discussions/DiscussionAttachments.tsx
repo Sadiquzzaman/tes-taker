@@ -30,7 +30,7 @@ const DiscussionAttachmentList = ({
                 href={href}
                 target="_blank"
                 rel="noreferrer"
-                className="block overflow-hidden rounded-[12px] bg-[#F2F4F7]"
+                className="block overflow-hidden rounded-card bg-canvas"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img

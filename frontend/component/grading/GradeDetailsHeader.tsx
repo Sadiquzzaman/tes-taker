@@ -45,21 +45,21 @@ const GradeDetailsHeader = ({ refetchGradeDetails }: { refetchGradeDetails: () =
   return (
     <>
       <Link href="/grading" className="w-max">
-        <button className="flex h-[32px] w-[128px] items-center justify-center gap-2 rounded-[43px] border border-[#E5E5E5] text-[12px] font-[500] text-[#747775] sm:h-[40px] sm:w-[158px] sm:text-[14px]">
+        <button className="flex h-[32px] w-[128px] items-center justify-center gap-2 rounded-[43px] border border-border text-caption font-medium text-ink-muted sm:h-[40px] sm:w-[158px] sm:text-body-sm">
           <LeftArrowIconSVG width={16} />
           <span className="mb-[2px] capitalize">Back to Grading</span>
         </button>
       </Link>
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[32px] font-[600] leading-[32px] tracking-[-0.04em]">{exam?.test_name || "Grade Details"}</p>
+        <p className="text-display font-semibold tracking-tight">{exam?.test_name || "Grade Details"}</p>
         <div className="flex items-center gap-2">
           <button
             type="button"
             title="Download Results"
             onClick={handleDownloadResults}
             disabled={isDownloading || !stats || stats.submissions <= 0}
-            className="flex h-[32px] w-[32px] items-center justify-center rounded-xl border border-[#E5E5E5] text-[#232A25] disabled:opacity-50 sm:h-[40px] sm:w-[40px]"
+            className="flex h-[32px] w-[32px] items-center justify-center rounded-xl border border-border text-ink disabled:opacity-50 sm:h-[40px] sm:w-[40px]"
           >
             <ButtonLoader show={isDownloading} w="w-4" h="h-4" />
             {!isDownloading && <DownloadIconSVG width={16} />}
@@ -68,7 +68,7 @@ const GradeDetailsHeader = ({ refetchGradeDetails }: { refetchGradeDetails: () =
             type="button"
             onClick={handlePublishResult}
             disabled={isPublishDisabled}
-            className="flex h-[32px] w-[108px] items-center justify-center rounded-xl bg-[#49734F] text-[12px] font-[500] text-white disabled:bg-[#747775] sm:h-[40px] sm:w-[128px] sm:text-[14px]"
+            className="flex h-[32px] w-[108px] items-center justify-center rounded-xl bg-primary text-caption font-medium text-ink-inverse disabled:bg-ink-muted sm:h-[40px] sm:w-[128px] sm:text-body-sm"
           >
             <ButtonLoader show={isPublishing} w="w-4" h="h-4" mr="mr-2" />
             {isPublishing ? "Publishing..." : exam?.grading_status === "PUBLISHED" ? "Published" : "Publish Result"}

@@ -48,7 +48,7 @@ const GradeList = () => {
     return (
       <div className="flex min-h-[calc(100vh-400px)] w-full items-center justify-center">
         <div className="text-center">
-          <p className="text-[24px] font-[600] leading-[32px] tracking-[-0.04em] text-[#232A25]">No grading found</p>
+          <p className="text-title font-semibold tracking-tight text-ink">No grading found</p>
         </div>
       </div>
     );
@@ -66,7 +66,7 @@ const GradeList = () => {
         <div className="mt-8 flex h-8 w-full items-center justify-center gap-6">
           <div className="flex h-8 w-[272px] items-center justify-center gap-2 opacity-80">
             <button
-              className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-white p-2 text-[#232A25] disabled:opacity-50"
+              className="flex h-8 w-8 items-center justify-center rounded-input bg-surface p-2 text-ink disabled:opacity-50"
               onClick={() => handlePageChange(page - 1)}
               disabled={page === 1}
             >
@@ -83,10 +83,10 @@ const GradeList = () => {
                 return (
                   <button
                     key={pageNumber}
-                    className={`flex h-8 w-8 items-center justify-center rounded-[6px] border px-2 py-2 text-[14px] font-[400] leading-4 tracking-[-0.02em] ${
+                    className={`flex h-8 w-8 items-center justify-center rounded-input border px-2 py-2 text-body-sm font-normal leading-4 ${
                       page === pageNumber
-                        ? "border-[#232A25] bg-white text-[#232A25]"
-                        : "border-[#E5E5E5] bg-white text-[#747775]"
+                        ? "border-ink bg-surface text-ink"
+                        : "border-border bg-surface text-ink-muted"
                     }`}
                     onClick={() => handlePageChange(pageNumber)}
                   >
@@ -99,7 +99,7 @@ const GradeList = () => {
                 return (
                   <span
                     key={`ellipsis-${pageNumber}`}
-                    className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-white px-2 py-2 text-[14px] font-[400] leading-4 tracking-[-0.02em] text-[#747775]"
+                    className="flex h-8 w-8 items-center justify-center rounded-input bg-surface px-2 py-2 text-body-sm font-normal leading-4 text-ink-muted"
                   >
                     ...
                   </span>
@@ -110,7 +110,7 @@ const GradeList = () => {
             })}
 
             <button
-              className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-white p-2 text-[#232A25] disabled:opacity-50"
+              className="flex h-8 w-8 items-center justify-center rounded-input bg-surface p-2 text-ink disabled:opacity-50"
               onClick={() => handlePageChange(page + 1)}
               disabled={page === totalPages}
             >

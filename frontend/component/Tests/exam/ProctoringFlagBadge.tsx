@@ -16,11 +16,11 @@ const ProctoringFlagBadge = ({ flagCount, label, className = "" }: ProctoringFla
 
   return (
     <div
-      className={`rounded-[10px] px-4 py-3 ${className}`}
+      className={`rounded-card px-4 py-3 ${className}`}
       style={{ backgroundColor: colors.background, color: colors.text, border: `1px solid ${colors.border}` }}
     >
-      <p className="text-[12px] font-[500] leading-4 opacity-90">{label ?? t("flagCount")}</p>
-      <p className="mt-1 text-[32px] font-[700] leading-8">{flagCount}</p>
+      <p className="text-caption font-medium leading-4 opacity-90">{label ?? t("flagCount")}</p>
+      <p className="mt-1 text-display font-bold leading-8">{flagCount}</p>
     </div>
   );
 };

@@ -68,7 +68,7 @@ const getMatchingPairRows = (question: GradingModalQuestion) => {
 const CheckedRadioBox = ({ border, bg, isTick = false, rounded = "full" }: CheckedRadioBoxProps) => {
   return (
     <div
-      className={`flex h-4 w-4 items-center justify-center border border-[${border}] bg-[${bg}] rounded-${rounded} text-white`}
+      className={`flex h-4 w-4 items-center justify-center border border-[${border}] bg-[${bg}] rounded-${rounded} text-ink-inverse`}
     >
       {isTick && <CheckboxTickIcon />}
     </div>
@@ -93,7 +93,7 @@ const OptionMarker = ({ isCorrect, isSelected, question }: OptionMarkerProps) =>
 const GradingAnswerView = ({ question }: GradingModalAnswerViewProps) => {
   if (question.inputMode === "text") {
     return (
-      <p className="text-[16px] font-[400] leading-[1.2] tracking-[-0.02em] text-[#747775]">
+      <p className="text-body font-normal text-ink-muted">
         {question.textAnswer || "No answer submitted"}
       </p>
     );
@@ -113,11 +113,11 @@ const GradingAnswerView = ({ question }: GradingModalAnswerViewProps) => {
           {pairRows.map(({ leftOption, isMatched }, index) => (
             <div
               key={leftOption.id}
-              className={`flex items-start gap-2 py-1 text-[16px] leading-[16px] tracking-[-0.02em] ${
-                isMatched ? "text-[#49734F]" : "text-[#D24B44]"
+              className={`flex items-start gap-2 py-1 text-body ${
+                isMatched ? "text-primary" : "text-danger"
               }`}
             >
-              <span className="min-w-4 text-[#747775]">{index + 1}.</span>
+              <span className="min-w-4 text-ink-muted">{index + 1}.</span>
               <span>{leftOption.text}</span>
             </div>
           ))}
@@ -126,8 +126,8 @@ const GradingAnswerView = ({ question }: GradingModalAnswerViewProps) => {
           {pairRows.map(({ leftOption, rightOption, isMatched }, index) => (
             <div
               key={`${leftOption.id}-${rightOption?.id ?? index}`}
-              className={`flex items-center gap-2 py-1 text-[16px] leading-[16px] tracking-[-0.02em] ${
-                isMatched ? "text-[#49734F]" : "text-[#D24B44]"
+              className={`flex items-center gap-2 py-1 text-body ${
+                isMatched ? "text-primary" : "text-danger"
               }`}
             >
               <span>{rightOption?.text ?? ""}</span>
@@ -150,8 +150,8 @@ const GradingAnswerView = ({ question }: GradingModalAnswerViewProps) => {
           <div key={option.id} className="flex items-center gap-2 py-1">
             <OptionMarker question={question} isSelected={isSelected} isCorrect={isCorrect} />
             <p
-              className={`text-[16px] font-[400] leading-[16px] tracking-[-0.02em] ${
-                isWrongSelection ? "text-[#D24B44]" : "text-[#232A25]"
+              className={`text-body font-normal ${
+                isWrongSelection ? "text-danger" : "text-ink"
               }`}
             >
               {option.text}

@@ -10,7 +10,7 @@ export default async function ClassesPage() {
   return (
     <PageLayout route="/classes">
       <ClassesNameSection role={role} />
-      <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 flex flex-col gap-6 min-h-[calc(100vh-232px)]">
+      <div className="bg-canvas rounded-card p-2 sm:p-4 flex flex-col gap-6 min-h-[calc(100vh-232px)]">
         <ClassList role={role} />
       </div>
     </PageLayout>

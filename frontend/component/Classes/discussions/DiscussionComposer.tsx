@@ -85,7 +85,7 @@ const DiscussionComposer = ({
   };
 
   return (
-    <div className="rounded-[14px] border border-[#E5E7EB] bg-white p-4 shadow-sm">
+    <div className="rounded-card border border-border bg-surface p-4 shadow-sm">
       {showCategory ? (
         <div className="mb-3 flex flex-wrap gap-2">
           {CATEGORY_OPTIONS.map((option) => (
@@ -93,10 +93,10 @@ const DiscussionComposer = ({
               key={option.value}
               type="button"
               onClick={() => setCategory(option.value)}
-              className={`rounded-full px-3 py-1 text-[12px] font-medium ${
+              className={`rounded-full px-3 py-1 text-caption font-medium ${
                 category === option.value
-                  ? "bg-[#49734F] text-white"
-                  : "bg-[#F2F4F7] text-[#344054]"
+                  ? "bg-primary text-ink-inverse"
+                  : "bg-canvas text-ink"
               }`}
             >
               {option.label}
@@ -112,7 +112,7 @@ const DiscussionComposer = ({
         rows={3}
         maxLength={4000}
         disabled={disabled || submitting}
-        className="w-full resize-y rounded-[10px] border border-[#D0D5DD] px-3 py-2 text-[14px] text-[#101828] outline-none focus:border-[#49734F]"
+        className="w-full resize-y rounded-card border border-border px-3 py-2 text-body-sm text-ink outline-none focus:border-primary"
       />
 
       {attachments.length > 0 ? (
@@ -129,7 +129,7 @@ const DiscussionComposer = ({
         </div>
       ) : null}
 
-      {localError ? <p className="mt-2 text-[13px] text-[#B42318]">{localError}</p> : null}
+      {localError ? <p className="mt-2 text-body-sm text-danger">{localError}</p> : null}
 
       <div className="mt-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -151,7 +151,7 @@ const DiscussionComposer = ({
             type="button"
             disabled={disabled || uploading || attachments.length >= 5}
             onClick={() => imageInputRef.current?.click()}
-            className="rounded-[8px] border border-[#D0D5DD] px-3 py-1.5 text-[12px] font-medium text-[#344054] disabled:opacity-50"
+            className="rounded-input border border-border px-3 py-1.5 text-caption font-medium text-ink disabled:opacity-50"
           >
             Image
           </button>
@@ -159,17 +159,17 @@ const DiscussionComposer = ({
             type="button"
             disabled={disabled || uploading || attachments.length >= 5}
             onClick={() => fileInputRef.current?.click()}
-            className="rounded-[8px] border border-[#D0D5DD] px-3 py-1.5 text-[12px] font-medium text-[#344054] disabled:opacity-50"
+            className="rounded-input border border-border px-3 py-1.5 text-caption font-medium text-ink disabled:opacity-50"
           >
             File
           </button>
-          {uploading ? <span className="text-[12px] text-[#667085]">Uploading…</span> : null}
+          {uploading ? <span className="text-caption text-ink-muted">Uploading…</span> : null}
         </div>
         <button
           type="button"
           disabled={!canSubmit}
           onClick={() => void handleSubmit()}
-          className="rounded-[10px] bg-[#49734F] px-4 py-2 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-card bg-primary px-4 py-2 text-body-sm font-semibold text-ink-inverse disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Sending…" : submitLabel}
         </button>

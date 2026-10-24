@@ -39,14 +39,14 @@ const TagInput = ({
   };
   return (
     <div
-      className={`w-full min-h-[44px] flex flex-wrap items-center gap-2 px-2 py-[6px] border border-[#C6CFCF] rounded-md ${parentClassName}`}
+      className={`w-full min-h-[44px] flex flex-wrap items-center gap-2 px-2 py-[6px] border border-border rounded-md ${parentClassName}`}
     >
       {beforeIcon}
       {tags.map((tag, index) => (
         <div
           key={index}
-          className={`flex items-center gap-1 text-[#232A25] text-[14px] px-4 py-[6px] rounded-[32px] ${
-            invalidTagIndices.includes(index) ? "bg-[#FDECEC]" : "bg-[#EFF0F3]"
+          className={`flex items-center gap-1 text-ink text-body-sm px-4 py-[6px] rounded-[32px] ${
+            invalidTagIndices.includes(index) ? "bg-danger-soft" : "bg-canvas"
           }`}
         >
           <button
@@ -72,12 +72,12 @@ const TagInput = ({
           flex-1
           min-w-[120px]
           bg-transparent
-          text-[14px]
-          placeholder:text-[#747775]
-          leading-[16px]
-          font-[500]
-          text-[#232A25]
-          placeholder:font-[400]
+          text-body-sm
+          placeholder:text-ink-muted
+         
+          font-medium
+          text-ink
+          placeholder:font-normal
           align-middle
           focus:outline-none
           ${inputClassName}

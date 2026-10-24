@@ -17,9 +17,9 @@ const formatDate = (value?: string | null) => {
 };
 
 const statusStyles: Record<TeacherRequestStatus, string> = {
-  pending: "bg-[#FFF4E5] text-[#B54708]",
-  approved: "bg-[#EAF2EB] text-[#49734F]",
-  rejected: "bg-[#FEECEC] text-[#D24B44]",
+  pending: "bg-warning-soft text-warning",
+  approved: "bg-primary-soft text-primary",
+  rejected: "bg-danger-soft text-danger",
 };
 
 const AdminTeacherRequestsTable = () => {
@@ -89,13 +89,13 @@ const AdminTeacherRequestsTable = () => {
   };
 
   return (
-    <div className="rounded-[8px] bg-white p-4">
+    <div className="rounded-input bg-surface p-4">
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-[24px] font-[500] leading-[24px] tracking-[-0.02em] text-[#232A25]">
-            Teacher <span className="font-[400] italic text-[#49734F]">Requests</span>
+          <p className="text-title font-medium text-ink">
+            Teacher <span className="font-normal italic text-primary">Requests</span>
           </p>
-          <p className="mt-2 text-[14px] text-[#747775]">
+          <p className="mt-2 text-body-sm text-ink-muted">
             Review student requests to become teachers.
           </p>
         </div>
@@ -107,7 +107,7 @@ const AdminTeacherRequestsTable = () => {
               setCurrentPage(1);
               setStatusFilter(event.target.value as TeacherRequestStatus | "");
             }}
-            className="h-10 rounded-[8px] border border-[#E5E5E5] px-3 text-[14px] text-[#232A25]"
+            className="h-10 rounded-input border border-border px-3 text-body-sm text-ink"
           >
             <option value="">All statuses</option>
             <option value="pending">Pending</option>
@@ -120,11 +120,11 @@ const AdminTeacherRequestsTable = () => {
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Search name or email"
-              className="h-10 w-full rounded-[8px] border border-[#E5E5E5] px-3 text-[14px] text-[#232A25]"
+              className="h-10 w-full rounded-input border border-border px-3 text-body-sm text-ink"
             />
             <button
               type="submit"
-              className="h-10 shrink-0 rounded-[8px] bg-[#49734F] px-4 text-[14px] font-[500] text-white"
+              className="h-10 shrink-0 rounded-input bg-primary px-4 text-body-sm font-medium text-ink-inverse"
             >
               Search
             </button>
@@ -133,38 +133,38 @@ const AdminTeacherRequestsTable = () => {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-[14px]">
+        <table className="min-w-full text-left text-body-sm">
           <thead>
-            <tr className="border-b border-[#E5E5E5] text-[#747775]">
-              <th className="px-3 py-3 font-[500]">Name</th>
-              <th className="px-3 py-3 font-[500]">Email</th>
-              <th className="px-3 py-3 font-[500]">Request Date</th>
-              <th className="px-3 py-3 font-[500]">Status</th>
-              <th className="px-3 py-3 font-[500]">Actions</th>
+            <tr className="border-b border-border text-ink-muted">
+              <th className="px-3 py-3 font-medium">Name</th>
+              <th className="px-3 py-3 font-medium">Email</th>
+              <th className="px-3 py-3 font-medium">Request Date</th>
+              <th className="px-3 py-3 font-medium">Status</th>
+              <th className="px-3 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-[#747775]">
+                <td colSpan={5} className="px-3 py-8 text-center text-ink-muted">
                   Loading requests...
                 </td>
               </tr>
             ) : requests.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-[#747775]">
+                <td colSpan={5} className="px-3 py-8 text-center text-ink-muted">
                   No teacher requests found.
                 </td>
               </tr>
             ) : (
               requests.map((item) => (
-                <tr key={item.id} className="border-b border-[#F0F0F0]">
-                  <td className="px-3 py-3 text-[#232A25]">{item.user.full_name || "—"}</td>
-                  <td className="px-3 py-3 text-[#232A25]">{item.user.email || "—"}</td>
-                  <td className="px-3 py-3 text-[#232A25]">{formatDate(item.created_at)}</td>
+                <tr key={item.id} className="border-b border-border">
+                  <td className="px-3 py-3 text-ink">{item.user.full_name || "—"}</td>
+                  <td className="px-3 py-3 text-ink">{item.user.email || "—"}</td>
+                  <td className="px-3 py-3 text-ink">{formatDate(item.created_at)}</td>
                   <td className="px-3 py-3">
                     <span
-                      className={`rounded-full px-2.5 py-1 text-[12px] font-[500] capitalize ${statusStyles[item.status]}`}
+                      className={`rounded-full px-2.5 py-1 text-caption font-medium capitalize ${statusStyles[item.status]}`}
                     >
                       {item.status}
                     </span>
@@ -176,7 +176,7 @@ const AdminTeacherRequestsTable = () => {
                           type="button"
                           disabled={actingId === item.id}
                           onClick={() => void handleReview(item.id, "approve")}
-                          className="h-8 rounded-[8px] bg-[#49734F] px-3 text-[13px] font-[500] text-white disabled:opacity-60"
+                          className="h-8 rounded-input bg-primary px-3 text-body-sm font-medium text-ink-inverse disabled:opacity-60"
                         >
                           Approve
                         </button>
@@ -184,13 +184,13 @@ const AdminTeacherRequestsTable = () => {
                           type="button"
                           disabled={actingId === item.id}
                           onClick={() => void handleReview(item.id, "reject")}
-                          className="h-8 rounded-[8px] border border-[#D24B44] px-3 text-[13px] font-[500] text-[#D24B44] disabled:opacity-60"
+                          className="h-8 rounded-input border border-danger px-3 text-body-sm font-medium text-danger disabled:opacity-60"
                         >
                           Reject
                         </button>
                       </div>
                     ) : (
-                      <span className="text-[#747775]">—</span>
+                      <span className="text-ink-muted">—</span>
                     )}
                   </td>
                 </tr>
@@ -205,19 +205,19 @@ const AdminTeacherRequestsTable = () => {
           type="button"
           onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
           disabled={currentPage <= 1}
-          className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#E5E5E5] disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-input border border-border disabled:opacity-40"
           aria-label="Previous page"
         >
           <PaginationChevronLeftIconSVG />
         </button>
-        <span className="text-[13px] text-[#747775]">
+        <span className="text-body-sm text-ink-muted">
           Page {currentPage} of {totalPages}
         </span>
         <button
           type="button"
           onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
           disabled={currentPage >= totalPages}
-          className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#E5E5E5] disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-input border border-border disabled:opacity-40"
           aria-label="Next page"
         >
           <PaginationChevronRightIconSVG />

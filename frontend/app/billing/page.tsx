@@ -7,10 +7,10 @@ export default function BillingPage() {
     <PageLayout route="/billing" subText="Billing & Plans">
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-[24px] font-[600] text-[#232A25]">Billing & Plans</h1>
-          <p className="text-sm text-[#747775]">Choose a plan and upgrade your account.</p>
+          <h1 className="text-title font-semibold text-ink">Billing & Plans</h1>
+          <p className="text-sm text-ink-muted">Choose a plan and upgrade your account.</p>
         </div>
-        <Suspense fallback={<div className="rounded-2xl border border-[#E5E5E5] bg-white p-6 animate-pulse h-40" />}>
+        <Suspense fallback={<div className="rounded-2xl border border-border bg-surface p-6 animate-pulse h-40" />}>
           <AccountBilling />
         </Suspense>
       </div>

@@ -10,11 +10,11 @@ const GradingQuestionList = ({ isReadOnly, items }: GradingModalQuestionListProp
         }
 
         return (
-          <div key={item.id} className="rounded-[8px] border border-[#E5E5E5] bg-[#F8F9FA] p-4">
-            <p className="text-[16px] font-[600] leading-[24px] text-[#232A25]">Passage</p>
+          <div key={item.id} className="rounded-input border border-border bg-canvas p-4">
+            <p className="text-body font-semibold text-ink">Passage</p>
             <RichTextContent
               html={item.passageText}
-              className="mt-2 text-[14px] font-[400] leading-[24px] text-[#747775]"
+              className="mt-2 text-body-sm font-normal text-ink-muted"
             />
             <div className="mt-4 flex flex-col gap-4">
               {item.questions.map((question) => (

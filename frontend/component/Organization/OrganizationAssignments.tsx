@@ -382,21 +382,21 @@ const OrganizationAssignmentsContent = () => {
     <div>
       <div className="mb-3 flex w-full flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="flex flex-wrap items-center text-[20px] tracking-[-0.04em] md:text-[32px]">
-            <p className="font-[500] text-[#232A25]">Assignments</p>
-            <p className="ml-2 font-[400] italic text-[#49734F]" style={{ fontFamily: "DM Serif Display" }}>
+          <div className="flex flex-wrap items-center text-title-sm tracking-tight md:text-display">
+            <p className="font-medium text-ink">Assignments</p>
+            <p className="ml-2 font-normal italic text-primary" style={{ fontFamily: "DM Serif Display" }}>
               {activeOrganization?.name || ""}
             </p>
           </div>
-          <p className="mt-1 text-[13px] text-[#747775]">Class → Organization Subject → Teacher</p>
+          <p className="mt-1 text-body-sm text-ink-muted">Class → Organization Subject → Teacher</p>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-[12px] bg-[#EFF0F3BF] p-2 sm:p-3">
-        <div className="flex flex-col gap-3 rounded-[12px] bg-white p-3">
+      <div className="flex flex-col gap-3 rounded-card bg-canvas p-2 sm:p-3">
+        <div className="flex flex-col gap-3 rounded-card bg-surface p-3">
           <div>
-            <p className="text-[16px] font-[600] text-[#232A25]">1. Assign Organization Subject to Class</p>
-            <p className="text-[13px] text-[#747775]">Class → Organization Subject</p>
+            <p className="text-body font-semibold text-ink">1. Assign Organization Subject to Class</p>
+            <p className="text-body-sm text-ink-muted">Class → Organization Subject</p>
           </div>
           <div className="grid items-end gap-3 md:grid-cols-[1fr_1fr_auto]">
             <DropDownComponent
@@ -420,31 +420,31 @@ const OrganizationAssignmentsContent = () => {
               type="button"
               disabled={saving}
               onClick={() => void handleAttachSubject()}
-              className={`h-[44px] rounded-[8px] px-4 text-sm font-medium text-white ${saving ? "bg-[#747775]" : "bg-[#49734F]"}`}
+              className={`h-[44px] rounded-input px-4 text-sm font-medium text-ink-inverse ${saving ? "bg-ink-muted" : "bg-primary"}`}
             >
               Assign Organization Subject
             </button>
           </div>
           {selectedClass && (
-            <div className="rounded-[8px] border border-[#E5E5E5] p-3">
-              <p className="text-[14px] font-[600] text-[#232A25]">
+            <div className="rounded-input border border-border p-3">
+              <p className="text-body-sm font-semibold text-ink">
                 Organization subjects in {selectedClass.class_name}
               </p>
               <div className="mt-2 flex flex-col gap-2">
                 {classSubjects.length === 0 ? (
-                  <p className="text-[13px] text-[#747775]">No organization subjects assigned yet.</p>
+                  <p className="text-body-sm text-ink-muted">No organization subjects assigned yet.</p>
                 ) : (
                   classSubjects.map((row) => (
                     <div
                       key={row.id}
-                      className="flex items-center justify-between gap-3 rounded-[8px] bg-[#F8F8F8] px-3 py-2"
+                      className="flex items-center justify-between gap-3 rounded-input bg-canvas px-3 py-2"
                     >
-                      <span className="text-sm text-[#232A25]">{subjectLabel(row)}</span>
+                      <span className="text-sm text-ink">{subjectLabel(row)}</span>
                       <button
                         type="button"
                         disabled={saving}
                         onClick={() => void handleRemoveSubject(selectedClass.id, row.id)}
-                        className="text-sm font-medium text-[#C1121F]"
+                        className="text-sm font-medium text-danger"
                       >
                         Remove
                       </button>
@@ -456,21 +456,21 @@ const OrganizationAssignmentsContent = () => {
           )}
         </div>
 
-        <div className="flex flex-col items-center gap-1 py-0.5 text-center text-[13px] text-[#747775]">
+        <div className="flex flex-col items-center gap-1 py-0.5 text-center text-body-sm text-ink-muted">
           <span aria-hidden="true">↓</span>
           <p>Then assign a teacher to that class + organization subject</p>
         </div>
 
-        <div ref={step2Ref} className="flex flex-col gap-3 rounded-[12px] bg-white p-3">
+        <div ref={step2Ref} className="flex flex-col gap-3 rounded-card bg-surface p-3">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <p className="text-[16px] font-[600] text-[#232A25]">2. Assign Teacher to Class & Organization Subject</p>
-              <p className="text-[13px] text-[#747775]">Class + Organization Subject → Teacher</p>
+              <p className="text-body font-semibold text-ink">2. Assign Teacher to Class & Organization Subject</p>
+              <p className="text-body-sm text-ink-muted">Class + Organization Subject → Teacher</p>
             </div>
             {editingAssignmentId ? (
               <button
                 type="button"
-                className="text-sm font-medium text-[#747775]"
+                className="text-sm font-medium text-ink-muted"
                 onClick={() => {
                   setEditingAssignmentId("");
                   setSelectedTeacherId("");
@@ -481,7 +481,7 @@ const OrganizationAssignmentsContent = () => {
             ) : null}
           </div>
           {selectedClassId && classSubjects.length === 0 ? (
-            <p className="text-[13px] text-[#747775]">
+            <p className="text-body-sm text-ink-muted">
               Assign an organization subject to this class in Step 1 first.
             </p>
           ) : null}
@@ -520,15 +520,15 @@ const OrganizationAssignmentsContent = () => {
               type="button"
               disabled={saving}
               onClick={() => void handleAssignTeacher()}
-              className={`h-[44px] whitespace-nowrap rounded-[8px] px-4 text-sm font-medium text-white ${saving ? "bg-[#747775]" : "bg-[#49734F]"}`}
+              className={`h-[44px] whitespace-nowrap rounded-input px-4 text-sm font-medium text-ink-inverse ${saving ? "bg-ink-muted" : "bg-primary"}`}
             >
               {editingAssignmentId ? "Replace Teacher" : "Assign Teacher"}
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-[12px] bg-white p-3">
-          <p className="text-[16px] font-[600] text-[#232A25]">3. Current Assignments</p>
+        <div className="flex flex-col gap-3 rounded-card bg-surface p-3">
+          <p className="text-body font-semibold text-ink">3. Current Assignments</p>
           <div className="grid gap-3 md:grid-cols-3">
             <DropDownComponent
               placeholder="All classes"
@@ -557,7 +557,7 @@ const OrganizationAssignmentsContent = () => {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-[#EFF0F3] text-left text-[#232A25]">
+              <thead className="bg-canvas text-left text-ink">
                 <tr>
                   <th className="p-3">Class</th>
                   <th className="p-3">Organization Subject</th>
@@ -568,32 +568,32 @@ const OrganizationAssignmentsContent = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="p-6 text-center text-[#747775]">
+                    <td colSpan={4} className="p-6 text-center text-ink-muted">
                       Loading assignments...
                     </td>
                   </tr>
                 ) : filteredAssignmentRows.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="p-6 text-center text-[#747775]">
+                    <td colSpan={4} className="p-6 text-center text-ink-muted">
                       No class–organization subject rows yet. Complete Step 1.
                     </td>
                   </tr>
                 ) : (
                   filteredAssignmentRows.map((row) => (
-                    <tr key={row.assignmentId} className="border-t border-[#F0F0F0]">
-                      <td className="p-3 text-[#232A25]">{row.className}</td>
-                      <td className="p-3 text-[#232A25]">{row.subject}</td>
-                      <td className="p-3 text-[#232A25]">{row.teacherName}</td>
+                    <tr key={row.assignmentId} className="border-t border-border">
+                      <td className="p-3 text-ink">{row.className}</td>
+                      <td className="p-3 text-ink">{row.subject}</td>
+                      <td className="p-3 text-ink">{row.teacherName}</td>
                       <td className="p-3">
                         {row.unassigned ? (
-                          <span className="text-[#747775]">Assign a teacher in Step 2</span>
+                          <span className="text-ink-muted">Assign a teacher in Step 2</span>
                         ) : (
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
                               disabled={saving}
                               onClick={() => handleEditAssignment(row)}
-                              className="font-medium text-[#49734F]"
+                              className="font-medium text-primary"
                             >
                               Edit
                             </button>
@@ -601,7 +601,7 @@ const OrganizationAssignmentsContent = () => {
                               type="button"
                               disabled={saving}
                               onClick={() => void handleUnassign(row.classId, row.classSubjectId, row.assignmentId)}
-                              className="font-medium text-[#C1121F]"
+                              className="font-medium text-danger"
                             >
                               Remove
                             </button>

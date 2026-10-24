@@ -58,21 +58,21 @@ const StudentExamPermissionFlow = () => {
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#4A4A4A]/70 px-4 py-8">
-      <div className="relative w-full max-w-[640px] rounded-[16px] bg-white shadow-[0_20px_60px_rgba(35,42,37,0.16)]">
-        <div className="flex items-center justify-between border-b border-[#E5E5E5] px-6 py-4">
+      <div className="relative w-full max-w-[640px] rounded-sheet bg-surface shadow-[0_20px_60px_rgba(35,42,37,0.16)]">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
             <SuccessIconSVG width={28} />
-            <p className="text-[18px] font-[600] leading-6 text-[#232A25]">{t("loginSuccessful")}</p>
+            <p className="text-title-sm font-semibold leading-6 text-ink">{t("loginSuccessful")}</p>
           </div>
         </div>
 
         {step === "permissions" ? (
           <div className="flex flex-col gap-6 px-6 py-6">
             <div className="flex flex-col items-center gap-3 text-center">
-              <div className="flex size-16 items-center justify-center rounded-full bg-[#EDF4EE] text-[#49734F]">
-                <span className="text-[28px]">📷</span>
+              <div className="flex size-16 items-center justify-center rounded-full bg-primary-soft text-primary">
+                <span className="text-display">📷</span>
               </div>
-              <p className="max-w-[420px] text-[16px] leading-6 text-[#232A25]">
+              <p className="max-w-[420px] text-body leading-6 text-ink">
                 {t("intro")}
               </p>
             </div>
@@ -82,15 +82,15 @@ const StudentExamPermissionFlow = () => {
                 const isGranted = status === "granted";
 
                 return (
-                  <div key={key} className="rounded-[12px] border border-[#E6ECE7] bg-[#F8FBF8] p-4">
-                    <p className="text-[14px] font-[600] leading-5 text-[#232A25]">{title}</p>
-                    <p className="mt-1 text-[12px] leading-4 text-[#747775]">{statusLabel(status)}</p>
+                  <div key={key} className="rounded-card border border-border bg-primary-soft p-4">
+                    <p className="text-body-sm font-semibold leading-5 text-ink">{title}</p>
+                    <p className="mt-1 text-caption leading-4 text-ink-muted">{statusLabel(status)}</p>
                     <button
                       type="button"
                       onClick={() => void requestCameraAndMicrophone()}
                       disabled={isGranted}
-                      className={`mt-4 h-10 w-full rounded-[8px] px-3 text-[12px] font-[600] leading-4 ${
-                        isGranted ? "bg-[#DDE5DE] text-[#747775]" : "bg-[#232A25] text-white"
+                      className={`mt-4 h-10 w-full rounded-input px-3 text-caption font-semibold leading-4 ${
+                        isGranted ? "bg-border text-ink-muted" : "bg-ink text-ink-inverse"
                       }`}
                     >
                       {isGranted ? t("status.granted") : actionLabel}
@@ -100,15 +100,15 @@ const StudentExamPermissionFlow = () => {
               })}
             </div>
 
-            {errorMessage ? <p className="text-center text-[13px] leading-5 text-[#B93815]">{errorMessage}</p> : null}
+            {errorMessage ? <p className="text-center text-body-sm leading-5 text-danger">{errorMessage}</p> : null}
 
-            <div className="flex items-center justify-between border-t border-[#E5E5E5] pt-4">
+            <div className="flex items-center justify-between border-t border-border pt-4">
               <button
                 type="button"
                 onClick={handleContinue}
                 disabled={!allPermissionsGranted}
-                className={`flex h-11 items-center rounded-[10px] px-5 text-[14px] font-[600] leading-4 text-white ${
-                  allPermissionsGranted ? "bg-[#49734F]" : "cursor-not-allowed bg-[#8BA28F]"
+                className={`flex h-11 items-center rounded-card px-5 text-body-sm font-semibold leading-4 text-ink-inverse ${
+                  allPermissionsGranted ? "bg-primary" : "cursor-not-allowed bg-primary/60"
                 }`}
               >
                 {t("nextStep")}
@@ -119,33 +119,33 @@ const StudentExamPermissionFlow = () => {
         ) : (
           <div className="flex flex-col gap-6 px-6 py-6">
             <div className="flex flex-col items-center gap-3 text-center">
-              <div className="flex size-16 items-center justify-center rounded-full bg-[#EDF4EE] text-[#49734F]">
-                <span className="text-[28px]">🛡</span>
+              <div className="flex size-16 items-center justify-center rounded-full bg-primary-soft text-primary">
+                <span className="text-display">🛡</span>
               </div>
-              <p className="text-[20px] font-[600] leading-6 text-[#232A25]">{t("rulesTitle")}</p>
+              <p className="text-title-sm font-semibold leading-6 text-ink">{t("rulesTitle")}</p>
             </div>
 
-            <ol className="mx-auto flex w-full max-w-[520px] list-decimal flex-col gap-3 pl-5 text-[14px] leading-6 text-[#232A25]">
+            <ol className="mx-auto flex w-full max-w-[520px] list-decimal flex-col gap-3 pl-5 text-body-sm leading-6 text-ink">
               {EXAM_RULE_KEYS.map((rule) => (
                 <li key={rule}>{t(`rules.${rule}`, { count: PROCTORING_CONFIG.disqualifyAfter })}</li>
               ))}
             </ol>
 
-            <label className="mx-auto flex w-full max-w-[520px] items-start gap-3 rounded-[10px] border border-[#E6ECE7] bg-[#F8FBF8] p-4">
+            <label className="mx-auto flex w-full max-w-[520px] items-start gap-3 rounded-card border border-border bg-primary-soft p-4">
               <input
                 type="checkbox"
                 checked={rulesAccepted}
                 onChange={(event) => setRulesAccepted(event.target.checked)}
-                className="mt-1 size-4 accent-[#49734F]"
+                className="mt-1 size-4 accent-primary"
               />
-              <span className="text-[14px] leading-5 text-[#232A25]">{t("accept")}</span>
+              <span className="text-body-sm leading-5 text-ink">{t("accept")}</span>
             </label>
 
-            <div className="flex items-center justify-between border-t border-[#E5E5E5] pt-4">
+            <div className="flex items-center justify-between border-t border-border pt-4">
               <button
                 type="button"
                 onClick={() => setStep("permissions")}
-                className="h-11 rounded-[10px] border border-[#DDE5DE] px-5 text-[14px] font-[600] leading-4 text-[#232A25]"
+                className="h-11 rounded-card border border-border px-5 text-body-sm font-semibold leading-4 text-ink"
               >
                 {t("back")}
               </button>
@@ -153,8 +153,8 @@ const StudentExamPermissionFlow = () => {
                 type="button"
                 onClick={() => void handleStartTest()}
                 disabled={!rulesAccepted || !allPermissionsGranted}
-                className={`flex h-11 items-center rounded-[10px] px-5 text-[14px] font-[600] leading-4 text-white ${
-                  rulesAccepted && allPermissionsGranted ? "bg-[#49734F]" : "cursor-not-allowed bg-[#8BA28F]"
+                className={`flex h-11 items-center rounded-card px-5 text-body-sm font-semibold leading-4 text-ink-inverse ${
+                  rulesAccepted && allPermissionsGranted ? "bg-primary" : "cursor-not-allowed bg-primary/60"
                 }`}
               >
                 {t("startTest")}

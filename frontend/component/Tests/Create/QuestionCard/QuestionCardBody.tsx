@@ -181,7 +181,7 @@ function QuestionCardBody({
         return (
           <div
             key={option.id}
-            className={`group flex items-center ${QUESTION_BUILDER_GAPS.optionRow} rounded-[2px] px-0 py-1 hover:bg-[#ED86001A]`}
+            className={`group flex items-center ${QUESTION_BUILDER_GAPS.optionRow} rounded-sm px-0 py-1 hover:bg-warning-soft`}
           >
             <input
               type={usesMultipleAnswers ? "checkbox" : "radio"}
@@ -197,7 +197,7 @@ function QuestionCardBody({
                   }),
                 )
               }
-              className="mt-1 h-4 w-4 border-[#232A25] text-[#49734F] focus:ring-0"
+              className="mt-1 h-4 w-4 border-ink text-primary focus:ring-0"
             />
             <div className={`flex min-w-0 flex-1 flex-col ${QUESTION_BUILDER_GAPS.optionContent}`}>
               {canEditOptionText && !option.image ? (
@@ -227,14 +227,14 @@ function QuestionCardBody({
                   onFocus={activateCard}
                   placeholder="Option"
                   rows={1}
-                  className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25] outline-none placeholder:text-[#747775]"
+                  className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-body font-normal text-ink outline-none placeholder:text-ink-muted"
                 />
               ) : (
-                <p className="text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">{option.text}</p>
+                <p className="text-body font-normal text-ink">{option.text}</p>
               )}
               {option.image ? (
                 <div className={`flex items-center ${QUESTION_BUILDER_GAPS.optionImageActions}`}>
-                  <div className="relative h-32 w-full max-w-[240px] overflow-hidden rounded-[12px] border border-[#E5E5E5] bg-white">
+                  <div className="relative h-32 w-full max-w-[240px] overflow-hidden rounded-card border border-border bg-surface">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={resolveMediaUrl(option.image)}
@@ -276,7 +276,7 @@ function QuestionCardBody({
                             }),
                           )
                         }
-                        className="flex items-center justify-center rounded-[8px] text-[#D24B44] transition-colors duration-150"
+                        className="flex items-center justify-center rounded-input text-danger transition-colors duration-150"
                         aria-label="Remove option image"
                       >
                         <TrashIcon />
@@ -319,7 +319,7 @@ function QuestionCardBody({
                         }),
                       )
                     }
-                    className="flex items-center justify-center rounded-[8px] text-[#D24B44] opacity-0 transition-all duration-150 group-hover:opacity-100"
+                    className="flex items-center justify-center rounded-input text-danger opacity-0 transition-all duration-150 group-hover:opacity-100"
                     aria-label="Delete option"
                   >
                     <TrashIcon />
@@ -333,7 +333,7 @@ function QuestionCardBody({
       {canAddOptions ? (
         <div
           className={`flex w-full items-center ${QUESTION_BUILDER_GAPS.addOptionRow} ${
-            canAddMoreOptions ? "hover:bg-[#ED86001A]" : ""
+            canAddMoreOptions ? "hover:bg-warning-soft" : ""
           }`}
         >
           <button
@@ -341,7 +341,7 @@ function QuestionCardBody({
             type="button"
             onClick={handleAddOptionWithScroll}
             disabled={!canAddMoreOptions}
-            className={`flex w-full items-center ${QUESTION_BUILDER_GAPS.addOptionRow} py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)] ${
+            className={`flex w-full items-center ${QUESTION_BUILDER_GAPS.addOptionRow} py-1 text-left text-body font-normal leading-4 text-[rgba(116,119,117,0.5)] ${
               canAddMoreOptions ? "" : "cursor-default"
             }`}
           >
@@ -362,7 +362,7 @@ function QuestionCardBody({
                 title="Add new option with image"
                 onClick={() => addOptionImageInputRef.current?.click()}
                 disabled={!canAddMoreOptions}
-                className="flex shrink-0 items-center justify-center rounded-[8px] text-[#747775] transition-colors duration-150 hover:text-[#49734F] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-[#747775]"
+                className="flex shrink-0 items-center justify-center rounded-input text-ink-muted transition-colors duration-150 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-ink-muted"
                 aria-label="Add new option with image"
               >
                 <UploadImageIconSVG />

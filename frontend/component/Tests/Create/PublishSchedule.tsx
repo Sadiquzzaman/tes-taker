@@ -78,7 +78,7 @@ const PublishSchedule = () => {
   return (
     <>
       <div className="flex flex-col gap-2">
-        <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+        <p className="text-body font-medium text-ink">
           Schedule Date &amp; Time
         </p>
         <div className="flex gap-3">
@@ -106,7 +106,7 @@ const PublishSchedule = () => {
       </div>
 
       <div className="flex flex-col gap-2">
-        <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Test ending by</p>
+        <p className="text-body font-medium text-ink">Test ending by</p>
         <div className="flex gap-3">
           <DatePicker
             value={publishState.endingAt ? dayjs(publishState.endingAt) : null}

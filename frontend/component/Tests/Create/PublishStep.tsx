@@ -107,28 +107,28 @@ const PublishStep = () => {
     <button
       type="button"
       onClick={() => dispatch(setPublishTiming(timing))}
-      className={`flex flex-1 cursor-pointer items-start gap-3 rounded-[8px] p-4 transition-colors ${
-        publishState.publishTiming === timing ? "bg-[#49734F]" : "bg-[#EFF0F3]"
+      className={`flex flex-1 cursor-pointer items-start gap-3 rounded-input p-4 transition-colors ${
+        publishState.publishTiming === timing ? "bg-primary" : "bg-canvas"
       }`}
     >
       <span
         className={`mt-[2px] flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border ${
-          publishState.publishTiming === timing ? "border-white bg-white" : "border-[#747775] bg-transparent"
+          publishState.publishTiming === timing ? "border-surface bg-surface" : "border-ink-muted bg-transparent"
         }`}
       >
-        {publishState.publishTiming === timing && <span className="h-3 w-3 rounded-full bg-[#49734F]" />}
+        {publishState.publishTiming === timing && <span className="h-3 w-3 rounded-full bg-primary" />}
       </span>
       <div className="flex flex-col gap-2 text-left">
         <span
-          className={`text-[16px] font-[500] leading-4 tracking-[-0.02em] ${
-            publishState.publishTiming === timing ? "text-white" : "text-[#232A25]"
+          className={`text-body font-medium leading-4 ${
+            publishState.publishTiming === timing ? "text-ink-inverse" : "text-ink"
           }`}
         >
           {title}
         </span>
         <span
-          className={`text-[14px] font-[400] leading-4 tracking-[-0.02em] ${
-            publishState.publishTiming === timing ? "text-[#E5E5E5]" : "text-[#747775]"
+          className={`text-body-sm font-normal leading-4 ${
+            publishState.publishTiming === timing ? "text-border" : "text-ink-muted"
           }`}
         >
           {description}
@@ -142,9 +142,9 @@ const PublishStep = () => {
       <section className="flex h-full w-full flex-1 flex-col gap-8">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[24px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Publish timing</h2>
+            <h2 className="text-title font-semibold leading-6 tracking-tight text-ink-muted">Publish timing</h2>
           </div>
-          <div className="w-full border-b border-[#E5E5E5]" />
+          <div className="w-full border-b border-border" />
 
           <div className="flex gap-3">
             {renderPublishOptionButton("Publish immediately", "This test will be available from now", "immediately")}
@@ -160,12 +160,12 @@ const PublishStep = () => {
 
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[24px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Test Audience</h2>
+            <h2 className="text-title font-semibold leading-6 tracking-tight text-ink-muted">Test Audience</h2>
           </div>
-          <div className="w-full border-b border-[#E5E5E5]" />
+          <div className="w-full border-b border-border" />
 
           <div className="flex flex-col gap-2">
-            <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Test Created for</p>
+            <p className="text-body font-medium text-ink">Test Created for</p>
             {isIndividual ? (
               <DropDownComponent
                 placeholder="Select audience"
@@ -174,7 +174,7 @@ const PublishStep = () => {
                 list={testAudienceOptions}
               />
             ) : (
-              <p className="rounded-[8px] bg-[#EFF0F3] px-3 py-3 text-sm text-[#232A25]">
+              <p className="rounded-input bg-canvas px-3 py-3 text-sm text-ink">
                 Group or {classLabel}
                 {selectedClass?.class_name ? ` — ${selectedClass.class_name}` : ""}
               </p>
@@ -183,7 +183,7 @@ const PublishStep = () => {
 
           {(isIndividual ? publishState.testAudience === "selected_class" : true) && (
             <div className="flex flex-col gap-2">
-              <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+              <p className="text-body font-medium text-ink">
                 Select a {classLabel}
               </p>
               {isIndividual ? (
@@ -195,18 +195,18 @@ const PublishStep = () => {
                   maxOuputInDropdownList={5}
                 />
               ) : (
-                <p className="rounded-[8px] border border-[#E5E5E5] px-3 py-3 text-sm text-[#232A25]">
+                <p className="rounded-input border border-border px-3 py-3 text-sm text-ink">
                   {selectedClass?.class_name || `${classLabelTitle} selected in Basic Info`}
                 </p>
               )}
               {publishState.selectedClassId && (
                 <>
-                  <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
+                  <p className="text-body-sm font-normal text-ink-muted">
                     Students in this {classLabel} will be able to join the test.
                   </p>
 
-                  <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
-                    Exclude Student email or phone <span className="font-[400] text-[#747775]">(Optional)</span>
+                  <p className="text-body font-medium text-ink">
+                    Exclude Student email or phone <span className="font-normal text-ink-muted">(Optional)</span>
                   </p>
                   <div className="flex items-end gap-2">
                     <div className="flex-1">
@@ -223,13 +223,13 @@ const PublishStep = () => {
                     <button
                       type="button"
                       onClick={handleAddStudent}
-                      className="flex h-[44px] items-center gap-[6px] rounded-[8px] bg-[#232A25] px-3 text-[14px] font-[500] leading-4 tracking-[-0.02em] text-white"
+                      className="flex h-[44px] items-center gap-[6px] rounded-input bg-ink px-3 text-body-sm font-medium leading-4 text-ink-inverse"
                     >
                       <AddStudentIconSVG width={14} />
                       Add
                     </button>
                   </div>
-                  <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
+                  <p className="text-body-sm font-normal text-ink-muted">
                     Exclude by single/bulk email or phone.
                   </p>
                 </>
@@ -239,22 +239,22 @@ const PublishStep = () => {
 
           {isIndividual && publishState.testAudience === "anyone" && (
             <div className="flex flex-col gap-2">
-              <p className="text-[14px] font-[600] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Test Join Link</p>
-              <div className="flex items-center justify-between rounded-[6px] bg-[#EFF0F3]/75 px-3 py-[6px]">
-                <span className="break-all text-[16px] font-[400] leading-5 tracking-[-0.02em] text-[#2765EC]">
+              <p className="text-body-sm font-semibold text-ink">Test Join Link</p>
+              <div className="flex items-center justify-between rounded-input bg-canvas/75 px-3 py-[6px]">
+                <span className="break-all text-body font-normal leading-5 text-info">
                   {joinLink}
                 </span>
                 <button
                   type="button"
                   onClick={handleCopy}
                   disabled={!canCopyJoinLink}
-                  className="flex shrink-0 items-center gap-[6px] rounded-[8px] bg-[#232A25] px-3 py-2 text-[14px] font-[500] leading-4 tracking-[-0.02em] capitalize text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex shrink-0 items-center gap-[6px] rounded-input bg-ink px-3 py-2 text-body-sm font-medium leading-4 capitalize text-ink-inverse disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <PublishCopyIconSVG width={14} />
                   {copied ? "Copied!" : "Copy"}
                 </button>
               </div>
-              <p className="text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
+              <p className="text-body font-normal text-ink-muted">
                 {canCopyJoinLink
                   ? "You can copy the link now or later to share with your students."
                   : "A shareable join link will be available after you publish this test."}

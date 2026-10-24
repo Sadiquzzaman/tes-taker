@@ -57,8 +57,8 @@ const PublicDiscussionFeed = ({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 className="text-[20px] font-semibold text-[#101828]">Class Discussion</h3>
-          {subjectTitle ? <p className="text-[13px] text-[#667085]">{subjectTitle}</p> : null}
+          <h3 className="text-title-sm font-semibold text-ink">Class Discussion</h3>
+          {subjectTitle ? <p className="text-body-sm text-ink-muted">{subjectTitle}</p> : null}
         </div>
       </div>
 
@@ -74,10 +74,10 @@ const PublicDiscussionFeed = ({
             key={filter.value}
             type="button"
             onClick={() => onCategoryFilterChange(filter.value)}
-            className={`rounded-full px-3 py-1.5 text-[12px] font-medium ${
+            className={`rounded-full px-3 py-1.5 text-caption font-medium ${
               categoryFilter === filter.value
-                ? "bg-[#49734F] text-white"
-                : "bg-[#F2F4F7] text-[#344054]"
+                ? "bg-primary text-ink-inverse"
+                : "bg-canvas text-ink"
             }`}
           >
             {filter.label}
@@ -85,12 +85,12 @@ const PublicDiscussionFeed = ({
         ))}
       </div>
 
-      {postsError ? <p className="text-[13px] text-[#B42318]">{postsError}</p> : null}
+      {postsError ? <p className="text-body-sm text-danger">{postsError}</p> : null}
       {loadingPosts && posts.length === 0 ? (
-        <p className="text-[13px] text-[#667085]">Loading discussions…</p>
+        <p className="text-body-sm text-ink-muted">Loading discussions…</p>
       ) : null}
       {!loadingPosts && posts.length === 0 ? (
-        <p className="rounded-[12px] border border-dashed border-[#D0D5DD] bg-[#F9FAFB] px-4 py-8 text-center text-[13px] text-[#667085]">
+        <p className="rounded-card border border-dashed border-border bg-canvas px-4 py-8 text-center text-body-sm text-ink-muted">
           No posts yet. Start the conversation.
         </p>
       ) : null}
@@ -118,7 +118,7 @@ const PublicDiscussionFeed = ({
           type="button"
           onClick={onLoadMore}
           disabled={loadingPosts}
-          className="w-full rounded-[10px] border border-[#D0D5DD] py-2 text-[13px] font-medium text-[#344054]"
+          className="w-full rounded-card border border-border py-2 text-body-sm font-medium text-ink"
         >
           {loadingPosts ? "Loading…" : "Load more"}
         </button>

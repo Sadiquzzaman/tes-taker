@@ -101,7 +101,7 @@ const StudentExamSpeakingRecorder = ({
             type="button"
             disabled={disabled}
             onClick={startRecording}
-            className="rounded-[6px] bg-[#49734F] px-4 py-2 text-[14px] font-[500] text-white disabled:opacity-50"
+            className="rounded-input bg-primary px-4 py-2 text-body-sm font-medium text-ink-inverse disabled:opacity-50"
           >
             {value ? t("reRecord") : t("startRecording")}
           </button>
@@ -109,16 +109,16 @@ const StudentExamSpeakingRecorder = ({
           <button
             type="button"
             onClick={stopRecording}
-            className="rounded-[6px] bg-[#B42318] px-4 py-2 text-[14px] font-[500] text-white"
+            className="rounded-input bg-danger px-4 py-2 text-body-sm font-medium text-ink-inverse"
           >
             {t("stopRecording")}
           </button>
         )}
         {secondsLeft !== null ? (
-          <span className="text-[14px] text-[#747775]">{t("recordingTimeLeft", { seconds: secondsLeft })}</span>
+          <span className="text-body-sm text-ink-muted">{t("recordingTimeLeft", { seconds: secondsLeft })}</span>
         ) : null}
       </div>
-      {error ? <p className="text-[13px] text-[#B42318]">{error}</p> : null}
+      {error ? <p className="text-body-sm text-danger">{error}</p> : null}
       {value ? <audio controls src={value} className="w-full" preload="metadata" /> : null}
     </div>
   );
@@ -144,18 +144,18 @@ const StudentExamQuestionCard = ({
   const wordLimit = question.wordLimit ?? null;
 
   return (
-    <article className="flex w-full flex-col gap-3 rounded-[8px] bg-white p-4">
+    <article className="flex w-full flex-col gap-3 rounded-input bg-surface p-4">
       {question.instruction ? (
-        <RichTextContent html={question.instruction} className="text-[14px] leading-5 text-[#49734F]" />
+        <RichTextContent html={question.instruction} className="text-body-sm leading-5 text-primary" />
       ) : null}
 
       <div className="flex min-w-0 gap-2">
-        <span className="w-4 shrink-0 text-center text-[16px] font-[500] leading-5 text-[#0F1A12]">
+        <span className="w-4 shrink-0 text-center text-body font-medium leading-5 text-ink">
           {question.questionNumber}.
         </span>
         <RichTextContent
           html={question.text}
-          className="min-w-0 flex-1 text-[16px] font-[500] leading-5 tracking-[-0.02em] text-[#0F1A12]"
+          className="min-w-0 flex-1 text-body font-medium leading-5 text-ink"
         />
       </div>
 
@@ -174,8 +174,8 @@ const StudentExamQuestionCard = ({
             rows={isWritingTask ? 12 : 4}
             maxRows={isWritingTask ? 24 : 6}
             disabled={disabled}
-            parentClassName="rounded-[6px] border-[#E5E5E5] bg-white px-3 py-[10px]"
-            inputClassName="text-[16px] font-[400] leading-5 tracking-[-0.02em] text-[#232A25] placeholder:text-[#747775]"
+            parentClassName="rounded-input border-border bg-surface px-3 py-[10px]"
+            inputClassName="text-body font-normal leading-5 text-ink placeholder:text-ink-muted"
           />
         </div>
       ) : null}
@@ -204,9 +204,9 @@ const StudentExamQuestionCard = ({
                 disabled={disabled}
                 checked={selectedOptionIds.includes(option.id)}
                 onChange={() => onAnswerChange(question.id, [option.id])}
-                className="h-4 w-4 border-[#232A25] text-[#49734F] focus:ring-0"
+                className="h-4 w-4 border-ink text-primary focus:ring-0"
               />
-              <span className="text-[16px] leading-4 tracking-[-0.02em] text-[#232A25]">{option.text}</span>
+              <span className="text-body leading-4 text-ink">{option.text}</span>
             </label>
           ))}
         </div>
@@ -225,9 +225,9 @@ const StudentExamQuestionCard = ({
                 disabled={disabled}
                 checked={selectedOptionIds.includes(option.id)}
                 onChange={() => onAnswerChange(question.id, toggleMultiSelectAnswer(answerValue, option.id))}
-                className="h-4 w-4 rounded border-[#232A25] text-[#49734F] focus:ring-0"
+                className="h-4 w-4 rounded border-ink text-primary focus:ring-0"
               />
-              <span className="text-[16px] leading-4 tracking-[-0.02em] text-[#232A25]">{option.text}</span>
+              <span className="text-body leading-4 text-ink">{option.text}</span>
             </label>
           ))}
         </div>
@@ -245,14 +245,14 @@ const StudentExamQuestionCard = ({
 
       <div className="flex items-center justify-between gap-3">
         {question.inputMode === "text" ? (
-          <p className="text-[14px] leading-5 tracking-[-0.02em] text-[#747775]">
+          <p className="text-body-sm leading-5 text-ink-muted">
             {wordLimit ? t("wordCountLimit", { count: wordCount, limit: wordLimit }) : t("wordCount", { count: wordCount })}
           </p>
         ) : (
           <div />
         )}
 
-        <div className="flex items-center gap-2 text-[14px] leading-5 tracking-[-0.02em] text-[#747775]">
+        <div className="flex items-center gap-2 text-body-sm leading-5 text-ink-muted">
           <span>{t("points", { points: question.points })}</span>
           {negativeMark !== null ? <span>|</span> : null}
           {negativeMark !== null ? <span>{t("negativeMarking", { mark: negativeMark })}</span> : null}

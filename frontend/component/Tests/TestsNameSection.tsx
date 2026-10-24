@@ -20,8 +20,8 @@ const TestsNameSection = ({ role }: TestsNameSectionProps) => {
   return (
     <div className="mb-2 sm:mb-4 flex flex-col gap-2 sm:gap-4 min-h-[40px]">
       <div className="flex justify-between items-center w-full">
-        <div className="text-[20px] md:text-[32px] tracking-[-0.04em] flex items-center gap-0 flex-wrap mr-4">
-          <p className="font-[500] text-[#232A25]">Tests</p>
+        <div className="text-title-sm md:text-display tracking-tight flex items-center gap-0 flex-wrap mr-4">
+          <p className="font-medium text-ink">Tests</p>
         </div>
 
         {shouldShowCreateTestButton && (
@@ -31,12 +31,12 @@ const TestsNameSection = ({ role }: TestsNameSectionProps) => {
         )}
       </div>
       <div className="flex flex-col lg:flex-row justify-start lg:justify-between items-start lg:items-center w-full min-h-10 mb-2">
-        <div className="flex w-fit rounded-md bg-gray-100 p-0.5">
+        <div className="flex w-fit rounded-md bg-canvas p-0.5">
           {testsTabList.map((tab) => (
             <button
               key={tab.value}
-              className={`px-4 py-2 text-sm rounded leading-[20px] tracking-[-0.02em] ${
-                activeTab.value === tab.value ? "font-[400] bg-white shadow text-[#232A25]" : "text-[#747775]"
+              className={`px-4 py-2 text-sm rounded ${
+                activeTab.value === tab.value ? "font-normal bg-surface shadow text-ink" : "text-ink-muted"
               }`}
               onClick={() => dispatch(setActiveTab(tab))}
             >
@@ -47,13 +47,13 @@ const TestsNameSection = ({ role }: TestsNameSectionProps) => {
         <div className="flex gap-2 lg:gap-4 mt-4 lg:mt-0 ml-0 lg:ml-2 h-10">
           <NormalInput
             parentClassName="max-w-[370px] w-full h-10"
-            inputClassName="text-[14px] leading-[14px] font-[400] placeholder:text-[#989eaf]"
+            inputClassName="text-body-sm font-normal placeholder:text-ink-muted"
             value={searchInput}
             onChange={(e) => dispatch(setSearchInput(e.target.value))}
             placeholder="Search by Test, Subject or Class"
           />
           <div
-            className="text-[#747775] min-w-10 h-10 flex justify-center items-center bg-[#EFF0F3] rounded-md cursor-pointer"
+            className="text-ink-muted min-w-10 h-10 flex justify-center items-center bg-canvas rounded-md cursor-pointer"
             title="Filter"
           >
             <FilterIconSVG />

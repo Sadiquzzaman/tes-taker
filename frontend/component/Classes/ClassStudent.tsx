@@ -45,17 +45,17 @@ const ClassStudent = ({
   }, []);
 
   return (
-    <div className="p-2 sm:p-4 bg-white rounded-[8px] h-full">
+    <div className="p-2 sm:p-4 bg-surface rounded-input h-full">
       <div className="flex justify-between items-center">
-        <p className="font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">Students</p>
+        <p className="font-medium text-title text-ink">Students</p>
         {isTeacher && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gray-300 rounded-[6px] flex items-center justify-center">
+            <div className="w-8 h-8 bg-border rounded-input flex items-center justify-center">
               <SortIconSVG />
             </div>
             <button
               onClick={() => dispatch(setOpenAddStudentModal({ id: classId }))}
-              className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] bg-[#49734F] rounded-[8px] font-[500] text-white font-medium text-[12px] sm:text-[14px]"
+              className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] bg-primary rounded-input font-medium text-ink-inverse font-medium text-caption sm:text-body-sm"
             >
               <HumanAddIconSVG width={16} />
               <span className="capitalize mb-[2px]">Add Student</span>
@@ -68,20 +68,20 @@ const ClassStudent = ({
         placeholder="Search Student"
         value={searchStudentInput}
         onChange={(e) => setSearchStudentInput(e.target.value)}
-        parentClassName="w-full border-[#E5E5E5] rounded-[8px] h-[40px] my-4"
-        inputClassName="text-[14px] leading-[125%] font-[400] placeholder:text-[#747775] px-2"
+        parentClassName="w-full border-border rounded-input h-[40px] my-4"
+        inputClassName="text-body-sm font-normal placeholder:text-ink-muted px-2"
       />
 
       {isTeacher && (
         <>
-          <p className="font-[500] text-[18px] leading-[18px] tracking-[-0.02em] text-[#49734F] my-4">
+          <p className="font-medium text-title-sm text-primary my-4">
             Pending approvals ({filteredStudent.pending.length})
           </p>
 
           {filteredStudent.pending.length > 0 && (
             <table className="my-4 min-w-[400px] w-full table-fixed">
               <thead>
-                <tr className="text-left font-[500] text-[14px] leading-[16px] tracking-[-0.02em] text-[#232A25] border-b border-[#EFF0F3] h-10">
+                <tr className="text-left font-medium text-body-sm text-ink border-b border-border h-10">
                   <th className="p-2 w-[30%] whitespace-nowrap">Student</th>
                   <th className="p-2 whitespace-nowrap">Email/Phone</th>
                   <th className="p-2 w-[105px] whitespace-nowrap">Action</th>
@@ -91,7 +91,7 @@ const ClassStudent = ({
                 {filteredStudent.pending.map((item) => (
                   <tr
                     key={item.id}
-                    className="text-left font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775] border-b border-[#EFF0F3] h-10"
+                    className="text-left font-normal text-body-sm text-ink-muted border-b border-border h-10"
                   >
                     <td className="p-2 whitespace-nowrap">{getClassStudentDisplayName(item)}</td>
                     <td className="p-2 whitespace-nowrap">{getClassStudentContact(item)}</td>
@@ -99,13 +99,13 @@ const ClassStudent = ({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleApproveStudent(item.student_id)}
-                          className="w-6 h-6 flex justify-center items-center text-[#49734F]"
+                          className="w-6 h-6 flex justify-center items-center text-primary"
                         >
                           <TickSignIconSVG />
                         </button>
                         <button
                           onClick={() => handleRemoveStudent(item)}
-                          className="w-6 h-6 flex justify-center items-center text-[#D24B44]"
+                          className="w-6 h-6 flex justify-center items-center text-danger"
                         >
                           <CrossIconSVG />
                         </button>
@@ -119,14 +119,14 @@ const ClassStudent = ({
         </>
       )}
 
-      <p className="font-[500] text-[18px] leading-[18px] tracking-[-0.02em] text-[#49734F] my-4">
+      <p className="font-medium text-title-sm text-primary my-4">
         Active Students ({isTeacher ? filteredStudent.activeStudents.length : filteredStudent.classmates.length})
       </p>
 
       {isTeacher && filteredStudent.activeStudents.length > 0 && (
         <table className="my-4 min-w-[400px] w-full table-fixed">
           <thead>
-            <tr className="text-left font-[500] text-[14px] leading-[16px] tracking-[-0.02em] text-[#232A25] border-b border-[#EFF0F3] h-10">
+            <tr className="text-left font-medium text-body-sm text-ink border-b border-border h-10">
               <th className="p-2 w-[30%] whitespace-nowrap">Student</th>
               <th className="p-2 whitespace-nowrap">Email/Phone</th>
               <th className="p-2 w-[105px] whitespace-nowrap">Status</th>
@@ -137,7 +137,7 @@ const ClassStudent = ({
             {filteredStudent.activeStudents.map((item) => (
               <tr
                 key={item.id}
-                className="text-left font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775] border-b border-[#EFF0F3] h-10"
+                className="text-left font-normal text-body-sm text-ink-muted border-b border-border h-10"
               >
                 <td className="p-2 whitespace-nowrap">{getClassStudentDisplayName(item)}</td>
                 <td className="p-2 whitespace-nowrap">{getClassStudentContact(item)}</td>
@@ -150,7 +150,7 @@ const ClassStudent = ({
                       type="button"
                       title="View student"
                       onClick={() => setViewingStudent(item)}
-                      className="w-6 h-6 flex justify-center items-center text-[#747775] hover:text-[#232A25]"
+                      className="w-6 h-6 flex justify-center items-center text-ink-muted hover:text-ink"
                     >
                       <EyeIconSVG />
                     </button>
@@ -162,15 +162,15 @@ const ClassStudent = ({
                         type="button"
                         title="Student actions"
                         onClick={() => setOpenActionId((current) => (current === item.id ? null : item.id))}
-                        className="w-6 h-6 flex justify-center items-center text-[#747775] hover:text-[#232A25]"
+                        className="w-6 h-6 flex justify-center items-center text-ink-muted hover:text-ink"
                       >
                         <ThreeDotIconSVG width={16} />
                       </button>
                       {openActionId === item.id && (
-                        <div className="absolute right-0 z-20 mt-1 w-[160px] rounded-[8px] border border-[#EFF0F3] bg-white py-1 shadow-lg">
+                        <div className="absolute right-0 z-20 mt-1 w-[160px] rounded-input border border-border bg-surface py-1 shadow-lg">
                           <button
                             type="button"
-                            className="w-full px-3 py-2 text-left text-[13px] text-[#232A25] hover:bg-[#EFF0F3]"
+                            className="w-full px-3 py-2 text-left text-body-sm text-ink hover:bg-canvas"
                             onClick={() => {
                               setOpenActionId(null);
                               setViewingStudent(item);
@@ -180,7 +180,7 @@ const ClassStudent = ({
                           </button>
                           <button
                             type="button"
-                            className="w-full px-3 py-2 text-left text-[13px] text-[#D24B44] hover:bg-[#FDECEC]"
+                            className="w-full px-3 py-2 text-left text-body-sm text-danger hover:bg-danger-soft"
                             onClick={() => {
                               setOpenActionId(null);
                               handleRemoveStudent(item);
@@ -202,7 +202,7 @@ const ClassStudent = ({
       {!isTeacher && filteredStudent.classmates.length > 0 && (
         <table className="my-4 min-w-[400px] w-full table-fixed">
           <thead>
-            <tr className="text-left font-[500] text-[14px] leading-[16px] tracking-[-0.02em] text-[#232A25] border-b border-[#EFF0F3] h-10">
+            <tr className="text-left font-medium text-body-sm text-ink border-b border-border h-10">
               <th className="py-2 pr-2 whitespace-nowrap">Student</th>
               <th className="py-2 pl-2 whitespace-nowrap text-right">Status</th>
             </tr>
@@ -211,7 +211,7 @@ const ClassStudent = ({
             {filteredStudent.classmates.map((item, index) => (
               <tr
                 key={`${item.name}-${item.joined_at}-${index}`}
-                className="font-[400] text-[14px] leading-[16px] tracking-[-0.02em] text-[#747775] border-t border-[#EFF0F3] h-10"
+                className="font-normal text-body-sm text-ink-muted border-t border-border h-10"
               >
                 <td className="py-2 pr-2">
                   <p className="truncate">{item.name}</p>
@@ -232,34 +232,34 @@ const ClassStudent = ({
             if (event.target === event.currentTarget) setViewingStudent(null);
           }}
         >
-          <div className="w-full max-w-md rounded-[12px] bg-white p-6 shadow-lg">
+          <div className="w-full max-w-md rounded-card bg-surface p-6 shadow-lg">
             <div className="flex items-center justify-between mb-4">
-              <p className="font-[600] text-[20px] text-[#232A25]">Student details</p>
-              <button type="button" className="text-[#747775]" onClick={() => setViewingStudent(null)}>
+              <p className="font-semibold text-title-sm text-ink">Student details</p>
+              <button type="button" className="text-ink-muted" onClick={() => setViewingStudent(null)}>
                 <CrossIconSVG width={20} />
               </button>
             </div>
-            <div className="flex flex-col gap-3 text-[14px]">
+            <div className="flex flex-col gap-3 text-body-sm">
               <p>
-                <span className="text-[#747775]">Name: </span>
-                <span className="text-[#232A25]">{getClassStudentDisplayName(viewingStudent)}</span>
+                <span className="text-ink-muted">Name: </span>
+                <span className="text-ink">{getClassStudentDisplayName(viewingStudent)}</span>
               </p>
               <p>
-                <span className="text-[#747775]">Student ID: </span>
-                <span className="text-[#232A25]">{viewingStudent.student?.student_public_id || "—"}</span>
+                <span className="text-ink-muted">Student ID: </span>
+                <span className="text-ink">{viewingStudent.student?.student_public_id || "—"}</span>
               </p>
               <p>
-                <span className="text-[#747775]">Email/Phone: </span>
-                <span className="text-[#232A25]">{getClassStudentContact(viewingStudent)}</span>
+                <span className="text-ink-muted">Email/Phone: </span>
+                <span className="text-ink">{getClassStudentContact(viewingStudent)}</span>
               </p>
               <p>
-                <span className="text-[#747775]">Status: </span>
-                <span className="text-[#232A25]">{viewingStudent.status}</span>
+                <span className="text-ink-muted">Status: </span>
+                <span className="text-ink">{viewingStudent.status}</span>
               </p>
               {viewingStudent.joined_at && (
                 <p>
-                  <span className="text-[#747775]">Joined: </span>
-                  <span className="text-[#232A25]">{dayjs(viewingStudent.joined_at).format("MMM D, YYYY")}</span>
+                  <span className="text-ink-muted">Joined: </span>
+                  <span className="text-ink">{dayjs(viewingStudent.joined_at).format("MMM D, YYYY")}</span>
                 </p>
               )}
             </div>

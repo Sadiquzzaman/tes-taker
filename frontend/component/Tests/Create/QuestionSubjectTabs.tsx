@@ -85,7 +85,7 @@ const QuestionSubjectTabs = memo(
 
     return (
       <>
-        <div className="flex w-fit max-w-full items-center gap-2 rounded-[6px] bg-[#EFF0F3] h-10 p-1">
+        <div className="flex w-fit max-w-full items-center gap-2 rounded-input bg-canvas h-10 p-1">
           <div
             ref={subjectScrollRef}
             className="flex min-w-0 items-center gap-2 overflow-x-auto h-full scrollbar-hide cursor-grab"
@@ -104,15 +104,15 @@ const QuestionSubjectTabs = memo(
                     subjectButtonRefs.current[subject.id] = node;
                   }}
                   onClick={() => onSelectSubject(subject.id)}
-                  className={`rounded-[4px] h-full flex-shrink-0 flex items-center justify-center px-3 text-[14px] font-[400] leading-[16px] tracking-[-0.02em] whitespace-nowrap ${
-                    isActiveSubject ? "bg-[#49734F] text-white" : "bg-white text-[#232A25]"
+                  className={`rounded-sm h-full flex-shrink-0 flex items-center justify-center px-3 text-body-sm font-normal whitespace-nowrap ${
+                    isActiveSubject ? "bg-primary text-ink-inverse" : "bg-surface text-ink"
                   }`}
                 >
                   {subject.name}
                   <button
                     type="button"
                     className={`ml-2 flex h-4 w-4 items-center justify-center rounded-full border ${
-                      isActiveSubject ? "border-white/40 text-white" : "border-[#D0D5DD] text-[#747775]"
+                      isActiveSubject ? "border-surface/40 text-ink-inverse" : "border-border text-ink-muted"
                     }`}
                     onMouseDown={(event) => {
                       event.stopPropagation();
@@ -132,7 +132,7 @@ const QuestionSubjectTabs = memo(
           <button
             type="button"
             onClick={() => setIsAddSubjectModalOpen(true)}
-            className="flex flex-shrink-0 items-center justify-center px-1 text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25] whitespace-nowrap"
+            className="flex flex-shrink-0 items-center justify-center px-1 text-body-sm font-normal text-ink whitespace-nowrap"
           >
             <PlusIcon />
             <span className="ml-1">Add Subject</span>

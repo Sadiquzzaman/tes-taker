@@ -26,13 +26,13 @@ const GradeCard = ({ gradeItem }: GradeCardProps) => {
   };
 
   return (
-    <div className="rounded-[8px] bg-white p-4">
+    <div className="rounded-input bg-surface p-4">
       <div className="flex items-center justify-between">
-        <p className="text-[18px] font-[500] leading-[18px] tracking-[-0.02em] text-[#232A25]">
+        <p className="text-title-sm font-medium text-ink">
           {gradeItem?.test_name || ""}
         </p>
         <span
-          className="rounded-[27px] border px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em]"
+          className="rounded-full border px-2 py-1 text-caption font-medium"
           style={{
             backgroundColor: gradeCardStatusColors[status],
             borderColor: statusColor,
@@ -45,26 +45,26 @@ const GradeCard = ({ gradeItem }: GradeCardProps) => {
 
       <div className="flex items-center py-4">
         <div className="flex-1">
-          <p className="text-[14px] font-[400] leading-[18px] tracking-[-0.02em] text-[#747775]">Submissions</p>
-          <p className="mt-2 text-[16px] font-[500] leading-[16px] tracking-[-0.02em] text-[#232A25]">
+          <p className="text-body-sm font-normal text-ink-muted">Submissions</p>
+          <p className="mt-2 text-body font-medium text-ink">
             {submittedCount}/{totalParticipants}
           </p>
         </div>
         <div className="flex-1">
-          <p className="text-[14px] font-[400] leading-[18px] tracking-[-0.02em] text-[#747775]">Grading Done</p>
-          <p className="mt-2 text-[16px] font-[500] leading-[16px] tracking-[-0.02em] text-[#232A25]">
+          <p className="text-body-sm font-normal text-ink-muted">Grading Done</p>
+          <p className="mt-2 text-body font-medium text-ink">
             {gradedCount}/{submittedCount}
           </p>
         </div>
       </div>
 
-      <div className="my-4 h-[2px] w-full bg-[#EFF0F3]" />
+      <div className="my-4 h-[2px] w-full bg-canvas" />
 
       <div className="flex items-center justify-between">
         {status === "NEEDS_GRADING" && (
           <div className="flex items-center gap-2">
             <RemainingIconSVG />
-            <p className="text-[14px] font-[400] uppercase leading-[16px] text-[#232A25]">{pendingCount} Pending</p>
+            <p className="text-body-sm font-normal uppercase text-ink">{pendingCount} Pending</p>
           </div>
         )}
 
@@ -72,7 +72,7 @@ const GradeCard = ({ gradeItem }: GradeCardProps) => {
           <div className="flex items-center gap-2">
             <button
               title="Share Tests"
-              className="flex h-8 w-8 items-center justify-center rounded-[8px] hover:bg-[#EFF0F3]"
+              className="flex h-8 w-8 items-center justify-center rounded-input hover:bg-canvas"
             >
               <ShareIconSVG width={16} />
             </button>
@@ -81,7 +81,7 @@ const GradeCard = ({ gradeItem }: GradeCardProps) => {
               title="Download Results"
               disabled={isDownloading || submittedCount <= 0}
               onClick={handleDownloadResults}
-              className="flex h-8 w-8 items-center justify-center rounded-[8px] hover:bg-[#EFF0F3] disabled:opacity-50"
+              className="flex h-8 w-8 items-center justify-center rounded-input hover:bg-canvas disabled:opacity-50"
             >
               {isDownloading ? <ButtonLoader show={true} w="w-4" h="h-4" /> : <DownloadIconSVG width={16} />}
             </button>
@@ -90,7 +90,7 @@ const GradeCard = ({ gradeItem }: GradeCardProps) => {
 
         <Link href={`/grading/details/${gradeItem.id}`}>
           <button
-            className="rounded-lg border px-3 py-2 text-[12px] font-[500] leading-[12px] tracking-[-0.02em] transition-all duration-200"
+            className="rounded-lg border px-3 py-2 text-caption font-medium transition-all duration-200"
             style={{ borderColor: statusColor, color: statusColor }}
             onMouseEnter={(event) => {
               event.currentTarget.style.backgroundColor = statusColor;

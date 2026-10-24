@@ -46,13 +46,13 @@ const StudentSubmissionsTable = () => {
   };
 
   return (
-    <div className="w-full min-w-0 rounded-[8px] bg-white p-2 sm:p-4">
+    <div className="w-full min-w-0 rounded-input bg-surface p-2 sm:p-4">
       <div className="flex items-center justify-between">
-        <p className="text-[24px] font-[500] leading-[24px] tracking-[-0.02em] text-[#232A25]">
+        <p className="text-title font-medium text-ink">
           Student Submissions Table
         </p>
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-[#EFF0F3]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-input bg-canvas">
             <SortIconSVG />
           </div>
         </div>
@@ -62,19 +62,19 @@ const StudentSubmissionsTable = () => {
         placeholder="Search Student"
         value={searchStudentInput}
         onChange={(event) => dispatch(setSearchStudentInput(event.target.value))}
-        parentClassName="my-8 h-[40px] w-full rounded-[8px] border-[#E5E5E5]"
-        inputClassName="px-2 text-[14px] font-[400] leading-[125%] placeholder:text-[#747775]"
+        parentClassName="my-8 h-[40px] w-full rounded-input border-border"
+        inputClassName="px-2 text-body-sm font-normal placeholder:text-ink-muted"
       />
 
       <div
-        className="bg-red-00 w-full"
+        className="w-full"
         style={{
           overflowX: "auto",
         }}
       >
         <table className="min-w-[800px] w-full table-fixed">
           <thead>
-            <tr className="h-10 border-b border-[#EFF0F3] text-left text-[14px] font-[500] leading-[16px] tracking-[-0.02em] text-[#232A25]">
+            <tr className="h-10 border-b border-border text-left text-body-sm font-medium text-ink">
               <th className="p-2 whitespace-nowrap">Student</th>
               <th className="p-2 whitespace-nowrap">Email/Phone</th>
               <th className="p-2 text-center whitespace-nowrap">Submitted At</th>
@@ -87,7 +87,7 @@ const StudentSubmissionsTable = () => {
           </thead>
           <tbody>
             {submissions.length === 0 && (
-              <tr className="h-16 border-b border-[#EFF0F3] text-center text-[14px] font-[400] text-[#747775]">
+              <tr className="h-16 border-b border-border text-center text-body-sm font-normal text-ink-muted">
                 <td colSpan={8}>No submissions found</td>
               </tr>
             )}
@@ -95,7 +95,7 @@ const StudentSubmissionsTable = () => {
             {submissions.map((student) => (
               <tr
                 key={student.submission_id}
-                className="h-10 border-b border-[#EFF0F3] text-left text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]"
+                className="h-10 border-b border-border text-left text-body-sm font-normal text-ink-muted"
               >
                 <td className="p-2 whitespace-nowrap">{student.student_name || "Anonymous"}</td>
                 <td className="p-2 whitespace-nowrap">{student.email || student.phone || "N/A"}</td>
@@ -105,7 +105,7 @@ const StudentSubmissionsTable = () => {
                 </td>
                 <td className="p-2 text-center whitespace-nowrap">
                   <span
-                    className="rounded-[27px] border px-2 py-1 text-[12px] font-[500] leading-[12px] tracking-[-0.02em]"
+                    className="rounded-full border px-2 py-1 text-caption font-medium"
                     style={{
                       backgroundColor: statusColors[student.grading_status],
                       borderColor: statusTextColors[student.grading_status],
@@ -123,7 +123,7 @@ const StudentSubmissionsTable = () => {
                   <button
                     style={{ backgroundColor: statusTextColors[student.grading_status] }}
                     onClick={() => handleOpenStudentModal(student)}
-                    className="mx-auto flex items-center justify-center rounded-[8px] px-4 py-2 text-white"
+                    className="mx-auto flex items-center justify-center rounded-input px-4 py-2 text-ink-inverse"
                   >
                     {statusButtonText[student.grading_status]}
                   </button>
@@ -137,7 +137,7 @@ const StudentSubmissionsTable = () => {
       <div className="mt-8 flex h-8 w-full items-center justify-center gap-6">
         <div className="flex h-8 w-[272px] items-center justify-center gap-2 opacity-80">
           <button
-            className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-white p-2 text-[#232A25] disabled:opacity-50"
+            className="flex h-8 w-8 items-center justify-center rounded-input bg-surface p-2 text-ink disabled:opacity-50"
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
           >
@@ -154,10 +154,10 @@ const StudentSubmissionsTable = () => {
               return (
                 <button
                   key={pageNumber}
-                  className={`flex h-8 w-8 items-center justify-center rounded-[6px] border px-2 py-2 text-[14px] font-[400] leading-4 tracking-[-0.02em] ${
+                  className={`flex h-8 w-8 items-center justify-center rounded-input border px-2 py-2 text-body-sm font-normal leading-4 ${
                     currentPage === pageNumber
-                      ? "border-[#232A25] bg-white text-[#232A25]"
-                      : "border-[#E5E5E5] bg-white text-[#747775]"
+                      ? "border-ink bg-surface text-ink"
+                      : "border-border bg-surface text-ink-muted"
                   }`}
                   onClick={() => handlePageChange(pageNumber)}
                 >
@@ -170,7 +170,7 @@ const StudentSubmissionsTable = () => {
               return (
                 <span
                   key={`ellipsis-${pageNumber}`}
-                  className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-white px-2 py-2 text-[14px] font-[400] leading-4 tracking-[-0.02em] text-[#747775]"
+                  className="flex h-8 w-8 items-center justify-center rounded-input bg-surface px-2 py-2 text-body-sm font-normal leading-4 text-ink-muted"
                 >
                   ...
                 </span>
@@ -181,7 +181,7 @@ const StudentSubmissionsTable = () => {
           })}
 
           <button
-            className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-white p-2 text-[#232A25] disabled:opacity-50"
+            className="flex h-8 w-8 items-center justify-center rounded-input bg-surface p-2 text-ink disabled:opacity-50"
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
           >

@@ -115,35 +115,35 @@ export default function PaymentSuccessContent() {
           : "Processing...";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#EFF0F3] px-6">
-      <div className="max-w-md w-full bg-white rounded-[12px] p-8 text-center">
-        <h1 className="text-2xl font-semibold text-[#232A25] mb-2">{heading}</h1>
-        <p className="text-[#747775] mb-6">{message}</p>
+    <div className="min-h-screen flex items-center justify-center bg-canvas px-6">
+      <div className="max-w-md w-full bg-surface rounded-card p-8 text-center">
+        <h1 className="text-2xl font-semibold text-ink mb-2">{heading}</h1>
+        <p className="text-ink-muted mb-6">{message}</p>
 
         {payment && (
-          <dl className="text-left text-sm bg-[#F7F8F9] rounded-[8px] p-4 mb-6 space-y-2">
+          <dl className="text-left text-sm bg-canvas rounded-input p-4 mb-6 space-y-2">
             <div className="flex justify-between">
-              <dt className="text-[#747775]">Status</dt>
-              <dd className="font-medium text-[#232A25]">{payment.status}</dd>
+              <dt className="text-ink-muted">Status</dt>
+              <dd className="font-medium text-ink">{payment.status}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-[#747775]">Amount</dt>
-              <dd className="font-medium text-[#232A25]">
+              <dt className="text-ink-muted">Amount</dt>
+              <dd className="font-medium text-ink">
                 {payment.currency} {Number(payment.amount).toFixed(2)}
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-[#747775]">Payment method</dt>
-              <dd className="font-medium text-[#232A25]">{payment.paymentMethod ?? "—"}</dd>
+              <dt className="text-ink-muted">Payment method</dt>
+              <dd className="font-medium text-ink">{payment.paymentMethod ?? "—"}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-[#747775]">Subscription</dt>
-              <dd className="font-medium text-[#232A25]">{payment.status === "PAID" ? "Activated" : "Pending"}</dd>
+              <dt className="text-ink-muted">Subscription</dt>
+              <dd className="font-medium text-ink">{payment.status === "PAID" ? "Activated" : "Pending"}</dd>
             </div>
           </dl>
         )}
 
-        <Link href="/account" className="inline-block px-6 py-2.5 rounded-[8px] bg-[#49734F] text-white">
+        <Link href="/account" className="inline-block px-6 py-2.5 rounded-input bg-primary text-ink-inverse">
           Go to account
         </Link>
       </div>

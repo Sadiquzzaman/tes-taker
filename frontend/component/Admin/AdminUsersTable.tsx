@@ -87,13 +87,13 @@ const AdminUsersTable = () => {
   };
 
   return (
-    <div className="rounded-[8px] bg-white p-4">
+    <div className="rounded-input bg-surface p-4">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[24px] font-[500] leading-[24px] tracking-[-0.02em] text-[#232A25]">
-            User <span className="font-[400] italic text-[#49734F]">Details</span>
+          <p className="text-title font-medium text-ink">
+            User <span className="font-normal italic text-primary">Details</span>
           </p>
-          <p className="mt-2 text-[14px] text-[#747775]">Search by name or phone and manage user roles.</p>
+          <p className="mt-2 text-body-sm text-ink-muted">Search by name or phone and manage user roles.</p>
         </div>
 
         <form onSubmit={handleSearchSubmit} className="flex w-full max-w-md gap-2">
@@ -101,11 +101,11 @@ const AdminUsersTable = () => {
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Search by name or phone"
-            className="h-10 flex-1 rounded-[8px] border border-[#E5E5E5] px-3 text-[14px] text-[#232A25] placeholder:text-[#747775]"
+            className="h-10 flex-1 rounded-input border border-border px-3 text-body-sm text-ink placeholder:text-ink-muted"
           />
           <button
             type="submit"
-            className="h-10 rounded-[8px] bg-[#49734F] px-4 text-[14px] font-[500] text-white"
+            className="h-10 rounded-input bg-primary px-4 text-body-sm font-medium text-ink-inverse"
           >
             Search
           </button>
@@ -115,7 +115,7 @@ const AdminUsersTable = () => {
       <div className="overflow-x-auto">
         <table className="min-w-[900px] w-full table-fixed">
           <thead>
-            <tr className="h-10 border-b border-[#EFF0F3] text-left text-[14px] font-[500] text-[#232A25]">
+            <tr className="h-10 border-b border-border text-left text-body-sm font-medium text-ink">
               <th className="p-2">Name</th>
               <th className="p-2">Phone</th>
               <th className="p-2">Email</th>
@@ -127,7 +127,7 @@ const AdminUsersTable = () => {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="p-6 text-center text-[14px] text-[#747775]">
+                <td colSpan={6} className="p-6 text-center text-body-sm text-ink-muted">
                   Loading users...
                 </td>
               </tr>
@@ -135,7 +135,7 @@ const AdminUsersTable = () => {
 
             {!loading && users.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-6 text-center text-[14px] text-[#747775]">
+                <td colSpan={6} className="p-6 text-center text-body-sm text-ink-muted">
                   No users found.
                 </td>
               </tr>
@@ -147,13 +147,13 @@ const AdminUsersTable = () => {
                 const isActive = user.is_active === 1;
 
                 return (
-                  <tr key={user.id} className="border-b border-[#EFF0F3] text-[14px] text-[#747775]">
+                  <tr key={user.id} className="border-b border-border text-body-sm text-ink-muted">
                     <td className="p-2">{user.full_name || "—"}</td>
                     <td className="p-2">{user.phone || "—"}</td>
                     <td className="p-2">{user.email || "—"}</td>
                     <td className="p-2">
                       {isAdminRole ? (
-                        <span className="rounded-[27px] border border-[#E5E5E5] px-2 py-1 text-[12px] font-[500] text-[#232A25]">
+                        <span className="rounded-full border border-border px-2 py-1 text-caption font-medium text-ink">
                           {user.role}
                         </span>
                       ) : (
@@ -163,7 +163,7 @@ const AdminUsersTable = () => {
                           onChange={(event) =>
                             handleRoleChange(user, event.target.value as "STUDENT" | "TEACHER")
                           }
-                          className="h-8 rounded-[8px] border border-[#E5E5E5] bg-white px-2 text-[13px] text-[#232A25] disabled:opacity-50"
+                          className="h-8 rounded-input border border-border bg-surface px-2 text-body-sm text-ink disabled:opacity-50"
                         >
                           <option value="STUDENT">Student</option>
                           <option value="TEACHER">Teacher</option>
@@ -172,8 +172,8 @@ const AdminUsersTable = () => {
                     </td>
                     <td className="p-2">
                       <span
-                        className={`rounded-[27px] px-2 py-1 text-[12px] font-[500] ${
-                          isActive ? "bg-[#49734F15] text-[#49734F]" : "bg-[#EFF0F3] text-[#747775]"
+                        className={`rounded-full px-2 py-1 text-caption font-medium ${
+                          isActive ? "bg-primary-soft text-primary" : "bg-canvas text-ink-muted"
                         }`}
                       >
                         {isActive ? "Active" : "Inactive"}
@@ -192,18 +192,18 @@ const AdminUsersTable = () => {
           type="button"
           onClick={() => handlePageChange(currentPage - 1)}
           disabled={currentPage === 1 || loading}
-          className="flex h-8 w-8 items-center justify-center rounded-[6px] border border-[#E5E5E5] disabled:opacity-50"
+          className="flex h-8 w-8 items-center justify-center rounded-input border border-border disabled:opacity-50"
         >
           <PaginationChevronLeftIconSVG width={16} />
         </button>
-        <span className="text-[14px] text-[#747775]">
+        <span className="text-body-sm text-ink-muted">
           Page {currentPage} of {totalPages}
         </span>
         <button
           type="button"
           onClick={() => handlePageChange(currentPage + 1)}
           disabled={currentPage === totalPages || loading}
-          className="flex h-8 w-8 items-center justify-center rounded-[6px] border border-[#E5E5E5] disabled:opacity-50"
+          className="flex h-8 w-8 items-center justify-center rounded-input border border-border disabled:opacity-50"
         >
           <PaginationChevronRightIconSVG width={16} />
         </button>

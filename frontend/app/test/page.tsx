@@ -365,7 +365,7 @@ export default function ParticipateTest() {
         <ExamHeader />
         <main className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-[920px] px-4 py-8">
-            <div className="rounded-[8px] border border-[#DDE5DE] bg-[#F8FBF8] p-4 text-[14px] leading-5 text-[#49734F]">
+            <div className="rounded-input border border-border bg-primary-soft p-4 text-body-sm leading-5 text-primary">
               {t("mediaLost")}
             </div>
             <button
@@ -374,7 +374,7 @@ export default function ParticipateTest() {
                 clearExamPermissionsComplete();
                 router.replace("/test/permissions");
               }}
-              className="mt-4 h-11 rounded-[10px] bg-[#49734F] px-5 text-[14px] font-[600] leading-4 text-white"
+              className="mt-4 h-11 rounded-card bg-primary px-5 text-body-sm font-semibold leading-4 text-ink-inverse"
             >
               {t("backToPermissions")}
             </button>
@@ -391,7 +391,7 @@ export default function ParticipateTest() {
         <ExamHeader />
         <main className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-[920px] px-4 py-8">
-            <div className="rounded-[8px] border border-[#DDE5DE] bg-[#F8FBF8] p-4 text-[14px] leading-5 text-[#49734F]">
+            <div className="rounded-input border border-border bg-primary-soft p-4 text-body-sm leading-5 text-primary">
               {t("mediaRequired")}
             </div>
           </div>
@@ -426,7 +426,7 @@ export default function ParticipateTest() {
       <div>
         <ExamHeader />
         <div className="flex min-h-[calc(100vh-162px)] items-center justify-center">
-          <p className="text-[24px] font-[600] leading-8 tracking-[-0.04em] text-[#232A25]">
+          <p className="text-title font-semibold leading-8 tracking-tight text-ink">
             {t("unableToStart")}
           </p>
         </div>
@@ -460,11 +460,11 @@ export default function ParticipateTest() {
       <div>
         <ExamHeader />
         <div className="flex min-h-[calc(100vh-162px)] flex-col items-center justify-center gap-4 px-4">
-          <p className="text-[24px] font-[600] leading-8 tracking-[-0.04em] text-[#232A25]">{t("unableToLoad")}</p>
+          <p className="text-title font-semibold leading-8 tracking-tight text-ink">{t("unableToLoad")}</p>
           <button
             type="button"
             onClick={() => void refetchExam(testId)}
-            className="h-11 rounded-[10px] bg-[#49734F] px-5 text-[14px] font-[600] leading-4 text-white"
+            className="h-11 rounded-card bg-primary px-5 text-body-sm font-semibold leading-4 text-ink-inverse"
           >
             {t("retry")}
           </button>
@@ -478,7 +478,7 @@ export default function ParticipateTest() {
     <div className="flex h-screen flex-col overflow-hidden" onClick={handleExamSurfaceClick}>
       {needsFullscreen ? (
         <div className="pointer-events-none fixed inset-x-0 top-20 z-40 flex justify-center px-4">
-          <div className="rounded-[10px] border border-[#FEDF89] bg-[#FFFAEB] px-4 py-3 text-[13px] leading-5 text-[#B54708] shadow-md">
+          <div className="rounded-card border border-warning-soft bg-warning-soft px-4 py-3 text-body-sm leading-5 text-warning shadow-md">
             {t("returnToFullscreen")}
           </div>
         </div>
@@ -532,10 +532,10 @@ export default function ParticipateTest() {
             ariaLabel="submission-loading"
           />
           <div className="flex flex-col gap-2">
-            <p className="text-[24px] font-[600] leading-7 text-[#232A25]">
+            <p className="text-title font-semibold leading-7 text-ink">
               {t("submittingTitle", { reason: submitReason ?? "manual" })}
             </p>
-            <p className="text-[14px] leading-5 text-[#747775]">
+            <p className="text-body-sm leading-5 text-ink-muted">
               {t("submittingDescription", { reason: submitReason ?? "manual" })}
             </p>
           </div>

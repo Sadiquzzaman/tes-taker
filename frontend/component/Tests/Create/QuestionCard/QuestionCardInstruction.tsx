@@ -14,7 +14,7 @@ function QuestionCardInstruction({
 
   return (
     <div className={`flex flex-col ${QUESTION_BUILDER_GAPS.instruction}`}>
-      <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">Instruction</p>
+      <p className="text-body-sm font-normal text-ink">Instruction</p>
       <RichTextEditor
         value={instruction}
         onChange={(html) =>
@@ -31,8 +31,8 @@ function QuestionCardInstruction({
         minHeightClassName="min-h-[40px]"
         allowImages={false}
         variant="lite"
-        className="border-[#E5E5E5] bg-white"
-        editorClassName="text-[14px]"
+        className="border-border bg-surface"
+        editorClassName="text-body-sm"
       />
     </div>
   );

@@ -90,25 +90,25 @@ const AdminTeachersTable = () => {
   return (
     <>
       <div className="flex justify-between items-center w-full min-h-[40px] mb-2 sm:mb-4">
-        <div className="text-[20px] md:text-[32px] tracking-[-0.04em] flex items-center gap-0 flex-wrap mr-4">
-          <p className="font-[500] text-[#232A25]">Teacher</p>
-          <p className="font-[400] text-[#49734F] italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
+        <div className="text-title-sm md:text-display tracking-tight flex items-center gap-0 flex-wrap mr-4">
+          <p className="font-medium text-ink">Teacher</p>
+          <p className="font-normal text-primary italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
             Details
           </p>
         </div>
       </div>
 
-      <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 min-h-[calc(100vh-162px)] flex flex-col gap-4">
+      <div className="bg-canvas rounded-card p-2 sm:p-4 min-h-[calc(100vh-162px)] flex flex-col gap-4">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search teacher by name..."
-          className="border border-[#EFF0F3] bg-white rounded-[8px] px-3 py-2 text-sm max-w-sm focus:outline-none focus:border-[#49734F]"
+          className="border border-border bg-surface rounded-input px-3 py-2 text-sm max-w-sm focus:outline-none focus:border-primary"
         />
 
-        <div className="bg-white rounded-[12px] overflow-x-auto">
+        <div className="bg-surface rounded-card overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-[#EFF0F3] text-left text-[#232A25]">
+            <thead className="bg-canvas text-left text-ink">
               <tr>
                 <th className="p-3">Teacher</th>
                 <th className="p-3">Contact</th>
@@ -122,13 +122,13 @@ const AdminTeachersTable = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-[#747775]">
+                  <td colSpan={7} className="p-6 text-center text-ink-muted">
                     Loading...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-[#747775]">
+                  <td colSpan={7} className="p-6 text-center text-ink-muted">
                     No teachers found
                   </td>
                 </tr>
@@ -138,14 +138,14 @@ const AdminTeachersTable = () => {
                   const active = isTeacherActive(row.teacher?.is_active);
 
                   return (
-                    <tr key={row.id} className="border-t border-[#EFF0F3]">
-                      <td className="p-3 text-[#232A25]">{row.teacher?.full_name ?? "—"}</td>
-                      <td className="p-3 text-[#747775]">{row.teacher?.email ?? row.teacher?.phone ?? "—"}</td>
-                      <td className="p-3 text-[#49734F]">{row.plan?.name ?? "—"}</td>
+                    <tr key={row.id} className="border-t border-border">
+                      <td className="p-3 text-ink">{row.teacher?.full_name ?? "—"}</td>
+                      <td className="p-3 text-ink-muted">{row.teacher?.email ?? row.teacher?.phone ?? "—"}</td>
+                      <td className="p-3 text-primary">{row.plan?.name ?? "—"}</td>
                       <td className="p-3">
                         <span
-                          className={`text-[12px] px-2 py-0.5 rounded-full ${
-                            active ? "bg-[#EAF2EB] text-[#49734F]" : "bg-[#FDECEA] text-[#C0392B]"
+                          className={`text-caption px-2 py-0.5 rounded-full ${
+                            active ? "bg-primary-soft text-primary" : "bg-danger-soft text-danger"
                           }`}
                         >
                           {active ? "Active" : "Disabled"}
@@ -159,8 +159,8 @@ const AdminTeachersTable = () => {
                             type="button"
                             disabled={!teacherId || togglingId === teacherId}
                             onClick={() => void toggleTeacherStatus(teacherId, !active)}
-                            className={`px-3 py-1.5 text-xs rounded-[6px] disabled:opacity-60 ${
-                              active ? "border border-[#C0392B] text-[#C0392B]" : "bg-[#49734F] text-white"
+                            className={`px-3 py-1.5 text-xs rounded-input disabled:opacity-60 ${
+                              active ? "border border-danger text-danger" : "bg-primary text-ink-inverse"
                             }`}
                           >
                             {togglingId === teacherId ? "Saving..." : active ? "Disable" : "Enable"}

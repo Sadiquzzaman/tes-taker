@@ -48,7 +48,7 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
   const parsedScore = Number(scoreInput);
   const hasPositiveScore = !Number.isNaN(parsedScore) && parsedScore > 0;
   const showSuccessIcon = !isInteracting && hasPositiveScore;
-  const cardStateClassName = isInteracting ? "border-transparent bg-[#ED86001A]" : "border-[#E5E5E5] bg-white";
+  const cardStateClassName = isInteracting ? "border-transparent bg-warning-soft" : "border-border bg-surface";
   const validationError = grade ? getSubmissionGradeValidationError(grade.marks_obtained, question.points) : "";
 
   useEffect(() => {
@@ -77,7 +77,7 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
   return (
     <div
       ref={cardRef}
-      className={`flex flex-col gap-6 rounded-[8px] border p-5 transition-colors duration-150 ${cardStateClassName}`}
+      className={`flex flex-col gap-6 rounded-input border p-5 transition-colors duration-150 ${cardStateClassName}`}
       onClick={() => {
         if (showEditableControls) {
           setIsInteracting(true);
@@ -104,16 +104,16 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
         {question.instruction ? (
           <RichTextContent
             html={question.instruction}
-            className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]"
+            className="text-body-sm font-normal text-ink-muted"
           />
         ) : null}
         <div className="flex items-start gap-2">
-          <span className="w-4 shrink-0 text-center text-[16px] font-[500] leading-[1.25] tracking-[-0.02em] text-[#0F1A12]">
+          <span className="w-4 shrink-0 text-center text-body font-medium text-ink">
             {question.questionNumber}.
           </span>
           <RichTextContent
             html={question.question}
-            className="flex-1 text-[16px] font-[500] leading-[1.25] tracking-[-0.02em] text-[#0F1A12]"
+            className="flex-1 text-body font-medium text-ink"
           />
           {isInteracting ? <QuestionFilledIconSVG width={20} /> : null}
           {!isInteracting && showSuccessIcon ? <CorrectFilledIconSVG width={20} /> : null}
@@ -121,11 +121,11 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
       </div>
 
       {question.imageUrl ? (
-        <img src={question.imageUrl} alt="Question" className="max-h-[240px] rounded-[8px] object-contain" />
+        <img src={question.imageUrl} alt="Question" className="max-h-[240px] rounded-input object-contain" />
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <p className="text-[16px] font-[600] uppercase leading-[1.25] tracking-[-0.02em] text-[#49734F]">
+        <p className="text-body font-semibold uppercase text-primary">
           Student Answer
         </p>
         {question.mediaUrl ||
@@ -140,7 +140,7 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
             preload="metadata"
           />
         ) : (
-          <p className="text-[16px] font-[400] leading-[1.2] tracking-[-0.02em] text-[#747775]">
+          <p className="text-body font-normal text-ink-muted">
             {question.textAnswer || "No answer submitted"}
           </p>
         )}
@@ -149,7 +149,7 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <p className="text-[14px] font-[400] leading-[1.25] tracking-[-0.02em] text-[#232A25]">Score</p>
+            <p className="text-body-sm font-normal text-ink">Score</p>
             {showEditableControls ? (
               <input
                 type="text"
@@ -218,26 +218,26 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
 
                   setScoreInput(formatScoreLabel(normalizedScore));
                 }}
-                className="h-8 w-16 rounded-[2px] border border-[#E5E5E5] bg-white px-2 text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25] focus:outline-none"
+                className="h-8 w-16 rounded-sm border border-border bg-surface px-2 text-body-sm font-normal text-ink focus:outline-none"
               />
             ) : (
-              <div className="flex h-8 min-w-16 items-center justify-center rounded-[2px] border border-[#E5E5E5] bg-white px-5">
-                <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25]">
+              <div className="flex h-8 min-w-16 items-center justify-center rounded-sm border border-border bg-surface px-5">
+                <p className="text-body-sm font-normal text-ink">
                   {formatScoreLabel(question.marksObtained)}
                 </p>
               </div>
             )}
           </div>
-          <p className="text-[14px] font-[400] leading-[1.25] tracking-[-0.02em] text-[#747775]">
-            Max marks: <span className="font-[500] text-[#232A25]">{question.points}</span>
+          <p className="text-body-sm font-normal text-ink-muted">
+            Max marks: <span className="font-medium text-ink">{question.points}</span>
           </p>
         </div>
 
-        {validationError ? <p className="text-[12px] font-[400] leading-4 text-[#D24B44]">{validationError}</p> : null}
+        {validationError ? <p className="text-caption font-normal leading-4 text-danger">{validationError}</p> : null}
 
         {showEditableControls ? (
           <div className="flex flex-col gap-2">
-            <p className="text-[14px] font-[500] leading-[20px] text-[#232A25]">Explanation</p>
+            <p className="text-body-sm font-medium text-ink">Explanation</p>
             <textarea
               rows={1}
               value={grade?.explanation ?? ""}
@@ -258,7 +258,7 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
                 );
               }}
               placeholder="Write explanation"
-              className="min-h-10 w-full resize-none rounded-[8px] border border-[#E5E5E5] px-2 py-[10px] text-[14px] font-[400] leading-5 text-[#232A25] placeholder:text-[#747775] focus:outline-none"
+              className="min-h-10 w-full resize-none rounded-input border border-border px-2 py-[10px] text-body-sm font-normal leading-5 text-ink placeholder:text-ink-muted focus:outline-none"
               ref={resizeTextarea}
             />
           </div>

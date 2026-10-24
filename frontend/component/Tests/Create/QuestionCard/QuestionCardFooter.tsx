@@ -87,7 +87,7 @@ function QuestionCardFooter({
   if (isMatchingOrdering) {
     pointsLabel = (
       <span>
-        Points per <span className="font-[700] text-[#ED8600]">match</span>
+        Points per <span className="font-bold text-warning">match</span>
       </span>
     );
   }
@@ -129,10 +129,10 @@ function QuestionCardFooter({
   return (
     <div className={`flex items-center justify-between ${QUESTION_BUILDER_GAPS.footerOuter}`}>
       <div className={`flex flex-wrap items-center ${QUESTION_BUILDER_GAPS.footerGroup}`}>
-        <label className="flex items-center gap-2 text-[14px] text-[#232A25]">
+        <label className="flex items-center gap-2 text-body-sm text-ink">
           <span>Type</span>
           <select
-            className="h-8 rounded-[6px] border border-[#E5E5E5] bg-white px-2 text-[13px]"
+            className="h-8 rounded-input border border-border bg-surface px-2 text-body-sm"
             value={questionSubType}
             onChange={(event) => {
               const nextSubType = event.target.value;
@@ -166,10 +166,10 @@ function QuestionCardFooter({
           </select>
         </label>
         {showSubjectPicker ? (
-          <label className="flex items-center gap-2 text-[14px] text-[#232A25]">
+          <label className="flex items-center gap-2 text-body-sm text-ink">
             <span>Subject</span>
             <select
-              className="h-8 max-w-[160px] rounded-[6px] border border-[#E5E5E5] bg-white px-2 text-[13px]"
+              className="h-8 max-w-[160px] rounded-input border border-border bg-surface px-2 text-body-sm"
               value={subjectId}
               onChange={(event) => handleSubjectChange(event.target.value)}
             >
@@ -181,8 +181,8 @@ function QuestionCardFooter({
             </select>
           </label>
         ) : null}
-        <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">{pointsLabel}</p>
-        <div className="flex items-center justify-between border border-[#E5E5E5] bg-white">
+        <p className="text-body-sm font-normal text-ink">{pointsLabel}</p>
+        <div className="flex items-center justify-between border border-border bg-surface">
           <input
             type="text"
             inputMode="numeric"
@@ -202,18 +202,18 @@ function QuestionCardFooter({
             onChange={(event) => {
               updatePoints(+event.target.value);
             }}
-            className="h-8 w-12 rounded-[2px] bg-white px-2 text-[14px] leading-4 tracking-[-0.02em] text-[#232A25] outline-none"
+            className="h-8 w-12 rounded-sm bg-surface px-2 text-body-sm leading-4 text-ink outline-none"
           />
           <div className="flex-col">
             <button
               onClick={() => updatePoints(points + 1)}
-              className="flex h-4 w-4 items-center justify-center border-l border-b-[.5px] border-[#E5E5E5] text-[#747775]"
+              className="flex h-4 w-4 items-center justify-center border-l border-b-[.5px] border-border text-ink-muted"
             >
               <TriangleUpFilledIconSVG width={7} />
             </button>
             <button
               onClick={() => updatePoints(points - 1)}
-              className="flex h-4 w-4 items-center justify-center border-l border-t-[.5px] border-[#E5E5E5] text-[#747775]"
+              className="flex h-4 w-4 items-center justify-center border-l border-t-[.5px] border-border text-ink-muted"
             >
               <TriangleDownFilledIconSVG width={7} />
             </button>
@@ -226,12 +226,12 @@ function QuestionCardFooter({
           <div className="group relative">
             <button
               type="button"
-              className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#49734F] text-[#FFFFFF]"
+              className="flex h-8 w-8 items-center justify-center rounded-input bg-primary text-ink-inverse"
               aria-label="Shuffle is mandatory for matching"
             >
               <ShuffleIcon />
             </button>
-            <div className="pointer-events-none absolute bottom-[calc(100%+12px)] right-0 hidden w-[186px] rounded-[4px] bg-[#232A25] px-2 py-1 text-[12px] font-[400] leading-[14px] tracking-[-0.01em] text-white shadow-[0px_5px_2.5px_rgba(0,0,0,0.1)] group-hover:block">
+            <div className="pointer-events-none absolute bottom-[calc(100%+12px)] right-0 hidden w-[186px] rounded-sm bg-ink px-2 py-1 text-caption font-normal text-ink-inverse shadow-[0px_5px_2.5px_rgba(0,0,0,0.1)] group-hover:block">
               Shuffle can&apos;t be turned off and is mandatory for matching.
             </div>
           </div>
@@ -239,7 +239,7 @@ function QuestionCardFooter({
           <button
             type="button"
             onClick={() => dispatch(shuffleOptions({ subjectId, questionId, parentPassageId }))}
-            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#232A25] transition-colors duration-150 hover:bg-[#49734F] hover:text-[#FFFFFF]"
+            className="flex h-8 w-8 items-center justify-center rounded-input text-ink transition-colors duration-150 hover:bg-primary hover:text-ink-inverse"
             aria-label="Shuffle options"
           >
             <ShuffleIcon />
@@ -249,7 +249,7 @@ function QuestionCardFooter({
           <button
             type="button"
             onClick={() => dispatch(duplicateQuestion({ subjectId, questionId, parentPassageId }))}
-            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#232A25] transition-colors duration-150 hover:bg-[#49734F] hover:text-[#FFFFFF]"
+            className="flex h-8 w-8 items-center justify-center rounded-input text-ink transition-colors duration-150 hover:bg-primary hover:text-ink-inverse"
             aria-label="Duplicate question"
           >
             <CopyIconSVG />
@@ -259,7 +259,7 @@ function QuestionCardFooter({
           <button
             type="button"
             onClick={() => dispatch(deleteQuestion({ subjectId, questionId, parentPassageId }))}
-            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#232A25] transition-colors duration-150 hover:bg-[#49734F] hover:text-[#FFFFFF]"
+            className="flex h-8 w-8 items-center justify-center rounded-input text-ink transition-colors duration-150 hover:bg-primary hover:text-ink-inverse"
             aria-label="Delete question"
           >
             <TrashIcon />

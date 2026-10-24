@@ -31,41 +31,41 @@ const CreateClassForm = () => {
 
   return (
     <>
-      <div className="w-ful my-2 py-2 sm:my-4 sm:py-4 border-b border-[#E5E5E5] flex flex-col gap-2">
-        <p className={`font-[400] text-[14px] leading-[17px] tracking-[-0.02em] text-[#747775]`}>Step 1</p>
-        <p className={`font-[600] text-[24px] leading-[24px] tracking-[-0.04em] text-[#747775]`}>Class details</p>
+      <div className="w-ful my-2 py-2 sm:my-4 sm:py-4 border-b border-border flex flex-col gap-2">
+        <p className={`font-normal text-body-sm text-ink-muted`}>Step 1</p>
+        <p className={`font-semibold text-title tracking-tight text-ink-muted`}>Class details</p>
       </div>
       <div className="w-ful flex flex-col gap-2">
-        <p className={`font-[500] text-[15px] leading-[125%] tracking-[-0.02em] text-[#0F1A12]`}>Class name</p>
+        <p className={`font-medium text-body text-ink`}>Class name</p>
         <NormalInput
           value={createClassPayload.class_name}
           onChange={(e) => setCreateClassPayload((prev) => ({ ...prev, class_name: e.target.value }))}
-          parentClassName="w-full border-[#E5E5E5] rounded-[8px] h-[44px]"
-          inputClassName="text-[16px] leading-[125%] font-[400] placeholder:text-[#747775] px-2"
+          parentClassName="w-full border-border rounded-input h-[44px]"
+          inputClassName="text-body font-normal placeholder:text-ink-muted px-2"
           placeholder="e.g., Class 9A - Mathematics"
           afterIcon={null}
         />
       </div>
       <div className="w-ful flex flex-col gap-2 mt-4">
-        <p className={`font-[500] text-[15px] leading-[125%] tracking-[-0.02em] text-[#0F1A12]`}>
+        <p className={`font-medium text-body text-ink`}>
           Class description (Optional)
         </p>
         <NormalInput
           value={createClassPayload.description}
           onChange={(e) => setCreateClassPayload((prev) => ({ ...prev, description: e.target.value }))}
-          parentClassName="w-full border-[#E5E5E5] rounded-[8px] h-[44px]"
-          inputClassName="text-[16px] leading-[125%] font-[400] placeholder:text-[#747775] px-2"
+          parentClassName="w-full border-border rounded-input h-[44px]"
+          inputClassName="text-body font-normal placeholder:text-ink-muted px-2"
           placeholder="e.g., This class is for 9th grade mathematics"
           afterIcon={null}
         />
       </div>
-      <div className="w-ful my-2 py-2 sm:my-4 sm:py-4 border-b border-[#E5E5E5] flex flex-col gap-2">
-        <p className={`font-[400] text-[14px] leading-[17px] tracking-[-0.02em] text-[#747775]`}>Step 2</p>
-        <p className={`font-[600] text-[24px] leading-[24px] tracking-[-0.04em] text-[#747775]`}>Add students</p>
+      <div className="w-ful my-2 py-2 sm:my-4 sm:py-4 border-b border-border flex flex-col gap-2">
+        <p className={`font-normal text-body-sm text-ink-muted`}>Step 2</p>
+        <p className={`font-semibold text-title tracking-tight text-ink-muted`}>Add students</p>
       </div>
       <div className="w-ful flex flex-col gap-2">
         <p
-          className={`font-[500] text-[16px] leading-[125%] tracking-[-0.02em] text-[#0F1A12] flex items-center gap-1`}
+          className={`font-medium text-body text-ink flex items-center gap-1`}
         >
           Student email or phone (Optional) <ImportantIconSVG />{" "}
         </p>
@@ -85,7 +85,7 @@ const CreateClassForm = () => {
       </div>
       <div className="flex flex-col gap-3 mt-4 sm:flex-row sm:justify-between sm:items-center">
         <div className="flex flex-col gap-2">
-          <p className={`font-[400] text-[16px] leading-[125%] tracking-[-0.02em] text-[#747775]`}>
+          <p className={`font-normal text-body text-ink-muted`}>
             Invite by single/bulk email or phone. You can always add students later.
           </p>
           <div className="flex flex-wrap items-center gap-2">
@@ -99,20 +99,20 @@ const CreateClassForm = () => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="h-[32px] rounded-lg border border-[#C6CFCF] px-3 text-sm font-medium tracking-[-0.02em] text-[#232A25]"
+              className="h-[32px] rounded-lg border border-border px-3 text-sm font-medium text-ink"
             >
               Upload CSV
             </button>
             <button
               type="button"
               onClick={handleDownloadTemplate}
-              className="h-[32px] rounded-lg border border-[#C6CFCF] px-3 text-sm font-medium tracking-[-0.02em] text-[#49734F]"
+              className="h-[32px] rounded-lg border border-border px-3 text-sm font-medium text-primary"
             >
               Download demo Excel
             </button>
           </div>
           {invalidStudentIndices.length > 0 && (
-            <p className="text-[12px] leading-[14px] tracking-[-0.02em] text-[#C1121F]">
+            <p className="text-caption text-danger">
               Invalid items are highlighted in red. Click one to edit it.
             </p>
           )}
@@ -121,8 +121,8 @@ const CreateClassForm = () => {
           type="button"
           onClick={addTag}
           className={`flex items-center justify-center gap-1.5 px-3 py-2 w-[71px] h-[32px] ${
-            value.trim() === "" ? "bg-[#747775]" : "bg-[#232A25]"
-          } rounded-lg text-white text-sm font-medium tracking-[-0.02em] capitalize`}
+            value.trim() === "" ? "bg-ink-muted" : "bg-ink"
+          } rounded-lg text-ink-inverse text-sm font-medium capitalize`}
         >
           <HumanAddIconSVG />
           Add
@@ -131,18 +131,18 @@ const CreateClassForm = () => {
       <div className="flex justify-end items-center gap-2 sm:gap-4 mt-6">
         <Link
           href={classesHref}
-          className={`px-4 h-10 flex items-center justify-center rounded-[8px] text-[14px] font-[500] leading-[16px] tracking-[-0.02em] ${
-            loading ? "bg-[#747775]" : "bg-[#EFF0F3]"
-          } text-[#232A25]`}
+          className={`px-4 h-10 flex items-center justify-center rounded-input text-body-sm font-medium ${
+            loading ? "bg-ink-muted" : "bg-canvas"
+          } text-ink`}
         >
           Cancel
         </Link>
         <button
           onClick={handleCreateClass}
           disabled={loading}
-          className={`px-4 h-10 flex items-center justify-center rounded-[8px] text-[14px] font-[500] leading-[16px] tracking-[-0.02em] ${
-            loading ? "bg-[#747775]" : "bg-[#49734F]"
-          } text-[#FFFFFF]`}
+          className={`px-4 h-10 flex items-center justify-center rounded-input text-body-sm font-medium ${
+            loading ? "bg-ink-muted" : "bg-primary"
+          } text-ink-inverse`}
         >
           <ButtonLoader show={loading} w="w-4" h="h-4" mr="mr-2" />
           {loading ? "Creating..." : "Create Class"}

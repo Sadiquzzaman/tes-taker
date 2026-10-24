@@ -21,25 +21,25 @@ const OrganizationWorkspaceGate = ({
 
   if (loading) {
     return (
-      <div className="rounded-[8px] bg-white p-6">
-        <p className="text-[14px] text-[#747775]">Loading workspace...</p>
+      <div className="rounded-input bg-surface p-6">
+        <p className="text-body-sm text-ink-muted">Loading workspace...</p>
       </div>
     );
   }
 
   if (sessionMode !== "organization" || !organizationId || !activeOrganization) {
     return (
-      <div className="rounded-[8px] bg-white p-6">
-        <p className="text-[24px] font-[500] leading-[28px] tracking-[-0.02em] text-[#232A25]">
+      <div className="rounded-input bg-surface p-6">
+        <p className="text-title font-medium text-ink">
           {title}
         </p>
-        <p className="mt-2 text-[14px] text-[#747775]">
+        <p className="mt-2 text-body-sm text-ink-muted">
           {description ||
             "Select an organization from the workspace switcher, or use organization login."}
         </p>
         <Link
           href="/dashboard"
-          className="mt-4 inline-block text-[14px] font-[500] text-[#49734F] underline"
+          className="mt-4 inline-block text-body-sm font-medium text-primary underline"
         >
           Choose workspace
         </Link>
@@ -49,16 +49,16 @@ const OrganizationWorkspaceGate = ({
 
   if (!allowPending && activeOrganization.status === "pending") {
     return (
-      <div className="rounded-[8px] bg-white p-6">
-        <p className="text-[20px] font-[500] text-[#232A25]">
+      <div className="rounded-input bg-surface p-6">
+        <p className="text-title-sm font-medium text-ink">
           Your organization registration is under review
         </p>
-        <p className="mt-2 text-[14px] text-[#747775]">
+        <p className="mt-2 text-body-sm text-ink-muted">
           Organization features are locked until Super Admin approval.
         </p>
         <Link
           href="/organization/pending"
-          className="mt-4 inline-block text-[14px] font-[500] text-[#49734F] underline"
+          className="mt-4 inline-block text-body-sm font-medium text-primary underline"
         >
           View status
         </Link>
@@ -68,14 +68,14 @@ const OrganizationWorkspaceGate = ({
 
   if (allowedRoles && !allowedRoles.includes(activeOrganization.role)) {
     return (
-      <div className="rounded-[8px] bg-white p-6">
-        <p className="text-[20px] font-[500] text-[#232A25]">You do not have access</p>
-        <p className="mt-2 text-[14px] text-[#747775]">
+      <div className="rounded-input bg-surface p-6">
+        <p className="text-title-sm font-medium text-ink">You do not have access</p>
+        <p className="mt-2 text-body-sm text-ink-muted">
           This page is not available for your role in this organization.
         </p>
         <Link
           href="/organization/classes"
-          className="mt-4 inline-block text-[14px] font-[500] text-[#49734F] underline"
+          className="mt-4 inline-block text-body-sm font-medium text-primary underline"
         >
           Go to classes
         </Link>

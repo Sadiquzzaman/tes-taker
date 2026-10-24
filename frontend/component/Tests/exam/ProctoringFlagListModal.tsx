@@ -24,7 +24,7 @@ const ProctoringFlagListModal = () => {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="w-full rounded-[8px] border border-[#DDE5DE] px-3 py-2 text-left text-[12px] font-[500] leading-4 text-[#232A25]"
+        className="w-full rounded-input border border-border px-3 py-2 text-left text-caption font-medium leading-4 text-ink"
       >
         {t("open")}
       </button>
@@ -38,15 +38,15 @@ const ProctoringFlagListModal = () => {
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-[18px] font-[600] leading-6 text-[#232A25]">{t("title")}</p>
-              <p className="text-[13px] leading-5 text-[#747775]">{t("devNote")}</p>
+              <p className="text-title-sm font-semibold leading-6 text-ink">{t("title")}</p>
+              <p className="text-body-sm leading-5 text-ink-muted">{t("devNote")}</p>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => void handleCopy()}
-                className="rounded-[8px] border border-[#DDE5DE] px-3 py-2 text-[12px] font-[500] leading-4 text-[#232A25]"
+                className="rounded-input border border-border px-3 py-2 text-caption font-medium leading-4 text-ink"
               >
                 {copied ? t("copied") : t("copy")}
               </button>
@@ -54,33 +54,33 @@ const ProctoringFlagListModal = () => {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="rounded-[8px] border border-[#DDE5DE] px-3 py-2 text-[12px] font-[500] leading-4 text-[#232A25]"
+                className="rounded-input border border-border px-3 py-2 text-caption font-medium leading-4 text-ink"
               >
                 {t("close")}
               </button>
             </div>
           </div>
 
-          <div className="max-h-[420px] overflow-y-auto rounded-[12px] border border-[#E6ECE7]">
+          <div className="max-h-[420px] overflow-y-auto rounded-card border border-border">
             <table className="w-full border-collapse">
-              <thead className="bg-[#F8FBF8]">
+              <thead className="bg-primary-soft">
                 <tr>
-                  <th className="px-4 py-3 text-left text-[12px] font-[600] leading-4 text-[#49734F]">{t("type")}</th>
-                  <th className="px-4 py-3 text-left text-[12px] font-[600] leading-4 text-[#49734F]">{t("penalty")}</th>
+                  <th className="px-4 py-3 text-left text-caption font-semibold leading-4 text-primary">{t("type")}</th>
+                  <th className="px-4 py-3 text-left text-caption font-semibold leading-4 text-primary">{t("penalty")}</th>
                 </tr>
               </thead>
 
               <tbody>
                 {flags.length > 0 ? (
                   flags.map((flag) => (
-                    <tr key={flag.id} className="border-t border-[#E6ECE7]">
-                      <td className="px-4 py-3 text-[13px] leading-5 text-[#232A25]">{flag.type}</td>
-                      <td className="px-4 py-3 text-[13px] font-[600] leading-5 text-[#232A25]">{flag.points}</td>
+                    <tr key={flag.id} className="border-t border-border">
+                      <td className="px-4 py-3 text-body-sm leading-5 text-ink">{flag.type}</td>
+                      <td className="px-4 py-3 text-body-sm font-semibold leading-5 text-ink">{flag.points}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={2} className="px-4 py-6 text-center text-[13px] leading-5 text-[#747775]">
+                    <td colSpan={2} className="px-4 py-6 text-center text-body-sm leading-5 text-ink-muted">
                       {t("empty")}
                     </td>
                   </tr>

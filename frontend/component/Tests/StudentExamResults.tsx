@@ -10,23 +10,23 @@ const StudentExamResults = ({ examId }: { examId: string }) => {
 
   if (loading) {
     return (
-      <div className="rounded-[12px] border border-[#E5E5E5] bg-white p-6 animate-pulse min-h-[240px]" />
+      <div className="rounded-card border border-border bg-surface p-6 animate-pulse min-h-[240px]" />
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-[12px] border border-[#F2C6C6] bg-[#FFF5F5] p-6 flex flex-col gap-4">
-        <p className="text-[16px] font-[500] leading-[20px] text-[#232A25]">{error}</p>
+      <div className="rounded-card border border-danger-soft bg-danger-soft p-6 flex flex-col gap-4">
+        <p className="text-body font-medium text-ink">{error}</p>
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => void refetch()}
-            className="rounded-[8px] bg-[#49734F] px-4 py-2 text-[14px] font-[500] text-white"
+            className="rounded-input bg-primary px-4 py-2 text-body-sm font-medium text-ink-inverse"
           >
             Retry
           </button>
-          <Link href="/tests" className="rounded-[8px] border border-[#49734F] px-4 py-2 text-[14px] font-[500] text-[#49734F]">
+          <Link href="/tests" className="rounded-input border border-primary px-4 py-2 text-body-sm font-medium text-primary">
             Back to tests
           </Link>
         </div>
@@ -44,32 +44,32 @@ const StudentExamResults = ({ examId }: { examId: string }) => {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-[12px] border border-[#E5E5E5] bg-white p-6">
+      <div className="rounded-card border border-border bg-surface p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-[14px] font-[400] leading-[16px] text-[#747775]">{result.subject ?? "Exam result"}</p>
-            <h1 className="mt-2 text-[24px] font-[500] leading-[28px] tracking-[-0.02em] text-[#232A25]">
+            <p className="text-body-sm font-normal text-ink-muted">{result.subject ?? "Exam result"}</p>
+            <h1 className="mt-2 text-title font-medium text-ink">
               Your results
             </h1>
             {result.submitted_at ? (
-              <p className="mt-2 text-[14px] font-[400] leading-[16px] text-[#747775]">
+              <p className="mt-2 text-body-sm font-normal text-ink-muted">
                 Submitted {new Date(result.submitted_at).toLocaleString()}
               </p>
             ) : null}
           </div>
           <div className="text-right">
-            <p className="text-[20px] font-[500] leading-[24px] text-[#49734F]">
+            <p className="text-title-sm font-medium text-primary">
               Score: {totalScore}/{maxScore}
             </p>
             {result.percentage != null ? (
-              <p className="mt-1 text-[14px] font-[400] leading-[16px] text-[#747775]">{result.percentage}%</p>
+              <p className="mt-1 text-body-sm font-normal text-ink-muted">{result.percentage}%</p>
             ) : null}
           </div>
         </div>
       </div>
 
-      <div className="rounded-[12px] border border-[#E5E5E5] bg-white p-6">
-        <p className="text-[20px] font-[500] leading-[20px] tracking-[-0.02em] text-[#747775]">Answer sheet</p>
+      <div className="rounded-card border border-border bg-surface p-6">
+        <p className="text-title-sm font-medium text-ink-muted">Answer sheet</p>
         <div className="mt-4">
           <GradingQuestionList items={gradingData.items} isReadOnly={true} />
         </div>

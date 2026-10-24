@@ -148,7 +148,7 @@ function QuestionCardHeader({
     <div className={`flex items-start justify-between ${QUESTION_BUILDER_GAPS.headerOuter}`}>
       <div className={`flex w-full items-start justify-between ${QUESTION_BUILDER_GAPS.headerContent}`}>
         <div className={`flex min-w-0 flex-1 ${QUESTION_BUILDER_GAPS.headerLead}`}>
-          <span className="pt-[10px] text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+          <span className="pt-[10px] text-body font-medium text-ink">
             {questionNumber}.
           </span>
           <div className={`flex min-w-0 flex-1 flex-col ${QUESTION_BUILDER_GAPS.headerText}`}>
@@ -172,11 +172,11 @@ function QuestionCardHeader({
               enableStructuredPaste
               onStructuredPaste={handleStructuredPaste}
               minHeightClassName="min-h-[48px]"
-              className="border-[#E5E5E5] bg-white"
+              className="border-border bg-surface"
             />
             {questionImage ? (
               <div className={`flex items-center ${QUESTION_BUILDER_GAPS.headerImageActions}`}>
-                <div className="relative h-40 w-full max-w-[320px] overflow-hidden rounded-[12px] border border-[#E5E5E5] bg-white">
+                <div className="relative h-40 w-full max-w-[320px] overflow-hidden rounded-card border border-border bg-surface">
                   {/* Native img: next/Image can hide load failures; we need onError for private S3 proxy debug */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -211,7 +211,7 @@ function QuestionCardHeader({
                     onClick={() =>
                       dispatch(updateQuestionImage({ subjectId, questionId, image: null, parentPassageId }))
                     }
-                    className="flex h-9 w-9 items-center justify-center rounded-[8px] text-[#D24B44] transition-colors duration-150"
+                    className="flex h-9 w-9 items-center justify-center rounded-input text-danger transition-colors duration-150"
                     aria-label="Remove question image"
                   >
                     <TrashIcon />
@@ -236,7 +236,7 @@ function QuestionCardHeader({
                   !canUploadImages ? (
                     <span>
                       Not in your plan. Please upgrade.{" "}
-                      <Link href="/billing" className="underline text-[#49734F]">
+                      <Link href="/billing" className="underline text-primary">
                         Upgrade
                       </Link>
                     </span>

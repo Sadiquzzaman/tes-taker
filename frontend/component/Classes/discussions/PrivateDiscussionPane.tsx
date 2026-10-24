@@ -118,12 +118,12 @@ const PrivateDiscussionPane = ({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-[20px] font-semibold text-[#101828]">Private Discussion</h3>
-        <p className="text-[13px] text-[#667085]">One-to-one chat for this subject</p>
+        <h3 className="text-title-sm font-semibold text-ink">Private Discussion</h3>
+        <p className="text-body-sm text-ink-muted">One-to-one chat for this subject</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-        <aside className="rounded-[14px] border border-[#E5E7EB] bg-white p-3 shadow-sm">
+        <aside className="rounded-card border border-border bg-surface p-3 shadow-sm">
           <div className="space-y-2">
             <DropDownComponent
               list={startOptions}
@@ -132,7 +132,7 @@ const PrivateDiscussionPane = ({
               placeholder={isTeacher ? "Start with student" : "Start with teacher"}
             />
             {startOptions.length === 0 ? (
-              <p className="text-[12px] text-[#B42318]">
+              <p className="text-caption text-danger">
                 {isTeacher
                   ? "No joined students in this class yet."
                   : "No teachers are assigned to this subject yet."}
@@ -142,7 +142,7 @@ const PrivateDiscussionPane = ({
               type="button"
               onClick={onStartConversation}
               disabled={!startWithId}
-              className="w-full rounded-[10px] bg-[#49734F] px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
+              className="w-full rounded-card bg-primary px-3 py-2 text-caption font-semibold text-ink-inverse disabled:opacity-50"
             >
               Start conversation
             </button>
@@ -150,15 +150,15 @@ const PrivateDiscussionPane = ({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search conversations..."
-              className="w-full rounded-[10px] border border-[#D0D5DD] px-3 py-2 text-[13px] outline-none focus:border-[#49734F]"
+              className="w-full rounded-card border border-border px-3 py-2 text-body-sm outline-none focus:border-primary"
             />
           </div>
 
           <div className="mt-3 max-h-[420px] space-y-1 overflow-y-auto">
-            {loadingConversations ? <p className="px-2 py-3 text-[12px] text-[#667085]">Loading…</p> : null}
-            {conversationsError ? <p className="px-2 text-[12px] text-[#B42318]">{conversationsError}</p> : null}
+            {loadingConversations ? <p className="px-2 py-3 text-caption text-ink-muted">Loading…</p> : null}
+            {conversationsError ? <p className="px-2 text-caption text-danger">{conversationsError}</p> : null}
             {!loadingConversations && filteredConversations.length === 0 ? (
-              <p className="px-2 py-3 text-[12px] text-[#667085]">No conversations yet.</p>
+              <p className="px-2 py-3 text-caption text-ink-muted">No conversations yet.</p>
             ) : null}
             {filteredConversations.map((conversation) => {
               const name = isTeacher ? conversation.student.name : conversation.teacher.name;
@@ -168,30 +168,30 @@ const PrivateDiscussionPane = ({
                   key={conversation.id}
                   type="button"
                   onClick={() => onSelectConversation(conversation.id)}
-                  className={`flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left ${
-                    active ? "bg-[#E8F5E9]" : "hover:bg-[#F9FAFB]"
+                  className={`flex w-full items-center gap-2 rounded-card px-2.5 py-2 text-left ${
+                    active ? "bg-primary-soft" : "hover:bg-canvas"
                   }`}
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D1E7D4] text-[12px] font-semibold text-[#49734F]">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-soft text-caption font-semibold text-primary">
                     {name.slice(0, 1).toUpperCase()}
                   </span>
-                  <span className="block truncate text-[13px] font-medium text-[#101828]">{name}</span>
+                  <span className="block truncate text-body-sm font-medium text-ink">{name}</span>
                 </button>
               );
             })}
           </div>
         </aside>
 
-        <section className="flex min-h-[480px] flex-col rounded-[14px] border border-[#E5E7EB] bg-white shadow-sm">
-          <div className="border-b border-[#E5E7EB] px-4 py-3">
-            <p className="text-[15px] font-semibold text-[#101828]">{peerName || "Select a conversation"}</p>
+        <section className="flex min-h-[480px] flex-col rounded-card border border-border bg-surface shadow-sm">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-body font-semibold text-ink">{peerName || "Select a conversation"}</p>
           </div>
 
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
             {!activeConversationId ? (
-              <p className="text-[13px] text-[#667085]">Choose a conversation to start chatting.</p>
+              <p className="text-body-sm text-ink-muted">Choose a conversation to start chatting.</p>
             ) : messages.length === 0 ? (
-              <p className="text-[13px] text-[#667085]">No messages yet. Say hello.</p>
+              <p className="text-body-sm text-ink-muted">No messages yet. Say hello.</p>
             ) : (
               messages.map((message) => (
                 <ChatBubble
@@ -203,7 +203,7 @@ const PrivateDiscussionPane = ({
             )}
           </div>
 
-          <div className="border-t border-[#E5E7EB] p-3">
+          <div className="border-t border-border p-3">
             {attachments.length > 0 ? (
               <div className="mb-2 grid gap-2 sm:grid-cols-2">
                 {attachments.map((attachment) => (
@@ -217,7 +217,7 @@ const PrivateDiscussionPane = ({
                 ))}
               </div>
             ) : null}
-            {localError ? <p className="mb-2 text-[12px] text-[#B42318]">{localError}</p> : null}
+            {localError ? <p className="mb-2 text-caption text-danger">{localError}</p> : null}
             <div className="flex items-end gap-2">
               <input
                 ref={fileInputRef}
@@ -230,7 +230,7 @@ const PrivateDiscussionPane = ({
                 type="button"
                 disabled={!activeConversationId || uploading || attachments.length >= 5}
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-[10px] border border-[#D0D5DD] px-3 py-2 text-[12px] font-medium text-[#344054] disabled:opacity-50"
+                className="rounded-card border border-border px-3 py-2 text-caption font-medium text-ink disabled:opacity-50"
               >
                 Attach
               </button>
@@ -241,13 +241,13 @@ const PrivateDiscussionPane = ({
                 placeholder="Type a message..."
                 rows={2}
                 maxLength={4000}
-                className="min-w-0 flex-1 resize-none rounded-[10px] border border-[#D0D5DD] px-3 py-2 text-[13px] outline-none focus:border-[#49734F]"
+                className="min-w-0 flex-1 resize-none rounded-card border border-border px-3 py-2 text-body-sm outline-none focus:border-primary"
               />
               <button
                 type="button"
                 disabled={!canSend}
                 onClick={() => void handleSend()}
-                className="rounded-[10px] bg-[#49734F] px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+                className="rounded-card bg-primary px-4 py-2 text-body-sm font-semibold text-ink-inverse disabled:opacity-50"
               >
                 {submitting ? "…" : "Send"}
               </button>

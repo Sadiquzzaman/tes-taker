@@ -20,7 +20,7 @@ function QuestionCardTextAnswer({
   return (
     <div className={`flex flex-col ${QUESTION_BUILDER_GAPS.textAnswerStack}`}>
       <div
-        className={`box-border flex items-center justify-center ${QUESTION_BUILDER_GAPS.textAnswerInput} rounded-[6px] border border-[#232A25] px-3 py-2.5`}
+        className={`box-border flex items-center justify-center ${QUESTION_BUILDER_GAPS.textAnswerInput} rounded-input border border-ink px-3 py-2.5`}
       >
         <input
           type="text"
@@ -38,14 +38,14 @@ function QuestionCardTextAnswer({
           }
           onFocus={activateCard}
           placeholder={placeholder}
-          className="h-5 w-full bg-transparent text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25] outline-none placeholder:text-[#747775]"
+          className="h-5 w-full bg-transparent text-body font-normal text-ink outline-none placeholder:text-ink-muted"
         />
       </div>
       {showAlternativeAnswerInput ? (
         <div
-          className={`box-border flex items-center justify-center ${QUESTION_BUILDER_GAPS.textAnswerInput} rounded-[6px] px-3 py-2.5 ${
+          className={`box-border flex items-center justify-center ${QUESTION_BUILDER_GAPS.textAnswerInput} rounded-input px-3 py-2.5 ${
             isAlternativeAnswerEnabled
-              ? "border border-[#232A25]"
+              ? "border border-ink"
               : "border border-dashed border-[#D6D7D4] bg-[#F7F7F5]"
           }`}
         >
@@ -66,9 +66,9 @@ function QuestionCardTextAnswer({
             onFocus={activateCard}
             disabled={!isAlternativeAnswerEnabled}
             placeholder="Add alternative answer"
-            className={`h-5 w-full bg-transparent text-[16px] font-[400] leading-[125%] tracking-[-0.02em] outline-none ${
+            className={`h-5 w-full bg-transparent text-body font-normal outline-none ${
               isAlternativeAnswerEnabled
-                ? "text-[#232A25] placeholder:text-[#747775]"
+                ? "text-ink placeholder:text-ink-muted"
                 : "cursor-not-allowed text-[#B0B0AD] placeholder:text-[#B0B0AD]"
             }`}
           />

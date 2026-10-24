@@ -222,9 +222,9 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
         checked={formState.isModelTest}
         disabled={!canCreateModelTests}
         onChange={(e) => handleModelTestChange(e.target.checked)}
-        className="h-5 w-5 rounded border-[#747775] text-[#49734F] focus:ring-0 disabled:cursor-not-allowed"
+        className="h-5 w-5 rounded border-ink-muted text-primary focus:ring-0 disabled:cursor-not-allowed"
       />
-      <span className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">
+      <span className="text-body font-medium text-ink">
         Is model test?
       </span>
     </label>
@@ -288,18 +288,18 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
   const orgSubjectSection = !formState.isModelTest && (
     <div className="flex flex-col gap-2">
       {!publishState.selectedClassId ? (
-        <p className="text-sm text-[#747775]">Select a class to choose an organization subject.</p>
+        <p className="text-sm text-ink-muted">Select a class to choose an organization subject.</p>
       ) : assignedLoading ? (
-        <p className="text-sm text-[#747775]">Loading assigned subjects...</p>
+        <p className="text-sm text-ink-muted">Loading assigned subjects...</p>
       ) : assignedSubjects.length === 0 ? (
-        <p className="text-sm text-[#C1121F]">You are not assigned to a subject in this class.</p>
+        <p className="text-sm text-danger">You are not assigned to a subject in this class.</p>
       ) : assignedSubjects.length === 1 ? (
-        <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">
+        <p className="text-body font-medium text-ink">
           Organization subject: {assignedSubjectLabel(assignedSubjects[0])}
         </p>
       ) : (
         <>
-          <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+          <label className="text-body font-medium text-ink">
             Organization Subject
           </label>
           <DropDownComponent
@@ -318,17 +318,17 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
   return (
     <section className="flex w-full flex-1 flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-[24px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Basic Info</h2>
+        <h2 className="text-title font-semibold leading-6 tracking-tight text-ink-muted">Basic Info</h2>
       </div>
-      <div className="w-full border-b border-[#E5E5E5]" />
+      <div className="w-full border-b border-border" />
 
       <div className="flex w-full flex-col gap-2">
-        <p className="text-[15px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Test name</p>
+        <p className="text-body font-medium text-ink">Test name</p>
         <NormalInput
           value={formState.testName}
           onChange={(e) => updateField("testName", e.target.value)}
-          parentClassName="h-[44px] w-full rounded-[8px] border-[#E5E5E5]"
-          inputClassName="px-2 text-[16px] font-[400] leading-[125%] placeholder:text-[#747775]"
+          parentClassName="h-[44px] w-full rounded-input border-border"
+          inputClassName="px-2 text-body font-normal placeholder:text-ink-muted"
           placeholder="e.g., Algebra Midterm Assessment"
           afterIcon={null}
         />
@@ -336,11 +336,11 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
 
       {!isIndividual && (
         <div className="flex flex-col gap-2">
-          <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+          <label className="text-body font-medium text-ink">
             {formState.examCategory === "ielts" ? "Batch" : "Class"}
           </label>
           {orgClassOptions.length === 0 ? (
-            <p className="text-sm text-[#C1121F]">
+            <p className="text-sm text-danger">
               {formState.examCategory === "ielts"
                 ? "You are not assigned to a subject in any batch."
                 : "You are not assigned to a subject in any class."}
@@ -359,7 +359,7 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
       )}
 
       <div className="flex w-full flex-col gap-2">
-        <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Exam Category</label>
+        <label className="text-body font-medium text-ink">Exam Category</label>
         <div className="flex gap-3">
           {EXAM_CATEGORIES.map((cat) => (
             <label key={cat.value} className="flex items-center gap-2 py-1 cursor-pointer">
@@ -369,9 +369,9 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
                 value={cat.value}
                 checked={formState.examCategory === cat.value}
                 onChange={() => handleExamCategoryChange(cat.value)}
-                className="h-4 w-4 border-[#747775] text-[#49734F] focus:ring-0"
+                className="h-4 w-4 border-ink-muted text-primary focus:ring-0"
               />
-              <span className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">
+              <span className="text-body font-medium text-ink">
                 {cat.label}
               </span>
             </label>
@@ -381,7 +381,7 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
 
       {formState.examCategory === "ielts" ? (
         <div className="flex flex-col gap-2">
-          <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+          <label className="text-body font-medium text-ink">
             IELTS Modules (select at least one)
           </label>
           <div className="flex flex-col gap-2">
@@ -391,9 +391,9 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
                   type="checkbox"
                   checked={selectedIeltsModules.has(module.id)}
                   onChange={(e) => handleIeltsModuleToggle(module, e.target.checked)}
-                  className="h-5 w-5 rounded border-[#747775] text-[#49734F] focus:ring-0"
+                  className="h-5 w-5 rounded border-ink-muted text-primary focus:ring-0"
                 />
-                <span className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">
+                <span className="text-body font-medium text-ink">
                   {module.label}
                 </span>
               </label>
@@ -409,7 +409,7 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
               content={
                 <span>
                   Model tests are available on Pro.{" "}
-                  <Link href="/billing" className="underline text-[#49734F]">
+                  <Link href="/billing" className="underline text-primary">
                     Upgrade
                   </Link>
                 </span>
@@ -423,7 +423,7 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
             ? orgSubjectSection
             : !formState.isModelTest ? (
                 <div className="flex flex-col gap-2">
-                  <label className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Subject</label>
+                  <label className="text-body font-medium text-ink">Subject</label>
                   <DropDownComponent
                     placeholder="Select subject"
                     value={selectedSubjectValue}
@@ -437,27 +437,27 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
       )}
 
       <div className="flex w-full flex-col gap-2">
-        <p className="text-[15px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Duration</p>
+        <p className="text-body font-medium text-ink">Duration</p>
         <NormalInput
           value={formState.duration}
           onChange={(e) => updateField("duration", e.target.value)}
-          parentClassName="h-[44px] w-full rounded-[8px] border-[#E5E5E5]"
-          inputClassName="px-2 text-[16px] font-[400] leading-[125%] placeholder:text-[#747775]"
+          parentClassName="h-[44px] w-full rounded-input border-border"
+          inputClassName="px-2 text-body font-normal placeholder:text-ink-muted"
           placeholder="e.g., 90"
           afterIcon={null}
-          afterText={<div className="text-[#747775]">minutes</div>}
+          afterText={<div className="text-ink-muted">minutes</div>}
           type="number"
         />
       </div>
       <div className="flex w-full flex-col gap-2">
-        <p className="text-[15px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+        <p className="text-body font-medium text-ink">
           Passing score (Optional)
         </p>
         <NormalInput
           value={formState.passingScore}
           onChange={(e) => updateField("passingScore", e.target.value)}
-          parentClassName="h-[44px] w-full rounded-[8px] border-[#E5E5E5]"
-          inputClassName="px-2 text-[16px] font-[400] leading-[125%] placeholder:text-[#747775]"
+          parentClassName="h-[44px] w-full rounded-input border-border"
+          inputClassName="px-2 text-body font-normal placeholder:text-ink-muted"
           placeholder="e.g., 40"
           afterIcon={null}
           type="number"
@@ -470,9 +470,9 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
             type="checkbox"
             checked={formState.allowNegativeMarking}
             onChange={(e) => updateField("allowNegativeMarking", e.target.checked)}
-            className="h-5 w-5 rounded border-[#747775] text-[#49734F] focus:ring-0"
+            className="h-5 w-5 rounded border-ink-muted text-primary focus:ring-0"
           />
-          <span className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">
+          <span className="text-body font-medium text-ink">
             Negative marking
           </span>
         </label>
@@ -481,11 +481,11 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
             <NormalInput
               value={formState.negativeMarking}
               onChange={(e) => updateField("negativeMarking", e.target.value)}
-              parentClassName="h-[44px] w-full rounded-[8px] border-[#E5E5E5]"
-              inputClassName="px-2 text-[16px] font-[400] leading-[125%] placeholder:text-[#747775]"
+              parentClassName="h-[44px] w-full rounded-input border-border"
+              inputClassName="px-2 text-body font-normal placeholder:text-ink-muted"
               placeholder="e.g., 40"
               afterIcon={null}
-              afterText={<div className="text-[#747775]">%</div>}
+              afterText={<div className="text-ink-muted">%</div>}
               type="number"
             />
           </div>

@@ -21,9 +21,9 @@ const formatDate = (value?: string) => {
 };
 
 const statusStyle = (status: string) => {
-  if (status === "COMPLETED") return "bg-[#EAF2EB] text-[#49734F]";
-  if (status === "PENDING") return "bg-[#FFF4E5] text-[#B54708]";
-  return "bg-[#FDECEA] text-[#C0392B]";
+  if (status === "COMPLETED") return "bg-primary-soft text-primary";
+  if (status === "PENDING") return "bg-warning-soft text-warning";
+  return "bg-danger-soft text-danger";
 };
 
 const AdminPaymentsTable = () => {
@@ -53,30 +53,30 @@ const AdminPaymentsTable = () => {
   return (
     <>
       <div className="flex justify-between items-center w-full min-h-[40px] mb-2 sm:mb-4">
-        <div className="text-[20px] md:text-[32px] tracking-[-0.04em] flex items-center gap-0 flex-wrap mr-4">
-          <p className="font-[500] text-[#232A25]">Payment</p>
-          <p className="font-[400] text-[#49734F] italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
+        <div className="text-title-sm md:text-display tracking-tight flex items-center gap-0 flex-wrap mr-4">
+          <p className="font-medium text-ink">Payment</p>
+          <p className="font-normal text-primary italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
             Details
           </p>
         </div>
       </div>
 
-      <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 min-h-[calc(100vh-162px)] flex flex-col gap-4">
+      <div className="bg-canvas rounded-card p-2 sm:p-4 min-h-[calc(100vh-162px)] flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search teacher by name..."
-            className="border border-[#EFF0F3] bg-white rounded-[8px] px-3 py-2 text-sm max-w-sm w-full focus:outline-none focus:border-[#49734F]"
+            className="border border-border bg-surface rounded-input px-3 py-2 text-sm max-w-sm w-full focus:outline-none focus:border-primary"
           />
-          <p className="text-sm text-[#747775]">
-            Collected (completed): <strong className="text-[#49734F]">৳{totalPaid.toLocaleString()}</strong>
+          <p className="text-sm text-ink-muted">
+            Collected (completed): <strong className="text-primary">৳{totalPaid.toLocaleString()}</strong>
           </p>
         </div>
 
-        <div className="bg-white rounded-[12px] overflow-x-auto">
+        <div className="bg-surface rounded-card overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-[#EFF0F3] text-left text-[#232A25]">
+            <thead className="bg-canvas text-left text-ink">
               <tr>
                 <th className="p-3">Teacher</th>
                 <th className="p-3">Plan</th>
@@ -89,27 +89,27 @@ const AdminPaymentsTable = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-[#747775]">
+                  <td colSpan={6} className="p-6 text-center text-ink-muted">
                     Loading...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-[#747775]">
+                  <td colSpan={6} className="p-6 text-center text-ink-muted">
                     No payments found
                   </td>
                 </tr>
               ) : (
                 filtered.map((payment) => (
-                  <tr key={payment.id} className="border-t border-[#EFF0F3]">
+                  <tr key={payment.id} className="border-t border-border">
                     <td className="p-3">
-                      <p className="text-[#232A25]">{payment.teacher?.full_name ?? "—"}</p>
-                      <p className="text-xs text-[#747775]">{payment.teacher?.email ?? ""}</p>
+                      <p className="text-ink">{payment.teacher?.full_name ?? "—"}</p>
+                      <p className="text-xs text-ink-muted">{payment.teacher?.email ?? ""}</p>
                     </td>
-                    <td className="p-3 text-[#49734F]">{payment.plan?.name ?? "—"}</td>
+                    <td className="p-3 text-primary">{payment.plan?.name ?? "—"}</td>
                     <td className="p-3">৳{Number(payment.amount).toLocaleString()}</td>
                     <td className="p-3">
-                      <span className={`text-[12px] px-2 py-0.5 rounded-full ${statusStyle(payment.status)}`}>
+                      <span className={`text-caption px-2 py-0.5 rounded-full ${statusStyle(payment.status)}`}>
                         {payment.status}
                       </span>
                     </td>

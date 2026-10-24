@@ -28,12 +28,12 @@ function QuestionCardMatchingRow({
 }: QuestionCardMatchingRowProps) {
   return (
     <div
-      className={`group flex items-center ${QUESTION_BUILDER_GAPS.matchingRow} rounded-[2px] px-0 py-1 hover:bg-[#ED86001A] focus-within:bg-[#ED86001A]`}
+      className={`group flex items-center ${QUESTION_BUILDER_GAPS.matchingRow} rounded-sm px-0 py-1 hover:bg-warning-soft focus-within:bg-warning-soft`}
     >
       <div className={`flex min-w-0 flex-1 items-center ${QUESTION_BUILDER_GAPS.matchingSide}`}>
         <div
-          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] bg-white text-[14px] leading-4 ${
-            leftOption.text.trim() ? "text-[#232A25]" : "text-[rgba(35,42,37,0.5)]"
+          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-sm bg-surface text-body-sm leading-4 ${
+            leftOption.text.trim() ? "text-ink" : "text-[rgba(35,42,37,0.5)]"
           }`}
         >
           {index + 1}
@@ -48,7 +48,7 @@ function QuestionCardMatchingRow({
           onFocus={activateCard}
           placeholder="Add a choice"
           rows={1}
-          className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[#232A25] outline-none placeholder:text-[rgba(116,119,117,0.5)]"
+          className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-body font-normal leading-4 text-ink outline-none placeholder:text-[rgba(116,119,117,0.5)]"
         />
       </div>
       <div className="flex shrink-0 items-center justify-center">
@@ -56,8 +56,8 @@ function QuestionCardMatchingRow({
       </div>
       <div className={`flex min-w-0 flex-1 items-center ${QUESTION_BUILDER_GAPS.matchingSide}`}>
         <div
-          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] bg-white text-[14px] leading-4 ${
-            rightOption.text.trim() ? "text-[#232A25]" : "text-[rgba(35,42,37,0.5)]"
+          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-sm bg-surface text-body-sm leading-4 ${
+            rightOption.text.trim() ? "text-ink" : "text-[rgba(35,42,37,0.5)]"
           }`}
         >
           {index + 1}
@@ -72,13 +72,13 @@ function QuestionCardMatchingRow({
           onFocus={activateCard}
           placeholder="Add a choice"
           rows={1}
-          className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[#232A25] outline-none placeholder:text-[rgba(116,119,117,0.5)]"
+          className="min-h-[20px] w-full resize-none overflow-hidden bg-transparent text-body font-normal leading-4 text-ink outline-none placeholder:text-[rgba(116,119,117,0.5)]"
         />
       </div>
       <button
         type="button"
         onClick={onRemove}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-[#D24B44] opacity-0 transition-all duration-150 group-hover:opacity-100 focus:opacity-100"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-input text-danger opacity-0 transition-all duration-150 group-hover:opacity-100 focus:opacity-100"
         aria-label={`Delete matching pair ${index + 1}`}
       >
         <TrashIcon />

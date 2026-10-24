@@ -80,101 +80,101 @@ const ShareTestModal = ({ open, setOpen, testData }: ShareTestModalProps) => {
       />
       <div
         className={`
-        relative bg-white overflow-auto w-full sm:w-[584px]
+        relative bg-surface overflow-auto w-full sm:w-[584px]
         sm:rounded-xl transform transition-all duration-1000
         ${open ? "translate-y-0 opacity-100" : "-translate-y-20 opacity-0"}`}
       >
         <div className="p-4 sm:p-8">
           <div className="pb-4 flex justify-between items-center">
-            <p className="font-[400] text-[20px] leading-[20px] tracking-[-0.02em] text-[#747775]">
+            <p className="font-normal text-title-sm text-ink-muted">
               {testData.type === "new"
                 ? publishTiming === "later"
                   ? "Test is scheduled"
                   : "Test successfully created"
                 : "Share test"}
             </p>
-            <button className="text-[#747775]" onClick={handleClose}>
+            <button className="text-ink-muted" onClick={handleClose}>
               <CrossIconSVG width={24} />
             </button>
           </div>
           {publishTiming === "later" && scheduledAt && (
-            <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
+            <p className="py-4 font-medium text-title text-ink">
               {`Scheduled for ${dayjs(scheduledAt).format("MMM DD, hh:mm A")}`}
             </p>
           )}
           {publishTiming !== "later" && testData.type === "new" && (
-            <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
+            <p className="py-4 font-medium text-title text-ink">
               {`‘${testData.test.test_name}’ created successfully.`}
             </p>
           )}
           {publishTiming !== "later" && testData.type !== "new" && (
-            <p className="py-4 font-[500] text-[24px] leading-[24px] tracking-[-0.02em] text-[#232A25]">
+            <p className="py-4 font-medium text-title text-ink">
               {`Share ‘${testData.test.test_name}’`}
             </p>
           )}
 
           {testAudience === "anyone" && (
-            <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
+            <p className="pb-4 font-normal text-body text-ink-muted">
               Anyone with the link will be able to participate
             </p>
           )}
 
           {testAudience === "selected_class" && (
-            <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
-              Test shared with Class <span className="font-[700]">{className}</span> students. Only these students will
+            <p className="pb-4 font-normal text-body text-ink-muted">
+              Test shared with Class <span className="font-bold">{className}</span> students. Only these students will
               be able to join the test.
             </p>
           )}
 
           {testAudience === "selected_class" && excludedStudentsCount > 0 && (
-            <p className="pb-4 font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#747775]">
-              Total <span className="font-[700]">{excludedStudentsCount}</span> students are excluded from this test.
+            <p className="pb-4 font-normal text-body text-ink-muted">
+              Total <span className="font-bold">{excludedStudentsCount}</span> students are excluded from this test.
             </p>
           )}
 
           <div className="py-4">
-            <p className="font-[600] text-[14px] leading-[125%] tracking-[-0.02em] text-[#0F1A12]"> Test link</p>
-            <div className="w-full flex justify-between items-center bg-[#EFF0F3] rounded-lg px-4 py-2 mt-2 gap-2">
-              <p className="font-[400] text-[16px] leading-[20px] tracking-[-0.02em] text-[#2765EC]">{testLink}</p>
+            <p className="font-semibold text-body-sm text-ink"> Test link</p>
+            <div className="w-full flex justify-between items-center bg-canvas rounded-lg px-4 py-2 mt-2 gap-2">
+              <p className="font-normal text-body text-info">{testLink}</p>
               <div
                 onClick={handleCopyLink}
-                className="min-w-[72px] h-8 text-white bg-[#232A25] rounded-lg flex items-center justify-center cursor-pointer gap-2 px-2"
+                className="min-w-[72px] h-8 text-ink-inverse bg-ink rounded-lg flex items-center justify-center cursor-pointer gap-2 px-2"
               >
                 <CopyIconSVG width={14} />
-                <p className="font-[500] text-[14px] leading-[16px] tracking-[-0.02em]">Copy</p>
+                <p className="font-medium text-body-sm">Copy</p>
               </div>
             </div>
           </div>
           <div className="pt-4">
-            <p className="font-[600] text-[14px] leading-[125%] tracking-[-0.02em] text-[#0F1A12]"> Share directly</p>
-            <div className="w-full flex items-center bg-white rounded-lg px-4 py-2 mt-2 gap-8">
+            <p className="font-semibold text-body-sm text-ink"> Share directly</p>
+            <div className="w-full flex items-center bg-surface rounded-lg px-4 py-2 mt-2 gap-8">
               <div className="cursor-pointer flex flex-col items-center" onClick={shareWhatsApp}>
                 <Image src={WhatsAppImage} alt="WhatsApp" width={48} height={48} />
-                <p className="font-[400] text-[10px] leading-[12px] tracking-[-0.02em] text-[#747775]">WhatsApp</p>
+                <p className="font-normal text-caption text-ink-muted">WhatsApp</p>
               </div>
               <div className="cursor-pointer flex flex-col items-center" onClick={shareMessenger}>
                 <Image src={MessengerImage} alt="Messenger" width={48} height={48} />
-                <p className="font-[400] text-[10px] leading-[12px] tracking-[-0.02em] text-[#747775]">Messenger</p>
+                <p className="font-normal text-caption text-ink-muted">Messenger</p>
               </div>
               <div className="cursor-pointer flex flex-col items-center" onClick={shareTelegram}>
                 <Image src={TelegramImage} alt="Telegram" width={48} height={48} />
-                <p className="font-[400] text-[10px] leading-[12px] tracking-[-0.02em] text-[#747775]">Telegram</p>
+                <p className="font-normal text-caption text-ink-muted">Telegram</p>
               </div>
               <div className="cursor-pointer flex flex-col items-center" onClick={shareLinkedIn}>
                 <Image src={LinkedInImage} alt="LinkedIn" width={48} height={48} />
-                <p className="font-[400] text-[10px] leading-[12px] tracking-[-0.02em] text-[#747775]">LinkedIn</p>
+                <p className="font-normal text-caption text-ink-muted">LinkedIn</p>
               </div>
               <div className="cursor-pointer flex flex-col items-center" onClick={shareGmail}>
                 <Image src={GmailImage} alt="Gmail" width={48} height={48} />
-                <p className="font-[400] text-[10px] leading-[12px] tracking-[-0.02em] text-[#747775]">Gmail</p>
+                <p className="font-normal text-caption text-ink-muted">Gmail</p>
               </div>
             </div>
           </div>
         </div>
-        <div className="p-4 sm:p-8 border-t border-[#E5E5E5] flex justify-end items-center">
+        <div className="p-4 sm:p-8 border-t border-border flex justify-end items-center">
           <button
             onClick={handleClose}
-            className="bg-[#49734F] text-white rounded-lg w-[90px] h-[40px] flex justify-center items-center text-[14px] leading-[16px] tracking-[-0.02em] font-[500]"
+            className="bg-primary text-ink-inverse rounded-lg w-[90px] h-[40px] flex justify-center items-center text-body-sm font-medium"
           >
             Continue
           </button>

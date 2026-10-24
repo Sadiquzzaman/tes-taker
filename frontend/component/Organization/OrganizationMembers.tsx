@@ -373,9 +373,9 @@ const OrganizationMembersTable = ({
   return (
     <div>
       <div className="mb-4 flex justify-between items-center w-full min-h-[40px] gap-3 flex-wrap">
-        <div className="text-[20px] md:text-[32px] tracking-[-0.04em] flex items-center gap-0 flex-wrap mr-4">
-          <p className="font-[500] text-[#232A25]">{title}</p>
-          <p className="font-[400] text-[#49734F] italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
+        <div className="text-title-sm md:text-display tracking-tight flex items-center gap-0 flex-wrap mr-4">
+          <p className="font-medium text-ink">{title}</p>
+          <p className="font-normal text-primary italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
             {activeOrganization?.name || ""}
           </p>
         </div>
@@ -386,24 +386,24 @@ const OrganizationMembersTable = ({
               resetModal();
               setModalOpen(true);
             }}
-            className="bg-[#49734F] text-white rounded-[8px] px-4 py-2 text-sm font-medium"
+            className="bg-primary text-ink-inverse rounded-input px-4 py-2 text-sm font-medium"
           >
             + {addLabel}
           </button>
         )}
       </div>
 
-      <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 min-h-[calc(100vh-162px)] flex flex-col gap-4">
+      <div className="bg-canvas rounded-card p-2 sm:p-4 min-h-[calc(100vh-162px)] flex flex-col gap-4">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, ID, email, or phone..."
-          className="border border-[#EFF0F3] bg-white rounded-[8px] px-3 py-2 text-sm max-w-sm focus:outline-none focus:border-[#49734F]"
+          className="border border-border bg-surface rounded-input px-3 py-2 text-sm max-w-sm focus:outline-none focus:border-primary"
         />
 
-        <div className="bg-white rounded-[12px] overflow-x-auto">
+        <div className="bg-surface rounded-card overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-[#EFF0F3] text-left text-[#232A25]">
+            <thead className="bg-canvas text-left text-ink">
               <tr>
                 <th className="p-3">Name</th>
                 <th className="p-3">{idColumnLabel}</th>
@@ -417,35 +417,35 @@ const OrganizationMembersTable = ({
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={canManage ? 7 : 6} className="p-6 text-center text-[#747775]">
+                  <td colSpan={canManage ? 7 : 6} className="p-6 text-center text-ink-muted">
                     Loading members...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={canManage ? 7 : 6} className="p-6 text-center text-[#747775]">
+                  <td colSpan={canManage ? 7 : 6} className="p-6 text-center text-ink-muted">
                     No members found.
                   </td>
                 </tr>
               ) : (
                 filtered.map((member) => (
-                  <tr key={member.id} className="border-t border-[#F0F0F0]">
-                    <td className="p-3 text-[#232A25]">{member.user.full_name || "—"}</td>
-                    <td className="p-3 text-[#232A25]">{publicIdForRole(member, addRole)}</td>
-                    <td className="p-3 text-[#232A25]">{member.user.email || "—"}</td>
-                    <td className="p-3 text-[#232A25]">{member.user.phone || "—"}</td>
-                    <td className="p-3 text-[#232A25]">{member.role}</td>
-                    <td className="p-3 text-[#232A25]">{formatDate(member.created_at)}</td>
+                  <tr key={member.id} className="border-t border-border">
+                    <td className="p-3 text-ink">{member.user.full_name || "—"}</td>
+                    <td className="p-3 text-ink">{publicIdForRole(member, addRole)}</td>
+                    <td className="p-3 text-ink">{member.user.email || "—"}</td>
+                    <td className="p-3 text-ink">{member.user.phone || "—"}</td>
+                    <td className="p-3 text-ink">{member.role}</td>
+                    <td className="p-3 text-ink">{formatDate(member.created_at)}</td>
                     {canManage && (
                       <td className="p-3">
                         {member.role === "OWNER" ? (
-                          <span className="text-[#747775]">—</span>
+                          <span className="text-ink-muted">—</span>
                         ) : (
                           <button
                             type="button"
                             onClick={() => void handleRemove(member.id)}
                             disabled={removingId === member.id}
-                            className="text-[#B42318] text-sm font-medium disabled:opacity-50"
+                            className="text-danger text-sm font-medium disabled:opacity-50"
                           >
                             {removingId === member.id ? "Removing..." : "Remove"}
                           </button>
@@ -468,25 +468,25 @@ const OrganizationMembersTable = ({
           }}
         >
           <div
-            className="absolute top-2 right-2 h-[calc(100vh-8px)] w-[calc(100vw-8px)] sm:w-[560px] z-50 bg-white rounded-xl p-4 sm:p-8 shadow-lg overflow-auto"
+            className="absolute top-2 right-2 h-[calc(100vh-8px)] w-[calc(100vw-8px)] sm:w-[560px] z-50 bg-surface rounded-xl p-4 sm:p-8 shadow-lg overflow-auto"
             role="dialog"
             aria-modal="true"
           >
             <div className="pb-4 flex justify-between items-center">
-              <p className="font-[600] text-[24px] leading-[24px] tracking-[-0.04em] text-[#232A25]">
+              <p className="font-semibold text-title tracking-tight text-ink">
                 {addLabel}
               </p>
-              <button type="button" className="text-[#747775]" onClick={closeModal}>
+              <button type="button" className="text-ink-muted" onClick={closeModal}>
                 <CrossIconSVG width={24} />
               </button>
             </div>
 
-            <p className="text-[14px] text-[#747775] mb-4">
+            <p className="text-body-sm text-ink-muted mb-4">
               Search by one field. Existing users are added to this organization. Unknown contacts
               receive an SMS or email invitation. No duplicate accounts are created.
             </p>
 
-            <label className="block text-[14px] font-medium text-[#232A25] mb-2">
+            <label className="block text-body-sm font-medium text-ink mb-2">
               {searchPlaceholder}
             </label>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -497,13 +497,13 @@ const OrganizationMembersTable = ({
                   setLookup(null);
                 }}
                 placeholder={searchPlaceholder}
-                className="border border-[#EFF0F3] bg-white rounded-[8px] px-3 py-2 text-sm flex-1 focus:outline-none focus:border-[#49734F]"
+                className="border border-border bg-surface rounded-input px-3 py-2 text-sm flex-1 focus:outline-none focus:border-primary"
               />
               <button
                 type="button"
                 onClick={() => void handleLookup()}
                 disabled={lookingUp}
-                className="border border-[#C6CFCF] rounded-[8px] px-4 py-2 text-sm font-medium text-[#232A25] disabled:opacity-60 flex items-center justify-center"
+                className="border border-border rounded-input px-4 py-2 text-sm font-medium text-ink disabled:opacity-60 flex items-center justify-center"
               >
                 <ButtonLoader show={lookingUp} w="w-4" h="h-4" mr="mr-2" />
                 {lookingUp ? "Searching..." : "Search"}
@@ -511,14 +511,14 @@ const OrganizationMembersTable = ({
             </div>
 
             {lookup && !lookup.found && (
-              <div className="mt-4 rounded-[8px] bg-[#EFF0F3] p-4 text-sm text-[#232A25]">
+              <div className="mt-4 rounded-input bg-canvas p-4 text-sm text-ink">
                 <p className="font-medium">No existing user found</p>
-                <p className="text-[#747775] mt-1">{lookup.message}</p>
+                <p className="text-ink-muted mt-1">{lookup.message}</p>
                 <button
                   type="button"
                   onClick={() => void handleAddOrInvite()}
                   disabled={submitting}
-                  className="mt-3 bg-[#49734F] text-white rounded-[8px] px-4 py-2 text-sm font-medium disabled:opacity-60 flex items-center"
+                  className="mt-3 bg-primary text-ink-inverse rounded-input px-4 py-2 text-sm font-medium disabled:opacity-60 flex items-center"
                 >
                   <ButtonLoader show={submitting} w="w-4" h="h-4" mr="mr-2" />
                   {submitting ? "Sending..." : "Send invitation"}
@@ -527,9 +527,9 @@ const OrganizationMembersTable = ({
             )}
 
             {lookup?.found && (
-              <div className="mt-4 rounded-[8px] border border-[#EFF0F3] p-4 text-sm text-[#232A25]">
-                <p className="font-medium text-[16px]">{lookup.user.full_name || "Unnamed user"}</p>
-                <div className="mt-2 grid gap-1 text-[#747775]">
+              <div className="mt-4 rounded-input border border-border p-4 text-sm text-ink">
+                <p className="font-medium text-body">{lookup.user.full_name || "Unnamed user"}</p>
+                <div className="mt-2 grid gap-1 text-ink-muted">
                   <p>
                     Teacher ID: {lookup.user.teacher_public_id || "—"}
                     {lookup.user.student_public_id ? ` · Student ID: ${lookup.user.student_public_id}` : ""}
@@ -538,13 +538,13 @@ const OrganizationMembersTable = ({
                   <p>Phone: {lookup.user.phone || "—"}</p>
                 </div>
                 {alreadyActiveMember ? (
-                  <p className="mt-3 text-[#B42318]">This person is already an active member.</p>
+                  <p className="mt-3 text-danger">This person is already an active member.</p>
                 ) : (
                   <button
                     type="button"
                     onClick={() => void handleAddOrInvite()}
                     disabled={submitting || !lookup.user.is_otp_verified}
-                    className="mt-3 bg-[#49734F] text-white rounded-[8px] px-4 py-2 text-sm font-medium disabled:opacity-60 flex items-center"
+                    className="mt-3 bg-primary text-ink-inverse rounded-input px-4 py-2 text-sm font-medium disabled:opacity-60 flex items-center"
                   >
                     <ButtonLoader show={submitting} w="w-4" h="h-4" mr="mr-2" />
                     {submitting
@@ -555,14 +555,14 @@ const OrganizationMembersTable = ({
                   </button>
                 )}
                 {!lookup.user.is_otp_verified && (
-                  <p className="mt-2 text-[#B42318]">This account is not verified yet.</p>
+                  <p className="mt-2 text-danger">This account is not verified yet.</p>
                 )}
               </div>
             )}
 
-            <div className="mt-6 border-t border-[#EFF0F3] pt-4">
-              <p className="text-[14px] font-medium text-[#232A25] mb-2">Add multiple phone numbers</p>
-              <p className="text-[13px] text-[#747775] mb-3">
+            <div className="mt-6 border-t border-border pt-4">
+              <p className="text-body-sm font-medium text-ink mb-2">Add multiple phone numbers</p>
+              <p className="text-body-sm text-ink-muted mb-3">
                 Paste one Bangladeshi mobile number per line. All valid numbers will be added as{" "}
                 {addRole.toLowerCase()}s. Unknown numbers are reported as not found and are not invited.
               </p>
@@ -571,22 +571,22 @@ const OrganizationMembersTable = ({
                 onChange={(e) => setPhoneList(e.target.value)}
                 rows={6}
                 placeholder={"017XXXXXXXX\n018XXXXXXXX\n019XXXXXXXX"}
-                className="w-full border border-[#EFF0F3] bg-white rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:border-[#49734F] font-mono"
+                className="w-full border border-border bg-surface rounded-input px-3 py-2 text-sm focus:outline-none focus:border-primary font-mono"
               />
               <button
                 type="button"
                 onClick={() => void handlePhoneListAdd()}
                 disabled={addingPhones}
-                className="mt-3 bg-[#49734F] text-white rounded-[8px] px-4 py-2 text-sm font-medium disabled:opacity-60 flex items-center"
+                className="mt-3 bg-primary text-ink-inverse rounded-input px-4 py-2 text-sm font-medium disabled:opacity-60 flex items-center"
               >
                 <ButtonLoader show={addingPhones} w="w-4" h="h-4" mr="mr-2" />
                 {addingPhones ? "Adding..." : `Add phone numbers as ${addRole.toLowerCase()}`}
               </button>
             </div>
 
-            <div className="mt-6 border-t border-[#EFF0F3] pt-4">
-              <p className="text-[14px] font-medium text-[#232A25] mb-2">Import from CSV</p>
-              <p className="text-[13px] text-[#747775] mb-3">
+            <div className="mt-6 border-t border-border pt-4">
+              <p className="text-body-sm font-medium text-ink mb-2">Import from CSV</p>
+              <p className="text-body-sm text-ink-muted mb-3">
                 One column of Teacher/Student ID, phone, or email. Row-level results are shown after import.
               </p>
               <div className="flex flex-wrap gap-2">
@@ -601,14 +601,14 @@ const OrganizationMembersTable = ({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={importing}
-                  className="h-[32px] rounded-lg border border-[#C6CFCF] px-3 text-sm font-medium text-[#232A25] disabled:opacity-60"
+                  className="h-[32px] rounded-lg border border-border px-3 text-sm font-medium text-ink disabled:opacity-60"
                 >
                   {importing ? "Importing..." : "Upload CSV"}
                 </button>
                 <button
                   type="button"
                   onClick={downloadStudentCsvTemplate}
-                  className="h-[32px] rounded-lg border border-[#C6CFCF] px-3 text-sm font-medium text-[#49734F]"
+                  className="h-[32px] rounded-lg border border-border px-3 text-sm font-medium text-primary"
                 >
                   Download demo CSV
                 </button>
@@ -617,14 +617,14 @@ const OrganizationMembersTable = ({
 
             {importSummary && (
               <div className="mt-4 text-sm">
-                <p className="text-[#232A25] font-medium mb-2">
+                <p className="text-ink font-medium mb-2">
                   Successfully added {importSummary.imported} · Already a member {importSummary.already_member} ·
                   User not found {importSummary.user_not_found ?? 0} · Invalid {importSummary.invalid} ·
                   Invitation sent {importSummary.invitation_sent} · Duplicate {importSummary.duplicate}
                 </p>
-                <div className="max-h-48 overflow-auto rounded-[8px] border border-[#EFF0F3]">
+                <div className="max-h-48 overflow-auto rounded-input border border-border">
                   <table className="w-full">
-                    <thead className="bg-[#EFF0F3] text-left">
+                    <thead className="bg-canvas text-left">
                       <tr>
                         <th className="p-2">Value</th>
                         <th className="p-2">Status</th>
@@ -633,10 +633,10 @@ const OrganizationMembersTable = ({
                     </thead>
                     <tbody>
                       {importSummary.results.map((row, index) => (
-                        <tr key={`${row.identifier}-${index}`} className="border-t border-[#F0F0F0]">
+                        <tr key={`${row.identifier}-${index}`} className="border-t border-border">
                           <td className="p-2">{row.identifier || "—"}</td>
                           <td className="p-2">{importStatusLabel(row.status)}</td>
-                          <td className="p-2 text-[#747775]">{row.message}</td>
+                          <td className="p-2 text-ink-muted">{row.message}</td>
                         </tr>
                       ))}
                     </tbody>

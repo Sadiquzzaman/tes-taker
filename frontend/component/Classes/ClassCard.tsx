@@ -20,20 +20,20 @@ const ClassCard = ({ classItem, index }: ClassCardProps<Class>) => {
   const dispatch = useAppDispatch();
 
   return (
-    <div className="h-[328px] bg-white rounded-[8px]">
+    <div className="h-[328px] bg-surface rounded-input">
       <div className="w-full h-[264px] p-4 flex flex-col justify-between">
         <div className="w-full h-[120px] relative">
           <Image
             src={ImageList[index % ImageList.length]}
             alt="Class Image"
             fill
-            className="w-full h-full object-cover rounded-[6px]"
+            className="w-full h-full object-cover rounded-input"
           />
         </div>
-        <p className="pt-2 font-[500] text-[16px] leading-[20px] tracking-[-0.02em] text-[#232A25]">
+        <p className="pt-2 font-medium text-body text-ink">
           {classItem.class_name}
         </p>
-        <p className="pb-3 font-[400] text-[12px] leading-[12px] tracking-[-0.02em] text-[#747775]">
+        <p className="pb-3 font-normal text-caption text-ink-muted">
           Last quiz taken on -{" "}
           {classItem.last_test_taken_date ? new Date(classItem.last_test_taken_date).toLocaleString() : "N/A"}
         </p>
@@ -43,8 +43,8 @@ const ClassCard = ({ classItem, index }: ClassCardProps<Class>) => {
               <ClassStudentCardIconSVG width={16} />
             </div>
             <div>
-              <p className="font-[400] text-[12px] leading-[16px] tracking-[-0.01em] text-[#232A25]">Student</p>
-              <p className="mt-2 ml-1 font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25]">
+              <p className="font-normal text-caption text-ink">Student</p>
+              <p className="mt-2 ml-1 font-semibold text-body text-ink">
                 {classItem.classStudents.length}
               </p>
             </div>
@@ -54,36 +54,36 @@ const ClassCard = ({ classItem, index }: ClassCardProps<Class>) => {
               <ClassTestsTakenIconSVG width={16} />
             </div>
             <div>
-              <p className="font-[400] text-[12px] leading-[16px] tracking-[-0.01em] text-[#232A25]">Tests taken</p>
-              <p className="mt-2 ml-1 font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25]">
+              <p className="font-normal text-caption text-ink">Tests taken</p>
+              <p className="mt-2 ml-1 font-semibold text-body text-ink">
                 {classItem.total_test_taken}
               </p>
             </div>
           </div>
         </div>
       </div>
-      <div className="w-full h-[64px] flex items-center justify-between p-4 border-t border-[#EFF0F3]">
-        <div className="flex items-center gap-2 text-[#747775]">
+      <div className="w-full h-[64px] flex items-center justify-between p-4 border-t border-border">
+        <div className="flex items-center gap-2 text-ink-muted">
           <button
             title="Add Students"
-            className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]"
+            className="w-8 h-8 flex justify-center items-center rounded-input hover:bg-canvas"
             onClick={() => dispatch(setOpenAddStudentModal(classItem))}
           >
             <HumanAddIconSVG width={16} />
           </button>
           <button
             title="Share Class"
-            className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]"
+            className="w-8 h-8 flex justify-center items-center rounded-input hover:bg-canvas"
             onClick={() => dispatch(setOpenShareClassModal(classItem))}
           >
             <ShareIconSVG width={16} />
           </button>
-          <button className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]">
+          <button className="w-8 h-8 flex justify-center items-center rounded-input hover:bg-canvas">
             <ThreeDotIconSVG width={16} />
           </button>
         </div>
         <Link href={`/classes/details/${classItem.id}`}>
-          <button className="h-8 rounded-[8px] px-3 bg-white text-[#49734F] border border-[#49734F] hover:bg-[#49734F] hover:text-white focus:bg-[#49734F] focus:text-white font-[500] text-[12px] leading-[16px] tracking-[-0.02em] transition-colors">
+          <button className="h-8 rounded-input px-3 bg-surface text-primary border border-primary hover:bg-primary hover:text-ink-inverse focus:bg-primary focus:text-ink-inverse font-medium text-caption transition-colors">
             View Class
           </button>
         </Link>

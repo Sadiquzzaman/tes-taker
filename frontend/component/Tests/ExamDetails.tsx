@@ -41,8 +41,8 @@ const countQuestions = (subjects: StudentExamSubject[]) =>
 
 const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="flex flex-col gap-1">
-    <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]">{label}</p>
-    <p className="text-[16px] font-[600] leading-[20px] tracking-[-0.02em] text-[#232A25]">{value}</p>
+    <p className="text-body-sm font-normal text-ink-muted">{label}</p>
+    <p className="text-body font-semibold text-ink">{value}</p>
   </div>
 );
 
@@ -128,11 +128,11 @@ const ExamDetails = ({ examId }: { examId: string }) => {
   if (!exam) {
     return (
       <div className="flex min-h-[calc(100vh-232px)] flex-col items-center justify-center gap-4">
-        <p className="text-[18px] font-[600] text-[#232A25]">Test not found</p>
+        <p className="text-title-sm font-semibold text-ink">Test not found</p>
         <button
           type="button"
           onClick={() => router.push("/tests")}
-          className="rounded-[8px] bg-[#49734F] px-4 py-2 text-[14px] font-[500] text-white"
+          className="rounded-input bg-primary px-4 py-2 text-body-sm font-medium text-ink-inverse"
         >
           Back to tests
         </button>
@@ -150,21 +150,21 @@ const ExamDetails = ({ examId }: { examId: string }) => {
 
   return (
     <div className="mx-auto flex w-full max-w-[896px] flex-col gap-6 py-2">
-      <div className="flex flex-col gap-4 rounded-[12px] bg-[#EFF0F3BF] p-4 sm:p-6">
+      <div className="flex flex-col gap-4 rounded-card bg-canvas p-4 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-col gap-2">
-            <h1 className="text-[24px] font-[600] leading-[28px] tracking-[-0.04em] text-[#232A25]">
+            <h1 className="text-title font-semibold tracking-tight text-ink">
               {exam.test_name}
             </h1>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-[27px] border border-[#49734F] bg-[rgba(73,115,79,0.15)] px-2 py-1 text-[12px] font-[500] capitalize text-[#49734F]">
+              <span className="rounded-full border border-primary bg-[rgba(73,115,79,0.15)] px-2 py-1 text-caption font-medium capitalize text-primary">
                 {exam.status}
               </span>
               <span
-                className={`rounded-[27px] border px-2 py-1 text-[12px] font-[500] ${
+                className={`rounded-full border px-2 py-1 text-caption font-medium ${
                   isDisabled
-                    ? "border-[#B42318] bg-[#B4231815] text-[#B42318]"
-                    : "border-[#49734F] bg-[rgba(73,115,79,0.15)] text-[#49734F]"
+                    ? "border-danger bg-danger-soft text-danger"
+                    : "border-primary bg-[rgba(73,115,79,0.15)] text-primary"
                 }`}
               >
                 {isDisabled ? "Disabled" : "Enabled"}
@@ -177,7 +177,7 @@ const ExamDetails = ({ examId }: { examId: string }) => {
               {canGradeTest && (
                 <Link
                   href={`/grading/details/${exam.id}`}
-                  className="rounded-[8px] bg-[#232A25] px-4 py-2 text-[14px] font-[500] text-white hover:bg-[#3f6244]"
+                  className="rounded-input bg-ink px-4 py-2 text-body-sm font-medium text-ink-inverse hover:bg-primary-hover"
                 >
                   Grade Test
                 </Link>
@@ -190,10 +190,10 @@ const ExamDetails = ({ examId }: { examId: string }) => {
                     event.preventDefault();
                   }
                 }}
-                className={`rounded-[8px] px-4 py-2 text-[14px] font-[500] transition-colors ${
+                className={`rounded-input px-4 py-2 text-body-sm font-medium transition-colors ${
                   canModify
-                    ? "bg-[#49734F] text-white hover:bg-[#3f6244]"
-                    : "cursor-not-allowed bg-[#E5E5E5] text-[#A0A4A1]"
+                    ? "bg-primary text-ink-inverse hover:bg-primary-hover"
+                    : "cursor-not-allowed bg-border text-ink-muted"
                 }`}
               >
                 Edit
@@ -202,19 +202,19 @@ const ExamDetails = ({ examId }: { examId: string }) => {
                 type="button"
                 onClick={handleToggleStatus}
                 disabled={!canModify || toggling}
-                className={`rounded-[8px] border px-4 py-2 text-[14px] font-[500] transition-colors ${
+                className={`rounded-input border px-4 py-2 text-body-sm font-medium transition-colors ${
                   !canModify || toggling
-                    ? "cursor-not-allowed border-[#E5E5E5] bg-[#E5E5E5] text-[#A0A4A1]"
+                    ? "cursor-not-allowed border-border bg-border text-ink-muted"
                     : isDisabled
-                      ? "border-[#49734F] bg-white text-[#49734F] hover:bg-[#49734F] hover:text-white"
-                      : "border-[#B42318] bg-white text-[#B42318] hover:bg-[#B42318] hover:text-white"
+                      ? "border-primary bg-surface text-primary hover:bg-primary hover:text-ink-inverse"
+                      : "border-danger bg-surface text-danger hover:bg-danger hover:text-ink-inverse"
                 }`}
               >
                 {toggling ? "Saving..." : isDisabled ? "Enable" : "Disable"}
               </button>
             </div>
             {!canModify && (
-              <p className="max-w-[260px] text-right text-[12px] font-[400] leading-[16px] text-[#747775]">
+              <p className="max-w-[260px] text-right text-caption font-normal text-ink-muted">
                 This test has started or ended. It can no longer be edited or disabled.
               </p>
             )}
@@ -222,7 +222,7 @@ const ExamDetails = ({ examId }: { examId: string }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 rounded-[12px] bg-[#EFF0F3BF] p-4 sm:grid-cols-2 sm:p-6">
+      <div className="grid grid-cols-1 gap-6 rounded-card bg-canvas p-4 sm:grid-cols-2 sm:p-6">
         <DetailRow label="Subject(s)" value={subjectNames} />
         <DetailRow label="Audience" value={audienceLabels[exam.publishState?.testAudience] ?? "N/A"} />
         <DetailRow label="Class" value={exam.class_name ?? "N/A"} />
@@ -245,13 +245,13 @@ const ExamDetails = ({ examId }: { examId: string }) => {
         />
       </div>
 
-      <div className="flex flex-col gap-4 rounded-[12px] bg-[#EFF0F3BF] p-4 sm:p-6">
-        <h2 className="text-[18px] font-[600] leading-[24px] tracking-[-0.02em] text-[#232A25]">Subjects</h2>
+      <div className="flex flex-col gap-4 rounded-card bg-canvas p-4 sm:p-6">
+        <h2 className="text-title-sm font-semibold text-ink">Subjects</h2>
         <div className="flex flex-col gap-2">
           {(exam.subjects ?? []).map((subject) => (
-            <div key={subject.id} className="flex items-center justify-between rounded-[8px] bg-white px-4 py-3">
-              <p className="text-[16px] font-[500] text-[#232A25]">{subject.name}</p>
-              <p className="text-[14px] font-[400] text-[#747775]">
+            <div key={subject.id} className="flex items-center justify-between rounded-input bg-surface px-4 py-3">
+              <p className="text-body font-medium text-ink">{subject.name}</p>
+              <p className="text-body-sm font-normal text-ink-muted">
                 {subject.questions.reduce(
                   (count, question) => count + ("childQuestions" in question ? question.childQuestions.length : 1),
                   0,
@@ -267,7 +267,7 @@ const ExamDetails = ({ examId }: { examId: string }) => {
         <button
           type="button"
           onClick={() => router.push("/tests")}
-          className="text-[14px] font-[500] text-[#49734F] underline"
+          className="text-body-sm font-medium text-primary underline"
         >
           Back to tests
         </button>

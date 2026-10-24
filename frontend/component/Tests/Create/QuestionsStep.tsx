@@ -573,10 +573,10 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
       <section className="flex w-full flex-1 flex-col gap-4">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-[20px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Question</h2>
+            <h2 className="text-title-sm font-semibold leading-6 tracking-tight text-ink-muted">Question</h2>
           </div>
         </div>
-        <div className="w-full border-b border-[#E5E5E5]" />
+        <div className="w-full border-b border-border" />
 
         {isModelTest || examCategory === "ielts" ? (
           <QuestionSubjectTabs
@@ -591,14 +591,14 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
 
         <div className="flex w-full max-w-[564px] items-center justify-between gap-6">
           <div className="flex items-center gap-1">
-            <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]">Questions added:</p>
-            <p className="text-[14px] font-[600] leading-[16px] tracking-[-0.02em] text-[#747775]">
+            <p className="text-body-sm font-normal text-ink-muted">Questions added:</p>
+            <p className="text-body-sm font-semibold text-ink-muted">
               {questionCountLabel}
             </p>
           </div>
           <div className="flex items-center gap-1">
-            <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]">Total marks:</p>
-            <p className="text-[14px] font-[600] leading-[16px] tracking-[-0.02em] text-[#747775]">
+            <p className="text-body-sm font-normal text-ink-muted">Total marks:</p>
+            <p className="text-body-sm font-semibold text-ink-muted">
               {String(totalMarks).padStart(2, "0")}
             </p>
           </div>
@@ -616,9 +616,9 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
             <button
               type="button"
               onClick={handleAddPassage}
-              className="flex h-10 items-center gap-2 rounded-[8px] border border-dashed border-[#49734F] bg-transparent px-4 text-[14px] font-[500] leading-[17px] tracking-[-0.02em] text-[#49734F] transition-colors hover:bg-[#F3F7F4]"
+              className="flex h-10 items-center gap-2 rounded-input border border-dashed border-primary bg-transparent px-4 text-body-sm font-medium text-primary transition-colors hover:bg-primary-soft"
             >
-              <span aria-hidden className="text-[18px] leading-none">
+              <span aria-hidden className="text-title-sm leading-none">
                 +
               </span>
               Add another passage
@@ -627,7 +627,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         ) : null}
 
         <div className="flex flex-col gap-1">
-          <div className="flex w-fit items-center gap-2 rounded-[8px] border border-[#49734F] bg-white p-1">
+          <div className="flex w-fit items-center gap-2 rounded-input border border-primary bg-surface p-1">
             {createTestQuestionCategoryOptions
               .filter((category) => {
                 // Filter based on exam category
@@ -646,12 +646,12 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
                     type="button"
                     onClick={() => entitled && handleQuestionCategorySelect(category.id)}
                     disabled={!entitled}
-                    className={`flex pb-1 h-9 min-w-[79px] items-center justify-center rounded-[6px] px-4 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] transition-none ${
+                    className={`flex pb-1 h-9 min-w-[79px] items-center justify-center rounded-input px-4 text-body-sm font-normal transition-none ${
                       isActive
-                        ? "bg-[#49734F] text-white"
+                        ? "bg-primary text-ink-inverse"
                         : entitled
-                          ? "bg-[#EFF0F3] text-[#232A25]"
-                          : "bg-[#EFF0F3] text-[#747775] opacity-60 cursor-not-allowed"
+                          ? "bg-canvas text-ink"
+                          : "bg-canvas text-ink-muted opacity-60 cursor-not-allowed"
                     }`}
                   >
                     {category.label}
@@ -665,7 +665,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
                       content={
                         <span>
                           Not in your plan. Please upgrade.{" "}
-                          <Link href="/billing" className="underline text-[#49734F]">
+                          <Link href="/billing" className="underline text-primary">
                             Upgrade
                           </Link>
                         </span>
@@ -680,14 +680,14 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
               })}
           </div>
 
-          <div className="flex w-full flex-wrap items-center gap-1 overflow-x-auto rounded-[6px] bg-[#49734F] p-1">
+          <div className="flex w-full flex-wrap items-center gap-1 overflow-x-auto rounded-input bg-primary p-1">
             {questionSubtypeTabs.map((tab) => {
               return (
                 <button
                   key={`${activeQuestionCategory}-${tab.id}`}
                   type="button"
                   onClick={() => handleMakeQuestion(tab.id)}
-                  className="flex h-[50px] flex-1 items-center justify-center rounded-[6px] bg-[rgba(255,255,255,0.05)] px-3 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] text-white transition-colors hover:bg-white hover:text-[#232A25]"
+                  className="flex h-[50px] flex-1 items-center justify-center rounded-input bg-[rgba(255,255,255,0.05)] px-3 text-body-sm font-normal text-ink-inverse transition-colors hover:bg-surface hover:text-ink"
                 >
                   <span className="flex items-center text-left">{tab.label}</span>
                 </button>

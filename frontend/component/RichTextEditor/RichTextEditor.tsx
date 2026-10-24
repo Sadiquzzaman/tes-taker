@@ -468,7 +468,7 @@ const RichTextEditor = ({
 
   return (
     <div
-      className={`rte-shell rounded-[8px] border border-[#E5E5E5] bg-white ${className}`.trim()}
+      className={`rte-shell rounded-input border border-border bg-surface ${className}`.trim()}
       onDragOver={handleDragOver}
     >
       <RichTextToolbar
