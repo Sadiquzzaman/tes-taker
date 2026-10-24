@@ -5,6 +5,22 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // The component library uses design tokens only (docs/ui/design-system.md §3.5).
+  {
+    files: ["design/ui/**/*.{ts,tsx}"],
+    ignores: ["design/ui/**/*.test.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...["Literal[value=/#[0-9a-fA-F]{3,8}\\b/]", "TemplateElement[value.raw=/#[0-9a-fA-F]{3,8}\\b/]"].map(
+          (selector) => ({ selector, message: "Use a colour token (bg-primary, text-ink, …) instead of a hex colour." }),
+        ),
+        ...["Literal[value=/text-\\[\\d+(px|rem)\\]/]", "TemplateElement[value.raw=/text-\\[\\d+(px|rem)\\]/]"].map(
+          (selector) => ({ selector, message: "Use the type scale (text-caption … text-display) instead of a pixel size." }),
+        ),
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
