@@ -36,7 +36,6 @@
   "shell": {
     "organization": "Organization",
     "signOut": "Sign out",
-    "toggleSidebar": "Toggle sidebar",
     "userAvatar": "User avatar",
     "workspace": {
       "title": "Workspaces",
@@ -378,5 +377,52 @@
     },
     "close": "Close",
     "retry": "Retry"
+  },
+  "ui": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "loading": "Loading…",
+    "required": "required",
+    "optional": "Optional",
+    "selectPlaceholder": "Select…",
+    "noResults": "No results",
+    "search": "Search",
+    "clearFilters": "Clear filters",
+    "removeTag": "Remove {label}",
+    "fileDrop": {
+      "prompt": "Drag files here or <browse>choose files</browse>",
+      "limits": "{types} up to {size, number} MB",
+      "tooLarge": "{name} is larger than {size, number} MB",
+      "remove": "Remove {name}"
+    },
+    "table": {
+      "selectAll": "Select all rows",
+      "selectRow": "Select row",
+      "sortBy": "Sort by {column}",
+      "empty": "Nothing here yet"
+    },
+    "pagination": {
+      "label": "Pagination",
+      "previous": "Previous page",
+      "next": "Next page",
+      "page": "Page {page, number}"
+    },
+    "breadcrumb": "Breadcrumb",
+    "stepper": {
+      "label": "Progress",
+      "step": "Step {current, number} of {total, number}",
+      "done": "Done"
+    },
+    "error": {
+      "title": "Something went wrong",
+      "retry": "Try again"
+    },
+    "shell": {
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu",
+      "notifications": "Notifications",
+      "navigation": "Main navigation"
+    }
   }
 }

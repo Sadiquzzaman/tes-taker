@@ -36,7 +36,6 @@
   "shell": {
     "organization": "প্রতিষ্ঠান",
     "signOut": "সাইন আউট",
-    "toggleSidebar": "সাইডবার খুলুন বা বন্ধ করুন",
     "userAvatar": "ব্যবহারকারীর ছবি",
     "workspace": {
       "title": "ওয়ার্কস্পেস",
@@ -378,5 +377,52 @@
     },
     "close": "বন্ধ করুন",
     "retry": "আবার চেষ্টা করুন"
+  },
+  "ui": {
+    "close": "বন্ধ করুন",
+    "cancel": "বাতিল",
+    "confirm": "নিশ্চিত করুন",
+    "loading": "লোড হচ্ছে…",
+    "required": "আবশ্যক",
+    "optional": "ঐচ্ছিক",
+    "selectPlaceholder": "বেছে নিন…",
+    "noResults": "কিছু পাওয়া যায়নি",
+    "search": "খুঁজুন",
+    "clearFilters": "ফিল্টার মুছুন",
+    "removeTag": "{label} সরান",
+    "fileDrop": {
+      "prompt": "ফাইল এখানে টেনে আনুন বা <browse>ফাইল বেছে নিন</browse>",
+      "limits": "{types}, সর্বোচ্চ {size, number} MB",
+      "tooLarge": "{name} ফাইলটি {size, number} MB-এর বেশি",
+      "remove": "{name} সরান"
+    },
+    "table": {
+      "selectAll": "সব সারি বেছে নিন",
+      "selectRow": "সারি বেছে নিন",
+      "sortBy": "{column} অনুযায়ী সাজান",
+      "empty": "এখানে এখনো কিছু নেই"
+    },
+    "pagination": {
+      "label": "পাতা বদলান",
+      "previous": "আগের পাতা",
+      "next": "পরের পাতা",
+      "page": "পাতা {page, number}"
+    },
+    "breadcrumb": "পথনির্দেশ",
+    "stepper": {
+      "label": "অগ্রগতি",
+      "step": "{total, number} ধাপের {current, number} নম্বর",
+      "done": "সম্পন্ন"
+    },
+    "error": {
+      "title": "কিছু একটা সমস্যা হয়েছে",
+      "retry": "আবার চেষ্টা করুন"
+    },
+    "shell": {
+      "openMenu": "মেনু খুলুন",
+      "closeMenu": "মেনু বন্ধ করুন",
+      "notifications": "নোটিফিকেশন",
+      "navigation": "প্রধান মেনু"
+    }
   }
 }

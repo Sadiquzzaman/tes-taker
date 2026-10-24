@@ -1,11 +1,8 @@
-import { toggleSidebar } from "@/app/api/actions/toggleSidebar";
 import sidebarList from "@/utils/sidebarList";
 import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import SidebarLogout from "./SidebarLogout";
-import SidebarToggleIconSVG from "../svg/SidebarToggleIconSVG";
-import InstructorLogoMarkSVG from "../svg/InstructorLogoMarkSVG";
+import { cn, focusRing } from "@/design/ui/cn";
 
 const orgMemberRoles: OrganizationMemberRole[] = [
   "OWNER",
@@ -18,10 +15,10 @@ const orgMemberRoles: OrganizationMemberRole[] = [
 const isOrgMemberRole = (value: string | undefined): value is OrganizationMemberRole =>
   Boolean(value && orgMemberRoles.includes(value as OrganizationMemberRole));
 
+/** The sidebar links for the signed-in role (shown by AppShell in the sidebar and the phone menu). */
 const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
   const cookieStore = await cookies();
   const t = await getTranslations();
-  const sidebarState = cookieStore.get("sidebar")?.value || "closed";
   const role = cookieStore.get("role")?.value as RoleUserType;
   const sessionMode = (cookieStore.get("session_mode")?.value || "individual") as SessionMode;
   const memberRoleValue = cookieStore.get("member_role")?.value;
@@ -39,69 +36,49 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
           : (["Platform", "System"] as const);
 
   return (
-    <div
-      id="sidebar"
-      className={`
-      fixed top-0 left-0 h-[100dvh] bg-white
-      w-64 transform z-50
-      transition-transform duration-1000
-      ${sidebarState === "open" ? "translate-x-0" : "-translate-x-full"}
-      md:translate-x-0 md:static md:block  
-          `}
-    >
-      <aside className="flex h-full w-[256px] flex-col border-r border-gray-200 bg-white">
-        <div className="flex-1 overflow-y-auto px-4 min-h-0">
-          <div className="w-full flex justify-between items-center h-[72px]">
-            <div className="flex items-center justify-center">
-              <InstructorLogoMarkSVG width={21} />
-              <p className="text-[20px] font-bold text-[#49734F] ml-2" style={{ fontFamily: "Public Sans" }}>
-                Instructor
-              </p>
-            </div>
-            <form action={toggleSidebar}>
-              <button type="submit" className="text-[#232A25]" aria-label={t("shell.toggleSidebar")}>
-                <SidebarToggleIconSVG width={16} />
-              </button>
-            </form>
-          </div>
-          <nav className="flex flex-col gap-2">
-            {visibleCategories.map((category) => {
-              const items = sidebarList.filter((element) => {
-                if (element.category !== category || !element.role.includes(role)) {
-                  return false;
-                }
-                if (element.memberRoles) {
-                  return Boolean(memberRole && element.memberRoles.includes(memberRole));
-                }
-                return true;
-              });
+    <div className="flex flex-col gap-1 py-2">
+      {visibleCategories.map((category) => {
+        const items = sidebarList.filter((element) => {
+          if (element.category !== category || !element.role.includes(role)) {
+            return false;
+          }
+          if (element.memberRoles) {
+            return Boolean(memberRole && element.memberRoles.includes(memberRole));
+          }
+          return true;
+        });
 
-              if (items.length === 0) return null;
+        if (items.length === 0) return null;
 
-              return (
-                <div key={category} className="flex flex-col gap-2">
-                  <p className="mt-4 px-4 pb-2 font-medium text-[13px] leading-[20px] tracking-[0.02em] text-[#747775] uppercase align-middle">
-                    {t(`nav.category.${category}`)}
-                  </p>
-                  {items.map((element) => (
-                    <Link href={element.route} key={element.label} className="w-full">
-                      <button
-                        className={`${activeRoute === element.route ? "bg-[#49734F] text-white" : "bg-[white] text-[#232A25] hover:bg-[#49734F] hover:text-white"} rounded-lg px-4 py-2 flex items-center gap-2 font-medium w-full`}
-                      >
-                        {element.image}
-                        {t(`nav.${element.label}`)}
-                      </button>
+        return (
+          <div key={category} className="flex flex-col gap-0.5">
+            <p className="px-3 pb-1 pt-4 text-caption font-medium uppercase tracking-wide text-ink-muted">
+              {t(`nav.category.${category}`)}
+            </p>
+            <ul className="flex flex-col gap-0.5">
+              {items.map((element) => {
+                const isActive = activeRoute === element.route;
+                return (
+                  <li key={element.route}>
+                    <Link
+                      href={element.route}
+                      aria-current={isActive ? "page" : undefined}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-input px-3 py-2 text-body-sm font-medium transition-colors duration-(--motion-fast)",
+                        isActive ? "bg-primary text-ink-inverse" : "text-ink hover:bg-primary-soft hover:text-primary",
+                        focusRing,
+                      )}
+                    >
+                      {element.image}
+                      {t(`nav.${element.label}`)}
                     </Link>
-                  ))}
-                </div>
-              );
-            })}
-          </nav>
-        </div>
-        <div className="w-full shrink-0 border-t border-gray-200 px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
-          <SidebarLogout />
-        </div>
-      </aside>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
     </div>
   );
 };

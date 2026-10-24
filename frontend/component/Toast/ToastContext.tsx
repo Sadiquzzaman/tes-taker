@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback } from "react";
-import ToastItem from "./ToastItem";
+import Toast, { ToastRegion } from "@/design/ui/Toast";
 
 const ToastContext = createContext<ToastContextProps | undefined>(undefined);
 
@@ -31,17 +31,17 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     <ToastContext.Provider value={{ triggerToast }}>
       {children}
 
-      <div className="fixed right-4 top-4 flex flex-col gap-2 z-50">
+      <ToastRegion>
         {toasts.map((toast) => (
-          <ToastItem
+          <Toast
             key={toast.id}
-            title={toast.title || ""}
-            description={toast.description || ""}
-            type={toast.type || "warning"}
+            title={toast.title}
+            description={toast.description}
+            tone={toast.type || "warning"}
             onClose={() => removeToast(toast.id)}
           />
         ))}
-      </div>
+      </ToastRegion>
     </ToastContext.Provider>
   );
 };
