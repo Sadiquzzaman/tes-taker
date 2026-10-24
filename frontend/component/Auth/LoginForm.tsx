@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import useLoginForm from "@/hooks/auth/useLoginForm";
 import AuthInput from "@/Ui/AuthInput";
@@ -8,6 +9,7 @@ import ContinueWithGoogle from "./ContinueWithGoogle";
 
 const LoginForm = () => {
   const { loginInfo, formError, loading, joinInfo, handleFieldChange, handleSubmit } = useLoginForm();
+  const t = useTranslations("auth");
 
   return (
     <>
@@ -20,7 +22,7 @@ const LoginForm = () => {
 
         <div className="flex flex-row justify-between items-center mb-2">
           <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
-            Login
+            {t("login.title")}
           </h2>
           <div className="flex gap-0.5 ml-2">
             <div className="w-4 h-1 rounded-[2px] bg-[#49734F]" />
@@ -33,8 +35,8 @@ const LoginForm = () => {
             value={loginInfo.identifier}
             onChange={(e) => handleFieldChange("identifier", e.target.value)}
             formError={formError.identifier}
-            placeholder="Email or 01XXXXXXXXX"
-            label="Email or phone"
+            placeholder={t("fields.emailOrPhonePlaceholder")}
+            label={t("fields.emailOrPhone")}
           />
 
           <AuthInput
@@ -42,13 +44,13 @@ const LoginForm = () => {
             onChange={(e) => handleFieldChange("password", e.target.value)}
             type="password"
             formError={formError.password}
-            placeholder="Enter password"
-            label="Password"
+            placeholder={t("fields.passwordPlaceholder")}
+            label={t("fields.password")}
           />
 
           <div className="flex justify-end -mt-2">
             <Link href="/forgot-password" className="text-[#49734F] text-[14px] font-medium underline">
-              Forgot password?
+              {t("login.forgotPassword")}
             </Link>
           </div>
 
@@ -58,22 +60,22 @@ const LoginForm = () => {
             disabled={loading}
           >
             <ButtonLoader show={loading} w="w-4" h="h-4" mr="mr-2" />
-            {loading ? "Logging in..." : "Sign in"}
+            {loading ? t("login.submitting") : t("login.submit")}
           </button>
         </div>
 
         <div className="flex flex-row items-center gap-5 my-2">
           <hr className="flex-grow border-[#E5E5E5]" />
-          <span className="text-[#747775] text-[14px]">OR</span>
+          <span className="text-[#747775] text-[14px]">{t("or")}</span>
           <hr className="flex-grow border-[#E5E5E5]" />
         </div>
         <ContinueWithGoogle />
       </div>
 
       <p className="mt-10 text-center text-[#747775] text-[16px]">
-        Don&apos;t have an account?{" "}
+        {t("noAccount")}{" "}
         <Link href="/signup" className="text-[#232A25] font-medium underline">
-          Sign Up
+          {t("signUp")}
         </Link>
       </p>
     </>

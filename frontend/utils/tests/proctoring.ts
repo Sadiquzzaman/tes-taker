@@ -92,14 +92,5 @@ export const createProctoringSummary = (state: ProctoringState): ProctoringSumma
   isDisqualified: state.isDisqualified,
 });
 
-export const EXAM_RULES: readonly string[] = [
-  "Stay camera and mic on.",
-  "Read the test paper/instructions carefully.",
-  "Do not open additional tabs.",
-  "Finish the test within the allotted time.",
-  "Proctor can flag your activity.",
-  `If you receive ${PROCTORING_CONFIG.disqualifyAfter} flags, the test will be terminated.`,
-];
-
-export const DISQUALIFICATION_MESSAGE =
-  "You have been disqualified from the examination because the maximum allowed violations have been exceeded.";
+/** The exam rules shown before a test, as keys under `exam.permissions.rules` in messages/*.json. */
+export const EXAM_RULE_KEYS = ["media", "read", "tabs", "time", "flags", "limit"] as const;

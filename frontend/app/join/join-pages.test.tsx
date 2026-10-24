@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, screen } from "@testing-library/react";
+import { renderWithIntl } from "@/i18n/test-utils";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import JoinClass from "./class/page";
@@ -27,7 +28,7 @@ afterEach(() => {
 
 describe("Join class page", () => {
   it("explains that no join request exists when storage is empty", () => {
-    render(<JoinClass />);
+    renderWithIntl(<JoinClass />);
 
     expect(screen.getByText("Request unavailable")).toBeTruthy();
     expect(screen.getByText("No join request was found for this session.")).toBeTruthy();
@@ -42,7 +43,7 @@ describe("Join class page", () => {
       user: { full_name: "Nadia" },
     });
 
-    render(<JoinClass />);
+    renderWithIntl(<JoinClass />);
 
     expect(screen.getByText("Request pending Nadia")).toBeTruthy();
     expect(screen.getByText(/Class: Physics 9A/)).toBeTruthy();
@@ -57,7 +58,7 @@ describe("Join class page", () => {
       user: { full_name: "Nadia" },
     });
 
-    render(<JoinClass />);
+    renderWithIntl(<JoinClass />);
     expect(screen.getByText("Welcome Nadia")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
@@ -71,7 +72,7 @@ describe("Join class page", () => {
     sessionStorage.setItem("classJoinResponse", "{not json");
     store({ session: { joinSessionInfo: { id: "c1" } }, user: { full_name: "Nadia" } });
 
-    render(<JoinClass />);
+    renderWithIntl(<JoinClass />);
 
     expect(screen.getByText("Stored join information could not be read.")).toBeTruthy();
   });
@@ -83,7 +84,7 @@ describe("Join test page", () => {
   it("welcomes an eligible student and starts the test with its id", () => {
     store({ session: { testJoinResponse: { eligible: true }, joinSessionInfo: joinInfo }, user: { full_name: "Nadia" } });
 
-    render(<JoinTest />);
+    renderWithIntl(<JoinTest />);
     expect(screen.getByText("Welcome Nadia")).toBeTruthy();
     expect(screen.getByText("Algebra quiz")).toBeTruthy();
 
@@ -97,7 +98,7 @@ describe("Join test page", () => {
   it("tells a student who is not eligible", () => {
     store({ session: { testJoinResponse: { eligible: false }, joinSessionInfo: joinInfo }, user: { full_name: "Nadia" } });
 
-    render(<JoinTest />);
+    renderWithIntl(<JoinTest />);
 
     expect(screen.getByText("Not Eligible")).toBeTruthy();
     expect(screen.getByText("You are not eligible to join this test.")).toBeTruthy();

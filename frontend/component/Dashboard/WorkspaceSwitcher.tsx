@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 
 const WorkspaceSwitcher = () => {
   const router = useRouter();
+  const t = useTranslations();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const { workspace, contexts, selectContext, loading, activeOrganization } = useWorkspace();
@@ -39,12 +41,12 @@ const WorkspaceSwitcher = () => {
 
   const label = activeContext?.label
     || (workspace.type === "organization"
-      ? activeOrganization?.name || workspace.name || "Organization"
+      ? activeOrganization?.name || workspace.name || t("shell.organization")
       : workspace.type === "personal_teacher"
-        ? "My Teaching"
+        ? t("shell.workspace.myTeaching")
         : workspace.type === "individual_teacher"
-          ? workspace.name || "Classes"
-          : "Workspace");
+          ? workspace.name || t("shell.workspace.classes")
+          : t("shell.workspace.fallback"));
 
   const onSelect = async (context: UserContextItem) => {
     try {
@@ -83,11 +85,11 @@ const WorkspaceSwitcher = () => {
       {open && (
         <div className="absolute right-0 z-40 mt-2 w-[280px] max-h-[70vh] overflow-y-auto rounded-[8px] border border-[#E5E5E5] bg-white p-2 shadow-sm">
           <p className="px-2 pb-2 text-[12px] font-[500] uppercase tracking-[0.02em] text-[#747775]">
-            Workspaces
+            {t("shell.workspace.title")}
           </p>
 
           {loading ? (
-            <p className="px-3 py-2 text-[13px] text-[#747775]">Loading...</p>
+            <p className="px-3 py-2 text-[13px] text-[#747775]">{t("common.loading")}</p>
           ) : (
             contexts.map((context) => {
               const isActive = activeContext?.key === context.key;
@@ -108,7 +110,7 @@ const WorkspaceSwitcher = () => {
                     <span className="truncate text-[14px] font-[500]">{context.label}</span>
                     {pending && (
                       <span className="shrink-0 rounded-full bg-[#FFF4E5] px-2 py-0.5 text-[11px] font-[500] text-[#B54708]">
-                        Review
+                        {t("shell.workspace.review")}
                       </span>
                     )}
                   </span>

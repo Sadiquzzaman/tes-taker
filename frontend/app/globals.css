@@ -12,6 +12,12 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Bangla pages (P1-04): Hind Siliguri first, and taller lines for the stacked vowel signs. */
+html:lang(bn) body {
+  font-family: var(--font-bangla);
+  line-height: var(--leading-bangla);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

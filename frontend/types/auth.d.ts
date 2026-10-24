@@ -71,6 +71,8 @@ interface AuthInputProps {
 
 type LoginResponsePayload = User & {
   message?: string;
+  /** The language the user chose ("bn" | "en"); null or missing until they choose one. */
+  locale?: "bn" | "en" | null;
 };
 
 interface VerifyCodeProps {

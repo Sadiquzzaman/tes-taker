@@ -1,28 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import AuthLayout from "@/component/Auth/AuthLayout";
 import SuccessIconSVG from "@/component/svg/SuccessIconSVG";
 import { useIsClient } from "@/hooks/useBrowserStorage";
 
-const INITIALSTATE: IJoinClass = {
-  status: "loading",
-  title: "Loading request",
-  description: (
-    <p className="w-full whitespace-pre-line text-[16px] font-normal leading-5 tracking-[-0.02em] text-[#747775]">
-      Checking your class request.
-    </p>
-  ),
-};
+const INITIALSTATE: IJoinClass = { status: "loading" };
 
-const errorState = (message: string): IJoinClass => ({
-  status: "error",
-  title: "Request unavailable",
-  description: (
-    <p className="w-full text-[16px] font-normal leading-5 tracking-[-0.02em] text-[#B93815]">{message}</p>
-  ),
-});
+const errorState = (errorKey: JoinMessageKey): IJoinClass => ({ status: "error", errorKey });
 
 // Builds the page state from the join details saved in browser storage. Browser-only.
 const readJoinClassState = (): IJoinClass => {
@@ -31,11 +18,11 @@ const readJoinClassState = (): IJoinClass => {
   const user = localStorage.getItem("user");
 
   if (!classJoinResponse) {
-    return errorState("No join request was found for this session.");
+    return errorState("noRequest");
   }
 
   if (!joinSessionInfo || !user) {
-    return errorState("Required join details are missing. Please try the class invite flow again.");
+    return errorState("classDetailsMissing");
   }
 
   try {
@@ -44,40 +31,24 @@ const readJoinClassState = (): IJoinClass => {
     const parsedUser = JSON.parse(user);
 
     if (!parsedClassJoinResponse.class_id || !parsedJoinSessionInfo.class_name || !parsedUser.full_name) {
-      return errorState("The join information is incomplete.");
+      return errorState("incomplete");
     }
 
+    const details = {
+      studentName: parsedUser.full_name,
+      className: parsedJoinSessionInfo.class_name,
+      teacher: parsedJoinSessionInfo.created_user_name,
+    };
+
     if (parsedClassJoinResponse.status === "PENDING") {
-      return {
-        status: "pending",
-        title: `Request pending ${parsedUser.full_name}`,
-        description: (
-          <p className="w-full text-[16px] font-normal leading-5 tracking-[-0.02em] text-[#747775]">
-            You have requested to join
-            <br />
-            Class: {parsedJoinSessionInfo.class_name}
-            <br />
-            Teacher: {parsedJoinSessionInfo.created_user_name}.
-          </p>
-        ),
-      };
+      return { status: "pending", ...details };
     }
 
     if (parsedClassJoinResponse.status === "JOINED") {
-      return {
-        status: "joined",
-        title: `Welcome ${parsedUser.full_name}`,
-        description: (
-          <p className="w-full text-[16px] font-normal leading-5 tracking-[-0.02em] text-[#747775]">
-            You have joined Class: {parsedJoinSessionInfo.class_name}
-            <br />
-            Teacher: {parsedJoinSessionInfo.created_user_name}.
-          </p>
-        ),
-      };
+      return { status: "joined", ...details };
     }
   } catch {
-    return errorState("Stored join information could not be read.");
+    return errorState("unreadable");
   }
 
   return INITIALSTATE;
@@ -85,6 +56,7 @@ const readJoinClassState = (): IJoinClass => {
 
 const JoinClass = () => {
   const router = useRouter();
+  const t = useTranslations("join");
   const isClient = useIsClient();
   const [storedState, setStoredState] = useState<IJoinClass | null>(null);
   // Read storage once, on the first render in the browser.
@@ -92,6 +64,28 @@ const JoinClass = () => {
     setStoredState(readJoinClassState());
   }
   const pageState = storedState ?? INITIALSTATE;
+  const details = {
+    name: pageState.studentName ?? "",
+    className: pageState.className ?? "",
+    teacher: pageState.teacher ?? "",
+  };
+  const richDetails = { ...details, br: () => <br /> };
+  const title =
+    pageState.status === "error"
+      ? t("unavailableTitle")
+      : pageState.status === "pending"
+        ? t("pendingTitle", details)
+        : pageState.status === "joined"
+          ? t("welcomeTitle", details)
+          : t("loadingTitle");
+  const description =
+    pageState.status === "error" && pageState.errorKey
+      ? t(pageState.errorKey)
+      : pageState.status === "pending"
+        ? t.rich("pendingDescription", richDetails)
+        : pageState.status === "joined"
+          ? t.rich("joinedDescription", richDetails)
+          : t("checkingClass");
 
   const handleContinue = () => {
     sessionStorage.removeItem("classJoinResponse");
@@ -110,9 +104,15 @@ const JoinClass = () => {
 
             <div className="flex w-full flex-col items-start gap-2">
               <p className="w-full text-[24px] font-medium leading-[29px] tracking-[-0.02em] text-[#232A25]">
-                {pageState.title}
+                {title}
               </p>
-              {pageState.description}
+              <p
+                className={`w-full whitespace-pre-line text-[16px] font-normal leading-5 tracking-[-0.02em] ${
+                  pageState.status === "error" ? "text-[#B93815]" : "text-[#747775]"
+                }`}
+              >
+                {description}
+              </p>
             </div>
           </div>
 
@@ -126,7 +126,7 @@ const JoinClass = () => {
                   onClick={handleContinue}
                   className="flex h-10 items-center justify-center rounded-lg bg-[#5F8A66] px-4 text-[14px] font-medium leading-4 tracking-[-0.02em] text-white transition-colors hover:bg-[#4f7655]"
                 >
-                  Continue
+                  {t("continue")}
                 </button>
               </div>
             </>

@@ -1,5 +1,6 @@
 import { toggleSidebar } from "@/app/api/actions/toggleSidebar";
 import sidebarList from "@/utils/sidebarList";
+import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import SidebarLogout from "./SidebarLogout";
@@ -19,6 +20,7 @@ const isOrgMemberRole = (value: string | undefined): value is OrganizationMember
 
 const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
   const cookieStore = await cookies();
+  const t = await getTranslations();
   const sidebarState = cookieStore.get("sidebar")?.value || "closed";
   const role = cookieStore.get("role")?.value as RoleUserType;
   const sessionMode = (cookieStore.get("session_mode")?.value || "individual") as SessionMode;
@@ -57,7 +59,7 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
               </p>
             </div>
             <form action={toggleSidebar}>
-              <button type="submit" className="text-[#232A25]">
+              <button type="submit" className="text-[#232A25]" aria-label={t("shell.toggleSidebar")}>
                 <SidebarToggleIconSVG width={16} />
               </button>
             </form>
@@ -79,7 +81,7 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
               return (
                 <div key={category} className="flex flex-col gap-2">
                   <p className="mt-4 px-4 pb-2 font-medium text-[13px] leading-[20px] tracking-[0.02em] text-[#747775] uppercase align-middle">
-                    {category}
+                    {t(`nav.category.${category}`)}
                   </p>
                   {items.map((element) => (
                     <Link href={element.route} key={element.label} className="w-full">
@@ -87,7 +89,7 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
                         className={`${activeRoute === element.route ? "bg-[#49734F] text-white" : "bg-[white] text-[#232A25] hover:bg-[#49734F] hover:text-white"} rounded-lg px-4 py-2 flex items-center gap-2 font-medium w-full`}
                       >
                         {element.image}
-                        {element.label}
+                        {t(`nav.${element.label}`)}
                       </button>
                     </Link>
                   ))}

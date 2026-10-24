@@ -1,8 +1,10 @@
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import EyeClosedIconSVG from "@/component/svg/EyeClosedIconSVG";
 import EyeOpenIconSVG from "@/component/svg/EyeOpenIconSVG";
 
 const AuthInput = ({ value, onChange, formError, placeholder, label, type = "text" }: AuthInputProps) => {
+  const t = useTranslations("auth");
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
   return (
@@ -26,7 +28,7 @@ const AuthInput = ({ value, onChange, formError, placeholder, label, type = "tex
             tabIndex={-1}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
             onClick={() => setShowPassword((prev) => !prev)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? t("hidePassword") : t("showPassword")}
           >
             {showPassword ? <EyeClosedIconSVG /> : <EyeOpenIconSVG />}
           </button>

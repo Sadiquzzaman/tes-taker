@@ -1,6 +1,7 @@
 "use client";
 
 import { getProctoringFlagColorStyles } from "@/utils/tests/proctoring";
+import { useTranslations } from "next-intl";
 import { memo } from "react";
 
 interface ProctoringFlagBadgeProps {
@@ -9,7 +10,8 @@ interface ProctoringFlagBadgeProps {
   className?: string;
 }
 
-const ProctoringFlagBadge = ({ flagCount, label = "Flag Count", className = "" }: ProctoringFlagBadgeProps) => {
+const ProctoringFlagBadge = ({ flagCount, label, className = "" }: ProctoringFlagBadgeProps) => {
+  const t = useTranslations("proctoring");
   const colors = getProctoringFlagColorStyles(flagCount);
 
   return (
@@ -17,7 +19,7 @@ const ProctoringFlagBadge = ({ flagCount, label = "Flag Count", className = "" }
       className={`rounded-[10px] px-4 py-3 ${className}`}
       style={{ backgroundColor: colors.background, color: colors.text, border: `1px solid ${colors.border}` }}
     >
-      <p className="text-[12px] font-[500] leading-4 opacity-90">{label}</p>
+      <p className="text-[12px] font-[500] leading-4 opacity-90">{label ?? t("flagCount")}</p>
       <p className="mt-1 text-[32px] font-[700] leading-8">{flagCount}</p>
     </div>
   );

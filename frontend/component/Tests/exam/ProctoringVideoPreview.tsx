@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { memo, useEffect, useRef } from "react";
 
 interface ProctoringVideoPreviewProps {
@@ -11,8 +12,9 @@ interface ProctoringVideoPreviewProps {
 const ProctoringVideoPreview = ({
   mediaStream,
   className = "h-[160px] w-full rounded-[10px] bg-[#0F1A12] object-cover",
-  ariaLabel = "Webcam preview",
+  ariaLabel,
 }: ProctoringVideoPreviewProps) => {
+  const t = useTranslations("proctoring");
   const previewRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -33,7 +35,7 @@ const ProctoringVideoPreview = ({
     };
   }, [mediaStream]);
 
-  return <video ref={previewRef} muted playsInline autoPlay className={className} aria-label={ariaLabel} />;
+  return <video ref={previewRef} muted playsInline autoPlay className={className} aria-label={ariaLabel ?? t("webcamPreview")} />;
 };
 
 export default memo(ProctoringVideoPreview);

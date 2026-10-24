@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { AxiosError } from "axios";
 import axiosReq from "@/lib/axios";
@@ -19,6 +20,8 @@ const INITIAL_ERRORS = {
 
 export const useChangePasswordForm = () => {
   const { triggerToast } = useToast();
+  const t = useTranslations("auth.changePassword");
+  const tv = useTranslations("validation");
   const { handleError } = useApiError();
   const [form, setForm] = useState(INITIAL_FORM);
   const [formError, setFormError] = useState(INITIAL_ERRORS);
@@ -30,7 +33,7 @@ export const useChangePasswordForm = () => {
   };
 
   const handleChangePassword = async () => {
-    const errors = validateChangePassword(form.current_password, form.new_password, form.confirm_password);
+    const errors = validateChangePassword(form.current_password, form.new_password, form.confirm_password, tv);
 
     setFormError({
       current_password: errors.current_password || "",
@@ -47,8 +50,8 @@ export const useChangePasswordForm = () => {
       await axiosReq.post(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/change-password`, form);
 
       triggerToast({
-        title: "Password changed",
-        description: "Your password has been updated successfully.",
+        title: t("doneTitle"),
+        description: t("doneDescription"),
         type: "success",
       });
 

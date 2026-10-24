@@ -13,11 +13,3 @@ export const maskInputValue = (value: string): string => {
   return firstPart + maskedSection + lastPart;
 };
 
-/**
- * Formats seconds left into a MM:SS string representation.
- */
-export const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-};

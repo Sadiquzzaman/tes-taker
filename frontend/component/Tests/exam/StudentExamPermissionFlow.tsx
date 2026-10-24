@@ -3,56 +3,34 @@
 import RightArrowIconSVG from "@/component/svg/RightArrowIconSVG";
 import SuccessIconSVG from "@/component/svg/SuccessIconSVG";
 import useExamPermissions, { type ExamPermissionStatus } from "@/hooks/tests/proctoring/useExamPermissions";
-import { EXAM_RULES } from "@/utils/tests/proctoring";
+import { EXAM_RULE_KEYS } from "@/utils/tests/proctoring";
+import { PROCTORING_CONFIG } from "@/utils/tests/proctoringConfig";
 import { markExamPermissionsComplete, setExamMediaStreams } from "@/utils/tests/examSessionMedia";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type PermissionStep = "permissions" | "rules";
 
-const PERMISSION_CARD_COPY = {
-  camera: {
-    title: "Camera Device",
-    description: "Please allow camera access before starting the test.",
-    actionLabel: "Allow Camera Access",
-  },
-  microphone: {
-    title: "Microphone",
-    description: "Please allow microphone access before starting the test.",
-    actionLabel: "Allow Microphone Access",
-  },
-} as const;
-
-const getStatusLabel = (status: ExamPermissionStatus) => {
-  switch (status) {
-    case "granted":
-      return "Granted";
-    case "denied":
-      return "Denied";
-    case "unsupported":
-      return "Unsupported";
-    default:
-      return "Please set it up.";
-  }
-};
-
 const StudentExamPermissionFlow = () => {
   const router = useRouter();
+  const t = useTranslations("exam.permissions");
   const [step, setStep] = useState<PermissionStep>("permissions");
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const { cameraStream, permissionState, errorMessage, allPermissionsGranted, requestCameraAndMicrophone } =
     useExamPermissions();
 
   const permissionCards = [
+    { key: "camera", status: permissionState.camera, title: t("cameraTitle"), actionLabel: t("cameraAction") },
     {
-      key: "camera" as const,
-      status: permissionState.camera,
-    },
-    {
-      key: "microphone" as const,
+      key: "microphone",
       status: permissionState.microphone,
+      title: t("microphoneTitle"),
+      actionLabel: t("microphoneAction"),
     },
   ];
+  const statusLabel = (status: ExamPermissionStatus) =>
+    status === "granted" || status === "denied" || status === "unsupported" ? t(`status.${status}`) : t("status.pending");
 
   const handleContinue = () => {
     if (!allPermissionsGranted) {
@@ -84,7 +62,7 @@ const StudentExamPermissionFlow = () => {
         <div className="flex items-center justify-between border-b border-[#E5E5E5] px-6 py-4">
           <div className="flex items-center gap-3">
             <SuccessIconSVG width={28} />
-            <p className="text-[18px] font-[600] leading-6 text-[#232A25]">Login Successful</p>
+            <p className="text-[18px] font-[600] leading-6 text-[#232A25]">{t("loginSuccessful")}</p>
           </div>
         </div>
 
@@ -95,19 +73,18 @@ const StudentExamPermissionFlow = () => {
                 <span className="text-[28px]">📷</span>
               </div>
               <p className="max-w-[420px] text-[16px] leading-6 text-[#232A25]">
-                Please allow camera and microphone access before starting the test.
+                {t("intro")}
               </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {permissionCards.map(({ key, status }) => {
-                const copy = PERMISSION_CARD_COPY[key];
+              {permissionCards.map(({ key, status, title, actionLabel }) => {
                 const isGranted = status === "granted";
 
                 return (
                   <div key={key} className="rounded-[12px] border border-[#E6ECE7] bg-[#F8FBF8] p-4">
-                    <p className="text-[14px] font-[600] leading-5 text-[#232A25]">{copy.title}</p>
-                    <p className="mt-1 text-[12px] leading-4 text-[#747775]">{getStatusLabel(status)}</p>
+                    <p className="text-[14px] font-[600] leading-5 text-[#232A25]">{title}</p>
+                    <p className="mt-1 text-[12px] leading-4 text-[#747775]">{statusLabel(status)}</p>
                     <button
                       type="button"
                       onClick={() => void requestCameraAndMicrophone()}
@@ -116,7 +93,7 @@ const StudentExamPermissionFlow = () => {
                         isGranted ? "bg-[#DDE5DE] text-[#747775]" : "bg-[#232A25] text-white"
                       }`}
                     >
-                      {isGranted ? "Granted" : copy.actionLabel}
+                      {isGranted ? t("status.granted") : actionLabel}
                     </button>
                   </div>
                 );
@@ -134,7 +111,7 @@ const StudentExamPermissionFlow = () => {
                   allPermissionsGranted ? "bg-[#49734F]" : "cursor-not-allowed bg-[#8BA28F]"
                 }`}
               >
-                Next Step
+                {t("nextStep")}
                 <RightArrowIconSVG className="ml-2 size-4" />
               </button>
             </div>
@@ -145,12 +122,12 @@ const StudentExamPermissionFlow = () => {
               <div className="flex size-16 items-center justify-center rounded-full bg-[#EDF4EE] text-[#49734F]">
                 <span className="text-[28px]">🛡</span>
               </div>
-              <p className="text-[20px] font-[600] leading-6 text-[#232A25]">Test Rules</p>
+              <p className="text-[20px] font-[600] leading-6 text-[#232A25]">{t("rulesTitle")}</p>
             </div>
 
             <ol className="mx-auto flex w-full max-w-[520px] list-decimal flex-col gap-3 pl-5 text-[14px] leading-6 text-[#232A25]">
-              {EXAM_RULES.map((rule) => (
-                <li key={rule}>{rule}</li>
+              {EXAM_RULE_KEYS.map((rule) => (
+                <li key={rule}>{t(`rules.${rule}`, { count: PROCTORING_CONFIG.disqualifyAfter })}</li>
               ))}
             </ol>
 
@@ -161,7 +138,7 @@ const StudentExamPermissionFlow = () => {
                 onChange={(event) => setRulesAccepted(event.target.checked)}
                 className="mt-1 size-4 accent-[#49734F]"
               />
-              <span className="text-[14px] leading-5 text-[#232A25]">I read and understand the rules.</span>
+              <span className="text-[14px] leading-5 text-[#232A25]">{t("accept")}</span>
             </label>
 
             <div className="flex items-center justify-between border-t border-[#E5E5E5] pt-4">
@@ -170,7 +147,7 @@ const StudentExamPermissionFlow = () => {
                 onClick={() => setStep("permissions")}
                 className="h-11 rounded-[10px] border border-[#DDE5DE] px-5 text-[14px] font-[600] leading-4 text-[#232A25]"
               >
-                Back
+                {t("back")}
               </button>
               <button
                 type="button"
@@ -180,7 +157,7 @@ const StudentExamPermissionFlow = () => {
                   rulesAccepted && allPermissionsGranted ? "bg-[#49734F]" : "cursor-not-allowed bg-[#8BA28F]"
                 }`}
               >
-                Start Test
+                {t("startTest")}
                 <RightArrowIconSVG className="ml-2 size-4" />
               </button>
             </div>

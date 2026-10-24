@@ -34,6 +34,9 @@ export class UserReponseDto {
   @ApiProperty({ description: 'User verification status', example: true })
   is_verified: boolean;
 
+  @ApiProperty({ description: 'Chosen app language; null = not chosen yet', enum: ['bn', 'en'], nullable: true, required: false })
+  locale?: 'bn' | 'en' | null;
+
   @ApiProperty({ description: 'User role', enum: RolesEnum, example: RolesEnum.STUDENT })
   role: RolesEnum;
 

@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
 import axios, { AxiosError } from "axios";
@@ -12,6 +13,8 @@ export const useVerifyCode = (
 ) => {
   const router = useRouter();
   const { triggerToast } = useToast();
+  const t = useTranslations("auth");
+  const tv = useTranslations("validation");
   const [formError, setFormError] = useState("");
   const [otp, setOtp] = useState(Array(length).fill(""));
   const [timeLeft, setTimeLeft] = useState(OTP_TIME);
@@ -107,7 +110,7 @@ export const useVerifyCode = (
 
   const handleVerifyAndContinue = async () => {
     if (otp.some((digit) => digit === "")) {
-      setFormError("Please enter the complete OTP code");
+      setFormError(tv("otpIncomplete"));
       return;
     }
 
@@ -143,15 +146,12 @@ export const useVerifyCode = (
       setLoading(false);
       const orgNumber = response.data?.payload?.data?.organization?.organization_number;
       const defaultOrgDescription = orgNumber
-        ? `Your organization number is ${orgNumber}. It is awaiting SUPER_ADMIN approval. Sign in with your phone and password after approval.`
+        ? t("signup.organizationNumber", { number: orgNumber })
         : options?.successDescription;
 
       triggerToast({
-        title: options?.successTitle || "Code Verified",
-        description:
-          defaultOrgDescription ||
-          response.data?.message ||
-          "OTP verified successfully.",
+        title: options?.successTitle || t("otp.verifiedTitle"),
+        description: defaultOrgDescription || t("otp.verifiedDescription"),
         type: "success",
       });
 
@@ -159,9 +159,9 @@ export const useVerifyCode = (
     } catch (caught) {
       const err = caught as AxiosError<{ message?: string }>;
       setLoading(false);
-      const message = err.response?.data?.message || "OTP verification failed. Please try again.";
+      const message = err.response?.data?.message || t("otp.failedDescription");
       triggerToast({
-        title: "Verification Failed",
+        title: t("otp.failedTitle"),
         description: message,
         type: "error",
       });

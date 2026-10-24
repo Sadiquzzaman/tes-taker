@@ -1,5 +1,6 @@
 import DragHandleIcon from "@/component/svg/DragHandleIcon";
 import { buildMatchingAnswerPairs, getMatchingRightOptionOrder } from "@/utils/tests/studentExamAnswers";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 interface StudentExamMatchingOrderInputProps {
@@ -60,6 +61,7 @@ const StudentExamMatchingOrderInput = ({
   matchingOptions,
   onMatchingChange,
 }: StudentExamMatchingOrderInputProps) => {
+  const t = useTranslations("exam");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const currentValue = answerState[questionId];
   const [dragState, setDragState] = useState<MatchingDragState | null>(null);
@@ -192,7 +194,7 @@ const StudentExamMatchingOrderInput = ({
                   });
                 }}
                 className={`touch-none text-[#747775] ${disabled ? "cursor-not-allowed" : "cursor-grab active:cursor-grabbing"}`}
-                aria-label="Drag to reorder"
+                aria-label={t("dragToReorder")}
               >
                 <DragHandleIcon />
               </button>
