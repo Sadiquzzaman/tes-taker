@@ -4,11 +4,13 @@ import CreateModal from "@/component/Tests/Create/CreateModal";
 import ImportantIconSvg from "@/component/svg/ImportantIconSvg";
 import { dismissProctoringWarning } from "@/lib/features/proctoringSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { useTranslations } from "next-intl";
 
 const ProctoringWarningModal = () => {
   const dispatch = useAppDispatch();
   const pendingWarning = useAppSelector((state) => state.proctoring.pendingWarning);
   const isOpen = Boolean(pendingWarning);
+  const t = useTranslations("proctoring");
 
   if (!pendingWarning) {
     return null;
@@ -22,26 +24,26 @@ const ProctoringWarningModal = () => {
             <ImportantIconSvg />
           </div>
           <div className="flex flex-col gap-2">
-            <p className="text-[24px] font-[600] leading-7 tracking-[-0.04em] text-[#232A25]">Warning!</p>
-            <p className="text-[14px] leading-5 text-[#747775]">Suspicious activity detected.</p>
+            <p className="text-[24px] font-[600] leading-7 tracking-[-0.04em] text-[#232A25]">{t("warningTitle")}</p>
+            <p className="text-[14px] leading-5 text-[#747775]">{t("warningSubtitle")}</p>
           </div>
         </div>
 
         <div className="rounded-[12px] border border-[#FEDF89] bg-[#FFFAEB] p-4">
-          <p className="text-[14px] leading-5 text-[#232A25]">{pendingWarning.message}</p>
+          <p className="text-[14px] leading-5 text-[#232A25]">{t(`flags.${pendingWarning.type}`)}</p>
           <p className="mt-2 text-[14px] font-[600] leading-5 text-[#B54708]">
-            Current flag count: {pendingWarning.flagCount}
+            {t("currentFlagCount", { count: pendingWarning.flagCount })}
           </p>
         </div>
 
-        <p className="text-[14px] leading-5 text-[#747775]">Please continue carefully.</p>
+        <p className="text-[14px] leading-5 text-[#747775]">{t("continueCarefully")}</p>
 
         <button
           type="button"
           onClick={() => dispatch(dismissProctoringWarning())}
           className="h-11 rounded-[10px] bg-[#49734F] px-5 text-[14px] font-[600] leading-4 text-white"
         >
-          I Understand
+          {t("understand")}
         </button>
       </div>
     </CreateModal>

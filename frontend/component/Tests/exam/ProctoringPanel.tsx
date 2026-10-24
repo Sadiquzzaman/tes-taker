@@ -4,9 +4,11 @@ import ProctoringFlagListModal from "@/component/Tests/exam/ProctoringFlagListMo
 import ProctoringVideoPreview from "@/component/Tests/exam/ProctoringVideoPreview";
 import { selectProctoringPanelState } from "@/lib/features/proctoringSlice";
 import { useAppSelector } from "@/lib/hooks";
+import { useTranslations } from "next-intl";
 
 const ProctoringPanel = ({ mediaStream, onRetry, connectionError }: ProctoringPanelProps) => {
   const { permissionError, statusText } = useAppSelector(selectProctoringPanelState);
+  const t = useTranslations("proctoring");
 
   const handleEnterFullscreen = async () => {
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
@@ -20,9 +22,9 @@ const ProctoringPanel = ({ mediaStream, onRetry, connectionError }: ProctoringPa
 
       <div className="flex flex-col gap-2 p-3">
         <div className="flex items-center justify-between">
-          <p className="text-[13px] font-[600] leading-4 text-[#232A25]">Proctoring</p>
+          <p className="text-[13px] font-[600] leading-4 text-[#232A25]">{t("title")}</p>
           <span className="rounded-[6px] bg-[#EDF4EE] px-2 py-1 text-[12px] font-[500] leading-3 text-[#49734F]">
-            {statusText}
+            {t(`status.${statusText}`)}
           </span>
         </div>
 
@@ -38,7 +40,7 @@ const ProctoringPanel = ({ mediaStream, onRetry, connectionError }: ProctoringPa
               onClick={onRetry}
               className="h-8 flex-1 rounded-[8px] bg-[#49734F] px-3 text-[12px] font-[500] leading-4 text-white"
             >
-              Retry
+              {t("retry")}
             </button>
           ) : null}
 
@@ -47,7 +49,7 @@ const ProctoringPanel = ({ mediaStream, onRetry, connectionError }: ProctoringPa
             onClick={() => void handleEnterFullscreen()}
             className="h-8 flex-1 rounded-[8px] border border-[#DDE5DE] px-3 text-[12px] font-[500] leading-4 text-[#232A25]"
           >
-            Fullscreen
+            {t("fullscreen")}
           </button>
         </div>
       </div>

@@ -10,20 +10,27 @@ type JoinTestPageProps = {
   }>;
 };
 
+/** A message key under `join` in messages/en.json (the join pages show it in the user's language). */
+type JoinMessageKey = keyof (typeof import("@/messages/en.json"))["join"];
+
 interface IJoinClass {
   status: "loading" | "error" | "pending" | "joined" | "success";
-  title?: string;
-  description?: React.ReactNode;
+  /** Why the request can't be shown (status "error"). */
+  errorKey?: JoinMessageKey;
+  studentName?: string;
+  className?: string;
+  teacher?: string;
 }
 
 interface IJoinTest {
   status: "loading" | "error" | "success";
-  title?: string;
+  errorKey?: JoinMessageKey;
+  errorTitleKey?: JoinMessageKey;
+  studentName?: string;
   test?: string;
   teacher?: string;
-  time?: string;
+  time?: number;
   testId?: string;
-  description?: string;
 }
 
 type JoinClassApiPayload = {

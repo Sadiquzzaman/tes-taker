@@ -1,5 +1,7 @@
 "use client";
 
+import useFormat from "@/i18n/useFormat";
+import { useTranslations } from "next-intl";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 export default function ExamCountdown({
@@ -9,6 +11,8 @@ export default function ExamCountdown({
   onStart,
   onTimeUp,
 }: ExamCountdownProps) {
+  const t = useTranslations("exam");
+  const format = useFormat();
   const initialSeconds =
     typeof remainingSeconds === "number"
       ? remainingSeconds
@@ -87,12 +91,8 @@ export default function ExamCountdown({
     }
   }, [isTimeUp, submitButtonRef]);
 
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remaining = seconds % 60;
-
-    return `${String(minutes).padStart(2, "0")} min ${String(remaining).padStart(2, "0")} sec`;
-  };
+  const formatTime = (seconds: number) =>
+    t("countdown", { minutes: format.twoDigits(Math.floor(seconds / 60)), seconds: format.twoDigits(seconds % 60) });
 
   return (
     <p className="font-[500] text-[16px] leading-[16px] text-[#232A25]">

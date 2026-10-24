@@ -1,21 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import AuthLayout from "@/component/Auth/AuthLayout";
 import SuccessIconSVG from "@/component/svg/SuccessIconSVG";
 import { useIsClient } from "@/hooks/useBrowserStorage";
 
-const INITIALSTATE: IJoinTest = {
-  status: "loading",
-  title: "Loading request",
-  description: "Checking your test join request.",
-};
+const INITIALSTATE: IJoinTest = { status: "loading" };
 
-const errorState = (message: string, title: string = "Request unavailable"): IJoinTest => ({
+const errorState = (errorKey: JoinMessageKey, errorTitleKey: JoinMessageKey = "unavailableTitle"): IJoinTest => ({
   status: "error",
-  title,
-  description: message,
+  errorKey,
+  errorTitleKey,
 });
 
 // Builds the page state from the join details saved in browser storage. Browser-only.
@@ -25,11 +22,11 @@ const readJoinTestState = (): IJoinTest => {
   const user = localStorage.getItem("user");
 
   if (!testJoinResponse) {
-    return errorState("No join request was found for this session.");
+    return errorState("noRequest");
   }
 
   if (!joinSessionInfo || !user) {
-    return errorState("Required join details are missing. Please try the test join flow again.");
+    return errorState("testDetailsMissing");
   }
 
   try {
@@ -37,36 +34,30 @@ const readJoinTestState = (): IJoinTest => {
     const parsedJoinSessionInfo = JSON.parse(joinSessionInfo);
     const parsedUser = JSON.parse(user);
 
-    console.log({
-      parsedTestJoinResponse,
-      parsedJoinSessionInfo,
-      parsedUser,
-    });
-
     if (!parsedTestJoinResponse || !parsedJoinSessionInfo.id || !parsedUser.full_name) {
-      return errorState("The join information is incomplete.");
+      return errorState("incomplete");
     }
 
     if (!parsedTestJoinResponse.eligible) {
-      return errorState("You are not eligible to join this test.", "Not Eligible");
+      return errorState("notEligible", "notEligibleTitle");
     }
 
     return {
       status: "success",
-      title: `Welcome ${parsedUser.full_name}`,
+      studentName: parsedUser.full_name,
       test: parsedJoinSessionInfo.test_name,
       teacher: parsedJoinSessionInfo.created_user_name,
-      time: parsedJoinSessionInfo.duration_minutes,
+      time: Number(parsedJoinSessionInfo.duration_minutes),
       testId: parsedJoinSessionInfo.id,
-      description: "",
     };
   } catch {
-    return errorState("Stored join information could not be read.");
+    return errorState("unreadable");
   }
 };
 
 const JoinTest = () => {
   const router = useRouter();
+  const t = useTranslations("join");
   const isClient = useIsClient();
   const [storedState, setStoredState] = useState<IJoinTest | null>(null);
   // Read storage once, on the first render in the browser.
@@ -74,6 +65,12 @@ const JoinTest = () => {
     setStoredState(readJoinTestState());
   }
   const pageState = storedState ?? INITIALSTATE;
+  const title =
+    pageState.status === "error"
+      ? t(pageState.errorTitleKey ?? "unavailableTitle")
+      : pageState.status === "success"
+        ? t("welcomeTitle", { name: pageState.studentName ?? "" })
+        : t("loadingTitle");
 
   const handleStartTest = () => {
     sessionStorage.removeItem("testJoinResponse");
@@ -99,23 +96,23 @@ const JoinTest = () => {
 
             <div className="flex w-full flex-col items-start gap-2">
               <p className="w-full text-[24px] font-medium leading-[29px] tracking-[-0.02em] text-[#232A25]">
-                {pageState.title}
+                {title}
               </p>
-              {pageState?.status === "error" && (
+              {pageState.status === "error" && pageState.errorKey && (
                 <p className="w-full text-[16px] font-normal leading-5 tracking-[-0.02em] text-[#B93815]">
-                  {pageState.description}
+                  {t(pageState.errorKey)}
                 </p>
               )}{" "}
-              {pageState?.status === "loading" && (
+              {pageState.status === "loading" && (
                 <p className="w-full text-[16px] font-normal leading-5 tracking-[-0.02em] text-[#747775]">
-                  {pageState.description}
+                  {t("checkingTest")}
                 </p>
               )}
               {pageState?.status === "success" && (
                 <div className="flex flex-col gap-2 w-full">
                   <div className="flex flex-row items-center w-full">
                     <div className="w-[25%] font-[600] text-[16px] leading-5 tracking-[-0.02em] text-[#747775]">
-                      Test
+                      {t("test")}
                     </div>
                     <div className="w-[75%] font-[500] text-[16px] leading-5 tracking-[-0.02em] text-[#747775]">
                       {pageState.test}
@@ -123,7 +120,7 @@ const JoinTest = () => {
                   </div>
                   <div className="flex flex-row items-center w-full">
                     <div className="w-[25%] font-[600] text-[16px] leading-5 tracking-[-0.02em] text-[#747775]">
-                      Teacher
+                      {t("teacher")}
                     </div>
                     <div className="w-[75%] font-[500] text-[16px] leading-5 tracking-[-0.02em] text-[#747775]">
                       {pageState.teacher}
@@ -131,10 +128,10 @@ const JoinTest = () => {
                   </div>
                   <div className="flex flex-row items-center w-full">
                     <div className="w-[25%] font-[600] text-[16px] leading-5 tracking-[-0.02em] text-[#747775]">
-                      Time
+                      {t("time")}
                     </div>
                     <div className="w-[75%] font-[500] text-[16px] leading-5 tracking-[-0.02em] text-[#747775]">
-                      {pageState.time}
+                      {Number.isFinite(pageState.time) ? t("minutes", { minutes: pageState.time ?? 0 }) : ""}
                     </div>
                   </div>
                 </div>
@@ -152,7 +149,7 @@ const JoinTest = () => {
                   onClick={handleStartTest}
                   className="flex h-10 items-center justify-center rounded-lg bg-[#5F8A66] px-4 text-[14px] font-medium leading-4 tracking-[-0.02em] text-white transition-colors hover:bg-[#4f7655]"
                 >
-                  Start Test
+                  {t("startTest")}
                 </button>
               </div>
             </>
@@ -167,7 +164,7 @@ const JoinTest = () => {
                   onClick={handleContinue}
                   className="flex h-10 items-center justify-center rounded-lg bg-[#5F8A66] px-4 text-[14px] font-medium leading-4 tracking-[-0.02em] text-white transition-colors hover:bg-[#4f7655]"
                 >
-                  Continue
+                  {t("continue")}
                 </button>
               </div>
             </>

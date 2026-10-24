@@ -4,6 +4,7 @@ import StudentExamMatchingOrderInput from "@/component/Tests/exam/StudentExamMat
 import { RichTextContent } from "@/component/RichTextEditor";
 import NotmalTextFeild from "@/Ui/NotmalTextFeild";
 import { toggleMultiSelectAnswer } from "@/utils/tests/studentExamAnswers";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface StudentExamQuestionCardProps {
@@ -31,6 +32,7 @@ const StudentExamSpeakingRecorder = ({
   timeLimitSeconds?: number | null;
   onAnswerChange: (questionId: string, value: ExamAnswerValue) => void;
 }) => {
+  const t = useTranslations("exam");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const [isRecording, setIsRecording] = useState(false);
@@ -87,9 +89,9 @@ const StudentExamSpeakingRecorder = ({
         setSecondsLeft(timeLimitSeconds);
       }
     } catch {
-      setError("Microphone access is required to record your answer.");
+      setError(t("micRequiredToRecord"));
     }
-  }, [disabled, onAnswerChange, questionId, timeLimitSeconds]);
+  }, [disabled, onAnswerChange, questionId, t, timeLimitSeconds]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -101,7 +103,7 @@ const StudentExamSpeakingRecorder = ({
             onClick={startRecording}
             className="rounded-[6px] bg-[#49734F] px-4 py-2 text-[14px] font-[500] text-white disabled:opacity-50"
           >
-            {value ? "Re-record answer" : "Start recording"}
+            {value ? t("reRecord") : t("startRecording")}
           </button>
         ) : (
           <button
@@ -109,11 +111,11 @@ const StudentExamSpeakingRecorder = ({
             onClick={stopRecording}
             className="rounded-[6px] bg-[#B42318] px-4 py-2 text-[14px] font-[500] text-white"
           >
-            Stop recording
+            {t("stopRecording")}
           </button>
         )}
         {secondsLeft !== null ? (
-          <span className="text-[14px] text-[#747775]">Time left: {secondsLeft}s</span>
+          <span className="text-[14px] text-[#747775]">{t("recordingTimeLeft", { seconds: secondsLeft })}</span>
         ) : null}
       </div>
       {error ? <p className="text-[13px] text-[#B42318]">{error}</p> : null}
@@ -131,11 +133,12 @@ const StudentExamQuestionCard = ({
   onAnswerChange,
   onMatchingChange,
 }: StudentExamQuestionCardProps) => {
+  const t = useTranslations("exam");
   const answerValue = answerState[question.id];
   const textValue = typeof answerValue === "string" ? answerValue : "";
   const selectedOptionIds = Array.isArray(answerValue) ? answerValue : [];
   const negativeMark =
-    isNegativeMarkingEnabled && question.isAutoScored ? ((question.points * negativeMarkValue) / 100).toFixed(2) : null;
+    isNegativeMarkingEnabled && question.isAutoScored ? Number(((question.points * negativeMarkValue) / 100).toFixed(2)) : null;
   const isWritingTask = question.subType.startsWith("writing-task-");
   const wordCount = useMemo(() => countWords(textValue), [textValue]);
   const wordLimit = question.wordLimit ?? null;
@@ -158,7 +161,7 @@ const StudentExamQuestionCard = ({
 
       {question.audioUrl ? (
         <audio controls src={question.audioUrl} className="w-full" preload="metadata">
-          Your browser does not support the audio element.
+          {t("noAudioSupport")}
         </audio>
       ) : null}
 
@@ -167,7 +170,7 @@ const StudentExamQuestionCard = ({
           <NotmalTextFeild
             value={textValue}
             onChange={(event) => onAnswerChange(question.id, event.target.value)}
-            placeholder={isWritingTask ? "Write your essay here" : "Write answer here"}
+            placeholder={isWritingTask ? t("writeEssay") : t("writeAnswer")}
             rows={isWritingTask ? 12 : 4}
             maxRows={isWritingTask ? 24 : 6}
             disabled={disabled}
@@ -243,17 +246,16 @@ const StudentExamQuestionCard = ({
       <div className="flex items-center justify-between gap-3">
         {question.inputMode === "text" ? (
           <p className="text-[14px] leading-5 tracking-[-0.02em] text-[#747775]">
-            Word count {wordCount}
-            {wordLimit ? ` / ${wordLimit}` : ""}
+            {wordLimit ? t("wordCountLimit", { count: wordCount, limit: wordLimit }) : t("wordCount", { count: wordCount })}
           </p>
         ) : (
           <div />
         )}
 
         <div className="flex items-center gap-2 text-[14px] leading-5 tracking-[-0.02em] text-[#747775]">
-          <span>Points: {question.points}</span>
-          {negativeMark ? <span>|</span> : null}
-          {negativeMark ? <span>Negative marking: {negativeMark}</span> : null}
+          <span>{t("points", { points: question.points })}</span>
+          {negativeMark !== null ? <span>|</span> : null}
+          {negativeMark !== null ? <span>{t("negativeMarking", { mark: negativeMark })}</span> : null}
         </div>
       </div>
     </article>

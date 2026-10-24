@@ -7,6 +7,7 @@ import ProctoringVideoPreview from "@/component/Tests/exam/ProctoringVideoPrevie
 import { selectProctoringPanelState } from "@/lib/features/proctoringSlice";
 import { useAppSelector } from "@/lib/hooks";
 import { getProctoringFlagColorStyles } from "@/utils/tests/proctoring";
+import { useTranslations } from "next-intl";
 import { memo, useState } from "react";
 
 interface ProctoringMobileFabProps {
@@ -17,6 +18,7 @@ const ProctoringMobileFab = ({ mediaStream }: ProctoringMobileFabProps) => {
   const [isBoardOpen, setIsBoardOpen] = useState(false);
   const { flagCount, riskLevel, flags } = useAppSelector(selectProctoringPanelState);
   const fabColors = getProctoringFlagColorStyles(flagCount);
+  const t = useTranslations("proctoring");
 
   return (
     <>
@@ -25,7 +27,7 @@ const ProctoringMobileFab = ({ mediaStream }: ProctoringMobileFabProps) => {
         onClick={() => setIsBoardOpen(true)}
         className="fixed bottom-5 right-5 z-30 flex size-14 items-center justify-center rounded-full shadow-lg xl:hidden"
         style={{ backgroundColor: fabColors.background, color: fabColors.text }}
-        aria-label="Open transparency board"
+        aria-label={t("openBoard")}
       >
         <span className="relative text-[20px] font-[700]">
           {flagCount > 0 ? (
@@ -45,28 +47,28 @@ const ProctoringMobileFab = ({ mediaStream }: ProctoringMobileFabProps) => {
       >
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <p className="text-[20px] font-[600] leading-6 text-[#232A25]">Transparency Board</p>
+            <p className="text-[20px] font-[600] leading-6 text-[#232A25]">{t("board")}</p>
             <button
               type="button"
               onClick={() => setIsBoardOpen(false)}
               className="rounded-[8px] border border-[#DDE5DE] px-3 py-1.5 text-[12px] font-[500] text-[#232A25]"
             >
-              Close
+              {t("close")}
             </button>
           </div>
 
-          <p className="text-[12px] leading-4 text-[#747775]">N.B. This camera view is only for your own monitor.</p>
+          <p className="text-[12px] leading-4 text-[#747775]">{t("ownViewNote")}</p>
 
           <ProctoringVideoPreview
             mediaStream={mediaStream}
             className="h-[140px] w-full rounded-[10px] bg-[#0F1A12] object-cover"
           />
 
-          <ProctoringFlagBadge flagCount={flagCount} label="Flagged count" />
+          <ProctoringFlagBadge flagCount={flagCount} label={t("flaggedCount")} />
 
           <div className="rounded-[10px] border border-[#E6ECE7] bg-white px-4 py-3">
-            <p className="text-[12px] font-[500] leading-4 text-[#747775]">Risk Level</p>
-            <p className="mt-1 text-[16px] font-[600] leading-5 text-[#232A25]">{riskLevel}</p>
+            <p className="text-[12px] font-[500] leading-4 text-[#747775]">{t("risk.label")}</p>
+            <p className="mt-1 text-[16px] font-[600] leading-5 text-[#232A25]">{t(`risk.${riskLevel}`)}</p>
           </div>
 
           <ProctoringMonitoringLog flags={flags} />

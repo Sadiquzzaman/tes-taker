@@ -1,7 +1,7 @@
 "use client";
 
 import CreateModal from "@/component/Tests/Create/CreateModal";
-import { DISQUALIFICATION_MESSAGE } from "@/utils/tests/proctoring";
+import { useTranslations } from "next-intl";
 
 interface ProctoringDisqualificationScreenProps {
   open: boolean;
@@ -9,6 +9,8 @@ interface ProctoringDisqualificationScreenProps {
 }
 
 const ProctoringDisqualificationScreen = ({ open, reason }: ProctoringDisqualificationScreenProps) => {
+  const t = useTranslations("proctoring");
+
   if (!open) {
     return null;
   }
@@ -19,8 +21,8 @@ const ProctoringDisqualificationScreen = ({ open, reason }: ProctoringDisqualifi
         <div className="flex size-14 items-center justify-center rounded-full bg-[#FEE4E2] text-[#D92D20]">
           <span className="text-[24px] font-[700]">!</span>
         </div>
-        <p className="text-[24px] font-[600] leading-7 tracking-[-0.04em] text-[#232A25]">Disqualified</p>
-        <p className="text-[14px] leading-6 text-[#747775]">{DISQUALIFICATION_MESSAGE}</p>
+        <p className="text-[24px] font-[600] leading-7 tracking-[-0.04em] text-[#232A25]">{t("disqualifiedTitle")}</p>
+        <p className="text-[14px] leading-6 text-[#747775]">{t("disqualifiedDescription")}</p>
         {reason ? <p className="text-[13px] leading-5 text-[#B93815]">{reason}</p> : null}
       </div>
     </CreateModal>

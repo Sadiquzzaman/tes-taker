@@ -1,4 +1,5 @@
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, screen } from "@testing-library/react";
+import { renderWithIntl } from "@/i18n/test-utils";
 import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ExamCountdown from "./ExamCountdown";
@@ -7,7 +8,7 @@ const renderCountdown = (props: Partial<ExamCountdownProps> = {}, disabledSubmit
   const submitButtonRef = createRef<HTMLButtonElement>();
   const onStart = vi.fn();
   const onTimeUp = vi.fn();
-  const view = render(
+  const view = renderWithIntl(
     <>
       <button ref={submitButtonRef} disabled={disabledSubmit}>
         Submit
@@ -31,6 +32,12 @@ describe("ExamCountdown", () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
+  });
+
+  it("shows the time with Bangla digits on a Bangla page", () => {
+    renderWithIntl(<ExamCountdown submitButtonRef={createRef<HTMLButtonElement>()} remainingSeconds={65} />, "bn");
+
+    expect(screen.getByText("০১ মিনিট ০৫ সেকেন্ড")).toBeTruthy();
   });
 
   it("counts down every second instead of staying at the start value", () => {

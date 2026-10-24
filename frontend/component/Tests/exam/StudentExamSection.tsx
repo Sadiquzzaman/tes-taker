@@ -1,5 +1,6 @@
 import StudentExamPassageCard from "@/component/Tests/exam/StudentExamPassageCard";
 import StudentExamQuestionCard from "@/component/Tests/exam/StudentExamQuestionCard";
+import { useTranslations } from "next-intl";
 
 interface StudentExamSectionProps {
   section: StudentExamViewSection;
@@ -22,12 +23,14 @@ const StudentExamSection = ({
   onAnswerChange,
   onMatchingChange,
 }: StudentExamSectionProps) => {
+  const t = useTranslations("exam");
+
   return (
     <section className="flex flex-col gap-4">
       {showTitle ? (
         <div className="px-1 pt-1">
           <p className="text-[14px] font-[600] uppercase tracking-[0.08em] text-[#49734F]">{section.title}</p>
-          <p className="mt-1 text-[13px] leading-5 text-[#747775]">{section.questionCount} Questions</p>
+          <p className="mt-1 text-[13px] leading-5 text-[#747775]">{t("questionCount", { count: section.questionCount })}</p>
         </div>
       ) : null}
 
