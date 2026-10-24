@@ -78,8 +78,8 @@ backend-build: ## Backend: nest build
 frontend-install: ## Frontend: install dependencies
 	cd $(FRONTEND_DIR) && $(FRONTEND_INSTALL)
 
-frontend-lint: ## Frontend: eslint
-	cd $(FRONTEND_DIR) && $(FRONTEND_PM) run lint
+frontend-lint: ## Frontend: eslint, and check app/tokens.css matches design/tokens.json
+	cd $(FRONTEND_DIR) && $(FRONTEND_PM) run lint && $(FRONTEND_PM) run tokens:check
 
 # `next typegen` writes next-env.d.ts (gitignored; image and route types),
 # which tsc needs on a fresh checkout before `next build` or `next dev` has run.
