@@ -671,7 +671,7 @@
       "title": "Tests",
       "all": "All",
       "ongoing": "Live",
-      "pending": "Marking pending",
+      "pending": "Scheduled",
       "completed": "Completed",
       "empty": "No tests here",
       "emptyDetail": "Tests for this class will appear here."
@@ -765,6 +765,111 @@
       "placeholder": "Type a message…",
       "send": "Send",
       "conversations": "Conversations"
+    }
+  },
+  "tests": {
+    "title": "Tests",
+    "intro": "Create tests, share them, and follow them live.",
+    "studentIntro": "Your tests and results.",
+    "search": "Search by test, subject or class",
+    "filter": {
+      "all": "All",
+      "ongoing": "Live",
+      "pending": "Scheduled",
+      "completed": "Completed"
+    },
+    "status": {
+      "ongoing": "Live",
+      "pending": "Scheduled",
+      "completed": "Completed"
+    },
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "category": {
+      "academic": "Academic",
+      "ielts": "IELTS"
+    },
+    "empty": "No tests yet",
+    "emptyTeacher": "Create your first test in a few minutes.",
+    "emptyStudent": "Tests from your teachers will appear here.",
+    "noMatch": "No tests match.",
+    "card": {
+      "audience": "Audience",
+      "subject": "Subject",
+      "modules": "Modules",
+      "participants": "Participants",
+      "submitted": "Submitted",
+      "progress": "Submissions",
+      "progressValue": "{submitted, number} of {total, number}",
+      "noSchedule": "No schedule",
+      "share": "Share test",
+      "download": "Download questions",
+      "grade": "Grade",
+      "start": "Start test",
+      "details": "View details",
+      "results": "View results"
+    },
+    "details": {
+      "title": "Test details",
+      "notFound": "Test not found",
+      "notFoundDetail": "It may have been deleted, or you may not have access to it.",
+      "back": "Back to tests",
+      "edit": "Edit",
+      "enable": "Enable",
+      "disable": "Disable",
+      "locked": "The test has started or ended, so it can no longer be edited or disabled.",
+      "statusSaved": "Test status updated.",
+      "disableTitle": "Disable this test?",
+      "disableDetail": "Students will not be able to start it until you enable it again.",
+      "subjects": "Subjects",
+      "audience": "Audience",
+      "class": "Class",
+      "duration": "Duration",
+      "minutes": "{minutes, plural, one {# minute} other {# minutes}}",
+      "starts": "Starts",
+      "ends": "Ends",
+      "questions": "Questions",
+      "totalMarks": "Total marks",
+      "passingScore": "Passing score",
+      "negativeMarking": "Negative marking",
+      "off": "Off",
+      "questionCount": "{count, plural, one {# question} other {# questions}}"
+    },
+    "audience": {
+      "anyone": "Anyone with the link",
+      "selected_class": "A class",
+      "specific_students": "Chosen students"
+    },
+    "share": {
+      "title": "Share test",
+      "created": "Test created",
+      "scheduled": "Test scheduled",
+      "scheduledFor": "Starts {date}.",
+      "createdDetail": "“{name}” is ready.",
+      "shareDetail": "Share “{name}”.",
+      "anyone": "Anyone with the link can take it.",
+      "classOnly": "Only students of {className} can take it.",
+      "excluded": "{count, plural, one {# student is excluded.} other {# students are excluded.}}",
+      "link": "Test link",
+      "message": "Take this test: {link}",
+      "subject": "Test: {name}"
+    },
+    "results": {
+      "title": "Your results",
+      "fallbackSubject": "Exam result",
+      "submitted": "Submitted {date}",
+      "score": "Score",
+      "answerSheet": "Answer sheet",
+      "failed": "Your results did not load.",
+      "percentage": "Percentage"
+    },
+    "join": {
+      "unavailable": "Test unavailable",
+      "title": "“{testName}” by {teacher}",
+      "duration": "You will have {minutes, plural, one {# minute} other {# minutes}} to finish.",
+      "private": "This test is only for students the teacher chose.",
+      "public": "Any student can take this test.",
+      "continue": "Continue"
     }
   }
 }

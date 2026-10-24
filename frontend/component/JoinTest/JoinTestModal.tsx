@@ -1,79 +1,50 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Button, cn } from "@/design/ui";
 import InviteIconSVG from "../svg/InviteIconSVG";
 
-const JoinTestModal = ({ testData, testId, apiResponse, errorMessage }: JoinTestModalProps) => {
-  console.log({ testData, apiResponse, errorMessage, testId });
+/** The test invite page: what the test is, how long it takes, and continue to log in. */
+const JoinTestModal = ({ testData, apiResponse, errorMessage }: JoinTestModalProps) => {
+  const t = useTranslations("tests.join");
   const router = useRouter();
   const isError = Boolean(errorMessage);
-  const title = isError
-    ? "Test unavailable"
-    : `Join '${testData?.test_name ?? ""}' test by ${testData?.created_user_name ?? ""}`;
-  const description = isError ? errorMessage : testData?.description || "Log in to continue with this test invitation.";
 
   const handleContinue = () => {
     if (!apiResponse) {
       return;
     }
-
-    sessionStorage.setItem(
-      "joinSessionInfo",
-      JSON.stringify({
-        ...apiResponse.payload,
-        joinType: "test",
-      }),
-    );
-
+    sessionStorage.setItem("joinSessionInfo", JSON.stringify({ ...apiResponse.payload, joinType: "test" }));
     router.push("/login");
   };
 
   return (
-    <div className="flex w-full items-center justify-center font-ins-sans">
-      <div className="flex w-full max-w-[460px] flex-col justify-center rounded-xl border-l border-l-border bg-surface shadow-lg max-md:max-w-full">
-        <div className="flex flex-col items-start justify-center gap-6 p-6">
-          <div className={isError ? "text-danger" : "text-primary"}>
+    <div className="flex w-full items-center justify-center">
+      <div className="flex w-full max-w-md flex-col rounded-card border border-border bg-surface shadow-overlay">
+        <div className="flex flex-col gap-6 p-6">
+          <span className={isError ? "text-danger" : "text-primary"}>
             <InviteIconSVG width={40} />
-          </div>
-
-          <div className="flex w-full flex-col items-start gap-2">
-            <p className="w-full text-title font-medium text-ink">{title}</p>
-            <p
-              className={
-                isError
-                  ? "w-full text-body font-normal leading-5 text-danger"
-                  : "w-full text-body font-normal leading-5 text-ink-muted"
-              }
-            >
-              {isError ? (
-                description
-              ) : (
-                <>
-                  Here is a small test summary and you will have <b>{apiResponse?.payload?.duration_minutes} minutes</b>{" "}
-                  to complete the test.{" "}
-                  {testData?.test_audience === "selected_class"
-                    ? "This is a private test, only Selected Students will be able to join."
-                    : "This is a public test, any student will be able to join."}
-                </>
-              )}
-            </p>
+          </span>
+          <div className="flex flex-col gap-2">
+            <h1 className="text-title font-semibold text-ink">
+              {isError ? t("unavailable") : t("title", { testName: testData?.test_name ?? "", teacher: testData?.created_user_name ?? "" })}
+            </h1>
+            {isError ? (
+              <p className={cn("text-body text-danger")}>{errorMessage}</p>
+            ) : (
+              <>
+                {testData?.description ? <p className="text-body text-ink-muted">{testData.description}</p> : null}
+                <p className="text-body text-ink-muted">{t("duration", { minutes: apiResponse?.payload?.duration_minutes ?? 0 })}</p>
+                <p className="text-body text-ink-muted">{testData?.test_audience === "selected_class" ? t("private") : t("public")}</p>
+              </>
+            )}
           </div>
         </div>
-
         {!isError ? (
-          <>
-            <div className="h-px w-full bg-border" />
-
-            <div className="flex items-center justify-end p-6">
-              <button
-                type="button"
-                onClick={handleContinue}
-                className="flex h-10 items-center justify-center rounded-lg bg-primary px-4 pl-[14px] text-body-sm font-medium leading-4 text-ink-inverse transition-colors hover:bg-primary-hover"
-              >
-                Continue
-              </button>
-            </div>
-          </>
+          <div className="flex justify-end border-t border-border p-4">
+            <Button onClick={handleContinue}>{t("continue")}</Button>
+          </div>
         ) : null}
       </div>
     </div>

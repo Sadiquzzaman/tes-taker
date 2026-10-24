@@ -14,12 +14,14 @@ const eslintConfig = defineConfig([
       "component/Classes/**/*.{ts,tsx}",
       "component/JoinClass/**/*.{ts,tsx}",
       "app/classes/**/*.{ts,tsx}",
-      "component/Tests/CreateTestActionButton.tsx",
+      "component/Share/**/*.{ts,tsx}",
+      "component/JoinTest/**/*.{ts,tsx}",
+      "component/Tests/{CreateTestActionButton,TestsNameSection,TestList,ExamDetails,StudentExamResults,ShareTestModal}.tsx",
+      "app/tests/page.tsx",
+      "app/tests/[[]id]/**/*.{ts,tsx}",
     ],
     ignores: [
       "**/*.test.{ts,tsx}",
-      // Rebuilt with the Tests area later in P1-05.
-      "component/Classes/TestCard.tsx",
       // No longer used; deletion pending owner approval.
       "component/Classes/StudentBadges.tsx",
     ],

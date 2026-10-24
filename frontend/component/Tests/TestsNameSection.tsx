@@ -1,72 +1,46 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import CreateTestActionButton from "@/component/Tests/CreateTestActionButton";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import NormalInput from "@/Ui/NormalInput";
+import { FilterBar, PageHeader, Select } from "@/design/ui";
 import { setActiveTab, setNewTestCreated, setSearchInput } from "@/lib/features/testSlice";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { testsTabList } from "@/utils/testsTabList";
-import FilterIconSVG from "../svg/FilterIconSVG";
 import ShareTestModal from "./ShareTestModal";
 
-interface TestsNameSectionProps {
-  role: RoleUserType | undefined;
-}
-
-const TestsNameSection = ({ role }: TestsNameSectionProps) => {
+/** The Tests page header: Create test (teachers), search and the status filter. */
+const TestsNameSection = ({ role }: { role: RoleUserType | undefined }) => {
+  const t = useTranslations("tests");
   const { activeTab, searchInput, newTestCreated } = useAppSelector((state) => state.test);
   const dispatch = useAppDispatch();
-  const shouldShowCreateTestButton = role === "TEACHER";
+  const isTeacher = role === "TEACHER";
 
   return (
-    <div className="mb-2 sm:mb-4 flex flex-col gap-2 sm:gap-4 min-h-[40px]">
-      <div className="flex justify-between items-center w-full">
-        <div className="text-title-sm md:text-display tracking-tight flex items-center gap-0 flex-wrap mr-4">
-          <p className="font-medium text-ink">Tests</p>
-        </div>
-
-        {shouldShowCreateTestButton && (
-          <div className="flex justify-end items-center gap-2 h-[40px]">
-            <CreateTestActionButton />
-          </div>
-        )}
-      </div>
-      <div className="flex flex-col lg:flex-row justify-start lg:justify-between items-start lg:items-center w-full min-h-10 mb-2">
-        <div className="flex w-fit rounded-md bg-canvas p-0.5">
-          {testsTabList.map((tab) => (
-            <button
-              key={tab.value}
-              className={`px-4 py-2 text-sm rounded ${
-                activeTab.value === tab.value ? "font-normal bg-surface shadow text-ink" : "text-ink-muted"
-              }`}
-              onClick={() => dispatch(setActiveTab(tab))}
-            >
-              {tab.name}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-2 lg:gap-4 mt-4 lg:mt-0 ml-0 lg:ml-2 h-10">
-          <NormalInput
-            parentClassName="max-w-[370px] w-full h-10"
-            inputClassName="text-body-sm font-normal placeholder:text-ink-muted"
-            value={searchInput}
-            onChange={(e) => dispatch(setSearchInput(e.target.value))}
-            placeholder="Search by Test, Subject or Class"
-          />
-          <div
-            className="text-ink-muted min-w-10 h-10 flex justify-center items-center bg-canvas rounded-md cursor-pointer"
-            title="Filter"
-          >
-            <FilterIconSVG />
-          </div>
-        </div>
-      </div>
-      {newTestCreated && (
-        <ShareTestModal
-          open={newTestCreated !== null}
-          setOpen={() => dispatch(setNewTestCreated(null))}
-          testData={newTestCreated}
+    <div className="mb-6 flex flex-col gap-4">
+      <PageHeader title={t("title")} description={isTeacher ? t("intro") : t("studentIntro")} actions={isTeacher ? <CreateTestActionButton /> : undefined} />
+      <FilterBar
+        search={searchInput}
+        onSearchChange={(value) => dispatch(setSearchInput(value))}
+        searchPlaceholder={t("search")}
+        hasActiveFilters={Boolean(searchInput) || activeTab.value !== "all"}
+        onClear={() => {
+          dispatch(setSearchInput(""));
+          dispatch(setActiveTab(testsTabList[0]));
+        }}
+      >
+        <Select
+          label={t("filter.all")}
+          hideLabel
+          placeholder={false}
+          value={activeTab.value}
+          onChange={(event) => dispatch(setActiveTab(testsTabList.find((tab) => tab.value === event.target.value) ?? testsTabList[0]))}
+          options={testsTabList.map((tab) => ({ value: tab.value, label: t(`filter.${tab.value}`) }))}
+          fieldClassName="sm:w-44"
         />
-      )}
+      </FilterBar>
+      {newTestCreated ? (
+        <ShareTestModal open={newTestCreated !== null} setOpen={() => dispatch(setNewTestCreated(null))} testData={newTestCreated} />
+      ) : null}
     </div>
   );
 };

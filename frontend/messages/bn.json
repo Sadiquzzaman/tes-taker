@@ -671,7 +671,7 @@
       "title": "পরীক্ষা",
       "all": "সব",
       "ongoing": "চলমান",
-      "pending": "মূল্যায়ন বাকি",
+      "pending": "নির্ধারিত",
       "completed": "সম্পন্ন",
       "empty": "এখানে কোনো পরীক্ষা নেই",
       "emptyDetail": "এই ক্লাসের পরীক্ষাগুলো এখানে দেখা যাবে।"
@@ -765,6 +765,111 @@
       "placeholder": "বার্তা লিখুন…",
       "send": "পাঠান",
       "conversations": "কথোপকথন"
+    }
+  },
+  "tests": {
+    "title": "পরীক্ষা",
+    "intro": "পরীক্ষা তৈরি করুন, শেয়ার করুন এবং সরাসরি অনুসরণ করুন।",
+    "studentIntro": "আপনার পরীক্ষা ও ফলাফল।",
+    "search": "পরীক্ষা, বিষয় বা ক্লাস দিয়ে খুঁজুন",
+    "filter": {
+      "all": "সব",
+      "ongoing": "চলমান",
+      "pending": "নির্ধারিত",
+      "completed": "সম্পন্ন"
+    },
+    "status": {
+      "ongoing": "চলমান",
+      "pending": "নির্ধারিত",
+      "completed": "সম্পন্ন"
+    },
+    "enabled": "চালু",
+    "disabled": "বন্ধ",
+    "category": {
+      "academic": "একাডেমিক",
+      "ielts": "IELTS"
+    },
+    "empty": "এখনো কোনো পরীক্ষা নেই",
+    "emptyTeacher": "কয়েক মিনিটেই প্রথম পরীক্ষাটি তৈরি করুন।",
+    "emptyStudent": "শিক্ষকদের দেওয়া পরীক্ষাগুলো এখানে দেখা যাবে।",
+    "noMatch": "কোনো পরীক্ষা মেলেনি।",
+    "card": {
+      "audience": "অংশগ্রহণকারী",
+      "subject": "বিষয়",
+      "modules": "মডিউল",
+      "participants": "অংশগ্রহণ",
+      "submitted": "জমা",
+      "progress": "জমার অবস্থা",
+      "progressValue": "{total, number}জনের মধ্যে {submitted, number}",
+      "noSchedule": "সময়সূচি নেই",
+      "share": "পরীক্ষা শেয়ার করুন",
+      "download": "প্রশ্ন ডাউনলোড করুন",
+      "grade": "মূল্যায়ন করুন",
+      "start": "পরীক্ষা শুরু করুন",
+      "details": "বিস্তারিত দেখুন",
+      "results": "ফলাফল দেখুন"
+    },
+    "details": {
+      "title": "পরীক্ষার বিবরণ",
+      "notFound": "পরীক্ষা পাওয়া যায়নি",
+      "notFoundDetail": "পরীক্ষাটি মুছে ফেলা হয়ে থাকতে পারে, অথবা আপনার প্রবেশাধিকার নেই।",
+      "back": "পরীক্ষার তালিকায় ফিরুন",
+      "edit": "সম্পাদনা",
+      "enable": "চালু করুন",
+      "disable": "বন্ধ করুন",
+      "locked": "পরীক্ষা শুরু বা শেষ হয়ে গেছে, তাই আর সম্পাদনা বা বন্ধ করা যাবে না।",
+      "statusSaved": "পরীক্ষার অবস্থা হালনাগাদ হয়েছে।",
+      "disableTitle": "পরীক্ষাটি বন্ধ করবেন?",
+      "disableDetail": "আবার চালু না করা পর্যন্ত শিক্ষার্থীরা এটি শুরু করতে পারবে না।",
+      "subjects": "বিষয়",
+      "audience": "অংশগ্রহণকারী",
+      "class": "ক্লাস",
+      "duration": "সময়",
+      "minutes": "{minutes, plural, other {# মিনিট}}",
+      "starts": "শুরু",
+      "ends": "শেষ",
+      "questions": "প্রশ্ন",
+      "totalMarks": "মোট নম্বর",
+      "passingScore": "পাস নম্বর",
+      "negativeMarking": "নেতিবাচক নম্বর",
+      "off": "বন্ধ",
+      "questionCount": "{count, plural, other {#টি প্রশ্ন}}"
+    },
+    "audience": {
+      "anyone": "লিংক থাকলে যে কেউ",
+      "selected_class": "একটি ক্লাস",
+      "specific_students": "বাছাই করা শিক্ষার্থী"
+    },
+    "share": {
+      "title": "পরীক্ষা শেয়ার করুন",
+      "created": "পরীক্ষা তৈরি হয়েছে",
+      "scheduled": "পরীক্ষা নির্ধারিত হয়েছে",
+      "scheduledFor": "শুরু হবে {date}।",
+      "createdDetail": "“{name}” তৈরি।",
+      "shareDetail": "“{name}” শেয়ার করুন।",
+      "anyone": "লিংক থাকলে যে কেউ পরীক্ষা দিতে পারবে।",
+      "classOnly": "শুধু {className}-এর শিক্ষার্থীরা পরীক্ষা দিতে পারবে।",
+      "excluded": "{count, plural, other {#জন শিক্ষার্থী বাদ আছে।}}",
+      "link": "পরীক্ষার লিংক",
+      "message": "এই পরীক্ষাটি দিন: {link}",
+      "subject": "পরীক্ষা: {name}"
+    },
+    "results": {
+      "title": "আপনার ফলাফল",
+      "fallbackSubject": "পরীক্ষার ফলাফল",
+      "submitted": "জমা দেওয়া হয়েছে {date}",
+      "score": "নম্বর",
+      "answerSheet": "উত্তরপত্র",
+      "failed": "আপনার ফলাফল লোড হয়নি।",
+      "percentage": "শতকরা"
+    },
+    "join": {
+      "unavailable": "পরীক্ষাটি পাওয়া যাচ্ছে না",
+      "title": "{teacher}-এর “{testName}”",
+      "duration": "শেষ করার জন্য {minutes, plural, other {# মিনিট}} পাবেন।",
+      "private": "এই পরীক্ষা শুধু শিক্ষকের বাছাই করা শিক্ষার্থীদের জন্য।",
+      "public": "যেকোনো শিক্ষার্থী এই পরীক্ষা দিতে পারবে।",
+      "continue": "এগিয়ে যান"
     }
   }
 }

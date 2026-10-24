@@ -5,7 +5,9 @@ import { useEffect, useMemo } from "react";
 import { setSearchInput } from "@/lib/features/testSlice";
 import TestCard from "../Classes/TestCard";
 import useGetAllTests from "@/hooks/api/tests/useGetAllTests";
-import { RotatingLines } from "react-loader-spinner";
+import { useTranslations } from "next-intl";
+import { Card, EmptyState, Skeleton } from "@/design/ui";
+import CreateTestActionButton from "./CreateTestActionButton";
 import { getTestAudienceLabel, getTestSubjectLabel } from "@/utils/tests/testListItem";
 
 interface TestListProps {
@@ -24,7 +26,9 @@ const matchesStartsWith = (value: string, searchValue: string) => {
   );
 };
 
+/** The tests, filtered by the search box and status filter above. */
 const TestList = ({ role }: TestListProps) => {
+  const t = useTranslations("tests");
   const { loading, testList, apiComplete } = useGetAllTests({ role });
   const { activeTab, searchInput } = useAppSelector((state) => state.test);
   const dispatch = useAppDispatch();
@@ -55,41 +59,36 @@ const TestList = ({ role }: TestListProps) => {
     dispatch(setSearchInput(""));
   }, [dispatch]);
 
-  if (loading)
+  if (loading || !apiComplete) {
     return (
-      <div className="w-full min-h-[calc(100vh-300px)] flex items-center justify-center">
-        <RotatingLines
-          visible={true}
-          height="48"
-          width="48"
-          color="grey"
-          strokeWidth="5"
-          animationDuration="0.75"
-          ariaLabel="rotating-lines-loading"
-          wrapperStyle={{}}
-          wrapperClass=""
-        />
-      </div>
-    );
-
-  if (!apiComplete) return null;
-
-  if (filteredTestList.length === 0) {
-    return (
-      <div className="w-full min-h-[calc(100vh-400px)] flex items-center justify-center">
-        <div className="text-center">
-          <p className="font-semibold text-title tracking-tight text-ink">Test not found</p>
-        </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-busy="true">
+        {[0, 1, 2, 3].map((item) => (
+          <div key={item} className="rounded-card border border-border bg-surface p-4">
+            <Skeleton lines={5} />
+          </div>
+        ))}
       </div>
     );
   }
 
+  if (filteredTestList.length === 0) {
+    const filtering = Boolean(normalizedSearchInput) || activeTab.value !== "all";
+    return (
+      <Card>
+        <EmptyState
+          title={filtering ? t("noMatch") : t("empty")}
+          description={filtering ? undefined : role === "TEACHER" ? t("emptyTeacher") : t("emptyStudent")}
+          action={!filtering && role === "TEACHER" ? <CreateTestActionButton /> : undefined}
+        />
+      </Card>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-2 sm:gap-4">
-      {filteredTestList.length > 0 &&
-        filteredTestList.map((test) => (
-          <TestCard key={test.id} cardBackground="white" from="testList" testData={test} role={role} />
-        ))}
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+      {filteredTestList.map((test) => (
+        <TestCard key={test.id} from="testList" testData={test} role={role} />
+      ))}
     </div>
   );
 };

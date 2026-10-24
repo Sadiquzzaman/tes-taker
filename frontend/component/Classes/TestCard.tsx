@@ -1,270 +1,147 @@
-import { useState } from "react";
-import { useAppDispatch } from "@/lib/hooks";
+"use client";
+
+import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import CalenderIconSVG from "../svg/CalenderIconSVG";
-import DownloadIconSVG from "../svg/DownloadIconSVG";
-import PlayIconSVG from "../svg/PlayIconSVG";
-import ShareIconSVG from "../svg/ShareIconSVG";
-import { setNewTestCreated } from "@/lib/features/testSlice";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { Badge, Button, buttonClasses, IconButton, StatusPill } from "@/design/ui";
 import useDownloadExamQuestions from "@/hooks/api/exam/useDownloadExamQuestions";
+import useFormat from "@/i18n/useFormat";
 import { getStoredUser } from "@/lib/authSession";
-import Link from "next/link";
+import { setNewTestCreated } from "@/lib/features/testSlice";
+import { useAppDispatch } from "@/lib/hooks";
 import {
   getTestAudienceLabel,
-  getTestCategoryLabel,
+  getTestCategory,
   getTestCounts,
   getTestScheduleRange,
   getTestSubjectLabel,
   isTeacherExamListItem,
 } from "@/utils/tests/testListItem";
+import CalenderIconSVG from "../svg/CalenderIconSVG";
+import DownloadIconSVG from "../svg/DownloadIconSVG";
+import PlayIconSVG from "../svg/PlayIconSVG";
+import ShareIconSVG from "../svg/ShareIconSVG";
 
-const formatOptions: Intl.DateTimeFormatOptions = {
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  hour12: true,
-};
+const STATUS_TONE = { ongoing: "success", pending: "info", completed: "neutral" } as const;
 
-const TestCard = ({
-  cardBackground = "rgba(239,240,243,0.75)",
-  from = "",
-  testData,
-  role = "TEACHER",
-}: {
-  cardBackground?: string;
-  from?: string;
-  testData: TestListItem;
-  role?: RoleUserType;
-}) => {
+/** A test in a list: status, subject, participation, schedule, and the next action for this role. */
+const TestCard = ({ from = "", testData, role = "TEACHER" }: { from?: string; testData: TestListItem; role?: RoleUserType }) => {
+  const t = useTranslations("tests");
+  const format = useFormat();
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { download, loading: downloading } = useDownloadExamQuestions();
-  // Time the card was first rendered; decides whether a student may download the paper.
+  // When the card was first shown; decides whether a student may download the paper yet.
   const [renderedAt] = useState(() => Date.now());
-  const primarySubjectName = getTestSubjectLabel(testData);
-  const categoryLabel = getTestCategoryLabel(testData);
-  const audienceName = getTestAudienceLabel(testData);
+
+  const category = getTestCategory(testData);
   const { participantCount, submittedCount } = getTestCounts(testData);
   const { startAt, endAt } = getTestScheduleRange(testData);
   const isStudent = role === "STUDENT";
   const isTeacher = role === "TEACHER";
+  const status = testData.status;
   const currentUserId = getStoredUser()?.id;
-  const canGradeTest =
-    isTeacher &&
-    isTeacherExamListItem(testData) &&
-    Boolean(currentUserId) &&
-    testData.created_by === currentUserId;
+  const canGrade = isTeacher && isTeacherExamListItem(testData) && Boolean(currentUserId) && testData.created_by === currentUserId;
   const canStudentDownload = Boolean(endAt && renderedAt > new Date(endAt).getTime());
   const showDownload = isTeacher || (isStudent && canStudentDownload);
-  const submissionProgress = participantCount > 0 ? (submittedCount / participantCount) * 100 : 0;
-  const isExamDisabled = isTeacher && "is_active" in testData && testData.is_active === 0;
+  const progress = participantCount > 0 ? Math.round((submittedCount / participantCount) * 100) : 0;
+  const isDisabled = isTeacher && "is_active" in testData && testData.is_active === 0;
 
-  // const testStatus = "pending" as "ongoing" | "completed" | "pending";
-  const testStatus = testData.status;
-  const isStudentOngoingTest = isStudent && testStatus === "ongoing";
-  const statusColors: Record<string, string> = {
-    ongoing: "rgba(0,233,33,0.15)",
-    completed: "rgba(73,115,79,0.15)",
-    pending: "#ED860025",
-  };
-  const statusTextColors: Record<string, string> = {
-    ongoing: "#49734F",
-    completed: "#49734F",
-    pending: "#ED8600",
-  };
-
-  const handleStudentOngoingTestAction = () => {
+  const startTest = () => {
     sessionStorage.setItem("testId", testData.id);
     router.push("/test/permissions");
   };
 
-  const handlePrimaryAction = () => {
-    if (isTeacher) {
-      router.push(`/tests/${testData.id}`);
-      return;
-    }
+  const primaryHref = isTeacher ? `/tests/${testData.id}` : status === "completed" ? `/tests/${testData.id}/results` : null;
+  const primaryLabel = !isTeacher && status === "completed" ? t("card.results") : t("card.details");
 
-    if (testStatus === "completed") {
-      router.push(`/tests/${testData.id}/results`);
-    }
-  };
-
-  const getStudentActionLabel = () => {
-    if (testStatus === "ongoing") {
-      return "View details";
-    }
-    if (testStatus === "completed") {
-      return "View results";
-    }
-    return "View details";
-  };
-
-  const handleDownload = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    void download(testData.id, testData.test_name);
-  };
+  const facts = [
+    ...(from === "testList" ? [{ key: "audience", label: t("card.audience"), value: getTestAudienceLabel(testData) }] : []),
+    { key: "subject", label: category === "ielts" ? t("card.modules") : t("card.subject"), value: getTestSubjectLabel(testData) },
+    { key: "participants", label: t("card.participants"), value: format.number(participantCount) },
+    { key: "submitted", label: t("card.submitted"), value: format.number(submittedCount) },
+  ];
 
   return (
-    <div
-      style={{ background: cardBackground }}
-      className={`w-full p-2 sm:p-4 flex flex-col items-center gap-6 rounded-lg`}
-    >
-      <div className="w-full flex justify-between items-center">
-        <h2 className="text-title-sm font-medium text-primary">
-          {testData.test_name}
-        </h2>
-        <div className="flex items-center gap-2">
-          {categoryLabel ? (
-            <span className="rounded-full border border-primary bg-[rgba(73,115,79,0.12)] px-2 py-1 text-caption font-medium text-primary">
-              {categoryLabel}
-            </span>
+    <article className="flex flex-col gap-5 rounded-card border border-border bg-surface p-4 shadow-card">
+      <header className="flex flex-wrap items-start justify-between gap-2">
+        <h3 className="min-w-0 flex-1 text-title-sm font-semibold text-ink">{testData.test_name}</h3>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {category ? <Badge tone="primary">{t(`category.${category}`)}</Badge> : null}
+          {isTeacher && "is_active" in testData ? (
+            <Badge tone={isDisabled ? "danger" : "neutral"}>{isDisabled ? t("disabled") : t("enabled")}</Badge>
           ) : null}
-          {isTeacher && "is_active" in testData && (
-            <span
-              className={`px-2 py-1 text-caption font-medium rounded-full box-border border ${
-                isExamDisabled
-                  ? "text-danger border-danger bg-danger-soft"
-                  : "text-primary border-primary bg-[rgba(73,115,79,0.15)]"
-              }`}
-            >
-              {isExamDisabled ? "Disabled" : "Enabled"}
-            </span>
-          )}
-          <span
-            style={{ background: statusColors[testStatus] }}
-            className={`px-2 py-1 text-caption font-medium text-[${statusTextColors[testStatus]}] border border-[${statusTextColors[testStatus]}] rounded-full box-border`}
-          >
-            {testStatus}
-          </span>
+          <StatusPill tone={STATUS_TONE[status]}>{t(`status.${status}`)}</StatusPill>
         </div>
-      </div>
-      <div className="w-full flex flex-wrap items-center justify-between gap-y-2">
-        {from === "testList" && (
-          <div className="w-1/2 lg:flex-1">
-            <p className="font-normal text-body-sm text-ink-muted">Audience </p>
-            <p className="font-semibold text-body text-ink pt-2">
-              {audienceName}
-            </p>
+      </header>
+
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 lg:grid-cols-4">
+        {facts.map((fact) => (
+          <div key={fact.key} className="min-w-0">
+            <dt className="text-caption text-ink-muted">{fact.label}</dt>
+            <dd className="truncate text-body font-semibold text-ink">{fact.value}</dd>
           </div>
-        )}
-        <div className="w-1/2 lg:flex-1">
-          <p className="font-normal text-body-sm text-ink-muted">
-            {categoryLabel === "IELTS" ? "Modules" : "Subject"}
-          </p>
-          <p className="font-semibold text-body text-ink pt-2">
-            {primarySubjectName}
-          </p>
+        ))}
+      </dl>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between text-caption text-ink-muted">
+          <span>{t("card.progress")}</span>
+          <span>{t("card.progressValue", { submitted: submittedCount, total: participantCount })}</span>
         </div>
-        <div className="w-1/2 lg:flex-1">
-          <p className="font-normal text-body-sm text-ink-muted">Participants</p>
-          <p className="font-semibold text-body text-ink pt-2">
-            {participantCount}
-          </p>
-        </div>
-        <div className="w-1/2 lg:flex-1">
-          <p className="font-normal text-body-sm text-ink-muted">Submitted</p>
-          <p className="font-semibold text-body text-ink pt-2">
-            {submittedCount}
-          </p>
+        <div
+          role="progressbar"
+          aria-label={t("card.progress")}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={progress}
+          className="h-1.5 overflow-hidden rounded-full bg-canvas"
+        >
+          <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
         </div>
       </div>
-      <div className="w-full flex flex-col gap-4">
-        <div className="w-full flex items center justify-between">
-          <p className="font-normal text-body-sm text-ink-muted">Submission progress</p>
-          <p className="font-normal text-body-sm text-ink-muted">
-            {submittedCount}/{participantCount}
-          </p>
-        </div>
-        <div className="w-full h-1 rounded-[23px] bg-border">
-          <div
-            style={{ background: statusTextColors[testStatus], width: `${submissionProgress}%` }}
-            className="h-full rounded-[23px]"
-          ></div>
-        </div>
-      </div>
-      <div className="w-full flex items-center justify-between text-ink gap-2">
-        <div className="flex items-center gap-2">
+
+      <footer className="flex flex-wrap items-center justify-between gap-3">
+        <p className="flex items-center gap-2 text-body-sm text-ink">
           <CalenderIconSVG />
-          <p className="font-normal text-body-sm">
-            {startAt && endAt
-              ? `${new Date(startAt).toLocaleString("en-US", formatOptions)} - ${new Date(endAt).toLocaleString("en-US", formatOptions)}`
-              : "N/A"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-ink-muted">
-          {from === "testList" && isTeacher && (
-            <button
-              title="Share Tests"
-              className="w-8 h-8 flex justify-center items-center rounded-input hover:bg-canvas"
-              onClick={() => {
-                if (isTeacherExamListItem(testData)) {
-                  dispatch(setNewTestCreated({ type: "existing", test: testData }));
-                }
-              }}
-            >
-              <ShareIconSVG width={16} />
-            </button>
-          )}
-
-          {showDownload ? (
-            <button
-              type="button"
-              title="Download questions"
-              disabled={downloading}
-              className="w-8 h-8 flex justify-center items-center rounded-input hover:bg-canvas disabled:opacity-50"
-              onClick={handleDownload}
-            >
-              <DownloadIconSVG width={16} />
-            </button>
+          {startAt && endAt ? `${format.dateTime(startAt)} – ${format.dateTime(endAt)}` : t("card.noSchedule")}
+        </p>
+        <div className="flex items-center gap-1">
+          {from === "testList" && isTeacher && isTeacherExamListItem(testData) ? (
+            <IconButton
+              size="sm"
+              label={t("card.share")}
+              icon={<ShareIconSVG width={16} />}
+              onClick={() => dispatch(setNewTestCreated({ type: "existing", test: testData }))}
+            />
           ) : null}
-
-          {canGradeTest && (
-            <Link
-              href={`/grading/details/${testData.id}`}
-              onClick={(event) => event.stopPropagation()}
-              className="px-3 py-2 text-caption font-medium rounded-lg bg-ink text-ink-inverse hover:bg-primary-hover"
-            >
-              Grade Test
-            </Link>
-          )}
-
-          {isStudentOngoingTest ? (
-            <button
-              type="button"
-              onClick={handleStudentOngoingTestAction}
-              className="flex items-center justify-center gap-2 rounded-input bg-primary px-3 py-2 text-caption font-medium text-ink-inverse transition-colors duration-200 hover:bg-primary-hover"
-            >
-              <PlayIconSVG className="size-4" />
-              <span className="capitalize">Start Test</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handlePrimaryAction}
-              className="px-3 py-2 text-caption font-medium border rounded-lg transition-all duration-200"
-              style={{
-                color: statusTextColors[testStatus],
-                borderColor: statusTextColors[testStatus],
-                backgroundColor: "transparent",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = statusTextColors[testStatus];
-                e.currentTarget.style.color = "#fff";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.color = statusTextColors[testStatus];
-              }}
-            >
-              {isTeacher
-                ? "View details"
-                : getStudentActionLabel()}
-            </button>
-          )}
+          {showDownload ? (
+            <IconButton
+              size="sm"
+              label={t("card.download")}
+              icon={<DownloadIconSVG width={16} />}
+              disabled={downloading}
+              onClick={() => void download(testData.id, testData.test_name)}
+            />
+          ) : null}
+          {canGrade ? (
+            <NextLink href={`/grading/details/${testData.id}`} className={buttonClasses({ variant: "secondary", size: "sm" })}>
+              {t("card.grade")}
+            </NextLink>
+          ) : null}
+          {isStudent && status === "ongoing" ? (
+            <Button size="sm" leftIcon={<PlayIconSVG className="size-4" />} onClick={startTest}>
+              {t("card.start")}
+            </Button>
+          ) : primaryHref ? (
+            <NextLink href={primaryHref} className={buttonClasses({ size: "sm" })}>
+              {primaryLabel}
+            </NextLink>
+          ) : null}
         </div>
-      </div>
-    </div>
+      </footer>
+    </article>
   );
 };
 
