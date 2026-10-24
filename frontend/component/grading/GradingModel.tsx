@@ -1,62 +1,28 @@
-import CloseIconSVG from "../svg/CloseIconSvg";
+"use client";
+
+import { useTranslations } from "next-intl";
+import { Drawer, Skeleton } from "@/design/ui";
+import useGradingModal from "@/hooks/grading/useGradingModal";
 import GradingEditView from "./GradingEditView";
 import GradingResultView from "./GradingResultView";
-import useGradingModal from "@/hooks/grading/useGradingModal";
-import { RotatingLines } from "react-loader-spinner";
 
+/** The drawer to mark one submission, or to read its result. */
 const GradingModel = () => {
+  const t = useTranslations("grading.modal");
   const { data, handleClose, loading, modalTitle, openModal } = useGradingModal();
 
   return (
-    <div
-      className={`fixed inset-0 z-40 bg-black/30 transition-opacity duration-300 ${
-        openModal ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
-      }`}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          handleClose();
-        }
-      }}
-      aria-hidden="true"
-    >
-      <div
-        className={`absolute top-2 right-2 z-50 h-[calc(100vh-8px)] w-[calc(100vw-8px)] overflow-auto rounded-xl bg-surface p-4 shadow-lg transition-transform duration-500 sm:w-[584px] sm:p-8 ${
-          openModal ? "translate-x-0" : "pointer-events-none translate-x-full"
-        }`}
-        style={{ maxHeight: "calc(100vh - 16px)" }}
-        aria-modal="true"
-        role="dialog"
-      >
-        <div className="flex items-center justify-between">
-          <p className="text-title font-semibold text-ink">{modalTitle}</p>
-          <button onClick={handleClose} className="text-ink-muted hover:text-ink">
-            <CloseIconSVG className="h-6 w-6" stroke="currentColor" />
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="flex min-h-[320px] items-center justify-center">
-            <RotatingLines
-              visible={true}
-              height="40"
-              width="40"
-              color="grey"
-              strokeWidth="5"
-              animationDuration="0.75"
-              ariaLabel="submission-grading-loading"
-            />
-          </div>
-        ) : null}
-
-        {!loading && data && openModal === "result" ? <GradingResultView data={data} /> : null}
-        {!loading && data && openModal === "edit" ? <GradingEditView data={data} /> : null}
-        {!loading && !data && openModal ? (
-          <div className="flex min-h-[320px] items-center justify-center text-body-sm text-ink-muted">
-            No submission data found.
-          </div>
-        ) : null}
-      </div>
-    </div>
+    <Drawer wide open={Boolean(openModal)} onClose={handleClose} title={modalTitle}>
+      {loading ? (
+        <Skeleton lines={8} />
+      ) : !data ? (
+        <p className="py-10 text-center text-body-sm text-ink-muted">{t("empty")}</p>
+      ) : openModal === "result" ? (
+        <GradingResultView data={data} />
+      ) : (
+        <GradingEditView data={data} />
+      )}
+    </Drawer>
   );
 };
 

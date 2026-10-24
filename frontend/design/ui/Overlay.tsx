@@ -27,7 +27,7 @@ export interface OverlayProps {
 const PANEL: Record<OverlayPlacement, string> = {
   center:
     "w-full max-w-lg rounded-sheet data-closed:scale-95 data-closed:opacity-0 max-h-[calc(100dvh-2rem)]",
-  right: "ml-auto h-full w-full max-w-md data-closed:translate-x-full",
+  right: "ml-auto h-full w-full data-closed:translate-x-full",
   left: "mr-auto h-full w-72 max-w-[85vw] data-closed:-translate-x-full",
   bottom: "mt-auto max-h-[90dvh] w-full rounded-t-sheet data-closed:translate-y-full",
 };

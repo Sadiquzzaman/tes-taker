@@ -1,50 +1,31 @@
-import RightArrowIconSVG from "../svg/RightArrowIconSVG";
-import GradingQuestionList from "./GradingQuestionList";
-import useGradingSubmissionFooter from "@/hooks/grading/useGradingSubmissionFooter";
+"use client";
 
+import { useTranslations } from "next-intl";
+import { Button } from "@/design/ui";
+import useGradingSubmissionFooter from "@/hooks/grading/useGradingSubmissionFooter";
+import GradingQuestionList from "./GradingQuestionList";
+
+/** Mark the hand-graded answers of a submission, then save. */
 const GradingEditView = ({ data }: GradingModalEditViewProps) => {
+  const t = useTranslations("grading.modal");
   const { handleClose, handleSubmit, isSubmitting, isSubmitDisabled } = useGradingSubmissionFooter();
 
   return (
-    <div className="mt-4 flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-title-sm font-medium text-ink-muted">Answer sheet</p>
-        <p className="text-body-sm font-normal text-ink-muted">
-          Manual graded: {data.totals.manualGradedCount}/{data.totals.manualTotalCount}
+        <h3 className="text-body font-semibold text-ink">{t("answerSheet")}</h3>
+        <p className="text-body-sm text-ink-muted">
+          {t("manualProgress", { done: data.totals.manualGradedCount, total: data.totals.manualTotalCount })}
         </p>
       </div>
-
       <GradingQuestionList items={data.items} isReadOnly={false} />
-
-      <div className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <button
-          type="button"
-          onClick={handleClose}
-          className="flex h-12 items-center justify-center rounded-input bg-canvas px-4 text-body-sm font-medium leading-5 text-ink"
-        >
-          Save & Exit
-        </button>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="flex h-12 items-center justify-center rounded-input px-4 text-body-sm font-medium leading-5 text-ink"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSubmitDisabled}
-            className={`flex h-12 items-center justify-center gap-2 rounded-input px-4 text-body-sm font-medium leading-5 ${
-              isSubmitDisabled ? "cursor-not-allowed bg-primary/40 text-ink-inverse" : "bg-primary text-ink-inverse"
-            }`}
-          >
-            <span>{isSubmitting ? "Submitting..." : "Submit"}</span>
-            {isSubmitting ? null : <RightArrowIconSVG className="size-4" strokeWidth={1.8} />}
-          </button>
-        </div>
+      <div className="sticky bottom-0 -mx-5 flex flex-col-reverse gap-2 border-t border-border bg-surface px-5 py-3 sm:flex-row sm:justify-end">
+        <Button variant="secondary" onClick={handleClose}>
+          {t("close")}
+        </Button>
+        <Button loading={isSubmitting} disabled={isSubmitDisabled} onClick={() => void handleSubmit()}>
+          {isSubmitting ? t("submitting") : t("submit")}
+        </Button>
       </div>
     </div>
   );

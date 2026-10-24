@@ -28,7 +28,7 @@ export { default as Breadcrumb, type BreadcrumbItem } from "./Breadcrumb";
 export { default as Pagination, pageWindow, type PaginationProps } from "./Pagination";
 export { default as Stepper, type StepperProps } from "./Stepper";
 export { default as Modal, type ModalProps } from "./Modal";
-export { default as Drawer } from "./Drawer";
+export { default as Drawer, type DrawerProps } from "./Drawer";
 export { default as Sheet } from "./Sheet";
 export { type OverlayProps } from "./Overlay";
 export { default as ConfirmDialog, type ConfirmDialogProps } from "./ConfirmDialog";

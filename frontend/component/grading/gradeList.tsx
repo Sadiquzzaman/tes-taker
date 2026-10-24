@@ -1,125 +1,51 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+import { Card, EmptyState, Pagination, Skeleton } from "@/design/ui";
+import useGetGradeList from "@/hooks/api/grading/useGetGradeList";
 import { setPage } from "@/lib/features/gradingSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import GradeCard from "./GradeCard";
-import { RotatingLines } from "react-loader-spinner";
-import useGetGradeList from "@/hooks/api/grading/useGetGradeList";
-import PaginationChevronLeftIconSVG from "../svg/PaginationChevronLeftIconSVG";
-import PaginationChevronRightIconSVG from "../svg/PaginationChevronRightIconSVG";
 
+const GRID = "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3";
+
+/** Tests to grade, a page at a time, filtered by the header above. */
 const GradeList = () => {
+  const t = useTranslations("grading");
   const dispatch = useAppDispatch();
-  const { page } = useAppSelector((state) => state.grade);
+  const { page, activeTab, searchInput } = useAppSelector((state) => state.grade);
   const { apiComplete, gradeList, loading, meta } = useGetGradeList();
-  const totalPages = meta?.total_pages ?? 1;
+  const filtering = Boolean(searchInput.trim()) || activeTab.value !== "ALL";
 
-  const handlePageChange = (nextPage: number) => {
-    if (nextPage < 1 || nextPage > totalPages) {
-      return;
-    }
-
-    dispatch(setPage(nextPage));
-  };
-
-  if (loading) {
+  if (loading || !apiComplete) {
     return (
-      <div className="flex min-h-[calc(100vh-300px)] w-full items-center justify-center">
-        <RotatingLines
-          visible={true}
-          height="48"
-          width="48"
-          color="grey"
-          strokeWidth="5"
-          animationDuration="0.75"
-          ariaLabel="rotating-lines-loading"
-          wrapperStyle={{}}
-          wrapperClass=""
-        />
+      <div className={GRID} aria-busy="true">
+        {[0, 1, 2].map((item) => (
+          <div key={item} className="rounded-card border border-border bg-surface p-4">
+            <Skeleton lines={4} />
+          </div>
+        ))}
       </div>
     );
-  }
-
-  if (!apiComplete) {
-    return null;
   }
 
   if (gradeList.length === 0) {
     return (
-      <div className="flex min-h-[calc(100vh-400px)] w-full items-center justify-center">
-        <div className="text-center">
-          <p className="text-title font-semibold tracking-tight text-ink">No grading found</p>
-        </div>
-      </div>
+      <Card>
+        <EmptyState title={filtering ? t("noMatch") : t("empty")} description={filtering ? undefined : t("emptyDetail")} />
+      </Card>
     );
   }
 
   return (
-    <>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3">
+    <div className="flex flex-col gap-6">
+      <div className={GRID}>
         {gradeList.map((gradeItem) => (
           <GradeCard key={gradeItem.id} gradeItem={gradeItem} />
         ))}
       </div>
-
-      {meta && totalPages > 1 && (
-        <div className="mt-8 flex h-8 w-full items-center justify-center gap-6">
-          <div className="flex h-8 w-[272px] items-center justify-center gap-2 opacity-80">
-            <button
-              className="flex h-8 w-8 items-center justify-center rounded-input bg-surface p-2 text-ink disabled:opacity-50"
-              onClick={() => handlePageChange(page - 1)}
-              disabled={page === 1}
-            >
-              <PaginationChevronLeftIconSVG width={16} />
-            </button>
-
-            {Array.from({ length: totalPages }).map((_, index) => {
-              const pageNumber = index + 1;
-              const shouldShowPage = index === 0 || index === totalPages - 1 || Math.abs(pageNumber - page) <= 1;
-              const shouldShowEllipsis =
-                (index === 1 && page > 3) || (index === totalPages - 2 && page < totalPages - 2);
-
-              if (shouldShowPage) {
-                return (
-                  <button
-                    key={pageNumber}
-                    className={`flex h-8 w-8 items-center justify-center rounded-input border px-2 py-2 text-body-sm font-normal leading-4 ${
-                      page === pageNumber
-                        ? "border-ink bg-surface text-ink"
-                        : "border-border bg-surface text-ink-muted"
-                    }`}
-                    onClick={() => handlePageChange(pageNumber)}
-                  >
-                    {pageNumber}
-                  </button>
-                );
-              }
-
-              if (shouldShowEllipsis) {
-                return (
-                  <span
-                    key={`ellipsis-${pageNumber}`}
-                    className="flex h-8 w-8 items-center justify-center rounded-input bg-surface px-2 py-2 text-body-sm font-normal leading-4 text-ink-muted"
-                  >
-                    ...
-                  </span>
-                );
-              }
-
-              return null;
-            })}
-
-            <button
-              className="flex h-8 w-8 items-center justify-center rounded-input bg-surface p-2 text-ink disabled:opacity-50"
-              onClick={() => handlePageChange(page + 1)}
-              disabled={page === totalPages}
-            >
-              <PaginationChevronRightIconSVG width={16} />
-            </button>
-          </div>
-        </div>
-      )}
-    </>
+      <Pagination page={page} pageCount={meta?.total_pages ?? 1} onPageChange={(next) => dispatch(setPage(next))} />
+    </div>
   );
 };
 

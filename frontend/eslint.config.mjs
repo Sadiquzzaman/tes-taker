@@ -24,6 +24,10 @@ const eslintConfig = defineConfig([
       "app/tests/page.tsx",
       "app/tests/create/**/*.{ts,tsx}",
       "app/tests/[[]id]/**/*.{ts,tsx}",
+      "component/grading/**/*.{ts,tsx}",
+      "app/grading/**/*.{ts,tsx}",
+      "hooks/grading/**/*.{ts,tsx}",
+      "utils/grading/**/*.{ts,tsx}",
     ],
     ignores: [
       "**/*.test.{ts,tsx}",
@@ -32,6 +36,8 @@ const eslintConfig = defineConfig([
       "component/Tests/Create/CreateModal.tsx",
       "component/Tests/exam/ObjectiveQuestionSectionCard.tsx",
       "component/Tests/exam/EssayQuestionSectionCard.tsx",
+      "utils/grading/gradeCard.ts",
+      "utils/grading/gradeDetails.ts",
     ],
     rules: {
       "no-restricted-syntax": [

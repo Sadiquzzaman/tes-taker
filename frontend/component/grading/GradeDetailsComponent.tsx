@@ -1,51 +1,41 @@
 "use client";
 
+import { Card, Skeleton } from "@/design/ui";
 import useGetGradeDetails from "@/hooks/api/grading/useGetGradeDetails";
-import GradingModel from "./GradingModel";
+import ExamClassRosterPanel from "./ExamClassRosterPanel";
 import GradeDetailsHeader from "./GradeDetailsHeader";
 import GradeDetailsStats from "./GradeDetailsStats";
+import GradingModel from "./GradingModel";
 import StudentSubmissionsTable from "./StudentSubmissionsTable";
-import ExamClassRosterPanel from "./ExamClassRosterPanel";
-import { RotatingLines } from "react-loader-spinner";
 
+/** Grading one test: header, counts, class progress, submissions, and the marking drawer. */
 const GradeDetailsComponent = ({ classId }: { classId: string }) => {
   const { apiComplete, fetch, loading } = useGetGradeDetails(classId);
 
-  if (loading) {
+  if (loading || !apiComplete) {
     return (
-      <div className="flex min-h-[calc(100vh-300px)] w-full items-center justify-center">
-        <RotatingLines
-          visible={true}
-          height="48"
-          width="48"
-          color="grey"
-          strokeWidth="5"
-          animationDuration="0.75"
-          ariaLabel="rotating-lines-loading"
-          wrapperStyle={{}}
-          wrapperClass=""
-        />
+      <div className="flex flex-col gap-6 pb-8" aria-busy="true">
+        <Skeleton className="h-8 w-1/3" />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => (
+            <Skeleton key={item} className="h-24 rounded-card" />
+          ))}
+        </div>
+        <Card>
+          <Skeleton lines={6} />
+        </Card>
       </div>
     );
   }
 
-  if (!apiComplete) {
-    return null;
-  }
-
   return (
-    <>
-      <div className="mb-2 flex min-h-[40px] flex-col gap-2 sm:mt-2 sm:mb-4 sm:gap-4">
-        <GradeDetailsHeader refetchGradeDetails={fetch} />
-        <GradeDetailsStats />
-      </div>
-
-      <div className="flex min-h-[calc(100vh-320px)] min-w-0 flex-col gap-6 rounded-card bg-canvas p-2 sm:p-4">
-        <ExamClassRosterPanel examId={classId} />
-        <StudentSubmissionsTable />
-        <GradingModel />
-      </div>
-    </>
+    <div className="flex flex-col gap-6 pb-8">
+      <GradeDetailsHeader refetchGradeDetails={fetch} />
+      <GradeDetailsStats />
+      <StudentSubmissionsTable />
+      <ExamClassRosterPanel examId={classId} />
+      <GradingModel />
+    </div>
   );
 };
 

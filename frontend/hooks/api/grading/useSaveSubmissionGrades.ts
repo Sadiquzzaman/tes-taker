@@ -1,4 +1,5 @@
 import { useToast } from "@/component/Toast/ToastContext";
+import { useTranslations } from "next-intl";
 import axiosReq from "@/lib/axios";
 import { AxiosError, AxiosResponse } from "axios";
 import { useState } from "react";
@@ -6,6 +7,7 @@ import { useApiError } from "../useApiError";
 
 const useSaveSubmissionGrades = () => {
   const { triggerToast } = useToast();
+  const t = useTranslations("grading.modal");
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
 
@@ -21,8 +23,7 @@ const useSaveSubmissionGrades = () => {
       .then((response) => {
         if (response.status === 200) {
           triggerToast({
-            title: "Success",
-            description: response.data.message || "Submission grades saved successfully.",
+            title: t("savedToast"),
             type: "success",
           });
         }

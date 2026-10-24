@@ -1,27 +1,24 @@
-import { useAppSelector } from "@/lib/hooks";
-import ParticipantIconSVG from "../svg/ParticipantIconSVG";
+"use client";
 
+import { useTranslations } from "next-intl";
+import { StatTile } from "@/design/ui";
+import { useAppSelector } from "@/lib/hooks";
+
+/** Students, submissions, waiting and graded counts for the test. */
 const GradeDetailsStats = () => {
-  const gradeStats = useAppSelector((state) => state.gradeDetails.stats);
-  const statList = [
-    { label: "Total students", value: gradeStats?.total_students ?? 0 },
-    { label: "Submissions", value: gradeStats?.submissions ?? 0 },
-    { label: "Pending", value: gradeStats?.pending ?? 0 },
-    { label: "Graded", value: gradeStats?.graded ?? 0 },
+  const t = useTranslations("grading.details");
+  const stats = useAppSelector((state) => state.gradeDetails.stats);
+  const tiles = [
+    { key: "students", label: t("totalStudents"), value: stats?.total_students ?? 0 },
+    { key: "submissions", label: t("submissions"), value: stats?.submissions ?? 0 },
+    { key: "pending", label: t("pending"), value: stats?.pending ?? 0 },
+    { key: "graded", label: t("graded"), value: stats?.graded ?? 0 },
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-4">
-      {statList.map((stat) => (
-        <div key={stat.label} className="flex flex-1 gap-4 rounded-card bg-canvas p-4">
-          <ParticipantIconSVG />
-          <div className="flex flex-col gap-4">
-            <p className="whitespace-nowrap text-caption font-normal text-ink-muted">
-              {stat.label}
-            </p>
-            <p className="text-title font-medium text-ink">{stat.value}</p>
-          </div>
-        </div>
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {tiles.map((tile) => (
+        <StatTile key={tile.key} label={tile.label} value={tile.value} />
       ))}
     </div>
   );

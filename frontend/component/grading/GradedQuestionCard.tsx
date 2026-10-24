@@ -2,12 +2,13 @@ import CorrectFilledIconSVG from "../svg/CorrectFilledIconSVG";
 import IncorrectFilledIconSVG from "../svg/IncorrectFilledIconSVG";
 import GradingAnswerView from "./GradingAnswerView";
 import { RichTextContent } from "@/component/RichTextEditor";
-
-const formatScoreLabel = (value: number) => {
-  return String(value);
-};
+import Image from "next/image";
+import { useTranslations } from "next-intl";
+import useFormat from "@/i18n/useFormat";
 
 const GradedQuestionCard = ({ question }: GradingModalGradedQuestionCardProps) => {
+  const t = useTranslations("grading.answer");
+  const format = useFormat();
   const answerStatus = question.isCorrect === true ? "correct" : question.isCorrect === false ? "incorrect" : null;
 
   return (
@@ -20,9 +21,7 @@ const GradedQuestionCard = ({ question }: GradingModalGradedQuestionCardProps) =
           />
         ) : null}
         <div className="flex items-start gap-2 text-ink">
-          <span className="w-4 shrink-0 text-center text-body font-medium">
-            {question.questionNumber}.
-          </span>
+          <span className="shrink-0 text-body font-medium">{format.number(question.questionNumber)}.</span>
           <RichTextContent
             html={question.question}
             className="flex-1 text-body font-medium"
@@ -31,24 +30,30 @@ const GradedQuestionCard = ({ question }: GradingModalGradedQuestionCardProps) =
       </div>
 
       {question.imageUrl ? (
-        <img src={question.imageUrl} alt="Question" className="max-h-[240px] rounded-input object-contain" />
+        <Image
+          src={question.imageUrl}
+          alt={t("imageAlt", { number: question.questionNumber })}
+          width={0}
+          height={0}
+          sizes="100vw"
+          unoptimized
+          className="h-auto max-h-60 w-auto rounded-input object-contain"
+        />
       ) : null}
 
       <GradingAnswerView question={question} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <p className="text-body-sm font-normal text-ink">Score</p>
+          <p className="text-body-sm text-ink">{t("score")}</p>
           <div className="flex h-8 min-w-12 items-center justify-center rounded-sm border border-border bg-canvas px-5">
-            <p className="text-body-sm font-normal text-ink">
-              {formatScoreLabel(question.marksObtained)}
-            </p>
+            <p className="text-body-sm text-ink">{format.number(question.marksObtained)}</p>
           </div>
         </div>
 
         {answerStatus ? (
           <div className="flex items-center gap-2">
-            <p className="text-body-sm font-normal text-ink">Your answer</p>
+            <p className="text-body-sm text-ink">{t("yourAnswer")}</p>
             <div className="flex items-center gap-1">
               {answerStatus === "correct" ? <CorrectFilledIconSVG width={16} /> : <IncorrectFilledIconSVG width={16} />}
               <p
@@ -56,7 +61,7 @@ const GradedQuestionCard = ({ question }: GradingModalGradedQuestionCardProps) =
                   answerStatus === "correct" ? "text-primary" : "text-danger"
                 }`}
               >
-                {answerStatus === "correct" ? "Correct" : "Incorrect"}
+                {answerStatus === "correct" ? t("correct") : t("incorrect")}
               </p>
             </div>
           </div>
