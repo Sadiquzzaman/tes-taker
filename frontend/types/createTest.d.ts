@@ -308,14 +308,6 @@ type PassageQuestionBlockProps = {
   ) => void;
 };
 
-type CreateModalProps = {
-  open: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-  maxWidthClassName?: string;
-  panelClassName?: string;
-};
-
 type AddSubjectModalProps = {
   open: boolean;
   onClose: () => void;
