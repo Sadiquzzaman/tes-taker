@@ -32,7 +32,7 @@ const CreateModal = ({
         role="dialog"
         aria-modal="true"
         aria-hidden={!open}
-        className={`relative z-10 w-full rounded-[20px] bg-white shadow-[0_20px_60px_rgba(35,42,37,0.16)] transition-all duration-300 ${maxWidthClassName} ${panelClassName} ${open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
+        className={`relative z-10 w-full rounded-sheet bg-surface shadow-[0_20px_60px_rgba(35,42,37,0.16)] transition-all duration-300 ${maxWidthClassName} ${panelClassName} ${open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
       >
         {children}
       </div>

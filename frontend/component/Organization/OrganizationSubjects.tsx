@@ -1,16 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { AxiosError } from "axios";
-import axiosReq from "@/lib/axios";
-import { useApiError } from "@/hooks/api/useApiError";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
+import { Button, Card, ConfirmDialog, Drawer, EmptyState, Input, PageHeader, Skeleton, Table, type TableColumn } from "@/design/ui";
+import { useApiError } from "@/hooks/api/useApiError";
 import useWorkspace from "@/hooks/organization/useWorkspace";
+import axiosReq from "@/lib/axios";
 import OrganizationWorkspaceGate from "./OrganizationWorkspaceGate";
-import NormalInput from "@/Ui/NormalInput";
-import CreateModal from "@/component/Tests/Create/CreateModal";
 
+type SubjectDraft = { id: string | null; name: string; code: string };
+
+/** The organisation's subject list: create, rename and delete subjects. */
 const OrganizationSubjectsContent = () => {
+  const t = useTranslations("organization.subjects");
+  const tUi = useTranslations("ui");
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const { organizationId, activeOrganization } = useWorkspace();
   const { handleError } = useApiError();
@@ -18,12 +23,9 @@ const OrganizationSubjectsContent = () => {
   const [subjects, setSubjects] = useState<OrganizationSubjectItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editCode, setEditCode] = useState("");
+  // One form for both create (id null) and edit.
+  const [draft, setDraft] = useState<SubjectDraft | null>(null);
+  const [deleting, setDeleting] = useState<OrganizationSubjectItem | null>(null);
 
   const load = useCallback(async () => {
     if (!organizationId) {
@@ -33,9 +35,7 @@ const OrganizationSubjectsContent = () => {
     }
     setLoading(true);
     try {
-      const res = await axiosReq.get<ApiResponse<OrganizationSubjectItem[]>>(
-        `${baseUrl}/organizations/${organizationId}/subjects`,
-      );
+      const res = await axiosReq.get<ApiResponse<OrganizationSubjectItem[]>>(`${baseUrl}/organizations/${organizationId}/subjects`);
       setSubjects(res.data?.payload ?? []);
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
@@ -49,33 +49,24 @@ const OrganizationSubjectsContent = () => {
     void load();
   }, [load]);
 
-  const closeCreateModal = () => {
-    setCreateOpen(false);
-    setName("");
-    setCode("");
-  };
-
-  const handleCreate = async () => {
-    if (!organizationId || !name.trim() || !code.trim()) {
-      triggerToast({
-        title: "Name and code required",
-        description: "Enter a subject name and code, for example Physics and PHY-09.",
-        type: "error",
-      });
+  const handleSave = async () => {
+    if (!draft || !organizationId) return;
+    const name = draft.name.trim();
+    const code = draft.code.trim();
+    if (!name || !code) {
+      triggerToast({ title: t("requiredTitle"), description: t("required"), type: "error" });
       return;
     }
     setSaving(true);
     try {
-      await axiosReq.post(`${baseUrl}/organizations/${organizationId}/subjects`, {
-        name: name.trim(),
-        code: code.trim(),
-      });
-      closeCreateModal();
-      triggerToast({
-        title: "Subject created",
-        description: "The subject is available for class assignment.",
-        type: "success",
-      });
+      if (draft.id) {
+        await axiosReq.patch(`${baseUrl}/organizations/${organizationId}/subjects/${draft.id}`, { name, code });
+        triggerToast({ title: t("updatedTitle"), description: t("updated"), type: "success" });
+      } else {
+        await axiosReq.post(`${baseUrl}/organizations/${organizationId}/subjects`, { name, code });
+        triggerToast({ title: t("createdTitle"), description: t("created"), type: "success" });
+      }
+      setDraft(null);
       await load();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
@@ -84,23 +75,13 @@ const OrganizationSubjectsContent = () => {
     }
   };
 
-  const handleUpdate = async (subjectId: string) => {
-    if (!organizationId || !editName.trim() || !editCode.trim()) {
-      triggerToast({
-        title: "Name and code required",
-        description: "Both fields are required to save a subject.",
-        type: "error",
-      });
-      return;
-    }
+  const handleDelete = async () => {
+    if (!organizationId || !deleting) return;
     setSaving(true);
     try {
-      await axiosReq.patch(`${baseUrl}/organizations/${organizationId}/subjects/${subjectId}`, {
-        name: editName.trim(),
-        code: editCode.trim(),
-      });
-      setEditingId(null);
-      triggerToast({ title: "Subject updated", description: "Subject name and code were saved.", type: "success" });
+      await axiosReq.delete(`${baseUrl}/organizations/${organizationId}/subjects/${deleting.id}`);
+      triggerToast({ title: t("deletedTitle"), description: t("deleted"), type: "success" });
+      setDeleting(null);
       await load();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
@@ -109,205 +90,102 @@ const OrganizationSubjectsContent = () => {
     }
   };
 
-  const handleDelete = async (subjectId: string) => {
-    if (!organizationId) return;
-    setSaving(true);
-    try {
-      await axiosReq.delete(`${baseUrl}/organizations/${organizationId}/subjects/${subjectId}`);
-      triggerToast({ title: "Subject deleted", description: "The subject was removed from the catalog.", type: "success" });
-      await load();
-    } catch (error) {
-      handleError(error as AxiosError<ApiError>);
-    } finally {
-      setSaving(false);
-    }
-  };
+  const columns: TableColumn<OrganizationSubjectItem>[] = [
+    { key: "name", header: t("name"), cell: (row) => row.name, sortValue: (row) => row.name },
+    { key: "code", header: t("code"), cell: (row) => row.code || "—", sortValue: (row) => row.code },
+    { key: "classes", header: t("classes"), cell: (row) => (row.classes ?? []).map((item) => item.class_name).join(", ") || "—", hideOnMobile: true },
+    {
+      key: "actions",
+      header: t("actions"),
+      align: "right",
+      cell: (row) => (
+        <div className="flex justify-end gap-1">
+          <Button size="sm" variant="ghost" onClick={() => setDraft({ id: row.id, name: row.name, code: row.code || "" })}>
+            {t("edit")}
+          </Button>
+          <Button size="sm" variant="ghost" className="text-danger" onClick={() => setDeleting(row)}>
+            {t("delete")}
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div>
-      <div className="mb-4 flex justify-between items-center w-full min-h-[40px] gap-3 flex-wrap">
-        <div className="text-[20px] md:text-[32px] tracking-[-0.04em] flex items-center gap-0 flex-wrap mr-4">
-          <p className="font-[500] text-[#232A25]">Organization Subjects</p>
-          <p className="font-[400] text-[#49734F] italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
-            {activeOrganization?.name || ""}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="bg-[#49734F] text-white rounded-[8px] px-4 py-2 text-sm font-medium"
+    <div className="flex flex-col gap-6 pb-8">
+      <PageHeader
+        title={t("title")}
+        description={activeOrganization?.name}
+        actions={<Button onClick={() => setDraft({ id: null, name: "", code: "" })}>{t("create")}</Button>}
+      />
+      <Card flush>
+        {loading ? (
+          <div className="p-4" aria-busy="true">
+            <Skeleton lines={5} />
+          </div>
+        ) : (
+          <Table caption={t("title")} columns={columns} rows={subjects} getRowId={(row) => row.id} empty={<EmptyState title={t("empty")} />} />
+        )}
+      </Card>
+
+      <Drawer
+        open={Boolean(draft)}
+        onClose={() => setDraft(null)}
+        title={draft?.id ? t("editTitle") : t("create")}
+        description={draft?.id ? undefined : t("createIntro")}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setDraft(null)}>
+              {tUi("cancel")}
+            </Button>
+            <Button type="submit" form="subject-form" loading={saving}>
+              {draft?.id ? t("save") : t("create")}
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="subject-form"
+          noValidate
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleSave();
+          }}
         >
-          Create Subject
-        </button>
-      </div>
+          <Input
+            label={t("name")}
+            required
+            placeholder={t("namePlaceholder")}
+            value={draft?.name ?? ""}
+            onChange={(event) => setDraft((current) => (current ? { ...current, name: event.target.value } : current))}
+          />
+          <Input
+            label={t("code")}
+            required
+            placeholder={t("codePlaceholder")}
+            value={draft?.code ?? ""}
+            onChange={(event) => setDraft((current) => (current ? { ...current, code: event.target.value } : current))}
+          />
+        </form>
+      </Drawer>
 
-      <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 min-h-[calc(100vh-162px)] flex flex-col gap-4">
-        <div className="bg-white rounded-[12px] overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-[#EFF0F3] text-left text-[#232A25]">
-              <tr>
-                <th className="p-3">Name</th>
-                <th className="p-3">Code</th>
-                <th className="p-3">Classes</th>
-                <th className="p-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={4} className="p-6 text-center text-[#747775]">
-                    Loading subjects...
-                  </td>
-                </tr>
-              ) : subjects.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="p-6 text-center text-[#747775]">
-                    No subjects yet. Click Create Subject to add Physics / PHY-09.
-                  </td>
-                </tr>
-              ) : (
-                subjects.map((subject) => (
-                  <tr key={subject.id} className="border-t border-[#F0F0F0]">
-                    <td className="p-3 text-[#232A25]">
-                      {editingId === subject.id ? (
-                        <NormalInput
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          parentClassName="h-[36px] w-full rounded-[8px] border-[#E5E5E5]"
-                          inputClassName="px-2 text-sm"
-                          placeholder="Name"
-                          afterIcon={null}
-                        />
-                      ) : (
-                        subject.name
-                      )}
-                    </td>
-                    <td className="p-3 text-[#232A25]">
-                      {editingId === subject.id ? (
-                        <NormalInput
-                          value={editCode}
-                          onChange={(e) => setEditCode(e.target.value)}
-                          parentClassName="h-[36px] w-full rounded-[8px] border-[#E5E5E5]"
-                          inputClassName="px-2 text-sm"
-                          placeholder="Code"
-                          afterIcon={null}
-                        />
-                      ) : (
-                        subject.code || "—"
-                      )}
-                    </td>
-                    <td className="p-3 text-[#232A25]">
-                      {(subject.classes ?? []).map((item) => item.class_name).join(", ") || "—"}
-                    </td>
-                    <td className="p-3">
-                      {editingId === subject.id ? (
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            disabled={saving}
-                            onClick={() => void handleUpdate(subject.id)}
-                            className="text-[#49734F] font-medium"
-                          >
-                            Save
-                          </button>
-                          <button type="button" onClick={() => setEditingId(null)} className="text-[#747775]">
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingId(subject.id);
-                              setEditName(subject.name);
-                              setEditCode(subject.code || "");
-                            }}
-                            className="text-[#49734F] font-medium"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            disabled={saving}
-                            onClick={() => void handleDelete(subject.id)}
-                            className="text-[#C1121F] font-medium"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <CreateModal open={createOpen} onClose={closeCreateModal} maxWidthClassName="max-w-[520px]" panelClassName="p-6 sm:p-8">
-        <div className="flex flex-col gap-2">
-          <p className="text-[20px] font-[600] leading-[24px] tracking-[-0.03em] text-[#232A25]">Create Subject</p>
-          <p className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]">
-            Add a subject name and code for this organization. Codes must be unique within the organization.
-          </p>
-        </div>
-
-        <div className="mt-6 flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <label className="text-[14px] font-[500] leading-[18px] tracking-[-0.02em] text-[#0F1A12]">
-              Subject name
-            </label>
-            <NormalInput
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Physics"
-              parentClassName="h-[44px] w-full rounded-[8px] border-[#E5E5E5]"
-              inputClassName="px-2 text-[16px] font-[400] leading-[125%] placeholder:text-[#747775]"
-              afterIcon={null}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-[14px] font-[500] leading-[18px] tracking-[-0.02em] text-[#0F1A12]">
-              Subject code
-            </label>
-            <NormalInput
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="e.g., PHY-09"
-              parentClassName="h-[44px] w-full rounded-[8px] border-[#E5E5E5]"
-              inputClassName="px-2 text-[16px] font-[400] leading-[125%] placeholder:text-[#747775]"
-              afterIcon={null}
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={closeCreateModal}
-            className="h-10 rounded-[8px] px-4 text-sm font-medium text-[#232A25] border border-[#E5E5E5]"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => void handleCreate()}
-            className={`h-10 rounded-[8px] px-4 text-sm font-medium text-white ${saving ? "bg-[#747775]" : "bg-[#49734F]"}`}
-          >
-            Create Subject
-          </button>
-        </div>
-      </CreateModal>
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        tone="danger"
+        title={t("deleteTitle", { name: deleting?.name ?? "" })}
+        description={t("deleteDetail")}
+        confirmLabel={t("delete")}
+        loading={saving}
+        onCancel={() => setDeleting(null)}
+        onConfirm={() => void handleDelete()}
+      />
     </div>
   );
 };
 
 const OrganizationSubjects = () => (
-  <OrganizationWorkspaceGate title="Organization Subjects" allowedRoles={["OWNER", "ADMIN", "ASSISTANT"]}>
+  <OrganizationWorkspaceGate allowedRoles={["OWNER", "ADMIN", "ASSISTANT"]}>
     <OrganizationSubjectsContent />
   </OrganizationWorkspaceGate>
 );

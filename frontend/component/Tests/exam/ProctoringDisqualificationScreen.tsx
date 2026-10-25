@@ -1,13 +1,14 @@
 "use client";
 
-import CreateModal from "@/component/Tests/Create/CreateModal";
 import { useTranslations } from "next-intl";
+import ExamDialog from "./ExamDialog";
 
 interface ProctoringDisqualificationScreenProps {
   open: boolean;
   reason?: string | null;
 }
 
+/** Shown once the student has too many proctoring flags; their answers are submitted. */
 const ProctoringDisqualificationScreen = ({ open, reason }: ProctoringDisqualificationScreenProps) => {
   const t = useTranslations("proctoring");
 
@@ -16,16 +17,9 @@ const ProctoringDisqualificationScreen = ({ open, reason }: ProctoringDisqualifi
   }
 
   return (
-    <CreateModal open={open} onClose={() => {}} maxWidthClassName="max-w-[520px]" panelClassName="p-6 sm:p-8">
-      <div className="flex flex-col items-center gap-4 text-center">
-        <div className="flex size-14 items-center justify-center rounded-full bg-[#FEE4E2] text-[#D92D20]">
-          <span className="text-[24px] font-[700]">!</span>
-        </div>
-        <p className="text-[24px] font-[600] leading-7 tracking-[-0.04em] text-[#232A25]">{t("disqualifiedTitle")}</p>
-        <p className="text-[14px] leading-6 text-[#747775]">{t("disqualifiedDescription")}</p>
-        {reason ? <p className="text-[13px] leading-5 text-[#B93815]">{reason}</p> : null}
-      </div>
-    </CreateModal>
+    <ExamDialog open tone="danger" title={t("disqualifiedTitle")} description={t("disqualifiedDescription")}>
+      {reason ? <p className="text-body-sm text-danger">{reason}</p> : null}
+    </ExamDialog>
   );
 };
 

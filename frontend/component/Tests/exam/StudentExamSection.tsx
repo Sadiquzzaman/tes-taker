@@ -3,6 +3,8 @@ import StudentExamQuestionCard from "@/component/Tests/exam/StudentExamQuestionC
 import { useTranslations } from "next-intl";
 
 interface StudentExamSectionProps {
+  flagged: Set<string>;
+  onToggleFlag: (questionId: string) => void;
   section: StudentExamViewSection;
   answerState: ExamAnswerState;
   disabled: boolean;
@@ -22,6 +24,8 @@ const StudentExamSection = ({
   showTitle,
   onAnswerChange,
   onMatchingChange,
+  flagged,
+  onToggleFlag,
 }: StudentExamSectionProps) => {
   const t = useTranslations("exam");
 
@@ -29,8 +33,8 @@ const StudentExamSection = ({
     <section className="flex flex-col gap-4">
       {showTitle ? (
         <div className="px-1 pt-1">
-          <p className="text-[14px] font-[600] uppercase tracking-[0.08em] text-[#49734F]">{section.title}</p>
-          <p className="mt-1 text-[13px] leading-5 text-[#747775]">{t("questionCount", { count: section.questionCount })}</p>
+          <h2 className="text-body-sm font-semibold uppercase tracking-wide text-primary">{section.title}</h2>
+          <p className="mt-1 text-body-sm leading-5 text-ink-muted">{t("questionCount", { count: section.questionCount })}</p>
         </div>
       ) : null}
 
@@ -50,6 +54,8 @@ const StudentExamSection = ({
                 subjectName={section.subjectName ?? section.title}
                 subjectCode={section.subjectCode}
                 splitLayout={Boolean(section.id?.startsWith("ielts."))}
+                flagged={flagged}
+                onToggleFlag={onToggleFlag}
               />
             );
           }
@@ -64,6 +70,8 @@ const StudentExamSection = ({
               negativeMarkValue={negativeMarkValue}
               onAnswerChange={onAnswerChange}
               onMatchingChange={onMatchingChange}
+              flagged={flagged.has(item.question.id)}
+              onToggleFlag={onToggleFlag}
             />
           );
         })}

@@ -1,4 +1,6 @@
 import DragHandleIcon from "@/component/svg/DragHandleIcon";
+import { useTranslations } from "next-intl";
+import useQuestionTypeText from "../useQuestionTypeText";
 import { useToast } from "@/component/Toast/ToastContext";
 import { setActiveQuestionId } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
@@ -38,6 +40,8 @@ function QuestionCard({
   overlayStyle,
   onDragHandlePointerDown,
 }: QuestionCardProps) {
+  const t = useTranslations("createTest.card");
+  const typeText = useQuestionTypeText();
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -82,7 +86,7 @@ function QuestionCard({
     (file: File) => {
       if (!file.type.startsWith("image/")) {
         triggerToast({
-          description: "Please select a valid image file.",
+          description: t("invalidImage"),
           type: "error",
         });
         return false;
@@ -90,7 +94,7 @@ function QuestionCard({
 
       if (file.size > MAX_IMAGE_SIZE_BYTES) {
         triggerToast({
-          description: "Image size must be 20 MB or less.",
+          description: t("imageTooLarge"),
           type: "error",
         });
         return false;
@@ -98,7 +102,7 @@ function QuestionCard({
 
       return true;
     },
-    [triggerToast],
+    [t, triggerToast],
   );
 
   const scrollElementIntoView = useCallback(
@@ -146,18 +150,18 @@ function QuestionCard({
       onPointerDownCapture={isDragOverlay ? undefined : activateCard}
       onFocusCapture={isDragOverlay ? undefined : activateCard}
       className={`flex w-full items-center ${QUESTION_BUILDER_GAPS.blockOuter} ${
-        isDragOverlay ? "fixed z-50 bg-[#FDF3E5] pointer-events-none shadow-[0px_24px_60px_rgba(15,26,18,0.18)]" : ""
+        isDragOverlay ? "fixed z-50 bg-warning-soft pointer-events-none shadow-[0px_24px_60px_rgba(15,26,18,0.18)]" : ""
       } ${isDragging ? "opacity-0" : "opacity-100"}`}
     >
       <div
-        className={`w-full flex flex-col ${cardInnerGap} rounded-[8px] transition-[opacity,transform,box-shadow] duration-200 ${
+        className={`w-full flex flex-col ${cardInnerGap} rounded-input transition-[opacity,transform,box-shadow] duration-200 ${
           borderless
             ? isActive
-              ? "border-none bg-[#FDF3E5] p-0"
-              : "border-none bg-white p-0"
+              ? "border-none bg-warning-soft p-0"
+              : "border-none bg-surface p-0"
             : isActive
-              ? "border border-transparent bg-[#FDF3E5] p-5 max-[600px]:p-3"
-              : "border border-[#E5E5E5] bg-white p-5 max-[600px]:p-3"
+              ? "border border-transparent bg-warning-soft p-5 max-[600px]:p-3"
+              : "border border-border bg-surface p-5 max-[600px]:p-3"
         }`}
       >
         <QuestionCardInstruction
@@ -223,11 +227,11 @@ function QuestionCard({
 
         {hasTextAnswerEditor ? (
           <div className="flex flex-col gap-2">
-            <p className="text-[14px] font-[500] leading-[125%] tracking-[-0.02em] text-[#232A25]">Correct answer</p>
+            <p className="text-body-sm font-medium text-ink">{t("correctAnswer")}</p>
             <QuestionCardTextAnswer
               answerValues={question.answer?.type === "text" ? answerValues : []}
               activateCard={activateCard}
-              placeholder={answerInputPlaceholder}
+              placeholder={typeText.prompt(answerInputPlaceholder)}
               parentPassageId={parentPassageId}
               questionId={question.id}
               showAlternativeAnswerInput={showAlternativeAnswerInput}
@@ -254,8 +258,8 @@ function QuestionCard({
         <button
           type="button"
           onPointerDown={(event) => onDragHandlePointerDown(subjectId, question.id, event)}
-          className="flex-shrink-0 cursor-grab touch-none text-[#747775] transition-colors hover:text-[#232A25] active:cursor-grabbing"
-          aria-label="Drag to reorder"
+          className="flex-shrink-0 cursor-grab touch-none text-ink-muted transition-colors hover:text-ink active:cursor-grabbing"
+          aria-label={t("drag")}
         >
           <DragHandleIcon />
         </button>

@@ -1,90 +1,47 @@
-import NormalInput from "@/Ui/NormalInput";
-import { useMemo, useState } from "react";
-import AddSubjectModal from "./AddSubjectModal";
-import CreateModal from "./CreateModal";
+"use client";
 
+import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { cn, FilterBar, focusRing, Modal } from "@/design/ui";
+
+/** Pick a subject from the catalogue to add to a model test. */
 const AddQuestionSubjectModal = ({ open, onClose, onSelect, subjectOptions }: AddQuestionSubjectModalProps) => {
-  const [searchText, setSearchText] = useState("");
-  const [isCreateSubjectModalOpen, setIsCreateSubjectModalOpen] = useState(false);
+  const t = useTranslations("createTest.subjects");
+  const [search, setSearch] = useState("");
+  const needle = search.trim().toLocaleLowerCase();
+  const visible = (needle ? subjectOptions.filter((subject) => subject.label.toLocaleLowerCase().includes(needle)) : subjectOptions).slice(0, 10);
 
-  const filteredSubjectOptions = useMemo(() => {
-    const normalizedSearch = searchText.trim().toLowerCase();
-
-    if (!normalizedSearch) {
-      return subjectOptions.slice(0, 10);
-    }
-
-    return subjectOptions.filter((subject) => subject.label.toLowerCase().includes(normalizedSearch)).slice(0, 10);
-  }, [searchText, subjectOptions]);
-
-  const handleSelect = (subject: SubjectSelectionPayload) => {
-    onSelect(subject);
-    setSearchText("");
-  };
-
-  const handleCreateSubject = (subject: SubjectSelectionPayload) => {
-    setIsCreateSubjectModalOpen(false);
-    handleSelect(subject);
-    onClose();
-  };
-
-  const handleClose = () => {
-    setSearchText("");
-    setIsCreateSubjectModalOpen(false);
+  const close = () => {
+    setSearch("");
     onClose();
   };
 
   return (
-    <>
-      <CreateModal open={open} onClose={handleClose} maxWidthClassName="max-w-[420px]" panelClassName="p-5 sm:p-6">
-        <div className="flex flex-col gap-1">
-          <p className="text-[20px] font-[600] leading-[24px] tracking-[-0.03em] text-[#232A25]">Add Subject</p>
-          <p className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]">
-            Search the subject catalog and add a subject to this model test.
-          </p>
-        </div>
-
-        <div className="mt-4">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <NormalInput
-                value={searchText}
-                onChange={(event) => setSearchText(event.target.value)}
-                placeholder="Search subject"
-                parentClassName="h-[44px] w-full rounded-[8px] border-[#E5E5E5]"
-                inputClassName="px-2 text-[16px] font-[400] leading-[125%] placeholder:text-[#747775]"
-                afterIcon={null}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 max-h-[280px] overflow-y-auto rounded-[12px] border border-[#E5E5E5] bg-white p-2">
-          {filteredSubjectOptions.length > 0 ? (
-            filteredSubjectOptions.map((subject) => (
-              <button
-                key={subject.id}
-                type="button"
-                onClick={() => handleSelect(subject)}
-                className="flex w-full items-center rounded-[8px] px-3 py-2 text-left text-[14px] font-[500] leading-[16px] text-[#232A25] transition-colors hover:bg-[#49734F0D]"
-              >
-                {subject.label}
-              </button>
+    <Modal open={open} onClose={close} size="sm" title={t("addTitle")} description={t("addIntro")}>
+      <div className="flex flex-col gap-3">
+        <FilterBar search={search} onSearchChange={setSearch} searchPlaceholder={t("search")} />
+        <ul className="max-h-72 overflow-y-auto rounded-input border border-border p-1">
+          {visible.length ? (
+            visible.map((subject) => (
+              <li key={subject.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect(subject);
+                    setSearch("");
+                  }}
+                  className={cn("w-full rounded-input px-3 py-2 text-left text-body-sm font-medium text-ink hover:bg-primary-soft", focusRing)}
+                >
+                  {subject.label}
+                </button>
+              </li>
             ))
           ) : (
-            <div className="px-3 py-6 text-center text-[14px] font-[400] leading-[16px] text-[#747775]">
-              No subjects found
-            </div>
+            <li className="px-3 py-6 text-center text-body-sm text-ink-muted">{t("none")}</li>
           )}
-        </div>
-      </CreateModal>
-
-      <AddSubjectModal
-        open={isCreateSubjectModalOpen}
-        onClose={() => setIsCreateSubjectModalOpen(false)}
-        onCreated={handleCreateSubject}
-      />
-    </>
+        </ul>
+      </div>
+    </Modal>
   );
 };
 

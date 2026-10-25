@@ -26,15 +26,13 @@ export const normalizeStudentIdentifier = (input: string) => {
   return trimmed.includes("@") ? trimmed.toLowerCase() : trimmed;
 };
 
+/** Why an entry is not a valid email, phone or Student ID: message keys under `classes.toast`, or null. */
 export const getValidationError = (input: string) => {
   const trimmed = input.trim();
 
   if (trimmed.includes("@")) {
     if (!emailRegex.test(trimmed)) {
-      return {
-        title: "Invalid email",
-        description: "Please enter a valid email address.",
-      };
+      return { title: "invalidEmailTitle", description: "invalidEmail" } as const;
     }
     return null;
   }
@@ -44,17 +42,11 @@ export const getValidationError = (input: string) => {
   }
 
   if (!phoneRegex.test(trimmed)) {
-    return {
-      title: "Invalid input",
-      description: "Please enter a valid email, phone number, or Student ID.",
-    };
+    return { title: "invalidInputTitle", description: "invalidInput" } as const;
   }
 
   if (trimmed.length !== 11) {
-    return {
-      title: "Invalid phone number",
-      description: "Phone number must be 11 digits, or use the student's Student ID.",
-    };
+    return { title: "invalidPhoneTitle", description: "invalidPhone" } as const;
   }
 
   return null;

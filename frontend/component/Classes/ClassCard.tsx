@@ -1,14 +1,19 @@
+"use client";
+
 import Image from "next/image";
-import Link from "next/link";
-import { useAppDispatch } from "@/lib/hooks";
+import NextLink from "next/link";
+import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
+import { buttonClasses, IconButton } from "@/design/ui";
+import useFormat from "@/i18n/useFormat";
 import { setOpenAddStudentModal, setOpenShareClassModal } from "@/lib/features/classSlice";
-import HumanAddIconSVG from "../svg/HumanAddIconSvg";
-import ShareIconSVG from "../svg/ShareIconSVG";
-import ThreeDotIconSVG from "../svg/ThreeDotIconSVG";
+import { useAppDispatch } from "@/lib/hooks";
 import ClassStudentCardIconSVG from "../svg/ClassStudentCardIconSVG";
 import ClassTestsTakenIconSVG from "../svg/ClassTestsTakenIconSVG";
+import HumanAddIconSVG from "../svg/HumanAddIconSvg";
+import ShareIconSVG from "../svg/ShareIconSVG";
 
-const ImageList = [
+const COVERS = [
   "/assets/image/classImage/class_default.png",
   "/assets/image/classImage/class_default_2.png",
   "/assets/image/classImage/class_default_3.png",
@@ -16,79 +21,91 @@ const ImageList = [
   "/assets/image/classImage/class_default_5.png",
 ];
 
+/** The shared layout of a class card (teacher and student versions). */
+export const ClassCardFrame = ({
+  index,
+  name,
+  meta,
+  stats,
+  actions,
+  href,
+}: {
+  index: number;
+  name: string;
+  meta: ReactNode;
+  stats?: Array<{ key: string; icon: ReactNode; label: string; value: string }>;
+  actions?: ReactNode;
+  href: string;
+}) => {
+  const t = useTranslations("classes");
+
+  return (
+    <article className="flex flex-col overflow-hidden rounded-card border border-border bg-surface shadow-card">
+      <div className="relative h-32 w-full">
+        <Image src={COVERS[index % COVERS.length]} alt={t("imageAlt")} fill className="object-cover" sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" />
+      </div>
+      <div className="flex flex-1 flex-col gap-1 p-4">
+        <h2 className="truncate text-body font-semibold text-ink">{name}</h2>
+        <p className="text-caption text-ink-muted">{meta}</p>
+        {stats?.length ? (
+          <dl className="mt-3 grid grid-cols-2 gap-3">
+            {stats.map((stat) => (
+              <div key={stat.key} className="flex items-start gap-2">
+                <span className="mt-0.5 text-ink-muted">{stat.icon}</span>
+                <div>
+                  <dt className="text-caption text-ink-muted">{stat.label}</dt>
+                  <dd className="text-body font-semibold text-ink">{stat.value}</dd>
+                </div>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+      </div>
+      <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-3">
+        <div className="flex items-center gap-1">{actions}</div>
+        <NextLink href={href} className={buttonClasses({ variant: "secondary", size: "sm" })}>
+          {t("view")}
+        </NextLink>
+      </div>
+    </article>
+  );
+};
+
+/** A teacher's class: name, last test, students and tests taken; add students or share. */
 const ClassCard = ({ classItem, index }: ClassCardProps<Class>) => {
+  const t = useTranslations("classes");
+  const format = useFormat();
   const dispatch = useAppDispatch();
 
   return (
-    <div className="h-[328px] bg-white rounded-[8px]">
-      <div className="w-full h-[264px] p-4 flex flex-col justify-between">
-        <div className="w-full h-[120px] relative">
-          <Image
-            src={ImageList[index % ImageList.length]}
-            alt="Class Image"
-            fill
-            className="w-full h-full object-cover rounded-[6px]"
-          />
-        </div>
-        <p className="pt-2 font-[500] text-[16px] leading-[20px] tracking-[-0.02em] text-[#232A25]">
-          {classItem.class_name}
-        </p>
-        <p className="pb-3 font-[400] text-[12px] leading-[12px] tracking-[-0.02em] text-[#747775]">
-          Last quiz taken on -{" "}
-          {classItem.last_test_taken_date ? new Date(classItem.last_test_taken_date).toLocaleString() : "N/A"}
-        </p>
-        <div className="flex justify-between items-center">
-          <div className="w-[45%] flex gap-1">
-            <div>
-              <ClassStudentCardIconSVG width={16} />
-            </div>
-            <div>
-              <p className="font-[400] text-[12px] leading-[16px] tracking-[-0.01em] text-[#232A25]">Student</p>
-              <p className="mt-2 ml-1 font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25]">
-                {classItem.classStudents.length}
-              </p>
-            </div>
-          </div>
-          <div className="w-[45%] flex gap-1">
-            <div>
-              <ClassTestsTakenIconSVG width={16} />
-            </div>
-            <div>
-              <p className="font-[400] text-[12px] leading-[16px] tracking-[-0.01em] text-[#232A25]">Tests taken</p>
-              <p className="mt-2 ml-1 font-[600] text-[16px] leading-[16px] tracking-[-0.02em] text-[#232A25]">
-                {classItem.total_test_taken}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="w-full h-[64px] flex items-center justify-between p-4 border-t border-[#EFF0F3]">
-        <div className="flex items-center gap-2 text-[#747775]">
-          <button
-            title="Add Students"
-            className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]"
-            onClick={() => dispatch(setOpenAddStudentModal(classItem))}
-          >
-            <HumanAddIconSVG width={16} />
-          </button>
-          <button
-            title="Share Class"
-            className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]"
-            onClick={() => dispatch(setOpenShareClassModal(classItem))}
-          >
-            <ShareIconSVG width={16} />
-          </button>
-          <button className="w-8 h-8 flex justify-center items-center rounded-[8px] hover:bg-[#EFF0F3]">
-            <ThreeDotIconSVG width={16} />
-          </button>
-        </div>
-        <Link href={`/classes/details/${classItem.id}`}>
-          <button className="h-8 rounded-[8px] px-3 bg-white text-[#49734F] border border-[#49734F] hover:bg-[#49734F] hover:text-white focus:bg-[#49734F] focus:text-white font-[500] text-[12px] leading-[16px] tracking-[-0.02em] transition-colors">
-            View Class
-          </button>
-        </Link>
-      </div>
-    </div>
+    <ClassCardFrame
+      index={index}
+      name={classItem.class_name}
+      href={`/classes/details/${classItem.id}`}
+      meta={
+        classItem.last_test_taken_date ? t("lastTest", { date: format.dateTime(classItem.last_test_taken_date) }) : t("noTestYet")
+      }
+      stats={[
+        {
+          key: "students",
+          icon: <ClassStudentCardIconSVG width={16} />,
+          label: t("students"),
+          value: format.number(classItem.classStudents.length),
+        },
+        {
+          key: "tests",
+          icon: <ClassTestsTakenIconSVG width={16} />,
+          label: t("testsTaken"),
+          value: format.number(classItem.total_test_taken ?? 0),
+        },
+      ]}
+      actions={
+        <>
+          <IconButton size="sm" label={t("addStudents")} icon={<HumanAddIconSVG width={16} />} onClick={() => dispatch(setOpenAddStudentModal(classItem))} />
+          <IconButton size="sm" label={t("share")} icon={<ShareIconSVG width={16} />} onClick={() => dispatch(setOpenShareClassModal(classItem))} />
+        </>
+      }
+    />
   );
 };
 

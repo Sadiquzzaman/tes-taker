@@ -5,6 +5,7 @@ import ProctoringVideoPreview from "@/component/Tests/exam/ProctoringVideoPrevie
 import { selectProctoringPanelState } from "@/lib/features/proctoringSlice";
 import { useAppSelector } from "@/lib/hooks";
 import { useTranslations } from "next-intl";
+import { Button, StatusPill } from "@/design/ui";
 
 const ProctoringPanel = ({ mediaStream, onRetry, connectionError }: ProctoringPanelProps) => {
   const { permissionError, statusText } = useAppSelector(selectProctoringPanelState);
@@ -17,40 +18,32 @@ const ProctoringPanel = ({ mediaStream, onRetry, connectionError }: ProctoringPa
   };
 
   return (
-    <aside className="fixed bottom-4 right-4 z-20 hidden w-[220px] overflow-hidden rounded-[8px] border border-[#DDE5DE] bg-white shadow-lg md:block xl:hidden">
-      <ProctoringVideoPreview mediaStream={mediaStream} className="h-[124px] w-full bg-[#0F1A12] object-cover" />
+    <aside className="fixed bottom-4 right-4 z-20 hidden w-[220px] overflow-hidden rounded-input border border-border bg-surface shadow-lg md:block xl:hidden">
+      <ProctoringVideoPreview mediaStream={mediaStream} className="h-[124px] w-full bg-ink object-cover" />
 
       <div className="flex flex-col gap-2 p-3">
         <div className="flex items-center justify-between">
-          <p className="text-[13px] font-[600] leading-4 text-[#232A25]">{t("title")}</p>
-          <span className="rounded-[6px] bg-[#EDF4EE] px-2 py-1 text-[12px] font-[500] leading-3 text-[#49734F]">
+          <p className="text-body-sm font-semibold leading-4 text-ink">{t("title")}</p>
+          <StatusPill tone={statusText === "Active" ? "success" : statusText === "Disqualified" ? "danger" : "warning"}>
             {t(`status.${statusText}`)}
-          </span>
+          </StatusPill>
         </div>
 
         <ProctoringFlagListModal />
 
-        {permissionError ? <p className="text-[12px] leading-4 text-[#B93815]">{permissionError}</p> : null}
-        {connectionError ? <p className="text-[12px] leading-4 text-[#B93815]">{connectionError}</p> : null}
+        {permissionError ? <p className="text-caption leading-4 text-danger">{permissionError}</p> : null}
+        {connectionError ? <p className="text-caption leading-4 text-danger">{connectionError}</p> : null}
 
         <div className="flex gap-2">
           {permissionError ? (
-            <button
-              type="button"
-              onClick={onRetry}
-              className="h-8 flex-1 rounded-[8px] bg-[#49734F] px-3 text-[12px] font-[500] leading-4 text-white"
-            >
+            <Button size="sm" className="flex-1" onClick={onRetry}>
               {t("retry")}
-            </button>
+            </Button>
           ) : null}
 
-          <button
-            type="button"
-            onClick={() => void handleEnterFullscreen()}
-            className="h-8 flex-1 rounded-[8px] border border-[#DDE5DE] px-3 text-[12px] font-[500] leading-4 text-[#232A25]"
-          >
+          <Button variant="secondary" size="sm" className="flex-1" onClick={() => void handleEnterFullscreen()}>
             {t("fullscreen")}
-          </button>
+          </Button>
         </div>
       </div>
     </aside>

@@ -1,12 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import Link from "next/link";
 import useSignUpForm from "@/hooks/auth/useSignUpForm";
+import AuthFooterLink from "./AuthFooterLink";
 import SignUpChoice from "./SignUpChoice";
 import SignUpInfoForm from "./SignUpInfoForm";
 import VerifyCode from "./VerifyCode";
 
+/** Signup: choose the account type, fill in details, then verify the phone number. */
 const SignUpForm = () => {
   const {
     joinInfo,
@@ -25,11 +26,7 @@ const SignUpForm = () => {
 
   return (
     <>
-      {joinInfo?.id && view !== "choice" && (
-        <h4 className="mb-8 text-center text-[16px] font-semibold text-[#49734F] leading-[19px] tracking-[-0.02em] capitalize">
-          {joinInfo.headerText}
-        </h4>
-      )}
+      {joinInfo?.id && view !== "choice" ? <p className="text-center text-body font-semibold text-primary">{joinInfo.headerText}</p> : null}
       {view === "choice" ? (
         <SignUpChoice onSelectStudent={startStudentSignup} onSelectTeacher={startTeacherSignup} />
       ) : view === "signup" ? (
@@ -42,28 +39,12 @@ const SignUpForm = () => {
           handleSignUp={handleSignUp}
           onBackToChoice={() => setView("choice")}
           title={signUpInfo.request_teacher ? t("signup.teacherTitle") : t("signup.studentTitle")}
-          description={
-            signUpInfo.request_teacher
-              ? t("signup.teacherNote")
-              : undefined
-          }
+          description={signUpInfo.request_teacher ? t("signup.teacherNote") : undefined}
         />
       ) : (
-        <VerifyCode
-          value={signUpInfo.phone}
-          successDescription={
-            signUpInfo.request_teacher
-              ? t("signup.teacherPending")
-              : undefined
-          }
-        />
+        <VerifyCode value={signUpInfo.phone} successDescription={signUpInfo.request_teacher ? t("signup.teacherPending") : undefined} />
       )}
-      <p className="mt-4 text-center text-[#747775] text-[16px]">
-        {t("haveAccount")}{" "}
-        <Link href={"/login"} className="text-[#232A25] font-medium underline">
-          {t("logIn")}
-        </Link>
-      </p>
+      <AuthFooterLink text={t("haveAccount")} href="/login" label={t("logIn")} />
     </>
   );
 };

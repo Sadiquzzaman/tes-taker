@@ -1,4 +1,5 @@
 import { useToast } from "@/component/Toast/ToastContext";
+import { useTranslations } from "next-intl";
 import { downloadExamResultsPdf } from "@/utils/exam/downloadExamResultsPdf";
 import { fetchAllGradingSubmissions } from "@/utils/grading/fetchAllGradingSubmissions";
 import { AxiosError } from "axios";
@@ -7,6 +8,7 @@ import { useApiError } from "../useApiError";
 
 const useDownloadExamResults = () => {
   const { triggerToast } = useToast();
+  const t = useTranslations("grading.details");
   const { handleError } = useApiError();
   const [loading, setLoading] = useState(false);
 
@@ -19,8 +21,8 @@ const useDownloadExamResults = () => {
 
         if (submissions.length === 0) {
           triggerToast({
-            title: "No results available",
-            description: "There are no student submissions to download yet.",
+            title: t("noResultsTitle"),
+            description: t("noResults"),
             type: "error",
           });
           return;
@@ -38,7 +40,7 @@ const useDownloadExamResults = () => {
         setLoading(false);
       }
     },
-    [handleError, triggerToast],
+    [handleError, t, triggerToast],
   );
 
   return { download, loading } as const;

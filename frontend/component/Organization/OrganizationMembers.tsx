@@ -1,25 +1,32 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AxiosError } from "axios";
-import axiosReq from "@/lib/axios";
-import { useApiError } from "@/hooks/api/useApiError";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
-import useWorkspace from "@/hooks/organization/useWorkspace";
-import OrganizationWorkspaceGate from "./OrganizationWorkspaceGate";
-import ButtonLoader from "@/component/Loader/ButtonLoadder";
-import CrossIconSVG from "@/component/svg/CrossIconSVG";
 import {
-  downloadStudentCsvTemplate,
-  extractStudentsFromCsvRows,
-  parseCsvText,
-} from "@/utils/classes/addStudentModal";
+  Badge,
+  Button,
+  Card,
+  ConfirmDialog,
+  Drawer,
+  EmptyState,
+  FilterBar,
+  Input,
+  PageHeader,
+  Skeleton,
+  Table,
+  Textarea,
+  type TableColumn,
+} from "@/design/ui";
+import { useApiError } from "@/hooks/api/useApiError";
+import useWorkspace from "@/hooks/organization/useWorkspace";
+import useFormat from "@/i18n/useFormat";
+import axiosReq from "@/lib/axios";
+import { downloadStudentCsvTemplate, extractStudentsFromCsvRows, parseCsvText } from "@/utils/classes/addStudentModal";
+import OrganizationWorkspaceGate from "./OrganizationWorkspaceGate";
 
-const formatDate = (value?: string) => {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString();
-};
+type AddableRole = "TEACHER" | "ASSISTANT" | "STUDENT";
 
 type LookupPayload =
   | {
@@ -50,10 +57,7 @@ type LookupPayload =
     };
 
 type AddMemberPayload =
-  | {
-      status: "added";
-      member: OrganizationMemberItem;
-    }
+  | { status: "added"; member: OrganizationMemberItem }
   | {
       status: "invited";
       invitation: {
@@ -74,66 +78,44 @@ type ImportResultPayload = {
   user_not_found?: number;
   invalid: number;
   duplicate: number;
-  results: Array<{
-    identifier: string;
-    status: string;
-    message: string;
-  }>;
+  results: Array<{ identifier: string; status: string; message: string }>;
 };
 
-const importStatusLabel = (status: string) => {
-  switch (status) {
-    case "imported":
-    case "reactivated":
-      return "Successfully added";
-    case "already_member":
-      return "Already a member";
-    case "user_not_found":
-      return "User not found";
-    case "invalid":
-      return "Invalid phone number";
-    case "invitation_sent":
-      return "Invitation sent";
-    case "duplicate":
-      return "Duplicate in this list";
-    default:
-      return status;
-  }
-};
+const IMPORT_STATUSES = ["imported", "reactivated", "already_member", "user_not_found", "invalid", "invitation_sent", "duplicate"] as const;
 
-const parsePhoneList = (raw: string) =>
+export const parsePhoneList = (raw: string) =>
   raw
     .split(/[\n,;]+/)
     .map((value) => value.trim())
     .filter(Boolean);
 
-const canManageMembers = (role?: OrganizationMemberRole) =>
-  role === "OWNER" || role === "ADMIN";
+const canManageMembers = (role?: OrganizationMemberRole) => role === "OWNER" || role === "ADMIN";
 
-const publicIdForRole = (member: OrganizationMemberItem, addRole: OrganizationMemberRole) => {
+const publicIdForRole = (member: OrganizationMemberItem, addRole: AddableRole) => {
   if (addRole === "STUDENT") {
     return member.user.student_public_id || member.user.teacher_public_id || member.user.public_id || "—";
   }
   return member.user.teacher_public_id || member.user.student_public_id || member.user.public_id || "—";
 };
 
+const matches = (member: OrganizationMemberItem, query: string) =>
+  [member.user.full_name, member.user.email, member.user.phone, member.user.teacher_public_id, member.user.student_public_id].some((value) =>
+    (value || "").toLowerCase().includes(query),
+  );
+
+/** One kind of organisation member (teachers, assistants or students): the list, and adding or removing people. */
 const OrganizationMembersTable = ({
-  title,
+  titleKey,
   roles,
-  allowManage = false,
-  addRole = "TEACHER",
-  addLabel = "Add Teacher",
-  searchPlaceholder = "Search by Teacher ID, phone or email",
-  idColumnLabel = "Teacher ID",
+  addRole,
 }: {
-  title: string;
+  titleKey: "teachers" | "assistants" | "students";
   roles: OrganizationMemberRole[];
-  allowManage?: boolean;
-  addRole?: OrganizationMemberRole;
-  addLabel?: string;
-  searchPlaceholder?: string;
-  idColumnLabel?: string;
+  addRole: AddableRole;
 }) => {
+  const t = useTranslations("organization.members");
+  const tOrg = useTranslations("organization");
+  const format = useFormat();
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const { organizationId, activeOrganization } = useWorkspace();
   const { handleError } = useApiError();
@@ -143,18 +125,19 @@ const OrganizationMembersTable = ({
   const [members, setMembers] = useState<OrganizationMemberItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [lookup, setLookup] = useState<LookupPayload | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<OrganizationMemberItem | null>(null);
+  const [removingBusy, setRemovingBusy] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importSummary, setImportSummary] = useState<ImportResultPayload | null>(null);
   const [phoneList, setPhoneList] = useState("");
   const [addingPhones, setAddingPhones] = useState(false);
 
-  const canManage = allowManage && canManageMembers(activeOrganization?.role);
+  const canManage = canManageMembers(activeOrganization?.role);
 
   const load = useCallback(async () => {
     if (!organizationId) {
@@ -162,12 +145,9 @@ const OrganizationMembersTable = ({
       setLoading(false);
       return;
     }
-
     setLoading(true);
     try {
-      const res = await axiosReq.get<ApiResponse<OrganizationMemberItem[]>>(
-        `${baseUrl}/organizations/${organizationId}/members`,
-      );
+      const res = await axiosReq.get<ApiResponse<OrganizationMemberItem[]>>(`${baseUrl}/organizations/${organizationId}/members`);
       setMembers(res.data?.payload ?? []);
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
@@ -183,53 +163,32 @@ const OrganizationMembersTable = ({
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return members
-      .filter((member) => roles.includes(member.role))
-      .filter((member) => {
-        if (!q) return true;
-        return (
-          (member.user.full_name || "").toLowerCase().includes(q) ||
-          (member.user.email || "").toLowerCase().includes(q) ||
-          (member.user.phone || "").toLowerCase().includes(q) ||
-          (member.user.teacher_public_id || "").toLowerCase().includes(q) ||
-          (member.user.student_public_id || "").toLowerCase().includes(q)
-        );
-      });
+    return members.filter((member) => roles.includes(member.role)).filter((member) => !q || matches(member, q));
   }, [members, roles, search]);
 
-  const resetModal = () => {
+  const openDrawer = () => {
     setQuery("");
     setLookup(null);
     setImportSummary(null);
     setPhoneList("");
     setLookingUp(false);
     setSubmitting(false);
-  };
-
-  const closeModal = () => {
-    setModalOpen(false);
-    resetModal();
+    setDrawerOpen(true);
   };
 
   const handleLookup = async () => {
     if (!organizationId) return;
     const trimmed = query.trim();
     if (!trimmed) {
-      triggerToast({
-        title: "Missing search value",
-        description: searchPlaceholder,
-        type: "error",
-      });
+      triggerToast({ title: t("missingQuery"), description: t(`lookupLabel.${addRole}`), type: "error" });
       return;
     }
-
     setLookingUp(true);
     setLookup(null);
     try {
-      const res = await axiosReq.get<ApiResponse<LookupPayload>>(
-        `${baseUrl}/organizations/${organizationId}/members/lookup`,
-        { params: { q: trimmed } },
-      );
+      const res = await axiosReq.get<ApiResponse<LookupPayload>>(`${baseUrl}/organizations/${organizationId}/members/lookup`, {
+        params: { q: trimmed },
+      });
       setLookup(res.data?.payload ?? null);
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
@@ -242,28 +201,18 @@ const OrganizationMembersTable = ({
     if (!organizationId) return;
     const trimmed = query.trim();
     if (!trimmed) return;
-
     setSubmitting(true);
     try {
-      const res = await axiosReq.post<ApiResponse<AddMemberPayload>>(
-        `${baseUrl}/organizations/${organizationId}/members`,
-        { query: trimmed, role: addRole },
-      );
-      const payload = res.data?.payload;
-      if (payload?.status === "invited") {
-        triggerToast({
-          title: "Invitation sent",
-          description: "They will join this organization after registering or signing in.",
-          type: "success",
-        });
+      const res = await axiosReq.post<ApiResponse<AddMemberPayload>>(`${baseUrl}/organizations/${organizationId}/members`, {
+        query: trimmed,
+        role: addRole,
+      });
+      if (res.data?.payload?.status === "invited") {
+        triggerToast({ title: t("invitedTitle"), description: t("invitedDetail"), type: "success" });
       } else {
-        triggerToast({
-          title: `${addLabel} done`,
-          description: "Membership was created or restored. No duplicate account was created.",
-          type: "success",
-        });
+        triggerToast({ title: t("addedTitle"), description: t("addedDetail"), type: "success" });
       }
-      closeModal();
+      setDrawerOpen(false);
       await load();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
@@ -272,59 +221,46 @@ const OrganizationMembersTable = ({
     }
   };
 
-  const handleRemove = async (memberId: string) => {
-    if (!organizationId) return;
-    if (!window.confirm("Remove this member from the organization? History will be kept.")) {
-      return;
-    }
-
-    setRemovingId(memberId);
+  const handleRemove = async () => {
+    if (!organizationId || !removing) return;
+    setRemovingBusy(true);
     try {
-      await axiosReq.delete(`${baseUrl}/organizations/${organizationId}/members/${memberId}`);
-      triggerToast({
-        title: "Member removed",
-        description: "Access was revoked. Historical records were preserved.",
-        type: "success",
-      });
+      await axiosReq.delete(`${baseUrl}/organizations/${organizationId}/members/${removing.id}`);
+      triggerToast({ title: t("removedTitle"), description: t("removedDetail"), type: "success" });
+      setRemoving(null);
       await load();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
     } finally {
-      setRemovingId(null);
+      setRemovingBusy(false);
     }
   };
 
-  const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const runImport = async (identifiers: string[], extra: Record<string, unknown>, done: { title: string; description: string }) => {
     if (!organizationId) return;
+    setImportSummary(null);
+    const res = await axiosReq.post<ApiResponse<ImportResultPayload>>(`${baseUrl}/organizations/${organizationId}/members/import`, {
+      identifiers,
+      role: addRole,
+      ...extra,
+    });
+    setImportSummary(res.data?.payload ?? null);
+    triggerToast({ ...done, type: "success" });
+    await load();
+  };
+
+  const handleCsvUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-
     setImporting(true);
-    setImportSummary(null);
     try {
-      const text = await file.text();
-      const identifiers = extractStudentsFromCsvRows(parseCsvText(text));
+      const identifiers = extractStudentsFromCsvRows(parseCsvText(await file.text()));
       if (identifiers.length === 0) {
-        triggerToast({
-          title: "Empty file",
-          description: "No phone, email, or ID values were found in the CSV.",
-          type: "error",
-        });
+        triggerToast({ title: t("emptyFileTitle"), description: t("emptyFile"), type: "error" });
         return;
       }
-
-      const res = await axiosReq.post<ApiResponse<ImportResultPayload>>(
-        `${baseUrl}/organizations/${organizationId}/members/import`,
-        { identifiers, role: addRole },
-      );
-      setImportSummary(res.data?.payload ?? null);
-      triggerToast({
-        title: "Import finished",
-        description: "Review row-level results below.",
-        type: "success",
-      });
-      await load();
+      await runImport(identifiers, {}, { title: t("importDoneTitle"), description: t("importDone") });
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
     } finally {
@@ -333,31 +269,14 @@ const OrganizationMembersTable = ({
   };
 
   const handlePhoneListAdd = async () => {
-    if (!organizationId) return;
     const identifiers = parsePhoneList(phoneList);
     if (identifiers.length === 0) {
-      triggerToast({
-        title: "No phone numbers",
-        description: "Paste one phone number per line, then add them together.",
-        type: "error",
-      });
+      triggerToast({ title: t("noPhonesTitle"), description: t("noPhones"), type: "error" });
       return;
     }
-
     setAddingPhones(true);
-    setImportSummary(null);
     try {
-      const res = await axiosReq.post<ApiResponse<ImportResultPayload>>(
-        `${baseUrl}/organizations/${organizationId}/members/import`,
-        { identifiers, role: addRole, invite_missing: false },
-      );
-      setImportSummary(res.data?.payload ?? null);
-      triggerToast({
-        title: "Phone numbers processed",
-        description: `Added as ${addRole.toLowerCase()}. Review the result for each number.`,
-        type: "success",
-      });
-      await load();
+      await runImport(identifiers, { invite_missing: false }, { title: t("phonesDoneTitle"), description: t("phonesDone") });
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
     } finally {
@@ -365,331 +284,208 @@ const OrganizationMembersTable = ({
     }
   };
 
-  const alreadyActiveMember =
-    lookup?.found &&
-    lookup.membership &&
-    Number(lookup.membership.is_active) === 1;
+  const importStatusLabel = (status: string) =>
+    (IMPORT_STATUSES as readonly string[]).includes(status) ? t(`importStatus.${status as (typeof IMPORT_STATUSES)[number]}`) : status;
+  const alreadyActiveMember = Boolean(lookup?.found && lookup.membership && Number(lookup.membership.is_active) === 1);
+
+  const columns: TableColumn<OrganizationMemberItem>[] = [
+    { key: "name", header: t("name"), cell: (row) => row.user.full_name || "—", sortValue: (row) => row.user.full_name },
+    { key: "id", header: t(`idColumn.${addRole}`), cell: (row) => publicIdForRole(row, addRole), hideOnMobile: true },
+    { key: "email", header: t("email"), cell: (row) => row.user.email || "—", hideOnMobile: true },
+    { key: "phone", header: t("phone"), cell: (row) => row.user.phone || "—" },
+    { key: "role", header: t("role"), cell: (row) => <Badge>{tOrg(`roles.${row.role}`)}</Badge>, sortValue: (row) => row.role },
+    {
+      key: "joined",
+      header: t("joined"),
+      cell: (row) => (row.created_at ? format.date(row.created_at) : "—"),
+      sortValue: (row) => (row.created_at ? new Date(row.created_at) : null),
+      hideOnMobile: true,
+    },
+    ...(canManage
+      ? [
+          {
+            key: "actions",
+            header: t("actions"),
+            align: "right" as const,
+            cell: (row: OrganizationMemberItem) =>
+              row.role === "OWNER" ? (
+                <span className="text-ink-muted">—</span>
+              ) : (
+                <Button size="sm" variant="ghost" className="text-danger" onClick={() => setRemoving(row)}>
+                  {t("remove")}
+                </Button>
+              ),
+          },
+        ]
+      : []),
+  ];
 
   return (
-    <div>
-      <div className="mb-4 flex justify-between items-center w-full min-h-[40px] gap-3 flex-wrap">
-        <div className="text-[20px] md:text-[32px] tracking-[-0.04em] flex items-center gap-0 flex-wrap mr-4">
-          <p className="font-[500] text-[#232A25]">{title}</p>
-          <p className="font-[400] text-[#49734F] italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
-            {activeOrganization?.name || ""}
-          </p>
-        </div>
-        {canManage && (
-          <button
-            type="button"
-            onClick={() => {
-              resetModal();
-              setModalOpen(true);
-            }}
-            className="bg-[#49734F] text-white rounded-[8px] px-4 py-2 text-sm font-medium"
-          >
-            + {addLabel}
-          </button>
+    <div className="flex flex-col gap-6 pb-8">
+      <PageHeader
+        title={t(titleKey)}
+        description={activeOrganization?.name}
+        actions={canManage ? <Button onClick={openDrawer}>{t(`add.${addRole}`)}</Button> : undefined}
+      />
+      <FilterBar search={search} onSearchChange={setSearch} searchPlaceholder={t("search")} />
+      <Card flush>
+        {loading ? (
+          <div className="p-4" aria-busy="true">
+            <Skeleton lines={5} />
+          </div>
+        ) : (
+          <Table caption={t(titleKey)} columns={columns} rows={filtered} getRowId={(row) => row.id} empty={<EmptyState title={t("empty")} />} />
         )}
-      </div>
+      </Card>
 
-      <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 min-h-[calc(100vh-162px)] flex flex-col gap-4">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, ID, email, or phone..."
-          className="border border-[#EFF0F3] bg-white rounded-[8px] px-3 py-2 text-sm max-w-sm focus:outline-none focus:border-[#49734F]"
-        />
-
-        <div className="bg-white rounded-[12px] overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-[#EFF0F3] text-left text-[#232A25]">
-              <tr>
-                <th className="p-3">Name</th>
-                <th className="p-3">{idColumnLabel}</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Phone</th>
-                <th className="p-3">Role</th>
-                <th className="p-3">Joined</th>
-                {canManage && <th className="p-3">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={canManage ? 7 : 6} className="p-6 text-center text-[#747775]">
-                    Loading members...
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={canManage ? 7 : 6} className="p-6 text-center text-[#747775]">
-                    No members found.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((member) => (
-                  <tr key={member.id} className="border-t border-[#F0F0F0]">
-                    <td className="p-3 text-[#232A25]">{member.user.full_name || "—"}</td>
-                    <td className="p-3 text-[#232A25]">{publicIdForRole(member, addRole)}</td>
-                    <td className="p-3 text-[#232A25]">{member.user.email || "—"}</td>
-                    <td className="p-3 text-[#232A25]">{member.user.phone || "—"}</td>
-                    <td className="p-3 text-[#232A25]">{member.role}</td>
-                    <td className="p-3 text-[#232A25]">{formatDate(member.created_at)}</td>
-                    {canManage && (
-                      <td className="p-3">
-                        {member.role === "OWNER" ? (
-                          <span className="text-[#747775]">—</span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => void handleRemove(member.id)}
-                            disabled={removingId === member.id}
-                            className="text-[#B42318] text-sm font-medium disabled:opacity-50"
-                          >
-                            {removingId === member.id ? "Removing..." : "Remove"}
-                          </button>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {modalOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/30"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) closeModal();
-          }}
-        >
-          <div
-            className="absolute top-2 right-2 h-[calc(100vh-8px)] w-[calc(100vw-8px)] sm:w-[560px] z-50 bg-white rounded-xl p-4 sm:p-8 shadow-lg overflow-auto"
-            role="dialog"
-            aria-modal="true"
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={t(`add.${addRole}`)} description={t("addIntro")}>
+        <div className="flex flex-col gap-6">
+          <form
+            noValidate
+            className="flex flex-col gap-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleLookup();
+            }}
           >
-            <div className="pb-4 flex justify-between items-center">
-              <p className="font-[600] text-[24px] leading-[24px] tracking-[-0.04em] text-[#232A25]">
-                {addLabel}
-              </p>
-              <button type="button" className="text-[#747775]" onClick={closeModal}>
-                <CrossIconSVG width={24} />
-              </button>
-            </div>
-
-            <p className="text-[14px] text-[#747775] mb-4">
-              Search by one field. Existing users are added to this organization. Unknown contacts
-              receive an SMS or email invitation. No duplicate accounts are created.
-            </p>
-
-            <label className="block text-[14px] font-medium text-[#232A25] mb-2">
-              {searchPlaceholder}
-            </label>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
+            <div className="flex items-end gap-2">
+              <Input
+                fieldClassName="flex-1"
+                label={t(`lookupLabel.${addRole}`)}
                 value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
+                onChange={(event) => {
+                  setQuery(event.target.value);
                   setLookup(null);
                 }}
-                placeholder={searchPlaceholder}
-                className="border border-[#EFF0F3] bg-white rounded-[8px] px-3 py-2 text-sm flex-1 focus:outline-none focus:border-[#49734F]"
               />
-              <button
-                type="button"
-                onClick={() => void handleLookup()}
-                disabled={lookingUp}
-                className="border border-[#C6CFCF] rounded-[8px] px-4 py-2 text-sm font-medium text-[#232A25] disabled:opacity-60 flex items-center justify-center"
-              >
-                <ButtonLoader show={lookingUp} w="w-4" h="h-4" mr="mr-2" />
-                {lookingUp ? "Searching..." : "Search"}
-              </button>
+              <Button type="submit" variant="secondary" loading={lookingUp}>
+                {t("find")}
+              </Button>
             </div>
 
-            {lookup && !lookup.found && (
-              <div className="mt-4 rounded-[8px] bg-[#EFF0F3] p-4 text-sm text-[#232A25]">
-                <p className="font-medium">No existing user found</p>
-                <p className="text-[#747775] mt-1">{lookup.message}</p>
-                <button
-                  type="button"
-                  onClick={() => void handleAddOrInvite()}
-                  disabled={submitting}
-                  className="mt-3 bg-[#49734F] text-white rounded-[8px] px-4 py-2 text-sm font-medium disabled:opacity-60 flex items-center"
-                >
-                  <ButtonLoader show={submitting} w="w-4" h="h-4" mr="mr-2" />
-                  {submitting ? "Sending..." : "Send invitation"}
-                </button>
+            {lookup && !lookup.found ? (
+              <div className="flex flex-col items-start gap-2 rounded-input bg-canvas p-4 text-body-sm">
+                <p className="font-medium text-ink">{t("notFoundTitle")}</p>
+                <p className="text-ink-muted">{lookup.message}</p>
+                <Button size="sm" loading={submitting} onClick={() => void handleAddOrInvite()}>
+                  {t("sendInvite")}
+                </Button>
               </div>
-            )}
+            ) : null}
 
-            {lookup?.found && (
-              <div className="mt-4 rounded-[8px] border border-[#EFF0F3] p-4 text-sm text-[#232A25]">
-                <p className="font-medium text-[16px]">{lookup.user.full_name || "Unnamed user"}</p>
-                <div className="mt-2 grid gap-1 text-[#747775]">
+            {lookup?.found ? (
+              <div className="flex flex-col items-start gap-2 rounded-input border border-border p-4 text-body-sm">
+                <p className="text-body font-medium text-ink">{lookup.user.full_name || t("unnamed")}</p>
+                <div className="flex flex-col gap-0.5 text-ink-muted">
                   <p>
-                    Teacher ID: {lookup.user.teacher_public_id || "—"}
-                    {lookup.user.student_public_id ? ` · Student ID: ${lookup.user.student_public_id}` : ""}
+                    {t("teacherId", { id: lookup.user.teacher_public_id || "—" })}
+                    {lookup.user.student_public_id ? ` · ${t("studentId", { id: lookup.user.student_public_id })}` : ""}
                   </p>
-                  <p>Email: {lookup.user.email || "—"}</p>
-                  <p>Phone: {lookup.user.phone || "—"}</p>
+                  <p>
+                    {t("email")}: {lookup.user.email || "—"}
+                  </p>
+                  <p>
+                    {t("phone")}: {lookup.user.phone || "—"}
+                  </p>
                 </div>
                 {alreadyActiveMember ? (
-                  <p className="mt-3 text-[#B42318]">This person is already an active member.</p>
+                  <p className="text-danger">{t("alreadyMember")}</p>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => void handleAddOrInvite()}
-                    disabled={submitting || !lookup.user.is_otp_verified}
-                    className="mt-3 bg-[#49734F] text-white rounded-[8px] px-4 py-2 text-sm font-medium disabled:opacity-60 flex items-center"
-                  >
-                    <ButtonLoader show={submitting} w="w-4" h="h-4" mr="mr-2" />
-                    {submitting
-                      ? "Adding..."
-                      : lookup.membership
-                        ? "Restore membership"
-                        : "Add to Organization"}
-                  </button>
+                  <Button size="sm" loading={submitting} disabled={!lookup.user.is_otp_verified} onClick={() => void handleAddOrInvite()}>
+                    {lookup.membership ? t("restore") : t("addToOrg")}
+                  </Button>
                 )}
-                {!lookup.user.is_otp_verified && (
-                  <p className="mt-2 text-[#B42318]">This account is not verified yet.</p>
-                )}
+                {!lookup.user.is_otp_verified ? <p className="text-danger">{t("notVerified")}</p> : null}
               </div>
-            )}
+            ) : null}
+          </form>
 
-            <div className="mt-6 border-t border-[#EFF0F3] pt-4">
-              <p className="text-[14px] font-medium text-[#232A25] mb-2">Add multiple phone numbers</p>
-              <p className="text-[13px] text-[#747775] mb-3">
-                Paste one Bangladeshi mobile number per line. All valid numbers will be added as{" "}
-                {addRole.toLowerCase()}s. Unknown numbers are reported as not found and are not invited.
+          <section className="flex flex-col gap-3 border-t border-border pt-5">
+            <h3 className="text-body font-semibold text-ink">{t("phoneListTitle")}</h3>
+            <Textarea
+              label={t("phoneListLabel")}
+              hint={t(`phoneListHint.${addRole}`)}
+              rows={5}
+              value={phoneList}
+              onChange={(event) => setPhoneList(event.target.value)}
+              placeholder={"017XXXXXXXX\n018XXXXXXXX"}
+              className="font-mono"
+            />
+            <Button variant="secondary" className="self-start" loading={addingPhones} onClick={() => void handlePhoneListAdd()}>
+              {t("addPhones")}
+            </Button>
+          </section>
+
+          <section className="flex flex-col gap-3 border-t border-border pt-5">
+            <h3 className="text-body font-semibold text-ink">{t("csvTitle")}</h3>
+            <p className="text-body-sm text-ink-muted">{t("csvHint")}</p>
+            <div className="flex flex-wrap gap-2">
+              <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => void handleCsvUpload(event)} />
+              <Button variant="secondary" size="sm" loading={importing} onClick={() => fileInputRef.current?.click()}>
+                {t("uploadCsv")}
+              </Button>
+              <Button variant="ghost" size="sm" className="text-primary" onClick={downloadStudentCsvTemplate}>
+                {t("downloadTemplate")}
+              </Button>
+            </div>
+          </section>
+
+          {importSummary ? (
+            <section className="flex flex-col gap-2 text-body-sm" aria-live="polite">
+              <p className="font-medium text-ink">
+                {t("summary", {
+                  imported: importSummary.imported,
+                  already: importSummary.already_member,
+                  notFound: importSummary.user_not_found ?? 0,
+                  invalid: importSummary.invalid,
+                  invited: importSummary.invitation_sent,
+                  duplicate: importSummary.duplicate,
+                })}
               </p>
-              <textarea
-                value={phoneList}
-                onChange={(e) => setPhoneList(e.target.value)}
-                rows={6}
-                placeholder={"017XXXXXXXX\n018XXXXXXXX\n019XXXXXXXX"}
-                className="w-full border border-[#EFF0F3] bg-white rounded-[8px] px-3 py-2 text-sm focus:outline-none focus:border-[#49734F] font-mono"
+              <Table
+                caption={t("importDoneTitle")}
+                columns={[
+                  { key: "value", header: t("resultValue"), cell: (row) => row.identifier || "—" },
+                  { key: "status", header: t("resultStatus"), cell: (row) => importStatusLabel(row.status) },
+                  { key: "message", header: t("resultMessage"), cell: (row) => <span className="text-ink-muted">{row.message}</span> },
+                ]}
+                rows={importSummary.results.map((row, index) => ({ ...row, index }))}
+                getRowId={(row) => String(row.index)}
               />
-              <button
-                type="button"
-                onClick={() => void handlePhoneListAdd()}
-                disabled={addingPhones}
-                className="mt-3 bg-[#49734F] text-white rounded-[8px] px-4 py-2 text-sm font-medium disabled:opacity-60 flex items-center"
-              >
-                <ButtonLoader show={addingPhones} w="w-4" h="h-4" mr="mr-2" />
-                {addingPhones ? "Adding..." : `Add phone numbers as ${addRole.toLowerCase()}`}
-              </button>
-            </div>
-
-            <div className="mt-6 border-t border-[#EFF0F3] pt-4">
-              <p className="text-[14px] font-medium text-[#232A25] mb-2">Import from CSV</p>
-              <p className="text-[13px] text-[#747775] mb-3">
-                One column of Teacher/Student ID, phone, or email. Row-level results are shown after import.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="hidden"
-                  onChange={(e) => void handleCsvUpload(e)}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={importing}
-                  className="h-[32px] rounded-lg border border-[#C6CFCF] px-3 text-sm font-medium text-[#232A25] disabled:opacity-60"
-                >
-                  {importing ? "Importing..." : "Upload CSV"}
-                </button>
-                <button
-                  type="button"
-                  onClick={downloadStudentCsvTemplate}
-                  className="h-[32px] rounded-lg border border-[#C6CFCF] px-3 text-sm font-medium text-[#49734F]"
-                >
-                  Download demo CSV
-                </button>
-              </div>
-            </div>
-
-            {importSummary && (
-              <div className="mt-4 text-sm">
-                <p className="text-[#232A25] font-medium mb-2">
-                  Successfully added {importSummary.imported} · Already a member {importSummary.already_member} ·
-                  User not found {importSummary.user_not_found ?? 0} · Invalid {importSummary.invalid} ·
-                  Invitation sent {importSummary.invitation_sent} · Duplicate {importSummary.duplicate}
-                </p>
-                <div className="max-h-48 overflow-auto rounded-[8px] border border-[#EFF0F3]">
-                  <table className="w-full">
-                    <thead className="bg-[#EFF0F3] text-left">
-                      <tr>
-                        <th className="p-2">Value</th>
-                        <th className="p-2">Status</th>
-                        <th className="p-2">Message</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {importSummary.results.map((row, index) => (
-                        <tr key={`${row.identifier}-${index}`} className="border-t border-[#F0F0F0]">
-                          <td className="p-2">{row.identifier || "—"}</td>
-                          <td className="p-2">{importStatusLabel(row.status)}</td>
-                          <td className="p-2 text-[#747775]">{row.message}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
+            </section>
+          ) : null}
         </div>
-      )}
+      </Drawer>
+
+      <ConfirmDialog
+        open={Boolean(removing)}
+        tone="danger"
+        title={t("removeTitle", { name: removing?.user.full_name || removing?.user.phone || "" })}
+        description={t("removeDetail")}
+        confirmLabel={t("remove")}
+        loading={removingBusy}
+        onCancel={() => setRemoving(null)}
+        onConfirm={() => void handleRemove()}
+      />
     </div>
   );
 };
 
 export const OrganizationTeachers = () => (
-  <OrganizationWorkspaceGate title="Organization Teachers" allowedRoles={["OWNER", "ADMIN"]}>
-    <OrganizationMembersTable
-      title="Teachers"
-      roles={["OWNER", "ADMIN", "TEACHER"]}
-      allowManage
-      addRole="TEACHER"
-      addLabel="Add Teacher"
-      searchPlaceholder="Search by Teacher ID, phone or email"
-      idColumnLabel="Teacher ID"
-    />
+  <OrganizationWorkspaceGate allowedRoles={["OWNER", "ADMIN"]}>
+    <OrganizationMembersTable titleKey="teachers" roles={["OWNER", "ADMIN", "TEACHER"]} addRole="TEACHER" />
   </OrganizationWorkspaceGate>
 );
 
 export const OrganizationAssistants = () => (
-  <OrganizationWorkspaceGate title="Organization Assistants" allowedRoles={["OWNER", "ADMIN"]}>
-    <OrganizationMembersTable
-      title="Assistants"
-      roles={["ASSISTANT"]}
-      allowManage
-      addRole="ASSISTANT"
-      addLabel="Add Assistant"
-      searchPlaceholder="Search by Teacher ID, phone or email"
-      idColumnLabel="Teacher ID"
-    />
+  <OrganizationWorkspaceGate allowedRoles={["OWNER", "ADMIN"]}>
+    <OrganizationMembersTable titleKey="assistants" roles={["ASSISTANT"]} addRole="ASSISTANT" />
   </OrganizationWorkspaceGate>
 );
 
 export const OrganizationStudents = () => (
-  <OrganizationWorkspaceGate title="Organization Students" allowedRoles={["OWNER", "ADMIN"]}>
-    <OrganizationMembersTable
-      title="Students"
-      roles={["STUDENT"]}
-      allowManage
-      addRole="STUDENT"
-      addLabel="Add Student"
-      searchPlaceholder="Search by Student ID, phone or email"
-      idColumnLabel="Student ID"
-    />
+  <OrganizationWorkspaceGate allowedRoles={["OWNER", "ADMIN"]}>
+    <OrganizationMembersTable titleKey="students" roles={["STUDENT"]} addRole="STUDENT" />
   </OrganizationWorkspaceGate>
 );
 

@@ -1,27 +1,26 @@
-import { useTranslations } from "next-intl";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import WelcomeArrowIconSVG from "../svg/WelcomeArrowIconSVG";
 
+/** The illustration panel beside the auth forms, on tablet and wider. */
 const WelcomeBack = () => {
   const t = useTranslations("auth");
 
   return (
-    <div className="hidden md:block md:w-1/2 relative m-4">
-      <Image src={"/assets/image/frontPage.jpg"} alt={t("illustrationAlt")} fill className="object-cover rounded-3xl" />
-      <div className="absolute inset-0 bg-gradient-to-b from-white/60 to-white/0"></div>
-      <div className="absolute top-12 left-0 text-left">
-        <div className="mx-auto w-4/5">
-          <div className="flex justify-between align-items-center mb-8">
-            <h4 className="text-green-700 uppercase tracking-widest font-medium mb-2">{t("welcomeBack")}</h4>
-            <div className="flex flex-column justify-center text-[#49734F]">
+    <div className="relative m-4 hidden md:block md:w-1/2">
+      <Image src="/assets/image/frontPage.jpg" alt={t("illustrationAlt")} fill sizes="50vw" className="rounded-sheet object-cover" />
+      <div className="absolute inset-0 rounded-sheet bg-linear-to-b from-surface/60 to-surface/0" />
+      <div className="absolute inset-x-0 top-12">
+        <div className="mx-auto flex w-4/5 flex-col gap-8">
+          <div className="flex items-center justify-between">
+            <p className="text-body font-medium uppercase tracking-widest text-primary">{t("welcomeBack")}</p>
+            <span className="text-primary">
               <WelcomeArrowIconSVG width={25} />
-            </div>
+            </span>
           </div>
-          <h1 className="text-[32px] font-medium text-[#232A25]">
-            {t.rich("tagline", {
-              highlight: (chunks) => <span className="text-[#49734F]">{chunks}</span>,
-            })}
-          </h1>
+          <p className="text-display font-medium text-ink">
+            {t.rich("tagline", { highlight: (chunks) => <span className="text-primary">{chunks}</span> })}
+          </p>
         </div>
       </div>
     </div>

@@ -37,7 +37,7 @@ const NormalInput = ({
 
   return (
     <div
-      className={`w-full h-7 flex items-center gap-2 px-2 py-[6px] border border-[#C6CFCF] rounded-md ${parentClassName}`}
+      className={`w-full h-7 flex items-center gap-2 px-2 py-[6px] border border-border rounded-md ${parentClassName}`}
     >
       {beforeIcon}
 
@@ -50,12 +50,12 @@ const NormalInput = ({
         className={`
           w-full
           bg-transparent
-          text-[12px]
-          leading-[16px]
-          font-[500]
-          text-[#232A25]
-          placeholder:text-[#989eaf]
-          placeholder:font-[400]
+          text-caption
+         
+          font-medium
+          text-ink
+          placeholder:text-ink-muted
+          placeholder:font-normal
           align-middle
           focus:outline-none
           ${inputClassName}

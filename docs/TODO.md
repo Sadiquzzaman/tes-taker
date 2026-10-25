@@ -12,15 +12,17 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Organisation default language (`organizations.default_locale`, FND-18 "the org sets the default") — P1-04 stores only the user's choice; the column belongs with the other new organisation columns (P2-01/P2-04).
 - API messages shown to users are English only (toasts with server text, exam `reason`) — design §8 (Language) says the API returns a `code` the clients translate; needs an error-code pass over the backend.
 - Emails, SMS and PDFs in the recipient's language — P2-08 (message templates keyed by locale) and the PDF work; P1-04 covers screens only.
-- Translate the remaining screens (teacher, organisation and admin dashboards, classes, tests, grading, billing, account, landing) — P1-04 covered the shell, sign-in/sign-up and the student exam; do the rest as each screen is rebuilt in P1-05/P1-06.
+- Translate and restyle the landing page (`app/page.tsx`) — P1-05 rebuilt the app screens only; the marketing page needs its own copy in Bangla.
+- Translate the geometry, graph and chemistry workspaces inside the rich-text editor (`component/RichTextEditor/{geometry,graph,chemistry,panels}`, ~150 tool labels) — P1-05 covered the editor chrome (toolbar, node controls, equation dialog) only.
+- Plan feature and limit names in the admin plan editor come from the API in English (`/subscriptions/feature-catalog`) — return keys and translate them in the browser.
+- Terms of Service and Privacy Policy pages — the signup checkbox links went to `#`; P1-05 shows them as plain text until the pages exist.
 - Delete the unused `ObjectiveQuestionSectionCard` and `EssayQuestionSectionCard` (frontend/component/Tests/exam) — nothing imports them, so they were not translated; needs owner approval to delete.
 - Proctoring flag details sent to the teacher's live log stay in English — the student now sees translated text by flag type; translate the teacher view with the teacher screens.
 - Hide sidebar items by feature switch — AppShell shows items by role only; needs the P2-02 entitlements.
 - Notification bell contents — the top-bar bell is decorative until the P2-08 inbox exists.
-- Remove MUI (`@mui/material`, `@mui/x-date-pickers`) once P1-05 moves `PublishSchedule` to the new DatePicker/TimePicker.
-- Delete files the new components replaced, after owner approval: `component/Toast/ToastItem.tsx` (now a wrapper), `app/api/actions/toggleSidebar.ts` and `component/svg/SidebarToggleIconSVG.tsx` (unused since the AppShell), and the old `Ui/` inputs and `CreateModal` once P1-05 has moved their screens.
+- Remove the MUI and emotion packages (`@mui/material`, `@mui/x-date-pickers`, `@emotion/react`, `@emotion/styled`) and `react-loader-spinner` — nothing imports them after P1-05; waiting for the owner to confirm the package removal.
+- Delete files P1-05 left unused (nothing imports them; needs owner approval): the old `Ui/` folder, `component/Tests/Create/CreateModal.tsx` (+ `CreateModalProps`), `component/Loader/ButtonLoadder.tsx`, `component/Learning/MyLearning.tsx`, `component/Classes/StudentBadges.tsx`, `utils/grading/gradeCard.ts`, `utils/grading/gradeDetails.ts`, `component/Toast/ToastItem.tsx`, `app/api/actions/toggleSidebar.ts` and `component/svg/SidebarToggleIconSVG.tsx`.
 - Dark mode — not in the plan yet; the tokens are ready for a second set of values.
 - Build the Docker images in GitHub Actions and have beta only pull them — beta (3.8 GB RAM) ran out of memory building the frontend on 2026-10-24; a 4 GB swap file fixed it for now.
 - Translate the dashboard activity chart's labels ("Jan", "Mon", "Oct 5") — the API builds them as English text (`dashboard.service.ts`); return dates instead and format them in the browser.
 - A real student home (next exam with a countdown, latest result, weak topics; review §4.5) — needs new API data; P1-05 rebuilt the existing workspace list only.
-- Delete `component/Dashboard/DashboardEmptyState.tsx` and `DashboardWidgetSkeleton.tsx` — replaced by EmptyState and Skeleton in P1-05; needs owner approval.

@@ -1,63 +1,47 @@
 "use client";
 
+import NextLink from "next/link";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
+import type { ReactNode } from "react";
+import { ChevronRightIcon, cn, focusRing } from "@/design/ui";
+import AuthHeading from "./AuthHeading";
 
-const SignUpChoice = ({
-  onSelectStudent,
-  onSelectTeacher,
-}: {
-  onSelectStudent: () => void;
-  onSelectTeacher: () => void;
-}) => {
+const CHOICE = cn(
+  "flex w-full items-center gap-3 rounded-card border border-border bg-surface p-4 text-left transition-colors hover:border-primary",
+  focusRing,
+);
+
+const ChoiceBody = ({ title, detail }: { title: string; detail: string }): ReactNode => (
+  <>
+    <span className="flex min-w-0 flex-1 flex-col gap-1">
+      <span className="text-title-sm font-semibold text-ink">{title}</span>
+      <span className="text-body-sm text-ink-muted">{detail}</span>
+    </span>
+    <ChevronRightIcon className="text-ink-muted" />
+  </>
+);
+
+/** Signup starts with the kind of account: student, teacher, or organisation. */
+const SignUpChoice = ({ onSelectStudent, onSelectTeacher }: { onSelectStudent: () => void; onSelectTeacher: () => void }) => {
   const t = useTranslations("auth.signup");
 
   return (
-    <div className="w-full max-w-[420px] mx-auto flex flex-col gap-8">
-      <div className="flex flex-row justify-between items-center mb-2">
-        <h2 className="text-[32px] font-semibold text-[#0F1A12] leading-[39px] tracking-[-0.02em] capitalize">
-          {t("title")}
-        </h2>
-      </div>
-
-      <p className="text-[#747775] text-[16px] leading-[20px] -mt-4">
-        {t("choose")}
-      </p>
-
+    <>
+      <AuthHeading title={t("title")}>
+        <p className="text-body text-ink-muted">{t("choose")}</p>
+      </AuthHeading>
       <div className="flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={onSelectStudent}
-          className="w-full text-left rounded-lg border border-[#E5E5E5] px-4 py-4 hover:border-[#49734F] transition"
-        >
-          <p className="text-[18px] font-semibold text-[#232A25]">{t("student")}</p>
-          <p className="mt-1 text-[14px] text-[#747775]">
-            {t("studentDescription")}
-          </p>
+        <button type="button" onClick={onSelectStudent} className={CHOICE}>
+          <ChoiceBody title={t("student")} detail={t("studentDescription")} />
         </button>
-
-        <button
-          type="button"
-          onClick={onSelectTeacher}
-          className="w-full text-left rounded-lg border border-[#E5E5E5] px-4 py-4 hover:border-[#49734F] transition"
-        >
-          <p className="text-[18px] font-semibold text-[#232A25]">{t("teacher")}</p>
-          <p className="mt-1 text-[14px] text-[#747775]">
-            {t("teacherDescription")}
-          </p>
+        <button type="button" onClick={onSelectTeacher} className={CHOICE}>
+          <ChoiceBody title={t("teacher")} detail={t("teacherDescription")} />
         </button>
-
-        <Link
-          href="/signup/organization"
-          className="w-full text-left rounded-lg border border-[#E5E5E5] px-4 py-4 hover:border-[#49734F] transition"
-        >
-          <p className="text-[18px] font-semibold text-[#232A25]">{t("organization")}</p>
-          <p className="mt-1 text-[14px] text-[#747775]">
-            {t("organizationDescription")}
-          </p>
-        </Link>
+        <NextLink href="/signup/organization" className={CHOICE}>
+          <ChoiceBody title={t("organization")} detail={t("organizationDescription")} />
+        </NextLink>
       </div>
-    </div>
+    </>
   );
 };
 

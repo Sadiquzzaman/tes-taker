@@ -1,8 +1,9 @@
-import { useState, useRef, useMemo, useEffect, ChangeEvent } from "react";
+import { useState, useRef, useMemo, ChangeEvent } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setOpenAddStudentModal } from "@/lib/features/classSlice";
 import useAddStudentInClass from "@/hooks/api/class/useAddStudentInClass";
 import { useToast } from "@/component/Toast/ToastContext";
+import { useTranslations } from "next-intl";
 import {
   downloadStudentCsvTemplate,
   extractStudentsFromCsvRows,
@@ -23,19 +24,9 @@ export default function useAddStudent(fetchClassDetails: () => void) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const tagInputRef = useRef<HTMLInputElement | null>(null);
   const { triggerToast } = useToast();
+  const t = useTranslations("classes.toast");
 
   const invalidStudentIndices = useMemo(() => getInvalidStudentIndices(students), [students]);
-
-  useEffect(() => {
-    if (openAddStudentModal) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [openAddStudentModal]);
 
   const showValidationToast = (input: string) => {
     const validationError = getValidationError(input);
@@ -43,7 +34,8 @@ export default function useAddStudent(fetchClassDetails: () => void) {
     if (!validationError) return false;
 
     triggerToast({
-      ...validationError,
+      title: t(validationError.title),
+      description: t(validationError.description),
       type: "error",
     });
 
@@ -67,8 +59,8 @@ export default function useAddStudent(fetchClassDetails: () => void) {
 
     if (students.some((student) => normalizeStudentIdentifier(student) === normalizedValue)) {
       triggerToast({
-        title: "Duplicate student",
-        description: "This phone or email is already in the list.",
+        title: t("duplicateTitle"),
+        description: t("duplicate"),
         type: "error",
       });
       return;
@@ -94,8 +86,8 @@ export default function useAddStudent(fetchClassDetails: () => void) {
 
       if (parsedStudents.length === 0) {
         triggerToast({
-          title: "Empty CSV",
-          description: "No phone number or email was found in the uploaded CSV file.",
+          title: t("emptyCsvTitle"),
+          description: t("emptyCsv"),
           type: "error",
         });
         return;
@@ -103,8 +95,8 @@ export default function useAddStudent(fetchClassDetails: () => void) {
 
       if (uniqueStudents.length === 0) {
         triggerToast({
-          title: "No new students added",
-          description: "All items in this CSV are already in the list.",
+          title: t("noNewTitle"),
+          description: t("noNew"),
           type: "error",
         });
         return;
@@ -112,14 +104,14 @@ export default function useAddStudent(fetchClassDetails: () => void) {
 
       setStudents((prev) => [...prev, ...uniqueStudents]);
       triggerToast({
-        title: "CSV uploaded",
-        description: `${uniqueStudents.length} unique item${uniqueStudents.length > 1 ? "s" : ""} added to the student list.`,
+        title: t("csvAddedTitle"),
+        description: t("csvAdded", { count: uniqueStudents.length }),
         type: "success",
       });
     } catch {
       triggerToast({
-        title: "CSV upload failed",
-        description: "We could not read the CSV file. Please try again with a valid CSV file.",
+        title: t("csvFailedTitle"),
+        description: t("csvFailed"),
         type: "error",
       });
     } finally {
@@ -152,14 +144,14 @@ export default function useAddStudent(fetchClassDetails: () => void) {
   const handleAddStudent = () => {
     if (students.length === 0) {
       triggerToast({
-        title: "No students added",
-        description: "Please add at least one student email or phone number.",
+        title: t("noStudentsTitle"),
+        description: t("noStudents"),
         type: "error",
       });
     } else if (invalidStudentIndices.length > 0) {
       triggerToast({
-        title: "Fix validation errors",
-        description: "Fix validation of phone or email and try again.",
+        title: t("fixTitle"),
+        description: t("fix"),
         type: "error",
       });
     } else {

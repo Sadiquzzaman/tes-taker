@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+import { cn } from "@/design/ui";
 const CheckboxTickIcon = () => {
   return (
     <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -65,38 +67,36 @@ const getMatchingPairRows = (question: GradingModalQuestion) => {
   });
 };
 
-const CheckedRadioBox = ({ border, bg, isTick = false, rounded = "full" }: CheckedRadioBoxProps) => {
-  return (
-    <div
-      className={`flex h-4 w-4 items-center justify-center border border-[${border}] bg-[${bg}] rounded-${rounded} text-white`}
-    >
-      {isTick && <CheckboxTickIcon />}
-    </div>
-  );
-};
+type MarkerTone = "correct" | "wrong" | "neutral";
+
+/** A radio-style (round) or checkbox-style (square) mark, coloured by whether the choice was right. */
+const ChoiceMarker = ({ tone, ticked = false, square = false }: { tone: MarkerTone; ticked?: boolean; square?: boolean }) => (
+  <span
+    aria-hidden="true"
+    className={cn(
+      "flex size-4 shrink-0 items-center justify-center border text-ink-inverse",
+      square ? "rounded-sm" : "rounded-full",
+      tone === "correct" && "border-primary bg-primary",
+      tone === "wrong" && "border-danger bg-danger",
+      tone === "neutral" && "border-ink bg-transparent",
+    )}
+  >
+    {ticked ? <CheckboxTickIcon /> : null}
+  </span>
+);
 
 const OptionMarker = ({ isCorrect, isSelected, question }: OptionMarkerProps) => {
-  const showCheckIcon = isSelected && isCorrect;
-  const isCheckbox = question.inputMode === "multi-select";
-
-  if (showCheckIcon && !isCheckbox) return <CheckedRadioBox border="#49734F" bg="#49734F" isTick={true} />;
-  if (isCorrect && !isCheckbox) return <CheckedRadioBox border="#49734F" bg="#49734F" />;
-  if (isSelected && !isCheckbox) return <CheckedRadioBox border="#D24B44" bg="#D24B44" />;
-  if (!isCheckbox) return <CheckedRadioBox border="#232A25" bg="transparent" />;
-  if (showCheckIcon && isCheckbox)
-    return <CheckedRadioBox border="#49734F" bg="#49734F" isTick={true} rounded="[4px]" />;
-  if (isCorrect && isCheckbox) return <CheckedRadioBox border="#49734F" bg="#49734F" rounded="[4px]" />;
-  if (isSelected && isCheckbox) return <CheckedRadioBox border="#D24B44" bg="#D24B44" rounded="[4px]" />;
-  if (isCheckbox) return <CheckedRadioBox border="#232A25" bg="transparent" rounded="[4px]" />;
+  const square = question.inputMode === "multi-select";
+  const tone: MarkerTone = isCorrect ? "correct" : isSelected ? "wrong" : "neutral";
+  return <ChoiceMarker tone={tone} ticked={isSelected && isCorrect} square={square} />;
 };
 
+/** What the student answered: text, matched pairs, or options marked right and wrong. */
 const GradingAnswerView = ({ question }: GradingModalAnswerViewProps) => {
+  const t = useTranslations("grading.answer");
+
   if (question.inputMode === "text") {
-    return (
-      <p className="text-[16px] font-[400] leading-[1.2] tracking-[-0.02em] text-[#747775]">
-        {question.textAnswer || "No answer submitted"}
-      </p>
-    );
+    return <p className="whitespace-pre-wrap text-body text-ink">{question.textAnswer || <span className="text-ink-muted">{t("none")}</span>}</p>;
   }
 
   if (question.inputMode === "matching") {
@@ -113,11 +113,11 @@ const GradingAnswerView = ({ question }: GradingModalAnswerViewProps) => {
           {pairRows.map(({ leftOption, isMatched }, index) => (
             <div
               key={leftOption.id}
-              className={`flex items-start gap-2 py-1 text-[16px] leading-[16px] tracking-[-0.02em] ${
-                isMatched ? "text-[#49734F]" : "text-[#D24B44]"
+              className={`flex items-start gap-2 py-1 text-body ${
+                isMatched ? "text-primary" : "text-danger"
               }`}
             >
-              <span className="min-w-4 text-[#747775]">{index + 1}.</span>
+              <span className="min-w-4 text-ink-muted">{index + 1}.</span>
               <span>{leftOption.text}</span>
             </div>
           ))}
@@ -126,12 +126,13 @@ const GradingAnswerView = ({ question }: GradingModalAnswerViewProps) => {
           {pairRows.map(({ leftOption, rightOption, isMatched }, index) => (
             <div
               key={`${leftOption.id}-${rightOption?.id ?? index}`}
-              className={`flex items-center gap-2 py-1 text-[16px] leading-[16px] tracking-[-0.02em] ${
-                isMatched ? "text-[#49734F]" : "text-[#D24B44]"
+              className={`flex items-center gap-2 py-1 text-body ${
+                isMatched ? "text-primary" : "text-danger"
               }`}
             >
               <span>{rightOption?.text ?? ""}</span>
-              {isMatched ? <CheckedRadioBox border="#49734F" bg="#49734F" isTick={true} /> : null}
+              {isMatched ? <ChoiceMarker tone="correct" ticked /> : null}
+              <span className="sr-only">{isMatched ? t("matched") : t("notMatched")}</span>
             </div>
           ))}
         </div>
@@ -149,12 +150,14 @@ const GradingAnswerView = ({ question }: GradingModalAnswerViewProps) => {
         return (
           <div key={option.id} className="flex items-center gap-2 py-1">
             <OptionMarker question={question} isSelected={isSelected} isCorrect={isCorrect} />
-            <p
-              className={`text-[16px] font-[400] leading-[16px] tracking-[-0.02em] ${
-                isWrongSelection ? "text-[#D24B44]" : "text-[#232A25]"
-              }`}
-            >
+            <p className={cn("text-body", isWrongSelection ? "text-danger" : "text-ink")}>
               {option.text}
+              {isSelected || isCorrect ? (
+                <span className="sr-only">
+                  {" "}
+                  ({isSelected ? (isCorrect ? t("chosenCorrect") : t("chosenWrong")) : t("correctOption")})
+                </span>
+              ) : null}
             </p>
           </div>
         );

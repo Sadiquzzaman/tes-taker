@@ -95,7 +95,7 @@ export default function ExamCountdown({
     t("countdown", { minutes: format.twoDigits(Math.floor(seconds / 60)), seconds: format.twoDigits(seconds % 60) });
 
   return (
-    <p className="font-[500] text-[16px] leading-[16px] text-[#232A25]">
+    <p className="font-medium text-body text-ink">
       {timeLeft !== null ? formatTime(timeLeft) : "--"}
     </p>
   );

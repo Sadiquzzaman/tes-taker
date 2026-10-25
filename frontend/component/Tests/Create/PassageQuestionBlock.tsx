@@ -12,7 +12,8 @@ import {
 import { useAppDispatch } from "@/lib/hooks";
 import { getPassageInstructionByLanguage, hasRichTextContent } from "@/utils/richText";
 import { memo, useCallback, useEffect, useRef } from "react";
-import NormalInput from "@/Ui/NormalInput";
+import { useTranslations } from "next-intl";
+import { cn, focusRing, IconButton, Input } from "@/design/ui";
 import QuestionCard from "./QuestionCard";
 import QuestionCardValidation from "./QuestionCard/QuestionCardValidation";
 import { QUESTION_BUILDER_GAPS } from "./QuestionCard/shared";
@@ -34,13 +35,14 @@ function PassageQuestionBlock({
   pendingFocusOption,
   onDragHandlePointerDown,
 }: PassageQuestionBlockProps) {
+  const t = useTranslations("createTest.passage");
   const dispatch = useAppDispatch();
   const blockRef = useRef<HTMLDivElement>(null);
   const didAutoFocusRef = useRef(false);
   const shouldAutoFocusPassage =
     pendingFocusQuestion?.parentPassageId === passage.id && pendingFocusQuestion.questionId === null;
   const passageErrors =
-    passage.showValidation && !hasRichTextContent(passage.passageText) ? ["Add passage text."] : [];
+    passage.showValidation && !hasRichTextContent(passage.passageText) ? [{ key: "passageMissing" as const }] : [];
   const instructionLanguage = passage.instructionLanguage === "en" ? "en" : "bn";
   const instructionLabel = getPassageInstructionByLanguage(instructionLanguage);
 
@@ -80,8 +82,8 @@ function PassageQuestionBlock({
       } ${isDragging ? "opacity-0" : "opacity-100"}`}
     >
       <div
-        className={`flex w-full flex-col ${QUESTION_BUILDER_GAPS.passageInner} rounded-[8px] border p-5 transition-[opacity,transform,box-shadow] duration-200 ${
-          isActive ? "border-transparent bg-[#FDF3E5]" : "border-[#E5E5E5] bg-white"
+        className={`flex w-full flex-col ${QUESTION_BUILDER_GAPS.passageInner} rounded-input border p-5 transition-[opacity,transform,box-shadow] duration-200 ${
+          isActive ? "border-transparent bg-warning-soft" : "border-border bg-surface"
         }`}
       >
         <div
@@ -91,14 +93,14 @@ function PassageQuestionBlock({
           <div className={`flex items-start justify-between ${QUESTION_BUILDER_GAPS.passageHeaderRow}`}>
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[12px] font-[500] leading-[14px] tracking-[-0.02em] text-[#747775]">
-                  Instruction language
+                <p id={`${passage.id}-lang`} className="text-caption font-medium text-ink-muted">
+                  {t("instructionLanguage")}
                 </p>
-                <div className="flex items-center rounded-[6px] border border-[#E5E5E5] bg-white p-0.5">
+                <div role="group" aria-labelledby={`${passage.id}-lang`} className="flex items-center rounded-input border border-border bg-surface p-0.5">
                   {(
                     [
-                      { id: "bn", label: "Bangla" },
-                      { id: "en", label: "English" },
+                      { id: "bn", label: t("bangla") },
+                      { id: "en", label: t("english") },
                     ] as const
                   ).map((option) => {
                     const isSelected = instructionLanguage === option.id;
@@ -116,9 +118,12 @@ function PassageQuestionBlock({
                             }),
                           );
                         }}
-                        className={`rounded-[4px] px-2.5 py-1 text-[12px] font-[500] leading-[14px] tracking-[-0.02em] transition-colors ${
-                          isSelected ? "bg-[#49734F] text-white" : "bg-transparent text-[#232A25] hover:bg-[#F3F4F6]"
-                        }`}
+                        aria-pressed={isSelected}
+                        className={cn(
+                          "rounded-sm px-2.5 py-1 text-caption font-medium transition-colors",
+                          isSelected ? "bg-primary text-ink-inverse" : "bg-transparent text-ink hover:bg-canvas",
+                          focusRing,
+                        )}
                       >
                         {option.label}
                       </button>
@@ -126,18 +131,17 @@ function PassageQuestionBlock({
                   })}
                 </div>
               </div>
-              <p className="max-w-[480px] text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
+              <p className="max-w-[480px] text-body font-medium text-ink">
                 {instructionLabel}
               </p>
             </div>
-            <button
-              type="button"
+            <IconButton
+              size="sm"
+              className="text-danger hover:bg-danger-soft"
+              label={t("delete")}
+              icon={<TrashIcon />}
               onClick={() => dispatch(deleteQuestion({ subjectId, questionId: passage.id }))}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-[#D24B44] transition-colors hover:bg-[#D24B44] hover:text-white"
-              aria-label="Delete passage block"
-            >
-              <TrashIcon />
-            </button>
+            />
           </div>
           <RichTextEditor
             value={passage.passageText}
@@ -151,33 +155,21 @@ function PassageQuestionBlock({
               )
             }
             onFocus={activatePassage}
-            placeholder="Write your passage here..."
+            placeholder={t("placeholder")}
             autoFocus={shouldAutoFocusPassage}
             minHeightClassName="min-h-[96px]"
-            className="border-[#E5E5E5] bg-white"
+            className="border-border bg-surface"
           />
           {subjectId.startsWith("ielts.listening") || subjectId.includes("listening") ? (
-            <div className="flex flex-col gap-2 mt-2">
-              <label className="text-[14px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
-                Audio URL (optional)
-              </label>
-              <NormalInput
-                value={passage.audioUrl ?? ""}
-                onChange={(e) =>
-                  dispatch(
-                    updatePassageAudioUrl({
-                      subjectId,
-                      passageId: passage.id,
-                      audioUrl: e.target.value,
-                    }),
-                  )
-                }
-                parentClassName="h-[40px] w-full rounded-[6px] border-[#E5E5E5]"
-                inputClassName="px-2 text-[14px] font-[400] leading-[125%] placeholder:text-[#747775]"
-                placeholder="https://example.com/audio.mp3"
-                afterIcon={null}
-              />
-            </div>
+            <Input
+              fieldClassName="mt-2"
+              type="url"
+              label={t("audio")}
+              hint={t("audioHint")}
+              value={passage.audioUrl ?? ""}
+              onChange={(event) => dispatch(updatePassageAudioUrl({ subjectId, passageId: passage.id, audioUrl: event.target.value }))}
+              placeholder="https://example.com/audio.mp3"
+            />
           ) : null}
           <QuestionCardValidation showValidation={passage.showValidation} validationErrors={passageErrors} />
         </div>
@@ -214,8 +206,8 @@ function PassageQuestionBlock({
         <button
           type="button"
           onPointerDown={(event) => onDragHandlePointerDown(subjectId, passage.id, event)}
-          className="flex-shrink-0 cursor-grab touch-none text-[#747775] transition-colors hover:text-[#232A25] active:cursor-grabbing"
-          aria-label="Drag passage block"
+          className={cn("shrink-0 cursor-grab touch-none rounded-sm text-ink-muted transition-colors hover:text-ink active:cursor-grabbing", focusRing)}
+          aria-label={t("drag")}
         >
           <DragHandleIcon />
         </button>

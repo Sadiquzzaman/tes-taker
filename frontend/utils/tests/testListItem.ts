@@ -8,39 +8,34 @@ export const getTestSubjectLabel = (test: TestListItem): string => {
       const moduleNames = test.subjects.map((subject) => subject.name).filter(Boolean);
       return moduleNames.length ? moduleNames.join(", ") : "IELTS";
     }
-    return test.subjects[0]?.name ?? "N/A";
+    return test.subjects[0]?.name ?? "—";
   }
 
   if (test.exam_category === "ielts") {
     return test.subject ? `IELTS · ${test.subject}` : "IELTS";
   }
 
-  return test.subject ?? "N/A";
+  return test.subject ?? "—";
 };
 
-export const getTestCategoryLabel = (test: TestListItem): "Academic" | "IELTS" | null => {
+/** The test's category ("academic" | "ielts"), shown with tests.category.* — or null when unknown. */
+export const getTestCategory = (test: TestListItem): "academic" | "ielts" | null => {
   const category =
     ("exam_category" in test && test.exam_category) ||
     (isTeacherExamListItem(test) ? test.formState?.examCategory : undefined);
-  if (category === "ielts") {
-    return "IELTS";
-  }
-  if (category === "academic") {
-    return "Academic";
-  }
-  return null;
+  return category === "ielts" || category === "academic" ? category : null;
 };
 
 export const getTestAudienceLabel = (test: TestListItem | TeacherShareableTest): string => {
   if (isTeacherExamListItem(test)) {
-    return test.class_name ?? "N/A";
+    return test.class_name ?? "—";
   }
 
   if ("class" in test) {
-    return test.class_name ?? test.class?.class_name ?? "N/A";
+    return test.class_name ?? test.class?.class_name ?? "—";
   }
 
-  return test.class_name ?? "N/A";
+  return test.class_name ?? "—";
 };
 
 export const getTestCounts = (test: TestListItem | TeacherShareableTest) => {
@@ -70,7 +65,7 @@ export const getTeacherShareMeta = (test: TeacherShareableTest) => {
       publishTiming: test.publishState.publishTiming,
       scheduledAt: test.publishState.scheduleAt,
       testAudience: test.publishState.testAudience,
-      className: test.class_name ?? "N/A",
+      className: test.class_name ?? "—",
       excludedStudentsCount: test.publishState.excluded_students.length,
     };
   }
@@ -79,7 +74,7 @@ export const getTeacherShareMeta = (test: TeacherShareableTest) => {
     publishTiming: test.publish_timing,
     scheduledAt: test.exam_start_time,
     testAudience: test.test_audience,
-    className: test.class?.class_name ?? test.class_name ?? "N/A",
+    className: test.class?.class_name ?? test.class_name ?? "—",
     excludedStudentsCount: test.excluded_students.length,
   };
 };

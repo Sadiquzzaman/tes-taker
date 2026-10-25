@@ -1,4 +1,5 @@
 import { RichTextEditor } from "@/component/RichTextEditor";
+import { useTranslations } from "next-intl";
 import { updateQuestionInstruction } from "@/lib/features/createTestSlice";
 import { useAppDispatch } from "@/lib/hooks";
 import { memo } from "react";
@@ -10,11 +11,12 @@ function QuestionCardInstruction({
   questionId,
   subjectId,
 }: QuestionCardInstructionProps) {
+  const t = useTranslations("createTest.card");
   const dispatch = useAppDispatch();
 
   return (
     <div className={`flex flex-col ${QUESTION_BUILDER_GAPS.instruction}`}>
-      <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#232A25]">Instruction</p>
+      <p className="text-body-sm font-normal text-ink">Instruction</p>
       <RichTextEditor
         value={instruction}
         onChange={(html) =>
@@ -27,12 +29,12 @@ function QuestionCardInstruction({
             }),
           )
         }
-        placeholder="Add instruction (optional)"
+        placeholder={t("instructionPlaceholder")}
         minHeightClassName="min-h-[40px]"
         allowImages={false}
         variant="lite"
-        className="border-[#E5E5E5] bg-white"
-        editorClassName="text-[14px]"
+        className="border-border bg-surface"
+        editorClassName="text-body-sm"
       />
     </div>
   );

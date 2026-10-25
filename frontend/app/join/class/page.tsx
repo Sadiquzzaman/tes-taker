@@ -96,19 +96,19 @@ const JoinClass = () => {
   return (
     <AuthLayout>
       <div className="flex w-full items-center justify-center font-ins-sans">
-        <div className="flex w-full max-w-[460px] flex-col justify-center rounded-xl border-l border-l-[#E5E5E5] bg-white shadow-lg max-md:max-w-full">
+        <div className="flex w-full max-w-[460px] flex-col justify-center rounded-xl border-l border-l-border bg-surface shadow-lg max-md:max-w-full">
           <div className="flex flex-col items-start justify-center gap-6 p-6">
-            <div className={pageState.status === "error" ? "text-[#B93815]" : "text-[#5F8A66]"}>
+            <div className={pageState.status === "error" ? "text-danger" : "text-primary"}>
               <SuccessIconSVG width={40} />
             </div>
 
             <div className="flex w-full flex-col items-start gap-2">
-              <p className="w-full text-[24px] font-medium leading-[29px] tracking-[-0.02em] text-[#232A25]">
+              <p className="w-full text-title font-medium text-ink">
                 {title}
               </p>
               <p
-                className={`w-full whitespace-pre-line text-[16px] font-normal leading-5 tracking-[-0.02em] ${
-                  pageState.status === "error" ? "text-[#B93815]" : "text-[#747775]"
+                className={`w-full whitespace-pre-line text-body font-normal leading-5 ${
+                  pageState.status === "error" ? "text-danger" : "text-ink-muted"
                 }`}
               >
                 {description}
@@ -118,13 +118,13 @@ const JoinClass = () => {
 
           {!(pageState.status === "loading") && (
             <>
-              <div className="h-px w-full bg-[#E5E5E5]" />
+              <div className="h-px w-full bg-border" />
 
               <div className="flex items-center justify-end p-4">
                 <button
                   type="button"
                   onClick={handleContinue}
-                  className="flex h-10 items-center justify-center rounded-lg bg-[#5F8A66] px-4 text-[14px] font-medium leading-4 tracking-[-0.02em] text-white transition-colors hover:bg-[#4f7655]"
+                  className="flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-body-sm font-medium leading-4 text-ink-inverse transition-colors hover:bg-primary-hover"
                 >
                   {t("continue")}
                 </button>

@@ -3,14 +3,28 @@
 import { useToast } from "@/component/Toast/ToastContext";
 import { persistAuthSession } from "@/lib/authSession";
 import { restoreLastWorkspace } from "@/lib/restoreLastWorkspace";
-import { RotatingLines } from "react-loader-spinner";
+import { Spinner } from "@/design/ui";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Suspense, useEffect, useRef } from "react";
+
+/** A quiet holding screen while the sign-in finishes. */
+const SigningIn = () => {
+  const t = useTranslations("auth.google");
+  return (
+    <div role="status" className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-ink-muted">
+      <Spinner className="size-8 text-primary" />
+      <p className="text-body-sm">{t("signingIn")}</p>
+    </div>
+  );
+};
 
 const GoogleCallbackContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { triggerToast } = useToast();
+  const t = useTranslations("auth.google");
+  const tLogin = useTranslations("auth.login");
   const handledRef = useRef(false);
 
   useEffect(() => {
@@ -22,7 +36,7 @@ const GoogleCallbackContent = () => {
     const error = searchParams.get("error");
     if (error) {
       triggerToast({
-        title: "Google sign-in failed",
+        title: t("failedTitle"),
         description: decodeURIComponent(error),
         type: "error",
       });
@@ -36,8 +50,8 @@ const GoogleCallbackContent = () => {
 
     if (!accessToken || !role) {
       triggerToast({
-        title: "Google sign-in failed",
-        description: "Missing authentication data from Google callback.",
+        title: t("failedTitle"),
+        description: t("missingData"),
         type: "error",
       });
       router.replace("/login");
@@ -60,8 +74,8 @@ const GoogleCallbackContent = () => {
         const restored = await restoreLastWorkspace(payload);
 
         triggerToast({
-          title: "Login Successful",
-          description: "Signed in with Google.",
+          title: tLogin("successTitle"),
+          description: t("doneDescription"),
           type: "success",
         });
 
@@ -72,8 +86,8 @@ const GoogleCallbackContent = () => {
         router.replace(restored.href);
       } catch {
         triggerToast({
-          title: "Google sign-in failed",
-          description: "Unable to complete sign-in. Please try again.",
+          title: t("failedTitle"),
+          description: t("failed"),
           type: "error",
         });
         router.replace("/login");
@@ -81,23 +95,15 @@ const GoogleCallbackContent = () => {
     };
 
     void completeSignIn();
-  }, [router, searchParams, triggerToast]);
+  }, [router, searchParams, t, tLogin, triggerToast]);
 
-  return (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <RotatingLines width="40" strokeColor="#49734F" />
-    </div>
-  );
+  return <SigningIn />;
 };
 
 const GoogleCallbackPage = () => {
   return (
     <Suspense
-      fallback={
-        <div className="flex min-h-[50vh] items-center justify-center">
-          <RotatingLines width="40" strokeColor="#49734F" />
-        </div>
-      }
+      fallback={<SigningIn />}
     >
       <GoogleCallbackContent />
     </Suspense>

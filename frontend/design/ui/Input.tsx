@@ -9,12 +9,14 @@ export interface InputProps
     Pick<FieldProps, "label" | "hint" | "error" | "hideLabel"> {
   /** An icon inside the field, on the left (e.g. a search glass). */
   leadingIcon?: ReactNode;
+  /** A unit or note inside the field, on the right (e.g. "minutes", "%"). */
+  trailing?: ReactNode;
   fieldClassName?: string;
 }
 
 /** A one-line text field with label, hint and error. */
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, hint, error, hideLabel, required, leadingIcon, className, fieldClassName, ...rest }, ref) => (
+  ({ label, hint, error, hideLabel, required, leadingIcon, trailing, className, fieldClassName, ...rest }, ref) => (
     <Field label={label} hint={hint} error={error} required={required} hideLabel={hideLabel} className={fieldClassName}>
       {({ id, describedBy, invalid }) => (
         <div className="relative">
@@ -29,9 +31,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             required={required}
             aria-invalid={invalid || undefined}
             aria-describedby={describedBy}
-            className={controlClasses(invalid, cn("h-10", leadingIcon ? "pl-9" : undefined, className))}
+            className={controlClasses(invalid, cn("h-10", leadingIcon ? "pl-9" : undefined, trailing ? "pr-20" : undefined, className))}
             {...rest}
           />
+          {trailing ? (
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-body-sm text-ink-muted">{trailing}</span>
+          ) : null}
         </div>
       )}
     </Field>

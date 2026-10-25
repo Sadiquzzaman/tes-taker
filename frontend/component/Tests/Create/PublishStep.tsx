@@ -1,269 +1,171 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import {
-  setPublishTiming,
-  setPublishField,
-  setTestAudience,
-  addExcludedStudent,
-  removeExcludedStudent,
-} from "@/lib/features/createTestSlice";
-import DropDownComponent from "@/Ui/DropDownComponent";
-import TagInput from "@/Ui/TagInput";
-import { testAudienceOptions } from "@/utils/createTestOptions";
-import { buildTestJoinLink, getFrontendAppUrl } from "@/utils/frontendAppUrl";
+import { useToast } from "@/component/Toast/ToastContext";
+import PublishCopyIconSVG from "@/component/svg/PublishCopyIconSVG";
+import { Button, Card, cn, focusRing, Select, TagInput } from "@/design/ui";
 import useGetAllClass from "@/hooks/api/class/useGetAllClass";
 import useWorkspace from "@/hooks/organization/useWorkspace";
+import { addExcludedStudent, removeExcludedStudent, setPublishField, setPublishTiming, setTestAudience } from "@/lib/features/createTestSlice";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { buildTestJoinLink, getFrontendAppUrl } from "@/utils/frontendAppUrl";
 import PublishSchedule from "./PublishSchedule";
-import { useToast } from "@/component/Toast/ToastContext";
-import AddStudentIconSVG from "@/component/svg/AddStudentIconSVG";
-import PublishCopyIconSVG from "@/component/svg/PublishCopyIconSVG";
 
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DIGITS = /^\d+$/;
+
+/** Step 5: when the test opens, who can take it, and its join link. */
 const PublishStep = () => {
+  const t = useTranslations("createTest.publish");
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
-  const publishState = useAppSelector((state) => (state.createTest as CreateTestState).publishState);
-  const editExamId = useAppSelector((state) => (state.createTest as CreateTestState).editExamId);
-  const examCategory = useAppSelector(
-    (state) => (state.createTest as CreateTestState).formState.examCategory ?? "academic",
-  );
+  const { publishState, editExamId, formState } = useAppSelector((state) => state.createTest as CreateTestState);
+  const isIelts = (formState.examCategory ?? "academic") === "ielts";
   const { classList } = useGetAllClass();
   const { isIndividual } = useWorkspace();
   const selectedClass = classList.find((item) => item.id === publishState.selectedClassId);
-  const classLabel = examCategory === "ielts" ? "batch" : "class";
-  const classLabelTitle = examCategory === "ielts" ? "Batch" : "Class";
-
   const [studentInput, setStudentInput] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const classOptions = classList.map((c) => ({ label: c.class_name, value: c.id }));
-
-  const joinLink = useMemo(() => {
-    if (editExamId) {
-      return buildTestJoinLink(editExamId);
-    }
-
-    return `${getFrontendAppUrl()}/join/test/<id-after-publish>`;
-  }, [editExamId]);
-
-  const canCopyJoinLink = Boolean(editExamId);
+  const joinLink = useMemo(
+    () => (editExamId ? buildTestJoinLink(editExamId) : `${getFrontendAppUrl()}/join/test/…`),
+    [editExamId],
+  );
 
   const handleCopy = useCallback(() => {
-    if (!canCopyJoinLink) {
-      triggerToast({
-        title: "Link unavailable",
-        description: "Publish or save the test first to get a shareable join link.",
-        type: "error",
-      });
+    if (!editExamId) {
+      triggerToast({ title: t("linkUnavailableTitle"), description: t("linkUnavailable"), type: "info" });
       return;
     }
-
-    navigator.clipboard.writeText(joinLink).then(() => {
+    void navigator.clipboard.writeText(joinLink).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, [canCopyJoinLink, joinLink, triggerToast]);
+  }, [editExamId, joinLink, t, triggerToast]);
 
   const handleAddStudent = useCallback(() => {
-    const trimmed = studentInput.trim();
-    if (!trimmed) return;
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^\d+$/;
-
-    if (!emailRegex.test(trimmed) && !phoneRegex.test(trimmed)) {
-      triggerToast({
-        title: "Invalid input",
-        description: "Please enter a valid email address or phone number.",
-        type: "error",
-      });
-    } else if (trimmed.includes("@") && !emailRegex.test(trimmed)) {
-      triggerToast({
-        title: "Invalid email",
-        description: "Please enter a valid email address.",
-        type: "error",
-      });
-    } else if (phoneRegex.test(trimmed) && trimmed.length !== 11) {
-      triggerToast({
-        title: "Invalid phone number",
-        description: "Phone number must be 11 digits.",
-        type: "error",
-      });
+    const value = studentInput.trim();
+    if (!value) return;
+    if (!EMAIL.test(value) && !DIGITS.test(value)) {
+      triggerToast({ title: t("invalidTitle"), description: t("invalid"), type: "error" });
+    } else if (DIGITS.test(value) && value.length !== 11) {
+      triggerToast({ title: t("invalidPhoneTitle"), description: t("invalidPhone"), type: "error" });
     } else {
-      dispatch(addExcludedStudent(trimmed));
+      dispatch(addExcludedStudent(value));
       setStudentInput("");
     }
-  }, [studentInput, dispatch, triggerToast]);
+  }, [dispatch, studentInput, t, triggerToast]);
 
-  const handleRemoveStudent = useCallback(
-    (index: number) => {
-      dispatch(removeExcludedStudent(index));
-    },
-    [dispatch],
-  );
-
-  const renderPublishOptionButton = (title: string, description: string, timing: PublishTiming) => (
-    <button
-      type="button"
-      onClick={() => dispatch(setPublishTiming(timing))}
-      className={`flex flex-1 cursor-pointer items-start gap-3 rounded-[8px] p-4 transition-colors ${
-        publishState.publishTiming === timing ? "bg-[#49734F]" : "bg-[#EFF0F3]"
-      }`}
-    >
-      <span
-        className={`mt-[2px] flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border ${
-          publishState.publishTiming === timing ? "border-white bg-white" : "border-[#747775] bg-transparent"
-        }`}
+  const timingOption = (timing: PublishTiming, title: string, detail: string) => {
+    const selected = publishState.publishTiming === timing;
+    return (
+      <button
+        type="button"
+        role="radio"
+        aria-checked={selected}
+        onClick={() => dispatch(setPublishTiming(timing))}
+        className={cn(
+          "flex flex-1 items-start gap-3 rounded-card border p-4 text-left transition-colors",
+          selected ? "border-primary bg-primary-soft" : "border-border bg-surface hover:border-ink-muted",
+          focusRing,
+        )}
       >
-        {publishState.publishTiming === timing && <span className="h-3 w-3 rounded-full bg-[#49734F]" />}
-      </span>
-      <div className="flex flex-col gap-2 text-left">
-        <span
-          className={`text-[16px] font-[500] leading-4 tracking-[-0.02em] ${
-            publishState.publishTiming === timing ? "text-white" : "text-[#232A25]"
-          }`}
-        >
-          {title}
+        <span className={cn("mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border", selected ? "border-primary" : "border-ink-muted")}>
+          {selected ? <span className="size-2 rounded-full bg-primary" /> : null}
         </span>
-        <span
-          className={`text-[14px] font-[400] leading-4 tracking-[-0.02em] ${
-            publishState.publishTiming === timing ? "text-[#E5E5E5]" : "text-[#747775]"
-          }`}
-        >
-          {description}
+        <span className="flex flex-col gap-1">
+          <span className="text-body font-medium text-ink">{title}</span>
+          <span className="text-body-sm text-ink-muted">{detail}</span>
         </span>
-      </div>
-    </button>
-  );
+      </button>
+    );
+  };
+
+  const showClassPicker = isIndividual ? publishState.testAudience === "selected_class" : true;
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <section className="flex h-full w-full flex-1 flex-col gap-8">
+    <section className="flex w-full flex-1 flex-col gap-6">
+      <Card title={t("timing")}>
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[24px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Publish timing</h2>
+          <div role="radiogroup" aria-label={t("timing")} className="flex flex-col gap-3 sm:flex-row">
+            {timingOption("immediately", t("now"), t("nowDetail"))}
+            {timingOption("later", t("later"), t("laterDetail"))}
           </div>
-          <div className="w-full border-b border-[#E5E5E5]" />
-
-          <div className="flex gap-3">
-            {renderPublishOptionButton("Publish immediately", "This test will be available from now", "immediately")}
-            {renderPublishOptionButton(
-              "Schedule for later",
-              "This test will be available on selected date & time",
-              "later",
-            )}
-          </div>
-
-          {publishState.publishTiming === "later" && <PublishSchedule />}
+          {publishState.publishTiming === "later" ? <PublishSchedule /> : null}
         </div>
+      </Card>
 
+      <Card title={t("audience")}>
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[24px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Test Audience</h2>
-          </div>
-          <div className="w-full border-b border-[#E5E5E5]" />
+          {isIndividual ? (
+            <Select
+              label={t("audienceLabel")}
+              placeholder={false}
+              value={publishState.testAudience}
+              onChange={(event) => dispatch(setTestAudience(event.target.value as TestAudience))}
+              options={[
+                { value: "anyone", label: t("anyone") },
+                { value: "selected_class", label: t("classAudience") },
+              ]}
+            />
+          ) : null}
 
-          <div className="flex flex-col gap-2">
-            <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Test Created for</p>
-            {isIndividual ? (
-              <DropDownComponent
-                placeholder="Select audience"
-                value={publishState.testAudience}
-                handleChange={(value) => dispatch(setTestAudience(value as TestAudience))}
-                list={testAudienceOptions}
-              />
-            ) : (
-              <p className="rounded-[8px] bg-[#EFF0F3] px-3 py-3 text-sm text-[#232A25]">
-                Group or {classLabel}
-                {selectedClass?.class_name ? ` — ${selectedClass.class_name}` : ""}
-              </p>
-            )}
-          </div>
-
-          {(isIndividual ? publishState.testAudience === "selected_class" : true) && (
-            <div className="flex flex-col gap-2">
-              <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
-                Select a {classLabel}
-              </p>
+          {showClassPicker ? (
+            <div className="flex flex-col gap-3">
               {isIndividual ? (
-                <DropDownComponent
-                  placeholder={`Select ${classLabel}`}
+                <Select
+                  label={isIelts ? t("batch") : t("class")}
+                  placeholder={isIelts ? t("selectBatch") : t("selectClass")}
                   value={publishState.selectedClassId}
-                  handleChange={(value) => dispatch(setPublishField({ field: "selectedClassId", value }))}
-                  list={classOptions}
-                  maxOuputInDropdownList={5}
+                  onChange={(event) => dispatch(setPublishField({ field: "selectedClassId", value: event.target.value }))}
+                  options={classList.map((item) => ({ label: item.class_name, value: item.id }))}
                 />
               ) : (
-                <p className="rounded-[8px] border border-[#E5E5E5] px-3 py-3 text-sm text-[#232A25]">
-                  {selectedClass?.class_name || `${classLabelTitle} selected in Basic Info`}
-                </p>
+                <div className="flex flex-col gap-1">
+                  <p className="text-body-sm font-medium text-ink">{isIelts ? t("batch") : t("class")}</p>
+                  <p className="rounded-input bg-canvas px-3 py-2.5 text-body text-ink">{selectedClass?.class_name || t("fromBasicInfo")}</p>
+                </div>
               )}
-              {publishState.selectedClassId && (
+              {publishState.selectedClassId ? (
                 <>
-                  <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
-                    Students in this {classLabel} will be able to join the test.
-                  </p>
-
-                  <p className="text-[16px] font-[500] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">
-                    Exclude Student email or phone <span className="font-[400] text-[#747775]">(Optional)</span>
-                  </p>
+                  <p className="text-body-sm text-ink-muted">{isIelts ? t("batchStudents") : t("classStudents")}</p>
                   <div className="flex items-end gap-2">
-                    <div className="flex-1">
-                      <TagInput
-                        value={studentInput}
-                        onChange={(e) => setStudentInput(e.target.value)}
-                        tags={publishState.excluded_students}
-                        addTag={handleAddStudent}
-                        removeTag={handleRemoveStudent}
-                        placeholder="Exclude by single/bulk email or phone."
-                        afterIcon={null}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleAddStudent}
-                      className="flex h-[44px] items-center gap-[6px] rounded-[8px] bg-[#232A25] px-3 text-[14px] font-[500] leading-4 tracking-[-0.02em] text-white"
-                    >
-                      <AddStudentIconSVG width={14} />
-                      Add
-                    </button>
+                    <TagInput
+                      className="flex-1"
+                      label={t("exclude")}
+                      hint={t("excludeHint")}
+                      placeholder={t("excludePlaceholder")}
+                      value={studentInput}
+                      onChange={setStudentInput}
+                      tags={publishState.excluded_students}
+                      onAdd={handleAddStudent}
+                      onRemove={(index) => dispatch(removeExcludedStudent(index))}
+                    />
                   </div>
-                  <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
-                    Exclude by single/bulk email or phone.
-                  </p>
+                  <Button variant="secondary" size="sm" className="self-start" disabled={!studentInput.trim()} onClick={handleAddStudent}>
+                    {t("add")}
+                  </Button>
                 </>
-              )}
+              ) : null}
             </div>
-          )}
+          ) : null}
 
-          {isIndividual && publishState.testAudience === "anyone" && (
+          {isIndividual && publishState.testAudience === "anyone" ? (
             <div className="flex flex-col gap-2">
-              <p className="text-[14px] font-[600] leading-[125%] tracking-[-0.02em] text-[#0F1A12]">Test Join Link</p>
-              <div className="flex items-center justify-between rounded-[6px] bg-[#EFF0F3]/75 px-3 py-[6px]">
-                <span className="break-all text-[16px] font-[400] leading-5 tracking-[-0.02em] text-[#2765EC]">
-                  {joinLink}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  disabled={!canCopyJoinLink}
-                  className="flex shrink-0 items-center gap-[6px] rounded-[8px] bg-[#232A25] px-3 py-2 text-[14px] font-[500] leading-4 tracking-[-0.02em] capitalize text-white disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <PublishCopyIconSVG width={14} />
-                  {copied ? "Copied!" : "Copy"}
-                </button>
+              <p className="text-body-sm font-medium text-ink">{t("link")}</p>
+              <div className="flex items-center gap-2 rounded-input bg-canvas py-1.5 pl-3 pr-1.5">
+                <span className="min-w-0 flex-1 truncate text-body-sm text-info">{joinLink}</span>
+                <Button size="sm" leftIcon={<PublishCopyIconSVG width={14} />} disabled={!editExamId} onClick={handleCopy}>
+                  {copied ? t("copied") : t("copy")}
+                </Button>
               </div>
-              <p className="text-[16px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
-                {canCopyJoinLink
-                  ? "You can copy the link now or later to share with your students."
-                  : "A shareable join link will be available after you publish this test."}
-              </p>
+              <p className="text-body-sm text-ink-muted">{editExamId ? t("linkNow") : t("linkLater")}</p>
             </div>
-          )}
+          ) : null}
         </div>
-      </section>
-    </LocalizationProvider>
+      </Card>
+    </section>
   );
 };
 

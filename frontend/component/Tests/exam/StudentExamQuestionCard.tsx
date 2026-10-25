@@ -2,12 +2,15 @@
 
 import StudentExamMatchingOrderInput from "@/component/Tests/exam/StudentExamMatchingOrderInput";
 import { RichTextContent } from "@/component/RichTextEditor";
-import NotmalTextFeild from "@/Ui/NotmalTextFeild";
 import { toggleMultiSelectAnswer } from "@/utils/tests/studentExamAnswers";
 import { useTranslations } from "next-intl";
+import useFormat from "@/i18n/useFormat";
+import { Button, cn, Textarea } from "@/design/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface StudentExamQuestionCardProps {
+  flagged?: boolean;
+  onToggleFlag?: (questionId: string) => void;
   question: StudentExamViewQuestion;
   answerState: ExamAnswerState;
   disabled: boolean;
@@ -97,28 +100,19 @@ const StudentExamSpeakingRecorder = ({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
         {!isRecording ? (
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={startRecording}
-            className="rounded-[6px] bg-[#49734F] px-4 py-2 text-[14px] font-[500] text-white disabled:opacity-50"
-          >
+          <Button disabled={disabled} onClick={() => void startRecording()}>
             {value ? t("reRecord") : t("startRecording")}
-          </button>
+          </Button>
         ) : (
-          <button
-            type="button"
-            onClick={stopRecording}
-            className="rounded-[6px] bg-[#B42318] px-4 py-2 text-[14px] font-[500] text-white"
-          >
+          <Button variant="danger" onClick={stopRecording}>
             {t("stopRecording")}
-          </button>
+          </Button>
         )}
         {secondsLeft !== null ? (
-          <span className="text-[14px] text-[#747775]">{t("recordingTimeLeft", { seconds: secondsLeft })}</span>
+          <span className="text-body-sm text-ink-muted">{t("recordingTimeLeft", { seconds: secondsLeft })}</span>
         ) : null}
       </div>
-      {error ? <p className="text-[13px] text-[#B42318]">{error}</p> : null}
+      {error ? <p className="text-body-sm text-danger">{error}</p> : null}
       {value ? <audio controls src={value} className="w-full" preload="metadata" /> : null}
     </div>
   );
@@ -132,8 +126,11 @@ const StudentExamQuestionCard = ({
   negativeMarkValue,
   onAnswerChange,
   onMatchingChange,
+  flagged = false,
+  onToggleFlag,
 }: StudentExamQuestionCardProps) => {
   const t = useTranslations("exam");
+  const format = useFormat();
   const answerValue = answerState[question.id];
   const textValue = typeof answerValue === "string" ? answerValue : "";
   const selectedOptionIds = Array.isArray(answerValue) ? answerValue : [];
@@ -144,20 +141,33 @@ const StudentExamQuestionCard = ({
   const wordLimit = question.wordLimit ?? null;
 
   return (
-    <article className="flex w-full flex-col gap-3 rounded-[8px] bg-white p-4">
-      {question.instruction ? (
-        <RichTextContent html={question.instruction} className="text-[14px] leading-5 text-[#49734F]" />
-      ) : null}
-
-      <div className="flex min-w-0 gap-2">
-        <span className="w-4 shrink-0 text-center text-[16px] font-[500] leading-5 text-[#0F1A12]">
-          {question.questionNumber}.
+    <article
+      id={`exam-q-${question.id}`}
+      tabIndex={-1}
+      aria-label={t("questionLabel", { number: question.questionNumber })}
+      className={cn(
+        "flex w-full scroll-mt-24 flex-col gap-3 rounded-card border bg-surface p-4 outline-none sm:p-5",
+        flagged ? "border-warning" : "border-border",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-body-sm font-semibold text-primary">
+          {format.number(question.questionNumber)}
         </span>
-        <RichTextContent
-          html={question.text}
-          className="min-w-0 flex-1 text-[16px] font-[500] leading-5 tracking-[-0.02em] text-[#0F1A12]"
-        />
+        {onToggleFlag ? (
+          <Button
+            variant={flagged ? "secondary" : "ghost"}
+            size="sm"
+            aria-pressed={flagged}
+            className={flagged ? "border-warning text-warning" : "text-ink-muted"}
+            onClick={() => onToggleFlag(question.id)}
+          >
+            {flagged ? t("flagged") : t("flag")}
+          </Button>
+        ) : null}
       </div>
+      {question.instruction ? <RichTextContent html={question.instruction} className="text-body-sm text-primary" /> : null}
+      <RichTextContent html={question.text} className="min-w-0 text-body font-medium text-ink" />
 
       {question.audioUrl ? (
         <audio controls src={question.audioUrl} className="w-full" preload="metadata">
@@ -167,15 +177,14 @@ const StudentExamQuestionCard = ({
 
       {question.inputMode === "text" ? (
         <div className="flex flex-col gap-3">
-          <NotmalTextFeild
+          <Textarea
+            label={t("questionLabel", { number: question.questionNumber })}
+            hideLabel
             value={textValue}
             onChange={(event) => onAnswerChange(question.id, event.target.value)}
             placeholder={isWritingTask ? t("writeEssay") : t("writeAnswer")}
             rows={isWritingTask ? 12 : 4}
-            maxRows={isWritingTask ? 24 : 6}
             disabled={disabled}
-            parentClassName="rounded-[6px] border-[#E5E5E5] bg-white px-3 py-[10px]"
-            inputClassName="text-[16px] font-[400] leading-5 tracking-[-0.02em] text-[#232A25] placeholder:text-[#747775]"
           />
         </div>
       ) : null}
@@ -204,9 +213,9 @@ const StudentExamQuestionCard = ({
                 disabled={disabled}
                 checked={selectedOptionIds.includes(option.id)}
                 onChange={() => onAnswerChange(question.id, [option.id])}
-                className="h-4 w-4 border-[#232A25] text-[#49734F] focus:ring-0"
+                className="h-4 w-4 border-ink text-primary focus:ring-0"
               />
-              <span className="text-[16px] leading-4 tracking-[-0.02em] text-[#232A25]">{option.text}</span>
+              <span className="text-body leading-4 text-ink">{option.text}</span>
             </label>
           ))}
         </div>
@@ -225,9 +234,9 @@ const StudentExamQuestionCard = ({
                 disabled={disabled}
                 checked={selectedOptionIds.includes(option.id)}
                 onChange={() => onAnswerChange(question.id, toggleMultiSelectAnswer(answerValue, option.id))}
-                className="h-4 w-4 rounded border-[#232A25] text-[#49734F] focus:ring-0"
+                className="h-4 w-4 rounded border-ink text-primary focus:ring-0"
               />
-              <span className="text-[16px] leading-4 tracking-[-0.02em] text-[#232A25]">{option.text}</span>
+              <span className="text-body leading-4 text-ink">{option.text}</span>
             </label>
           ))}
         </div>
@@ -245,14 +254,14 @@ const StudentExamQuestionCard = ({
 
       <div className="flex items-center justify-between gap-3">
         {question.inputMode === "text" ? (
-          <p className="text-[14px] leading-5 tracking-[-0.02em] text-[#747775]">
+          <p className="text-body-sm leading-5 text-ink-muted">
             {wordLimit ? t("wordCountLimit", { count: wordCount, limit: wordLimit }) : t("wordCount", { count: wordCount })}
           </p>
         ) : (
           <div />
         )}
 
-        <div className="flex items-center gap-2 text-[14px] leading-5 tracking-[-0.02em] text-[#747775]">
+        <div className="flex items-center gap-2 text-body-sm leading-5 text-ink-muted">
           <span>{t("points", { points: question.points })}</span>
           {negativeMark !== null ? <span>|</span> : null}
           {negativeMark !== null ? <span>{t("negativeMarking", { mark: negativeMark })}</span> : null}

@@ -48,21 +48,21 @@ const DropDownComponent = ({
               left: menuPosition.left,
               width: menuPosition.width,
             }}
-            className={`z-[1000] rounded-[8px] border border-[#E5E5E5] bg-white shadow-[0px_10px_20px_0px_#0A08411A] ${
+            className={`z-[1000] rounded-input border border-border bg-surface shadow-[0px_10px_20px_0px_#0A08411A] ${
               menuPosition.placement === "top" ? "origin-bottom" : "origin-top"
             }`}
           >
             {filteredList.length > 0 ? (
-              <div className="overflow-y-auto rounded-[8px]" style={{ maxHeight: `${dropdownMaxHeight}px` }}>
+              <div className="overflow-y-auto rounded-input" style={{ maxHeight: `${dropdownMaxHeight}px` }}>
                 {filteredList.map((item) => (
                   <div
                     key={item.value}
                     onClick={() => handleSelect(item)}
                     className={`
                       cursor-pointer px-3 py-2
-                      text-[16px] leading-[125%] tracking-[-0.02em] text-[#232A25]
-                      hover:bg-[#49734F0D]
-                      ${selected?.value === item.value ? "bg-[#49734F0D]" : ""}
+                      text-body text-ink
+                      hover:bg-primary-soft
+                      ${selected?.value === item.value ? "bg-primary-soft" : ""}
                     `}
                     style={{ minHeight: `${DROPDOWN_OPTION_HEIGHT}px` }}
                   >
@@ -71,7 +71,7 @@ const DropDownComponent = ({
                 ))}
               </div>
             ) : (
-              <div className="px-3 py-2 text-[14px] text-[#747775]">No results found</div>
+              <div className="px-3 py-2 text-body-sm text-ink-muted">No results found</div>
             )}
           </div>,
           document.body,
@@ -83,8 +83,8 @@ const DropDownComponent = ({
       <div ref={containerRef} className="relative">
         {isSearchable ? (
           <div
-            className={`flex h-[44px] items-center justify-between rounded-[8px] border border-[#E5E5E5] px-3 ${
-              disabled ? "pointer-events-none bg-[#F8F8F8] opacity-70" : ""
+            className={`flex h-[44px] items-center justify-between rounded-input border border-border px-3 ${
+              disabled ? "pointer-events-none bg-canvas opacity-70" : ""
             }`}
           >
             <input
@@ -94,20 +94,20 @@ const DropDownComponent = ({
               onChange={(event) => handleSearchChange(event.target.value)}
               placeholder={placeholder}
               disabled={disabled}
-              className="w-full bg-transparent text-[16px] leading-[125%] tracking-[-0.02em] text-[#232A25] placeholder:text-[#747775] focus:outline-none disabled:cursor-not-allowed"
+              className="w-full bg-transparent text-body text-ink placeholder:text-ink-muted focus:outline-none disabled:cursor-not-allowed"
             />
-            <button type="button" disabled={disabled} onClick={toggleDropdown} className="ml-2 text-[#232A25]">
+            <button type="button" disabled={disabled} onClick={toggleDropdown} className="ml-2 text-ink">
               {icon}
             </button>
           </div>
         ) : (
           <div
             onClick={disabled ? undefined : toggleDropdown}
-            className={`flex h-[44px] items-center justify-between rounded-[8px] border border-[#E5E5E5] px-3 ${
-              disabled ? "cursor-not-allowed bg-[#F8F8F8] opacity-70" : "cursor-pointer"
+            className={`flex h-[44px] items-center justify-between rounded-input border border-border px-3 ${
+              disabled ? "cursor-not-allowed bg-canvas opacity-70" : "cursor-pointer"
             }`}
           >
-            <span className={`${!value ? "text-[#747775]" : "text-black"}`}>
+            <span className={`${!value ? "text-ink-muted" : "text-black"}`}>
               {selected ? selected.label : placeholder}
             </span>
             <span className="ml-2 mt-[2px]">{icon}</span>

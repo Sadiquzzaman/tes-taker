@@ -141,9 +141,9 @@ const StudentExamMatchingOrderInput = ({
         {matchingOptions.left.map((leftOption, index) => (
           <div
             key={leftOption.id}
-            className="flex items-center px-3 py-2 text-[16px] leading-5 tracking-[-0.02em] text-[#232A25]"
+            className="flex items-center px-3 py-2 text-body leading-5 text-ink"
           >
-            <span className="mr-3 text-[#747775]">{index + 1}.</span>
+            <span className="mr-3 text-ink-muted">{index + 1}.</span>
             <span>{leftOption.text}</span>
           </div>
         ))}
@@ -161,7 +161,7 @@ const StudentExamMatchingOrderInput = ({
           return (
             <div
               key={rightOption.id}
-              className="flex items-center gap-3 px-3 py-2 text-[16px] leading-5 tracking-[-0.02em] text-[#232A25] transition-transform duration-150 ease-out"
+              className="flex items-center gap-3 px-3 py-2 text-body leading-5 text-ink transition-transform duration-150 ease-out"
             >
               <button
                 type="button"
@@ -193,7 +193,7 @@ const StudentExamMatchingOrderInput = ({
                     targetIndex: draggedOptionIndex,
                   });
                 }}
-                className={`touch-none text-[#747775] ${disabled ? "cursor-not-allowed" : "cursor-grab active:cursor-grabbing"}`}
+                className={`touch-none text-ink-muted ${disabled ? "cursor-not-allowed" : "cursor-grab active:cursor-grabbing"}`}
                 aria-label={t("dragToReorder")}
               >
                 <DragHandleIcon />
@@ -205,13 +205,13 @@ const StudentExamMatchingOrderInput = ({
 
         {dragState ? (
           <div
-            className="pointer-events-none absolute left-0 top-0 z-20 flex min-h-[44px] items-center gap-3 px-3 py-[10px] text-[16px] leading-5 tracking-[-0.02em] text-[#232A25] opacity-95 shadow-[0_10px_30px_rgba(15,26,18,0.12)]"
+            className="pointer-events-none absolute left-0 top-0 z-20 flex min-h-[44px] items-center gap-3 px-3 py-[10px] text-body leading-5 text-ink opacity-95 shadow-[0_10px_30px_rgba(15,26,18,0.12)]"
             style={{
               transform: `translate3d(0, ${dragState.pointerY - dragState.containerTop - dragState.pointerOffsetY}px, 0)`,
               width: `${dragState.itemWidth}px`,
             }}
           >
-            <div className="text-[#49734F]">
+            <div className="text-primary">
               <DragHandleIcon />
             </div>
             <span>{orderedRightOptions[dragState.sourceIndex]?.text}</span>

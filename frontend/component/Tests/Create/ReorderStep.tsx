@@ -1,6 +1,9 @@
 "use client";
 
 import { cancelDragging, moveGlobalQuestion, startDragging, updateDragging } from "@/lib/features/createTestSlice";
+import { useTranslations } from "next-intl";
+import { Badge, cn, focusRing, IconButton } from "@/design/ui";
+import { ChevronDownIcon, ChevronUpIcon } from "@/design/ui/icons";
 import { isPassageQuestionItem } from "@/lib/features/create-test/createTestDomain";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
@@ -35,6 +38,8 @@ const getRowOffset = (questionIndex: number, dragState: DragState | null) => {
 };
 
 const ReorderStep = memo(() => {
+  const t = useTranslations("createTest.reorder");
+  const tc = useTranslations("createTest");
   const dispatch = useAppDispatch();
   const { subjects, questionOrder, dragState } = useAppSelector((state) => state.createTest) as CreateTestState;
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -45,7 +50,7 @@ const ReorderStep = memo(() => {
   const flatQuestions = useMemo(() => {
     const byId = new Map<
       string,
-      { id: string; subjectId: string; subjectName: string; title: string; points: number }
+      { id: string; subjectId: string; subjectName: string; title: string; points: number; isPassage: boolean }
     >();
 
     for (const subject of subjects) {
@@ -55,16 +60,18 @@ const ReorderStep = memo(() => {
             id: question.id,
             subjectId: subject.id,
             subjectName: subject.name,
-            title: stripHtml(question.passageText) || "Passage question",
+            title: stripHtml(question.passageText) || "",
             points: question.childQuestions.reduce((total, child) => total + child.points, 0),
+            isPassage: true,
           });
         } else {
           byId.set(question.id, {
             id: question.id,
             subjectId: subject.id,
             subjectName: subject.name,
-            title: stripHtml(question.text) || "Untitled question",
+            title: stripHtml(question.text) || "",
             points: question.points,
+            isPassage: false,
           });
         }
       }
@@ -79,6 +86,7 @@ const ReorderStep = memo(() => {
       subjectName: string;
       title: string;
       points: number;
+      isPassage: boolean;
     }[];
   }, [questionOrder, subjects]);
 
@@ -183,13 +191,10 @@ const ReorderStep = memo(() => {
 
   return (
     <section className="flex w-full flex-1 flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-[24px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Reorder</h2>
+      <div className="flex flex-col gap-1">
+        <h2 className="text-title-sm font-semibold text-ink">{t("title")}</h2>
+        <p className="text-body-sm text-ink-muted">{t("intro")}</p>
       </div>
-      <div className="w-full border-b border-[#E5E5E5]" />
-      <p className="text-[14px] font-[400] leading-[125%] tracking-[-0.02em] text-[#747775]">
-        Drag questions to set the order students will see on the exam.
-      </p>
 
       <div ref={listRef} className="relative flex flex-col gap-2">
         {flatQuestions.map((question, index) => {
@@ -205,25 +210,40 @@ const ReorderStep = memo(() => {
                 transition: "transform 180ms ease",
                 opacity: isDragging ? 0.35 : 1,
               }}
-              className="flex items-center gap-3 rounded-[8px] border border-[#E5E5E5] bg-white px-3 py-3"
+              className="flex items-center gap-3 rounded-input border border-border bg-surface px-3 py-3"
             >
               <button
                 type="button"
                 onPointerDown={(event) => handleDragHandlePointerDown(question.id, event)}
-                className="cursor-grab touch-none text-[#747775] active:cursor-grabbing"
-                aria-label="Drag to reorder"
+                className={cn("cursor-grab touch-none rounded-sm px-1 text-ink-muted active:cursor-grabbing", focusRing)}
+                aria-label={t("drag")}
+                tabIndex={-1}
               >
                 ⋮⋮
               </button>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-[600] text-[#49734F]">Q{index + 1}</span>
-                  <span className="rounded-[4px] bg-[#EFF0F3] px-2 py-0.5 text-[12px] text-[#747775]">
-                    {question.subjectName}
-                  </span>
-                  <span className="text-[12px] text-[#747775]">{question.points} pts</span>
+                  <span className="text-body-sm font-semibold text-primary">{t("questionNumber", { number: index + 1 })}</span>
+                  <Badge>{question.subjectName}</Badge>
+                  <span className="text-caption text-ink-muted">{tc("pointsCount", { points: question.points })}</span>
                 </div>
-                <p className="truncate text-[14px] text-[#232A25]">{question.title}</p>
+                <p className="truncate text-body-sm text-ink">{question.title || (question.isPassage ? t("passageQuestion") : t("untitled"))}</p>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <IconButton
+                  size="sm"
+                  label={t("moveUp", { number: index + 1 })}
+                  icon={<ChevronUpIcon />}
+                  disabled={index === 0}
+                  onClick={() => dispatch(moveGlobalQuestion({ questionId: question.id, targetIndex: index - 1 }))}
+                />
+                <IconButton
+                  size="sm"
+                  label={t("moveDown", { number: index + 1 })}
+                  icon={<ChevronDownIcon />}
+                  disabled={index === flatQuestions.length - 1}
+                  onClick={() => dispatch(moveGlobalQuestion({ questionId: question.id, targetIndex: index + 1 }))}
+                />
               </div>
             </div>
           );
@@ -231,16 +251,16 @@ const ReorderStep = memo(() => {
 
         {dragState && draggedItem ? (
           <div
-            className="pointer-events-none fixed z-50 flex items-center gap-3 rounded-[8px] border border-[#49734F] bg-white px-3 py-3 shadow-lg"
+            className="pointer-events-none fixed z-50 flex items-center gap-3 rounded-input border border-primary bg-surface px-3 py-3 shadow-lg"
             style={{
               top: dragState.pointerY - dragState.pointerOffsetY,
               left: dragState.left,
               width: dragState.width,
             }}
           >
-            <span className="text-[#747775]">⋮⋮</span>
+            <span className="text-ink-muted">⋮⋮</span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[14px] text-[#232A25]">{draggedItem.title}</p>
+              <p className="truncate text-body-sm text-ink">{draggedItem.title}</p>
             </div>
           </div>
         ) : null}

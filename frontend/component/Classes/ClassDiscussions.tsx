@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AxiosError } from "axios";
-import DropDownComponent from "@/Ui/DropDownComponent";
 import axiosReq from "@/lib/axios";
 import { getStoredUser } from "@/lib/authSession";
 import { useApiError } from "@/hooks/api/useApiError";
 import { useToast } from "@/component/Toast/ToastContext";
+import { useTranslations } from "next-intl";
+import { Select } from "@/design/ui";
 import { getClassStudentDisplayName } from "@/utils/classes/classStudentDisplay";
 import PublicDiscussionFeed from "./discussions/PublicDiscussionFeed";
 import PrivateDiscussionPane from "./discussions/PrivateDiscussionPane";
@@ -16,8 +17,8 @@ const POLL_MS = 20000;
 
 type Mode = "public" | "private";
 
-const subjectLabel = (subject?: { name: string; code: string | null }) => {
-  if (!subject?.name) return "Subject";
+const subjectLabel = (subject: { name: string; code: string | null } | undefined, fallback: string) => {
+  if (!subject?.name) return fallback;
   return subject.code ? `${subject.name} — ${subject.code}` : subject.name;
 };
 
@@ -33,6 +34,7 @@ const ClassDiscussions = ({
   classStudents: ClassDetailsStudentItem[];
 }) => {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const t = useTranslations("discussions");
   const { handleError } = useApiError();
   const { triggerToast } = useToast();
   const currentUserId = getStoredUser()?.id;
@@ -63,15 +65,15 @@ const ClassDiscussions = ({
   const [rosterStudents, setRosterStudents] = useState<ClassStudent[]>([]);
 
   const selectedSubject = subjects.find((item) => item.id === selectedSubjectId);
-  const subjectTitle = selectedSubject ? subjectLabel(selectedSubject.class_subject.subject) : "";
+  const subjectTitle = selectedSubject ? subjectLabel(selectedSubject.class_subject.subject, t("subject")) : "";
 
   const subjectOptions = useMemo<DropDownOption[]>(
     () =>
       subjects.map((item) => ({
         value: item.id,
-        label: subjectLabel(item.class_subject.subject),
+        label: subjectLabel(item.class_subject.subject, t("subject")),
       })),
-    [subjects],
+    [subjects, t],
   );
 
   const joinedStudents = useMemo(() => {
@@ -122,13 +124,13 @@ const ClassDiscussions = ({
       setSubjects([]);
       setSubjectsError(
         axiosError.response?.status === 403
-          ? "You do not have access to discussions for this class."
-          : "Unable to load discussion subjects.",
+          ? t("subjectsForbidden")
+          : t("subjectsFailed"),
       );
     } finally {
       setLoadingSubjects(false);
     }
-  }, [baseUrl, classId, handleError]);
+  }, [baseUrl, classId, handleError, t]);
 
   const loadPosts = useCallback(
     async (page = 1, append = false, category: DiscussionPostCategory | "all" = categoryFilter) => {
@@ -154,14 +156,14 @@ const ClassDiscussions = ({
         if (!append) setPosts([]);
         setPostsError(
           axiosError.response?.status === 403
-            ? "You do not have access to this subject discussion."
-            : "Unable to load class discussion.",
+            ? t("postsForbidden")
+            : t("postsFailed"),
         );
       } finally {
         setLoadingPosts(false);
       }
     },
-    [categoryFilter, handleError, scopedUrl, selectedSubjectId],
+    [categoryFilter, handleError, scopedUrl, selectedSubjectId, t],
   );
 
   const loadConversations = useCallback(async () => {
@@ -183,13 +185,13 @@ const ClassDiscussions = ({
       setConversations([]);
       setConversationsError(
         axiosError.response?.status === 403
-          ? "You do not have access to private conversations for this subject."
-          : "Unable to load private conversations.",
+          ? t("conversationsForbidden")
+          : t("conversationsFailed"),
       );
     } finally {
       setLoadingConversations(false);
     }
-  }, [handleError, scopedUrl, selectedSubjectId]);
+  }, [handleError, scopedUrl, selectedSubjectId, t]);
 
   const loadMessages = useCallback(
     async (conversationId: string) => {
@@ -277,8 +279,8 @@ const ClassDiscussions = ({
         attachments: payload.attachments,
       });
       triggerToast({
-        title: "Posted",
-        description: "Your post was added to the class discussion.",
+        title: t("postedTitle"),
+        description: t("posted"),
         type: "success",
       });
       await loadPosts(1, false, categoryFilter);
@@ -388,54 +390,47 @@ const ClassDiscussions = ({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4 shadow-card sm:p-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[14px] font-semibold text-[#101828]">{className}</p>
-          <p className="text-[12px] text-[#667085]">Discussions are scoped by subject</p>
+          <p className="text-body-sm font-semibold text-ink">{className}</p>
+          <p className="text-caption text-ink-muted">{t("scoped")}</p>
         </div>
-        <div className="min-w-[220px]">
-          <DropDownComponent
-            list={subjectOptions}
-            value={selectedSubjectId}
-            handleChange={(value: string) => {
-              setSelectedSubjectId(value);
-              setOpenComments({});
-              setActiveConversationId("");
-              setMessages([]);
-            }}
-            placeholder={loadingSubjects ? "Loading subjects…" : "Select subject"}
-          />
-        </div>
+        <Select
+          label={t("subject")}
+          hideLabel
+          placeholder={loadingSubjects ? t("loadingSubjects") : t("selectSubject")}
+          value={selectedSubjectId}
+          options={subjectOptions}
+          onChange={(event) => {
+            setSelectedSubjectId(event.target.value);
+            setOpenComments({});
+            setActiveConversationId("");
+            setMessages([]);
+          }}
+          fieldClassName="min-w-56"
+        />
       </div>
 
-      {subjectsError ? <p className="text-[13px] text-[#B42318]">{subjectsError}</p> : null}
+      {subjectsError ? <p className="text-body-sm text-danger">{subjectsError}</p> : null}
 
-      <div className="inline-flex rounded-full bg-[#F2F4F7] p-1">
-        <button
-          type="button"
-          onClick={() => setMode("public")}
-          className={`rounded-full px-4 py-1.5 text-[13px] font-medium ${
-            mode === "public" ? "bg-white text-[#49734F] shadow-sm" : "text-[#667085]"
-          }`}
-        >
-          Class Discussion
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("private")}
-          className={`rounded-full px-4 py-1.5 text-[13px] font-medium ${
-            mode === "private" ? "bg-white text-[#49734F] shadow-sm" : "text-[#667085]"
-          }`}
-        >
-          Private Discussion
-        </button>
+      <div role="tablist" className="inline-flex w-fit rounded-full bg-canvas p-1">
+        {(["public", "private"] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={mode === value}
+            onClick={() => setMode(value)}
+            className={`rounded-full px-4 py-1.5 text-body-sm font-medium ${mode === value ? "bg-surface text-primary shadow-card" : "text-ink-muted"}`}
+          >
+            {t(value)}
+          </button>
+        ))}
       </div>
 
       {!selectedSubjectId && !loadingSubjects ? (
-        <p className="rounded-[12px] border border-dashed border-[#D0D5DD] px-4 py-8 text-center text-[13px] text-[#667085]">
-          Select a subject to open discussions.
-        </p>
+        <p className="rounded-card border border-dashed border-border px-4 py-8 text-center text-body-sm text-ink-muted">{t("pickSubject")}</p>
       ) : null}
 
       {selectedSubjectId && mode === "public" ? (
@@ -457,10 +452,9 @@ const ClassDiscussions = ({
             if (!postsMeta) return;
             void loadPosts(postsMeta.page + 1, true, categoryFilter);
           }}
+          onRetry={() => void loadPosts(1, false, categoryFilter)}
           onToggleComments={(postId) => void toggleComments(postId)}
-          onCommentDraftChange={(postId, value) =>
-            setCommentDrafts((current) => ({ ...current, [postId]: value }))
-          }
+          onCommentDraftChange={(postId, value) => setCommentDrafts((current) => ({ ...current, [postId]: value }))}
           onSubmitComment={(postId) => void submitComment(postId)}
           onEditPost={async (postId, content) => {
             try {
