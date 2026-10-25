@@ -92,3 +92,15 @@ export const SortIcon = ({ className }: IconProps) => (
     <path d="m5 6 3-3 3 3M5 10l3 3 3-3" />
   </Icon>
 );
+export const EyeIcon = ({ className }: IconProps) => (
+  <Icon className={className}>
+    <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z" />
+    <circle cx="8" cy="8" r="2" />
+  </Icon>
+);
+export const EyeOffIcon = ({ className }: IconProps) => (
+  <Icon className={className}>
+    <path d="M6.6 3.7A6 6 0 0 1 8 3.5c4 0 6.5 4.5 6.5 4.5a11 11 0 0 1-1.7 2.2M4.2 4.9A11 11 0 0 0 1.5 8S4 12.5 8 12.5a6 6 0 0 0 3-.8" />
+    <path d="M6.6 6.6a2 2 0 0 0 2.8 2.8M2 2l12 12" />
+  </Icon>
+);

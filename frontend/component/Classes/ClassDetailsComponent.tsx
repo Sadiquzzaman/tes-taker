@@ -1,115 +1,91 @@
 "use client";
 
-import useClassDetails, { classTabList } from "@/hooks/classes/useClassDetails";
-import { RotatingLines } from "react-loader-spinner";
-import ShareIconSVG from "../svg/ShareIconSVG";
-import Link from "next/link";
-import LeftArrowIconSVG from "../svg/LeftArrowIconSVG";
-import ClassStudent from "./ClassStudent";
-import ClassTests from "./ClassTests";
-import ClassSubjectsPanel from "./ClassSubjectsPanel";
-import ClassDiscussions from "./ClassDiscussions";
-import ShareClassModal from "./ShareClassModal";
+import { useTranslations } from "next-intl";
+import { Breadcrumb, Button, Card, EmptyState, PageHeader, Skeleton, Tabs } from "@/design/ui";
+import useClassDetails from "@/hooks/classes/useClassDetails";
 import useWorkspace from "@/hooks/organization/useWorkspace";
+import ShareIconSVG from "../svg/ShareIconSVG";
+import ClassDiscussions from "./ClassDiscussions";
+import ClassStudent from "./ClassStudent";
+import ClassSubjectsPanel from "./ClassSubjectsPanel";
+import ClassTests from "./ClassTests";
+import ShareClassModal from "./ShareClassModal";
 
+/** A class: its students, tests, discussions and (organisation classes) subjects, as tabs. */
 const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleUserType | undefined }) => {
-  const { loading, classData, fetch, apiComplete, testList, activeTab, setActiveTab, handleShareClass } =
-    useClassDetails(classId, role);
+  const t = useTranslations("classes");
+  const { loading, classData, fetch, apiComplete, testList, handleShareClass } = useClassDetails(classId, role);
   const { isIndividual } = useWorkspace();
   const isTeacher = role === "TEACHER";
   const isOrgClass = Boolean(classData?.organization_id);
   const classesHref = isIndividual ? "/classes" : "/organization/classes";
-  const tabs = isOrgClass && isTeacher ? [...classTabList, { name: "Subjects", value: "subjects" }] : classTabList;
+  const breadcrumb = (name?: string) => (
+    <Breadcrumb items={[{ label: t("title"), href: classesHref }, { label: name || t("details") }]} />
+  );
 
-  if (loading) {
+  if (loading || !apiComplete) {
     return (
-      <div className="w-full min-h-[calc(100vh-162px)] flex items-center justify-center">
-        <RotatingLines
-          visible={true}
-          height="96"
-          width="96"
-          color="grey"
-          strokeWidth="5"
-          animationDuration="0.75"
-          ariaLabel="rotating-lines-loading"
-          wrapperStyle={{}}
-          wrapperClass=""
-        />
+      <div className="flex flex-col gap-6 pb-8" aria-busy="true">
+        <Skeleton className="h-8 w-1/3" />
+        <Skeleton className="h-10 w-2/3" />
+        <Card>
+          <Skeleton lines={6} />
+        </Card>
       </div>
     );
   }
-
-  if (!apiComplete) return null;
 
   if (classData === null) {
     return (
-      <div className="w-full min-h-[calc(100vh-162px)] flex items-center justify-center">
-        <div className="text-center">
-          <p className="font-[600] text-[24px] leading-[32px] tracking-[-0.04em] text-[#232A25]">Class not found</p>
-        </div>
+      <div className="flex flex-col gap-6 pb-8">
+        {breadcrumb()}
+        <Card>
+          <EmptyState title={t("notFound")} description={t("notFoundDetail")} />
+        </Card>
       </div>
     );
   }
 
-  return (
-    <>
-      <div className="sm:mt-2 mb-2 sm:mb-4 flex flex-col gap-2 sm:gap-4 min-h-[40px]">
-        <div className="flex justify-between items-center w-full">
-          <Link href={classesHref} className="flex justify-end items-center gap-2 h-[40px]">
-            <button className="border border-[#E5E5E5] rounded-[43px] flex items-center justify-center gap-2 w-[128px] sm:w-[158px] h-[32px] sm:h-[40px] font-[500] text-[#747775] font-[500] text-[12px] sm:text-[14px]">
-              <LeftArrowIconSVG width={16} />
-              <span className="capitalize mb-[2px]">Back to Classes</span>
-            </button>
-          </Link>
+  const tabs = [
+    {
+      key: "students",
+      label: t("tabs.students"),
+      content: <ClassStudent classId={classId} student={classData?.classStudents || []} fetch={fetch} role={role} />,
+    },
+    { key: "tests", label: t("tabs.tests"), content: <ClassTests testList={testList} role={role} /> },
+    {
+      key: "discussions",
+      label: t("tabs.discussions"),
+      content: (
+        <ClassDiscussions
+          classId={classId}
+          className={classData?.class_name || ""}
+          role={role}
+          classStudents={classData?.classStudents || []}
+        />
+      ),
+    },
+    ...(isOrgClass && isTeacher
+      ? [{ key: "subjects", label: t("tabs.subjects"), content: <ClassSubjectsPanel classId={classId} /> }]
+      : []),
+  ];
 
-          {isTeacher && (
-            <div className="flex justify-end items-center gap-2 h-[40px]">
-              <button
-                className="flex items-center justify-center gap-2 w-[108px] sm:w-[128px] h-[32px] sm:h-[40px] bg-[#232A25] rounded-xl font-[500] text-white font-medium text-[12px] sm:text-[14px]"
-                onClick={handleShareClass}
-              >
-                <ShareIconSVG width={16} />
-                <span className="capitalize mb-[2px]">Share Class</span>
-              </button>
-            </div>
-          )}
-        </div>
-        <p className="py-2 font-[600] text-[32px] leading-[32px] tracking-[-0.04em]">{classData?.class_name || ""}</p>
-        <div className="flex flex-col sm:flex-row justify-start sm:justify-between items-start sm:items-center w-full min-h-10 mb-2">
-          <div className="flex w-fit rounded-md bg-gray-100 p-0.5">
-            {tabs.map((tab) => (
-              <button
-                key={tab.value}
-                className={`px-4 py-2 text-sm rounded leading-[20px] tracking-[-0.02em] ${
-                  activeTab.value === tab.value ? "font-[400] bg-white shadow text-[#232A25]" : "text-[#747775]"
-                }`}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 flex flex-col gap-6 min-h-[calc(100vh-300px)]">
-        <div className="p-2 sm:p-4 bg-white rounded-[8px] h-full">
-          {activeTab.value === "student" && (
-            <ClassStudent classId={classId} student={classData?.classStudents || []} fetch={fetch} role={role} />
-          )}
-          {activeTab.value === "tests" && <ClassTests testList={testList} role={role} />}
-          {activeTab.value === "subjects" && isOrgClass && isTeacher && <ClassSubjectsPanel classId={classId} />}
-          {activeTab.value === "discussions" && (
-            <ClassDiscussions
-              classId={classId}
-              className={classData?.class_name || ""}
-              role={role}
-              classStudents={classData?.classStudents || []}
-            />
-          )}
-        </div>
-      </div>
+  return (
+    <div className="flex flex-col gap-6 pb-8">
+      <PageHeader
+        breadcrumb={breadcrumb(classData?.class_name)}
+        title={classData?.class_name || t("details")}
+        actions={
+          isTeacher ? (
+            <Button variant="secondary" leftIcon={<ShareIconSVG width={16} />} onClick={handleShareClass}>
+              {t("share")}
+            </Button>
+          ) : undefined
+        }
+      />
+      <Tabs tabs={tabs} />
       <ShareClassModal />
-    </>
+    </div>
   );
 };
 

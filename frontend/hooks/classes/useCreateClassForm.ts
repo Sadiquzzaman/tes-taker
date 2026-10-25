@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, ChangeEvent } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
+import { useTranslations } from "next-intl";
 import useCreateClass from "@/hooks/api/class/useCreateClass";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 import {
@@ -15,6 +16,7 @@ import {
 
 export default function useCreateClassForm() {
   const { triggerToast } = useToast();
+  const t = useTranslations("classes.toast");
   const { isIndividual } = useWorkspace();
   const [mutate, { loading }] = useCreateClass();
   const [createClassPayload, setCreateClassPayload] = useState<CreateClassPayload>({
@@ -58,8 +60,8 @@ export default function useCreateClassForm() {
 
     if (createClassPayload.student_ids.some((student) => normalizeStudentIdentifier(student) === normalizedValue)) {
       triggerToast({
-        title: "Duplicate student",
-        description: "This phone or email is already in the list.",
+        title: t("duplicateTitle"),
+        description: t("duplicate"),
         type: "error",
       });
       return;
@@ -100,8 +102,8 @@ export default function useCreateClassForm() {
 
       if (parsedStudents.length === 0) {
         triggerToast({
-          title: "Empty CSV",
-          description: "No phone number or email was found in the uploaded CSV file.",
+          title: t("emptyCsvTitle"),
+          description: t("emptyCsv"),
           type: "error",
         });
         return;
@@ -111,8 +113,8 @@ export default function useCreateClassForm() {
 
       if (uniqueStudents.length === 0) {
         triggerToast({
-          title: "No new students added",
-          description: "All items in this CSV are already in the list.",
+          title: t("noNewTitle"),
+          description: t("noNew"),
           type: "error",
         });
         return;
@@ -120,16 +122,14 @@ export default function useCreateClassForm() {
 
       setCreateClassPayload((prev) => ({ ...prev, student_ids: [...prev.student_ids, ...uniqueStudents] }));
       triggerToast({
-        title: "CSV uploaded",
-        description: `${uniqueStudents.length} unique item${
-          uniqueStudents.length > 1 ? "s" : ""
-        } added to the student list.`,
+        title: t("csvAddedTitle"),
+        description: t("csvAdded", { count: uniqueStudents.length }),
         type: "success",
       });
     } catch {
       triggerToast({
-        title: "CSV upload failed",
-        description: "We could not read the CSV file. Please try again with a valid CSV file.",
+        title: t("csvFailedTitle"),
+        description: t("csvFailed"),
         type: "error",
       });
     } finally {
@@ -144,8 +144,8 @@ export default function useCreateClassForm() {
   const handleCreateClass = () => {
     if (createClassPayload.class_name.trim() === "") {
       triggerToast({
-        title: "Class name is required",
-        description: "Please enter a class name.",
+        title: t("nameRequiredTitle"),
+        description: t("nameRequired"),
         type: "error",
       });
       return;
@@ -153,8 +153,8 @@ export default function useCreateClassForm() {
 
     if (invalidStudentIndices.length > 0) {
       triggerToast({
-        title: "Fix validation errors",
-        description: "Fix validation of phone or email and try again.",
+        title: t("fixTitle"),
+        description: t("fix"),
         type: "error",
       });
       return;

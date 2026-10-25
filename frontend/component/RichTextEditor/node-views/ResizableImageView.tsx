@@ -1,9 +1,11 @@
 "use client";
 
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
+import { useTranslations } from "next-intl";
 import { useCallback, useRef, useState } from "react";
 
 const ResizableImageView = ({ node, updateAttributes, selected, getPos, deleteNode }: NodeViewProps) => {
+  const t = useTranslations("editor.image");
   const imgRef = useRef<HTMLImageElement>(null);
   const [isResizing, setIsResizing] = useState(false);
   const width = (node.attrs.width as string | null) || undefined;
@@ -69,14 +71,14 @@ const ResizableImageView = ({ node, updateAttributes, selected, getPos, deleteNo
           alt={
             (node.attrs.alt as string) ||
             caption ||
-            (isChemistry ? "Chemical structure" : isGeometry ? "Geometry figure" : "")
+            (isChemistry ? t("chemistryAlt") : isGeometry ? t("geometryAlt") : "")
           }
           title={(node.attrs.title as string) || ""}
           className="rte-image"
           draggable={false}
         />
         {selected ? (
-          <span className="rte-image-handle" onPointerDown={startResize} title="Drag to resize" />
+          <span className="rte-image-handle" onPointerDown={startResize} title={t("resize")} aria-hidden="true" />
         ) : null}
       </div>
       {caption || selected ? (
@@ -85,7 +87,8 @@ const ResizableImageView = ({ node, updateAttributes, selected, getPos, deleteNo
             <input
               type="text"
               value={caption}
-              placeholder="Add a caption"
+              placeholder={t("caption")}
+              aria-label={t("captionLabel")}
               onMouseDown={(event) => event.stopPropagation()}
               onChange={(event) => updateAttributes({ caption: event.target.value })}
             />
@@ -101,10 +104,11 @@ const ResizableImageView = ({ node, updateAttributes, selected, getPos, deleteNo
               key={value}
               type="button"
               className={align === value ? "is-active" : ""}
+              aria-pressed={align === value}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => updateAttributes({ align: value })}
             >
-              {value}
+              {t(`align.${value}`)}
             </button>
           ))}
           {isEditableFigure ? (
@@ -115,14 +119,14 @@ const ResizableImageView = ({ node, updateAttributes, selected, getPos, deleteNo
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={openFigureEditor}
               >
-                {isChemistry ? "Edit structure" : "Edit figure"}
+                {isChemistry ? t("editStructure") : t("editFigure")}
               </button>
               <button
                 type="button"
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => deleteNode()}
               >
-                Remove
+                {t("remove")}
               </button>
             </>
           ) : null}

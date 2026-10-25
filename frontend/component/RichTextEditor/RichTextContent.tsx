@@ -2,6 +2,7 @@
 
 import DOMPurify from "dompurify";
 import katex from "katex";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { parseGraphDefinition } from "@/utils/exam/graph/graphTypes";
@@ -40,6 +41,7 @@ const renderMathInHtml = (html: string): string => {
 };
 
 const RichTextContent = ({ html, className = "" }: RichTextContentProps) => {
+  const graphAlt = useTranslations("editor.graph")("alt");
   const hostRef = useRef<HTMLDivElement>(null);
   const rootsRef = useRef<Root[]>([]);
 
@@ -108,7 +110,7 @@ const RichTextContent = ({ html, className = "" }: RichTextContentProps) => {
         const preview = node.getAttribute("data-preview");
         if (!definition) {
           if (preview) {
-            node.innerHTML = `<img src="${preview}" alt="Graph" style="max-width:100%;height:auto;" />`;
+            node.innerHTML = `<img src="${preview}" alt="${graphAlt}" style="max-width:100%;height:auto;" />`;
           }
           return;
         }
@@ -123,7 +125,7 @@ const RichTextContent = ({ html, className = "" }: RichTextContentProps) => {
       rootsRef.current.forEach((root) => root.unmount());
       rootsRef.current = [];
     };
-  }, [sanitized]);
+  }, [graphAlt, sanitized]);
 
   if (!sanitized) {
     return null;

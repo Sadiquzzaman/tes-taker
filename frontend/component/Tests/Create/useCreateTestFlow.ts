@@ -6,6 +6,7 @@ import { getSubjectTotalMarks } from "@/lib/features/create-test/createTestDomai
 import { useAppDispatch } from "@/lib/hooks";
 import { collectQuestionValidationFailures, getSubjectQuestionCount } from "@/utils/createTestValidation";
 import { useToast } from "@/component/Toast/ToastContext";
+import { useTranslations } from "next-intl";
 import useCreateTest from "@/hooks/api/tests/useCreateTest";
 import useUpdateTest from "@/hooks/api/tests/useUpdateTest";
 import useWorkspace from "@/hooks/organization/useWorkspace";
@@ -29,6 +30,7 @@ const handlePublishStateForSubmission = (publishState: PublishState) => {
 const useCreateTestFlow = (createTestState: CreateTestState) => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
+  const t = useTranslations("createTest.toast");
   const { currentStep, formState, subjects, questionOrder, publishState, editExamId } = createTestState;
   const [createMutate, { loading: createLoading }] = useCreateTest();
   const [updateMutate, { loading: updateLoading }] = useUpdateTest(editExamId);
@@ -40,36 +42,36 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
   const handleNextStep = useCallback(async () => {
     if (currentStep === "Basic info") {
       if (!formState.testName.trim()) {
-        triggerToast({ description: "Please enter a test name", type: "error" });
+        triggerToast({ description: t("nameRequired"), type: "error" });
         return;
       }
 
       if (!formState.isModelTest && formState.examCategory !== "ielts" && subjects.length === 0) {
-        triggerToast({ description: "Please select a subject", type: "error" });
+        triggerToast({ description: t("subjectRequired"), type: "error" });
         return;
       }
 
       if (formState.examCategory === "ielts" && subjects.length === 0) {
-        triggerToast({ description: "Please select at least one IELTS module", type: "error" });
+        triggerToast({ description: t("moduleRequired"), type: "error" });
         return;
       }
 
       if (!isIndividual && !publishState.selectedClassId) {
         triggerToast({
           description:
-            formState.examCategory === "ielts" ? "Please select a batch" : "Please select a class",
+            formState.examCategory === "ielts" ? t("batchRequired") : t("classRequired"),
           type: "error",
         });
         return;
       }
 
       if (!formState.duration) {
-        triggerToast({ description: "Please enter a duration", type: "error" });
+        triggerToast({ description: t("durationRequired"), type: "error" });
         return;
       }
 
       if (formState.allowNegativeMarking && !formState.negativeMarking) {
-        triggerToast({ description: "Please enter a negative marking value", type: "error" });
+        triggerToast({ description: t("negativeRequired"), type: "error" });
         return;
       }
     }
@@ -78,7 +80,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
       const subjectsWithQuestions = subjects.filter((subject) => getSubjectQuestionCount(subject) > 0);
 
       if (subjectsWithQuestions.length === 0) {
-        triggerToast({ description: "Please add at least one question before continuing", type: "error" });
+        triggerToast({ description: t("questionRequired"), type: "error" });
         return;
       }
 
@@ -87,7 +89,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
         formState.examCategory !== "ielts" &&
         subjectsWithQuestions.length !== 1
       ) {
-        triggerToast({ description: "Non-model tests must use exactly one subject", type: "error" });
+        triggerToast({ description: t("oneSubject"), type: "error" });
         return;
       }
 
@@ -96,7 +98,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
       );
 
       if (questionWithoutSubject) {
-        triggerToast({ description: "Every question must have a subject", type: "error" });
+        triggerToast({ description: t("questionSubject"), type: "error" });
         return;
       }
 
@@ -108,7 +110,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
 
       if (passingScore !== null && !Number.isNaN(passingScore) && totalMarks < passingScore) {
         triggerToast({
-          description: `Total marks (${totalMarks}) cannot be less than the passing score (${passingScore}). Add more questions or reduce the passing score.`,
+          description: t("marksBelowPassing", { total: totalMarks, passing: passingScore }),
           type: "error",
         });
         return;
@@ -129,7 +131,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
 
       if (validationFailures.length > 0) {
         triggerToast({
-          description: "Please fix the highlighted question errors before continuing",
+          description: t("fixQuestions"),
           type: "error",
         });
         return;
@@ -139,7 +141,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
     if (currentStep === "Publish") {
       if (publishState.publishTiming === "later" && (!publishState.scheduleAt || !publishState.endingAt)) {
         triggerToast({
-          description: "Please select the full schedule and ending date/time",
+          description: t("scheduleRequired"),
           type: "error",
         });
         return;
@@ -149,8 +151,8 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
         triggerToast({
           description:
             formState.examCategory === "ielts"
-              ? "Please select at least one batch"
-              : "Please select at least one class",
+              ? t("batchRequired")
+              : t("classRequired"),
           type: "error",
         });
         return;
@@ -175,7 +177,7 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
     }
 
     dispatch(goToNextStep());
-  }, [currentStep, dispatch, formState, isIndividual, mutate, publishState, questionOrder, subjects, triggerToast]);
+  }, [currentStep, dispatch, formState, isIndividual, mutate, publishState, questionOrder, subjects, t, triggerToast]);
 
   const handlePreviousStep = useCallback(() => {
     dispatch(goToPreviousStep());

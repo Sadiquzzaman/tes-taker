@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import {
   addMatchingPair,
   clearPendingFocusOption,
@@ -22,6 +23,7 @@ function QuestionCardMatchingBody({
   scrollElementIntoView,
   subjectId,
 }: QuestionCardMatchingBodyProps) {
+  const t = useTranslations("createTest.card");
   const dispatch = useAppDispatch();
   const addPairButtonRef = useRef<HTMLButtonElement>(null);
   const leftInputRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
@@ -108,9 +110,9 @@ function QuestionCardMatchingBody({
           scrollToListEndIfNeeded();
         }}
         disabled={!canAddMorePairs}
-        className={`flex items-center ${QUESTION_BUILDER_GAPS.matchingAddButton} py-1 text-left text-[16px] font-[400] leading-4 tracking-[-0.02em] text-[rgba(116,119,117,0.5)] disabled:cursor-default`}
+        className={`flex items-center ${QUESTION_BUILDER_GAPS.matchingAddButton} py-1 text-left text-body font-normal leading-4 text-[rgba(116,119,117,0.5)] disabled:cursor-default`}
       >
-        <span>{canAddMorePairs ? "Add Another Choice" : `Maximum ${maxPairs} pairs added`}</span>
+        <span>{canAddMorePairs ? t("addPair") : t("maxPairs", { max: maxPairs })}</span>
       </button>
     </div>
   );

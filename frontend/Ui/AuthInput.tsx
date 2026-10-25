@@ -9,7 +9,7 @@ const AuthInput = ({ value, onChange, formError, placeholder, label, type = "tex
   const isPassword = type === "password";
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-[#0F1A12] font-medium text-[16px]">{label}</label>
+      <label className="text-ink font-medium text-body">{label}</label>
       <div className="relative">
         <input
           type={isPassword ? (showPassword ? "text" : "password") : type}
@@ -20,13 +20,13 @@ const AuthInput = ({ value, onChange, formError, placeholder, label, type = "tex
             [appearance:textfield] 
             [&::-webkit-outer-spin-button]:appearance-none 
             [&::-webkit-inner-spin-button]:appearance-none
-            ${formError ? "ring-2 ring-red-500" : "border border-gray-300 focus:ring-2 focus:ring-green-500"}`}
+            ${formError ? "ring-2 ring-danger" : "border border-border focus:ring-2 focus:ring-primary"}`}
         />
         {isPassword && (
           <button
             type="button"
             tabIndex={-1}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted"
             onClick={() => setShowPassword((prev) => !prev)}
             aria-label={showPassword ? t("hidePassword") : t("showPassword")}
           >
@@ -35,7 +35,7 @@ const AuthInput = ({ value, onChange, formError, placeholder, label, type = "tex
         )}
       </div>
       {formError && (
-        <p className="font-normal text-[16px] leading-[125%] tracking-[-0.02em] text-[#D24B44] align-middle">
+        <p className="font-normal text-body text-danger align-middle">
           {formError}
         </p>
       )}

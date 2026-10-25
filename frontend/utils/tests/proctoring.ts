@@ -55,34 +55,16 @@ export const getProctoringFlagColorTier = (flagCount: number): ProctoringFlagCol
   return "green";
 };
 
-export const PROCTORING_FLAG_COLOR_STYLES: Record<
-  ProctoringFlagColorTier,
-  { background: string; text: string; border: string }
-> = {
-  green: {
-    background: "#49734F",
-    text: "#FFFFFF",
-    border: "#49734F",
-  },
-  "light-green": {
-    background: "#8BC34A",
-    text: "#1F2A21",
-    border: "#8BC34A",
-  },
-  orange: {
-    background: "#F79009",
-    text: "#FFFFFF",
-    border: "#F79009",
-  },
-  red: {
-    background: "#D92D20",
-    text: "#FFFFFF",
-    border: "#D92D20",
-  },
+/** Token classes for each flag-count level: calm green, then lighter, then amber, then red. */
+export const PROCTORING_FLAG_TONE_CLASSES: Record<ProctoringFlagColorTier, string> = {
+  green: "bg-primary text-ink-inverse border-primary",
+  "light-green": "bg-success-soft text-success border-success",
+  orange: "bg-warning text-ink-inverse border-warning",
+  red: "bg-danger text-ink-inverse border-danger",
 };
 
-export const getProctoringFlagColorStyles = (flagCount: number) =>
-  PROCTORING_FLAG_COLOR_STYLES[getProctoringFlagColorTier(flagCount)];
+export const getProctoringFlagToneClasses = (flagCount: number) =>
+  PROCTORING_FLAG_TONE_CLASSES[getProctoringFlagColorTier(flagCount)];
 
 export const createProctoringSummary = (state: ProctoringState): ProctoringSummary => ({
   flags: state.flags,

@@ -1,47 +1,33 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+import { IconButton } from "@/design/ui";
+import { CloseIcon } from "@/design/ui/icons";
 import { formatFileSize, isDiscussionImageAttachment, resolveAttachmentUrl } from "@/utils/classes/discussionHelpers";
 
-const AttachmentChip = ({
-  attachment,
-  onRemove,
-}: {
-  attachment: DiscussionAttachment;
-  onRemove?: () => void;
-}) => {
+/** One attached file: a thumbnail or file badge, its name (opens it) and size; optionally removable. */
+const AttachmentChip = ({ attachment, onRemove }: { attachment: DiscussionAttachment; onRemove?: () => void }) => {
+  const t = useTranslations("discussions.attachment");
   const href = resolveAttachmentUrl(attachment.url);
   const isImage = isDiscussionImageAttachment(attachment);
+  const extension = attachment.file_name.split(".").pop()?.toUpperCase().slice(0, 4) || "FILE";
 
   return (
-    <div className="flex items-center gap-3 rounded-[10px] border border-[#E5E7EB] bg-white px-3 py-2">
+    <div className="flex items-center gap-3 rounded-input border border-border bg-surface px-3 py-2">
       {isImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={href} alt={attachment.file_name} className="h-10 w-10 rounded object-cover" />
+        <span className="size-10 shrink-0 overflow-hidden rounded-input bg-canvas" style={{ backgroundImage: `url("${href}")`, backgroundSize: "cover", backgroundPosition: "center" }} aria-hidden="true" />
       ) : (
-        <div className="flex h-10 w-10 items-center justify-center rounded bg-[#FEE4E2] text-[11px] font-bold text-[#B42318]">
-          PDF
-        </div>
+        <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-input bg-danger-soft text-caption font-bold text-danger">
+          {extension}
+        </span>
       )}
       <div className="min-w-0 flex-1">
-        <a
-          href={href}
-          target="_blank"
-          rel="noreferrer"
-          className="block truncate text-[13px] font-medium text-[#101828] hover:underline"
-        >
+        <a href={href} target="_blank" rel="noreferrer" className="block truncate text-body-sm font-medium text-ink hover:underline">
           {attachment.file_name}
         </a>
-        <p className="text-[12px] text-[#667085]">{formatFileSize(attachment.size)}</p>
+        <p className="text-caption text-ink-muted">{formatFileSize(attachment.size)}</p>
       </div>
-      {onRemove ? (
-        <button
-          type="button"
-          onClick={onRemove}
-          className="text-[12px] font-medium text-[#B42318] hover:underline"
-        >
-          Remove
-        </button>
-      ) : null}
+      {onRemove ? <IconButton size="sm" label={t("remove", { name: attachment.file_name })} icon={<CloseIcon />} onClick={onRemove} /> : null}
     </div>
   );
 };

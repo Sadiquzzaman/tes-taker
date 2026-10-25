@@ -1,60 +1,55 @@
 "use client";
 
-import AuthInput from "@/Ui/AuthInput";
-import ButtonLoader from "../Loader/ButtonLoadder";
+import { useTranslations } from "next-intl";
+import { Button, Card, PasswordInput } from "@/design/ui";
 import useChangePasswordForm from "@/hooks/auth/useChangePasswordForm";
 
+/** Change the password: the current one, then the new one twice. */
 const ChangePasswordForm = () => {
+  const t = useTranslations("account.changePassword");
   const { form, formError, loading, handleFieldChange, handleChangePassword } = useChangePasswordForm();
 
   return (
-    <div className="rounded-2xl border border-[#E5E5E5] bg-white">
-      <div className="border-b border-[#E5E5E5] p-6">
-        <p className="text-[20px] font-[600] leading-[24px] tracking-[-0.02em] text-[#232A25]">Change password</p>
-        <p className="mt-1 text-[14px] font-[400] leading-[18px] tracking-[-0.02em] text-[#747775]">
-          Update your password by entering your current password and a new one.
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-4 p-6">
-        <AuthInput
+    <Card title={t("title")} description={t("intro")}>
+      <form
+        noValidate
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleChangePassword();
+        }}
+      >
+        <PasswordInput
+          label={t("current")}
+          autoComplete="current-password"
+          placeholder={t("currentPlaceholder")}
           value={form.current_password}
-          onChange={(e) => handleFieldChange("current_password", e.target.value)}
-          type="password"
-          formError={formError.current_password}
-          placeholder="Enter current password"
-          label="Current password"
+          error={formError.current_password || undefined}
+          onChange={(event) => handleFieldChange("current_password", event.target.value)}
         />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <AuthInput
+          <PasswordInput
+            label={t("new")}
+            autoComplete="new-password"
+            placeholder={t("newPlaceholder")}
             value={form.new_password}
-            onChange={(e) => handleFieldChange("new_password", e.target.value)}
-            type="password"
-            formError={formError.new_password}
-            placeholder="Enter new password"
-            label="New password"
+            error={formError.new_password || undefined}
+            onChange={(event) => handleFieldChange("new_password", event.target.value)}
           />
-          <AuthInput
+          <PasswordInput
+            label={t("confirm")}
+            autoComplete="new-password"
+            placeholder={t("confirmPlaceholder")}
             value={form.confirm_password}
-            onChange={(e) => handleFieldChange("confirm_password", e.target.value)}
-            type="password"
-            formError={formError.confirm_password}
-            placeholder="Confirm new password"
-            label="Confirm new password"
+            error={formError.confirm_password || undefined}
+            onChange={(event) => handleFieldChange("confirm_password", event.target.value)}
           />
         </div>
-        <div className="flex justify-end">
-          <button
-            onClick={handleChangePassword}
-            disabled={loading}
-            className="px-5 h-10 flex items-center justify-center rounded-[8px] bg-[#49734F] text-white text-[14px] font-[500] tracking-[-0.02em] transition hover:bg-green-800 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            <ButtonLoader show={loading} w="w-4" h="h-4" mr="mr-2" />
-            {loading ? "Updating..." : "Change password"}
-          </button>
-        </div>
-      </div>
-    </div>
+        <Button type="submit" className="self-end" loading={loading}>
+          {t("submit")}
+        </Button>
+      </form>
+    </Card>
   );
 };
 

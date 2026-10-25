@@ -1,5 +1,6 @@
 import ClassesNameSection from "@/component/Classes/ClassesNameSection";
 import ClassList from "@/component/Classes/ClassList";
+import ShareClassModal from "@/component/Classes/ShareClassModal";
 import PageLayout from "@/component/Layout";
 import { cookies } from "next/headers";
 
@@ -9,9 +10,10 @@ export default async function ClassesPage() {
 
   return (
     <PageLayout route="/classes">
-      <ClassesNameSection role={role} />
-      <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 flex flex-col gap-6 min-h-[calc(100vh-232px)]">
+      <div className="pb-8">
+        <ClassesNameSection role={role} />
         <ClassList role={role} />
+        <ShareClassModal />
       </div>
     </PageLayout>
   );

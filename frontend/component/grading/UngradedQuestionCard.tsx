@@ -10,6 +10,9 @@ import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { resizeTextarea } from "@/utils/grading/resizeTextarea";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RichTextContent } from "@/component/RichTextEditor";
+import Image from "next/image";
+import { useTranslations } from "next-intl";
+import useFormat from "@/i18n/useFormat";
 
 const formatScoreLabel = (value: number) => {
   return String(value);
@@ -20,6 +23,8 @@ const isDecimalInput = (value: string) => {
 };
 
 const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQuestionCardProps) => {
+  const t = useTranslations("grading.answer");
+  const format = useFormat();
   const dispatch = useAppDispatch();
   const { exam, selectedSubmission } = useAppSelector((state) => state.gradeDetails);
   const examId = exam?.id ?? null;
@@ -48,7 +53,7 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
   const parsedScore = Number(scoreInput);
   const hasPositiveScore = !Number.isNaN(parsedScore) && parsedScore > 0;
   const showSuccessIcon = !isInteracting && hasPositiveScore;
-  const cardStateClassName = isInteracting ? "border-transparent bg-[#ED86001A]" : "border-[#E5E5E5] bg-white";
+  const cardStateClassName = isInteracting ? "border-transparent bg-warning-soft" : "border-border bg-surface";
   const validationError = grade ? getSubmissionGradeValidationError(grade.marks_obtained, question.points) : "";
 
   useEffect(() => {
@@ -77,7 +82,7 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
   return (
     <div
       ref={cardRef}
-      className={`flex flex-col gap-6 rounded-[8px] border p-5 transition-colors duration-150 ${cardStateClassName}`}
+      className={`flex flex-col gap-6 rounded-input border p-5 transition-colors duration-150 ${cardStateClassName}`}
       onClick={() => {
         if (showEditableControls) {
           setIsInteracting(true);
@@ -104,16 +109,14 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
         {question.instruction ? (
           <RichTextContent
             html={question.instruction}
-            className="text-[14px] font-[400] leading-[20px] tracking-[-0.02em] text-[#747775]"
+            className="text-body-sm font-normal text-ink-muted"
           />
         ) : null}
         <div className="flex items-start gap-2">
-          <span className="w-4 shrink-0 text-center text-[16px] font-[500] leading-[1.25] tracking-[-0.02em] text-[#0F1A12]">
-            {question.questionNumber}.
-          </span>
+          <span className="shrink-0 text-body font-medium text-ink">{format.number(question.questionNumber)}.</span>
           <RichTextContent
             html={question.question}
-            className="flex-1 text-[16px] font-[500] leading-[1.25] tracking-[-0.02em] text-[#0F1A12]"
+            className="flex-1 text-body font-medium text-ink"
           />
           {isInteracting ? <QuestionFilledIconSVG width={20} /> : null}
           {!isInteracting && showSuccessIcon ? <CorrectFilledIconSVG width={20} /> : null}
@@ -121,13 +124,19 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
       </div>
 
       {question.imageUrl ? (
-        <img src={question.imageUrl} alt="Question" className="max-h-[240px] rounded-[8px] object-contain" />
+        <Image
+          src={question.imageUrl}
+          alt={t("imageAlt", { number: question.questionNumber })}
+          width={0}
+          height={0}
+          sizes="100vw"
+          unoptimized
+          className="h-auto max-h-60 w-auto rounded-input object-contain"
+        />
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <p className="text-[16px] font-[600] uppercase leading-[1.25] tracking-[-0.02em] text-[#49734F]">
-          Student Answer
-        </p>
+        <p className="text-body-sm font-semibold uppercase tracking-wide text-primary">{t("studentAnswer")}</p>
         {question.mediaUrl ||
         (question.textAnswer &&
           (question.textAnswer.startsWith("data:audio") ||
@@ -140,20 +149,20 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
             preload="metadata"
           />
         ) : (
-          <p className="text-[16px] font-[400] leading-[1.2] tracking-[-0.02em] text-[#747775]">
-            {question.textAnswer || "No answer submitted"}
-          </p>
+          <p className="whitespace-pre-wrap text-body text-ink">{question.textAnswer || <span className="text-ink-muted">{t("none")}</span>}</p>
         )}
       </div>
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <p className="text-[14px] font-[400] leading-[1.25] tracking-[-0.02em] text-[#232A25]">Score</p>
+            <label htmlFor={`score-${question.id}`} className="text-body-sm font-medium text-ink">{t("score")}</label>
             {showEditableControls ? (
               <input
+                id={`score-${question.id}`}
                 type="text"
                 inputMode="decimal"
+                aria-invalid={validationError ? true : undefined}
                 value={scoreInput}
                 onChange={(event) => {
                   const nextValue = event.target.value;
@@ -218,27 +227,24 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
 
                   setScoreInput(formatScoreLabel(normalizedScore));
                 }}
-                className="h-8 w-16 rounded-[2px] border border-[#E5E5E5] bg-white px-2 text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25] focus:outline-none"
+                className="h-9 w-20 rounded-input border border-border bg-surface px-2 text-body text-ink outline-none focus-visible:ring-2 focus-visible:ring-primary"
               />
             ) : (
-              <div className="flex h-8 min-w-16 items-center justify-center rounded-[2px] border border-[#E5E5E5] bg-white px-5">
-                <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#232A25]">
-                  {formatScoreLabel(question.marksObtained)}
-                </p>
+              <div className="flex h-8 min-w-16 items-center justify-center rounded-sm border border-border bg-surface px-5">
+                <p className="text-body-sm text-ink">{format.number(question.marksObtained)}</p>
               </div>
             )}
           </div>
-          <p className="text-[14px] font-[400] leading-[1.25] tracking-[-0.02em] text-[#747775]">
-            Max marks: <span className="font-[500] text-[#232A25]">{question.points}</span>
-          </p>
+          <p className="text-body-sm text-ink-muted">{t("maxMarks", { points: question.points })}</p>
         </div>
 
-        {validationError ? <p className="text-[12px] font-[400] leading-4 text-[#D24B44]">{validationError}</p> : null}
+        {validationError ? <p role="alert" className="text-caption text-danger">{t(validationError)}</p> : null}
 
         {showEditableControls ? (
           <div className="flex flex-col gap-2">
-            <p className="text-[14px] font-[500] leading-[20px] text-[#232A25]">Explanation</p>
+            <label htmlFor={`feedback-${question.id}`} className="text-body-sm font-medium text-ink">{t("explanation")}</label>
             <textarea
+              id={`feedback-${question.id}`}
               rows={1}
               value={grade?.explanation ?? ""}
               onChange={(event) => {
@@ -257,8 +263,8 @@ const UngradedQuestionCard = ({ isReadOnly, question }: GradingModalUngradedQues
                   }),
                 );
               }}
-              placeholder="Write explanation"
-              className="min-h-10 w-full resize-none rounded-[8px] border border-[#E5E5E5] px-2 py-[10px] text-[14px] font-[400] leading-5 text-[#232A25] placeholder:text-[#747775] focus:outline-none"
+              placeholder={t("explanationPlaceholder")}
+              className="min-h-10 w-full resize-none rounded-input border border-border px-3 py-2 text-body-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-primary"
               ref={resizeTextarea}
             />
           </div>

@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { isAxiosError } from "axios";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useState } from "react";
+import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
+import PaymentResult, { PaymentReference, type PaymentResultTone } from "./PaymentResult";
 
 type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "CANCELLED";
 
@@ -17,37 +19,32 @@ type PaymentView = {
   subscriptionId?: string;
 };
 
+type Outcome = "checking" | "paid" | "pending" | "cancelled" | "failed" | "notVisible" | "unconfirmed";
+
 const POLL_INTERVAL_MS = 2000;
 // The lookup is private: only the logged-in account that paid can see it.
 const NOT_VISIBLE_STATUSES = [401, 403, 404];
-const NOT_VISIBLE_MESSAGE =
-  "Log in with the account that made this payment to see its status. / এই পেমেন্টের অবস্থা দেখতে যে অ্যাকাউন্ট থেকে পেমেন্ট করেছেন সেটিতে লগ ইন করুন।";
 const MAX_POLLS = 8;
 
+/** After the gateway says "success", checks the payment with the server until it settles. */
 export default function PaymentSuccessContent() {
-  const searchParams = useSearchParams();
+  const t = useTranslations("payment");
+  const format = useFormat();
+  const tranId = useSearchParams().get("tran_id");
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-  const tranId = searchParams.get("tran_id");
-  const [pollPhase, setPhase] = useState<"loading" | "settled" | "pending" | "error">("loading");
+  const [outcome, setOutcome] = useState<Outcome>("checking");
   const [payment, setPayment] = useState<PaymentView | null>(null);
-  const [pollMessage, setMessage] = useState("Confirming your payment...");
-  // Without a transaction reference there is nothing to poll.
-  const phase = tranId ? pollPhase : "error";
-  const message = tranId ? pollMessage : "Missing transaction reference.";
 
   const fetchPayment = useCallback(
-    async (tranId: string): Promise<PaymentView | null> => {
-      const res = await axiosReq.get(`${baseUrl}/payments/${encodeURIComponent(tranId)}`);
+    async (id: string): Promise<PaymentView | null> => {
+      const res = await axiosReq.get(`${baseUrl}/payments/${encodeURIComponent(id)}`);
       return (res.data?.payload as PaymentView) ?? null;
     },
     [baseUrl],
   );
 
   useEffect(() => {
-    if (!tranId) {
-      return;
-    }
-
+    if (!tranId) return;
     let cancelled = false;
     let attempts = 0;
 
@@ -56,97 +53,59 @@ export default function PaymentSuccessContent() {
       try {
         const result = await fetchPayment(tranId);
         if (cancelled) return;
-
         if (result) {
           setPayment(result);
-
-          if (result.status === "PAID") {
-            setPhase("settled");
-            setMessage("Payment successful! Your subscription is now active.");
-            return;
-          }
-
-          if (result.status === "FAILED" || result.status === "CANCELLED") {
-            setPhase("error");
-            setMessage(
-              result.status === "CANCELLED" ? "This payment was cancelled." : "This payment did not go through.",
-            );
-            return;
-          }
+          if (result.status === "PAID") return setOutcome("paid");
+          if (result.status === "CANCELLED") return setOutcome("cancelled");
+          if (result.status === "FAILED") return setOutcome("failed");
         }
-
-        if (attempts >= MAX_POLLS) {
-          setPhase("pending");
-          setMessage("Payment is still being confirmed. This can take a moment.");
-          return;
-        }
-
+        if (attempts >= MAX_POLLS) return setOutcome("pending");
         setTimeout(() => void poll(), POLL_INTERVAL_MS);
       } catch (error) {
         if (cancelled) return;
-        if (isAxiosError(error) && NOT_VISIBLE_STATUSES.includes(error.response?.status ?? 0)) {
-          setPhase("error");
-          setMessage(NOT_VISIBLE_MESSAGE);
-          return;
-        }
-        if (attempts >= MAX_POLLS) {
-          setPhase("error");
-          setMessage("We couldn't confirm your payment. Contact support if you were charged.");
-          return;
-        }
+        if (isAxiosError(error) && NOT_VISIBLE_STATUSES.includes(error.response?.status ?? 0)) return setOutcome("notVisible");
+        if (attempts >= MAX_POLLS) return setOutcome("unconfirmed");
         setTimeout(() => void poll(), POLL_INTERVAL_MS);
       }
     };
 
     void poll();
-
     return () => {
       cancelled = true;
     };
   }, [fetchPayment, tranId]);
 
-  const heading =
-    phase === "settled"
-      ? "Payment successful"
-      : phase === "error"
-        ? "Payment issue"
-        : phase === "pending"
-          ? "Payment processing"
-          : "Processing...";
+  // Without a transaction reference there is nothing to check.
+  const shown = tranId ? outcome : "missingReference";
+  const { tone, title, detail }: { tone: PaymentResultTone; title: string; detail: string } =
+    shown === "checking"
+      ? { tone: "busy", title: t("checking.title"), detail: t("checking.detail") }
+      : shown === "paid"
+        ? { tone: "success", title: t("paid.title"), detail: t("paid.detail") }
+        : shown === "pending"
+          ? { tone: "warning", title: t("pending.title"), detail: t("pending.detail") }
+          : { tone: "danger", title: t("issue.title"), detail: t(`issue.${shown}`) };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#EFF0F3] px-6">
-      <div className="max-w-md w-full bg-white rounded-[12px] p-8 text-center">
-        <h1 className="text-2xl font-semibold text-[#232A25] mb-2">{heading}</h1>
-        <p className="text-[#747775] mb-6">{message}</p>
-
-        {payment && (
-          <dl className="text-left text-sm bg-[#F7F8F9] rounded-[8px] p-4 mb-6 space-y-2">
-            <div className="flex justify-between">
-              <dt className="text-[#747775]">Status</dt>
-              <dd className="font-medium text-[#232A25]">{payment.status}</dd>
+    <PaymentResult tone={tone} title={title} detail={detail} action={{ href: "/account", label: t("goToAccount") }}>
+      {payment ? (
+        <dl className="flex w-full flex-col gap-2 rounded-input bg-canvas p-4 text-left text-body-sm">
+          {(
+            [
+              ["status", t(`statuses.${payment.status}`)],
+              ["amount", `${payment.currency} ${format.number(Number(payment.amount), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+              ["method", payment.paymentMethod ?? "—"],
+              ["subscription", payment.status === "PAID" ? t("active") : t("waiting")],
+            ] as const
+          ).map(([key, value]) => (
+            <div key={key} className="flex justify-between gap-3">
+              <dt className="text-ink-muted">{t(key)}</dt>
+              <dd className="font-medium text-ink">{value}</dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-[#747775]">Amount</dt>
-              <dd className="font-medium text-[#232A25]">
-                {payment.currency} {Number(payment.amount).toFixed(2)}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-[#747775]">Payment method</dt>
-              <dd className="font-medium text-[#232A25]">{payment.paymentMethod ?? "—"}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-[#747775]">Subscription</dt>
-              <dd className="font-medium text-[#232A25]">{payment.status === "PAID" ? "Activated" : "Pending"}</dd>
-            </div>
-          </dl>
-        )}
-
-        <Link href="/account" className="inline-block px-6 py-2.5 rounded-[8px] bg-[#49734F] text-white">
-          Go to account
-        </Link>
-      </div>
-    </div>
+          ))}
+        </dl>
+      ) : null}
+      {tranId ? <PaymentReference label={t("reference")} value={tranId} /> : null}
+    </PaymentResult>
   );
 }

@@ -29,7 +29,7 @@ const NUMBER_ARGS = new Set(["count", "seconds", "minutes", "marks", "points", "
 const PLAIN_NUMBER_KEYS = new Set(["exam.countdown", "auth.signup.organizationNumber"]);
 
 // Bangla messages that are meant to have no Bangla letters.
-const LATIN_IN_BANGLA = new Set(["language.switchTo"]);
+const LATIN_IN_BANGLA = new Set(["language.switchTo", "tests.category.ielts", "createTest.categories.ielts"]);
 
 describe("messages", () => {
   it("has the same keys in Bangla and English", () => {

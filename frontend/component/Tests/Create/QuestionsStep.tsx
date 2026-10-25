@@ -4,7 +4,7 @@ import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 import axiosReq from "@/lib/axios";
-import Tooltip from "@/Ui/Tooltip";
+import { Button, cn, Tooltip } from "@/design/ui";
 import Link from "next/link";
 import {
   getSubjectQuestionCount,
@@ -21,6 +21,8 @@ import PassageQuestionBlock from "./PassageQuestionBlock";
 import QuestionCard from "./QuestionCard";
 import QuestionSubjectTabs from "./QuestionSubjectTabs";
 import { useToast } from "@/component/Toast/ToastContext";
+import { useTranslations } from "next-intl";
+import useQuestionTypeText from "./useQuestionTypeText";
 
 const QUESTION_CARD_GAP = 16;
 
@@ -52,6 +54,8 @@ const getQuestionCardOffset = (questionIndex: number, dragState: DragState | nul
 const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
+  const t = useTranslations("createTest");
+  const typeText = useQuestionTypeText();
   const { isIndividual } = useWorkspace();
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
   const subjectCatalog = useAppSelector((state) => state.subject.subjects);
@@ -101,7 +105,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
   );
 
   const questions = activeSubject?.questions ?? [];
-  const questionCountLabel = String(activeSubject ? getSubjectQuestionCount(activeSubject) : 0).padStart(2, "0");
+  const questionCount = activeSubject ? getSubjectQuestionCount(activeSubject) : 0;
   const totalMarks = activeSubject ? getSubjectTotalMarks(activeSubject) : 0;
   const hasPassageInSubject = questions.some((question) => isPassageQuestionItem(question));
   const showAddPassageControl =
@@ -333,7 +337,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     (subType: string) => {
       if (!activeSubject) {
         triggerToast({
-          description: "Please add a subject before creating questions",
+          description: t("questions.subjectFirst"),
           type: "error",
         });
         return;
@@ -351,13 +355,13 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         }),
       );
     },
-    [activeQuestionCategory, activeSubject, dispatch, triggerToast],
+    [activeQuestionCategory, activeSubject, dispatch, t, triggerToast],
   );
 
   const handleAddPassage = useCallback(() => {
     if (!activeSubject) {
       triggerToast({
-        description: "Please add a subject before creating questions",
+        description: t("questions.subjectFirst"),
         type: "error",
       });
       return;
@@ -374,7 +378,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
         subType: CREATE_TEST_GRADED_MULTIPLE_CHOICE_SUBTYPE_ID,
       }),
     );
-  }, [activeSubject, dispatch, hasFeature, triggerToast]);
+  }, [activeSubject, dispatch, hasFeature, t, triggerToast]);
 
   const availableSubjectOptions = useMemo(() => {
     const selectedIds = new Set(subjects.map((subject) => subject.id));
@@ -572,11 +576,8 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
     <div className="flex w-full flex-1 flex-col gap-10">
       <section className="flex w-full flex-1 flex-col gap-4">
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[20px] font-[600] leading-6 tracking-[-0.04em] text-[#747775]">Question</h2>
-          </div>
+          <h2 className="text-title-sm font-semibold text-ink">{t("questions.title")}</h2>
         </div>
-        <div className="w-full border-b border-[#E5E5E5]" />
 
         {isModelTest || examCategory === "ielts" ? (
           <QuestionSubjectTabs
@@ -589,19 +590,9 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
           />
         ) : null}
 
-        <div className="flex w-full max-w-[564px] items-center justify-between gap-6">
-          <div className="flex items-center gap-1">
-            <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]">Questions added:</p>
-            <p className="text-[14px] font-[600] leading-[16px] tracking-[-0.02em] text-[#747775]">
-              {questionCountLabel}
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            <p className="text-[14px] font-[400] leading-[16px] tracking-[-0.02em] text-[#747775]">Total marks:</p>
-            <p className="text-[14px] font-[600] leading-[16px] tracking-[-0.02em] text-[#747775]">
-              {String(totalMarks).padStart(2, "0")}
-            </p>
-          </div>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-body-sm text-ink-muted">
+          <p>{t("questions.added", { count: questionCount })}</p>
+          <p>{t("questions.totalMarks", { marks: totalMarks })}</p>
         </div>
 
         <div
@@ -613,21 +604,16 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
 
         {showAddPassageControl ? (
           <div className="flex w-full justify-start">
-            <button
-              type="button"
-              onClick={handleAddPassage}
-              className="flex h-10 items-center gap-2 rounded-[8px] border border-dashed border-[#49734F] bg-transparent px-4 text-[14px] font-[500] leading-[17px] tracking-[-0.02em] text-[#49734F] transition-colors hover:bg-[#F3F7F4]"
-            >
-              <span aria-hidden className="text-[18px] leading-none">
-                +
-              </span>
-              Add another passage
-            </button>
+            <Button variant="secondary" className="border-dashed border-primary text-primary" onClick={handleAddPassage}>
+              <span aria-hidden="true">+</span>
+              {t("questions.addPassage")}
+            </Button>
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-1">
-          <div className="flex w-fit items-center gap-2 rounded-[8px] border border-[#49734F] bg-white p-1">
+        <div className="flex flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-card">
+          <p className="text-body-sm font-medium text-ink">{t("questions.addQuestion")}</p>
+          <div role="group" aria-label={t("questions.questionCategory")} className="flex w-fit flex-wrap items-center gap-1 rounded-input bg-canvas p-1">
             {createTestQuestionCategoryOptions
               .filter((category) => {
                 // Filter based on exam category
@@ -646,15 +632,13 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
                     type="button"
                     onClick={() => entitled && handleQuestionCategorySelect(category.id)}
                     disabled={!entitled}
-                    className={`flex pb-1 h-9 min-w-[79px] items-center justify-center rounded-[6px] px-4 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] transition-none ${
-                      isActive
-                        ? "bg-[#49734F] text-white"
-                        : entitled
-                          ? "bg-[#EFF0F3] text-[#232A25]"
-                          : "bg-[#EFF0F3] text-[#747775] opacity-60 cursor-not-allowed"
-                    }`}
+                    aria-pressed={isActive}
+                    className={cn(
+                      "flex h-9 items-center justify-center rounded-input px-4 text-body-sm font-medium",
+                      isActive ? "bg-surface text-primary shadow-card" : entitled ? "text-ink hover:text-primary" : "cursor-not-allowed text-ink-muted opacity-60",
+                    )}
                   >
-                    {category.label}
+                    {typeText.category(category.id, category.label)}
                   </button>
                 );
 
@@ -664,9 +648,9 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
                       key={category.id}
                       content={
                         <span>
-                          Not in your plan. Please upgrade.{" "}
-                          <Link href="/billing" className="underline text-[#49734F]">
-                            Upgrade
+                          {t("questions.notInPlan")}{" "}
+                          <Link href="/billing" className="text-primary underline">
+                            {t("basic.upgrade")}
                           </Link>
                         </span>
                       }
@@ -680,19 +664,17 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
               })}
           </div>
 
-          <div className="flex w-full flex-wrap items-center gap-1 overflow-x-auto rounded-[6px] bg-[#49734F] p-1">
-            {questionSubtypeTabs.map((tab) => {
-              return (
-                <button
-                  key={`${activeQuestionCategory}-${tab.id}`}
-                  type="button"
-                  onClick={() => handleMakeQuestion(tab.id)}
-                  className="flex h-[50px] flex-1 items-center justify-center rounded-[6px] bg-[rgba(255,255,255,0.05)] px-3 text-[14px] font-[400] leading-[17px] tracking-[-0.02em] text-white transition-colors hover:bg-white hover:text-[#232A25]"
-                >
-                  <span className="flex items-center text-left">{tab.label}</span>
-                </button>
-              );
-            })}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            {questionSubtypeTabs.map((tab) => (
+              <Button
+                key={`${activeQuestionCategory}-${tab.id}`}
+                variant="secondary"
+                className="h-auto min-h-11 whitespace-normal py-2 text-left"
+                onClick={() => handleMakeQuestion(tab.id)}
+              >
+                + {typeText.type(activeQuestionCategory, tab.id, tab.label)}
+              </Button>
+            ))}
           </div>
         </div>
       </section>

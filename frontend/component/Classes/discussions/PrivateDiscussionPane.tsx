@@ -1,12 +1,16 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
 import { AxiosError } from "axios";
-import DropDownComponent from "@/Ui/DropDownComponent";
-import ChatBubble from "./ChatBubble";
-import AttachmentChip from "./AttachmentChip";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { Avatar, Button, cn, FilterBar, focusRing, Select, Skeleton, Textarea } from "@/design/ui";
 import { uploadDiscussionAttachment } from "@/utils/classes/discussionHelpers";
+import AttachmentChip from "./AttachmentChip";
+import ChatBubble from "./ChatBubble";
 
+const MAX_FILES = 5;
+
+/** One-to-one messages between a teacher and a student about one subject. */
 const PrivateDiscussionPane = ({
   classId,
   currentUserId,
@@ -38,62 +42,42 @@ const PrivateDiscussionPane = ({
   onSelectConversation: (id: string) => void;
   onStartWithChange: (id: string) => void;
   onStartConversation: () => void;
-  onSendMessage: (payload: {
-    content: string;
-    attachments: DiscussionAttachment[];
-  }) => Promise<void>;
+  onSendMessage: (payload: { content: string; attachments: DiscussionAttachment[] }) => Promise<void>;
 }) => {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const t = useTranslations("discussions");
   const [search, setSearch] = useState("");
   const [content, setContent] = useState("");
   const [attachments, setAttachments] = useState<DiscussionAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [localError, setLocalError] = useState("");
+  const [fileInput, setFileInput] = useState<HTMLInputElement | null>(null);
 
-  const filteredConversations = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return conversations;
-    return conversations.filter((conversation) => {
-      const label = isTeacher ? conversation.student.name : conversation.teacher.name;
-      return label.toLowerCase().includes(q);
-    });
-  }, [conversations, isTeacher, search]);
-
-  const activeConversation = conversations.find((item) => item.id === activeConversationId);
-  const peerName = activeConversation
-    ? isTeacher
-      ? activeConversation.student.name
-      : activeConversation.teacher.name
-    : "";
-
-  const canSend =
-    Boolean(activeConversationId) &&
-    Boolean(content.trim() || attachments.length) &&
-    !uploading &&
-    !submitting;
+  const peerOf = (conversation: DiscussionConversation) => (isTeacher ? conversation.student.name : conversation.teacher.name);
+  const needle = search.trim().toLocaleLowerCase();
+  const visible = needle ? conversations.filter((conversation) => peerOf(conversation).toLocaleLowerCase().includes(needle)) : conversations;
+  const active = conversations.find((item) => item.id === activeConversationId);
+  const canSend = Boolean(activeConversationId) && Boolean(content.trim() || attachments.length) && !uploading && !submitting;
 
   const handleFiles = async (files: FileList | null) => {
     if (!files?.length) return;
-    if (attachments.length >= 5) {
-      setLocalError("You can attach up to 5 files.");
+    if (attachments.length >= MAX_FILES) {
+      setLocalError(t("composer.maxFiles"));
       return;
     }
     setLocalError("");
     setUploading(true);
     try {
-      const remaining = 5 - attachments.length;
-      const selected = Array.from(files).slice(0, remaining);
       const uploaded: DiscussionAttachment[] = [];
-      for (const file of selected) {
+      for (const file of Array.from(files).slice(0, MAX_FILES - attachments.length)) {
         uploaded.push(await uploadDiscussionAttachment(classId, file));
       }
       setAttachments((current) => [...current, ...uploaded]);
     } catch (caught) {
       const error = caught as AxiosError<{ message?: string }>;
-      setLocalError(error.response?.data?.message || "Upload failed. Please try again.");
+      setLocalError(error.response?.data?.message || t("composer.uploadFailed"));
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (fileInput) fileInput.value = "";
     }
   };
 
@@ -107,150 +91,112 @@ const PrivateDiscussionPane = ({
     } catch (caught) {
       const error = caught as AxiosError<{ message?: string | string[] }>;
       const message = error.response?.data?.message;
-      setLocalError(
-        Array.isArray(message)
-          ? message[0]
-          : message || "Could not send. Please try again.",
-      );
+      setLocalError(Array.isArray(message) ? message[0] : message || t("composer.sendFailed"));
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <div>
-        <h3 className="text-[20px] font-semibold text-[#101828]">Private Discussion</h3>
-        <p className="text-[13px] text-[#667085]">One-to-one chat for this subject</p>
+        <h3 className="text-title-sm font-semibold text-ink">{t("chat.title")}</h3>
+        <p className="text-body-sm text-ink-muted">{t("chat.intro")}</p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-        <aside className="rounded-[14px] border border-[#E5E7EB] bg-white p-3 shadow-sm">
-          <div className="space-y-2">
-            <DropDownComponent
-              list={startOptions}
-              value={startWithId}
-              handleChange={onStartWithChange}
-              placeholder={isTeacher ? "Start with student" : "Start with teacher"}
-            />
-            {startOptions.length === 0 ? (
-              <p className="text-[12px] text-[#B42318]">
-                {isTeacher
-                  ? "No joined students in this class yet."
-                  : "No teachers are assigned to this subject yet."}
-              </p>
-            ) : null}
-            <button
-              type="button"
-              onClick={onStartConversation}
-              disabled={!startWithId}
-              className="w-full rounded-[10px] bg-[#49734F] px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
-            >
-              Start conversation
-            </button>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search conversations..."
-              className="w-full rounded-[10px] border border-[#D0D5DD] px-3 py-2 text-[13px] outline-none focus:border-[#49734F]"
-            />
-          </div>
-
-          <div className="mt-3 max-h-[420px] space-y-1 overflow-y-auto">
-            {loadingConversations ? <p className="px-2 py-3 text-[12px] text-[#667085]">Loading…</p> : null}
-            {conversationsError ? <p className="px-2 text-[12px] text-[#B42318]">{conversationsError}</p> : null}
-            {!loadingConversations && filteredConversations.length === 0 ? (
-              <p className="px-2 py-3 text-[12px] text-[#667085]">No conversations yet.</p>
-            ) : null}
-            {filteredConversations.map((conversation) => {
-              const name = isTeacher ? conversation.student.name : conversation.teacher.name;
-              const active = conversation.id === activeConversationId;
-              return (
-                <button
-                  key={conversation.id}
-                  type="button"
-                  onClick={() => onSelectConversation(conversation.id)}
-                  className={`flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left ${
-                    active ? "bg-[#E8F5E9]" : "hover:bg-[#F9FAFB]"
-                  }`}
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D1E7D4] text-[12px] font-semibold text-[#49734F]">
-                    {name.slice(0, 1).toUpperCase()}
-                  </span>
-                  <span className="block truncate text-[13px] font-medium text-[#101828]">{name}</span>
-                </button>
-              );
-            })}
-          </div>
+      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+        <aside className="flex flex-col gap-3 rounded-card border border-border bg-surface p-3 shadow-card">
+          <Select
+            label={isTeacher ? t("chat.startWithStudent") : t("chat.startWithTeacher")}
+            placeholder={isTeacher ? t("chat.startWithStudent") : t("chat.startWithTeacher")}
+            value={startWithId}
+            onChange={(event) => onStartWithChange(event.target.value)}
+            options={startOptions}
+            disabled={startOptions.length === 0}
+            hint={startOptions.length === 0 ? (isTeacher ? t("chat.noStudents") : t("chat.noTeachers")) : undefined}
+          />
+          <Button fullWidth disabled={!startWithId} onClick={onStartConversation}>
+            {t("chat.start")}
+          </Button>
+          <FilterBar search={search} onSearchChange={setSearch} searchPlaceholder={t("chat.search")} />
+          <nav aria-label={t("chat.conversations")} className="max-h-[420px] overflow-y-auto">
+            {loadingConversations ? <Skeleton lines={3} /> : null}
+            {conversationsError ? <p className="px-2 text-caption text-danger">{conversationsError}</p> : null}
+            {!loadingConversations && visible.length === 0 ? <p className="px-2 py-3 text-caption text-ink-muted">{t("chat.none")}</p> : null}
+            <ul className="flex flex-col gap-1">
+              {visible.map((conversation) => {
+                const name = peerOf(conversation);
+                const isActive = conversation.id === activeConversationId;
+                return (
+                  <li key={conversation.id}>
+                    <button
+                      type="button"
+                      aria-current={isActive || undefined}
+                      onClick={() => onSelectConversation(conversation.id)}
+                      className={cn("flex w-full items-center gap-2 rounded-input px-2.5 py-2 text-left", isActive ? "bg-primary-soft" : "hover:bg-canvas", focusRing)}
+                    >
+                      <Avatar name={name} size="sm" />
+                      <span className="truncate text-body-sm font-medium text-ink">{name}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
         </aside>
 
-        <section className="flex min-h-[480px] flex-col rounded-[14px] border border-[#E5E7EB] bg-white shadow-sm">
-          <div className="border-b border-[#E5E7EB] px-4 py-3">
-            <p className="text-[15px] font-semibold text-[#101828]">{peerName || "Select a conversation"}</p>
+        <section className="flex min-h-[480px] flex-col rounded-card border border-border bg-surface shadow-card">
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-body font-semibold text-ink">{active ? peerOf(active) : t("chat.selectConversation")}</p>
           </div>
-
-          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4" aria-live="polite">
             {!activeConversationId ? (
-              <p className="text-[13px] text-[#667085]">Choose a conversation to start chatting.</p>
+              <p className="text-body-sm text-ink-muted">{t("chat.pick")}</p>
             ) : messages.length === 0 ? (
-              <p className="text-[13px] text-[#667085]">No messages yet. Say hello.</p>
+              <p className="text-body-sm text-ink-muted">{t("chat.noMessages")}</p>
             ) : (
               messages.map((message) => (
-                <ChatBubble
-                  key={message.id}
-                  message={message}
-                  isOwn={Boolean(currentUserId && message.sender.id === currentUserId)}
-                />
+                <ChatBubble key={message.id} message={message} isOwn={Boolean(currentUserId && message.sender.id === currentUserId)} />
               ))
             )}
           </div>
-
-          <div className="border-t border-[#E5E7EB] p-3">
+          <div className="flex flex-col gap-2 border-t border-border p-3">
             {attachments.length > 0 ? (
-              <div className="mb-2 grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2 sm:grid-cols-2">
                 {attachments.map((attachment) => (
                   <AttachmentChip
                     key={attachment.id}
                     attachment={attachment}
-                    onRemove={() =>
-                      setAttachments((current) => current.filter((item) => item.id !== attachment.id))
-                    }
+                    onRemove={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}
                   />
                 ))}
               </div>
             ) : null}
-            {localError ? <p className="mb-2 text-[12px] text-[#B42318]">{localError}</p> : null}
             <div className="flex items-end gap-2">
               <input
-                ref={fileInputRef}
+                ref={setFileInput}
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.doc,.docx,.txt,application/pdf"
                 className="hidden"
-                onChange={(e) => void handleFiles(e.target.files)}
+                onChange={(event) => void handleFiles(event.target.files)}
               />
-              <button
-                type="button"
-                disabled={!activeConversationId || uploading || attachments.length >= 5}
-                onClick={() => fileInputRef.current?.click()}
-                className="rounded-[10px] border border-[#D0D5DD] px-3 py-2 text-[12px] font-medium text-[#344054] disabled:opacity-50"
-              >
-                Attach
-              </button>
-              <textarea
+              <Button variant="secondary" disabled={!activeConversationId || uploading || attachments.length >= MAX_FILES} onClick={() => fileInput?.click()}>
+                {t("composer.attach")}
+              </Button>
+              <Textarea
+                label={t("chat.message")}
+                hideLabel
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(event) => setContent(event.target.value)}
                 disabled={!activeConversationId || submitting}
-                placeholder="Type a message..."
+                placeholder={t("chat.placeholder")}
                 rows={2}
                 maxLength={4000}
-                className="min-w-0 flex-1 resize-none rounded-[10px] border border-[#D0D5DD] px-3 py-2 text-[13px] outline-none focus:border-[#49734F]"
+                error={localError || undefined}
+                fieldClassName="min-w-0 flex-1"
+                className="resize-none"
               />
-              <button
-                type="button"
-                disabled={!canSend}
-                onClick={() => void handleSend()}
-                className="rounded-[10px] bg-[#49734F] px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
-              >
-                {submitting ? "…" : "Send"}
-              </button>
+              <Button disabled={!canSend} loading={submitting} onClick={() => void handleSend()}>
+                {t("chat.send")}
+              </Button>
             </div>
           </div>
         </section>

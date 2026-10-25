@@ -2,6 +2,7 @@
 
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import katex from "katex";
+import { useTranslations } from "next-intl";
 import { useMemo, type MouseEvent } from "react";
 import "katex/dist/katex.min.css";
 
@@ -12,6 +13,7 @@ type MathOpenDetail = {
 };
 
 const MathFormulaView = ({ node, selected, getPos }: NodeViewProps) => {
+  const t = useTranslations("editor.math");
   const latex = String(node.attrs.latex ?? "");
   const display = Boolean(node.attrs.display);
 
@@ -54,7 +56,7 @@ const MathFormulaView = ({ node, selected, getPos }: NodeViewProps) => {
         event.stopPropagation();
         openEditor();
       }}
-      title="Double-click to edit equation"
+      title={t("edit")}
     >
       <span dangerouslySetInnerHTML={{ __html: html }} />
     </NodeViewWrapper>

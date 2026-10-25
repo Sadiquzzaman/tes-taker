@@ -11,7 +11,7 @@ interface ProctoringVideoPreviewProps {
 
 const ProctoringVideoPreview = ({
   mediaStream,
-  className = "h-[160px] w-full rounded-[10px] bg-[#0F1A12] object-cover",
+  className = "h-[160px] w-full rounded-card bg-ink object-cover",
   ariaLabel,
 }: ProctoringVideoPreviewProps) => {
   const t = useTranslations("proctoring");

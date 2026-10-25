@@ -448,14 +448,14 @@ type QuestionCardTextAnswerProps = {
 
 type QuestionCardValidationProps = {
   showValidation: boolean;
-  validationErrors: string[];
+  validationErrors: import("@/utils/createTestValidation").QuestionIssue[];
 };
 
 type QuestionValidationFailure = {
   subjectId: string;
   questionId: string | null;
   parentPassageId?: string | null;
-  errors: string[];
+  errors: import("@/utils/createTestValidation").QuestionIssue[];
   targetType: "question" | "passage";
 };
 

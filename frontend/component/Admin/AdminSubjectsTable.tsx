@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { AxiosError } from "axios";
-import axiosReq from "@/lib/axios";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
+import { Button, Card, ConfirmDialog, Drawer, EmptyState, FilterBar, Input, PageHeader, Skeleton, Table, type TableColumn } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
+import axiosReq from "@/lib/axios";
 
 type SubjectRow = {
   id: string;
@@ -13,15 +15,12 @@ type SubjectRow = {
   created_user_name?: string | null;
 };
 
-type SubjectDraft = {
-  id?: string;
-  name: string;
-  code: string;
-};
+type SubjectDraft = { id?: string; name: string; code: string };
 
-const emptyDraft = (): SubjectDraft => ({ name: "", code: "" });
-
+/** The shared subject list: add, rename and permanently delete subjects. */
 const AdminSubjectsTable = () => {
+  const t = useTranslations("admin");
+  const tUi = useTranslations("ui");
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const { triggerToast } = useToast();
   const { handleError } = useApiError();
@@ -30,7 +29,7 @@ const AdminSubjectsTable = () => {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<SubjectDraft | null>(null);
-  const [isNew, setIsNew] = useState(false);
+  const [deleting, setDeleting] = useState<SubjectRow | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -48,26 +47,15 @@ const AdminSubjectsTable = () => {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return subjects;
-    return subjects.filter(
-      (subject) => subject.name.toLowerCase().includes(q) || (subject.code ?? "").toLowerCase().includes(q),
-    );
+    return q ? subjects.filter((subject) => subject.name.toLowerCase().includes(q) || (subject.code ?? "").toLowerCase().includes(q)) : subjects;
   }, [subjects, search]);
 
-  const openCreate = () => {
-    setIsNew(true);
-    setEditing(emptyDraft());
-  };
-
-  const openEdit = (subject: SubjectRow) => {
-    setIsNew(false);
-    setEditing({ id: subject.id, name: subject.name, code: subject.code ?? "" });
-  };
+  const isNew = !editing?.id;
 
   const handleSave = async () => {
     if (!editing) return;
     if (!editing.name.trim()) {
-      triggerToast({ title: "Missing fields", description: "Name is required.", type: "error" });
+      triggerToast({ title: t("common.missingTitle"), description: t("subjects.nameRequired"), type: "error" });
       return;
     }
     setSaving(true);
@@ -75,10 +63,10 @@ const AdminSubjectsTable = () => {
     try {
       if (isNew) {
         await axiosReq.post(`${baseUrl}/subjects`, body);
-        triggerToast({ title: "Created", description: "Subject created successfully.", type: "success" });
+        triggerToast({ title: t("common.createdTitle"), description: t("subjects.created"), type: "success" });
       } else {
         await axiosReq.patch(`${baseUrl}/subjects/${editing.id}`, body);
-        triggerToast({ title: "Saved", description: "Subject updated successfully.", type: "success" });
+        triggerToast({ title: t("common.savedTitle"), description: t("subjects.saved"), type: "success" });
       }
       setEditing(null);
       await loadData();
@@ -89,155 +77,114 @@ const AdminSubjectsTable = () => {
     }
   };
 
-  const hardDelete = async (subject: SubjectRow) => {
-    const ok = window.confirm(`Permanently delete "${subject.name}"? This cannot be undone.`);
-    if (!ok) return;
+  const hardDelete = async () => {
+    if (!deleting) return;
+    setSaving(true);
     try {
-      await axiosReq.delete(`${baseUrl}/subjects/${subject.id}`);
-      triggerToast({ title: "Deleted", description: "Subject permanently deleted.", type: "success" });
+      await axiosReq.delete(`${baseUrl}/subjects/${deleting.id}`);
+      triggerToast({ title: t("common.deletedTitle"), description: t("subjects.deleted"), type: "success" });
+      setDeleting(null);
       await loadData();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
+    } finally {
+      setSaving(false);
     }
   };
 
+  const columns: TableColumn<SubjectRow>[] = [
+    { key: "name", header: t("common.name"), cell: (row) => <span className="font-medium">{row.name}</span>, sortValue: (row) => row.name },
+    { key: "code", header: t("subjects.code"), cell: (row) => row.code ?? "—", sortValue: (row) => row.code },
+    { key: "createdBy", header: t("subjects.createdBy"), cell: (row) => row.created_user_name ?? "—", hideOnMobile: true },
+    {
+      key: "actions",
+      header: t("common.actions"),
+      align: "right",
+      cell: (row) => (
+        <div className="flex justify-end gap-1">
+          <Button size="sm" variant="ghost" onClick={() => setEditing({ id: row.id, name: row.name, code: row.code ?? "" })}>
+            {t("common.edit")}
+          </Button>
+          <Button size="sm" variant="ghost" className="text-danger" onClick={() => setDeleting(row)}>
+            {t("common.delete")}
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <>
-      <div className="flex justify-between items-center w-full min-h-[40px] mb-2 sm:mb-4">
-        <div className="text-[20px] md:text-[32px] tracking-[-0.04em] flex items-center gap-0 flex-wrap mr-4">
-          <p className="font-[500] text-[#232A25]">Subject</p>
-          <p className="font-[400] text-[#49734F] italic ml-2" style={{ fontFamily: "DM Serif Display" }}>
-            Details
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="flex items-center justify-center gap-2 h-[40px] px-4 bg-[#232A25] rounded-xl font-[500] text-white text-[14px]"
-        >
-          + Add subject
-        </button>
+    <div className="flex flex-col gap-6 pb-8">
+      <PageHeader
+        title={t("subjects.title")}
+        description={t("subjects.intro")}
+        actions={<Button onClick={() => setEditing({ name: "", code: "" })}>{t("subjects.add")}</Button>}
+      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <FilterBar className="flex-1" search={search} onSearchChange={setSearch} searchPlaceholder={t("subjects.search")} />
+        <p className="text-body-sm text-ink-muted">{t("subjects.total", { count: filtered.length })}</p>
       </div>
-
-      <div className="bg-[#EFF0F3BF] rounded-[12px] p-2 sm:p-4 min-h-[calc(100vh-162px)] flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search subject by name or code..."
-            className="border border-[#EFF0F3] bg-white rounded-[8px] px-3 py-2 text-sm max-w-sm w-full focus:outline-none focus:border-[#49734F]"
-          />
-          <p className="text-sm text-[#747775]">
-            Total: <strong className="text-[#49734F]">{filtered.length}</strong>
-          </p>
-        </div>
-
-        <div className="bg-white rounded-[12px] overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-[#EFF0F3] text-left text-[#232A25]">
-              <tr>
-                <th className="p-3">Name</th>
-                <th className="p-3">Code</th>
-                <th className="p-3">Created by</th>
-                <th className="p-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={4} className="p-6 text-center text-[#747775]">
-                    Loading...
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="p-6 text-center text-[#747775]">
-                    No subjects yet
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((subject) => (
-                  <tr key={subject.id} className="border-t border-[#EFF0F3]">
-                    <td className="p-3 font-medium text-[#232A25]">{subject.name}</td>
-                    <td className="p-3 text-[#49734F]">{subject.code ?? "—"}</td>
-                    <td className="p-3 text-[#747775]">{subject.created_user_name ?? "—"}</td>
-                    <td className="p-3">
-                      <div className="flex gap-2 justify-end flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(subject)}
-                          className="px-3 py-1.5 text-xs border border-[#49734F] text-[#49734F] rounded-[6px]"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void hardDelete(subject)}
-                          className="px-3 py-1.5 text-xs bg-[#C0392B] text-white rounded-[6px]"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {editing && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-[12px] w-full max-w-md max-h-[90vh] overflow-y-auto p-6 flex flex-col gap-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-[#232A25]">{isNew ? "Add subject" : "Edit subject"}</h2>
-              <button type="button" onClick={() => setEditing(null)} className="text-[#747775] text-xl leading-none">
-                ×
-              </button>
-            </div>
-
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-[#747775]">Name</span>
-              <input
-                value={editing.name}
-                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-                placeholder="e.g. Mathematics"
-                className="border border-[#EFF0F3] rounded-[6px] px-3 py-2"
-              />
-            </label>
-
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-[#747775]">Code (optional)</span>
-              <input
-                value={editing.code}
-                onChange={(e) => setEditing({ ...editing, code: e.target.value })}
-                placeholder="e.g. MATH"
-                className="border border-[#EFF0F3] rounded-[6px] px-3 py-2"
-              />
-            </label>
-
-            <div className="flex gap-2 justify-end">
-              <button
-                type="button"
-                onClick={() => setEditing(null)}
-                className="px-4 h-[40px] rounded-[8px] border border-[#EFF0F3] text-[#232A25] text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => void handleSave()}
-                className="px-4 h-[40px] rounded-[8px] bg-[#49734F] text-white text-sm disabled:opacity-60"
-              >
-                {saving ? "Saving..." : isNew ? "Create subject" : "Save changes"}
-              </button>
-            </div>
+      <Card flush>
+        {loading ? (
+          <div className="p-4" aria-busy="true">
+            <Skeleton lines={6} />
           </div>
-        </div>
-      )}
-    </>
+        ) : (
+          <Table caption={t("subjects.title")} columns={columns} rows={filtered} getRowId={(row) => row.id} empty={<EmptyState title={t("subjects.empty")} />} />
+        )}
+      </Card>
+
+      <Drawer
+        open={Boolean(editing)}
+        onClose={() => setEditing(null)}
+        title={isNew ? t("subjects.add") : t("subjects.editTitle")}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditing(null)}>
+              {tUi("cancel")}
+            </Button>
+            <Button type="submit" form="admin-subject-form" loading={saving}>
+              {isNew ? t("subjects.add") : t("common.save")}
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="admin-subject-form"
+          noValidate
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleSave();
+          }}
+        >
+          <Input
+            label={t("common.name")}
+            required
+            placeholder={t("subjects.namePlaceholder")}
+            value={editing?.name ?? ""}
+            onChange={(event) => setEditing((current) => (current ? { ...current, name: event.target.value } : current))}
+          />
+          <Input
+            label={t("subjects.codeOptional")}
+            placeholder={t("subjects.codePlaceholder")}
+            value={editing?.code ?? ""}
+            onChange={(event) => setEditing((current) => (current ? { ...current, code: event.target.value } : current))}
+          />
+        </form>
+      </Drawer>
+
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        tone="danger"
+        title={t("common.deleteForever", { name: deleting?.name ?? "" })}
+        description={t("common.deleteForeverDetail")}
+        confirmLabel={t("common.delete")}
+        loading={saving}
+        onCancel={() => setDeleting(null)}
+        onConfirm={() => void hardDelete()}
+      />
+    </div>
   );
 };
 

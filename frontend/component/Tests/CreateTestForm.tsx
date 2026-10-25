@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
-import { RotatingLines } from "react-loader-spinner";
+import { useTranslations } from "next-intl";
+import { Card, PageHeader, Skeleton } from "@/design/ui";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import axiosReq from "@/lib/axios";
 import { hydrateFromExam, resetForm } from "@/lib/features/createTestSlice";
@@ -13,7 +14,9 @@ import CreateTestStepContent from "./Create/CreateTestStepContent";
 import CreateTestStepSidebar from "./Create/CreateTestStepSidebar";
 import useCreateTestFlow from "./Create/useCreateTestFlow";
 
+/** The create/edit test wizard: steps on the side, the current step, and the footer. */
 const CreateTestForm = () => {
+  const t = useTranslations("createTest");
   const createTestState = useAppSelector((state) => state.createTest) as CreateTestState;
   const { currentStep, formState } = createTestState;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -62,44 +65,27 @@ const CreateTestForm = () => {
     return () => {
       active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [examId]);
+    // Safe to re-run: once the stored editExamId matches, nothing is fetched again.
+  }, [createTestState.editExamId, dispatch, examId, handleError]);
 
   if (hydrating) {
     return (
-      <div className="flex min-h-[calc(100vh-96px)] items-center justify-center">
-        <RotatingLines
-          visible={true}
-          height="48"
-          width="48"
-          color="grey"
-          strokeWidth="5"
-          animationDuration="0.75"
-          ariaLabel="rotating-lines-loading"
-          wrapperStyle={{}}
-          wrapperClass=""
-        />
+      <div className="flex flex-col gap-6 pb-8" aria-busy="true">
+        <Skeleton className="h-8 w-1/3" />
+        <Card>
+          <Skeleton lines={8} />
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-96px)] flex-col overflow-hidden lg:h-[calc(100vh-96px)]">
-      {/* <div className="flex items-center justify-between pr-8">
-        <p className="text-[32px] font-[600] leading-[32px] tracking-[-0.04em] text-[#232A25]">Create Test</p>
-        <Link href="/tests">
-          <CloseIconSVG />
-        </Link>
-      </div> */}
-      <div className="mt-0 flex w-full flex-col gap-4 lg:flex-1 lg:flex-row lg:gap-8 lg:overflow-hidden">
+    <div className="flex min-h-[calc(100dvh-7rem)] flex-col gap-4 lg:h-[calc(100dvh-7rem)]">
+      <PageHeader title={examId ? t("editTitle") : t("title")} />
+      <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-6">
         <CreateTestStepSidebar currentStep={currentStep} />
-
-        <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-visible lg:overflow-y-auto lg:pr-8">
-          <CreateTestStepContent
-            currentStep={currentStep}
-            formState={formState}
-            scrollContainerRef={scrollContainerRef}
-          />
+        <div ref={scrollContainerRef} className="min-h-0 flex-1 lg:overflow-y-auto lg:pr-2">
+          <CreateTestStepContent currentStep={currentStep} formState={formState} scrollContainerRef={scrollContainerRef} />
         </div>
       </div>
       <CreateTestFooter

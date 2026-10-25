@@ -1,21 +1,47 @@
 "use client";
 
+import NextLink from "next/link";
+import { useTranslations } from "next-intl";
+import { buttonClasses, Card, EmptyState } from "@/design/ui";
 import useClassList from "@/hooks/classes/useClassList";
+import { useAppSelector } from "@/lib/hooks";
 import AddStudentModal from "./AddStudentModal";
 import ClassCard from "./ClassCard";
-import ShareClassModal from "./ShareClassModal";
+import ClassGridSkeleton, { CLASS_GRID } from "./ClassGridSkeleton";
 
+/** The teacher's classes, filtered by the search box above. */
 const TeacherClassList = () => {
-  const { fetch, filteredClassList } = useClassList();
+  const t = useTranslations("classes");
+  const { fetch, loading, filteredClassList } = useClassList();
+  const searching = Boolean(useAppSelector((state) => state.class.searchInput));
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-4">
-      {filteredClassList.map((classItem, index) => (
-        <ClassCard key={classItem.id} classItem={classItem} index={index} />
-      ))}
+    <>
+      {loading ? (
+        <ClassGridSkeleton />
+      ) : filteredClassList.length === 0 ? (
+        <Card>
+          <EmptyState
+            title={searching ? t("noMatch") : t("empty")}
+            description={searching ? undefined : t("emptyTeacher")}
+            action={
+              searching ? undefined : (
+                <NextLink href="/classes/create" className={buttonClasses()}>
+                  {t("create")}
+                </NextLink>
+              )
+            }
+          />
+        </Card>
+      ) : (
+        <div className={CLASS_GRID}>
+          {filteredClassList.map((classItem, index) => (
+            <ClassCard key={classItem.id} classItem={classItem} index={index} />
+          ))}
+        </div>
+      )}
       <AddStudentModal fetchClassDetails={fetch} />
-      <ShareClassModal />
-    </div>
+    </>
   );
 };
 

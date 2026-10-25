@@ -9,6 +9,7 @@ import { markExamPermissionsComplete, setExamMediaStreams } from "@/utils/tests/
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button, Checkbox, StatusPill, Stepper } from "@/design/ui";
 
 type PermissionStep = "permissions" | "rules";
 
@@ -56,110 +57,77 @@ const StudentExamPermissionFlow = () => {
     router.replace("/test");
   };
 
+  const statusTone = (status: ExamPermissionStatus) =>
+    status === "granted" ? "success" : status === "denied" ? "danger" : status === "unsupported" ? "warning" : "neutral";
+
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#4A4A4A]/70 px-4 py-8">
-      <div className="relative w-full max-w-[640px] rounded-[16px] bg-white shadow-[0_20px_60px_rgba(35,42,37,0.16)]">
-        <div className="flex items-center justify-between border-b border-[#E5E5E5] px-6 py-4">
-          <div className="flex items-center gap-3">
+    <div className="flex min-h-dvh items-center justify-center bg-canvas px-4 py-8">
+      <div className="flex w-full max-w-2xl flex-col gap-6 rounded-sheet border border-border bg-surface p-5 shadow-overlay sm:p-8">
+        <div className="flex items-center gap-3">
+          <span className="text-success">
             <SuccessIconSVG width={28} />
-            <p className="text-[18px] font-[600] leading-6 text-[#232A25]">{t("loginSuccessful")}</p>
-          </div>
+          </span>
+          <p className="text-body font-semibold text-ink">{t("loginSuccessful")}</p>
         </div>
+        <Stepper steps={[t("cameraTitle") + " · " + t("microphoneTitle"), t("rulesTitle")]} current={step === "permissions" ? 0 : 1} />
 
         {step === "permissions" ? (
-          <div className="flex flex-col gap-6 px-6 py-6">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <div className="flex size-16 items-center justify-center rounded-full bg-[#EDF4EE] text-[#49734F]">
-                <span className="text-[28px]">📷</span>
-              </div>
-              <p className="max-w-[420px] text-[16px] leading-6 text-[#232A25]">
-                {t("intro")}
-              </p>
-            </div>
-
+          <div className="flex flex-col gap-6">
+            <p className="text-body text-ink">{t("intro")}</p>
             <div className="grid gap-4 sm:grid-cols-2">
               {permissionCards.map(({ key, status, title, actionLabel }) => {
                 const isGranted = status === "granted";
-
                 return (
-                  <div key={key} className="rounded-[12px] border border-[#E6ECE7] bg-[#F8FBF8] p-4">
-                    <p className="text-[14px] font-[600] leading-5 text-[#232A25]">{title}</p>
-                    <p className="mt-1 text-[12px] leading-4 text-[#747775]">{statusLabel(status)}</p>
-                    <button
-                      type="button"
-                      onClick={() => void requestCameraAndMicrophone()}
+                  <div key={key} className="flex flex-col gap-3 rounded-card border border-border bg-canvas p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-body-sm font-semibold text-ink">{title}</p>
+                      <StatusPill tone={statusTone(status)}>{statusLabel(status)}</StatusPill>
+                    </div>
+                    <Button
+                      variant={isGranted ? "secondary" : "primary"}
+                      size="sm"
                       disabled={isGranted}
-                      className={`mt-4 h-10 w-full rounded-[8px] px-3 text-[12px] font-[600] leading-4 ${
-                        isGranted ? "bg-[#DDE5DE] text-[#747775]" : "bg-[#232A25] text-white"
-                      }`}
+                      onClick={() => void requestCameraAndMicrophone()}
                     >
                       {isGranted ? t("status.granted") : actionLabel}
-                    </button>
+                    </Button>
                   </div>
                 );
               })}
             </div>
-
-            {errorMessage ? <p className="text-center text-[13px] leading-5 text-[#B93815]">{errorMessage}</p> : null}
-
-            <div className="flex items-center justify-between border-t border-[#E5E5E5] pt-4">
-              <button
-                type="button"
-                onClick={handleContinue}
-                disabled={!allPermissionsGranted}
-                className={`flex h-11 items-center rounded-[10px] px-5 text-[14px] font-[600] leading-4 text-white ${
-                  allPermissionsGranted ? "bg-[#49734F]" : "cursor-not-allowed bg-[#8BA28F]"
-                }`}
-              >
+            {errorMessage ? (
+              <p role="alert" className="text-body-sm text-danger">
+                {errorMessage}
+              </p>
+            ) : null}
+            <div className="flex justify-end border-t border-border pt-4">
+              <Button rightIcon={<RightArrowIconSVG className="size-4" />} disabled={!allPermissionsGranted} onClick={handleContinue}>
                 {t("nextStep")}
-                <RightArrowIconSVG className="ml-2 size-4" />
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-6 px-6 py-6">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <div className="flex size-16 items-center justify-center rounded-full bg-[#EDF4EE] text-[#49734F]">
-                <span className="text-[28px]">🛡</span>
-              </div>
-              <p className="text-[20px] font-[600] leading-6 text-[#232A25]">{t("rulesTitle")}</p>
-            </div>
-
-            <ol className="mx-auto flex w-full max-w-[520px] list-decimal flex-col gap-3 pl-5 text-[14px] leading-6 text-[#232A25]">
+          <div className="flex flex-col gap-6">
+            <h1 className="text-title-sm font-semibold text-ink">{t("rulesTitle")}</h1>
+            <ol className="flex list-decimal flex-col gap-2 pl-5 text-body text-ink">
               {EXAM_RULE_KEYS.map((rule) => (
                 <li key={rule}>{t(`rules.${rule}`, { count: PROCTORING_CONFIG.disqualifyAfter })}</li>
               ))}
             </ol>
-
-            <label className="mx-auto flex w-full max-w-[520px] items-start gap-3 rounded-[10px] border border-[#E6ECE7] bg-[#F8FBF8] p-4">
-              <input
-                type="checkbox"
-                checked={rulesAccepted}
-                onChange={(event) => setRulesAccepted(event.target.checked)}
-                className="mt-1 size-4 accent-[#49734F]"
-              />
-              <span className="text-[14px] leading-5 text-[#232A25]">{t("accept")}</span>
-            </label>
-
-            <div className="flex items-center justify-between border-t border-[#E5E5E5] pt-4">
-              <button
-                type="button"
-                onClick={() => setStep("permissions")}
-                className="h-11 rounded-[10px] border border-[#DDE5DE] px-5 text-[14px] font-[600] leading-4 text-[#232A25]"
-              >
+            <div className="rounded-card border border-border bg-canvas p-4">
+              <Checkbox label={t("accept")} checked={rulesAccepted} onChange={(event) => setRulesAccepted(event.target.checked)} />
+            </div>
+            <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-between">
+              <Button variant="secondary" onClick={() => setStep("permissions")}>
                 {t("back")}
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleStartTest()}
+              </Button>
+              <Button
+                rightIcon={<RightArrowIconSVG className="size-4" />}
                 disabled={!rulesAccepted || !allPermissionsGranted}
-                className={`flex h-11 items-center rounded-[10px] px-5 text-[14px] font-[600] leading-4 text-white ${
-                  rulesAccepted && allPermissionsGranted ? "bg-[#49734F]" : "cursor-not-allowed bg-[#8BA28F]"
-                }`}
+                onClick={() => void handleStartTest()}
               >
                 {t("startTest")}
-                <RightArrowIconSVG className="ml-2 size-4" />
-              </button>
+              </Button>
             </div>
           </div>
         )}

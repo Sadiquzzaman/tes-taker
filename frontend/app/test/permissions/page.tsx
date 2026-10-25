@@ -7,7 +7,7 @@ import { useIsClient } from "@/hooks/useBrowserStorage";
 import { isExamPermissionsComplete } from "@/utils/tests/examSessionMedia";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { RotatingLines } from "react-loader-spinner";
+import ExamLoading from "@/component/Tests/exam/ExamLoading";
 
 export default function TestPermissionsPage() {
   const router = useRouter();
@@ -47,16 +47,8 @@ export default function TestPermissionsPage() {
 
   if (eligibilityLoading || !eligibilityChecked) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <RotatingLines
-          visible={true}
-          height="48"
-          width="48"
-          color="#49734F"
-          strokeWidth="5"
-          animationDuration="0.75"
-          ariaLabel="eligibility-loading"
-        />
+      <div className="flex min-h-dvh">
+        <ExamLoading />
       </div>
     );
   }

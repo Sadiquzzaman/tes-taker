@@ -8,12 +8,54 @@ const eslintConfig = defineConfig([
   // The component library, and each screen once P1-05 has rebuilt it, use design tokens only
   // (docs/ui/design-system.md §3.5). Add a folder here when its screens move to design/ui.
   {
-    files: ["design/ui/**/*.{ts,tsx}", "component/Dashboard/**/*.{ts,tsx}", "component/Tests/CreateTestActionButton.tsx"],
+    files: [
+      "design/ui/**/*.{ts,tsx}",
+      "component/Dashboard/**/*.{ts,tsx}",
+      "component/Classes/**/*.{ts,tsx}",
+      "component/JoinClass/**/*.{ts,tsx}",
+      "app/classes/**/*.{ts,tsx}",
+      "component/Share/**/*.{ts,tsx}",
+      "component/JoinTest/**/*.{ts,tsx}",
+      "component/Tests/{CreateTestActionButton,TestsNameSection,TestList,ExamDetails,StudentExamResults,ShareTestModal,CreateTestForm}.tsx",
+      "component/Tests/Create/**/*.{ts,tsx}",
+      "component/Tests/exam/**/*.{ts,tsx}",
+      "component/Tests/ExamCountdown.tsx",
+      "app/test/**/*.{ts,tsx}",
+      "app/tests/page.tsx",
+      "app/tests/create/**/*.{ts,tsx}",
+      "app/tests/[[]id]/**/*.{ts,tsx}",
+      "component/grading/**/*.{ts,tsx}",
+      "app/grading/**/*.{ts,tsx}",
+      "hooks/grading/**/*.{ts,tsx}",
+      "utils/grading/**/*.{ts,tsx}",
+      "component/Account/**/*.{ts,tsx}",
+      "component/Payment/**/*.{ts,tsx}",
+      "app/account/**/*.{ts,tsx}",
+      "app/billing/**/*.{ts,tsx}",
+      "app/payment/**/*.{ts,tsx}",
+      "app/auth/**/*.{ts,tsx}",
+      "component/Auth/**/*.{ts,tsx}",
+      "app/login/**/*.{ts,tsx}",
+      "app/signup/**/*.{ts,tsx}",
+      "app/forgot-password/**/*.{ts,tsx}",
+      "component/Organization/**/*.{ts,tsx}",
+      "app/organization/**/*.{ts,tsx}",
+      "component/Admin/**/*.{ts,tsx}",
+      "app/admin/**/*.{ts,tsx}",
+      "app/not-found.tsx",
+      // Rich-text editor chrome; the geometry, graph and chemistry boards draw with their own palettes.
+      "component/RichTextEditor/{RichTextEditor,RichTextToolbar,RichTextContent}.tsx",
+      "component/RichTextEditor/{node-views,modals}/**/*.{ts,tsx}",
+    ],
     ignores: [
       "**/*.test.{ts,tsx}",
-      // Replaced in P1-05; kept until their deletion is approved (docs/TODO.md).
-      "component/Dashboard/DashboardEmptyState.tsx",
-      "component/Dashboard/DashboardWidgetSkeleton.tsx",
+      // No longer used; deletion pending owner approval.
+      "component/Classes/StudentBadges.tsx",
+      "component/Tests/Create/CreateModal.tsx",
+      "component/Tests/exam/ObjectiveQuestionSectionCard.tsx",
+      "component/Tests/exam/EssayQuestionSectionCard.tsx",
+      "utils/grading/gradeCard.ts",
+      "utils/grading/gradeDetails.ts",
     ],
     rules: {
       "no-restricted-syntax": [

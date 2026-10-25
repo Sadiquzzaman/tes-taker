@@ -73,6 +73,15 @@ A `/dev/ui` page shows every component in every state. Claude Code screenshots i
 - **App shell:** every signed-in page uses `AppShell` through `component/Layout` (sidebar by role, menu drawer on phones, top bar). New pages start with a `PageHeader`.
 - **Tests:** each component group has a test next to it in `design/ui/*.test.tsx` (keyboard, ARIA, both languages).
 
+### Rebuilt screens (P1-05)
+
+- **Every app screen** (dashboards, classes, tests and the test wizard, the exam, grading, account and billing, payment results, sign-in and sign-up, organisation, admin, not-found, the rich-text editor chrome) uses `@/design/ui` and the tokens, in English and Bangla. The ESLint token rule (`eslint.config.mjs`) lists each rebuilt folder; add a folder there when you rebuild it. The landing page and the editor's geometry, graph and chemistry boards are not covered yet (`docs/TODO.md`).
+- **Added in P1-05:** `PasswordInput` (show/hide button), `Tooltip` (hover and focus, can hold a link), `TagInput`, `Input` `trailing` (a unit inside the field) and `Drawer` `wide` (42rem, for answer sheets and long forms).
+- **Asking first:** anything that removes, disqualifies, publishes, rejects or disables uses `ConfirmDialog` (danger tone when it cannot be undone). Never `window.confirm`.
+- **Forms:** wrap fields in a `<form noValidate>` with a submit button so Enter works; give fields `autoComplete` hints; phone numbers are `type="tel"` with `inputMode="numeric"`. Create/edit forms open in a Drawer; a Modal is for short decisions (e.g. a rejection reason).
+- **Lists:** client-side filters use `FilterBar`; lists searched on the server use a search form that submits (see `component/Admin/AdminSearchForm.tsx`) with `Pagination` below the table.
+- **Status:** show statuses with `StatusPill` and a translated label, never the raw API value.
+
 ### 3.4 Screen patterns
 
 | Pattern | Rule | Used by |

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { EditorContent, useEditor } from "@tiptap/react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
@@ -59,7 +60,7 @@ const RichTextEditor = ({
   value,
   onChange,
   onFocus,
-  placeholder = "Write here...",
+  placeholder,
   minHeightClassName = "min-h-[72px]",
   className = "",
   editorClassName = "",
@@ -71,6 +72,7 @@ const RichTextEditor = ({
   enableStructuredPaste = false,
   onStructuredPaste,
 }: RichTextEditorProps) => {
+  const t = useTranslations("editor");
   const imageInputRef = useRef<HTMLInputElement>(null);
   const lastEmittedHtml = useRef(value);
   const onImageFileRef = useRef(onImageFile);
@@ -106,7 +108,7 @@ const RichTextEditor = ({
 
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: createRichTextExtensions(placeholder),
+    extensions: createRichTextExtensions(placeholder ?? t("placeholder")),
     content: value || "",
     editorProps: {
       attributes: {
@@ -468,7 +470,7 @@ const RichTextEditor = ({
 
   return (
     <div
-      className={`rte-shell rounded-[8px] border border-[#E5E5E5] bg-white ${className}`.trim()}
+      className={`rte-shell rounded-input border border-border bg-surface ${className}`.trim()}
       onDragOver={handleDragOver}
     >
       <RichTextToolbar
