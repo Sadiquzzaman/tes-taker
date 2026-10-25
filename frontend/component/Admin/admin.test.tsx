@@ -72,8 +72,10 @@ describe("organisations", () => {
     });
     patch.mockResolvedValue({});
     renderApp(<AdminOrganizationsTable />, { locale: "bn" });
-    expect((await screen.findAllByText("অনুমোদনের অপেক্ষায়")).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getAllByRole("button", { name: "বাতিল করুন" })[0]);
+    // Wait for the table: the status filter already shows "pending" before the rows arrive.
+    const rejectButtons = await screen.findAllByRole("button", { name: "বাতিল করুন" });
+    expect(screen.getAllByText("Green School").length).toBeGreaterThan(0);
+    fireEvent.click(rejectButtons[0]);
     const dialog = await screen.findByRole("dialog", { name: "Green School বাতিল করবেন?" });
     fireEvent.change(within(dialog).getByLabelText(/কারণ/), { target: { value: "Missing documents" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "বাতিল করুন" }));
