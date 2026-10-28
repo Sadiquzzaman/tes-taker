@@ -18,6 +18,12 @@ html:lang(bn) body {
   line-height: var(--leading-bangla);
 }
 
+/* DM Serif Display has no Bangla letters: Bangla marketing headings use Hind Siliguri instead (P1-06). */
+html:lang(bn) .font-display {
+  font-family: var(--font-bangla);
+  font-weight: 600;
+}
+
 /* Toasts slide in from above (design/ui/Toast.tsx). */
 @keyframes toast-in {
   from {
