@@ -1896,5 +1896,106 @@
       "alt": "Graph",
       "edit": "Edit graph"
     }
+  },
+  "landing": {
+    "meta": {
+      "title": "Instructor — secure online exams for teachers and schools",
+      "description": "Build tests, run them with proctoring on any phone or computer, and grade them in one place. Free plan available."
+    },
+    "nav": {
+      "label": "Main",
+      "features": "Features",
+      "proctoring": "Proctoring",
+      "schools": "For schools",
+      "pricing": "Pricing",
+      "openMenu": "Open menu",
+      "menu": "Menu",
+      "logIn": "Log in",
+      "signUp": "Sign up free"
+    },
+    "hero": {
+      "eyebrow": "For teachers, schools and coaching centres",
+      "title": "Secure online exams your students can take on a phone",
+      "detail": "Build a test in minutes, watch for cheating while students take it, and mark written answers in one place.",
+      "start": "Start free",
+      "plans": "See plans"
+    },
+    "preview": {
+      "label": "Preview of Instructor: a teacher's grading card and a student's exam on a phone",
+      "testName": "Physics weekly quiz",
+      "className": "Class 9 · A",
+      "needsGrading": "Needs grading",
+      "submitted": "Submitted",
+      "graded": "Graded",
+      "timeLeft": "{time} left",
+      "monitoring": "Monitoring on",
+      "question": "Question {number, number} of {total, number}",
+      "prompt": "Which force keeps the Moon in orbit around the Earth?",
+      "optionA": "Gravity",
+      "optionB": "Friction",
+      "optionC": "Magnetism",
+      "next": "Next"
+    },
+    "features": {
+      "title": "Everything a test needs, from writing it to the result",
+      "builder": {
+        "title": "A test builder for real subjects",
+        "detail": "Multiple choice, short and written answers, matching and passages, with equations, graphs, geometry and chemistry."
+      },
+      "classes": {
+        "title": "Classes in one place",
+        "detail": "Invite students by phone, email or a link, approve join requests and discuss in each class."
+      },
+      "grading": {
+        "title": "Fast, fair grading",
+        "detail": "Objective questions mark themselves. Mark written answers with feedback, then publish results when everyone is graded."
+      },
+      "language": {
+        "title": "Bangla and English",
+        "detail": "Every screen works in both languages, with Bangla digits and dates in Dhaka time."
+      }
+    },
+    "proctoring": {
+      "title": "Proctoring that explains itself",
+      "detail": "While students take a test, Instructor watches for the common ways to cheat. Students see a plain warning; teachers see every flag in the results.",
+      "browser": "Leaving the tab or fullscreen, changing browser, a second screen or developer tools",
+      "copy": "Copying and pasting",
+      "face": "No face, more than one face, or looking away from the screen",
+      "phone": "A phone in view, or talking during the test",
+      "disqualify": "Optional automatic disqualification after repeated flags",
+      "planNote": "Which checks you can turn on depends on your plan."
+    },
+    "schools": {
+      "eyebrow": "For schools and coaching centres",
+      "title": "Run your whole institution from one account",
+      "detail": "Register your organisation, add teachers, assistants and students, and decide who teaches which subject in each class.",
+      "members": "Teachers, assistants and students, added one by one, by phone list or CSV",
+      "subjects": "Your own subject list with codes",
+      "assignments": "Assign a teacher to each subject in each class",
+      "cta": "Register your organisation"
+    },
+    "pricing": {
+      "title": "Simple pricing",
+      "detail": "Start free and upgrade when you need more tests or proctoring.",
+      "free": "Free",
+      "perMonth": "per month",
+      "examsPerMonth": "{count, plural, one {# test a month} other {# tests a month}}",
+      "examsTotal": "{count, plural, one {# test in total} other {# tests in total}}",
+      "unlimited": "Unlimited tests",
+      "students": "Up to {count, number} students per test",
+      "choose": "Choose {plan}",
+      "getStarted": "Get started",
+      "loadFailed": "Plans did not load. You can still sign up for free.",
+      "empty": "Plans will be listed here soon."
+    },
+    "cta": {
+      "title": "Give your next test online",
+      "detail": "Create a free account and build your first test today.",
+      "button": "Create a free account"
+    },
+    "footer": {
+      "rights": "© {year} Instructor. All rights reserved.",
+      "links": "Account"
+    }
   }
 }

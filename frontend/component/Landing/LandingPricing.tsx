@@ -1,85 +1,85 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import NextLink from "next/link";
+import { useTranslations } from "next-intl";
+import { buttonClasses, CheckIcon, cn, EmptyState, Skeleton } from "@/design/ui";
 import useGetPlans from "@/hooks/api/subscription/useGetPlans";
+import useFormat from "@/i18n/useFormat";
 
-const formatPrice = (value: number) => {
-  if (!value) return "Free";
-  return `৳${Number(value).toLocaleString()}`;
-};
+const planName = (plan: SubscriptionPlan) => plan.name ?? plan.display_name ?? "";
 
-const getPlanName = (plan: SubscriptionPlan) => plan.name ?? plan.display_name ?? "Plan";
-
+/** The plans and their monthly prices, read live from the API so the page never promises stale limits. */
 const LandingPricing = () => {
-  const { plans, loading } = useGetPlans();
-  const router = useRouter();
-  const sortedPlans = [...plans].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const t = useTranslations("landing.pricing");
+  const format = useFormat();
+  const { plans, loading, error } = useGetPlans();
+  const visible = plans.filter((plan) => plan.is_plan_active !== false).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
-  const handleSelect = () => {
-    router.push("/signup");
+  const limitLines = (plan: SubscriptionPlan) => {
+    const limits = plan.limits ?? {};
+    const lines = [
+      limits.max_exams_per_month
+        ? t("examsPerMonth", { count: limits.max_exams_per_month })
+        : limits.max_total_exams
+          ? t("examsTotal", { count: limits.max_total_exams })
+          : t("unlimited"),
+    ];
+    if (limits.max_students_per_exam) lines.push(t("students", { count: limits.max_students_per_exam }));
+    return lines;
   };
 
   return (
-    <section id="pricing" className="py-20 px-6 bg-[#EFF0F3]">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl text-[#232A25] mb-3" style={{ fontFamily: "DM Serif Display, serif" }}>
-            Simple, transparent pricing
-          </h2>
-          <p className="text-[#747775] max-w-2xl mx-auto" style={{ fontFamily: "Instrument Sans, sans-serif" }}>
-            Start free and scale as your teaching grows. Every plan includes secure online exams and class management.
-          </p>
+    <section id="pricing" className="scroll-mt-16 bg-canvas px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto flex max-w-6xl flex-col gap-10">
+        <div className="mx-auto flex max-w-2xl flex-col gap-3 text-center">
+          <h2 className="font-display text-display text-ink">{t("title")}</h2>
+          <p className="text-body text-ink-muted">{t("detail")}</p>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="h-72 rounded-[12px] bg-white/60 animate-pulse" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-busy="true">
+            {[0, 1, 2, 3].map((item) => (
+              <Skeleton key={item} className="h-72 rounded-card" />
             ))}
           </div>
+        ) : error || visible.length === 0 ? (
+          <EmptyState
+            title={error ? t("loadFailed") : t("empty")}
+            action={
+              <NextLink href="/signup" className={buttonClasses({ size: "lg" })}>
+                {t("getStarted")}
+              </NextLink>
+            }
+          />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {sortedPlans.map((plan) => (
-              <div
-                key={plan.id}
-                className="bg-white rounded-[12px] p-6 border border-[#EFF0F3] flex flex-col shadow-sm hover:shadow-md transition-shadow"
-              >
-                <h3
-                  className="text-lg font-semibold text-[#232A25] mb-1"
-                  style={{ fontFamily: "Public Sans, sans-serif" }}
-                >
-                  {getPlanName(plan)}
-                </h3>
-                {plan.description && <p className="text-sm text-[#747775] mb-4 min-h-[40px]">{plan.description}</p>}
-                <div className="mb-4">
-                  <span className="text-3xl font-bold text-[#49734F]" style={{ fontFamily: "Public Sans, sans-serif" }}>
-                    {formatPrice(plan.price_monthly)}
-                  </span>
-                  {plan.price_monthly > 0 && <span className="text-sm text-[#747775] ml-1">/month</span>}
-                </div>
-                <ul className="text-sm text-[#747775] space-y-2 mb-6 flex-1">
-                  {plan.limits?.max_exams_per_month ? (
-                    <li>{plan.limits.max_exams_per_month} exams per month</li>
-                  ) : plan.limits?.max_total_exams ? (
-                    <li>{plan.limits.max_total_exams} exams total</li>
-                  ) : (
-                    <li>Unlimited exams</li>
-                  )}
-                  {plan.limits?.max_students_per_exam && (
-                    <li>Up to {plan.limits.max_students_per_exam} students per exam</li>
-                  )}
-                </ul>
-                <button
-                  type="button"
-                  onClick={() => handleSelect()}
-                  className="w-full text-center py-2.5 rounded-[8px] bg-[#49734F] text-white text-sm font-medium hover:bg-[#3d6242] transition-colors"
-                  style={{ fontFamily: "Instrument Sans, sans-serif" }}
-                >
-                  {Number(plan.price_monthly) > 0 ? "Select plan" : "Get started"}
-                </button>
-              </div>
-            ))}
-          </div>
+          <ul className={cn("grid gap-4 sm:grid-cols-2", visible.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
+            {visible.map((plan) => {
+              const price = Number(plan.price_monthly);
+              return (
+                <li key={plan.id} className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card">
+                  <div className="flex flex-col gap-1">
+                    <h3 className="text-title-sm font-semibold text-ink">{planName(plan)}</h3>
+                    {plan.description ? <p className="text-body-sm text-ink-muted">{plan.description}</p> : null}
+                  </div>
+                  <p className="flex items-baseline gap-1.5">
+                    <span className="text-title font-semibold text-primary">{price > 0 ? `৳${format.number(price)}` : t("free")}</span>
+                    {price > 0 ? <span className="text-body-sm text-ink-muted">{t("perMonth")}</span> : null}
+                  </p>
+                  <ul className="flex flex-1 flex-col gap-2 text-body-sm text-ink">
+                    {limitLines(plan).map((line) => (
+                      <li key={line} className="flex items-start gap-2">
+                        <CheckIcon className="mt-0.5 text-primary" />
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                  <NextLink href="/signup" className={buttonClasses({ variant: price > 0 ? "primary" : "secondary", fullWidth: true, size: "lg" })}>
+                    {price > 0 ? t("choose", { plan: planName(plan) }) : t("getStarted")}
+                  </NextLink>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
     </section>

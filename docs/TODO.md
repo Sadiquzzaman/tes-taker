@@ -12,7 +12,7 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Organisation default language (`organizations.default_locale`, FND-18 "the org sets the default") — P1-04 stores only the user's choice; the column belongs with the other new organisation columns (P2-01/P2-04).
 - API messages shown to users are English only (toasts with server text, exam `reason`) — design §8 (Language) says the API returns a `code` the clients translate; needs an error-code pass over the backend.
 - Emails, SMS and PDFs in the recipient's language — P2-08 (message templates keyed by locale) and the PDF work; P1-04 covers screens only.
-- Translate and restyle the landing page (`app/page.tsx`) — P1-05 rebuilt the app screens only; the marketing page needs its own copy in Bangla.
+- Raise the library's default Button and IconButton (`h-10`, 40 px) to the 44 px tap target in plan §3.5 — P1-06 used `min-h-11` or `size="lg"` on the landing page only; changing the default touches every screen, so do it as its own change with a visual check.
 - Translate the geometry, graph and chemistry workspaces inside the rich-text editor (`component/RichTextEditor/{geometry,graph,chemistry,panels}`, ~150 tool labels) — P1-05 covered the editor chrome (toolbar, node controls, equation dialog) only.
 - Plan feature and limit names in the admin plan editor come from the API in English (`/subscriptions/feature-catalog`) — return keys and translate them in the browser.
 - Terms of Service and Privacy Policy pages — the signup checkbox links went to `#`; P1-05 shows them as plain text until the pages exist.
