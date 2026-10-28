@@ -1,4 +1,5 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
+import { TenantMiddleware } from "./common/tenancy/tenant.middleware";
 import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { AppController } from "./app.controller";
@@ -104,4 +105,9 @@ import { QueueModule } from './queue/queue.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  /** Every request gets its own tenant store (design §8.1); OrganizationContextGuard fills it in. */
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(TenantMiddleware).forRoutes("*");
+  }
+}

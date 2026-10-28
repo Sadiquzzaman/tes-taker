@@ -3,6 +3,7 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { ClassStudentStatusEnum } from './entities/class-student.entity';
+import { ClassKindEnum } from './enums/class-kind.enum';
 import { DiscussionAccessService } from './discussion-access.service';
 
 const ORG = '11111111-1111-4111-8111-111111111111';
@@ -13,16 +14,19 @@ const PHYSICS_CS = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const CHEMISTRY_CS = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const CONV_PHYSICS = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 
+// Real classes always carry their kind: organisation classes follow org rules, personal ones do not.
 const orgClass = {
   id: CLASS_A,
   organization_id: ORG,
   teacher_id: 'owner-1',
+  class_kind: ClassKindEnum.ORGANIZATION,
 };
 
 const personalClass = {
   id: CLASS_A,
   organization_id: null,
   teacher_id: 'owner-1',
+  class_kind: ClassKindEnum.PERSONAL,
 };
 
 const physicsSubject = {

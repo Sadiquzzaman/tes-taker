@@ -13,6 +13,7 @@ import { UserReponseDto } from 'src/user/dto/user-response.dto';
 import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities/class-student.entity';
 import { OrganizationMemberEntity } from './entities/organization-member.entity';
 import { OrganizationMemberRoleEnum } from './enums/organization-member-role.enum';
+import { OrganizationKindEnum } from './enums/organization-kind.enum';
 import { OrganizationStatusEnum } from './enums/organization-status.enum';
 import { SelectableContextTypeEnum } from './dto/select-context.dto';
 import { UserContextItem } from './interfaces/user-context.interface';
@@ -77,6 +78,10 @@ export class UserContextService {
       }
 
       const org = membership.organization;
+      // A teacher's SOLO organisation is their "My Teaching" workspace above, not an organisation.
+      if (org.kind === OrganizationKindEnum.SOLO) {
+        continue;
+      }
       if (
         org.status === OrganizationStatusEnum.REJECTED ||
         org.status === OrganizationStatusEnum.INACTIVE
@@ -103,14 +108,15 @@ export class UserContextService {
       });
     }
 
-    // Personal (non-org) teacher classes the user is enrolled in as a student.
+    // Solo teachers' classes the user is enrolled in as a student (classes in SOLO organisations).
     const personalEnrollments = await this.classStudentRepo
       .createQueryBuilder('cs')
       .innerJoinAndSelect('cs.class', 'class')
+      .innerJoin('class.organization', 'classOrganization')
       .leftJoinAndSelect('class.teacher', 'teacher')
       .where('cs.student_id = :userId', { userId })
       .andWhere('cs.status = :status', { status: ClassStudentStatusEnum.JOINED })
-      .andWhere('class.organization_id IS NULL')
+      .andWhere('classOrganization.kind = :solo', { solo: OrganizationKindEnum.SOLO })
       .getMany();
 
     const teacherMap = new Map<string, { id: string; name: string }>();

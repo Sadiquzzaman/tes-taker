@@ -17,7 +17,8 @@ const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleU
   const { loading, classData, fetch, apiComplete, testList, handleShareClass } = useClassDetails(classId, role);
   const { isIndividual } = useWorkspace();
   const isTeacher = role === "TEACHER";
-  const isOrgClass = Boolean(classData?.organization_id);
+  // Every class has an organisation now (a solo teacher's is a SOLO one); only school classes have subjects to manage.
+  const isOrgClass = classData?.class_kind === "ORGANIZATION";
   const classesHref = isIndividual ? "/classes" : "/organization/classes";
   const breadcrumb = (name?: string) => (
     <Breadcrumb items={[{ label: t("title"), href: classesHref }, { label: name || t("details") }]} />
