@@ -5,6 +5,11 @@ import { ClassEntity } from '../../src/classes/entities/class.entity';
 import { ExamEntity } from '../../src/exams/entities/exam.entity';
 import { TestAudienceEnum } from '../../src/exams/enums/exam-wizard.enums';
 import { UserEntity } from '../../src/user/entities/user.entity';
+import { OrganizationEntity } from '../../src/organizations/entities/organization.entity';
+import { OrganizationMemberEntity } from '../../src/organizations/entities/organization-member.entity';
+import { OrganizationKindEnum } from '../../src/organizations/enums/organization-kind.enum';
+import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
+import { OrganizationStatusEnum } from '../../src/organizations/enums/organization-status.enum';
 
 let sequence = 0;
 const next = () => ++sequence;
@@ -36,6 +41,26 @@ export const factories = (dataSource: DataSource) => ({
 
   student(overrides: DeepPartial<UserEntity> = {}) {
     return this.user(RolesEnum.STUDENT, overrides);
+  },
+
+  /** An approved organisation (a school by default) with `owner` as OWNER. */
+  async organization(owner: UserEntity, overrides: DeepPartial<OrganizationEntity> = {}): Promise<OrganizationEntity> {
+    const organization = await dataSource.getRepository(OrganizationEntity).save({
+      name: `School ${next()}`,
+      kind: OrganizationKindEnum.SCHOOL,
+      status: OrganizationStatusEnum.APPROVED,
+      ...overrides,
+    } as DeepPartial<OrganizationEntity>);
+    await this.member(organization, owner, OrganizationMemberRoleEnum.OWNER);
+    return organization;
+  },
+
+  member(organization: OrganizationEntity, user: UserEntity, role: OrganizationMemberRoleEnum): Promise<OrganizationMemberEntity> {
+    return dataSource.getRepository(OrganizationMemberEntity).save({
+      organization_id: organization.id,
+      user_id: user.id,
+      role,
+    } as DeepPartial<OrganizationMemberEntity>);
   },
 
   /** A personal class owned by `teacher`. */

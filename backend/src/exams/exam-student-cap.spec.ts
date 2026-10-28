@@ -81,6 +81,7 @@ describe('student cap at exam start', () => {
       {} as never, // classService (ANYONE audience skips class lookup)
       { getExamGraph: jest.fn(async () => exam) } as never, // examPaperCache
       entitlementsService as never,
+      {} as never, // soloOrganizations
     );
   });
 

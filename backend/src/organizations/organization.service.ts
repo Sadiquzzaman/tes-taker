@@ -1,3 +1,4 @@
+import { OrganizationKindEnum } from './enums/organization-kind.enum';
 import {
   BadRequestException,
   ConflictException,
@@ -243,7 +244,8 @@ export class OrganizationsService {
     });
 
     return memberships
-      .filter((m) => m.organization)
+      // A teacher's SOLO organisation is their own workspace, not an organisation to list (P2-01).
+      .filter((m) => m.organization && m.organization.kind !== OrganizationKindEnum.SOLO)
       .map((m) => ({
         id: m.organization.id,
         name: m.organization.name,
@@ -339,8 +341,10 @@ export class OrganizationsService {
     const limit = Math.min(50, Math.max(1, query.limit ?? 20));
     const search = query.search?.trim();
 
+    // Platform admins review registered organisations; SOLO workspaces are created automatically.
     const qb = this.organizationRepo
       .createQueryBuilder('org')
+      .where('org.kind <> :solo', { solo: OrganizationKindEnum.SOLO })
       .orderBy('org.created_at', 'DESC');
 
     if (query.status) {

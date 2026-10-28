@@ -21,6 +21,7 @@ import { UserContextService } from './user-context.service';
 import { OrganizationController } from './organization.controller';
 import { OrganizationAdminController } from './organization-admin.controller';
 import { OrganizationContextGuard } from './guards/organization-context.guard';
+import { SoloOrganizationService } from './solo-organization.service';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { OrganizationContextGuard } from './guards/organization-context.guard';
     OrganizationsService,
     OrganizationAccessService,
     UserContextService,
+    SoloOrganizationService,
     OrganizationContextGuard,
   ],
   // Export TypeOrmModule so importing modules (ClassModule, ExamModule) can resolve
@@ -56,6 +58,7 @@ import { OrganizationContextGuard } from './guards/organization-context.guard';
     OrganizationsService,
     OrganizationAccessService,
     UserContextService,
+    SoloOrganizationService,
     OrganizationContextGuard,
   ],
 })

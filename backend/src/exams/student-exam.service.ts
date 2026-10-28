@@ -1,3 +1,5 @@
+import { SoloOrganizationService } from 'src/organizations/solo-organization.service';
+import { soloOrganizationOf } from 'src/organizations/organization-rules';
 import {
   Injectable,
   BadRequestException,
@@ -142,6 +144,7 @@ export class StudentExamService {
     private readonly examPaperCache: ExamPaperCacheService,
 
     private readonly entitlementsService: EntitlementsService,
+    private readonly soloOrganizations: SoloOrganizationService,
   ) {}
 
   private static readonly UUID_V4_RE =
@@ -151,9 +154,19 @@ export class StudentExamService {
     return StudentExamService.UUID_V4_RE.test(value);
   }
 
+  /**
+   * For a student who chose a solo teacher's classes: that teacher's SOLO organisation, which the
+   * exam must belong to. Undefined for other sessions (P2-01).
+   */
+  private async studentSoloOrganizationId(jwtPayload?: JwtPayloadInterface): Promise<string | null | undefined> {
+    if (jwtPayload?.context_type !== 'individual_teacher' || !jwtPayload.teacher_id) return undefined;
+    return this.soloOrganizations.findIdForOwner(jwtPayload.teacher_id);
+  }
+
   private examMatchesStudentWorkspace(
     exam: Pick<ExamEntity, 'organization_id' | 'created_by'> & { class?: Pick<ClassEntity, 'teacher_id'> | null },
     jwtPayload?: JwtPayloadInterface,
+    soloOrganizationId?: string | null,
   ): boolean {
     if (!jwtPayload) {
       return true;
@@ -164,18 +177,18 @@ export class StudentExamService {
     }
 
     if (jwtPayload.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
-      const teacherId = exam.class?.teacher_id ?? exam.created_by ?? null;
-      return !exam.organization_id && teacherId === jwtPayload.teacher_id;
+      // The exam must be in that teacher's SOLO organisation.
+      return Boolean(soloOrganizationId) && exam.organization_id === soloOrganizationId;
     }
 
     return true;
   }
 
-  private assertExamMatchesStudentWorkspace(
+  private async assertExamMatchesStudentWorkspace(
     exam: Pick<ExamEntity, 'organization_id' | 'created_by'> & { class?: Pick<ClassEntity, 'teacher_id'> | null },
     jwtPayload?: JwtPayloadInterface,
-  ): void {
-    if (!this.examMatchesStudentWorkspace(exam, jwtPayload)) {
+  ): Promise<void> {
+    if (!this.examMatchesStudentWorkspace(exam, jwtPayload, await this.studentSoloOrganizationId(jwtPayload))) {
       throw new ForbiddenException('This exam is outside your selected workspace');
     }
   }
@@ -189,7 +202,7 @@ export class StudentExamService {
     }
 
     if (jwtPayload?.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
-      qb.andWhere('class.organization_id IS NULL').andWhere('class.teacher_id = :studentScopeTeacherId', {
+      qb.andWhere(`class.organization_id = (${soloOrganizationOf('studentScopeTeacherId')})`, {
         studentScopeTeacherId: jwtPayload.teacher_id,
       });
     }
@@ -204,12 +217,9 @@ export class StudentExamService {
     }
 
     if (jwtPayload?.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
-      qb.andWhere('exam.organization_id IS NULL').andWhere(
-        '(class.teacher_id = :studentScopeTeacherId OR exam.created_by = :studentScopeTeacherId)',
-        {
-          studentScopeTeacherId: jwtPayload.teacher_id,
-        },
-      );
+      qb.andWhere(`exam.organization_id = (${soloOrganizationOf('studentScopeTeacherId')})`, {
+        studentScopeTeacherId: jwtPayload.teacher_id,
+      });
     }
   }
 
@@ -449,7 +459,8 @@ export class StudentExamService {
       order: { submitted_at: 'DESC' },
     });
 
-    return submissions.filter((sub) => this.examMatchesStudentWorkspace(sub.exam, jwtPayload)).map((sub) => {
+    const soloOrganizationId = await this.studentSoloOrganizationId(jwtPayload);
+    return submissions.filter((sub) => this.examMatchesStudentWorkspace(sub.exam, jwtPayload, soloOrganizationId)).map((sub) => {
       const hasManualQuestions = examHasManualQuestions(sub.exam);
       const resultPublished = Boolean(sub.exam.result_published_at);
       const canShowScores = !hasManualQuestions || resultPublished;
@@ -502,7 +513,7 @@ export class StudentExamService {
       };
     }
 
-    if (!this.examMatchesStudentWorkspace(exam, jwtPayload)) {
+    if (!this.examMatchesStudentWorkspace(exam, jwtPayload, await this.studentSoloOrganizationId(jwtPayload))) {
       return {
         canAccess: false,
         reason: 'This exam is outside your selected workspace',
@@ -838,7 +849,7 @@ export class StudentExamService {
       throw new NotFoundException('Exam not found');
     }
 
-    this.assertExamMatchesStudentWorkspace(exam, jwtPayload);
+    await this.assertExamMatchesStudentWorkspace(exam, jwtPayload);
 
     const submission = await this.submissionRepo.findOne({
       where: { exam_id: examId, student_id: studentId },
@@ -1610,7 +1621,7 @@ export class StudentExamService {
       throw new NotFoundException('No submission found for this exam');
     }
 
-    this.assertExamMatchesStudentWorkspace(submission.exam, jwtPayload);
+    await this.assertExamMatchesStudentWorkspace(submission.exam, jwtPayload);
 
     if (
       examHasManualQuestions(submission.exam) &&

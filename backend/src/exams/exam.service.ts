@@ -1,3 +1,7 @@
+import { TenantContext } from 'src/common/tenancy/tenant-context';
+import { tenantScoped } from 'src/common/tenancy/tenant-repository';
+import { SoloOrganizationService } from 'src/organizations/solo-organization.service';
+import { soloOrganizationOf } from 'src/organizations/organization-rules';
 import {
   Injectable,
   BadRequestException,
@@ -6,7 +10,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, DeepPartial, EntityManager, Repository, In, IsNull, WhereExpressionBuilder } from 'typeorm';
+import { DataSource, DeepPartial, EntityManager, Repository, In, WhereExpressionBuilder } from 'typeorm';
 import { buildResponseOptionId } from './utils/exam-option-ids.util';
 import { ExamEntity, ExamTypeEnum } from './entities/exam.entity';
 import {
@@ -139,6 +143,7 @@ export class ExamService {
     private readonly organizationAccessService: OrganizationAccessService,
     private readonly classService: ClassService,
     private readonly examPaperCache: ExamPaperCacheService,
+    private readonly soloOrganizations: SoloOrganizationService,
   ) {}
 
   private async assertOrgWizardClassAndSubject(
@@ -406,7 +411,8 @@ export class ExamService {
           publishState.testAudience === TestAudienceEnum.SELECTED_CLASS
             ? publishState.selectedClassId!
             : null,
-        organization_id: orgContext?.organizationId ?? null,
+        // Personal exams live in the teacher's SOLO organisation (P2-01).
+        organization_id: orgContext?.organizationId ?? TenantContext.requireOrganizationId(),
         public_id: generatePublicId('EXM'),
         excluded_students: excludedStudents,
         created_by: jwtPayload.id,
@@ -810,6 +816,8 @@ export class ExamService {
     const exam = this.examRepo.create({
       exam_type: ExamTypeEnum.OBJECTIVE,
       public_id: generatePublicId('EXM'),
+      // Deprecated endpoint, but its exams still belong to the request's organisation (P2-01).
+      organization_id: TenantContext.current()?.organizationId ?? null,
       exam_start_time: dto.exam_start_time,
       exam_end_time: dto.exam_end_time,
       is_negative_marking: dto.is_negative_marking,
@@ -884,6 +892,8 @@ export class ExamService {
     const exam = this.examRepo.create({
       exam_type: ExamTypeEnum.SUBJECTIVE,
       public_id: generatePublicId('EXM'),
+      // Deprecated endpoint, but its exams still belong to the request's organisation (P2-01).
+      organization_id: TenantContext.current()?.organizationId ?? null,
       exam_start_time: dto.exam_start_time,
       exam_end_time: dto.exam_end_time,
       is_negative_marking: false,
@@ -1032,8 +1042,9 @@ export class ExamService {
         order: { created_at: 'DESC' },
       });
     } else {
-      exams = await this.examRepo.find({
-        where: { created_by: jwtPayload.id, organization_id: IsNull() },
+      // Personal workspace = the teacher's SOLO organisation.
+      exams = await tenantScoped(this.examRepo).find({
+        where: { created_by: jwtPayload.id },
         relations: [
           'questions',
           'questionSections',
@@ -1278,7 +1289,7 @@ export class ExamService {
       throw new NotFoundException('Class not found');
     }
 
-    this.assertExamMatchesStudentWorkspace(
+    await this.assertExamMatchesStudentWorkspace(
       {
         organization_id: classEntity.organization_id ?? null,
         class: classEntity,
@@ -1375,7 +1386,7 @@ export class ExamService {
     }
 
     if (jwtPayload?.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
-      qb.andWhere('class.organization_id IS NULL').andWhere('class.teacher_id = :studentScopeTeacherId', {
+      qb.andWhere(`class.organization_id = (${soloOrganizationOf('studentScopeTeacherId')})`, {
         studentScopeTeacherId: jwtPayload.teacher_id,
       });
     }
@@ -1393,19 +1404,16 @@ export class ExamService {
     }
 
     if (jwtPayload?.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
-      qb.andWhere('exam.organization_id IS NULL').andWhere(
-        '(class.teacher_id = :studentScopeTeacherId OR exam.created_by = :studentScopeTeacherId)',
-        {
-          studentScopeTeacherId: jwtPayload.teacher_id,
-        },
-      );
+      qb.andWhere(`exam.organization_id = (${soloOrganizationOf('studentScopeTeacherId')})`, {
+        studentScopeTeacherId: jwtPayload.teacher_id,
+      });
     }
   }
 
-  private assertExamMatchesStudentWorkspace(
+  private async assertExamMatchesStudentWorkspace(
     exam: Pick<ExamEntity, 'organization_id' | 'created_by'> & { class?: Pick<ClassEntity, 'teacher_id'> | null },
     jwtPayload?: JwtPayloadInterface,
-  ): void {
+  ): Promise<void> {
     if (!jwtPayload) {
       return;
     }
@@ -1418,8 +1426,9 @@ export class ExamService {
     }
 
     if (jwtPayload.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
-      const teacherId = exam.class?.teacher_id ?? exam.created_by ?? null;
-      if (exam.organization_id || teacherId !== jwtPayload.teacher_id) {
+      // It must be in that teacher's SOLO organisation (P2-01).
+      const soloOrganizationId = await this.soloOrganizations.findIdForOwner(jwtPayload.teacher_id);
+      if (!soloOrganizationId || exam.organization_id !== soloOrganizationId) {
         throw new ForbiddenException('This exam is outside your selected workspace');
       }
     }
@@ -2653,7 +2662,7 @@ export class ExamService {
       qb.andWhere('exam.created_by = :teacherId', { teacherId: jwtPayload.id });
     } else {
       qb.andWhere('exam.created_by = :teacherId', { teacherId: jwtPayload.id });
-      qb.andWhere('exam.organization_id IS NULL');
+      qb.andWhere('exam.organization_id = :soloOrgId', { soloOrgId: TenantContext.requireOrganizationId() });
     }
 
     if (query.search?.trim()) {
