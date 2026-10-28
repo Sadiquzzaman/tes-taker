@@ -8,7 +8,6 @@ import { RolesEnum } from 'src/common/enums/roles.enum';
 import { CryptoUtil } from 'src/common/utils/crypto.util';
 import { RefreshTokenUtil } from 'src/common/utils/refresh-token.util';
 import { UserFilterUtil } from 'src/common/utils/user-filter.util';
-import { SubscriptionService } from 'src/subscriptions/subscription.service';
 import { Brackets, In, Repository } from 'typeorm';
 import { UserReponseDto } from './dto/user-response.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
@@ -60,7 +59,6 @@ export class UserService implements OnModuleInit {
     private readonly userFilterUtil: UserFilterUtil,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly subscriptionService: SubscriptionService,
     private readonly publicIdService: PublicIdService,
     private readonly testUsersSeedService: TestUsersSeedService,
   ) {}
@@ -266,15 +264,8 @@ export class UserService implements OnModuleInit {
   }
 
   async enablePersonalTeacherContext(userId: string): Promise<UserEntity> {
-    const user = await this.ensureTeacherCapability(userId, { enablePersonal: true });
-    try {
-      await this.subscriptionService.provisionFreePlan(user.id, user.full_name ?? 'Teacher');
-    } catch (error) {
-      this.logger.error(
-        `Failed to provision free subscription for personal teacher: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-    return user;
+    // No subscription row is needed: a workspace without one is on the Free plan (P2-02).
+    return this.ensureTeacherCapability(userId, { enablePersonal: true });
   }
 
   /** Ensure a stable numeric Student ID (1000001+) exists once per user. */
@@ -894,16 +885,6 @@ export class UserService implements OnModuleInit {
       }
     }
     const savedUser = await this.userRepository.save(user);
-
-    if (role === RolesEnum.TEACHER) {
-      try {
-        await this.subscriptionService.provisionFreePlan(savedUser.id, savedUser.full_name ?? 'Teacher');
-      } catch (error) {
-        this.logger.error(
-          `Failed to provision free subscription after role promotion: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    }
 
     return {
       id: savedUser.id,

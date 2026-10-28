@@ -1,3 +1,4 @@
+import { PlanLimitReachedException } from 'src/subscriptions/entitlements.service';
 import { TenantContext } from 'src/common/tenancy/tenant-context';
 import { tenantScoped } from 'src/common/tenancy/tenant-repository';
 import { SoloOrganizationService } from 'src/organizations/solo-organization.service';
@@ -39,7 +40,6 @@ import { generatePublicId } from 'src/common/utils/public-id.util';
 import { SmsService } from 'src/sms/sms.service';
 import { SubjectService } from 'src/subjects/subject.service';
 import { EntitlementsService } from 'src/subscriptions/entitlements.service';
-import { SubscriptionService } from 'src/subscriptions/subscription.service';
 import { FeatureKey, LimitKey } from 'src/subscriptions/constants/feature-catalog';
 import { ExamLifecycleStatusEnum, ExamKindEnum, TestAudienceEnum } from './enums/exam-wizard.enums';
 import { QuestionCategoryEnum, IELTS_MANUAL_SUB_TYPES } from './enums/question.enums';
@@ -138,7 +138,6 @@ export class ExamService {
     private readonly smsService: SmsService,
     private readonly subjectService: SubjectService,
     private readonly entitlementsService: EntitlementsService,
-    private readonly subscriptionService: SubscriptionService,
     private readonly dataSource: DataSource,
     private readonly organizationAccessService: OrganizationAccessService,
     private readonly classService: ClassService,
@@ -207,14 +206,16 @@ export class ExamService {
       }
     }
 
-    const canCreate = await this.entitlementsService.canCreateExam(jwtPayload.id);
+    // The workspace's plan decides (P2-02): the school's, or the teacher's own SOLO organisation's.
+    const accountId = orgContext?.organizationId ?? TenantContext.requireOrganizationId();
+    const canCreate = await this.entitlementsService.canCreateExam(accountId);
     if (!canCreate.allowed) {
-      throw new ForbiddenException(canCreate.reason);
+      throw new PlanLimitReachedException(canCreate.limit ?? 'max_exams_per_month', canCreate.reason ?? 'Plan limit reached');
     }
 
     if (formState.isModelTest) {
       await this.entitlementsService.assertFeature(
-        jwtPayload.id,
+        accountId,
         FeatureKey.ALLOW_MODEL_TESTS,
         'Model tests are not available on your plan. Please upgrade to Pro.',
       );
@@ -225,14 +226,14 @@ export class ExamService {
         const parsed = parseWizardQuestion(raw);
         if (parsed.kind === 'ungraded') {
           await this.entitlementsService.assertFeature(
-            jwtPayload.id,
+            accountId,
             FeatureKey.ALLOW_UNGRADED_QUESTIONS,
             'Ungraded questions are not available on your plan. Please upgrade.',
           );
         }
         if (parsed.kind === 'passage') {
           await this.entitlementsService.assertFeature(
-            jwtPayload.id,
+            accountId,
             FeatureKey.ALLOW_PASSAGE_QUESTIONS,
             'Passage questions are not available on your plan. Please upgrade.',
           );
@@ -240,7 +241,7 @@ export class ExamService {
         const questionImage = (raw as { image?: unknown }).image;
         if (questionImage) {
           await this.entitlementsService.assertFeature(
-            jwtPayload.id,
+            accountId,
             FeatureKey.ALLOW_QUESTION_IMAGES,
             'Question images are not available on your plan. Please upgrade.',
           );
@@ -356,10 +357,11 @@ export class ExamService {
     }
 
     if (studentCount > 0) {
-      const entitlements = await this.entitlementsService.getEntitlements(jwtPayload.id);
+      const entitlements = await this.entitlementsService.getEntitlements(accountId);
       const maxStudents = entitlements.limits[LimitKey.MAX_STUDENTS_PER_EXAM] ?? 0;
       if (maxStudents > 0 && studentCount > maxStudents) {
-        throw new ForbiddenException(
+        throw new PlanLimitReachedException(
+          LimitKey.MAX_STUDENTS_PER_EXAM,
           `This exam targets ${studentCount} students, which exceeds your plan limit of ${maxStudents}. Please upgrade.`,
         );
       }
@@ -463,8 +465,6 @@ export class ExamService {
           this.logger.error(`Failed to send exam notifications: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
-
-      await this.subscriptionService.incrementExamCount(jwtPayload.id);
 
       await this.examPaperCache.invalidate(reloaded.id);
 
@@ -2203,9 +2203,12 @@ export class ExamService {
 
     this.assertExamEditableBeforeStart(existing);
 
+    // Features and limits come from the exam's organisation (P2-02).
+    const accountId = existing.organization_id ?? TenantContext.requireOrganizationId();
+
     if (formState.isModelTest) {
       await this.entitlementsService.assertFeature(
-        jwtPayload.id,
+        accountId,
         FeatureKey.ALLOW_MODEL_TESTS,
         'Model tests are not available on your plan. Please upgrade to Pro.',
       );
@@ -2216,14 +2219,14 @@ export class ExamService {
         const parsed = parseWizardQuestion(raw);
         if (parsed.kind === 'ungraded') {
           await this.entitlementsService.assertFeature(
-            jwtPayload.id,
+            accountId,
             FeatureKey.ALLOW_UNGRADED_QUESTIONS,
             'Ungraded questions are not available on your plan. Please upgrade.',
           );
         }
         if (parsed.kind === 'passage') {
           await this.entitlementsService.assertFeature(
-            jwtPayload.id,
+            accountId,
             FeatureKey.ALLOW_PASSAGE_QUESTIONS,
             'Passage questions are not available on your plan. Please upgrade.',
           );
@@ -2231,7 +2234,7 @@ export class ExamService {
         const questionImage = (raw as { image?: unknown }).image;
         if (questionImage) {
           await this.entitlementsService.assertFeature(
-            jwtPayload.id,
+            accountId,
             FeatureKey.ALLOW_QUESTION_IMAGES,
             'Question images are not available on your plan. Please upgrade.',
           );
@@ -2347,10 +2350,11 @@ export class ExamService {
     }
 
     if (studentCount > 0) {
-      const entitlements = await this.entitlementsService.getEntitlements(jwtPayload.id);
+      const entitlements = await this.entitlementsService.getEntitlements(accountId);
       const maxStudents = entitlements.limits[LimitKey.MAX_STUDENTS_PER_EXAM] ?? 0;
       if (maxStudents > 0 && studentCount > maxStudents) {
-        throw new ForbiddenException(
+        throw new PlanLimitReachedException(
+          LimitKey.MAX_STUDENTS_PER_EXAM,
           `This exam targets ${studentCount} students, which exceeds your plan limit of ${maxStudents}. Please upgrade.`,
         );
       }

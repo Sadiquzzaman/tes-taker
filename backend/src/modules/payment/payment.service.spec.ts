@@ -5,7 +5,10 @@ import { PaymentEntity } from './entities/payment.entity';
 import { PaymentStatusEnum } from './enums/payment-status.enum';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { SubscriptionService } from 'src/subscriptions/subscription.service';
-import { SubscriptionStatusEnum } from 'src/subscriptions/entities/teacher-subscription.entity';
+import { SubscriptionStatusEnum } from 'src/subscriptions/entities/account-subscription.entity';
+import { TenantContext } from 'src/common/tenancy/tenant-context';
+import { OrganizationKindEnum } from 'src/organizations/enums/organization-kind.enum';
+import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 
 jest.mock('axios', () => {
@@ -22,6 +25,13 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
  */
 describe('PaymentService (P0-05 payment security)', () => {
   const OWNER_ID = '11111111-1111-4111-8111-111111111111';
+  const ORG_ID = '66666666-6666-4666-8666-666666666666';
+  /** Checkout pays for the request's workspace (P2-02): run it inside one. */
+  const inWorkspace = <T>(work: () => Promise<T>) =>
+    TenantContext.run(() => {
+      TenantContext.set({ organizationId: ORG_ID, kind: OrganizationKindEnum.SCHOOL, memberRole: OrganizationMemberRoleEnum.OWNER });
+      return work();
+    });
   const OTHER_ID = '22222222-2222-4222-8222-222222222222';
   const SUBSCRIPTION_ID = '33333333-3333-4333-8333-333333333333';
   const PLAN_ID = '44444444-4444-4444-8444-444444444444';
@@ -54,10 +64,12 @@ describe('PaymentService (P0-05 payment security)', () => {
 
   const pendingSubscription = () => ({
     id: SUBSCRIPTION_ID,
+    organization_id: ORG_ID,
     teacher_id: OWNER_ID,
     plan_id: PLAN_ID,
     billing_cycle: 'MONTHLY',
-    amount_paid: PRO_PRICE,
+    price_due: PRO_PRICE,
+    amount_paid: 0,
     status: SubscriptionStatusEnum.PENDING,
     plan: { name: 'Pro' },
   });
@@ -104,8 +116,8 @@ describe('PaymentService (P0-05 payment security)', () => {
       ),
     };
     subscriptionService = {
-      getPendingSubscriptionForPayment: jest.fn(async (subscriptionId: string, teacherId: string) => {
-        if (subscriptionId !== SUBSCRIPTION_ID || teacherId !== OWNER_ID) {
+      getPendingSubscriptionForPayment: jest.fn(async (subscriptionId: string, organizationId: string, userId: string) => {
+        if (subscriptionId !== SUBSCRIPTION_ID || organizationId !== ORG_ID || userId !== OWNER_ID) {
           throw new NotFoundException('Subscription not found');
         }
         return pendingSubscription();
@@ -143,10 +155,10 @@ describe('PaymentService (P0-05 payment security)', () => {
 
       expect(dto).not.toHaveProperty('amount');
 
-      const result = await service.initiatePayment(dto, owner);
+      const result = await inWorkspace(() => service.initiatePayment(dto, owner));
 
       expect(result.amount).toBe(PRO_PRICE);
-      expect(subscriptionService.getPendingSubscriptionForPayment).toHaveBeenCalledWith(SUBSCRIPTION_ID, OWNER_ID);
+      expect(subscriptionService.getPendingSubscriptionForPayment).toHaveBeenCalledWith(SUBSCRIPTION_ID, ORG_ID, OWNER_ID);
       const sentBody = new URLSearchParams(mockedAxios.post.mock.calls[0][1] as string);
       expect(sentBody.get('total_amount')).toBe('499.00');
       expect(sentBody.get('currency')).toBe('BDT');
@@ -154,13 +166,15 @@ describe('PaymentService (P0-05 payment security)', () => {
       const stored = payments.get(result.transactionId)!;
       expect(Number(stored.amount)).toBe(PRO_PRICE);
       expect(stored.metadata).toMatchObject({ teacherId: OWNER_ID, subscriptionId: SUBSCRIPTION_ID });
+      // The payment records the workspace it pays for and who paid (P2-02).
+      expect(stored).toMatchObject({ organizationId: ORG_ID, userId: OWNER_ID, subscriptionId: SUBSCRIPTION_ID, purpose: 'SUBSCRIPTION' });
     });
 
     it("refuses to initiate a payment for someone else's subscription", async () => {
       const intruder = { ...owner, id: OTHER_ID };
 
       await expect(
-        service.initiatePayment({ subscriptionId: SUBSCRIPTION_ID }, intruder),
+        inWorkspace(() => service.initiatePayment({ subscriptionId: SUBSCRIPTION_ID }, intruder)),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(paymentRepo.save).not.toHaveBeenCalled();
       expect(mockedAxios.post).not.toHaveBeenCalled();

@@ -6,7 +6,7 @@ const CLASS_ID = '11111111-1111-4111-8111-111111111111';
 const OWN_EXAM = { id: 'exam-own', created_by: 'teacher-a', organization_id: null };
 const OTHER_EXAM = { id: 'exam-other', created_by: 'teacher-b', organization_id: null };
 
-// Only examRepo (0) and organizationAccessService (11) are used by findByClass.
+// Only examRepo (0) and organizationAccessService (10) are used by findByClass.
 function build(canMonitor: (exam: { id: string }) => boolean) {
   const examRepo = { find: jest.fn().mockResolvedValue([OWN_EXAM, OTHER_EXAM]) };
   const organizationAccessService = {
@@ -14,7 +14,7 @@ function build(canMonitor: (exam: { id: string }) => boolean) {
   };
   const deps: unknown[] = new Array(14).fill({});
   deps[0] = examRepo;
-  deps[11] = organizationAccessService;
+  deps[10] = organizationAccessService;
   const service = new (ExamService as unknown as new (...args: unknown[]) => ExamService)(...deps);
   const internals = service as unknown as Record<string, jest.Mock>;
   jest.spyOn(internals, 'loadExamListMetrics').mockResolvedValue(new Map());
