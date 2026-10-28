@@ -70,6 +70,24 @@ export class PaymentEntity {
   @Column({ name: 'validation_response', type: 'jsonb', nullable: true })
   validationResponse: Record<string, unknown> | null;
 
+  @ApiPropertyOptional({ description: 'Organisation the payment is for (P2-02)' })
+  @Index()
+  @Column({ name: 'organization_id', type: 'uuid', nullable: true })
+  organizationId: string | null;
+
+  @ApiPropertyOptional({ description: 'Who paid (P2-02)' })
+  @Index()
+  @Column({ name: 'user_id', type: 'uuid', nullable: true })
+  userId: string | null;
+
+  @ApiPropertyOptional({ description: 'Account subscription being paid for (P2-02)' })
+  @Column({ name: 'subscription_id', type: 'uuid', nullable: true })
+  subscriptionId: string | null;
+
+  @ApiPropertyOptional({ description: 'SUBSCRIPTION | SMS_CREDITS | STORAGE' })
+  @Column({ name: 'purpose', type: 'varchar', length: 30, nullable: true })
+  purpose: string | null;
+
   @ApiPropertyOptional({ description: 'Subscription checkout metadata' })
   @Column({ name: 'metadata', type: 'jsonb', nullable: true })
   metadata: {
