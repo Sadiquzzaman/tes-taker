@@ -1,3 +1,4 @@
+import { usesOrganizationRules } from 'src/organizations/organization-rules';
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -51,7 +52,8 @@ export class DiscussionAccessService {
       return;
     }
 
-    if (classEntity.organization_id) {
+    // Outside an organisation session only personal (solo teacher) classes are reachable.
+    if (usesOrganizationRules(classEntity)) {
       throw new ForbiddenException('This class is outside your selected workspace');
     }
 
@@ -93,7 +95,7 @@ export class DiscussionAccessService {
       return false;
     }
 
-    if (!classEntity.organization_id) {
+    if (!usesOrganizationRules(classEntity)) {
       return classEntity.teacher_id === jwt.id;
     }
 

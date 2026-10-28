@@ -1,3 +1,4 @@
+import { usesOrganizationRules } from 'src/organizations/organization-rules';
 import {
   BadRequestException,
   ForbiddenException,
@@ -79,7 +80,7 @@ export class ClassDiscussionService {
 
     if (jwt.role === RolesEnum.STUDENT) {
       await this.discussionAccess.assertJoinedStudent(jwt.id, classId);
-    } else if (!classEntity.organization_id) {
+    } else if (!usesOrganizationRules(classEntity)) {
       if (classEntity.teacher_id !== jwt.id) {
         return [];
       }
@@ -613,7 +614,7 @@ export class ClassDiscussionService {
         name: assignment.teacher?.full_name?.trim() || 'Teacher',
       }));
 
-    if (row.class && !row.class.organization_id && row.class.teacher_id) {
+    if (row.class && !usesOrganizationRules(row.class) && row.class.teacher_id) {
       if (!teachers.some((teacher) => teacher.id === row.class.teacher_id)) {
         teachers.unshift({
           id: row.class.teacher_id,

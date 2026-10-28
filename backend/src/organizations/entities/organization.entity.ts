@@ -2,7 +2,9 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { UserEntity } from 'src/user/entities/user.entity';
+import { OrganizationKindEnum } from '../enums/organization-kind.enum';
 import { OrganizationStatusEnum } from '../enums/organization-status.enum';
+import { WorkspaceTypeEnum } from '../enums/workspace-type.enum';
 
 @Entity('organizations')
 export class OrganizationEntity extends CustomBaseEntity {
@@ -39,6 +41,33 @@ export class OrganizationEntity extends CustomBaseEntity {
   })
   @Index()
   status: OrganizationStatusEnum;
+
+  @ApiProperty({ enum: OrganizationKindEnum, description: 'SOLO = one teacher\'s own workspace (P2-01)' })
+  @Column({
+    name: 'kind',
+    type: 'enum',
+    enum: OrganizationKindEnum,
+    default: OrganizationKindEnum.SCHOOL,
+  })
+  @Index()
+  kind: OrganizationKindEnum;
+
+  @ApiProperty({ enum: WorkspaceTypeEnum })
+  @Column({
+    name: 'workspace_type',
+    type: 'enum',
+    enum: WorkspaceTypeEnum,
+    default: WorkspaceTypeEnum.ACADEMIC,
+  })
+  workspace_type: WorkspaceTypeEnum;
+
+  @ApiProperty({ example: 'Asia/Dhaka' })
+  @Column({ name: 'timezone', type: 'varchar', length: 64, default: 'Asia/Dhaka' })
+  timezone: string;
+
+  @ApiProperty({ example: 'bn', description: 'Language for members who have not chosen one' })
+  @Column({ name: 'default_locale', type: 'varchar', length: 5, default: 'bn' })
+  default_locale: string;
 
   @ApiPropertyOptional()
   @Column({ name: 'rejected_reason', type: 'varchar', length: 500, nullable: true })

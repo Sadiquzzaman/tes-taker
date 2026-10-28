@@ -1,4 +1,8 @@
+import { globalSubjects } from 'src/subjects/global-subjects';
 import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { TenantContext } from 'src/common/tenancy/tenant-context';
+import { tenantScoped } from 'src/common/tenancy/tenant-repository';
+import { soloOrganizationOf, usesOrganizationRules } from 'src/organizations/organization-rules';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, ILike, IsNull, WhereExpressionBuilder } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -125,7 +129,8 @@ export class ClassService {
       description: dto.description,
       public_id: generatePublicId('CLS'),
       teacher_id: jwtPayload.id,
-      organization_id: orgContext?.organizationId ?? null,
+      // Personal classes live in the teacher's SOLO organisation (P2-01).
+      organization_id: orgContext?.organizationId ?? TenantContext.requireOrganizationId(),
       class_kind: classKind,
       created_by: jwtPayload.id,
       created_user_name: jwtPayload.full_name,
@@ -224,8 +229,9 @@ export class ClassService {
         classes = await qb.getMany();
       }
     } else {
-      classes = await this.classRepo.find({
-        where: { teacher_id: jwtPayload.id, organization_id: IsNull() },
+      // Personal workspace = the teacher's SOLO organisation.
+      classes = await tenantScoped(this.classRepo).find({
+        where: { teacher_id: jwtPayload.id },
         relations: [
           'classStudents',
           'classStudents.student',
@@ -389,10 +395,16 @@ export class ClassService {
       if (classEntity.organization_id !== orgContext.organizationId) {
         throw new ForbiddenException('Class does not belong to the current organization context');
       }
-    } else if (classEntity.organization_id) {
+    } else if (usesOrganizationRules(classEntity)) {
       throw new ForbiddenException(
         'This class belongs to an organization. Provide X-Organization-Id.',
       );
+    } else {
+      // A personal session works in the teacher's SOLO organisation only.
+      const tenant = TenantContext.current();
+      if (tenant && classEntity.organization_id && classEntity.organization_id !== tenant.organizationId) {
+        throw new ForbiddenException('This class is outside your selected workspace');
+      }
     }
   }
 
@@ -523,7 +535,7 @@ export class ClassService {
 
     await this.classStudentRepo.save(classStudentEntities);
 
-    if (classEntity.organization_id) {
+    if (usesOrganizationRules(classEntity)) {
       for (const student of newStudents) {
         await this.organizationsService.upsertStudentMember(
           classEntity.organization_id,
@@ -647,7 +659,7 @@ export class ClassService {
                   approved_by: jwtPayload.id,
                 })
               );
-              if (classEntity.organization_id) {
+              if (usesOrganizationRules(classEntity)) {
                 await this.organizationsService.upsertStudentMember(
                   classEntity.organization_id,
                   student.id,
@@ -762,7 +774,7 @@ export class ClassService {
                   approved_by: jwtPayload.id,
                 })
               );
-              if (classEntity.organization_id) {
+              if (usesOrganizationRules(classEntity)) {
                 await this.organizationsService.upsertStudentMember(
                   classEntity.organization_id,
                   student.id,
@@ -825,7 +837,7 @@ export class ClassService {
 
     const saved = await this.classStudentRepo.save(classStudent);
 
-    if (classEntity.organization_id) {
+    if (usesOrganizationRules(classEntity)) {
       await this.organizationsService.upsertStudentMember(
         classEntity.organization_id,
         studentId,
@@ -896,7 +908,7 @@ export class ClassService {
       invitedRow.approved_at = new Date();
       invitedRow.approved_by = classEntity.teacher_id;
       const saved = await this.classStudentRepo.save(invitedRow);
-      if (classEntity.organization_id) {
+      if (usesOrganizationRules(classEntity)) {
         await this.organizationsService.upsertStudentMember(
           classEntity.organization_id,
           studentId,
@@ -972,7 +984,7 @@ export class ClassService {
     invitedRow.approved_by = classEntity?.teacher_id ?? null;
     await this.classStudentRepo.save(invitedRow);
 
-    if (classEntity?.organization_id) {
+    if (classEntity && usesOrganizationRules(classEntity)) {
       await this.organizationsService.upsertStudentMember(classEntity.organization_id, studentId);
     }
 
@@ -1037,7 +1049,7 @@ export class ClassService {
 
     await this.classStudentRepo.save(classStudent);
 
-    if (cls?.organization_id) {
+    if (cls && usesOrganizationRules(cls)) {
       await this.organizationsService.upsertStudentMember(cls.organization_id, studentId);
     }
   }
@@ -1109,9 +1121,9 @@ export class ClassService {
         organizationId: filters.organization_id,
       });
     } else if (filters?.teacher_id) {
-      qb.andWhere('class.organization_id IS NULL').andWhere('class.teacher_id = :teacherId', {
+      qb.andWhere(`class.organization_id = (${soloOrganizationOf('teacherId')})`, {
         teacherId: filters.teacher_id,
-      });
+      }).andWhere('class.teacher_id = :teacherId');
     }
 
     const memberships = await qb.getMany();
@@ -1236,9 +1248,9 @@ export class ClassService {
     }
 
     if (jwtPayload?.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
-      qb.andWhere('class.organization_id IS NULL').andWhere('class.teacher_id = :scopedTeacherId', {
+      qb.andWhere(`class.organization_id = (${soloOrganizationOf('scopedTeacherId')})`, {
         scopedTeacherId: jwtPayload.teacher_id,
-      });
+      }).andWhere('class.teacher_id = :scopedTeacherId');
     }
   }
 
@@ -1258,7 +1270,7 @@ export class ClassService {
     }
 
     if (jwtPayload.context_type === 'individual_teacher' && jwtPayload.teacher_id) {
-      if (classEntity.organization_id || classEntity.teacher_id !== jwtPayload.teacher_id) {
+      if (usesOrganizationRules(classEntity) || classEntity.teacher_id !== jwtPayload.teacher_id) {
         throw new ForbiddenException('This class is outside your selected workspace');
       }
     }
@@ -1320,7 +1332,7 @@ export class ClassService {
   ): Promise<ClassTeacherEntity> {
     const classEntity = await this.findOne(classId, jwtPayload, orgContext);
 
-    if (classEntity.organization_id) {
+    if (usesOrganizationRules(classEntity)) {
       if (!orgContext?.organizationId) {
         throw new BadRequestException('X-Organization-Id is required for organization classes');
       }
@@ -1379,7 +1391,7 @@ export class ClassService {
   ): Promise<void> {
     const classEntity = await this.findOne(classId, jwtPayload, orgContext);
 
-    if (classEntity.organization_id) {
+    if (usesOrganizationRules(classEntity)) {
       await this.organizationAccessService.requireAcademicManager(
         classEntity.organization_id,
         jwtPayload.id,
@@ -1496,7 +1508,7 @@ export class ClassService {
         continue;
       }
       const existing = await this.subjectRepo.findOne({
-        where: { name, organization_id: IsNull() },
+        where: { name, ...globalSubjects() },
       });
       if (existing) {
         resolved.push(existing.id);
@@ -1520,7 +1532,7 @@ export class ClassService {
     classEntity: ClassEntity,
     userId: string,
   ): Promise<void> {
-    if (classEntity.organization_id) {
+    if (usesOrganizationRules(classEntity)) {
       await this.organizationAccessService.requireAcademicManager(
         classEntity.organization_id,
         userId,
@@ -1547,7 +1559,7 @@ export class ClassService {
       throw new BadRequestException('One or more subjects were not found');
     }
 
-    if (classEntity.organization_id) {
+    if (usesOrganizationRules(classEntity)) {
       const invalid = subjects.some((subject) => subject.organization_id !== classEntity.organization_id);
       if (invalid) {
         throw new BadRequestException('Subjects must belong to this organization catalog');
@@ -1588,7 +1600,7 @@ export class ClassService {
     const classEntity = await this.findOne(classId, jwtPayload, orgContext);
     let resolvedId = subjectId;
 
-    if (!resolvedId && classEntity.organization_id) {
+    if (!resolvedId && usesOrganizationRules(classEntity)) {
       if (!subjectName?.trim() || !subjectCode?.trim()) {
         throw new BadRequestException('subject_id or name and code are required');
       }
@@ -1602,7 +1614,7 @@ export class ClassService {
     } else if (!resolvedId && subjectName?.trim()) {
       const name = subjectName.trim();
       const existing = await this.subjectRepo.findOne({
-        where: { name, organization_id: IsNull() },
+        where: { name, ...globalSubjects() },
       });
       if (existing) {
         resolvedId = existing.id;
@@ -1662,7 +1674,7 @@ export class ClassService {
       throw new NotFoundException('Class subject not found');
     }
 
-    if (classEntity.organization_id) {
+    if (usesOrganizationRules(classEntity)) {
       const membership = await this.organizationAccessService.getMembership(
         classEntity.organization_id,
         teacherId,
@@ -1698,7 +1710,7 @@ export class ClassService {
     });
     const saved = await this.classSubjectTeacherRepo.save(row);
 
-    if (mirrorClassTeacher && !classEntity.organization_id) {
+    if (mirrorClassTeacher && !usesOrganizationRules(classEntity)) {
       const legacy = await this.classTeacherRepo.findOne({
         where: {
           class_id: classId,
@@ -1747,7 +1759,7 @@ export class ClassService {
     const removedTeacherId = row.teacher_id;
     await this.classSubjectTeacherRepo.remove(row);
 
-    if (classEntity.organization_id) {
+    if (usesOrganizationRules(classEntity)) {
       await this.removeLegacyOrgClassTeacherMirror(classId, removedTeacherId, subjectId);
     }
   }
@@ -1782,7 +1794,7 @@ export class ClassService {
         }) as Promise<ClassSubjectTeacherEntity>;
       }
 
-      if (classEntity.organization_id) {
+      if (usesOrganizationRules(classEntity)) {
         const membership = await this.organizationAccessService.getMembership(
           classEntity.organization_id,
           teacherId,
@@ -1817,7 +1829,7 @@ export class ClassService {
       assignment.updated_at = new Date();
       await cstRepo.save(assignment);
 
-      if (classEntity.organization_id) {
+      if (usesOrganizationRules(classEntity)) {
         const leftover = await classTeacherRepo.findOne({
           where: {
             class_id: classId,

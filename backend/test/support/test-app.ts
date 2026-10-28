@@ -25,8 +25,11 @@ export interface TestApp {
     post: <T = unknown>(path: string, body?: unknown, token?: string) => Promise<ApiResponse<T>>;
     request: <T = unknown>(method: string, path: string, options?: { body?: unknown; token?: string; form?: Record<string, string> }) => Promise<ApiResponse<T>>;
   };
-  /** A signed access token with the same payload a real individual login produces. */
-  tokenFor: (user: TokenUser) => string;
+  /**
+   * A signed access token with the same payload a real individual login produces. Pass `claims`
+   * for other sessions, e.g. an organisation session or a student in a solo teacher's workspace.
+   */
+  tokenFor: (user: TokenUser, claims?: Record<string, unknown>) => string;
   close: () => Promise<void>;
 }
 
@@ -91,7 +94,7 @@ export async function createTestApp(
       post: (path, body, token) => request('POST', path, { body, token }),
       request,
     },
-    tokenFor: (user) =>
+    tokenFor: (user, claims = {}) =>
       jwt.sign(
         {
           id: user.id,
@@ -102,6 +105,7 @@ export async function createTestApp(
           personal_teacher_enabled: Boolean(user.personal_teacher_enabled),
           context_type: 'individual',
           session_mode: 'individual',
+          ...claims,
         },
         { expiresIn: '30m' },
       ),

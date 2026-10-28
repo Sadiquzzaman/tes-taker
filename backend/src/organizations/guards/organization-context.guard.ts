@@ -8,10 +8,16 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
+import { RolesEnum } from 'src/common/enums/roles.enum';
+import { TenantContext } from 'src/common/tenancy/tenant-context';
+import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { OrganizationMemberEntity } from '../entities/organization-member.entity';
 import { OrganizationEntity } from '../entities/organization.entity';
 import { OrganizationStatusEnum } from '../enums/organization-status.enum';
 import { OrgContext } from '../interfaces/org-context.interface';
+import { OrganizationKindEnum } from '../enums/organization-kind.enum';
+import { OrganizationMemberRoleEnum } from '../enums/organization-member-role.enum';
+import { SoloOrganizationService } from '../solo-organization.service';
 
 export const ORGANIZATION_ID_HEADER = 'x-organization-id';
 
@@ -25,6 +31,7 @@ export class OrganizationContextGuard implements CanActivate {
     private readonly memberRepo: Repository<OrganizationMemberEntity>,
     @InjectRepository(OrganizationEntity)
     private readonly organizationRepo: Repository<OrganizationEntity>,
+    private readonly soloOrganizations: SoloOrganizationService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -52,14 +59,35 @@ export class OrganizationContextGuard implements CanActivate {
       return this.attachOrgContext(request, jwtOrgId, user?.id);
     }
 
-    // Individual sessions ignore org headers — always individual workspace.
-    if (headerOrgId) {
-      request.orgContext = null;
-      return true;
+    // Individual sessions ignore org headers. orgContext stays null (personal behaviour: the
+    // teacher owns the class, no member roles), but the data lives in a SOLO organisation.
+    request.orgContext = null;
+    await this.attachSoloTenant(user);
+    return true;
+  }
+
+  /**
+   * The tenant for an individual session (design §8.1): a teacher's own SOLO organisation, or,
+   * for a student who chose a solo teacher's classes, that teacher's SOLO organisation (access
+   * through enrolment, checked by the class and exam services). Other students have no tenant.
+   */
+  private async attachSoloTenant(user?: JwtPayloadInterface): Promise<void> {
+    if (!user?.id) return;
+
+    if (user.context_type === 'individual_teacher') {
+      const organizationId = user.teacher_id ? await this.soloOrganizations.findIdForOwner(user.teacher_id) : null;
+      TenantContext.set(
+        organizationId
+          ? { organizationId, kind: OrganizationKindEnum.SOLO, memberRole: OrganizationMemberRoleEnum.STUDENT, viaEnrolment: true }
+          : null,
+      );
+      return;
     }
 
-    request.orgContext = null;
-    return true;
+    if (user.role === RolesEnum.TEACHER && user.personal_teacher_enabled) {
+      const organizationId = await this.soloOrganizations.ensureForTeacher(user);
+      TenantContext.set({ organizationId, kind: OrganizationKindEnum.SOLO, memberRole: OrganizationMemberRoleEnum.OWNER });
+    }
   }
 
   private async attachOrgContext(
@@ -109,6 +137,7 @@ export class OrganizationContextGuard implements CanActivate {
       memberRole: membership.role,
     };
     request.organization = organization;
+    TenantContext.set({ organizationId, kind: organization.kind, memberRole: membership.role });
 
     return true;
   }
