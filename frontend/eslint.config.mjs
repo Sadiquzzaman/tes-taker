@@ -49,13 +49,6 @@ const eslintConfig = defineConfig([
     ],
     ignores: [
       "**/*.test.{ts,tsx}",
-      // No longer used; deletion pending owner approval.
-      "component/Classes/StudentBadges.tsx",
-      "component/Tests/Create/CreateModal.tsx",
-      "component/Tests/exam/ObjectiveQuestionSectionCard.tsx",
-      "component/Tests/exam/EssayQuestionSectionCard.tsx",
-      "utils/grading/gradeCard.ts",
-      "utils/grading/gradeDetails.ts",
     ],
     rules: {
       "no-restricted-syntax": [
