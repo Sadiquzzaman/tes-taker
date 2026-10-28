@@ -9,7 +9,7 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Rotate the SSLCommerz sandbox store credentials that were committed in `backend/src/modules/payment/README.md` (now placeholders) and in git history — only needed if that store is used anywhere; owner action.
 - Add vitest tests for the frontend fetch hooks changed in #69 (`useGetExamResult`, `useGetGradeDetails`, `useGetSubmissionGradingDetail`, `useGetAllSubject`) — the harness exists now; only `ExamCountdown`, the join pages and `useBrowserStorage` are covered.
 - Alert on failed BullMQ jobs (design §7: Slack or email) — failed jobs are kept 7 days and visible in the queue dashboard, but nobody is notified yet (P0-04).
-- Organisation default language (`organizations.default_locale`, FND-18 "the org sets the default") — P1-04 stores only the user's choice; the column belongs with the other new organisation columns (P2-01/P2-04).
+- Use the organisation default language (`organizations.default_locale`, FND-18 "the org sets the default") — P2-01 added the column (default bn); nothing reads it yet. Wire it in with the setup wizard (P2-04).
 - API messages shown to users are English only (toasts with server text, exam `reason`) — design §8 (Language) says the API returns a `code` the clients translate; needs an error-code pass over the backend.
 - Emails, SMS and PDFs in the recipient's language — P2-08 (message templates keyed by locale) and the PDF work; P1-04 covers screens only.
 - Raise the library's default Button and IconButton (`h-10`, 40 px) to the 44 px tap target in plan §3.5 — P1-06 used `min-h-11` or `size="lg"` on the landing page only; changing the default touches every screen, so do it as its own change with a visual check.
@@ -23,3 +23,8 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Build the Docker images in GitHub Actions and have beta only pull them — beta (3.8 GB RAM) ran out of memory building the frontend on 2026-10-24; a 4 GB swap file fixed it for now.
 - Translate the dashboard activity chart's labels ("Jan", "Mon", "Oct 5") — the API builds them as English text (`dashboard.service.ts`); return dates instead and format them in the browser.
 - A real student home (next exam with a countdown, latest result, weak topics; review §4.5) — needs new API data; P1-05 rebuilt the existing workspace list only.
+- Make `organization_id` NOT NULL on classes, exams, discussion posts and private conversations — P2-01 is expand + migrate only (design §12); after one release with no rows left NULL, ship the contract step.
+- Hidden default branch and `org_settings` per organisation (design §8.1, M2) — deferred from P2-01 because nothing uses them yet; add them with attendance settings (P3-01) or the setup wizard (P2-04).
+- Teachers with only a subscription (organisation-only owners, personal teaching off) get no SOLO organisation in P2-01 — decide in P2-02, when subscriptions move to organisations (`account_subscriptions`), whose account their subscription becomes.
+- Row-level security on tenant tables (design §8.1 phase 2) — P2-01 enforces tenancy in the guard, `TenantContext` and `tenantScoped()`; RLS is the database-level backstop.
+- Move the remaining class and exam queries onto `tenantScoped()` — P2-01 switched the personal-workspace paths and kept existing organisation-session queries (already filtered by `organization_id`); convert the rest as those services are touched.

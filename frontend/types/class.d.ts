@@ -73,6 +73,8 @@ interface Class {
   description: string;
   teacher_id: string;
   organization_id?: string | null;
+  /** ORGANIZATION classes follow school rules; PERSONAL ones are a solo teacher's (in their SOLO organisation). */
+  class_kind?: "ORGANIZATION" | "PERSONAL";
   share_token: string | null;
   classStudents: ClassStudent[];
   classSubjects?: ClassSubject[];
@@ -112,6 +114,7 @@ interface ClassDetailsData {
   description: string;
   created_user_name: string;
   organization_id?: string | null;
+  class_kind?: "ORGANIZATION" | "PERSONAL";
   classStudents: ClassDetailsStudentItem[];
   classSubjects?: ClassSubject[];
   joined_at?: string;
