@@ -51,10 +51,10 @@ describe('SoloOrganizations migration', () => {
     const schoolOwner = await make.teacher({ personal_teacher_enabled: false });
     const school = await make.organization(schoolOwner);
 
-    const personalClass = await make.classOf(personal, { class_kind: ClassKindEnum.PERSONAL });
-    const classExam = await make.openExam(personal, { class_id: personalClass.id });
-    const linkExam = await make.openExam(personal);
-    const strayClass = await make.classOf(orgOnlyWithClass, { class_kind: ClassKindEnum.PERSONAL });
+    const personalClass = await make.classOf(personal, { class_kind: ClassKindEnum.PERSONAL, organization_id: null });
+    const classExam = await make.openExam(personal, { class_id: personalClass.id, organization_id: null });
+    const linkExam = await make.openExam(personal, { organization_id: null });
+    const strayClass = await make.classOf(orgOnlyWithClass, { class_kind: ClassKindEnum.PERSONAL, organization_id: null });
     const schoolClass = await make.classOf(schoolOwner, { organization_id: school.id, class_kind: ClassKindEnum.ORGANIZATION });
     const schoolExam = await make.openExam(schoolOwner, { organization_id: school.id, class_id: schoolClass.id });
 

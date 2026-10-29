@@ -32,7 +32,6 @@ describe('AuthService password-reset OTP', () => {
       {} as never,
       {} as never,
       {} as never,
-      {} as never,
     );
   });
 

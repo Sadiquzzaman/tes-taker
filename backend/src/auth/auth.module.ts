@@ -6,7 +6,6 @@ import { UserModule } from 'src/user/user.module';
 import { SmsModule } from 'src/sms/sms.module';
 import { EmailModule } from 'src/email/email.module';
 import { ClassModule } from 'src/classes/class.module';
-import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 import { OrganizationsModule } from 'src/organizations/organization.module';
 import { TeacherRequestModule } from 'src/teacher-requests/teacher-request.module';
 import { JwtModule } from '@nestjs/jwt';
@@ -20,7 +19,6 @@ import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
     SmsModule,
     EmailModule,
     ClassModule,
-    SubscriptionModule,
     OrganizationsModule,
     TeacherRequestModule,
     JwtModule.register({

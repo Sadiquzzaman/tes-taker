@@ -25,6 +25,7 @@ describe('student cap at exam start', () => {
   let txSubmissions: Record<string, jest.Mock>;
   let manager: { query: jest.Mock; getRepository: jest.Mock };
   let dataSource: { transaction: jest.Mock };
+  const organizationId = '77777777-7777-4777-8777-777777777777';
   let entitlementsService: { getEntitlements: jest.Mock };
   let service: StudentExamService;
 
@@ -40,7 +41,8 @@ describe('student cap at exam start', () => {
       exam_start_time: new Date('2026-10-23T10:00:00.000Z'),
       exam_end_time: new Date('2026-10-23T12:00:00.000Z'),
       duration_minutes: 30,
-      organization_id: null,
+      // Every exam belongs to an organisation (P2-01); the cap comes from its plan (P2-02).
+      organization_id: organizationId,
       questionSections: [],
       questions: [],
     } as unknown as ExamEntity;
@@ -98,7 +100,7 @@ describe('student cap at exam start', () => {
         reason: EXAM_FULL_MESSAGE,
         reason_code: ExamAccessReasonCodeEnum.EXAM_FULL,
       });
-      expect(entitlementsService.getEntitlements).toHaveBeenCalledWith(teacherId);
+      expect(entitlementsService.getEntitlements).toHaveBeenCalledWith(organizationId);
     });
 
     it('lets a new student in while places are left', async () => {

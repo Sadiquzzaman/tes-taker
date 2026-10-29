@@ -3,8 +3,8 @@ import { PaymentStatusEnum } from '../../src/modules/payment/enums/payment-statu
 import { SubscriptionPlanEntity } from '../../src/subscriptions/entities/subscription-plan.entity';
 import {
   SubscriptionStatusEnum,
-  TeacherSubscriptionEntity,
-} from '../../src/subscriptions/entities/teacher-subscription.entity';
+  AccountSubscriptionEntity,
+} from '../../src/subscriptions/entities/account-subscription.entity';
 import { UserEntity } from '../../src/user/entities/user.entity';
 import { factories } from '../support/factories';
 import { createTestApp, TestApp } from '../support/test-app';
@@ -67,7 +67,7 @@ describe('payments API', () => {
   };
 
   const subscriptionStatus = async (id: string) =>
-    (await t.dataSource.getRepository(TeacherSubscriptionEntity).findOneByOrFail({ id })).status;
+    (await t.dataSource.getRepository(AccountSubscriptionEntity).findOneByOrFail({ id })).status;
 
   const paymentStatus = async (transactionId: string) =>
     (await t.dataSource.getRepository(PaymentEntity).findOneByOrFail({ transactionId })).status;

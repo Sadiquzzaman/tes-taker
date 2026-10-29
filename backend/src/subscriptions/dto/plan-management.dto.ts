@@ -89,10 +89,17 @@ export class ReorderPlansDto {
   plan_ids: string[];
 }
 
+/** Assign a plan to an organisation, or (legacy) to a teacher, meaning their SOLO organisation. Give one. */
 export class AssignPlanDto {
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'Organisation to assign the plan to' })
+  @IsOptional()
   @IsUUID('4')
-  teacher_id: string;
+  organization_id?: string;
+
+  @ApiPropertyOptional({ description: 'Legacy: a teacher; the plan goes to their SOLO organisation' })
+  @IsOptional()
+  @IsUUID('4')
+  teacher_id?: string;
 
   @ApiProperty()
   @IsUUID('4')
@@ -147,9 +154,15 @@ export class SubscriptionOverridesDto {
 }
 
 export class GrantTempAccessDto extends SubscriptionOverridesDto {
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'Organisation to grant access to' })
+  @IsOptional()
   @IsUUID('4')
-  teacher_id: string;
+  organization_id?: string;
+
+  @ApiPropertyOptional({ description: 'Legacy: a teacher; access goes to their SOLO organisation' })
+  @IsOptional()
+  @IsUUID('4')
+  teacher_id?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -181,4 +194,37 @@ export class SetTeacherActiveDto {
   @ApiProperty({ description: 'Whether the teacher account is active and can log in' })
   @IsBoolean()
   active: boolean;
+}
+
+/** A platform admin's switch for one feature or limit of one organisation (FND-07). */
+export class SetFeatureOverrideDto {
+  @ApiProperty({ description: 'true/false for a feature, a number for a limit (0 = no limit)' })
+  @IsNotEmpty()
+  value: boolean | number;
+
+  @ApiPropertyOptional({ description: 'ISO date; the override stops counting after it' })
+  @IsOptional()
+  @IsString()
+  expires_at?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}
+
+/** "Request this feature" from the More features page (FND-08). */
+export class CreateFeatureRequestDto {
+  @ApiProperty({ description: 'Feature key from the catalog' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
+  feature_key: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  note?: string;
 }

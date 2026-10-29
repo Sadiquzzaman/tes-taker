@@ -235,6 +235,7 @@ All jobs run in the worker on BullMQ.
 
 * **Locked-feature message (decided):** the API returns 403 `FEATURE_NOT_IN_PLAN`, and the client picks the text by role. Org owners and admins see "This feature is one upgrade away — unlock it today!" with an upgrade button. Everyone else sees "Ask your admin to unlock this."
 * **New limit key:** `sms_credits_per_month` (the plan's monthly SMS allowance).
+* **Built in P2-02 (decided):** plans keep the fine-grained keys the code enforces today (`allow_passage_questions`, `proctoring_tab_switch`, …, see `feature-catalog.ts`); the epic keys above are added when each epic is built, instead of renaming now. Entitlements are per organisation (a solo teacher's SOLO organisation or a school); no ACTIVE `account_subscriptions` row means Free. Usage is counted live from the organisation's exams; plan and overrides are cached in Redis (`ent:{orgId}`, 5 minutes). Errors carry `code` (`FEATURE_NOT_IN_PLAN`, `PLAN_LIMIT_REACHED`) and `feature` or `limit` at the top level of the error body. Existing schools started on Pro (owner decision).
 
 ### 8.4 Real-time
 

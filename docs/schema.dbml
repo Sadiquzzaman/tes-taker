@@ -100,17 +100,17 @@ Table account_subscriptions {
   id uuid [pk]
   organization_id uuid [not null, ref: > organizations.id]
   plan_id uuid [not null, ref: > subscription_plans.id]
-  billing_cycle billing_cycle [not null]
+  billing_cycle billing_cycle [note: 'null for a free or admin-assigned plan']
   status subscription_status [not null]
   price_due numeric(10,2) [not null, note: 'computed server-side from plan at subscribe time']
   amount_paid numeric(10,2)
   start_date timestamptz
   end_date timestamptz
-  payment_id uuid [ref: > payments.id]
+  teacher_id uuid [ref: > users.id, note: 'P2-02: who subscribed; legacy, dropped in the contract step']
   Indexes {
     (organization_id, status)
   }
-  Note: 'NEW — replaces teacher_subscriptions'
+  Note: 'P2-02 — teacher_subscriptions renamed and given organization_id/price_due (payment_history keeps its FK). No ACTIVE row = Free plan. Payments link through payments.subscription_id instead of a payment_id here. Legacy overrides/exams_used_*/last_monthly_reset columns are dropped in the contract step.'
 }
 
 Table feature_overrides {
@@ -124,7 +124,23 @@ Table feature_overrides {
   Indexes {
     (organization_id, key) [unique]
   }
-  Note: 'NEW — replaces teacher_subscriptions.overrides'
+  Note: 'P2-02 — replaces teacher_subscriptions.overrides; expired rows are ignored'
+}
+
+Enum feature_request_status { OPEN HANDLED }
+
+Table feature_requests {
+  id uuid [pk]
+  organization_id uuid [not null, ref: > organizations.id]
+  user_id uuid [not null, ref: > users.id, note: 'who asked']
+  feature_key varchar(80) [not null]
+  note text
+  status feature_request_status [not null, default: 'OPEN']
+  handled_at timestamptz
+  Indexes {
+    (status, created_at)
+  }
+  Note: 'P2-02 — "Request this feature" (FND-08); platform admins see the list, notification comes with P2-08'
 }
 
 Enum payment_status { PENDING PAID FAILED CANCELLED REFUNDED }
