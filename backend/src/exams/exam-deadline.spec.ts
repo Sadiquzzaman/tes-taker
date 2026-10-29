@@ -117,7 +117,7 @@ describe('exam deadline and attempt status on writes (P0-06)', () => {
       submissionRepo as never,
       answerRepo as never,
       {} as never, // classRepo
-      {} as never, // classStudentRepo
+      {} as never, // enrolmentRepo
       {} as never, // userRepo
       {} as never, // smsService
       dataSource as never,

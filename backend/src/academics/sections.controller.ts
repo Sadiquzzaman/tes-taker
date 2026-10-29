@@ -9,6 +9,8 @@ import { RolesGuard } from 'src/common/guard/roles.guard';
 import { OrganizationContextGuard } from 'src/organizations/guards/organization-context.guard';
 import { AcademicAccess } from './academic-access';
 import { SectionsService } from './sections.service';
+import { EnrolmentsService } from './enrolments.service';
+import { EnrolStudentDto, UpdateEnrolmentDto } from './dto/enrolment.dto';
 import {
   CreateOfferingDto,
   CreateSectionDto,
@@ -27,7 +29,10 @@ import {
 @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
 @Controller({ version: '1' })
 export class SectionsController {
-  constructor(private readonly sections: SectionsService) {}
+  constructor(
+    private readonly sections: SectionsService,
+    private readonly enrolmentsService: EnrolmentsService,
+  ) {}
 
   @Get('classes/:classId/sections')
   @ApiOperation({ summary: 'Sections of a class in a session (default session if none given)' })
@@ -70,6 +75,24 @@ export class SectionsController {
   async enrolments(@Param('id', ParseUUIDPipe) id: string) {
     AcademicAccess.read();
     return { message: 'Students retrieved successfully', payload: await this.sections.listEnrolments(id) };
+  }
+
+  @Post('sections/:id/enrolments')
+  @ApiOperation({
+    summary: 'Enrol a student in this section by account, phone or email (Owner/Admin/Assistant)',
+    description: 'One section per class per session. An unknown phone or email becomes an invitation (nothing is sent).',
+  })
+  async enrol(@Param('id', ParseUUIDPipe) id: string, @Body() dto: EnrolStudentDto, @UserPayload() user: JwtPayloadInterface) {
+    AcademicAccess.manageStructure();
+    const { enrolment, outcome } = await this.enrolmentsService.enrol(id, dto, user);
+    return { message: 'Student enrolled successfully', payload: { ...enrolment, outcome } };
+  }
+
+  @Patch('enrolments/:id')
+  @ApiOperation({ summary: 'Move a student to another section, set the roll number, or mark them as left (Owner/Admin/Assistant)' })
+  async updateEnrolment(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateEnrolmentDto, @UserPayload() user: JwtPayloadInterface) {
+    AcademicAccess.manageStructure();
+    return { message: 'Student updated successfully', payload: await this.enrolmentsService.updateFromSection(id, dto, user) };
   }
 
   @Get('sections/:id/offerings')

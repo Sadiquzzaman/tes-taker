@@ -1,5 +1,4 @@
 import { randomUUID } from 'crypto';
-import { ClassStudentEntity, ClassStudentStatusEnum } from '../../src/classes/entities/class-student.entity';
 import { ClassSubjectEntity } from '../../src/classes/entities/class-subject.entity';
 import { ClassSubjectTeacherEntity } from '../../src/classes/entities/class-subject-teacher.entity';
 import { ClassTeacherEntity } from '../../src/classes/entities/class-teacher.entity';
@@ -84,12 +83,7 @@ describe('user secrets in API responses', () => {
 
     const classRow = await make.classOf(teacher);
     classId = classRow.id;
-    await t.dataSource.getRepository(ClassStudentEntity).save({
-      class_id: classId,
-      student_id: student.id,
-      status: ClassStudentStatusEnum.JOINED,
-      joined_at: new Date(),
-    });
+    await make.enrol(classRow, student);
     await t.dataSource.getRepository(ClassTeacherEntity).save({ class_id: classId, teacher_id: subjectTeacher.id });
     const subject = await t.dataSource.getRepository(SubjectEntity).save({ name: `Physics ${randomUUID().slice(0, 8)}` });
     const classSubject = await t.dataSource

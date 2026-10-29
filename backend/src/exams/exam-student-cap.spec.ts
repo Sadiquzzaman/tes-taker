@@ -76,7 +76,7 @@ describe('student cap at exam start', () => {
       submissionRepo as never,
       {} as never, // answerRepo
       {} as never, // classRepo
-      {} as never, // classStudentRepo
+      {} as never, // enrolmentRepo
       {} as never, // userRepo
       {} as never, // smsService
       dataSource as never,

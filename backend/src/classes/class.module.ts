@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClassEntity } from './entities/class.entity';
-import { ClassStudentEntity } from './entities/class-student.entity';
+import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
+import { AcademicsModule } from 'src/academics/academics.module';
 import { ClassTeacherEntity } from './entities/class-teacher.entity';
 import { ClassSubjectEntity } from './entities/class-subject.entity';
 import { ClassSubjectTeacherEntity } from './entities/class-subject-teacher.entity';
@@ -27,7 +28,8 @@ import { ChatMongoModule } from 'src/chat-mongo/chat-mongo.module';
   imports: [
     TypeOrmModule.forFeature([
       ClassEntity,
-      ClassStudentEntity,
+      // Read through enrolment-queries; written only by EnrolmentsService (AcademicsModule).
+      EnrolmentEntity,
       ClassTeacherEntity,
       ClassSubjectEntity,
       ClassSubjectTeacherEntity,
@@ -41,6 +43,7 @@ import { ChatMongoModule } from 'src/chat-mongo/chat-mongo.module';
       ExamEntity,
       SubjectEntity,
     ]),
+    AcademicsModule,
     ChatMongoModule,
     EmailModule,
     OrganizationsModule,

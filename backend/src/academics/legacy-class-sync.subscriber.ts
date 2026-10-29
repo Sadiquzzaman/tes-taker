@@ -1,20 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager, EntityMetadata, EntitySubscriberInterface, InsertEvent, RemoveEvent, UpdateEvent } from 'typeorm';
 import { ClassEntity } from 'src/classes/entities/class.entity';
-import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities/class-student.entity';
 import { ClassSubjectEntity } from 'src/classes/entities/class-subject.entity';
 import { ClassSubjectTeacherEntity } from 'src/classes/entities/class-subject-teacher.entity';
 import { ClassTeacherEntity } from 'src/classes/entities/class-teacher.entity';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
 import { AcademicSessionsService } from './academic-sessions.service';
-import { EnrolmentEntity, EnrolmentStatusEnum } from './entities/enrolment.entity';
-import { SectionEntity } from './entities/section.entity';
-
-const ENROLMENT_STATUS: Record<ClassStudentStatusEnum, EnrolmentStatusEnum> = {
-  [ClassStudentStatusEnum.INVITED]: EnrolmentStatusEnum.INVITED,
-  [ClassStudentStatusEnum.PENDING]: EnrolmentStatusEnum.PENDING,
-  [ClassStudentStatusEnum.JOINED]: EnrolmentStatusEnum.ACTIVE,
-};
+import { EnrolmentsService } from './enrolments.service';
 
 /** Subject classes of a class subject in the class's sections of open sessions. */
 const OPEN_OFFERINGS = `
@@ -26,12 +18,12 @@ const OPEN_OFFERINGS = `
 `;
 
 /**
- * Keeps the new academic tables in step with the legacy class tables while the class screens and
- * reads still use the legacy ones (P2-03 part 1; part 2 moves the reads and turns this around).
- * The class module's writes reach here as TypeORM entity events, in the same transaction:
+ * Keeps the new academic tables in step with the legacy class tables the class screens still write
+ * (P2-03). Students no longer go through here: since part 2a the class screens write enrolments
+ * through EnrolmentsService and class_students is read-only. The class module's writes reach here
+ * as TypeORM entity events, in the same transaction:
  *
  * - a new class gets section "A" in its organisation's default session;
- * - class_students rows are mirrored to enrolments with the same id;
  * - class subjects become subject classes in the class's sections of open sessions;
  * - subject teachers and class teachers become teachers of those subject classes (a class teacher
  *   without a subject teaches all of them) and are removed when their last legacy link goes;
@@ -47,6 +39,7 @@ export class LegacyClassSyncSubscriber implements EntitySubscriberInterface {
   constructor(
     dataSource: DataSource,
     private readonly sessions: AcademicSessionsService,
+    private readonly enrolments: EnrolmentsService,
   ) {
     dataSource.subscribers.push(this);
   }
@@ -64,9 +57,7 @@ export class LegacyClassSyncSubscriber implements EntitySubscriberInterface {
     const { metadata, manager } = event;
     if (is(metadata, ClassEntity)) {
       const classEntity = event.entity as ClassEntity;
-      if (classEntity.organization_id) await this.defaultSection(manager, classEntity.id, classEntity.organization_id);
-    } else if (is(metadata, ClassStudentEntity)) {
-      await this.mirrorStudent(manager, (event.entity as ClassStudentEntity).id);
+      if (classEntity.organization_id) await this.enrolments.defaultSection(classEntity.id, classEntity.organization_id, manager);
     } else if (is(metadata, ClassSubjectEntity)) {
       const classSubject = event.entity as ClassSubjectEntity;
       await this.addSubject(manager, classSubject.class_id, classSubject.subject_id);
@@ -83,9 +74,7 @@ export class LegacyClassSyncSubscriber implements EntitySubscriberInterface {
   async afterUpdate(event: UpdateEvent<unknown>): Promise<void> {
     const entity = event.entity as { id?: string } | undefined;
     if (!entity?.id) return;
-    if (is(event.metadata, ClassStudentEntity)) {
-      await this.mirrorStudent(event.manager, entity.id);
-    } else if (is(event.metadata, ClassSubjectTeacherEntity)) {
+    if (is(event.metadata, ClassSubjectTeacherEntity)) {
       const after = entity as ClassSubjectTeacherEntity;
       const before = event.databaseEntity as ClassSubjectTeacherEntity | undefined;
       const link = await this.classSubject(event.manager, after.class_subject_id);
@@ -99,9 +88,7 @@ export class LegacyClassSyncSubscriber implements EntitySubscriberInterface {
     const { metadata, manager } = event;
     const entity = (event.databaseEntity ?? event.entity) as { id?: string } | undefined;
     if (!entity?.id) return;
-    if (is(metadata, ClassStudentEntity)) {
-      await manager.getRepository(EnrolmentEntity).delete({ id: entity.id });
-    } else if (is(metadata, ClassSubjectEntity)) {
+    if (is(metadata, ClassSubjectEntity)) {
       const classSubject = entity as ClassSubjectEntity;
       await manager.query(`DELETE FROM course_offerings WHERE id IN (SELECT id FROM (${OPEN_OFFERINGS}) o)`, [classSubject.class_id, classSubject.subject_id]);
     } else if (is(metadata, ClassSubjectTeacherEntity)) {
@@ -112,56 +99,6 @@ export class LegacyClassSyncSubscriber implements EntitySubscriberInterface {
       const classTeacher = entity as ClassTeacherEntity;
       await this.removeTeacherIfUnlinked(manager, classTeacher.class_id, await this.subjectsOf(manager, classTeacher), classTeacher.teacher_id, classTeacher.id);
     }
-  }
-
-  /** The class's first section in the default session; section "A" if it has none. */
-  private async defaultSection(manager: EntityManager, classId: string, organizationId: string): Promise<SectionEntity> {
-    const session = await this.sessions.ensureDefault(organizationId, manager);
-    const sections = manager.getRepository(SectionEntity);
-    const first = () => sections.findOne({ where: { class_id: classId, session_id: session.id }, order: { created_at: 'ASC', name: 'ASC' } });
-    const existing = await first();
-    if (existing) return existing;
-    await sections
-      .createQueryBuilder()
-      .insert()
-      .values({ organization_id: organizationId, class_id: classId, session_id: session.id, name: 'A', created_at: new Date() })
-      .orIgnore()
-      .execute();
-    return (await first()) as SectionEntity;
-  }
-
-  /** class_students row -> enrolment with the same id (in the class's default section when new). */
-  private async mirrorStudent(manager: EntityManager, classStudentId: string): Promise<void> {
-    const row = await manager.getRepository(ClassStudentEntity).findOne({ where: { id: classStudentId }, relations: ['class'] });
-    if (!row?.class?.organization_id) return;
-    const enrolments = manager.getRepository(EnrolmentEntity);
-    const fields = {
-      student_id: row.student_id,
-      status: ENROLMENT_STATUS[row.status],
-      invited_phone: row.invited_phone,
-      invited_email: row.invited_email,
-      invitation_token: row.invitation_token,
-      joined_at: row.joined_at,
-      is_active: row.is_active,
-      updated_by: row.updated_by,
-      updated_at: new Date(),
-    };
-    if (await enrolments.exists({ where: { id: row.id } })) {
-      await enrolments.update({ id: row.id }, fields);
-      return;
-    }
-    const section = await this.defaultSection(manager, row.class_id, row.class.organization_id);
-    await enrolments.insert({
-      ...fields,
-      id: row.id,
-      organization_id: section.organization_id,
-      session_id: section.session_id,
-      class_id: row.class_id,
-      section_id: section.id,
-      created_by: row.created_by,
-      created_user_name: row.created_user_name,
-      created_at: row.created_at ?? new Date(),
-    });
   }
 
   /** A new class subject: a subject class in each section (open sessions), taught by the class teachers without a subject. */

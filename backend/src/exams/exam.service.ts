@@ -33,7 +33,8 @@ import {
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
-import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities/class-student.entity';
+import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
+import { activeEnrolmentCondition, activeStudentsOfClass, countActiveByClass, isActiveInClass } from 'src/academics/enrolment-queries';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { generatePublicId } from 'src/common/utils/public-id.util';
@@ -129,8 +130,8 @@ export class ExamService {
     @InjectRepository(ClassEntity)
     private readonly classRepo: Repository<ClassEntity>,
 
-    @InjectRepository(ClassStudentEntity)
-    private readonly classStudentRepo: Repository<ClassStudentEntity>,
+    @InjectRepository(EnrolmentEntity)
+    private readonly enrolmentRepo: Repository<EnrolmentEntity>,
 
     @InjectRepository(StudentExamSubmissionEntity)
     private readonly submissionRepo: Repository<StudentExamSubmissionEntity>,
@@ -347,12 +348,8 @@ export class ExamService {
     if (publishState.testAudience === TestAudienceEnum.SPECIFIC_STUDENTS) {
       studentCount = targetStudents.length;
     } else if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS && publishState.selectedClassId) {
-      const approvedCount = await this.classStudentRepo.count({
-        where: {
-          class_id: publishState.selectedClassId,
-          status: ClassStudentStatusEnum.JOINED,
-        },
-      });
+      const approvedCount =
+        (await countActiveByClass(this.enrolmentRepo, [publishState.selectedClassId])).get(publishState.selectedClassId) ?? 0;
       studentCount = Math.max(0, approvedCount - excludedStudents.length);
     }
 
@@ -939,17 +936,17 @@ export class ExamService {
   private async sendExamNotifications(examId: string): Promise<{ sent: number; failed: number }> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
-      relations: ['class', 'class.classStudents', 'class.classStudents.student', 'excluded_students'],
+      relations: ['class', 'excluded_students'],
     });
 
     if (!exam || !exam.class) {
       return { sent: 0, failed: 0 };
     }
 
-    const classStudentEntities = (exam.class.classStudents || []).filter(
-      (cs) => cs.status === ClassStudentStatusEnum.JOINED && cs.student_id !== null,
-    );
-    const classStudents = classStudentEntities.map((cs) => cs.student).filter((s) => s !== null) as UserEntity[];
+    // Active students of the class in the exam's session.
+    const classStudents = (await activeStudentsOfClass(this.enrolmentRepo, exam.class.id, exam.session_id))
+      .map((row) => row.student)
+      .filter((s): s is UserEntity => s !== null);
 
     const excludedIds = (exam.excluded_students || []).map((s) => s.id);
 
@@ -1298,15 +1295,7 @@ export class ExamService {
       jwtPayload,
     );
 
-    const membership = await this.classStudentRepo.findOne({
-      where: {
-        class_id: classId,
-        student_id: studentId,
-        status: ClassStudentStatusEnum.JOINED,
-      },
-    });
-
-    if (!membership) {
+    if (!(await isActiveInClass(this.enrolmentRepo, classId, studentId))) {
       throw new ForbiddenException('You are not enrolled in this class');
     }
   }
@@ -1318,13 +1307,14 @@ export class ExamService {
   ): Promise<ExamEntity[]> {
     const byId = new Map<string, ExamEntity>();
 
+    const active = activeEnrolmentCondition('classStudent');
     const classQuery = this.classRepo
       .createQueryBuilder('class')
       .innerJoin(
-        'class.classStudents',
+        EnrolmentEntity,
         'classStudent',
-        'classStudent.student_id = :studentId AND classStudent.status = :status',
-        { studentId, status: ClassStudentStatusEnum.JOINED },
+        `classStudent.class_id = class.id AND classStudent.student_id = :studentId AND ${active.sql}`,
+        { studentId, ...active.params },
       )
       .select(['class.id']);
 
@@ -1509,19 +1499,7 @@ export class ExamService {
       ),
     ];
 
-    const joinedByClass = new Map<string, number>();
-    if (classIds.length > 0) {
-      const joinedRows = await this.classStudentRepo
-        .createQueryBuilder('cs')
-        .select('cs.class_id', 'class_id')
-        .addSelect('COUNT(*)', 'cnt')
-        .where('cs.class_id IN (:...classIds)', { classIds })
-        .andWhere('cs.status = :status', { status: ClassStudentStatusEnum.JOINED })
-        .andWhere('cs.student_id IS NOT NULL')
-        .groupBy('cs.class_id')
-        .getRawMany<{ class_id: string; cnt: string }>();
-      joinedRows.forEach((r) => joinedByClass.set(r.class_id, Number(r.cnt) || 0));
-    }
+    const joinedByClass = await countActiveByClass(this.enrolmentRepo, classIds);
 
     const excludedRows = await this.dataSource
       .createQueryBuilder()
@@ -1585,25 +1563,8 @@ export class ExamService {
       return false;
     }
 
-    const emailNorm = jwtPayload.email?.toLowerCase()?.trim() || null;
-    const phoneNorm = jwtPayload.phone?.trim() || null;
-
-    const rows = await this.classStudentRepo.find({
-      where: { class_id: exam.class_id, status: ClassStudentStatusEnum.JOINED },
-    });
-
-    return rows.some((cs) => {
-      if (cs.student_id === jwtPayload.id) {
-        return true;
-      }
-      if (emailNorm && cs.invited_email?.toLowerCase().trim() === emailNorm) {
-        return true;
-      }
-      if (phoneNorm && cs.invited_phone?.trim() === phoneNorm) {
-        return true;
-      }
-      return false;
-    });
+    // An active student of the class in the exam's session (joined invitations carry the account).
+    return isActiveInClass(this.enrolmentRepo, exam.class_id, jwtPayload.id, exam.session_id);
   }
 
   /**
@@ -2341,12 +2302,8 @@ export class ExamService {
     if (publishState.testAudience === TestAudienceEnum.SPECIFIC_STUDENTS) {
       studentCount = targetStudents.length;
     } else if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS && publishState.selectedClassId) {
-      const approvedCount = await this.classStudentRepo.count({
-        where: {
-          class_id: publishState.selectedClassId,
-          status: ClassStudentStatusEnum.JOINED,
-        },
-      });
+      const approvedCount =
+        (await countActiveByClass(this.enrolmentRepo, [publishState.selectedClassId])).get(publishState.selectedClassId) ?? 0;
       studentCount = Math.max(0, approvedCount - excludedStudents.length);
     }
 
@@ -2954,14 +2911,15 @@ export class ExamService {
 
     const exam = await this.examRepo.findOne({
       where: { id: examId },
-      relations: ['class', 'class.classStudents', 'class.classStudents.student', 'excluded_students'],
+      relations: ['class', 'excluded_students'],
     });
     if (!exam) {
       throw new NotFoundException('Exam not found');
     }
 
     const excludedIds = new Set((exam.excluded_students || []).map((student) => student.id));
-    const classStudents = (exam.class?.classStudents || [])
+    const roster = exam.class_id ? await activeStudentsOfClass(this.enrolmentRepo, exam.class_id, exam.session_id) : [];
+    const classStudents = roster
       .map((row) => row.student)
       .filter((student): student is UserEntity => {
         if (!student) {

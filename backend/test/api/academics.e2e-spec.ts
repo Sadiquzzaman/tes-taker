@@ -361,8 +361,8 @@ describe('academic structure API', () => {
     });
   });
 
-  describe('mirror of the class screens (until reads move, P2-03 part 2)', () => {
-    it('mirrors students into the default section, keeping the row id and status', async () => {
+  describe('the class screens (students since part 2a, teachers mirrored until part 2b)', () => {
+    it('add students straight into the default section; removing marks them LEFT and keeps the row', async () => {
       const classId = await schoolClass('Class 3');
       const [section] = await sectionsOf(classId);
       const student = await make.student();
@@ -374,11 +374,14 @@ describe('academic structure API', () => {
       expect(joined.status).toBe(EnrolmentStatusEnum.ACTIVE);
       const invited = enrolments.body.payload.find((e) => !e.student) as Enrolment;
       expect(invited.status).toBe(EnrolmentStatusEnum.INVITED);
-      const [legacy] = await t.dataSource.query(`SELECT id FROM class_students WHERE class_id = $1 AND student_id = $2`, [classId, student.id]);
-      expect(joined.id).toBe(legacy.id);
+      // class_students is read-only now.
+      const [{ legacy }] = await t.dataSource.query(`SELECT COUNT(*)::int AS legacy FROM class_students WHERE class_id = $1`, [classId]);
+      expect(legacy).toBe(0);
 
       expect((await call('DELETE', `/classes/${classId}/students`, asOwner(), { student_ids: [student.id] })).status).toBe(200);
-      expect(await t.dataSource.getRepository(EnrolmentEntity).countBy({ id: joined.id })).toBe(0);
+      const left = await t.dataSource.getRepository(EnrolmentEntity).findOneByOrFail({ id: joined.id });
+      expect(left).toMatchObject({ status: EnrolmentStatusEnum.LEFT, updated_by: owner.id });
+      expect(left.left_at).toBeInstanceOf(Date);
     });
 
     it('mirrors subject teachers and class teachers into subject class teachers', async () => {
