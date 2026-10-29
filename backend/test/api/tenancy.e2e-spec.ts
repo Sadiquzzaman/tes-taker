@@ -1,5 +1,4 @@
 import { ClassEntity } from '../../src/classes/entities/class.entity';
-import { ClassStudentEntity, ClassStudentStatusEnum } from '../../src/classes/entities/class-student.entity';
 import { ClassKindEnum } from '../../src/classes/enums/class-kind.enum';
 import { RolesEnum } from '../../src/common/enums/roles.enum';
 import { OrganizationEntity } from '../../src/organizations/entities/organization.entity';
@@ -118,15 +117,8 @@ describe('tenancy API', () => {
   describe('a student', () => {
     it("in a solo teacher's workspace sees only that teacher's classes", async () => {
       const student = await make.student();
-      const join = (classId: string) =>
-        t.dataSource.getRepository(ClassStudentEntity).save({
-          class_id: classId,
-          student_id: student.id,
-          status: ClassStudentStatusEnum.JOINED,
-          joined_at: new Date(),
-        });
-      await join(classOfA.id);
-      await join(schoolClass.id);
+      await make.enrol(classOfA, student);
+      await make.enrol(schoolClass, student);
 
       const token = t.tokenFor(student, { context_type: 'individual_teacher', teacher_id: soloA.id });
       const classes = await t.api.get<Payload<Array<{ id: string }>>>('/student/classes', token);
