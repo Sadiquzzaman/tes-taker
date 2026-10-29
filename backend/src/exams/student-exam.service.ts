@@ -30,7 +30,8 @@ import {
   ExamSubmissionStatusEnum 
 } from './entities/student-exam-answer.entity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
-import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities/class-student.entity';
+import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
+import { activeEnrolmentCondition, activeStudentsOfClass } from 'src/academics/enrolment-queries';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { SmsService } from 'src/sms/sms.service';
@@ -129,8 +130,8 @@ export class StudentExamService {
     @InjectRepository(ClassEntity)
     private readonly classRepo: Repository<ClassEntity>,
 
-    @InjectRepository(ClassStudentEntity)
-    private readonly classStudentRepo: Repository<ClassStudentEntity>,
+    @InjectRepository(EnrolmentEntity)
+    private readonly enrolmentRepo: Repository<EnrolmentEntity>,
 
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
@@ -247,7 +248,7 @@ export class StudentExamService {
   async sendExamNotificationToStudents(examId: string): Promise<{ sent: number; failed: number }> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
-      relations: ['class', 'class.classStudents', 'class.classStudents.student', 'excluded_students'],
+      relations: ['class', 'excluded_students'],
     });
 
     if (!exam) {
@@ -258,11 +259,10 @@ export class StudentExamService {
       return { sent: 0, failed: 0 };
     }
 
-    // Get all joined students in the class
-    const classStudentEntities = (exam.class.classStudents || []).filter(
-      cs => cs.status === ClassStudentStatusEnum.JOINED && cs.student_id !== null
-    );
-    const classStudents = classStudentEntities.map(cs => cs.student).filter(s => s !== null) as UserEntity[];
+    // Active students of the class in the exam's session
+    const classStudents = (await activeStudentsOfClass(this.enrolmentRepo, exam.class.id, exam.session_id))
+      .map((row) => row.student)
+      .filter((s): s is UserEntity => s !== null);
 
     const excludedIds = (exam.excluded_students || []).map((s) => s.id);
 
@@ -326,13 +326,14 @@ export class StudentExamService {
     const now = new Date();
     const byId = new Map<string, ExamEntity>();
 
+    const active = activeEnrolmentCondition('classStudent');
     const classes = await this.classRepo
       .createQueryBuilder('class')
       .innerJoin(
-        'class.classStudents',
+        EnrolmentEntity,
         'classStudent',
-        'classStudent.student_id = :studentId AND classStudent.status = :status',
-        { studentId, status: ClassStudentStatusEnum.JOINED },
+        `classStudent.class_id = class.id AND classStudent.student_id = :studentId AND ${active.sql}`,
+        { studentId, ...active.params },
       )
       .select(['class.id']);
 

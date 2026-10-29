@@ -5,7 +5,7 @@ import { UserModule } from 'src/user/user.module';
 import { EmailModule } from 'src/email/email.module';
 import { ClassEntity } from 'src/classes/entities/class.entity';
 import { ClassTeacherEntity } from 'src/classes/entities/class-teacher.entity';
-import { ClassStudentEntity } from 'src/classes/entities/class-student.entity';
+import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
 import { ClassSubjectEntity } from 'src/classes/entities/class-subject.entity';
 import { ClassSubjectTeacherEntity } from 'src/classes/entities/class-subject-teacher.entity';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
@@ -35,7 +35,7 @@ import { OrgSettingsService } from './org-settings.service';
       OrgSettingsEntity,
       ClassEntity,
       ClassTeacherEntity,
-      ClassStudentEntity,
+      EnrolmentEntity,
       ClassSubjectEntity,
       ClassSubjectTeacherEntity,
       ExamEntity,

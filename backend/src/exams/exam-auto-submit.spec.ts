@@ -49,7 +49,7 @@ describe('StudentExamService.autoSubmitExpired', () => {
       { createQueryBuilder: jest.fn(() => queryBuilder) } as never, // submissionRepo
       {} as never, // answerRepo
       {} as never, // classRepo
-      {} as never, // classStudentRepo
+      {} as never, // enrolmentRepo
       {} as never, // userRepo
       {} as never, // smsService
       {} as never, // dataSource

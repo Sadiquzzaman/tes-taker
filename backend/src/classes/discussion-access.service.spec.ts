@@ -2,7 +2,6 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { RolesEnum } from 'src/common/enums/roles.enum';
-import { ClassStudentStatusEnum } from './entities/class-student.entity';
 import { ClassKindEnum } from './enums/class-kind.enum';
 import { DiscussionAccessService } from './discussion-access.service';
 
@@ -59,19 +58,23 @@ function jwt(partial: Partial<JwtPayloadInterface> & Pick<JwtPayloadInterface, '
 describe('DiscussionAccessService', () => {
   let classRepo: { findOne: jest.Mock };
   let classSubjectRepo: { findOne: jest.Mock };
-  let classStudentRepo: { findOne: jest.Mock };
+  /** Enrolments: `activeCount` is how many active enrolments the student has in the class. */
+  let activeCount: number;
+  let enrolmentRepo: { createQueryBuilder: jest.Mock };
   let organizationAccess: { isAssignedToClassSubject: jest.Mock };
   let service: DiscussionAccessService;
 
   beforeEach(() => {
     classRepo = { findOne: jest.fn() };
     classSubjectRepo = { findOne: jest.fn() };
-    classStudentRepo = { findOne: jest.fn() };
+    activeCount = 0;
+    const query = { where: jest.fn().mockReturnThis(), andWhere: jest.fn().mockReturnThis(), getCount: jest.fn(async () => activeCount) };
+    enrolmentRepo = { createQueryBuilder: jest.fn(() => query) };
     organizationAccess = { isAssignedToClassSubject: jest.fn() };
     service = new DiscussionAccessService(
       classRepo as never,
       classSubjectRepo as never,
-      classStudentRepo as never,
+      enrolmentRepo as never,
       organizationAccess as never,
     );
   });
@@ -106,9 +109,9 @@ describe('DiscussionAccessService', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('4. Non-JOINED student cannot access class subject discussions', async () => {
+  it('4. A student without an active enrolment cannot access class subject discussions', async () => {
     classSubjectRepo.findOne.mockResolvedValue(physicsSubject);
-    classStudentRepo.findOne.mockResolvedValue(null);
+    activeCount = 0;
 
     await expect(
       service.assertCanAccessClassSubject(CLASS_A, PHYSICS_CS, jwt({ id: 'pending-student', role: RolesEnum.STUDENT })),
@@ -117,12 +120,7 @@ describe('DiscussionAccessService', () => {
 
   it('5. Other student cannot access a private conversation', async () => {
     classSubjectRepo.findOne.mockResolvedValue(physicsSubject);
-    classStudentRepo.findOne.mockResolvedValue({
-      class_id: CLASS_A,
-      student_id: 'other-student',
-      status: ClassStudentStatusEnum.JOINED,
-      is_active: ActiveStatusEnum.ACTIVE,
-    });
+    activeCount = 1; // an ACTIVE enrolment in an open session
 
     await expect(
       service.assertCanAccessConversation(
@@ -247,14 +245,9 @@ describe('DiscussionAccessService', () => {
     ).resolves.toMatchObject({ classSubject: { id: PHYSICS_CS } });
   });
 
-  it('12. JOINED student can access class subjects on that class', async () => {
+  it('12. An actively enrolled student can access class subjects on that class', async () => {
     classSubjectRepo.findOne.mockResolvedValue(physicsSubject);
-    classStudentRepo.findOne.mockResolvedValue({
-      class_id: CLASS_A,
-      student_id: 'student-a',
-      status: ClassStudentStatusEnum.JOINED,
-      is_active: ActiveStatusEnum.ACTIVE,
-    });
+    activeCount = 1; // an ACTIVE enrolment in an open session
 
     await expect(
       service.assertCanAccessClassSubject(CLASS_A, PHYSICS_CS, jwt({ id: 'student-a', role: RolesEnum.STUDENT })),

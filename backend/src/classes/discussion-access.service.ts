@@ -7,7 +7,8 @@ import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { OrganizationAccessService } from 'src/organizations/organization-access.service';
 import { ClassEntity } from './entities/class.entity';
-import { ClassStudentEntity, ClassStudentStatusEnum } from './entities/class-student.entity';
+import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
+import { isActiveInClass } from 'src/academics/enrolment-queries';
 import { ClassSubjectEntity } from './entities/class-subject.entity';
 
 export type ClassSubjectAccessContext = {
@@ -31,8 +32,8 @@ export class DiscussionAccessService {
     private readonly classRepo: Repository<ClassEntity>,
     @InjectRepository(ClassSubjectEntity)
     private readonly classSubjectRepo: Repository<ClassSubjectEntity>,
-    @InjectRepository(ClassStudentEntity)
-    private readonly classStudentRepo: Repository<ClassStudentEntity>,
+    @InjectRepository(EnrolmentEntity)
+    private readonly enrolmentRepo: Repository<EnrolmentEntity>,
     private readonly organizationAccess: OrganizationAccessService,
   ) {}
 
@@ -69,15 +70,7 @@ export class DiscussionAccessService {
   }
 
   async isJoinedStudent(userId: string, classId: string): Promise<boolean> {
-    const membership = await this.classStudentRepo.findOne({
-      where: {
-        class_id: classId,
-        student_id: userId,
-        status: ClassStudentStatusEnum.JOINED,
-        is_active: ActiveStatusEnum.ACTIVE,
-      },
-    });
-    return Boolean(membership);
+    return isActiveInClass(this.enrolmentRepo, classId, userId);
   }
 
   async assertJoinedStudent(userId: string, classId: string): Promise<void> {
