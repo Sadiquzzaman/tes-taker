@@ -126,6 +126,21 @@ describe("class roster", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Remove" }));
     await waitFor(() => expect(removeStudent).toHaveBeenCalledWith({ student_ids: ["u1"] }));
   });
+  it("shows each student's section and filters by section once there are two", () => {
+    const sectioned = [
+      student({ section: { id: "sec-a", name: "A" } }),
+      student({ id: "cs3", student_id: "u3", student: { full_name: "Karim Uddin" } as ClassStudent["student"], section: { id: "sec-b", name: "B" } }),
+    ];
+    renderApp(<ClassStudent student={sectioned} classId="c1" fetch={vi.fn()} role="TEACHER" />);
+    const table = screen.getByRole("table", { name: "Students" });
+    expect(within(table).getByRole("columnheader", { name: /Section/ })).toBeTruthy();
+    expect(within(table).getByText("Karim Uddin")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Section"), { target: { value: "sec-a" } });
+    const filtered = screen.getByRole("table", { name: "Students" });
+    expect(within(filtered).getByText("Nadia Rahman")).toBeTruthy();
+    expect(within(filtered).queryByText("Karim Uddin")).toBeNull();
+  });
 });
 
 describe("share class", () => {
