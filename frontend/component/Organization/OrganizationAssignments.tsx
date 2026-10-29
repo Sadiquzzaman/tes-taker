@@ -11,6 +11,7 @@ import {
   ConfirmDialog,
   EmptyState,
   PageHeader,
+  Select,
   Skeleton,
   Table,
   type TableColumn,
@@ -20,20 +21,53 @@ import useWorkspace from "@/hooks/organization/useWorkspace";
 import axiosReq from "@/lib/axios";
 import OrganizationWorkspaceGate from "./OrganizationWorkspaceGate";
 
+const ALL_SECTIONS = "all";
+
 const subjectLabel = (row: ClassSubject, fallback: string) =>
   row.subject?.code ? `${row.subject.name} — ${row.subject.code}` : row.subject?.name || fallback;
+
+const offeringSubjectLabel = (offering: SubjectClass) =>
+  offering.subject.code ? `${offering.subject.name} — ${offering.subject.code}` : offering.subject.name;
 
 const catalogSubjectLabel = (subject: OrganizationSubjectItem) => (subject.code ? `${subject.name} — ${subject.code}` : subject.name);
 
 const teacherLabel = (member: OrganizationMemberItem, fallback: string) => member.user.full_name || member.user.phone || fallback;
 
-const assignmentTeacherName = (assignment: ClassSubjectTeacherAssignment, fallback: string) => assignment.teacher?.full_name?.trim() || fallback;
+type AssignmentRow = {
+  key: string;
+  classId: string;
+  className: string;
+  sectionId: string;
+  sectionName: string;
+  offering: SubjectClass;
+  subjectId: string;
+  subject: string;
+  teacherId: string;
+  teacherName: string;
+  unassigned: boolean;
+};
 
 type PendingRemoval =
   | { kind: "subject"; classId: string; className: string; classSubjectId: string; subject: string }
-  | { kind: "teacher"; classId: string; className: string; classSubjectId: string; assignmentId: string; subject: string; teacher: string };
+  | { kind: "teacher"; row: AssignmentRow };
 
-/** Which subjects each class has, and which teacher teaches each one. */
+type Loaded = {
+  classes: Class[];
+  catalog: OrganizationSubjectItem[];
+  teachers: OrganizationMemberItem[];
+  sessions: AcademicSession[];
+  sections: ClassSection[];
+  offerings: SubjectClass[];
+  sessionId: string;
+};
+
+const EMPTY: Loaded = { classes: [], catalog: [], teachers: [], sessions: [], sections: [], offerings: [], sessionId: "" };
+
+/**
+ * Which subjects each class has (step 1), and who teaches each subject in each section (steps 2–3,
+ * P2-03 part 3b). Teachers belong to subject classes (section + subject); "All sections" assigns a
+ * teacher to the subject in every section of the class at once.
+ */
 const OrganizationAssignmentsContent = () => {
   const t = useTranslations("organization.assignments");
   const subjectFallback = t("subject");
@@ -44,149 +78,142 @@ const OrganizationAssignmentsContent = () => {
   const { handleError } = useApiError();
   const { triggerToast } = useToast();
   const step2Ref = useRef<HTMLDivElement>(null);
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [catalog, setCatalog] = useState<OrganizationSubjectItem[]>([]);
-  const [teachers, setTeachers] = useState<OrganizationMemberItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<Loaded | null>(null);
   const [saving, setSaving] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedCatalogSubjectId, setSelectedCatalogSubjectId] = useState("");
-  const [selectedClassSubjectId, setSelectedClassSubjectId] = useState("");
+  const [selectedSectionId, setSelectedSectionId] = useState("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [selectedTeacherId, setSelectedTeacherId] = useState("");
-  const [editingAssignmentId, setEditingAssignmentId] = useState("");
+  /** The row being changed ("Change"): its teacher is replaced in that subject class. */
+  const [replacing, setReplacing] = useState<AssignmentRow | null>(null);
   const [tableClassFilter, setTableClassFilter] = useState("all");
   const [tableSubjectFilter, setTableSubjectFilter] = useState("all");
   const [tableTeacherFilter, setTableTeacherFilter] = useState("all");
   const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(null);
 
-  const resetFormState = useCallback(() => {
-    setSelectedClassId("");
-    setSelectedCatalogSubjectId("");
-    setSelectedClassSubjectId("");
-    setSelectedTeacherId("");
-    setEditingAssignmentId("");
-    setTableClassFilter("all");
-    setTableSubjectFilter("all");
-    setTableTeacherFilter("all");
-  }, []);
-
-  const load = useCallback(async () => {
-    if (!organizationId) {
-      setClasses([]);
-      setCatalog([]);
-      setTeachers([]);
-      setLoading(false);
-      return [];
-    }
-    setLoading(true);
-    try {
-      const [classRes, catalogRes, teacherRes] = await Promise.all([
-        axiosReq.get<ApiResponse<Class[]>>(`${baseUrl}/classes`),
-        axiosReq.get<ApiResponse<OrganizationSubjectItem[]>>(
-          `${baseUrl}/organizations/${organizationId}/subjects`,
-        ),
-        axiosReq.get<ApiResponse<OrganizationMemberItem[]>>(
-          `${baseUrl}/organizations/${organizationId}/assignable-teachers`,
-        ),
-      ]);
-      const nextClasses = classRes.data?.payload ?? [];
-      setClasses(nextClasses);
-      setCatalog(catalogRes.data?.payload ?? []);
-      setTeachers(teacherRes.data?.payload ?? []);
-      return nextClasses;
-    } catch (error) {
-      handleError(error as AxiosError<ApiError>);
-      setClasses([]);
-      setCatalog([]);
-      setTeachers([]);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, [baseUrl, handleError, organizationId]);
+  /** Classes, the subject catalogue, teachers, and the sections and subject classes of a session (default first). */
+  const fetchAll = useCallback(
+    async (sessionId?: string): Promise<Loaded> => {
+      if (!organizationId) return EMPTY;
+      try {
+        const [classRes, catalogRes, teacherRes, sessionRes] = await Promise.all([
+          axiosReq.get<ApiResponse<Class[]>>(`${baseUrl}/classes`),
+          axiosReq.get<ApiResponse<OrganizationSubjectItem[]>>(`${baseUrl}/organizations/${organizationId}/subjects`),
+          axiosReq.get<ApiResponse<OrganizationMemberItem[]>>(`${baseUrl}/organizations/${organizationId}/assignable-teachers`),
+          axiosReq.get<ApiResponse<AcademicSession[]>>(`${baseUrl}/sessions`),
+        ]);
+        const sessions = sessionRes.data?.payload ?? [];
+        const chosen = sessionId || (sessions.find((s) => s.is_default) ?? sessions[0])?.id || "";
+        const query = chosen ? `?session_id=${chosen}` : "";
+        const [sectionRes, offeringRes] = await Promise.all([
+          axiosReq.get<ApiResponse<ClassSection[]>>(`${baseUrl}/sections${query}`),
+          axiosReq.get<ApiResponse<SubjectClass[]>>(`${baseUrl}/offerings${query}`),
+        ]);
+        return {
+          classes: classRes.data?.payload ?? [],
+          catalog: catalogRes.data?.payload ?? [],
+          teachers: teacherRes.data?.payload ?? [],
+          sessions,
+          sections: sectionRes.data?.payload ?? [],
+          offerings: offeringRes.data?.payload ?? [],
+          sessionId: chosen,
+        };
+      } catch (error) {
+        handleError(error as AxiosError<ApiError>);
+        return EMPTY;
+      }
+    },
+    [baseUrl, handleError, organizationId],
+  );
 
   useEffect(() => {
-    resetFormState();
-  }, [organizationId, resetFormState]);
+    void fetchAll().then(setData);
+  }, [fetchAll]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const reload = useCallback(async () => {
+    const next = await fetchAll(data?.sessionId);
+    setData(next);
+    return next;
+  }, [data?.sessionId, fetchAll]);
 
-  const selectedClass = classes.find((item) => item.id === selectedClassId);
+  const loaded = data ?? EMPTY;
+  const { classes, catalog, teachers, sessions, sections, offerings } = loaded;
+  const session = sessions.find((s) => s.id === loaded.sessionId);
+  const sessionOpen = session?.status !== "CLOSED";
+
+  const classById = useMemo(() => new Map(classes.map((c) => [c.id, c])), [classes]);
+  const sectionById = useMemo(() => new Map(sections.map((s) => [s.id, s])), [sections]);
+  const classOptions = useMemo(() => classes.map((item) => ({ label: item.class_name, value: item.id })), [classes]);
+
+  // Step 1: the class's subjects.
+  const selectedClass = classById.get(selectedClassId);
   const classSubjects = useMemo(() => selectedClass?.classSubjects ?? [], [selectedClass]);
-  const classOptions = useMemo(
-    () => classes.map((item) => ({ label: item.class_name, value: item.id })),
-    [classes],
-  );
-  const attachedSubjectOptions = useMemo(
-    () => classSubjects.map((row) => ({ label: subjectLabel(row, subjectFallback), value: row.id })),
-    [classSubjects, subjectFallback],
-  );
   const attachableSubjectOptions = useMemo(() => {
     const attachedIds = new Set(classSubjects.map((row) => row.subject_id));
-    return catalog
-      .filter((subject) => !attachedIds.has(subject.id))
-      .map((subject) => ({
-        label: catalogSubjectLabel(subject),
-        value: subject.id,
-      }));
+    return catalog.filter((subject) => !attachedIds.has(subject.id)).map((subject) => ({ label: catalogSubjectLabel(subject), value: subject.id }));
   }, [catalog, classSubjects]);
-  const selectedClassSubject = classSubjects.find((item) => item.id === selectedClassSubjectId);
-  const assignedTeacherIds = useMemo(
-    () => new Set((selectedClassSubject?.teachers ?? []).map((assignment) => assignment.teacher_id)),
-    [selectedClassSubject],
+
+  // Step 2: section(s) of the class, then a subject taught there, then a teacher.
+  const classSections = useMemo(
+    () => sections.filter((s) => s.class_id === selectedClassId).sort((a, b) => a.name.localeCompare(b.name)),
+    [sections, selectedClassId],
+  );
+  const targetSectionIds = useMemo(
+    () => (selectedSectionId === ALL_SECTIONS ? classSections.map((s) => s.id) : selectedSectionId ? [selectedSectionId] : []),
+    [classSections, selectedSectionId],
+  );
+  const subjectOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    offerings
+      .filter((o) => targetSectionIds.includes(o.section_id))
+      .forEach((o) => seen.set(o.subject.id, offeringSubjectLabel(o)));
+    return [...seen.entries()].map(([value, label]) => ({ value, label }));
+  }, [offerings, targetSectionIds]);
+  const targets = useMemo(
+    () =>
+      replacing
+        ? [replacing.offering]
+        : offerings.filter((o) => targetSectionIds.includes(o.section_id) && o.subject.id === selectedSubjectId),
+    [offerings, replacing, selectedSubjectId, targetSectionIds],
   );
   const teacherOptions = useMemo(
     () =>
       teachers
-        .filter((member) => {
-          if (!assignedTeacherIds.has(member.user.id)) return true;
-          return Boolean(
-            editingAssignmentId &&
-              selectedClassSubject?.teachers?.some(
-                (assignment) => assignment.id === editingAssignmentId && assignment.teacher_id === member.user.id,
-              ),
-          );
-        })
+        // Not offered when they already teach every target (they would change nothing).
+        .filter((member) => replacing || !targets.every((o) => o.teachers.some((p) => p.id === member.user.id)))
         .map((member) => ({ label: teacherLabel(member, teacherFallback), value: member.user.id })),
-    [assignedTeacherIds, editingAssignmentId, selectedClassSubject, teacherFallback, teachers],
+    [replacing, targets, teacherFallback, teachers],
   );
 
-  const assignmentRows = useMemo(
+  // Step 3: one row per subject class and teacher (or an "unassigned" row).
+  const assignmentRows = useMemo<AssignmentRow[]>(
     () =>
-      classes.flatMap((classItem) =>
-        (classItem.classSubjects ?? []).flatMap((row) => {
-          const teachers = row.teachers ?? [];
-          if (teachers.length === 0) {
-            return [
-              {
-                classId: classItem.id,
-                className: classItem.class_name,
-                classSubjectId: row.id,
-                subjectId: row.subject_id,
-                subject: subjectLabel(row, subjectFallback),
-                assignmentId: `unassigned-${row.id}`,
-                teacherId: "",
-                teacherName: unassignedLabel,
-                unassigned: true,
-              },
-            ];
-          }
-          return teachers.map((assignment) => ({
-            classId: classItem.id,
-            className: classItem.class_name,
-            classSubjectId: row.id,
-            subjectId: row.subject_id,
-            subject: subjectLabel(row, subjectFallback),
-            assignmentId: assignment.id,
-            teacherId: assignment.teacher_id,
-            teacherName: assignmentTeacherName(assignment, teacherFallback),
-            unassigned: false,
-          }));
-        }),
-      ),
-    [classes, subjectFallback, teacherFallback, unassignedLabel],
+      offerings.flatMap((offering): AssignmentRow[] => {
+        const section = sectionById.get(offering.section_id);
+        const classItem = section ? classById.get(section.class_id) : undefined;
+        if (!section || !classItem) return [];
+        const base = {
+          classId: classItem.id,
+          className: classItem.class_name,
+          sectionId: section.id,
+          sectionName: section.name,
+          offering,
+          subjectId: offering.subject.id,
+          subject: offeringSubjectLabel(offering),
+        };
+        if (offering.teachers.length === 0) {
+          return [{ ...base, key: `unassigned-${offering.id}`, teacherId: "", teacherName: unassignedLabel, unassigned: true }];
+        }
+        return offering.teachers.map((teacher) => ({
+          ...base,
+          key: `${offering.id}-${teacher.id}`,
+          teacherId: teacher.id,
+          teacherName: teacher.full_name || teacherFallback,
+          unassigned: false,
+        }));
+      }),
+    [classById, offerings, sectionById, teacherFallback, unassignedLabel],
   );
 
   const filteredAssignmentRows = useMemo(
@@ -203,80 +230,58 @@ const OrganizationAssignmentsContent = () => {
 
   const tableSubjectOptions = useMemo(() => {
     const seen = new Map<string, string>();
-    assignmentRows.forEach((row) => {
-      if (!seen.has(row.subjectId)) seen.set(row.subjectId, row.subject);
-    });
-    return Array.from(seen.entries()).map(([value, label]) => ({ value, label }));
+    assignmentRows.forEach((row) => seen.set(row.subjectId, row.subject));
+    return [...seen.entries()].map(([value, label]) => ({ value, label }));
   }, [assignmentRows]);
 
   const tableTeacherOptions = useMemo(() => {
     const seen = new Map<string, string>();
-    assignmentRows.forEach((row) => {
-      if (row.unassigned) {
-        seen.set("unassigned", unassignedLabel);
-        return;
-      }
-      if (!seen.has(row.teacherId)) seen.set(row.teacherId, row.teacherName);
-    });
-    return Array.from(seen.entries()).map(([value, label]) => ({ value, label }));
-  }, [assignmentRows, unassignedLabel]);
+    assignmentRows.forEach((row) => seen.set(row.unassigned ? "unassigned" : row.teacherId, row.teacherName));
+    return [...seen.entries()].map(([value, label]) => ({ value, label }));
+  }, [assignmentRows]);
 
-  useEffect(() => {
-    if (!selectedClassId) {
-      setSelectedCatalogSubjectId("");
-      setSelectedClassSubjectId("");
-      setSelectedTeacherId("");
-      setEditingAssignmentId("");
-      return;
-    }
-    const stillValid = attachedSubjectOptions.some((option) => option.value === selectedClassSubjectId);
-    if (!stillValid) {
-      setSelectedClassSubjectId("");
-      setSelectedTeacherId("");
-      setEditingAssignmentId("");
-    }
-  }, [attachedSubjectOptions, selectedClassId, selectedClassSubjectId]);
+  const clearStep2 = () => {
+    setSelectedSectionId("");
+    setSelectedSubjectId("");
+    setSelectedTeacherId("");
+    setReplacing(null);
+  };
 
   const handleClassChange = (value: string) => {
     setSelectedClassId(value);
     setSelectedCatalogSubjectId("");
-    setSelectedClassSubjectId("");
-    setSelectedTeacherId("");
-    setEditingAssignmentId("");
+    clearStep2();
+  };
+
+  const handleSessionChange = async (sessionId: string) => {
+    clearStep2();
+    setData(await fetchAll(sessionId));
+  };
+
+  /** Sets the teachers of a subject class: everyone already there, minus `remove`, plus `add`. */
+  const setTeachersOf = (offering: SubjectClass, { add, remove }: { add?: string; remove?: string }) => {
+    const ids = offering.teachers.map((p) => p.id).filter((id) => id !== remove);
+    if (add && !ids.includes(add)) ids.push(add);
+    return axiosReq.put(`${baseUrl}/offerings/${offering.id}/teachers`, { teacher_ids: ids });
   };
 
   const handleAttachSubject = async () => {
     if (!selectedClassId || !selectedCatalogSubjectId) {
-      triggerToast({
-        title: t("needClassSubjectTitle"),
-        description: t("needClassSubject"),
-        type: "error",
-      });
+      triggerToast({ title: t("needClassSubjectTitle"), description: t("needClassSubject"), type: "error" });
       return;
     }
-
     setSaving(true);
     try {
-      const catalogSubjectId = selectedCatalogSubjectId;
-      const classId = selectedClassId;
-      await axiosReq.post(`${baseUrl}/classes/${classId}/subjects`, {
-        subject_id: catalogSubjectId,
-      });
+      await axiosReq.post(`${baseUrl}/classes/${selectedClassId}/subjects`, { subject_id: selectedCatalogSubjectId });
+      const subjectId = selectedCatalogSubjectId;
       setSelectedCatalogSubjectId("");
-      triggerToast({
-        title: t("subjectAddedTitle"),
-        description: t("subjectAdded"),
-        type: "success",
-      });
-      const nextClasses = await load();
-      const attached = nextClasses
-        .find((item) => item.id === classId)
-        ?.classSubjects?.find((row) => row.subject_id === catalogSubjectId);
-      if (attached) {
-        setSelectedClassSubjectId(attached.id);
-        setSelectedTeacherId("");
-        setEditingAssignmentId("");
-      }
+      triggerToast({ title: t("subjectAddedTitle"), description: t("subjectAdded"), type: "success" });
+      await reload();
+      // Continue in step 2 with the new subject in every section of the class.
+      setSelectedSectionId(ALL_SECTIONS);
+      setSelectedSubjectId(subjectId);
+      setSelectedTeacherId("");
+      setReplacing(null);
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
     } finally {
@@ -285,44 +290,22 @@ const OrganizationAssignmentsContent = () => {
   };
 
   const handleAssignTeacher = async () => {
-    if (!selectedClassId || !selectedClassSubjectId || !selectedTeacherId) {
-      triggerToast({
-        title: t("needAllTitle"),
-        description: t("needAll"),
-        type: "error",
-      });
+    if (!selectedTeacherId || targets.length === 0) {
+      triggerToast({ title: t("needAllTitle"), description: t("needAll"), type: "error" });
+      return;
+    }
+    if (replacing && replacing.teacherId === selectedTeacherId) {
+      clearStep2();
       return;
     }
     setSaving(true);
-    const replacing = Boolean(editingAssignmentId);
-    const currentTeacherId = selectedClassSubject?.teachers?.find(
-      (assignment) => assignment.id === editingAssignmentId,
-    )?.teacher_id;
     try {
-      if (replacing && currentTeacherId === selectedTeacherId) {
-        setEditingAssignmentId("");
-        setSelectedTeacherId("");
-        return;
+      for (const offering of targets) {
+        await setTeachersOf(offering, { add: selectedTeacherId, remove: replacing?.teacherId });
       }
-      if (editingAssignmentId) {
-        await axiosReq.patch(
-          `${baseUrl}/classes/${selectedClassId}/subjects/${selectedClassSubjectId}/teachers/${editingAssignmentId}`,
-          { teacher_id: selectedTeacherId },
-        );
-      } else {
-        await axiosReq.post(
-          `${baseUrl}/classes/${selectedClassId}/subjects/${selectedClassSubjectId}/teachers`,
-          { teacher_id: selectedTeacherId },
-        );
-      }
-      setSelectedTeacherId("");
-      setEditingAssignmentId("");
-      triggerToast({
-        title: replacing ? t("replacedTitle") : t("assignedTitle"),
-        description: t("assigned"),
-        type: "success",
-      });
-      await load();
+      triggerToast({ title: replacing ? t("replacedTitle") : t("assignedTitle"), description: t("assigned"), type: "success" });
+      clearStep2();
+      await reload();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
     } finally {
@@ -330,23 +313,14 @@ const OrganizationAssignmentsContent = () => {
     }
   };
 
-  const handleUnassign = async (classId: string, classSubjectId: string, assignmentId: string) => {
+  const handleUnassign = async (row: AssignmentRow) => {
     setSaving(true);
     try {
-      await axiosReq.delete(
-        `${baseUrl}/classes/${classId}/subjects/${classSubjectId}/teachers/${assignmentId}`,
-      );
-      if (editingAssignmentId === assignmentId) {
-        setEditingAssignmentId("");
-        setSelectedTeacherId("");
-      }
-      triggerToast({
-        title: t("unassignedTitle"),
-        description: t("unassignedDetail"),
-        type: "success",
-      });
+      await setTeachersOf(row.offering, { remove: row.teacherId });
+      if (replacing?.key === row.key) clearStep2();
+      triggerToast({ title: t("unassignedTitle"), description: t("unassignedDetail"), type: "success" });
       setPendingRemoval(null);
-      await load();
+      await reload();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
     } finally {
@@ -358,18 +332,10 @@ const OrganizationAssignmentsContent = () => {
     setSaving(true);
     try {
       await axiosReq.delete(`${baseUrl}/classes/${classId}/subjects/${classSubjectId}`);
-      if (selectedClassSubjectId === classSubjectId) {
-        setSelectedClassSubjectId("");
-        setSelectedTeacherId("");
-        setEditingAssignmentId("");
-      }
-      triggerToast({
-        title: t("subjectRemovedTitle"),
-        description: t("subjectRemoved"),
-        type: "success",
-      });
+      clearStep2();
+      triggerToast({ title: t("subjectRemovedTitle"), description: t("subjectRemoved"), type: "success" });
       setPendingRemoval(null);
-      await load();
+      await reload();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
     } finally {
@@ -377,38 +343,36 @@ const OrganizationAssignmentsContent = () => {
     }
   };
 
-  const handleEditAssignment = (row: (typeof assignmentRows)[number]) => {
+  const handleEditAssignment = (row: AssignmentRow) => {
     setSelectedClassId(row.classId);
     setSelectedCatalogSubjectId("");
-    setSelectedClassSubjectId(row.classSubjectId);
+    setSelectedSectionId(row.sectionId);
+    setSelectedSubjectId(row.subjectId);
     setSelectedTeacherId(row.teacherId);
-    setEditingAssignmentId(row.assignmentId);
+    setReplacing(row);
     step2Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-
-
-  const step1SubjectPlaceholder = !selectedClassId
-    ? t("classFirst")
-    : attachableSubjectOptions.length === 0
-      ? t("allAttached")
-      : t("selectSubject");
-  const step2SubjectPlaceholder = !selectedClassId
-    ? t("classFirst")
-    : classSubjects.length === 0
-      ? t("addSubjectFirst")
-      : t("selectSubject");
 
   const confirmRemoval = () => {
     if (!pendingRemoval) return;
     if (pendingRemoval.kind === "subject") {
       void handleRemoveSubject(pendingRemoval.classId, pendingRemoval.classSubjectId);
     } else {
-      void handleUnassign(pendingRemoval.classId, pendingRemoval.classSubjectId, pendingRemoval.assignmentId);
+      void handleUnassign(pendingRemoval.row);
     }
   };
 
-  const columns: TableColumn<(typeof assignmentRows)[number]>[] = [
+  const step1SubjectPlaceholder = !selectedClassId ? t("classFirst") : attachableSubjectOptions.length === 0 ? t("allAttached") : t("selectSubject");
+  const sectionPlaceholder = !selectedClassId ? t("classFirst") : classSections.length === 0 ? t("noSections") : t("selectSection");
+  const subjectPlaceholder = !selectedSectionId ? t("sectionFirst") : subjectOptions.length === 0 ? t("addSubjectFirst") : t("selectSubject");
+  const sectionOptions = [
+    ...(classSections.length > 1 ? [{ value: ALL_SECTIONS, label: t("allSections") }] : []),
+    ...classSections.map((s) => ({ value: s.id, label: s.name })),
+  ];
+
+  const columns: TableColumn<AssignmentRow>[] = [
     { key: "class", header: t("class"), cell: (row) => row.className, sortValue: (row) => row.className },
+    { key: "section", header: t("section"), cell: (row) => row.sectionName, sortValue: (row) => row.sectionName },
     { key: "subject", header: t("subject"), cell: (row) => row.subject, sortValue: (row) => row.subject },
     {
       key: "teacher",
@@ -416,45 +380,47 @@ const OrganizationAssignmentsContent = () => {
       cell: (row) => (row.unassigned ? <span className="text-ink-muted">{row.teacherName}</span> : row.teacherName),
       sortValue: (row) => (row.unassigned ? null : row.teacherName),
     },
-    {
-      key: "actions",
-      header: t("remove"),
-      align: "right",
-      cell: (row) =>
-        row.unassigned ? (
-          <span className="text-body-sm text-ink-muted">{t("assignInStep2")}</span>
-        ) : (
-          <div className="flex justify-end gap-1">
-            <Button size="sm" variant="ghost" disabled={saving} onClick={() => handleEditAssignment(row)}>
-              {t("edit")}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-danger"
-              disabled={saving}
-              onClick={() =>
-                setPendingRemoval({
-                  kind: "teacher",
-                  classId: row.classId,
-                  className: row.className,
-                  classSubjectId: row.classSubjectId,
-                  assignmentId: row.assignmentId,
-                  subject: row.subject,
-                  teacher: row.teacherName,
-                })
-              }
-            >
-              {t("remove")}
-            </Button>
-          </div>
-        ),
-    },
+    ...(sessionOpen
+      ? [
+          {
+            key: "actions",
+            header: t("remove"),
+            align: "right" as const,
+            cell: (row: AssignmentRow) =>
+              row.unassigned ? (
+                <span className="text-body-sm text-ink-muted">{t("assignInStep2")}</span>
+              ) : (
+                <div className="flex justify-end gap-1">
+                  <Button size="sm" variant="ghost" disabled={saving} onClick={() => handleEditAssignment(row)}>
+                    {t("edit")}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-danger" disabled={saving} onClick={() => setPendingRemoval({ kind: "teacher", row })}>
+                    {t("remove")}
+                  </Button>
+                </div>
+              ),
+          },
+        ]
+      : []),
   ];
 
   return (
     <div className="flex flex-col gap-6 pb-8">
-      <PageHeader title={t("title")} description={activeOrganization?.name ? `${activeOrganization.name} · ${t("intro")}` : t("intro")} />
+      <PageHeader
+        title={t("title")}
+        description={activeOrganization?.name ? `${activeOrganization.name} · ${t("intro")}` : t("intro")}
+        actions={
+          sessions.length > 1 ? (
+            <Select
+              label={t("session")}
+              placeholder={false}
+              value={loaded.sessionId}
+              options={sessions.map((s) => ({ value: s.id, label: s.name }))}
+              onChange={(e) => void handleSessionChange(e.target.value)}
+            />
+          ) : undefined
+        }
+      />
 
       <Card title={t("step1")}>
         <div className="flex flex-col gap-4">
@@ -512,82 +478,69 @@ const OrganizationAssignmentsContent = () => {
         <Card
           title={t("step2")}
           actions={
-            editingAssignmentId ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setEditingAssignmentId("");
-                  setSelectedTeacherId("");
-                }}
-              >
+            replacing ? (
+              <Button size="sm" variant="ghost" onClick={clearStep2}>
                 {t("cancelEdit")}
               </Button>
             ) : undefined
           }
         >
-          <div className="grid items-end gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
-            <Combobox label={t("class")} placeholder={t("selectClass")} value={selectedClassId || null} onChange={(value) => handleClassChange(value ?? "")} options={classOptions} />
-            <Combobox
-              label={t("subject")}
-              placeholder={step2SubjectPlaceholder}
-              value={selectedClassSubjectId || null}
-              onChange={(value) => {
-                setSelectedClassSubjectId(value ?? "");
-                setSelectedTeacherId("");
-                setEditingAssignmentId("");
-              }}
-              options={attachedSubjectOptions}
-              disabled={!selectedClassId || classSubjects.length === 0}
-            />
-            <Combobox
-              label={t("teacher")}
-              placeholder={!selectedClassSubjectId ? t("subjectFirst") : t("selectTeacher")}
-              value={selectedTeacherId || null}
-              onChange={(value) => setSelectedTeacherId(value ?? "")}
-              options={selectedClassSubjectId ? teacherOptions : []}
-              disabled={!selectedClassSubjectId}
-            />
-            <Button loading={saving} onClick={() => void handleAssignTeacher()}>
-              {editingAssignmentId ? t("replace") : t("assign")}
-            </Button>
-          </div>
+          {sessionOpen ? (
+            <div className="grid items-end gap-3 md:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+              <Combobox label={t("class")} placeholder={t("selectClass")} value={selectedClassId || null} onChange={(value) => handleClassChange(value ?? "")} options={classOptions} disabled={Boolean(replacing)} />
+              <Combobox
+                label={t("section")}
+                placeholder={sectionPlaceholder}
+                value={selectedSectionId || null}
+                onChange={(value) => {
+                  setSelectedSectionId(value ?? "");
+                  setSelectedSubjectId("");
+                  setSelectedTeacherId("");
+                }}
+                options={sectionOptions}
+                disabled={!selectedClassId || classSections.length === 0 || Boolean(replacing)}
+              />
+              <Combobox
+                label={t("subject")}
+                placeholder={subjectPlaceholder}
+                value={selectedSubjectId || null}
+                onChange={(value) => {
+                  setSelectedSubjectId(value ?? "");
+                  setSelectedTeacherId("");
+                }}
+                options={subjectOptions}
+                disabled={!selectedSectionId || subjectOptions.length === 0 || Boolean(replacing)}
+              />
+              <Combobox
+                label={t("teacher")}
+                placeholder={!selectedSubjectId ? t("subjectFirst") : t("selectTeacher")}
+                value={selectedTeacherId || null}
+                onChange={(value) => setSelectedTeacherId(value ?? "")}
+                options={selectedSubjectId ? teacherOptions : []}
+                disabled={!selectedSubjectId}
+              />
+              <Button loading={saving} onClick={() => void handleAssignTeacher()}>
+                {replacing ? t("replace") : t("assign")}
+              </Button>
+            </div>
+          ) : (
+            <p className="text-body-sm text-ink-muted">{t("sessionClosed")}</p>
+          )}
         </Card>
       </div>
 
       <Card title={t("step3")} flush>
         <div className="grid gap-3 p-4 md:grid-cols-3">
-          <Combobox
-            label={t("filterClass")}
-            value={tableClassFilter}
-            onChange={(value) => setTableClassFilter(value ?? "all")}
-            options={[{ label: t("allClasses"), value: "all" }, ...classOptions]}
-          />
-          <Combobox
-            label={t("filterSubject")}
-            value={tableSubjectFilter}
-            onChange={(value) => setTableSubjectFilter(value ?? "all")}
-            options={[{ label: t("allSubjects"), value: "all" }, ...tableSubjectOptions]}
-          />
-          <Combobox
-            label={t("filterTeacher")}
-            value={tableTeacherFilter}
-            onChange={(value) => setTableTeacherFilter(value ?? "all")}
-            options={[{ label: t("allTeachers"), value: "all" }, ...tableTeacherOptions]}
-          />
+          <Combobox label={t("filterClass")} value={tableClassFilter} onChange={(value) => setTableClassFilter(value ?? "all")} options={[{ label: t("allClasses"), value: "all" }, ...classOptions]} />
+          <Combobox label={t("filterSubject")} value={tableSubjectFilter} onChange={(value) => setTableSubjectFilter(value ?? "all")} options={[{ label: t("allSubjects"), value: "all" }, ...tableSubjectOptions]} />
+          <Combobox label={t("filterTeacher")} value={tableTeacherFilter} onChange={(value) => setTableTeacherFilter(value ?? "all")} options={[{ label: t("allTeachers"), value: "all" }, ...tableTeacherOptions]} />
         </div>
-        {loading ? (
+        {data === null ? (
           <div className="p-4" aria-busy="true">
             <Skeleton lines={5} />
           </div>
         ) : (
-          <Table
-            caption={t("step3")}
-            columns={columns}
-            rows={filteredAssignmentRows}
-            getRowId={(row) => row.assignmentId}
-            empty={<EmptyState title={t("empty")} />}
-          />
+          <Table caption={t("step3")} columns={columns} rows={filteredAssignmentRows} getRowId={(row) => row.key} empty={<EmptyState title={t("empty")} />} />
         )}
       </Card>
 
@@ -596,11 +549,13 @@ const OrganizationAssignmentsContent = () => {
         tone="danger"
         title={
           pendingRemoval?.kind === "teacher"
-            ? t("unassignTitle", { teacher: pendingRemoval.teacher, subject: pendingRemoval.subject })
+            ? t("unassignTitle", { teacher: pendingRemoval.row.teacherName, subject: pendingRemoval.row.subject })
             : t("removeSubjectTitle", { subject: pendingRemoval?.subject ?? "", className: pendingRemoval?.className ?? "" })
         }
         description={
-          pendingRemoval?.kind === "teacher" ? t("unassignDetail", { className: pendingRemoval.className }) : t("removeSubjectDetail")
+          pendingRemoval?.kind === "teacher"
+            ? t("unassignDetail", { className: `${pendingRemoval.row.className} · ${pendingRemoval.row.sectionName}` })
+            : t("removeSubjectDetail")
         }
         confirmLabel={t("remove")}
         loading={saving}
