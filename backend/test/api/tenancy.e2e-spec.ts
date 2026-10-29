@@ -162,5 +162,17 @@ describe('tenancy API', () => {
       const [solo] = await soloOrganizationOf(soloA);
       expect(ids).not.toContain(solo.id);
     });
+
+    it('are listed for the platform admin when asked for with kind=SOLO', async () => {
+      const admin = await make.user(RolesEnum.SUPER_ADMIN);
+      const list = await t.api.get<Payload<Array<{ id: string; kind: string; owner: { id: string } | null }>>>(
+        '/organizations/admin?kind=SOLO&limit=50',
+        t.tokenFor(admin),
+      );
+      expect(list.status).toBe(200);
+      const [solo] = await soloOrganizationOf(soloA);
+      expect(list.body.payload).toContainEqual(expect.objectContaining({ id: solo.id, kind: 'SOLO', owner: expect.objectContaining({ id: soloA.id }) }));
+      expect(list.body.payload.every((org) => org.kind === 'SOLO')).toBe(true);
+    });
   });
 });
