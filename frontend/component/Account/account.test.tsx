@@ -10,6 +10,8 @@ import TeacherRequestPanel from "./TeacherRequestPanel";
 const get = vi.fn();
 const post = vi.fn();
 let search = new URLSearchParams();
+let billingAccess = { role: "TEACHER", canManageBilling: true };
+vi.mock("@/hooks/organization/useBillingAccess", () => ({ default: () => billingAccess }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => "/account", useSearchParams: () => search }));
 vi.mock("@/lib/axios", () => ({
   default: { get: (...args: unknown[]) => get(...args), post: (...args: unknown[]) => post(...args) },
@@ -18,6 +20,7 @@ vi.mock("@/lib/axios", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   search = new URLSearchParams();
+  billingAccess = { role: "TEACHER", canManageBilling: true };
 });
 afterEach(() => cleanup());
 
@@ -35,7 +38,7 @@ describe("billing", () => {
     get.mockImplementation((url: string) =>
       Promise.resolve({
         data: {
-          payload: url.endsWith("/my-entitlements")
+          payload: url.endsWith("/me/entitlements")
             ? { plan: { id: "p", name: "Basic", slug: "basic" }, features: {}, limits: { max_exams_per_month: 10 }, usage: { exams_used_this_month: 3, total_exams_used: 12 } }
             : [plan("basic", 1, 200), plan("pro", 2, 500)],
         },
@@ -50,6 +53,24 @@ describe("billing", () => {
     await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
     expect(post.mock.calls[0][1]).toEqual({ plan_id: "pro", billing_cycle: "MONTHLY" });
     expect(post.mock.calls[1][1]).toEqual({ subscriptionId: "sub-1" });
+  });
+
+  it("shows a school teacher the workspace's plan, but no plans to buy", async () => {
+    billingAccess = { role: "TEACHER", canManageBilling: false };
+    get.mockImplementation((url: string) =>
+      Promise.resolve({
+        data: {
+          payload: url.endsWith("/me/entitlements")
+            ? { plan: { id: "p", name: "Pro", slug: "pro" }, features: {}, limits: {}, usage: { exams_used_this_month: 1, total_exams_used: 4 } }
+            : [plan("basic", 1, 200), plan("max", 3, 900)],
+        },
+      }),
+    );
+    renderApp(<AccountBilling />);
+    expect(await screen.findByText(/Only the workspace owner or an admin can change the plan/)).toBeTruthy();
+    expect(screen.getByText("Pro")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Upgrade" })).toBeNull();
+    expect(screen.getByRole("link", { name: "See all features" }).getAttribute("href")).toBe("/features");
   });
 });
 
