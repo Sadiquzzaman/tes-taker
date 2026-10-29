@@ -16,6 +16,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ExamKindEnum, PublishTimingEnum, TestAudienceEnum } from '../enums/exam-wizard.enums';
+import { AcademicSessionEntity } from 'src/academics/entities/academic-session.entity';
 import { OrganizationEntity } from 'src/organizations/entities/organization.entity';
 import { ExamCategoryEnum } from '../enums/exam-category.enum';
 
@@ -132,6 +133,14 @@ export class ExamEntity extends CustomBaseEntity {
   @ManyToOne(() => OrganizationEntity, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'organization_id' })
   organization: OrganizationEntity | null;
+
+  @ApiPropertyOptional({ description: 'Academic session (FND-01); new exams get the organisation default session' })
+  @Column({ name: 'session_id', type: 'uuid', nullable: true })
+  session_id: string | null;
+
+  @ManyToOne(() => AcademicSessionEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'session_id' })
+  session: AcademicSessionEntity | null;
 
   @ApiPropertyOptional({ description: 'Students excluded when using a class audience' })
   @ManyToMany(() => UserEntity)
