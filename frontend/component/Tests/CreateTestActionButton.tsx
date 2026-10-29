@@ -6,6 +6,7 @@ import { Button, buttonClasses, Tooltip } from "@/design/ui";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 import CreateActionPlusIconSVG from "../svg/CreateActionPlusIconSVG";
+import UpgradeLink from "@/component/Subscription/UpgradeLink";
 
 /** "Create test" for teachers and owners; disabled with an upgrade hint once the plan's exam limit is reached. */
 const CreateTestActionButton = () => {
@@ -37,9 +38,7 @@ const CreateTestActionButton = () => {
         content={
           <span>
             {t("examLimitReached")}{" "}
-            <Link href="/billing" className="text-primary underline">
-              {t("upgrade")}
-            </Link>
+            <UpgradeLink />
           </span>
         }
       >

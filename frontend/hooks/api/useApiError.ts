@@ -1,3 +1,4 @@
+import { isPlanErrorCode, useLockedFeature } from "@/component/Subscription/LockedFeatureProvider";
 import { useToast } from "@/component/Toast/ToastContext";
 import { clearAuthSession } from "@/lib/authSession";
 import { AxiosError } from "axios";
@@ -5,6 +6,7 @@ import { useCallback } from "react";
 
 export const useApiError = () => {
   const { triggerToast } = useToast();
+  const lockedFeature = useLockedFeature();
 
   const handleError = useCallback((error: AxiosError<ApiError>) => {
     console.log({ error });
@@ -28,6 +30,12 @@ export const useApiError = () => {
       });
 
       void clearAuthSession();
+      return;
+    }
+
+    // Not in the plan: the role-based locked-feature message instead of a toast (FND-07).
+    if (status === 403 && lockedFeature && isPlanErrorCode(data?.code)) {
+      lockedFeature.show({ code: data.code, feature: data.feature, limit: data.limit });
       return;
     }
 
@@ -58,7 +66,7 @@ export const useApiError = () => {
       description: message,
       type: "error",
     });
-  }, [triggerToast]);
+  }, [lockedFeature, triggerToast]);
 
   return { handleError };
 };

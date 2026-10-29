@@ -7,10 +7,10 @@ import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 import { getStoredUser } from "@/lib/authSession";
 import axiosReq from "@/lib/axios";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { EXAM_CATEGORIES, IELTS_MODULES } from "@/constants/examCategory";
+import UpgradeLink from "@/component/Subscription/UpgradeLink";
 
 const assignedSubjectLabel = (subject: AssignedClassSubject) =>
   subject.code?.trim() ? `${subject.name} (${subject.code.trim()})` : subject.name;
@@ -368,9 +368,7 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
                   content={
                     <span>
                       {t("modelTestLocked")}{" "}
-                      <Link href="/billing" className="text-primary underline">
-                        {t("upgrade")}
-                      </Link>
+                      <UpgradeLink />
                     </span>
                   }
                 >

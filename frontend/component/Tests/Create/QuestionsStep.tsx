@@ -5,7 +5,6 @@ import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 import axiosReq from "@/lib/axios";
 import { Button, cn, Tooltip } from "@/design/ui";
-import Link from "next/link";
 import {
   getSubjectQuestionCount,
   getSubjectTotalMarks,
@@ -23,6 +22,7 @@ import QuestionSubjectTabs from "./QuestionSubjectTabs";
 import { useToast } from "@/component/Toast/ToastContext";
 import { useTranslations } from "next-intl";
 import useQuestionTypeText from "./useQuestionTypeText";
+import UpgradeLink from "@/component/Subscription/UpgradeLink";
 
 const QUESTION_CARD_GAP = 16;
 
@@ -649,9 +649,7 @@ const QuestionsStep = memo(({ scrollContainerRef }: QuestionsStepProps) => {
                       content={
                         <span>
                           {t("questions.notInPlan")}{" "}
-                          <Link href="/billing" className="text-primary underline">
-                            {t("basic.upgrade")}
-                          </Link>
+                          <UpgradeLink />
                         </span>
                       }
                     >
