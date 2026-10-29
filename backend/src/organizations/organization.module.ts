@@ -7,7 +7,6 @@ import { ClassEntity } from 'src/classes/entities/class.entity';
 import { ClassTeacherEntity } from 'src/classes/entities/class-teacher.entity';
 import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
 import { ClassSubjectEntity } from 'src/classes/entities/class-subject.entity';
-import { ClassSubjectTeacherEntity } from 'src/classes/entities/class-subject-teacher.entity';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
@@ -37,7 +36,6 @@ import { OrgSettingsService } from './org-settings.service';
       ClassTeacherEntity,
       EnrolmentEntity,
       ClassSubjectEntity,
-      ClassSubjectTeacherEntity,
       ExamEntity,
       SubjectEntity,
       UserEntity,

@@ -27,7 +27,7 @@ import {
   PrivateMessageContentDto,
 } from './dto/discussion-content.dto';
 import { ClassSubjectEntity } from './entities/class-subject.entity';
-import { ClassSubjectTeacherEntity } from './entities/class-subject-teacher.entity';
+import { teachesSubjectCondition } from 'src/academics/teacher-queries';
 import { DiscussionAttachment } from 'src/chat-mongo/schemas/discussion-attachment.schema';
 import { DiscussionPostCategory } from 'src/chat-mongo/schemas/discussion-post.schema';
 
@@ -85,12 +85,8 @@ export class ClassDiscussionService {
         return [];
       }
     } else {
-      qb.innerJoin(
-        ClassSubjectTeacherEntity,
-        'cstFilter',
-        'cstFilter.class_subject_id = classSubject.id AND cstFilter.teacher_id = :teacherId AND cstFilter.is_active = :cstActive',
-        { teacherId: jwt.id, cstActive: ActiveStatusEnum.ACTIVE },
-      );
+      // Only the subjects this teacher teaches in the class (subject class teachers, P2-03 part 2b).
+      qb.andWhere(teachesSubjectCondition('classSubject'), { teacherId: jwt.id });
     }
 
     const rows = await qb.getMany();
