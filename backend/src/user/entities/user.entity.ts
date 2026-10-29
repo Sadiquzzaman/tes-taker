@@ -25,10 +25,12 @@ export class UserEntity extends CustomBaseEntity {
   @IsEmail()
   email: string;
 
+  /** Never loaded unless a query asks for it with addSelect('user.password'). */
   @Column({
     type: "varchar",
     name: "password",
     length: 100,
+    select: false,
   })
   @Exclude()
   password: string;
@@ -109,12 +111,15 @@ export class UserEntity extends CustomBaseEntity {
   @Column({ type: "varchar", name: "locale", length: 5, nullable: true })
   locale: UserLocale | null;
 
+  /** Hash of the current refresh token; only used in WHERE clauses, never loaded. */
   @Column({
     type: "varchar",
     name: "refresh_token",
     length: 1000,
     nullable: true,
+    select: false,
   })
+  @Exclude()
   @Index({ unique: true })
   refresh_token: string;
 
