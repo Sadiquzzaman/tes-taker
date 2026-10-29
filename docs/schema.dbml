@@ -422,7 +422,7 @@ Table enrolments {
     (section_id, status)
     (organization_id, student_id)
   }
-  Note: 'NEW — replaces class_students (FND-04, FND-05). BUILT P2-03: rows copied/mirrored from class_students keep that row id (JOINED = ACTIVE)'
+  Note: 'NEW — replaces class_students (FND-04, FND-05). BUILT P2-03: rows copied from class_students keep that row id (JOINED = ACTIVE); since part 2a the only roster (EnrolmentsService writes it, class_students is read-only). Never hard-deleted: removal = LEFT + left_at; re-adding in the same session reuses the row'
 }
 
 Enum guardian_relation { FATHER MOTHER OTHER }
@@ -1527,7 +1527,7 @@ Table ielts_results {
 //////////////////////////////////////////////////////////////
 // teacher_subscriptions        -> account_subscriptions + feature_overrides
 // payment_history              -> payments
-// class_students               -> enrolments
+// class_students               -> enrolments (read-only since P2-03 part 2a)
 // class_teachers               -> course_offerings + offering_teachers (+ sections.class_teacher_id)
 // class_subject_teachers       -> course_offerings + offering_teachers
 // (organization_teacher_subjects is kept: it lists what a teacher can teach, not an assignment — P2-03 decision)
