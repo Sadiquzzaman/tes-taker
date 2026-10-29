@@ -805,13 +805,20 @@ export class SubscriptionService implements OnModuleInit {
     );
   }
 
-  async listFeatureRequests(status?: FeatureRequestStatusEnum): Promise<FeatureRequestEntity[]> {
-    return this.featureRequestRepo.find({
+  /** The newest 200 requests, with only the organisation and user fields the admin list shows. */
+  async listFeatureRequests(status?: FeatureRequestStatusEnum) {
+    const requests = await this.featureRequestRepo.find({
       where: status ? { status } : {},
       relations: ['organization', 'user'],
       order: { created_at: 'DESC' },
       take: 200,
     });
+    // Never the whole user row: it holds the password hash (no serializer strips @Exclude fields).
+    return requests.map(({ organization, user, ...request }) => ({
+      ...request,
+      organization: organization ? { id: organization.id, name: organization.name, kind: organization.kind } : null,
+      user: user ? { id: user.id, full_name: user.full_name, email: user.email, phone: user.phone } : null,
+    }));
   }
 
   async markFeatureRequestHandled(id: string, jwtPayload: JwtPayloadInterface): Promise<FeatureRequestEntity> {

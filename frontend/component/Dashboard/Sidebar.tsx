@@ -2,6 +2,7 @@ import sidebarList from "@/utils/sidebarList";
 import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import Link from "next/link";
+import FeatureNavGate from "@/component/Subscription/FeatureNavGate";
 import { cn, focusRing } from "@/design/ui/cn";
 
 const orgMemberRoles: OrganizationMemberRole[] = [
@@ -58,7 +59,7 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
             <ul className="flex flex-col gap-0.5">
               {items.map((element) => {
                 const isActive = activeRoute === element.route;
-                return (
+                const item = (
                   <li key={element.route}>
                     <Link
                       href={element.route}
@@ -73,6 +74,13 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
                       {t(`nav.${element.label}`)}
                     </Link>
                   </li>
+                );
+                return element.feature ? (
+                  <FeatureNavGate key={element.route} feature={element.feature}>
+                    {item}
+                  </FeatureNavGate>
+                ) : (
+                  item
                 );
               })}
             </ul>

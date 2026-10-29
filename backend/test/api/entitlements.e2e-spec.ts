@@ -196,8 +196,20 @@ describe('entitlements API', () => {
     const unknown = await t.api.post('/me/feature-requests', { feature_key: 'not_a_feature' }, token);
     expect(unknown.status).toBe(400);
 
-    const list = await t.api.get<Payload<Array<{ id: string; feature_key: string }>>>('/subscriptions/admin/feature-requests?status=OPEN', t.tokenFor(admin));
-    expect(list.body.payload).toContainEqual(expect.objectContaining({ id: first.body.payload.id, feature_key: 'allow_model_tests' }));
+    const list = await t.api.get<Payload<Array<{ id: string; feature_key: string; user: Record<string, unknown> | null }>>>(
+      '/subscriptions/admin/feature-requests?status=OPEN',
+      t.tokenFor(admin),
+    );
+    const row = list.body.payload.find((request) => request.id === first.body.payload.id);
+    expect(row).toEqual(
+      expect.objectContaining({
+        feature_key: 'allow_model_tests',
+        user: expect.objectContaining({ id: teacher.id }),
+        organization: expect.objectContaining({ kind: 'SOLO' }),
+      }),
+    );
+    // Only what the list shows: never the password hash.
+    expect(Object.keys(row?.user ?? {}).sort()).toEqual(['email', 'full_name', 'id', 'phone']);
   });
 
   it('has no entitlements for a student without a workspace', async () => {
