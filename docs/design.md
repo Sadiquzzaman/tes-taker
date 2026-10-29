@@ -331,7 +331,7 @@ interface AiProvider {
 
 ## 9. Database schema
 
-The target PostgreSQL schema has **95 tables**: 4 kept as they are, 11 changed and 80 new. 10 legacy tables are dropped after migration. Chat stays in MongoDB.
+The target PostgreSQL schema has **95 tables**: 4 kept as they are, 11 changed and 80 new. 9 legacy tables are dropped after migration (`organization_teacher_subjects` stays, P2-03). Chat stays in MongoDB.
 
 Every column, type, index and enum is in the companion file `instructor-schema-v1.dbml`. Paste it into dbdiagram.io to see the ER diagram. The tables below give each table's purpose and the columns that matter for design.
 
@@ -377,7 +377,7 @@ Every column, type, index and enum is in the companion file `instructor-schema-v
 | sections | New | `class_id` + `session_id`, shift, room, `class_teacher_id`, entry time override |
 | subjects | Changed | Adds `credit_hours` (nullable, used by Tertiary later) |
 | class\_subjects | Changed | + `full_marks` |
-| course\_offerings, offering\_teachers, offering\_enrolments | New | Subject class (section + subject + session, optional term), its teachers, and the students of optional subjects. Replaces 3 legacy tables |
+| course\_offerings, offering\_teachers, offering\_enrolments | New | Subject class (section + subject + session, optional term), its teachers, and the students of optional subjects. Replaces 2 legacy tables (`class_teachers`, `class_subject_teachers`) |
 | enrolments | New | Student in a section for a session, roll no, status; unique per (session, class, student). Replaces `class_students` |
 | guardians | New | Up to 2 per student: name, relation, phone, primary |
 
@@ -391,6 +391,14 @@ Who takes an offering:
 - **SELECTED**: only the rows in `offering_enrolments`. Used for religion subjects and electives today, and for Tertiary course registration later.
 
 Rosters come from one service, `OfferingRoster.students(offeringId)`, so no module repeats this rule.
+
+**Built in P2-03 part 1 (decided):**
+
+- **Sessions:** every organisation has one default session, created on first use as this calendar year in its time zone (1 Jan – 31 Dec). Several sessions can be ACTIVE. The default session cannot be closed (make another default first). A closed session refuses changes to its sections, subject classes and terms; only the Owner reopens it (`assertSessionOpen` is for later epics too).
+- **Roles:** staff read; Owner, Admin and Assistant change sections, subject classes, their teachers and students (as classes today); Owner and Admin manage sessions and terms.
+- **Class teacher (owner decision):** one per section (`sections.class_teacher_id`), a teacher may be class teacher of several sections. Organisations switch class teachers on or off in `org_settings.class_teacher_enabled` (on for schools and coaching centres, off for solo teachers); switching off keeps the saved class teachers. Everyone else teaching in a section is a teacher of its subject classes; all teachers of a subject class are equal (no role column).
+- **`organization_teacher_subjects` stays:** it lists what a teacher can teach in the organisation, not a class assignment, so it is not merged into `offering_teachers` and is not dropped.
+- **Until reads move (part 2):** the class screens still write `class_students`, `class_subjects`, `class_subject_teachers` and `class_teachers`. `LegacyClassSyncSubscriber` (TypeORM entity events, same transaction) mirrors them: a new class gets section "A" in the default session; students become enrolments with the same id; class subjects become subject classes in the sections of open sessions; subject and class teachers become their teachers (a class teacher without a subject teaches every subject). New exams get the default session.
 
 **Tertiary-ready.** These parts are reserved now and stay switched off:
 
@@ -511,7 +519,7 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 
 ### 9.12 Dropped after migration
 
-`teacher_subscriptions`, `payment_history`, `class_students`, `class_teachers`, `class_subject_teachers`, `organization_teacher_subjects`, and the four Postgres chat tables (`class_discussion_posts`, `class_discussion_comments`, `class_private_conversations`, `class_private_messages`). Each is kept read-only for one release before it is dropped.
+`teacher_subscriptions`, `payment_history`, `class_students`, `class_teachers`, `class_subject_teachers`, and the four Postgres chat tables (`class_discussion_posts`, `class_discussion_comments`, `class_private_conversations`, `class_private_messages`). Each is kept read-only for one release before it is dropped.
 
 ## 10. Volume, partitioning, indexes and retention
 
@@ -615,7 +623,7 @@ Every step ships separately and can be rolled back until the contract step. Each
 3. **M3 — Academic structure.**
    - Create a default session ("2026") per org and one default section ("A") per class.
    - Copy `class_students` → `enrolments`, keeping status.
-   - Merge `class_teachers`, `class_subject_teachers` and `organization_teacher_subjects` into `course_offerings + offering_teachers` (one offering per section + subject; teachers deduplicated).
+   - Merge `class_teachers` and `class_subject_teachers` into `course_offerings + offering_teachers` (one offering per section + subject; teachers deduplicated; a class teacher without a subject teaches every subject, and the earliest becomes the section's class teacher where class teachers are on). `organization_teacher_subjects` is not an assignment and stays (P2-03).
    - Backfill `exams.session_id`.
 4. **M4 — Files to S3.**
    - Copy `./uploads` to S3 under `org/{orgId}/legacy/` and create `file_objects` rows.
@@ -623,7 +631,7 @@ Every step ships separately and can be rolled back until the contract step. Each
    - Keep the local `/uploads` route read-only for one release.
 5. **M5 — Chat tables.** Verify that MongoDB holds every post, comment and message (counts by class), then mark the four PostgreSQL chat tables read-only.
 6. **M6 — New epics.** Only additive tables, released per epic: Foundations → Attendance → Homework → Calendar → Syllabus → Performance → Resources → Communication upgrades → Integrity → IELTS.
-7. **M7 — Contract.** Drop the 10 legacy tables in 9.12 one release after their replacement went live, after a final backup snapshot.
+7. **M7 — Contract.** Drop the 9 legacy tables in 9.12 one release after their replacement went live, after a final backup snapshot.
 
 **Open items for the team:**
 
