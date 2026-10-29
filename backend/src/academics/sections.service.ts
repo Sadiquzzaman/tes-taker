@@ -109,6 +109,18 @@ export class SectionsService {
     return this.toSectionViews(sections);
   }
 
+  /** Every section of the organisation in a session (default session if none given), for overview pages. */
+  async listForSession(sessionId?: string): Promise<SectionView[]> {
+    const organizationId = tenantScoped(this.sectionRepo).currentOrganizationId;
+    const session = await this.resolveSession(organizationId, sessionId);
+    const sections = await tenantScoped(this.sectionRepo).find({
+      where: { session_id: session.id },
+      relations: ['class_teacher'],
+      order: { name: 'ASC' },
+    });
+    return this.toSectionViews(sections);
+  }
+
   async findSection(id: string): Promise<SectionEntity> {
     const section = await tenantScoped(this.sectionRepo).findOne({ where: { id }, relations: ['class_teacher'] });
     if (!section) throw new NotFoundException('Section not found');
@@ -220,6 +232,14 @@ export class SectionsService {
   async listOfferings(sectionId: string): Promise<OfferingView[]> {
     await this.findSection(sectionId);
     const offerings = await tenantScoped(this.offeringRepo).find({ where: { section_id: sectionId }, relations: ['subject'] });
+    return this.toOfferingViews(offerings);
+  }
+
+  /** Every subject class of the organisation in a session (default session if none given), with teachers. */
+  async listOfferingsForSession(sessionId?: string): Promise<OfferingView[]> {
+    const organizationId = tenantScoped(this.offeringRepo).currentOrganizationId;
+    const session = await this.resolveSession(organizationId, sessionId);
+    const offerings = await tenantScoped(this.offeringRepo).find({ where: { session_id: session.id }, relations: ['subject'] });
     return this.toOfferingViews(offerings);
   }
 

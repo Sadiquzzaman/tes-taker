@@ -307,6 +307,26 @@ describe('academic structure API', () => {
     });
   });
 
+  describe('organisation-wide lists (Assignments page)', () => {
+    it('lists every section and subject class of a session, scoped to the organisation', async () => {
+      const classId = await schoolClass('Class 1', [math]);
+      const [section] = await sectionsOf(classId);
+      const [offering] = await offeringsOf(section.id);
+      await call('PUT', `/offerings/${offering.id}/teachers`, asAdmin(), { teacher_ids: [teacherA.id] });
+
+      const sections = await call<Payload<Section[]>>('GET', '/sections', asTeacher());
+      expect(sections.status).toBe(200);
+      expect(sections.body.payload.map((s) => s.id)).toContain(section.id);
+      const offerings = await call<Payload<Array<Offering & { section_id: string }>>>('GET', `/offerings?session_id=${section.session_id}`, asTeacher());
+      expect(offerings.body.payload.find((o) => o.id === offering.id)?.teachers.map((p) => p.id)).toEqual([teacherA.id]);
+
+      // Another organisation sees none of them.
+      const intruder = orgToken(otherOwner, otherSchool, OrganizationMemberRoleEnum.OWNER);
+      expect((await call<Payload<Section[]>>('GET', '/sections', intruder)).body.payload.map((s) => s.id)).not.toContain(section.id);
+      expect((await call<Payload<Offering[]>>('GET', '/offerings', intruder)).body.payload.map((o) => o.id)).not.toContain(offering.id);
+    });
+  });
+
   describe('subject classes (FND-19)', () => {
     it('teaches a subject to the whole section, or to selected students only', async () => {
       const classId = await schoolClass('Class 5', [math, religion]);

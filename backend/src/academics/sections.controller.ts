@@ -34,6 +34,20 @@ export class SectionsController {
     private readonly enrolmentsService: EnrolmentsService,
   ) {}
 
+  @Get('sections')
+  @ApiOperation({ summary: 'All sections of the workspace in a session (default session if none given)' })
+  async listAll(@Query() query: ListSectionsQueryDto) {
+    AcademicAccess.read();
+    return { message: 'Sections retrieved successfully', payload: await this.sections.listForSession(query.session_id) };
+  }
+
+  @Get('offerings')
+  @ApiOperation({ summary: 'All subject classes of the workspace in a session, with their teachers' })
+  async listAllOfferings(@Query() query: ListSectionsQueryDto) {
+    AcademicAccess.read();
+    return { message: 'Subject classes retrieved successfully', payload: await this.sections.listOfferingsForSession(query.session_id) };
+  }
+
   @Get('classes/:classId/sections')
   @ApiOperation({ summary: 'Sections of a class in a session (default session if none given)' })
   async list(@Param('classId', ParseUUIDPipe) classId: string, @Query() query: ListSectionsQueryDto) {

@@ -1599,7 +1599,7 @@
     },
     "assignments": {
       "title": "Teacher assignments",
-      "intro": "Add subjects to a class, then choose who teaches each one.",
+      "intro": "Add subjects to a class, then choose who teaches each one in each section.",
       "step1": "1. Add a subject to a class",
       "step2": "2. Choose the teacher",
       "step3": "3. Current assignments",
@@ -1646,7 +1646,14 @@
       "unassignedTitle": "Assignment removed",
       "unassignedDetail": "The teacher no longer teaches this class subject.",
       "subjectRemovedTitle": "Subject removed",
-      "subjectRemoved": "The subject and its teacher assignments were removed from the class."
+      "subjectRemoved": "The subject and its teacher assignments were removed from the class.",
+      "section": "Section",
+      "selectSection": "Select a section",
+      "sectionFirst": "Select a section first",
+      "noSections": "This class has no sections in this session",
+      "allSections": "All sections of the class",
+      "session": "Session",
+      "sessionClosed": "This session is closed, so its teachers cannot be changed."
     }
   },
   "admin": {
