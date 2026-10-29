@@ -34,6 +34,8 @@ import { UpdateOrganizationMemberRoleDto } from './dto/update-organization-membe
 import { AssignTeacherSubjectDto } from './dto/assign-teacher-subject.dto';
 import { CreateOrganizationSubjectDto } from './dto/create-organization-subject.dto';
 import { UpdateOrganizationSubjectDto } from './dto/update-organization-subject.dto';
+import { UpdateOrgSettingsDto } from './dto/update-org-settings.dto';
+import { OrgSettingsService } from './org-settings.service';
 
 @ApiTags('Organizations')
 @ApiBearerAuth('jwt')
@@ -44,7 +46,10 @@ import { UpdateOrganizationSubjectDto } from './dto/update-organization-subject.
 })
 @Controller({ path: 'organizations', version: '1' })
 export class OrganizationController {
-  constructor(private readonly organizationsService: OrganizationsService) {}
+  constructor(
+    private readonly organizationsService: OrganizationsService,
+    private readonly orgSettingsService: OrgSettingsService,
+  ) {}
 
   @Get('mine')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -70,6 +75,35 @@ export class OrganizationController {
   ) {
     const payload = await this.organizationsService.findOneForMember(id, jwtPayload.id);
     return { message: 'Organization retrieved successfully', payload };
+  }
+
+  @Get(':id/settings')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Organisation settings, e.g. whether sections have a class teacher (members)' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  async getSettings(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.orgSettingsService.getForMember(id, jwtPayload.id);
+    return { message: 'Organization settings retrieved successfully', payload };
+  }
+
+  @Patch(':id/settings')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change organisation settings (Owner/Admin)' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  async updateSettings(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateOrgSettingsDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.orgSettingsService.updateForManager(id, jwtPayload.id, dto);
+    return { message: 'Organization settings updated successfully', payload };
   }
 
   @Get(':id/exams')

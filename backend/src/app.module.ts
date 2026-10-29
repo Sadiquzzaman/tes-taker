@@ -30,6 +30,7 @@ import { OrganizationsModule } from './organizations/organization.module';
 import { ChatMongoModule } from './chat-mongo/chat-mongo.module';
 import { CommonModule } from './common/common.module';
 import { QueueModule } from './queue/queue.module';
+import { AcademicsModule } from './academics/academics.module';
 
 @Module({
   imports: [
@@ -95,6 +96,7 @@ import { QueueModule } from './queue/queue.module';
     OrganizationsModule,
     ChatMongoModule,
     QueueModule,
+    AcademicsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1069,13 +1069,16 @@ export class ClassService {
       return this.findOne(classId, jwtPayload, orgContext);
     }
 
-    await this.classStudentRepo
-      .createQueryBuilder()
-      .delete()
-      .from(ClassStudentEntity)
-      .where('class_id = :classId', { classId })
-      .andWhere('(id IN (:...ids) OR student_id IN (:...ids))', { ids: studentIds })
-      .execute();
+    // Loaded and removed as entities so the academics module mirrors the removal (enrolments).
+    const rows = await this.classStudentRepo.find({
+      where: [
+        { class_id: classId, id: In(studentIds) },
+        { class_id: classId, student_id: In(studentIds) },
+      ],
+    });
+    if (rows.length > 0) {
+      await this.classStudentRepo.remove(rows);
+    }
 
     return this.findOne(classId, jwtPayload, orgContext);
   }
