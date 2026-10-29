@@ -653,14 +653,14 @@ export class StudentExamService {
   }
 
   /**
-   * max_students_per_exam from the exam creator's plan (the same limit checked when the
-   * exam is created). 0 means no limit.
+   * max_students_per_exam from the plan of the exam's organisation (the same limit checked when
+   * the exam is created; P2-02). 0 means no limit.
    */
   private async getStudentCap(exam: ExamEntity): Promise<number> {
-    if (!exam.created_by) {
+    if (!exam.organization_id) {
       return 0;
     }
-    const entitlements = await this.entitlementsService.getEntitlements(exam.created_by);
+    const entitlements = await this.entitlementsService.getEntitlements(exam.organization_id);
     return entitlements.limits[LimitKey.MAX_STUDENTS_PER_EXAM] ?? 0;
   }
 

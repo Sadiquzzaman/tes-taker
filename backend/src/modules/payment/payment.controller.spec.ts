@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { Test } from '@nestjs/testing';
 import { JwtStrategy } from 'src/auth/strategies/jwt.strategy';
+import { OrganizationContextGuard } from 'src/organizations/guards/organization-context.guard';
 import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
 
@@ -33,7 +34,11 @@ describe('PaymentController auth (P0-05)', () => {
       imports: [PassportModule.register({ defaultStrategy: 'jwt' })],
       controllers: [PaymentController],
       providers: [JwtStrategy, { provide: PaymentService, useValue: paymentService }],
-    }).compile();
+    })
+      // This spec is about the login; choosing the workspace is covered by the API tests (test/api).
+      .overrideGuard(OrganizationContextGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api');

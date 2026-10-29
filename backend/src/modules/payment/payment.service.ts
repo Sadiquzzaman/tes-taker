@@ -23,7 +23,8 @@ import {
   SslValidationResponse,
 } from './interfaces/sslcommerz.interface';
 import { SubscriptionService } from 'src/subscriptions/subscription.service';
-import { TeacherSubscriptionEntity } from 'src/subscriptions/entities/teacher-subscription.entity';
+import { AccountSubscriptionEntity } from 'src/subscriptions/entities/account-subscription.entity';
+import { TenantContext } from 'src/common/tenancy/tenant-context';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 
 const SUCCESSFUL_VALIDATION_STATUSES = ['VALID', 'VALIDATED'];
@@ -65,11 +66,14 @@ export class PaymentService {
     gatewayPageUrl: string;
   }> {
     const config = this.getConfig();
+    // The workspace pays for its own plan (P2-02): the solo teacher, or a school's owner or admin.
+    const organizationId = TenantContext.requireOrganizationId();
     const subscription = await this.subscriptionService.getPendingSubscriptionForPayment(
       dto.subscriptionId,
+      organizationId,
       user.id,
     );
-    const amount = Number(subscription.amount_paid);
+    const amount = Number(subscription.price_due);
     const transactionId = this.generateTransactionId();
     const orderId = `SUB_${subscription.id}_${Date.now()}`;
 
@@ -82,6 +86,10 @@ export class PaymentService {
       customerName: user.full_name || 'Teacher',
       customerEmail: user.email || 'teacher@instructor.academy',
       customerPhone: user.phone || '00000000000',
+      organizationId,
+      userId: user.id,
+      subscriptionId: subscription.id,
+      purpose: 'SUBSCRIPTION',
       metadata: {
         teacherId: user.id,
         planId: subscription.plan_id,
@@ -418,7 +426,7 @@ export class PaymentService {
   private buildSessionPayload(
     config: SslCommerzConfig,
     payment: PaymentEntity,
-    subscription: TeacherSubscriptionEntity,
+    subscription: AccountSubscriptionEntity,
   ): URLSearchParams {
     const payload = new URLSearchParams();
     payload.append('store_id', config.storeId);
@@ -459,7 +467,9 @@ export class PaymentService {
   /** Load a payment the user started; another user's payment is "not found". */
   private async findOwnedPayment(transactionId: string, userId: string): Promise<PaymentEntity> {
     const payment = await this.paymentRepo.findOne({ where: { transactionId } });
-    if (!payment || !userId || payment.metadata?.teacherId !== userId) {
+    // Whoever paid can see it; older rows only have the payer in metadata.
+    const payerId = payment?.userId ?? payment?.metadata?.teacherId;
+    if (!payment || !userId || payerId !== userId) {
       throw new NotFoundException('Payment not found');
     }
     return payment;
@@ -510,7 +520,7 @@ export class PaymentService {
   }
 
   private async activateSubscriptionIfNeeded(payment: PaymentEntity): Promise<void> {
-    const subscriptionId = payment.metadata?.subscriptionId;
+    const subscriptionId = payment.subscriptionId ?? payment.metadata?.subscriptionId;
     if (!subscriptionId) {
       return;
     }

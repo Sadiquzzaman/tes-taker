@@ -63,22 +63,46 @@ export const factories = (dataSource: DataSource) => ({
     } as DeepPartial<OrganizationMemberEntity>);
   },
 
-  /** A personal class owned by `teacher`. */
+  /** The teacher's SOLO organisation (their own workspace since P2-01), created on first use. */
+  async soloOrganization(teacher: UserEntity): Promise<OrganizationEntity> {
+    const existing = await dataSource
+      .getRepository(OrganizationEntity)
+      .createQueryBuilder('o')
+      .innerJoin(OrganizationMemberEntity, 'm', 'm.organization_id = o.id')
+      .where('m.user_id = :id AND m.role = :owner AND o.kind = :solo', {
+        id: teacher.id,
+        owner: OrganizationMemberRoleEnum.OWNER,
+        solo: OrganizationKindEnum.SOLO,
+      })
+      .getOne();
+    return existing ?? this.organization(teacher, { name: teacher.full_name, kind: OrganizationKindEnum.SOLO });
+  },
+
+  /**
+   * A personal class owned by `teacher`, in their SOLO organisation (as every class is since
+   * P2-01). Pass `organization_id: null` for a pre-P2-01 row.
+   */
   async classOf(teacher: UserEntity, overrides: DeepPartial<ClassEntity> = {}): Promise<ClassEntity> {
+    const organization_id = 'organization_id' in overrides ? overrides.organization_id : (await this.soloOrganization(teacher)).id;
     return dataSource.getRepository(ClassEntity).save({
       class_name: `Class ${next()}`,
       teacher_id: teacher.id,
       ...overrides,
+      organization_id,
     } as DeepPartial<ClassEntity>);
   },
 
   /**
    * An exam open to anyone with the link, running now: started a minute ago, ends in an hour.
-   * Override the times, audience or duration to test other cases.
+   * Override the times, audience or duration to test other cases. It is saved in the creator's
+   * SOLO organisation unless `organization_id` is given.
    */
   async openExam(creator: UserEntity, overrides: DeepPartial<ExamEntity> = {}): Promise<ExamEntity> {
     const now = Date.now();
+    // In the creator's SOLO organisation unless given (null = a pre-P2-01 row).
+    const organization_id = 'organization_id' in overrides ? overrides.organization_id : (await this.soloOrganization(creator)).id;
     return dataSource.getRepository(ExamEntity).save({
+      organization_id,
       created_by: creator.id,
       test_audience: TestAudienceEnum.ANYONE,
       exam_start_time: new Date(now - 60_000),

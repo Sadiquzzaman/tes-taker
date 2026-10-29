@@ -2,7 +2,7 @@ import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserEntity } from 'src/user/entities/user.entity';
-import { TeacherSubscriptionEntity } from './teacher-subscription.entity';
+import { AccountSubscriptionEntity } from './account-subscription.entity';
 import { SubscriptionPlanEntity, BillingCycleEnum } from './subscription-plan.entity';
 
 export enum PaymentStatusEnum {
@@ -31,13 +31,17 @@ export class PaymentHistoryEntity extends CustomBaseEntity {
   @JoinColumn({ name: 'teacher_id' })
   teacher: UserEntity;
 
+  @ApiPropertyOptional({ description: 'Organisation the payment is for (P2-02)' })
+  @Column({ name: 'organization_id', type: 'uuid', nullable: true })
+  organization_id: string | null;
+
   @ApiProperty({ description: 'Subscription ID' })
   @Column({ name: 'subscription_id', type: 'uuid', nullable: true })
   subscription_id?: string;
 
-  @ManyToOne(() => TeacherSubscriptionEntity, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => AccountSubscriptionEntity, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'subscription_id' })
-  subscription?: TeacherSubscriptionEntity;
+  subscription?: AccountSubscriptionEntity;
 
   @ApiPropertyOptional({ description: 'Plan ID purchased' })
   @Column({ name: 'plan_id', type: 'uuid', nullable: true })

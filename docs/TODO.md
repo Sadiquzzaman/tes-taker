@@ -3,7 +3,6 @@
 Out-of-scope items noted during other tasks. One line each, with the reason.
 
 - A paid subscription that was cancelled by a newer "subscribe" click is still activated when its old payment settles — P0-05 kept existing behaviour so a full payment is never lost; decide refund vs. activate.
-- Add `organization_id` to `teacher_subscriptions` and payments — subscriptions are per teacher today, so P0-05 checks ownership by `teacher_id`; P2-02 (account subscriptions) should scope by organisation.
 - Test migrations on a copy of beta data, not only an empty database — Development Plan §5 definition of done; needs a sanitised beta dump.
 - Decide on `POST /student/exams/:examId/save-answer` (positional options) — the frontend autosaves through `/answersheet`; with the legacy GET removed nothing serves positional options any more, so it can likely go too (needs owner approval to remove).
 - Rotate the SSLCommerz sandbox store credentials that were committed in `backend/src/modules/payment/README.md` (now placeholders) and in git history — only needed if that store is used anywhere; owner action.
@@ -25,6 +24,9 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - A real student home (next exam with a countdown, latest result, weak topics; review §4.5) — needs new API data; P1-05 rebuilt the existing workspace list only.
 - Make `organization_id` NOT NULL on classes, exams, discussion posts and private conversations — P2-01 is expand + migrate only (design §12); after one release with no rows left NULL, ship the contract step.
 - Hidden default branch and `org_settings` per organisation (design §8.1, M2) — deferred from P2-01 because nothing uses them yet; add them with attendance settings (P3-01) or the setup wizard (P2-04).
-- Teachers with only a subscription (organisation-only owners, personal teaching off) get no SOLO organisation in P2-01 — decide in P2-02, when subscriptions move to organisations (`account_subscriptions`), whose account their subscription becomes.
 - Row-level security on tenant tables (design §8.1 phase 2) — P2-01 enforces tenancy in the guard, `TenantContext` and `tenantScoped()`; RLS is the database-level backstop.
 - Move the remaining class and exam queries onto `tenantScoped()` — P2-01 switched the personal-workspace paths and kept existing organisation-session queries (already filtered by `organization_id`); convert the rest as those services are touched.
+- Plan presets overwrite admin edits on every API start — `SubscriptionService.seedPlans()` resets the price, features and limits of the seeded plans (free, basic, premium, pro), so changes made in Admin → Plans are lost on the next deploy. Seed only missing plans; needs an owner decision on which source wins.
+- P2-02 contract step (one release after #P2-02): drop `account_subscriptions.teacher_id`, `overrides`, `exams_used_this_month`, `total_exams_used`, `last_monthly_reset`, and the deprecated `GET /subscriptions/my-entitlements`; merge `payment_history` into `payments` (design §9.1) and make `payments.organization_id` NOT NULL.
+- Notify platform admins of new feature requests (FND-08) — P2-02 stores and lists them; the SMS/email goes out through the outbox in P2-08.
+- `@RequiresFeature` has no route yet — today's gates are per question type inside the exam service (same 403 code); use the decorator on the first whole-feature routes (attendance, homework, …).

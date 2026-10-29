@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  ForbiddenException,
   Logger,
   NotFoundException,
   OnModuleInit,
@@ -12,10 +13,16 @@ import {
   BillingCycleEnum,
   PlanVisibilityEnum,
 } from './entities/subscription-plan.entity';
-import {
-  TeacherSubscriptionEntity,
-  SubscriptionStatusEnum,
-} from './entities/teacher-subscription.entity';
+import { AccountSubscriptionEntity, SubscriptionStatusEnum } from './entities/account-subscription.entity';
+import { FeatureOverrideEntity } from './entities/feature-override.entity';
+import { FeatureRequestEntity, FeatureRequestStatusEnum } from './entities/feature-request.entity';
+import { EntitlementsService } from './entitlements.service';
+import { TenantContext } from 'src/common/tenancy/tenant-context';
+import { OrganizationEntity } from 'src/organizations/entities/organization.entity';
+import { OrganizationMemberEntity } from 'src/organizations/entities/organization-member.entity';
+import { OrganizationKindEnum } from 'src/organizations/enums/organization-kind.enum';
+import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
+import { SoloOrganizationService } from 'src/organizations/solo-organization.service';
 import {
   PaymentHistoryEntity,
   PaymentStatusEnum,
@@ -24,6 +31,8 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import {
+  ALL_FEATURE_KEYS,
+  ALL_LIMIT_KEYS,
   SEED_PLAN_PRESETS,
   validateFeaturesInput,
   validateLimitsInput,
@@ -36,6 +45,8 @@ import {
   CreatePlanDto,
   GrantTempAccessDto,
   ReorderPlansDto,
+  CreateFeatureRequestDto,
+  SetFeatureOverrideDto,
   SubscribeByPlanIdDto,
   SubscriptionOverridesDto,
   UpdatePlanDto,
@@ -51,14 +62,29 @@ export class SubscriptionService implements OnModuleInit {
     @InjectRepository(SubscriptionPlanEntity)
     private readonly planRepo: Repository<SubscriptionPlanEntity>,
 
-    @InjectRepository(TeacherSubscriptionEntity)
-    private readonly subscriptionRepo: Repository<TeacherSubscriptionEntity>,
+    @InjectRepository(AccountSubscriptionEntity)
+    private readonly subscriptionRepo: Repository<AccountSubscriptionEntity>,
 
     @InjectRepository(PaymentHistoryEntity)
     private readonly paymentRepo: Repository<PaymentHistoryEntity>,
 
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
+
+    @InjectRepository(FeatureOverrideEntity)
+    private readonly overrideRepo: Repository<FeatureOverrideEntity>,
+
+    @InjectRepository(FeatureRequestEntity)
+    private readonly featureRequestRepo: Repository<FeatureRequestEntity>,
+
+    @InjectRepository(OrganizationEntity)
+    private readonly organizationRepo: Repository<OrganizationEntity>,
+
+    @InjectRepository(OrganizationMemberEntity)
+    private readonly memberRepo: Repository<OrganizationMemberEntity>,
+
+    private readonly entitlementsService: EntitlementsService,
+    private readonly soloOrganizations: SoloOrganizationService,
   ) {}
 
   async onModuleInit() {
@@ -181,7 +207,10 @@ export class SubscriptionService implements OnModuleInit {
     plan.updated_user_name = jwtPayload.full_name;
     plan.updated_at = new Date();
 
-    return this.planRepo.save(plan);
+    const saved = await this.planRepo.save(plan);
+    // Every organisation on this plan sees the change at its next page load (FND-07).
+    await this.entitlementsService.invalidate();
+    return saved;
   }
 
   async deletePlan(planId: string): Promise<void> {
@@ -227,46 +256,34 @@ export class SubscriptionService implements OnModuleInit {
   async setPlanActive(planId: string, active: boolean): Promise<SubscriptionPlanEntity> {
     const plan = await this.getPlanById(planId);
     plan.is_plan_active = active;
-    return this.planRepo.save(plan);
+    const saved = await this.planRepo.save(plan);
+    await this.entitlementsService.invalidate();
+    return saved;
   }
 
-  async getTeacherSubscription(teacherId: string): Promise<TeacherSubscriptionEntity | null> {
-    const subscription = await this.subscriptionRepo.findOne({
-      where: { teacher_id: teacherId, status: SubscriptionStatusEnum.ACTIVE },
-      relations: ['plan'],
-      order: { created_at: 'DESC' },
-    });
+  // ===========================================================================
+  // Account subscriptions (P2-02): a plan belongs to an organisation (a solo teacher's SOLO one
+  // or a school). No ACTIVE subscription means the Free plan.
+  // ===========================================================================
 
-    if (subscription?.end_date && new Date(subscription.end_date) < new Date()) {
-      subscription.status = SubscriptionStatusEnum.EXPIRED;
-      await this.subscriptionRepo.save(subscription);
-      return null;
+  async getAccountSubscription(organizationId: string): Promise<AccountSubscriptionEntity | null> {
+    return this.entitlementsService.findActiveSubscription(organizationId);
+  }
+
+  /** A solo teacher manages their own plan; in a school the owner and admins do. */
+  async assertCanManageBilling(organizationId: string, userId: string): Promise<void> {
+    const membership = await this.memberRepo.findOne({
+      where: { organization_id: organizationId, user_id: userId },
+      relations: ['organization'],
+    });
+    const allowed =
+      membership &&
+      membership.is_active !== ActiveStatusEnum.INACTIVE &&
+      (membership.role === OrganizationMemberRoleEnum.OWNER ||
+        (membership.role === OrganizationMemberRoleEnum.ADMIN && membership.organization?.kind !== OrganizationKindEnum.SOLO));
+    if (!allowed) {
+      throw new ForbiddenException("Only the owner or an admin can change this workspace's plan");
     }
-
-    return subscription;
-  }
-
-  async provisionFreePlan(teacherId: string, actorName = 'System'): Promise<TeacherSubscriptionEntity> {
-    const existing = await this.getTeacherSubscription(teacherId);
-    if (existing) return existing;
-
-    const freePlan = await this.getPlanBySlug('free');
-
-    const subscription = this.subscriptionRepo.create({
-      teacher_id: teacherId,
-      plan_id: freePlan.id,
-      billing_cycle: undefined,
-      amount_paid: 0,
-      status: SubscriptionStatusEnum.ACTIVE,
-      start_date: new Date(),
-      exams_used_this_month: 0,
-      total_exams_used: 0,
-      last_monthly_reset: new Date(),
-      created_user_name: actorName,
-      created_at: new Date(),
-    });
-
-    return this.subscriptionRepo.save(subscription);
   }
 
   private calculateBilling(plan: SubscriptionPlanEntity, cycle: BillingCycleEnum) {
@@ -295,8 +312,8 @@ export class SubscriptionService implements OnModuleInit {
     return { amount, endDate, startDate };
   }
 
-  private async cancelActiveSubscription(teacherId: string): Promise<TeacherSubscriptionEntity | null> {
-    const existing = await this.getTeacherSubscription(teacherId);
+  private async cancelActiveSubscription(organizationId: string): Promise<AccountSubscriptionEntity | null> {
+    const existing = await this.getAccountSubscription(organizationId);
     if (existing) {
       existing.status = SubscriptionStatusEnum.CANCELLED;
       await this.subscriptionRepo.save(existing);
@@ -304,59 +321,67 @@ export class SubscriptionService implements OnModuleInit {
     return existing;
   }
 
-  private async cancelPendingSubscriptions(teacherId: string): Promise<void> {
+  private async cancelPendingSubscriptions(organizationId: string): Promise<void> {
     await this.subscriptionRepo.update(
-      { teacher_id: teacherId, status: SubscriptionStatusEnum.PENDING },
+      { organization_id: organizationId, status: SubscriptionStatusEnum.PENDING },
       { status: SubscriptionStatusEnum.CANCELLED },
     );
   }
 
-  async subscribe(
-    dto: SubscribeByPlanIdDto,
-    jwtPayload: JwtPayloadInterface,
-  ): Promise<TeacherSubscriptionEntity> {
-    const user = await this.userRepo.findOne({ where: { id: jwtPayload.id } });
-    if (!user || user.role !== RolesEnum.TEACHER) {
-      throw new BadRequestException('Only teachers can subscribe to plans');
-    }
+  /** The first OWNER of an organisation (who the legacy payment_history rows are filed under). */
+  private async ownerOf(organizationId: string): Promise<string | null> {
+    const owner = await this.memberRepo.findOne({
+      where: { organization_id: organizationId, role: OrganizationMemberRoleEnum.OWNER },
+      order: { created_at: 'ASC' },
+    });
+    return owner?.user_id ?? null;
+  }
+
+  /**
+   * Subscribe the current workspace (the request's tenant) to a plan. A free plan starts at
+   * once; a paid one stays PENDING, and the current plan keeps working, until payment succeeds.
+   * The price is computed here from the plan, never taken from the browser.
+   */
+  async subscribe(dto: SubscribeByPlanIdDto, jwtPayload: JwtPayloadInterface): Promise<AccountSubscriptionEntity> {
+    const organizationId = TenantContext.requireOrganizationId();
+    await this.assertCanManageBilling(organizationId, jwtPayload.id);
 
     const plan = await this.getPlanById(dto.plan_id);
     if (!plan.is_plan_active) {
       throw new BadRequestException('This plan is currently not available');
     }
 
-    const activeSubscription = await this.getTeacherSubscription(jwtPayload.id);
     const { amount, endDate, startDate } = this.calculateBilling(plan, dto.billing_cycle);
     const isFree = amount === 0;
 
     if (isFree) {
-      await this.cancelActiveSubscription(jwtPayload.id);
+      await this.cancelActiveSubscription(organizationId);
     } else {
-      // Paid upgrades: keep the current ACTIVE plan until payment succeeds.
-      await this.cancelPendingSubscriptions(jwtPayload.id);
+      await this.cancelPendingSubscriptions(organizationId);
     }
 
-    const subscription = this.subscriptionRepo.create({
-      teacher_id: jwtPayload.id,
-      plan_id: plan.id,
-      billing_cycle: dto.billing_cycle,
-      amount_paid: amount,
-      status: isFree ? SubscriptionStatusEnum.ACTIVE : SubscriptionStatusEnum.PENDING,
-      start_date: startDate,
-      end_date: isFree ? undefined : endDate,
-      exams_used_this_month: activeSubscription?.exams_used_this_month ?? 0,
-      total_exams_used: activeSubscription?.total_exams_used ?? 0,
-      last_monthly_reset: activeSubscription?.last_monthly_reset ?? new Date(),
-      created_by: jwtPayload.id,
-      created_user_name: jwtPayload.full_name,
-      created_at: new Date(),
-    });
+    const saved = await this.subscriptionRepo.save(
+      this.subscriptionRepo.create({
+        organization_id: organizationId,
+        teacher_id: jwtPayload.id,
+        plan_id: plan.id,
+        billing_cycle: dto.billing_cycle,
+        price_due: amount,
+        amount_paid: 0,
+        status: isFree ? SubscriptionStatusEnum.ACTIVE : SubscriptionStatusEnum.PENDING,
+        start_date: startDate,
+        end_date: isFree ? undefined : endDate,
+        created_by: jwtPayload.id,
+        created_user_name: jwtPayload.full_name,
+        created_at: new Date(),
+      }),
+    );
 
-    const saved = await this.subscriptionRepo.save(subscription);
-
-    if (!isFree && amount > 0) {
+    // A manual payment reference (bKash etc.) is recorded for an admin to confirm.
+    if (!isFree) {
       await this.paymentRepo.save(
         this.paymentRepo.create({
+          organization_id: organizationId,
           teacher_id: jwtPayload.id,
           subscription_id: saved.id,
           plan_id: plan.id,
@@ -372,56 +397,64 @@ export class SubscriptionService implements OnModuleInit {
       );
     }
 
-    const result = await this.subscriptionRepo.findOne({
-      where: { id: saved.id },
-      relations: ['plan'],
-    });
+    if (isFree) await this.entitlementsService.invalidate(organizationId);
 
+    const result = await this.subscriptionRepo.findOne({ where: { id: saved.id }, relations: ['plan'] });
     if (!result) throw new BadRequestException('Failed to create subscription');
     return result;
   }
 
-  async assignPlan(dto: AssignPlanDto, jwtPayload: JwtPayloadInterface): Promise<TeacherSubscriptionEntity> {
-    const teacher = await this.userRepo.findOne({ where: { id: dto.teacher_id } });
-    if (!teacher || teacher.role !== RolesEnum.TEACHER) {
-      throw new BadRequestException('Teacher not found');
+  /** The organisation a platform admin means: given directly, or a teacher's SOLO organisation. */
+  async resolveAdminTarget(target: { organization_id?: string; teacher_id?: string }): Promise<string> {
+    if (target.organization_id) {
+      const organization = await this.organizationRepo.findOne({ where: { id: target.organization_id } });
+      if (!organization) throw new NotFoundException('Organization not found');
+      return organization.id;
     }
+    if (target.teacher_id) {
+      const teacher = await this.userRepo.findOne({ where: { id: target.teacher_id } });
+      if (!teacher || teacher.role !== RolesEnum.TEACHER) throw new BadRequestException('Teacher not found');
+      return this.soloOrganizations.ensureForTeacher(teacher);
+    }
+    throw new BadRequestException('organization_id or teacher_id is required');
+  }
 
+  /** Platform admin: put an organisation on a plan now (no payment flow). */
+  async assignPlan(dto: AssignPlanDto, jwtPayload: JwtPayloadInterface): Promise<AccountSubscriptionEntity> {
+    const organizationId = await this.resolveAdminTarget(dto);
     const plan = await this.getPlanById(dto.plan_id);
-    const existingSubscription = await this.cancelActiveSubscription(dto.teacher_id);
+    await this.cancelActiveSubscription(organizationId);
 
     let amount = 0;
     let endDate: Date | undefined;
-    const startDate = new Date();
-
     if (dto.billing_cycle) {
       const billing = this.calculateBilling(plan, dto.billing_cycle);
       amount = billing.amount;
       endDate = billing.endDate;
     }
 
-    const subscription = this.subscriptionRepo.create({
-      teacher_id: dto.teacher_id,
-      plan_id: plan.id,
-      billing_cycle: dto.billing_cycle,
-      amount_paid: amount,
-      status: SubscriptionStatusEnum.ACTIVE,
-      start_date: startDate,
-      end_date: endDate,
-      exams_used_this_month: 0,
-      total_exams_used: existingSubscription?.total_exams_used ?? 0,
-      last_monthly_reset: new Date(),
-      created_by: jwtPayload.id,
-      created_user_name: jwtPayload.full_name,
-      created_at: new Date(),
-    });
-
-    const saved = await this.subscriptionRepo.save(subscription);
+    const saved = await this.subscriptionRepo.save(
+      this.subscriptionRepo.create({
+        organization_id: organizationId,
+        teacher_id: dto.teacher_id ?? null,
+        plan_id: plan.id,
+        billing_cycle: dto.billing_cycle,
+        price_due: amount,
+        amount_paid: amount,
+        status: SubscriptionStatusEnum.ACTIVE,
+        start_date: new Date(),
+        end_date: endDate,
+        created_by: jwtPayload.id,
+        created_user_name: jwtPayload.full_name,
+        created_at: new Date(),
+      }),
+    );
 
     if (amount > 0) {
       await this.paymentRepo.save(
         this.paymentRepo.create({
-          teacher_id: dto.teacher_id,
+          organization_id: organizationId,
+          teacher_id: dto.teacher_id ?? (await this.ownerOf(organizationId)) ?? jwtPayload.id,
           subscription_id: saved.id,
           plan_id: plan.id,
           billing_cycle: dto.billing_cycle,
@@ -437,42 +470,22 @@ export class SubscriptionService implements OnModuleInit {
       );
     }
 
-    const result = await this.subscriptionRepo.findOne({
-      where: { id: saved.id },
-      relations: ['plan', 'teacher'],
-    });
-
+    await this.entitlementsService.invalidate(organizationId);
+    const result = await this.subscriptionRepo.findOne({ where: { id: saved.id }, relations: ['plan', 'organization'] });
     if (!result) throw new BadRequestException('Failed to assign subscription');
     return result;
   }
 
-  async upgradePlan(dto: ChangePlanDto, jwtPayload: JwtPayloadInterface): Promise<TeacherSubscriptionEntity> {
-    return this.subscribe(
-      {
-        plan_id: dto.plan_id,
-        billing_cycle: dto.billing_cycle,
-        payment_method: dto.payment_method,
-      },
-      jwtPayload,
-    );
+  async upgradePlan(dto: ChangePlanDto, jwtPayload: JwtPayloadInterface): Promise<AccountSubscriptionEntity> {
+    return this.subscribe({ plan_id: dto.plan_id, billing_cycle: dto.billing_cycle, payment_method: dto.payment_method }, jwtPayload);
   }
 
-  async downgradePlan(dto: ChangePlanDto, jwtPayload: JwtPayloadInterface): Promise<TeacherSubscriptionEntity> {
-    return this.subscribe(
-      {
-        plan_id: dto.plan_id,
-        billing_cycle: dto.billing_cycle,
-        payment_method: dto.payment_method,
-      },
-      jwtPayload,
-    );
+  async downgradePlan(dto: ChangePlanDto, jwtPayload: JwtPayloadInterface): Promise<AccountSubscriptionEntity> {
+    return this.subscribe({ plan_id: dto.plan_id, billing_cycle: dto.billing_cycle, payment_method: dto.payment_method }, jwtPayload);
   }
 
-  async forceChangePlan(
-    teacherId: string,
-    dto: ChangePlanDto,
-    jwtPayload: JwtPayloadInterface,
-  ): Promise<TeacherSubscriptionEntity> {
+  /** Platform admin, legacy route keyed by teacher: changes their SOLO organisation's plan. */
+  async forceChangePlan(teacherId: string, dto: ChangePlanDto, jwtPayload: JwtPayloadInterface): Promise<AccountSubscriptionEntity> {
     return this.assignPlan(
       {
         teacher_id: teacherId,
@@ -485,89 +498,149 @@ export class SubscriptionService implements OnModuleInit {
     );
   }
 
-  async cancelSubscription(teacherId: string): Promise<TeacherSubscriptionEntity | null> {
-    const subscription = await this.cancelActiveSubscription(teacherId);
-    if (subscription) {
-      await this.provisionFreePlan(teacherId);
+  /** Cancel the current workspace's plan; it falls back to Free. */
+  async cancelSubscription(organizationId: string, userId: string): Promise<AccountSubscriptionEntity | null> {
+    await this.assertCanManageBilling(organizationId, userId);
+    const cancelled = await this.cancelActiveSubscription(organizationId);
+    await this.entitlementsService.invalidate(organizationId);
+    return cancelled;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Feature overrides (FND-07): a platform admin's per-organisation switches.
+  // ---------------------------------------------------------------------------
+
+  async setOverride(
+    organizationId: string,
+    key: string,
+    dto: SetFeatureOverrideDto,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<FeatureOverrideEntity> {
+    const isFeature = (ALL_FEATURE_KEYS as string[]).includes(key);
+    const isLimit = (ALL_LIMIT_KEYS as string[]).includes(key);
+    if (!isFeature && !isLimit) throw new BadRequestException(`Unknown feature or limit "${key}"`);
+    if (isFeature && typeof dto.value !== 'boolean') throw new BadRequestException(`"${key}" needs true or false`);
+    if (isLimit && (typeof dto.value !== 'number' || dto.value < 0)) {
+      throw new BadRequestException(`"${key}" needs a number of 0 or more (0 = no limit)`);
     }
-    return subscription;
+    const expiresAt = dto.expires_at ? new Date(dto.expires_at) : null;
+    if (expiresAt && Number.isNaN(expiresAt.getTime())) throw new BadRequestException('expires_at must be a date');
+    await this.resolveAdminTarget({ organization_id: organizationId });
+
+    const existing = await this.overrideRepo.findOne({ where: { organization_id: organizationId, key } });
+    const saved = await this.overrideRepo.save(
+      this.overrideRepo.create({
+        ...(existing ?? {}),
+        organization_id: organizationId,
+        key,
+        value: dto.value,
+        expires_at: expiresAt,
+        reason: dto.reason ?? null,
+        granted_by: jwtPayload.id,
+        ...(existing
+          ? { updated_by: jwtPayload.id, updated_user_name: jwtPayload.full_name, updated_at: new Date() }
+          : { created_by: jwtPayload.id, created_user_name: jwtPayload.full_name, created_at: new Date() }),
+      }),
+    );
+    await this.entitlementsService.invalidate(organizationId);
+    return saved;
   }
 
+  async removeOverride(organizationId: string, key: string): Promise<void> {
+    await this.overrideRepo.delete({ organization_id: organizationId, key });
+    await this.entitlementsService.invalidate(organizationId);
+  }
+
+  /** Legacy bulk form ({ features, limits, expires_at }), stored as one override per key. */
   async setSubscriptionOverrides(
-    teacherId: string,
+    target: { organization_id?: string; teacher_id?: string },
     dto: SubscriptionOverridesDto,
-  ): Promise<TeacherSubscriptionEntity> {
-    const subscription = await this.getTeacherSubscription(teacherId);
-    if (!subscription) throw new NotFoundException('No active subscription found');
-
-    subscription.overrides = {
-      features: dto.features ? validateFeaturesInput(dto.features) : subscription.overrides?.features,
-      limits: dto.limits ? validateLimitsInput(dto.limits) : subscription.overrides?.limits,
-      expires_at: dto.expires_at ?? subscription.overrides?.expires_at,
-    };
-
-    return this.subscriptionRepo.save(subscription);
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<FeatureOverrideEntity[]> {
+    const organizationId = await this.resolveAdminTarget(target);
+    const entries: Array<[string, boolean | number]> = [
+      ...Object.entries(dto.features ? validateFeaturesInput(dto.features) : {}),
+      ...Object.entries(dto.limits ? validateLimitsInput(dto.limits) : {}),
+    ];
+    const saved: FeatureOverrideEntity[] = [];
+    for (const [key, value] of entries) {
+      saved.push(await this.setOverride(organizationId, key, { value, expires_at: dto.expires_at }, jwtPayload));
+    }
+    return saved;
   }
 
-  async grantTempAccess(dto: GrantTempAccessDto, jwtPayload: JwtPayloadInterface): Promise<TeacherSubscriptionEntity> {
+  async grantTempAccess(dto: GrantTempAccessDto, jwtPayload: JwtPayloadInterface): Promise<FeatureOverrideEntity[]> {
+    const organizationId = await this.resolveAdminTarget(dto);
     if (dto.plan_id) {
       await this.assignPlan(
-        {
-          teacher_id: dto.teacher_id,
-          plan_id: dto.plan_id,
-          billing_cycle: BillingCycleEnum.MONTHLY,
-          notes: 'Temporary access grant',
-        },
+        { organization_id: organizationId, plan_id: dto.plan_id, billing_cycle: BillingCycleEnum.MONTHLY, notes: 'Temporary access grant' },
         jwtPayload,
       );
     }
-
-    return this.setSubscriptionOverrides(dto.teacher_id, {
-      features: dto.features,
-      limits: dto.limits,
-      expires_at: dto.expires_at,
-    });
+    return this.setSubscriptionOverrides(
+      { organization_id: organizationId },
+      { features: dto.features, limits: dto.limits, expires_at: dto.expires_at },
+      jwtPayload,
+    );
   }
 
+  /** Platform admin: an organisation's plan, overrides and effective entitlements. */
+  async getAdminOrganizationEntitlements(organizationId: string) {
+    const organization = await this.organizationRepo.findOne({ where: { id: organizationId } });
+    if (!organization) throw new NotFoundException('Organization not found');
+    const [entitlements, overrides] = await Promise.all([
+      this.entitlementsService.getEntitlements(organizationId),
+      this.overrideRepo.find({ where: { organization_id: organizationId }, order: { key: 'ASC' } }),
+    ]);
+    return {
+      organization: { id: organization.id, name: organization.name, kind: organization.kind, status: organization.status },
+      entitlements,
+      overrides,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Payments
+  // ---------------------------------------------------------------------------
+
   private async swapToActiveSubscription(
-    subscription: TeacherSubscriptionEntity,
+    subscription: AccountSubscriptionEntity,
     amount: number,
-  ): Promise<TeacherSubscriptionEntity> {
-    const previousActive = await this.getTeacherSubscription(subscription.teacher_id);
+  ): Promise<AccountSubscriptionEntity> {
+    const previousActive = await this.getAccountSubscription(subscription.organization_id);
     if (previousActive && previousActive.id !== subscription.id) {
-      subscription.total_exams_used = previousActive.total_exams_used;
-      if (previousActive.plan_id === subscription.plan_id) {
-        subscription.exams_used_this_month = previousActive.exams_used_this_month;
-        subscription.last_monthly_reset = previousActive.last_monthly_reset;
-      }
       previousActive.status = SubscriptionStatusEnum.CANCELLED;
       await this.subscriptionRepo.save(previousActive);
     }
 
     subscription.status = SubscriptionStatusEnum.ACTIVE;
     subscription.amount_paid = amount;
-    return this.subscriptionRepo.save(subscription);
+    const saved = await this.subscriptionRepo.save(subscription);
+    await this.entitlementsService.invalidate(subscription.organization_id);
+    return saved;
   }
 
   /**
-   * Load a PENDING paid subscription owned by `teacherId` for checkout.
-   * Another teacher's subscription is reported as not found, so ids are not leaked.
-   * The price is `amount_paid`, computed by `subscribe()` from the plan on the server.
+   * A PENDING paid subscription of `organizationId`, for checkout by someone who may manage its
+   * billing. Another organisation's subscription is "not found", so ids are not leaked. The price
+   * is `price_due`, computed by `subscribe()` from the plan on the server.
    */
   async getPendingSubscriptionForPayment(
     subscriptionId: string,
-    teacherId: string,
-  ): Promise<TeacherSubscriptionEntity> {
+    organizationId: string,
+    userId: string,
+  ): Promise<AccountSubscriptionEntity> {
     const subscription = await this.subscriptionRepo.findOne({
-      where: { id: subscriptionId, teacher_id: teacherId },
+      where: { id: subscriptionId, organization_id: organizationId },
       relations: ['plan'],
     });
 
     if (!subscription) throw new NotFoundException('Subscription not found');
+    await this.assertCanManageBilling(organizationId, userId);
     if (subscription.status !== SubscriptionStatusEnum.PENDING) {
       throw new BadRequestException('Subscription is not awaiting payment');
     }
-    if (!(Number(subscription.amount_paid) > 0)) {
+    if (!(Number(subscription.price_due) > 0)) {
       throw new BadRequestException('Subscription has no payable amount');
     }
 
@@ -579,16 +652,12 @@ export class SubscriptionService implements OnModuleInit {
     transactionId: string,
     amount: number,
     gatewayReference?: string,
-  ): Promise<TeacherSubscriptionEntity> {
-    const subscription = await this.subscriptionRepo.findOne({
-      where: { id: subscriptionId },
-      relations: ['plan'],
-    });
-
+  ): Promise<AccountSubscriptionEntity> {
+    const subscription = await this.subscriptionRepo.findOne({ where: { id: subscriptionId }, relations: ['plan'] });
     if (!subscription) throw new NotFoundException('Subscription not found');
 
     // Defence in depth: never activate for less than the server-side price.
-    const price = Number(subscription.amount_paid);
+    const price = Number(subscription.price_due);
     if (!(Number(amount) + 0.01 >= price)) {
       throw new BadRequestException('Paid amount is below the subscription price');
     }
@@ -597,7 +666,8 @@ export class SubscriptionService implements OnModuleInit {
 
     await this.paymentRepo.save(
       this.paymentRepo.create({
-        teacher_id: subscription.teacher_id,
+        organization_id: subscription.organization_id,
+        teacher_id: subscription.teacher_id ?? (await this.ownerOf(subscription.organization_id)) ?? undefined,
         subscription_id: subscription.id,
         plan_id: subscription.plan_id,
         billing_cycle: subscription.billing_cycle,
@@ -614,15 +684,8 @@ export class SubscriptionService implements OnModuleInit {
     return activated;
   }
 
-  async confirmPayment(
-    paymentId: string,
-    transactionId: string,
-    jwtPayload: JwtPayloadInterface,
-  ): Promise<PaymentHistoryEntity> {
-    const payment = await this.paymentRepo.findOne({
-      where: { id: paymentId },
-      relations: ['subscription'],
-    });
+  async confirmPayment(paymentId: string, transactionId: string, jwtPayload: JwtPayloadInterface): Promise<PaymentHistoryEntity> {
+    const payment = await this.paymentRepo.findOne({ where: { id: paymentId }, relations: ['subscription'] });
 
     if (!payment) throw new NotFoundException('Payment not found');
     if (payment.status === PaymentStatusEnum.COMPLETED) {
@@ -635,37 +698,25 @@ export class SubscriptionService implements OnModuleInit {
     payment.updated_by = jwtPayload.id;
     payment.updated_user_name = jwtPayload.full_name;
     payment.updated_at = new Date();
-
     await this.paymentRepo.save(payment);
 
     if (payment.subscription) {
       await this.swapToActiveSubscription(payment.subscription, Number(payment.amount));
     }
-
     return payment;
   }
 
-  async getPaymentHistory(teacherId: string): Promise<PaymentHistoryEntity[]> {
+  async getPaymentHistory(organizationId: string): Promise<PaymentHistoryEntity[]> {
     return this.paymentRepo.find({
-      where: { teacher_id: teacherId },
+      where: { organization_id: organizationId },
       relations: ['subscription'],
       order: { created_at: 'DESC' },
     });
   }
 
-  async incrementExamCount(teacherId: string): Promise<void> {
-    let subscription = await this.getTeacherSubscription(teacherId);
-    if (!subscription) {
-      subscription = await this.provisionFreePlan(teacherId);
-    }
-    subscription.exams_used_this_month += 1;
-    subscription.total_exams_used += 1;
-    await this.subscriptionRepo.save(subscription);
-  }
-
-  async getAllSubscriptions(): Promise<TeacherSubscriptionEntity[]> {
+  async getAllSubscriptions(): Promise<AccountSubscriptionEntity[]> {
     return this.subscriptionRepo.find({
-      relations: ['teacher', 'plan'],
+      relations: ['teacher', 'plan', 'organization'],
       order: { created_at: 'DESC' },
     });
   }
@@ -723,5 +774,54 @@ export class SubscriptionService implements OnModuleInit {
     teacher.is_active = active ? ActiveStatusEnum.ACTIVE : ActiveStatusEnum.INACTIVE;
     teacher.updated_at = new Date();
     return this.userRepo.save(teacher);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Feature requests (FND-08)
+  // ---------------------------------------------------------------------------
+
+  /** "Request this feature" for the current workspace; an open request for the same feature is reused. */
+  async createFeatureRequest(dto: CreateFeatureRequestDto, jwtPayload: JwtPayloadInterface): Promise<FeatureRequestEntity> {
+    const organizationId = TenantContext.requireOrganizationId();
+    if (!(ALL_FEATURE_KEYS as string[]).includes(dto.feature_key)) {
+      throw new BadRequestException(`Unknown feature "${dto.feature_key}"`);
+    }
+    const open = await this.featureRequestRepo.findOne({
+      where: { organization_id: organizationId, feature_key: dto.feature_key, status: FeatureRequestStatusEnum.OPEN },
+    });
+    if (open) return open;
+
+    return this.featureRequestRepo.save(
+      this.featureRequestRepo.create({
+        organization_id: organizationId,
+        user_id: jwtPayload.id,
+        feature_key: dto.feature_key,
+        note: dto.note?.trim() || null,
+        status: FeatureRequestStatusEnum.OPEN,
+        created_by: jwtPayload.id,
+        created_user_name: jwtPayload.full_name,
+        created_at: new Date(),
+      }),
+    );
+  }
+
+  async listFeatureRequests(status?: FeatureRequestStatusEnum): Promise<FeatureRequestEntity[]> {
+    return this.featureRequestRepo.find({
+      where: status ? { status } : {},
+      relations: ['organization', 'user'],
+      order: { created_at: 'DESC' },
+      take: 200,
+    });
+  }
+
+  async markFeatureRequestHandled(id: string, jwtPayload: JwtPayloadInterface): Promise<FeatureRequestEntity> {
+    const request = await this.featureRequestRepo.findOne({ where: { id } });
+    if (!request) throw new NotFoundException('Request not found');
+    request.status = FeatureRequestStatusEnum.HANDLED;
+    request.handled_at = new Date();
+    request.updated_by = jwtPayload.id;
+    request.updated_user_name = jwtPayload.full_name;
+    request.updated_at = new Date();
+    return this.featureRequestRepo.save(request);
   }
 }

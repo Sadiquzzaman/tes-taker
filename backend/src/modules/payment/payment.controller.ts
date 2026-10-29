@@ -1,3 +1,4 @@
+import { OrganizationContextGuard } from 'src/organizations/guards/organization-context.guard';
 import { Body, Controller, Get, Logger, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
@@ -24,7 +25,7 @@ export class PaymentController {
   @Post('initiate')
   @Throttle({ default: { ttl: 60000, limit: 15 } })
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER)
   @ApiOperation({
     summary: 'Initiate a payment',

@@ -12,7 +12,6 @@ import { SmsService } from 'src/sms/sms.service';
 import { SmsRateLimitService } from 'src/sms/sms-rate-limit.service';
 import { EmailService } from 'src/email/email.service';
 import { ClassService } from 'src/classes/class.service';
-import { SubscriptionService } from 'src/subscriptions/subscription.service';
 import { OrganizationsService } from 'src/organizations/organization.service';
 import { UserContextService } from 'src/organizations/user-context.service';
 import { TeacherRequestService } from 'src/teacher-requests/teacher-request.service';
@@ -31,7 +30,6 @@ export class AuthService {
     private readonly smsRateLimitService: SmsRateLimitService,
     private readonly emailService: EmailService,
     private readonly classService: ClassService,
-    private readonly subscriptionService: SubscriptionService,
     private readonly organizationsService: OrganizationsService,
     private readonly userContextService: UserContextService,
     private readonly teacherRequestService: TeacherRequestService,
@@ -234,21 +232,7 @@ export class AuthService {
       }
     }
 
-    // Only provision personal teacher subscription when personal teacher context is enabled.
-    // Organization-only teachers/owners must not get a personal teaching workspace automatically.
-    const verifiedUser = await this.userService.findByPhone(phone);
-    if (verifiedUser?.personal_teacher_enabled) {
-      try {
-        await this.subscriptionService.provisionFreePlan(
-          verifiedUser.id,
-          verifiedUser.full_name ?? 'Teacher',
-        );
-      } catch (error) {
-        this.logger.error(
-          `Failed to provision free subscription: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    }
+    // No subscription is created at sign-up: a workspace without one is on the Free plan (P2-02).
 
     // Handle class invitation if provided (classInvitationToken is actually classId)
     if (classInvitationToken) {

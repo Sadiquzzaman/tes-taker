@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -16,6 +17,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { TenantContext } from 'src/common/tenancy/tenant-context';
+import { OrganizationContextGuard } from 'src/organizations/guards/organization-context.guard';
 import { RolesGuard } from 'src/common/guard/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesEnum } from 'src/common/enums/roles.enum';
@@ -28,12 +31,14 @@ import {
   LIMIT_CATALOG,
 } from './constants/feature-catalog';
 import { PlanVisibilityEnum } from './entities/subscription-plan.entity';
+import { FeatureRequestStatusEnum } from './entities/feature-request.entity';
 import {
   AssignPlanDto,
   ChangePlanDto,
   CreatePlanDto,
   GrantTempAccessDto,
   ReorderPlansDto,
+  SetFeatureOverrideDto,
   SetTeacherActiveDto,
   SubscribeByPlanIdDto,
   SubscriptionOverridesDto,
@@ -82,87 +87,85 @@ export class SubscriptionController {
   // TEACHER ENDPOINTS
   // ========================
 
+  // The routes below act on the current workspace (P2-02): a solo teacher's SOLO organisation,
+  // or the school of an organisation session. OrganizationContextGuard resolves it.
+
   @Get('my-subscription')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER)
-  async getMySubscription(@UserPayload() jwtPayload: JwtPayloadInterface) {
-    const payload = await this.subscriptionService.getTeacherSubscription(jwtPayload.id);
+  async getMySubscription() {
+    const payload = await this.subscriptionService.getAccountSubscription(TenantContext.requireOrganizationId());
     return {
       message: payload ? 'Subscription retrieved successfully' : 'No active subscription',
       payload,
     };
   }
 
+  /** Kept for one release; use GET /me/entitlements. */
   @Get('my-entitlements')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @ApiOperation({ deprecated: true, summary: 'Deprecated: use GET /me/entitlements' })
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER)
-  async getMyEntitlements(@UserPayload() jwtPayload: JwtPayloadInterface) {
-    const payload = await this.entitlementsService.getEntitlements(jwtPayload.id);
+  async getMyEntitlements() {
+    const payload = await this.entitlementsService.getEntitlements(TenantContext.requireOrganizationId());
     return { message: 'Entitlements retrieved successfully', payload };
   }
 
   @Post('subscribe')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER)
-  async subscribe(
-    @Body() dto: SubscribeByPlanIdDto,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-  ) {
+  async subscribe(@Body() dto: SubscribeByPlanIdDto, @UserPayload() jwtPayload: JwtPayloadInterface) {
     const payload = await this.subscriptionService.subscribe(dto, jwtPayload);
     return { message: 'Subscription created successfully', payload };
   }
 
   @Post('upgrade')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER)
-  async upgrade(
-    @Body() dto: ChangePlanDto,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-  ) {
+  async upgrade(@Body() dto: ChangePlanDto, @UserPayload() jwtPayload: JwtPayloadInterface) {
     const payload = await this.subscriptionService.upgradePlan(dto, jwtPayload);
     return { message: 'Plan upgraded successfully', payload };
   }
 
   @Post('downgrade')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER)
-  async downgrade(
-    @Body() dto: ChangePlanDto,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-  ) {
+  async downgrade(@Body() dto: ChangePlanDto, @UserPayload() jwtPayload: JwtPayloadInterface) {
     const payload = await this.subscriptionService.downgradePlan(dto, jwtPayload);
     return { message: 'Plan downgraded successfully', payload };
   }
 
   @Post('cancel')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER)
   async cancel(@UserPayload() jwtPayload: JwtPayloadInterface) {
-    const payload = await this.subscriptionService.cancelSubscription(jwtPayload.id);
+    const payload = await this.subscriptionService.cancelSubscription(TenantContext.requireOrganizationId(), jwtPayload.id);
     return { message: 'Subscription cancelled', payload };
   }
 
   @Get('my-payment-history')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER)
   async getMyPaymentHistory(@UserPayload() jwtPayload: JwtPayloadInterface) {
-    const payload = await this.subscriptionService.getPaymentHistory(jwtPayload.id);
+    const organizationId = TenantContext.requireOrganizationId();
+    await this.subscriptionService.assertCanManageBilling(organizationId, jwtPayload.id);
+    const payload = await this.subscriptionService.getPaymentHistory(organizationId);
     return { message: 'Payment history retrieved successfully', payload };
   }
 
   @Get('can-create-exam')
   @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
   @Roles(RolesEnum.TEACHER)
-  async canCreateExam(@UserPayload() jwtPayload: JwtPayloadInterface) {
-    const payload = await this.entitlementsService.canCreateExam(jwtPayload.id);
+  async canCreateExam() {
+    const payload = await this.entitlementsService.canCreateExam(TenantContext.requireOrganizationId());
     return { message: 'Eligibility check completed', payload };
   }
 
@@ -316,7 +319,9 @@ export class SubscriptionController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   async getTeacherSubscription(@Param('teacherId', ParseUUIDPipe) teacherId: string) {
-    const payload = await this.subscriptionService.getTeacherSubscription(teacherId);
+    // A teacher's own plan now lives on their SOLO organisation (P2-02).
+    const organizationId = await this.subscriptionService.resolveAdminTarget({ teacher_id: teacherId });
+    const payload = await this.subscriptionService.getAccountSubscription(organizationId);
     return {
       message: payload ? 'Subscription retrieved successfully' : 'No active subscription',
       payload,
@@ -328,7 +333,8 @@ export class SubscriptionController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
   async getTeacherPaymentHistory(@Param('teacherId', ParseUUIDPipe) teacherId: string) {
-    const payload = await this.subscriptionService.getPaymentHistory(teacherId);
+    const organizationId = await this.subscriptionService.resolveAdminTarget({ teacher_id: teacherId });
+    const payload = await this.subscriptionService.getPaymentHistory(organizationId);
     return { message: 'Payment history retrieved successfully', payload };
   }
 
@@ -345,6 +351,69 @@ export class SubscriptionController {
       message: dto.active ? 'Teacher enabled successfully' : 'Teacher disabled successfully',
       payload,
     };
+  }
+
+  // ========================
+  // ORGANISATION ENTITLEMENTS (FND-07, FND-08)
+  // ========================
+
+  @Get('admin/organizations/:organizationId/entitlements')
+  @ApiBearerAuth('jwt')
+  @ApiOperation({ summary: "An organisation's plan, the platform admin's overrides and what it may use now" })
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  async getOrganizationEntitlements(@Param('organizationId', ParseUUIDPipe) organizationId: string) {
+    const payload = await this.subscriptionService.getAdminOrganizationEntitlements(organizationId);
+    return { message: 'Entitlements retrieved successfully', payload };
+  }
+
+  @Put('admin/organizations/:organizationId/overrides/:key')
+  @ApiBearerAuth('jwt')
+  @ApiOperation({ summary: 'Switch one feature on or off, or set one limit, for an organisation' })
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  async setOrganizationOverride(
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+    @Param('key') key: string,
+    @Body() dto: SetFeatureOverrideDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.subscriptionService.setOverride(organizationId, key, dto, jwtPayload);
+    return { message: 'Override saved', payload };
+  }
+
+  @Delete('admin/organizations/:organizationId/overrides/:key')
+  @ApiBearerAuth('jwt')
+  @ApiOperation({ summary: "Remove an override; the organisation's plan applies again" })
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  async removeOrganizationOverride(
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+    @Param('key') key: string,
+  ) {
+    await this.subscriptionService.removeOverride(organizationId, key);
+    return { message: 'Override removed' };
+  }
+
+  @Get('admin/feature-requests')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  async listFeatureRequests(@Query('status') status?: FeatureRequestStatusEnum) {
+    const payload = await this.subscriptionService.listFeatureRequests(status);
+    return { message: 'Feature requests retrieved successfully', payload };
+  }
+
+  @Patch('admin/feature-requests/:id/handled')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  async markFeatureRequestHandled(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.subscriptionService.markFeatureRequestHandled(id, jwtPayload);
+    return { message: 'Request marked as handled', payload };
   }
 
   // ========================
@@ -373,8 +442,9 @@ export class SubscriptionController {
   async setOverrides(
     @Param('teacherId', ParseUUIDPipe) teacherId: string,
     @Body() dto: SubscriptionOverridesDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
-    const payload = await this.subscriptionService.setSubscriptionOverrides(teacherId, dto);
+    const payload = await this.subscriptionService.setSubscriptionOverrides({ teacher_id: teacherId }, dto, jwtPayload);
     return { message: 'Overrides applied successfully', payload };
   }
 
