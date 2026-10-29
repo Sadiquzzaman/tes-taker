@@ -31,7 +31,9 @@
     "students": "Students",
     "assignments": "Assignments",
     "account": "Account",
-    "help": "Help"
+    "help": "Help",
+    "features": "More features",
+    "featureRequests": "Feature requests"
   },
   "shell": {
     "organization": "Organization",
@@ -1367,7 +1369,7 @@
   },
   "billing": {
     "title": "Billing and plans",
-    "intro": "Choose a plan and upgrade your account.",
+    "intro": "Your workspace's plan and usage, and the plans you can upgrade to.",
     "currentPlan": "Current plan: <b>{plan}</b>",
     "free": "Free",
     "refresh": "Refresh usage",
@@ -1390,7 +1392,9 @@
     "downgradeHint": "Contact support to move to a lower plan.",
     "upgrade": "Upgrade",
     "noPlans": "No paid plans are available for this billing period.",
-    "loadFailed": "Your plan did not load."
+    "loadFailed": "Your plan did not load.",
+    "memberHint": "Only the workspace owner or an admin can change the plan. Ask your admin to unlock more features.",
+    "seeFeatures": "See all features"
   },
   "payment": {
     "reference": "Reference",
@@ -1733,8 +1737,8 @@
       "rejected": "The user stays a student."
     },
     "organizations": {
-      "title": "Organisation requests",
-      "intro": "Approve or reject organisation registrations.",
+      "title": "Organisations",
+      "intro": "Approve registrations, and set each organisation's plan and features.",
       "search": "Search by organisation name",
       "organization": "Organisation",
       "number": "Number",
@@ -1748,7 +1752,13 @@
       "approvedTitle": "Organisation approved",
       "approved": "It can now be used as a workspace.",
       "rejectedTitle": "Organisation rejected",
-      "rejected": "The registration was rejected."
+      "rejected": "The registration was rejected.",
+      "planAndFeatures": "Plan & features",
+      "kindFilter": "Show",
+      "kinds": {
+        "organizations": "Organisations",
+        "solo": "Solo teachers"
+      }
     },
     "subjects": {
       "title": "Subjects",
@@ -1812,6 +1822,53 @@
         "FAILED": "Failed",
         "REFUNDED": "Refunded"
       }
+    },
+    "organizationPlan": {
+      "title": "Plan & features: {name}",
+      "solo": "Solo teacher",
+      "loadFailed": "The plan did not load.",
+      "planHeading": "Plan",
+      "currentPlan": "Current plan: {plan}",
+      "until": "until {date}",
+      "noExpiry": "no end date",
+      "plan": "Plan to assign",
+      "choosePlan": "Choose a plan",
+      "assign": "Assign plan",
+      "changeOptions": "Options for the changes below",
+      "changeOptionsHint": "Each switch or limit you change below uses this end date and reason.",
+      "expiresOn": "Until (optional)",
+      "expiresHint": "After this day the plan applies again.",
+      "reason": "Reason (optional)",
+      "effective": "Now: {value}",
+      "on": "On",
+      "off": "Off",
+      "planDefault": "Plan default ({value})",
+      "switchFor": "Switch for {name}",
+      "limitsHeading": "Limits",
+      "limitsHint": "Leave empty to use the plan's limit. 0 means no limit.",
+      "noLimit": "No limit",
+      "fromPlan": "from the plan",
+      "limitFor": "Limit for {name}",
+      "save": "Save",
+      "saveFor": "Save {name}",
+      "reset": "Use plan",
+      "resetFor": "Use the plan's {name}",
+      "savedTitle": "Saved",
+      "saved": "The organisation sees the change on its next page load."
+    },
+    "featureRequests": {
+      "title": "Feature requests",
+      "intro": "Features customers asked for on the More features page.",
+      "feature": "Feature",
+      "askedBy": "Asked by",
+      "statuses": {
+        "OPEN": "Open",
+        "HANDLED": "Handled"
+      },
+      "markHandled": "Mark handled",
+      "handledTitle": "Marked handled",
+      "handled": "The request is closed.",
+      "empty": "No feature requests."
     }
   },
   "notFound": {
@@ -1996,6 +2053,171 @@
     "footer": {
       "rights": "© {year} Instructor. All rights reserved.",
       "links": "Account"
+    }
+  },
+  "features": {
+    "locked": {
+      "title": "Not in your plan",
+      "limitTitle": "Plan limit reached",
+      "ownerMessage": "This feature is one upgrade away — unlock it today!",
+      "memberMessage": "Ask your admin to unlock this.",
+      "upgrade": "Upgrade",
+      "close": "Close",
+      "moreFeatures": "See all features and request one"
+    },
+    "page": {
+      "title": "More features",
+      "intro": "What your plan includes, and what you can unlock.",
+      "planTitle": "Your plan: {plan}",
+      "free": "Free",
+      "upgradeHint": "Upgrade to unlock the locked features below.",
+      "upgrade": "Upgrade",
+      "included": "Included",
+      "locked": "Locked",
+      "requested": "Requested",
+      "request": "Request this feature",
+      "requestFor": "Request {name}",
+      "requestTitle": "Request {name}",
+      "requestDetail": "We will contact you about adding it to your workspace.",
+      "note": "Note (optional)",
+      "noteHint": "Tell us what you need it for.",
+      "cancel": "Cancel",
+      "send": "Send request",
+      "sentTitle": "Request sent",
+      "sent": "We will contact you about {name}.",
+      "loadFailed": "The features did not load."
+    },
+    "groups": {
+      "Question": "Questions",
+      "Branding": "Branding",
+      "Analytics": "Analytics",
+      "Notifications": "Notifications",
+      "Proctoring": "Proctoring"
+    },
+    "catalog": {
+      "allow_graded_questions": {
+        "name": "Graded questions",
+        "description": "Questions with marks, checked automatically or by you."
+      },
+      "allow_ungraded_questions": {
+        "name": "Ungraded questions",
+        "description": "Practice and survey questions that carry no marks."
+      },
+      "allow_passage_questions": {
+        "name": "Passage questions",
+        "description": "Several questions on one reading passage."
+      },
+      "allow_model_tests": {
+        "name": "Model tests",
+        "description": "Mock exams students sit before the real one."
+      },
+      "allow_question_images": {
+        "name": "Question images",
+        "description": "Add pictures to questions and answers."
+      },
+      "allow_question_import_export": {
+        "name": "Import and export questions",
+        "description": "Bring questions in from a file, and save them to one."
+      },
+      "enable_report_watermark": {
+        "name": "Report watermark",
+        "description": "Your name or logo on printed reports."
+      },
+      "graphical_analytics": {
+        "name": "Graphical analytics",
+        "description": "Charts of class and test results."
+      },
+      "performance_graphs": {
+        "name": "Performance graphs",
+        "description": "Each student's progress over time."
+      },
+      "advanced_analytics": {
+        "name": "Advanced analytics",
+        "description": "Results broken down by question and topic."
+      },
+      "student_risk_score": {
+        "name": "Student risk score",
+        "description": "Spot students who may fall behind."
+      },
+      "push_notifications": {
+        "name": "Push notifications",
+        "description": "Alerts on phones and in the browser."
+      },
+      "suspicious_activity_notifications": {
+        "name": "Suspicious activity alerts",
+        "description": "Be told when proctoring flags a student."
+      },
+      "proctoring_tab_switch": {
+        "name": "Tab switch detection",
+        "description": "Notice when a student leaves the test tab."
+      },
+      "proctoring_fullscreen_exit": {
+        "name": "Full-screen exit detection",
+        "description": "Notice when a student leaves full screen."
+      },
+      "proctoring_page_refresh": {
+        "name": "Page reload detection",
+        "description": "Notice when a student reloads the test."
+      },
+      "proctoring_copy_paste": {
+        "name": "Copy and paste detection",
+        "description": "Notice copying and pasting during a test."
+      },
+      "proctoring_idle": {
+        "name": "Idle detection",
+        "description": "Notice when a student stops working for a while."
+      },
+      "proctoring_browser_change": {
+        "name": "Browser change detection",
+        "description": "Notice when a test continues in another browser."
+      },
+      "proctoring_no_face": {
+        "name": "No-face detection",
+        "description": "Camera check: notice when no face is in view."
+      },
+      "proctoring_multiple_face": {
+        "name": "Several-faces detection",
+        "description": "Camera check: notice more than one face."
+      },
+      "proctoring_looking_away": {
+        "name": "Looking-away detection",
+        "description": "Camera check: notice a student looking away."
+      },
+      "proctoring_devtools": {
+        "name": "Developer tools detection",
+        "description": "Notice when the browser's developer tools are opened."
+      },
+      "proctoring_double_display": {
+        "name": "Second screen detection",
+        "description": "Notice a second display."
+      },
+      "proctoring_phone": {
+        "name": "Phone detection",
+        "description": "Camera check: notice a phone in view."
+      },
+      "proctoring_voice": {
+        "name": "Voice detection",
+        "description": "Microphone check: notice talking."
+      },
+      "proctoring_video_monitoring": {
+        "name": "Live video monitoring",
+        "description": "Watch students' cameras during the test."
+      },
+      "proctoring_real_time_alerts": {
+        "name": "Real-time alerts",
+        "description": "See proctoring flags as they happen."
+      },
+      "proctoring_auto_disqualification": {
+        "name": "Automatic disqualification",
+        "description": "End a test automatically after repeated flags."
+      }
+    },
+    "limits": {
+      "max_exams_per_month": "Tests per month",
+      "max_total_exams": "Tests in total",
+      "max_students_per_exam": "Students per test",
+      "max_question_bank_size": "Questions in the question bank",
+      "max_storage_mb": "Storage (MB)"
     }
   }
 }

@@ -22,13 +22,20 @@ import {
 import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
+import AdminOrganizationPlanDrawer from "./AdminOrganizationPlanDrawer";
 import AdminSearchForm from "./AdminSearchForm";
 
 const PAGE_LIMIT = 20;
 const STATUSES: OrganizationStatus[] = ["pending", "approved", "rejected"];
 const TONE = { pending: "warning", approved: "success", rejected: "danger", inactive: "neutral" } as const;
 
-/** Organisation registrations: approve them, or reject with an optional reason. */
+/** Kinds the list can show: registered organisations (the default), or teachers' own SOLO workspaces. */
+type KindFilter = "" | "SOLO";
+
+/**
+ * Organisation registrations: approve them, or reject with an optional reason. Approved
+ * organisations, and solo teachers' workspaces, open "Plan & features" (FND-07).
+ */
 const AdminOrganizationsTable = () => {
   const t = useTranslations("admin");
   const tOrg = useTranslations("organization");
@@ -47,12 +54,20 @@ const AdminOrganizationsTable = () => {
   const [approving, setApproving] = useState<AdminOrganizationItem | null>(null);
   const [rejecting, setRejecting] = useState<AdminOrganizationItem | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [kindFilter, setKindFilter] = useState<KindFilter>("");
+  const [planFor, setPlanFor] = useState<AdminOrganizationItem | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await axiosReq.get<AdminOrganizationsListResponse>(`${baseUrl}/organizations/admin`, {
-        params: { page: currentPage, limit: PAGE_LIMIT, search: search.trim() || undefined, status: statusFilter || undefined },
+        params: {
+          page: currentPage,
+          limit: PAGE_LIMIT,
+          search: search.trim() || undefined,
+          status: statusFilter || undefined,
+          kind: kindFilter || undefined,
+        },
       });
       setOrganizations(res.data?.payload ?? []);
       setTotalPages(Math.max(res.data?.meta?.total_pages ?? 1, 1));
@@ -61,7 +76,7 @@ const AdminOrganizationsTable = () => {
     } finally {
       setLoading(false);
     }
-  }, [baseUrl, currentPage, handleError, search, statusFilter]);
+  }, [baseUrl, currentPage, handleError, kindFilter, search, statusFilter]);
 
   useEffect(() => {
     void loadData();
@@ -145,6 +160,12 @@ const AdminOrganizationsTable = () => {
               {t("common.reject")}
             </Button>
           </div>
+        ) : row.status === "approved" ? (
+          <div className="flex justify-end">
+            <Button size="sm" variant="secondary" onClick={() => setPlanFor(row)}>
+              {t("organizations.planAndFeatures")}
+            </Button>
+          </div>
         ) : (
           <span className="text-body-sm text-ink-muted">{row.rejected_reason || "—"}</span>
         ),
@@ -161,6 +182,23 @@ const AdminOrganizationsTable = () => {
           setSearch(value);
         }}
       >
+        <Select
+          label={t("organizations.kindFilter")}
+          fieldClassName="sm:w-48"
+          placeholder={false}
+          value={kindFilter}
+          onChange={(event) => {
+            const next = event.target.value as KindFilter;
+            setCurrentPage(1);
+            setKindFilter(next);
+            // Solo workspaces are approved when they are created, so "waiting" would show none.
+            if (next === "SOLO") setStatusFilter("");
+          }}
+          options={[
+            { value: "", label: t("organizations.kinds.organizations") },
+            { value: "SOLO", label: t("organizations.kinds.solo") },
+          ]}
+        />
         <Select
           label={t("common.statusFilter")}
           fieldClassName="sm:w-48"
@@ -190,6 +228,7 @@ const AdminOrganizationsTable = () => {
       </Card>
       <Pagination page={currentPage} pageCount={totalPages} onPageChange={setCurrentPage} />
 
+      <AdminOrganizationPlanDrawer organization={planFor} onClose={() => setPlanFor(null)} />
       <ConfirmDialog
         open={Boolean(approving)}
         title={t("organizations.approveTitle", { name: approving?.name ?? "" })}

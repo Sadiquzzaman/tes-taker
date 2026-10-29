@@ -13,10 +13,10 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Emails, SMS and PDFs in the recipient's language — P2-08 (message templates keyed by locale) and the PDF work; P1-04 covers screens only.
 - Raise the library's default Button and IconButton (`h-10`, 40 px) to the 44 px tap target in plan §3.5 — P1-06 used `min-h-11` or `size="lg"` on the landing page only; changing the default touches every screen, so do it as its own change with a visual check.
 - Translate the geometry, graph and chemistry workspaces inside the rich-text editor (`component/RichTextEditor/{geometry,graph,chemistry,panels}`, ~150 tool labels) — P1-05 covered the editor chrome (toolbar, node controls, equation dialog) only.
-- Plan feature and limit names in the admin plan editor come from the API in English (`/subscriptions/feature-catalog`) — return keys and translate them in the browser.
+- Plan feature and limit names in Admin → Plans (`AdminPlansManager`) come from the API in English — P2-02 added translated names by key (`messages features.catalog`, `useFeatureNames`) for More features and Admin → Organisations; switch the plan editor to them.
 - Terms of Service and Privacy Policy pages — the signup checkbox links went to `#`; P1-05 shows them as plain text until the pages exist.
 - Proctoring flag details sent to the teacher's live log stay in English — the student now sees translated text by flag type; translate the teacher view with the teacher screens.
-- Hide sidebar items by feature switch — AppShell shows items by role only; needs the P2-02 entitlements.
+- Put `feature` on the first menu items in `frontend/utils/sidebarList.tsx` — P2-02 added the gate (hidden while the plan has the feature off), but today's keys are options inside pages, so no item uses it until the epics (attendance, homework, …) add their keys.
 - Notification bell contents — the top-bar bell is decorative until the P2-08 inbox exists.
 - Dark mode — not in the plan yet; the tokens are ready for a second set of values.
 - Build the Docker images in GitHub Actions and have beta only pull them — beta (3.8 GB RAM) ran out of memory building the frontend on 2026-10-24; a 4 GB swap file fixed it for now.
@@ -26,7 +26,9 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Hidden default branch and `org_settings` per organisation (design §8.1, M2) — deferred from P2-01 because nothing uses them yet; add them with attendance settings (P3-01) or the setup wizard (P2-04).
 - Row-level security on tenant tables (design §8.1 phase 2) — P2-01 enforces tenancy in the guard, `TenantContext` and `tenantScoped()`; RLS is the database-level backstop.
 - Move the remaining class and exam queries onto `tenantScoped()` — P2-01 switched the personal-workspace paths and kept existing organisation-session queries (already filtered by `organization_id`); convert the rest as those services are touched.
-- Plan presets overwrite admin edits on every API start — `SubscriptionService.seedPlans()` resets the price, features and limits of the seeded plans (free, basic, premium, pro), so changes made in Admin → Plans are lost on the next deploy. Seed only missing plans; needs an owner decision on which source wins.
 - P2-02 contract step (one release after #P2-02): drop `account_subscriptions.teacher_id`, `overrides`, `exams_used_this_month`, `total_exams_used`, `last_monthly_reset`, and the deprecated `GET /subscriptions/my-entitlements`; merge `payment_history` into `payments` (design §9.1) and make `payments.organization_id` NOT NULL.
 - Notify platform admins of new feature requests (FND-08) — P2-02 stores and lists them; the SMS/email goes out through the outbox in P2-08.
 - `@RequiresFeature` has no route yet — today's gates are per question type inside the exam service (same 403 code); use the decorator on the first whole-feature routes (attendance, homework, …).
+- "More features" shows "Requested" only until the page reloads — there is no `GET /me/feature-requests`; the server keeps one open request per feature, so a second click does no harm.
+- Class endpoints (`GET /classes`, `GET /classes/:id`, `/students`, `/teachers`, `/subjects`, subject-teacher assignments) and the admin subscription endpoints still return whole user rows (`google_id`, `is_active`, `locale`, …) — the password and refresh-token hashes are now `select: false`; map them to a small user view when the class screens are reworked.
+- Flush cached exam papers (`exam:paper:*` in Redis) on beta and production after the user-secrets fix deploys, or wait for the 6-hour TTL — entries cached before the fix still hold target/excluded students' password and refresh-token hashes; owner decision.

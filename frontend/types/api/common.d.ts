@@ -11,6 +11,12 @@ interface ApiError {
   timestamp: string;
   path: string;
   message: ErrorMessage;
+  /** Machine-readable reason (design §8.3), e.g. FEATURE_NOT_IN_PLAN. */
+  code?: string;
+  /** With FEATURE_NOT_IN_PLAN: the feature key. */
+  feature?: string;
+  /** With PLAN_LIMIT_REACHED: the limit key. */
+  limit?: string;
 }
 
 type ErrorMessage =

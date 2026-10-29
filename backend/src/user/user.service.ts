@@ -8,7 +8,7 @@ import { RolesEnum } from 'src/common/enums/roles.enum';
 import { CryptoUtil } from 'src/common/utils/crypto.util';
 import { RefreshTokenUtil } from 'src/common/utils/refresh-token.util';
 import { UserFilterUtil } from 'src/common/utils/user-filter.util';
-import { Brackets, In, Repository } from 'typeorm';
+import { Brackets, FindOptionsWhere, In, Repository } from 'typeorm';
 import { UserReponseDto } from './dto/user-response.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { UserEntity, UserLocale } from './entities/user.entity';
@@ -283,6 +283,15 @@ export class UserService implements OnModuleInit {
     return randomBytes(10).toString('hex');
   }
 
+  /** Loads a user including the password hash, which is `select: false` on the entity. */
+  private findOneWithPassword(where: FindOptionsWhere<UserEntity>): Promise<UserEntity | null> {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where(where)
+      .getOne();
+  }
+
   async findById(id: string): Promise<UserEntity> {
     const user = await this.userRepository.findOne({
       where: {
@@ -435,13 +444,9 @@ export class UserService implements OnModuleInit {
     let user: UserEntity | null;
 
     if (loginDto.email && loginDto.email.includes('@')) {
-      user = await this.userRepository.findOne({
-        where: { email: loginDto.email.trim().toLowerCase() },
-      });
+      user = await this.findOneWithPassword({ email: loginDto.email.trim().toLowerCase() });
     } else if (loginDto.phone) {
-      user = await this.userRepository.findOne({
-        where: { phone: loginDto.phone },
-      });
+      user = await this.findOneWithPassword({ phone: loginDto.phone });
     } else {
       throw new UnauthorizedException('Invalid login credentials');
     }
@@ -479,9 +484,7 @@ export class UserService implements OnModuleInit {
     organization_name: string;
     organization_status: string;
   }): Promise<UserReponseDto> {
-    const user = await this.userRepository.findOne({
-      where: { phone: params.phone },
-    });
+    const user = await this.findOneWithPassword({ phone: params.phone });
 
     if (!user) {
       throw new UnauthorizedException('Invalid login credentials');
@@ -628,7 +631,7 @@ export class UserService implements OnModuleInit {
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.findOneWithPassword({ id: userId });
 
     if (!user) {
       throw new NotFoundException('User not found');

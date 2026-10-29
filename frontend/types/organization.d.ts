@@ -69,6 +69,8 @@ interface OrganizationRegisterInfo {
 interface AdminOrganizationItem {
   id: string;
   name: string;
+  /** SCHOOL, COACHING, …, or SOLO (a teacher's own workspace). */
+  kind?: string;
   public_id?: string | null;
   organization_number?: number;
   status: OrganizationStatus;

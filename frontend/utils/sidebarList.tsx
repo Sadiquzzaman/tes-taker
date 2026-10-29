@@ -6,7 +6,8 @@ import SidebarHelpIconSVG from "@/component/svg/SidebarHelpIconSVG";
 import SidebarResultsIconSVG from "@/component/svg/SidebarResultsIconSVG";
 import SidebarTestsIconSVG from "@/component/svg/SidebarTestsIconSVG";
 
-// `label` is a message key under `nav` in messages/*.json.
+// `label` is a message key under `nav` in messages/*.json. `feature` hides an item while the
+// workspace's plan has that feature off (FND-07); the first such items come with the epics (attendance, …).
 const sidebarList: SideBarList[] = [
   {
     category: "Admin",
@@ -52,6 +53,13 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Admin",
+    label: "featureRequests",
+    route: "/admin/feature-requests",
+    role: ["ADMIN", "SUPER_ADMIN"],
+    image: <SidebarHelpIconSVG width={16} />,
+  },
+  {
+    category: "Admin",
     label: "subjects",
     route: "/admin/subjects",
     role: ["ADMIN", "SUPER_ADMIN"],
@@ -91,6 +99,13 @@ const sidebarList: SideBarList[] = [
     route: "/billing",
     role: ["TEACHER"],
     image: <SidebarResultsIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
+    label: "features",
+    route: "/features",
+    role: ["TEACHER"],
+    image: <SidebarTestsIconSVG width={16} />,
   },
   {
     category: "Organization",
@@ -154,6 +169,22 @@ const sidebarList: SideBarList[] = [
     route: "/tests",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "TEACHER"],
+    image: <SidebarTestsIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
+    label: "billing",
+    route: "/billing",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN"],
+    image: <SidebarResultsIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
+    label: "features",
+    route: "/features",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
     image: <SidebarTestsIconSVG width={16} />,
   },
   {

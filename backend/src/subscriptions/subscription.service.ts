@@ -93,32 +93,35 @@ export class SubscriptionService implements OnModuleInit {
     await this.seedPlans();
   }
 
-  private async seedPlans() {
+  /**
+   * Creates the preset plans (free, basic, premium, pro) that do not exist yet. Existing plans are
+   * never changed: Admin → Plans owns their prices, features, limits and visibility.
+   */
+  private async seedPlans(): Promise<void> {
+    const created: string[] = [];
     for (const preset of Object.values(SEED_PLAN_PRESETS)) {
       const existing = await this.planRepo.findOne({ where: { slug: preset.slug } });
-      const planData = {
-        name: preset.name,
-        slug: preset.slug,
-        description: preset.description,
-        price_monthly: preset.price_monthly,
-        price_half_yearly: preset.price_half_yearly,
-        price_yearly: preset.price_yearly,
-        features: mergeFeatures(preset.features),
-        limits: mergeLimits(preset.limits),
-        is_plan_active: true,
-        sort_order: preset.sort_order,
-        is_custom: false,
-        visibility: PlanVisibilityEnum.PUBLIC,
-      };
+      if (existing) continue;
 
-      if (existing) {
-        Object.assign(existing, planData);
-        await this.planRepo.save(existing);
-      } else {
-        await this.planRepo.save(this.planRepo.create(planData));
-      }
+      await this.planRepo.save(
+        this.planRepo.create({
+          name: preset.name,
+          slug: preset.slug,
+          description: preset.description,
+          price_monthly: preset.price_monthly,
+          price_half_yearly: preset.price_half_yearly,
+          price_yearly: preset.price_yearly,
+          features: mergeFeatures(preset.features),
+          limits: mergeLimits(preset.limits),
+          is_plan_active: true,
+          sort_order: preset.sort_order,
+          is_custom: false,
+          visibility: PlanVisibilityEnum.PUBLIC,
+        }),
+      );
+      created.push(preset.slug);
     }
-    this.logger.log('Subscription plans seeded/updated successfully');
+    if (created.length) this.logger.log(`Subscription plans created: ${created.join(', ')}`);
   }
 
   async getAllPlans(includeHidden = false): Promise<SubscriptionPlanEntity[]> {
@@ -215,6 +218,10 @@ export class SubscriptionService implements OnModuleInit {
 
   async deletePlan(planId: string): Promise<void> {
     const plan = await this.getPlanById(planId);
+    // Every organisation without a subscription is on Free (EntitlementsService.getFreePlan).
+    if (plan.slug === 'free') {
+      throw new BadRequestException('The Free plan cannot be deleted; edit it or change its limits instead');
+    }
     const activeSubs = await this.subscriptionRepo.count({
       where: { plan_id: plan.id, status: SubscriptionStatusEnum.ACTIVE },
     });
@@ -805,13 +812,20 @@ export class SubscriptionService implements OnModuleInit {
     );
   }
 
-  async listFeatureRequests(status?: FeatureRequestStatusEnum): Promise<FeatureRequestEntity[]> {
-    return this.featureRequestRepo.find({
+  /** The newest 200 requests, with only the organisation and user fields the admin list shows. */
+  async listFeatureRequests(status?: FeatureRequestStatusEnum) {
+    const requests = await this.featureRequestRepo.find({
       where: status ? { status } : {},
       relations: ['organization', 'user'],
       order: { created_at: 'DESC' },
       take: 200,
     });
+    // Never the whole user row: it holds the password hash (no serializer strips @Exclude fields).
+    return requests.map(({ organization, user, ...request }) => ({
+      ...request,
+      organization: organization ? { id: organization.id, name: organization.name, kind: organization.kind } : null,
+      user: user ? { id: user.id, full_name: user.full_name, email: user.email, phone: user.phone } : null,
+    }));
   }
 
   async markFeatureRequestHandled(id: string, jwtPayload: JwtPayloadInterface): Promise<FeatureRequestEntity> {

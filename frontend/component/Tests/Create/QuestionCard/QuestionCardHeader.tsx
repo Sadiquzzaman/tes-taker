@@ -14,10 +14,10 @@ import { useAppDispatch } from "@/lib/hooks";
 import { memo, useCallback, useEffect, useRef, type ChangeEvent } from "react";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import { Tooltip } from "@/design/ui";
-import Link from "next/link";
 import type { ParsedPastedQuestion } from "@/utils/exam/parsePastedQuestion";
 import { QUESTION_BUILDER_GAPS } from "./shared";
 import { resolveMediaUrl, uploadExamImage } from "@/utils/media/uploadMedia";
+import UpgradeLink from "@/component/Subscription/UpgradeLink";
 
 function QuestionCardHeader({
   activateCard,
@@ -240,9 +240,7 @@ function QuestionCardHeader({
                   !canUploadImages ? (
                     <span>
                       {t("notInPlan")}{" "}
-                      <Link href="/billing" className="underline text-primary">
-                        {t("upgrade")}
-                      </Link>
+                      <UpgradeLink />
                     </span>
                   ) : null
                 }
