@@ -341,11 +341,14 @@ export class OrganizationsService {
     const limit = Math.min(50, Math.max(1, query.limit ?? 20));
     const search = query.search?.trim();
 
-    // Platform admins review registered organisations; SOLO workspaces are created automatically.
-    const qb = this.organizationRepo
-      .createQueryBuilder('org')
-      .where('org.kind <> :solo', { solo: OrganizationKindEnum.SOLO })
-      .orderBy('org.created_at', 'DESC');
+    // Platform admins review registered organisations; SOLO workspaces are created automatically,
+    // so they are listed only when asked for (to set a solo teacher's plan and features).
+    const qb = this.organizationRepo.createQueryBuilder('org').orderBy('org.created_at', 'DESC');
+    if (query.kind) {
+      qb.where('org.kind = :kind', { kind: query.kind });
+    } else {
+      qb.where('org.kind <> :solo', { solo: OrganizationKindEnum.SOLO });
+    }
 
     if (query.status) {
       qb.andWhere('org.status = :status', { status: query.status });
@@ -382,6 +385,7 @@ export class OrganizationsService {
         return {
           id: org.id,
           name: org.name,
+          kind: org.kind,
           public_id: org.public_id,
           organization_number: Number(org.organization_number),
           status: org.status,

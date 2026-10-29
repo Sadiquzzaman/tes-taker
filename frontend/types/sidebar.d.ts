@@ -5,6 +5,8 @@ interface SideBarList {
   route: string;
   role: RoleUserType[];
   memberRoles?: OrganizationMemberRole[];
+  /** Feature key from the plan; the item is hidden while the workspace's plan has it off (FND-07). */
+  feature?: string;
   image: React.ReactNode;
   children?: SideBarList[];
 }
