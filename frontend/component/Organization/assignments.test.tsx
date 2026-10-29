@@ -64,9 +64,11 @@ const data: Record<string, unknown> = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Matched on the end of the path: CI sets NEXT_PUBLIC_BASE_URL, locally it is unset.
   get.mockImplementation((url: string) => {
-    const path = url.replace(/^undefined/, "").split("?")[0];
-    return path in data ? Promise.resolve({ data: { payload: data[path] } }) : Promise.reject(new Error(`unexpected GET ${path}`));
+    const path = url.split("?")[0];
+    const key = Object.keys(data).find((route) => path.endsWith(route));
+    return key ? Promise.resolve({ data: { payload: data[key] } }) : Promise.reject(new Error(`unexpected GET ${path}`));
   });
   put.mockResolvedValue({ data: { payload: {} } });
 });
