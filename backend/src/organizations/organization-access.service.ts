@@ -8,7 +8,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { ClassEntity } from 'src/classes/entities/class.entity';
-import { ClassSubjectTeacherEntity } from 'src/classes/entities/class-subject-teacher.entity';
+import { ClassSubjectEntity } from 'src/classes/entities/class-subject.entity';
+import { teachesClassCondition, teachesSubjectCondition } from 'src/academics/teacher-queries';
 import { ClassKindEnum } from 'src/classes/enums/class-kind.enum';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
 import { OrganizationEntity } from './entities/organization.entity';
@@ -26,8 +27,8 @@ export class OrganizationAccessService {
     private readonly memberRepo: Repository<OrganizationMemberEntity>,
     @InjectRepository(ClassEntity)
     private readonly classRepo: Repository<ClassEntity>,
-    @InjectRepository(ClassSubjectTeacherEntity)
-    private readonly classSubjectTeacherRepo: Repository<ClassSubjectTeacherEntity>,
+    @InjectRepository(ClassSubjectEntity)
+    private readonly classSubjectRepo: Repository<ClassSubjectEntity>,
   ) {}
 
   static readonly ASSIGNABLE_TEACHING_ROLES: OrganizationMemberRoleEnum[] = [
@@ -40,26 +41,28 @@ export class OrganizationAccessService {
     return Boolean(role && OrganizationAccessService.ASSIGNABLE_TEACHING_ROLES.includes(role));
   }
 
+  /**
+   * Teaches in the class (P2-03 part 2b): a teacher of one of its subject classes, or the class
+   * teacher of one of its sections when the organisation uses class teachers (open sessions only).
+   */
   async isAssignedToOrganizationClass(userId: string, classId: string): Promise<boolean> {
-    const assignment = await this.classSubjectTeacherRepo
-      .createQueryBuilder('cst')
-      .innerJoin('cst.classSubject', 'classSubject')
-      .where('cst.teacher_id = :userId', { userId })
-      .andWhere('classSubject.class_id = :classId', { classId })
-      .andWhere('cst.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
-      .getOne();
-    return Boolean(assignment);
+    const count = await this.classRepo
+      .createQueryBuilder('class')
+      .where('class.id = :classId', { classId })
+      .andWhere(teachesClassCondition('class'), { teacherId: userId })
+      .getCount();
+    return count > 0;
   }
 
+  /** Teaches this class subject: a teacher of its subject class in one of the class's sections. */
   async isAssignedToClassSubject(userId: string, classSubjectId: string): Promise<boolean> {
-    const assignment = await this.classSubjectTeacherRepo.findOne({
-      where: {
-        teacher_id: userId,
-        class_subject_id: classSubjectId,
-        is_active: ActiveStatusEnum.ACTIVE,
-      },
-    });
-    return Boolean(assignment);
+    const count = await this.classSubjectRepo
+      .createQueryBuilder('classSubject')
+      .where('classSubject.id = :classSubjectId', { classSubjectId })
+      .andWhere('classSubject.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
+      .andWhere(teachesSubjectCondition('classSubject'), { teacherId: userId })
+      .getCount();
+    return count > 0;
   }
 
   /** Active membership only — soft-removed members have no access. */
@@ -92,7 +95,7 @@ export class OrganizationAccessService {
 
   /**
    * Org teachers (and OWNER/ADMIN who are assigned) may create exams only for
-   * classes where they have a class_subject_teachers assignment.
+   * classes they teach in (isAssignedToOrganizationClass).
    * Academic managers are not auto-creators. Assistants and students cannot create.
    */
   async canCreateExam(

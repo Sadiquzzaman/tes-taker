@@ -12,6 +12,7 @@ import { ClassStudentView, toClassStudentView } from './class-student-view';
 import { EnrolmentEntity, EnrolmentStatusEnum } from 'src/academics/entities/enrolment.entity';
 import { EnrolmentsService } from 'src/academics/enrolments.service';
 import { activeEnrolmentCondition } from 'src/academics/enrolment-queries';
+import { teachesClassCondition, teachesSubjectCondition } from 'src/academics/teacher-queries';
 import { ClassTeacherEntity } from './entities/class-teacher.entity';
 import { ClassSubjectEntity } from './entities/class-subject.entity';
 import { ClassSubjectTeacherEntity } from './entities/class-subject-teacher.entity';
@@ -200,16 +201,12 @@ export class ClassService {
           order: { created_at: 'DESC' },
         });
       } else {
-        const assignedRows = await this.classSubjectTeacherRepo
-          .createQueryBuilder('cst')
-          .innerJoin('cst.classSubject', 'classSubject')
-          .innerJoin('classSubject.class', 'assignedClass')
-          .where('cst.teacher_id = :userId', { userId: jwtPayload.id })
-          .andWhere('assignedClass.organization_id = :orgId', {
-            orgId: orgContext.organizationId,
-          })
-          .select('classSubject.class_id', 'class_id')
-          .distinct(true)
+        // Classes the teacher teaches in, or is a section's class teacher of (P2-03 part 2b).
+        const assignedRows = await this.classRepo
+          .createQueryBuilder('assignedClass')
+          .select('assignedClass.id', 'class_id')
+          .where('assignedClass.organization_id = :orgId', { orgId: orgContext.organizationId })
+          .andWhere(teachesClassCondition('assignedClass'), { teacherId: jwtPayload.id })
           .getRawMany<{ class_id: string }>();
         const assignedIds = assignedRows.map((row) => row.class_id);
 
@@ -1256,14 +1253,16 @@ export class ClassService {
     orgContext?: OrgContext | null,
   ) {
     await this.findOne(classId, jwtPayload, orgContext);
-    const rows = await this.classSubjectRepo.find({
-      where: { class_id: classId },
-      relations: ['subject', 'teachers'],
-      order: { created_at: 'ASC' },
-    });
+    // The subjects the teacher teaches in this class (subject class teachers, P2-03 part 2b).
+    const rows = await this.classSubjectRepo
+      .createQueryBuilder('classSubject')
+      .leftJoinAndSelect('classSubject.subject', 'subject')
+      .where('classSubject.class_id = :classId', { classId })
+      .andWhere(teachesSubjectCondition('classSubject'), { teacherId })
+      .orderBy('classSubject.created_at', 'ASC')
+      .getMany();
 
     return rows
-      .filter((row) => row.teachers?.some((assignment) => assignment.teacher_id === teacherId))
       .map((row) => ({
         class_subject_id: row.id,
         subject_id: row.subject_id,
@@ -1283,10 +1282,7 @@ export class ClassService {
     if (!classSubject) {
       throw new ForbiddenException('This subject is not attached to the selected class');
     }
-    const assignment = await this.classSubjectTeacherRepo.findOne({
-      where: { class_subject_id: classSubject.id, teacher_id: teacherId },
-    });
-    if (!assignment) {
+    if (!(await this.organizationAccessService.isAssignedToClassSubject(teacherId, classSubject.id))) {
       throw new ForbiddenException(
         'You can only create tests for subjects assigned to you in this class',
       );

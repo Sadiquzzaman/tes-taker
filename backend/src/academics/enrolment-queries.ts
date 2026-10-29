@@ -6,20 +6,21 @@ import { EnrolmentEntity, EnrolmentStatusEnum } from './entities/enrolment.entit
  * The one rule for "this student is in the class" (P2-03): an ACTIVE enrolment in a session that is
  * not closed, or, when a session is given (an exam's session), an ACTIVE enrolment in that session.
  * Every module that reads enrolments joins with this condition; writes go through EnrolmentsService.
+ * Aliases are quoted because TypeORM does not rewrite aliases inside raw subqueries.
  *
  *   qb.innerJoin(EnrolmentEntity, 'e', `e.class_id = class.id AND e.student_id = :studentId AND ${cond.sql}`, { studentId, ...cond.params })
  */
 export function activeEnrolmentCondition(alias: string, sessionId?: string | null): { sql: string; params: ObjectLiteral } {
-  const active = `${alias}.status = '${EnrolmentStatusEnum.ACTIVE}' AND ${alias}.student_id IS NOT NULL`;
+  const active = `"${alias}"."status" = '${EnrolmentStatusEnum.ACTIVE}' AND "${alias}"."student_id" IS NOT NULL`;
   if (sessionId) {
-    return { sql: `${active} AND ${alias}.session_id = :activeEnrolmentSessionId`, params: { activeEnrolmentSessionId: sessionId } };
+    return { sql: `${active} AND "${alias}"."session_id" = :activeEnrolmentSessionId`, params: { activeEnrolmentSessionId: sessionId } };
   }
   return { sql: `${active} AND ${openSessionCondition(alias)}`, params: {} };
 }
 
 /** The enrolment's session is not closed. */
 export function openSessionCondition(alias: string): string {
-  return `EXISTS (SELECT 1 FROM academic_sessions enrolment_session WHERE enrolment_session.id = ${alias}.session_id AND enrolment_session.status = '${AcademicSessionStatusEnum.ACTIVE}')`;
+  return `EXISTS (SELECT 1 FROM academic_sessions enrolment_session WHERE enrolment_session.id = "${alias}"."session_id" AND enrolment_session.status = '${AcademicSessionStatusEnum.ACTIVE}')`;
 }
 
 /** Statuses that are still part of a class (shown on class screens): not LEFT or PROMOTED. */
