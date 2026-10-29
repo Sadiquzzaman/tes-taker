@@ -2195,7 +2195,8 @@ export class ExamService {
       if (existing.organization_id !== orgContext.organizationId) {
         throw new ForbiddenException('Exam does not belong to the current organization context');
       }
-    } else if (existing.organization_id) {
+    } else if (existing.organization_id && existing.organization_id !== TenantContext.current()?.organizationId) {
+      // A personal session edits exams in the teacher's own SOLO organisation only (P2-01).
       throw new ForbiddenException(
         'This exam belongs to an organization. Provide X-Organization-Id.',
       );
