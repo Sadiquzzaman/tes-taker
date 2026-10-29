@@ -9,24 +9,30 @@ vi.mock("@/hooks/organization/useWorkspace", () => ({ default: () => ({ isIndivi
 vi.mock("@/hooks/classes/useClassDetails", () => ({
   default: () => ({ loading: false, apiComplete: true, classData, fetch: vi.fn(), testList: [], handleShareClass: vi.fn() }),
 }));
-vi.mock("./ClassSubjectsPanel", () => ({ default: () => <p>subjects panel</p> }));
+vi.mock("../Academics/ClassSections", () => ({ default: () => <p>sections panel</p> }));
 
 afterEach(() => cleanup());
 
 /**
- * Since P2-01 every class has an organisation (a solo teacher's is a SOLO one), so the class's
- * kind, not the presence of an organisation, decides whether it is a school class.
+ * Sections (P2-03) are for school classes and solo teachers' classes alike (coaching batches);
+ * students never see the tab.
  */
-describe("class details by class kind", () => {
-  it("shows the Subjects tab for a school class", () => {
+describe("class details tabs", () => {
+  it("shows the Sections tab to teachers of a school class", () => {
     classData = { id: "c1", class_name: "Class 9", organization_id: "school", class_kind: "ORGANIZATION", classStudents: [] };
     renderApp(<ClassDetailsComponent classId="c1" role="TEACHER" />);
-    expect(screen.getByRole("tab", { name: "Subjects" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Sections" })).toBeTruthy();
   });
 
-  it("hides it for a solo teacher's class, even though it has an organisation", () => {
+  it("shows it for a solo teacher's class too", () => {
     classData = { id: "c2", class_name: "Physics 9", organization_id: "solo-org", class_kind: "PERSONAL", classStudents: [] };
     renderApp(<ClassDetailsComponent classId="c2" role="TEACHER" />);
-    expect(screen.queryByRole("tab", { name: "Subjects" })).toBeNull();
+    expect(screen.getByRole("tab", { name: "Sections" })).toBeTruthy();
+  });
+
+  it("hides it from students", () => {
+    classData = { id: "c3", class_name: "Physics 9", organization_id: "solo-org", class_kind: "PERSONAL", classStudents: [] };
+    renderApp(<ClassDetailsComponent classId="c3" role="STUDENT" />);
+    expect(screen.queryByRole("tab", { name: "Sections" })).toBeNull();
   });
 });

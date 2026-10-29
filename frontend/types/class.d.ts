@@ -141,6 +141,9 @@ interface ClassStudent {
   joined_at: string | null;
   approved_at: string | null;
   approved_by: string | null;
+  /** The student's section (P2-03); null for rows from before sections. */
+  section?: { id: string; name: string } | null;
+  roll_no?: string | null;
 }
 
 interface DeleteClassStudentPayload {
