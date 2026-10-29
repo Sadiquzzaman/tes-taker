@@ -7,6 +7,7 @@ import { Badge, Card, PageHeader, Skeleton, StatTile, StatusPill } from "@/desig
 import { useApiError } from "@/hooks/api/useApiError";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 import axiosReq from "@/lib/axios";
+import OrganizationSettingsCard from "./OrganizationSettingsCard";
 import OrganizationWorkspaceGate from "./OrganizationWorkspaceGate";
 
 const STATUS_TONE = { pending: "warning", approved: "success", rejected: "danger", inactive: "neutral" } as const;
@@ -80,6 +81,7 @@ const OrganizationOverviewContent = () => {
           </div>
         </dl>
       </Card>
+      {organizationId ? <OrganizationSettingsCard organizationId={organizationId} /> : null}
     </div>
   );
 };
