@@ -372,12 +372,8 @@ describe('notifications: outbox, dispatch and message log', () => {
       });
       expect(created.status).toBe(201);
 
-      // Queued in the background after the save.
-      let rows: NotificationOutboxEntity[] = [];
-      for (let i = 0; i < 50 && rows.length < 2; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        rows = await rowsOf(NOTIFICATION_EVENTS.EXAM_SCHEDULED);
-      }
+      // Queued in the test's own transaction, before the response.
+      const rows = await rowsOf(NOTIFICATION_EVENTS.EXAM_SCHEDULED);
       expect(rows.map((r) => r.recipient_id).sort()).toEqual([a.id, b.id].sort());
       expect(rows[0]).toMatchObject({ organization_id: school.id, channel: NotificationChannelEnum.SMS });
       expect(rows[0].payload).toMatchObject({ exam_title: 'Quiz' });

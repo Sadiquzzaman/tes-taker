@@ -523,14 +523,11 @@ export class ExamService {
         publishState.testAudience === TestAudienceEnum.SELECTED_CLASS &&
         publishState.selectedClassId
       ) {
-        this.sendExamNotifications(reloaded.id).catch((err) => {
-          this.logger.error(`Failed to queue exam notifications: ${err instanceof Error ? err.message : String(err)}`);
-        });
+        // The notices are queued in the same transaction as the test (design §8.6).
+        await this.sendExamNotifications(reloaded.id, manager);
       }
       if (publishState.testAudience === TestAudienceEnum.SPECIFIC_STUDENTS) {
-        this.sendExamNotificationsToTargets(reloaded.id).catch((err) => {
-          this.logger.error(`Failed to queue exam notifications: ${err instanceof Error ? err.message : String(err)}`);
-        });
+        await this.sendExamNotificationsToTargets(reloaded.id, manager);
       }
 
       await this.examPaperCache.invalidate(reloaded.id);
@@ -921,7 +918,8 @@ export class ExamService {
     await this.questionRepo.save(questions);
 
     if (dto.class_id) {
-      this.sendExamNotifications(savedExam.id).catch((err) => {
+      // Queuing is one insert (the worker sends); a failure is logged, never fails the save.
+      await this.sendExamNotifications(savedExam.id).catch((err) => {
         this.logger.error(`Failed to queue exam notifications: ${err instanceof Error ? err.message : String(err)}`);
       });
     }
@@ -993,7 +991,8 @@ export class ExamService {
     await this.questionRepo.save(questions);
 
     if (dto.class_id) {
-      this.sendExamNotifications(savedExam.id).catch((err) => {
+      // Queuing is one insert (the worker sends); a failure is logged, never fails the save.
+      await this.sendExamNotifications(savedExam.id).catch((err) => {
         this.logger.error(`Failed to queue exam notifications: ${err instanceof Error ? err.message : String(err)}`);
       });
     }
@@ -1003,8 +1002,8 @@ export class ExamService {
     return this.findOne(savedExam.id, jwtPayload);
   }
 
-  private async sendExamNotifications(examId: string): Promise<{ queued: number }> {
-    const exam = await this.examRepo.findOne({
+  private async sendExamNotifications(examId: string, manager?: EntityManager): Promise<{ queued: number }> {
+    const exam = await (manager?.getRepository(ExamEntity) ?? this.examRepo).findOne({
       where: { id: examId },
       relations: ['class', 'excluded_students'],
     });
@@ -1014,7 +1013,7 @@ export class ExamService {
     }
 
     // The exam's class audience: its subject class's students, or the class's in the exam's session.
-    const classStudents = (await examClassAudience(this.enrolmentRepo, exam))
+    const classStudents = (await examClassAudience(manager?.getRepository(EnrolmentEntity) ?? this.enrolmentRepo, exam))
       .map((row) => row.student)
       .filter((s): s is UserEntity => s !== null);
 
@@ -1022,16 +1021,16 @@ export class ExamService {
 
     const assignedStudents = classStudents.filter((s) => !excludedIds.includes(s.id));
 
-    return this.sendSmsToStudents(assignedStudents, exam);
+    return this.sendSmsToStudents(assignedStudents, exam, manager);
   }
 
-  private async sendExamNotificationsToTargets(examId: string): Promise<{ queued: number }> {
-    const exam = await this.examRepo.findOne({
+  private async sendExamNotificationsToTargets(examId: string, manager?: EntityManager): Promise<{ queued: number }> {
+    const exam = await (manager?.getRepository(ExamEntity) ?? this.examRepo).findOne({
       where: { id: examId },
       relations: ['target_students'],
     });
     if (!exam?.target_students?.length) return { queued: 0 };
-    return this.sendSmsToStudents(exam.target_students, exam);
+    return this.sendSmsToStudents(exam.target_students, exam, manager);
   }
 
   /**
@@ -1042,6 +1041,7 @@ export class ExamService {
   private async sendSmsToStudents(
     students: UserEntity[],
     exam: ExamEntity,
+    manager?: EntityManager,
   ): Promise<{ queued: number }> {
     if (students.length === 0) {
       return { queued: 0 };
@@ -1058,6 +1058,7 @@ export class ExamService {
         dedupeKey: `exam.scheduled:${exam.id}:${student.id}:${startAt}`,
         createdBy: exam.created_by ?? null,
       })),
+      manager,
     );
     return { queued: ids.length };
   }
