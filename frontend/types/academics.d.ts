@@ -77,4 +77,19 @@ interface OrganizationSettings {
   class_teacher_enabled: boolean;
   /** Language for members who have not chosen one (organizations.default_locale). */
   default_locale: OrganizationLocale;
+  /** When the academic setup wizard was finished (P2-04); null = not yet. */
+  setup_completed_at: string | null;
+}
+
+/** GET /setup: progress of the academic setup wizard (P2-04, FND-02). */
+interface AcademicSetupSummary {
+  setup_completed_at: string | null;
+  session: { id: string; name: string; start_date: string; end_date: string };
+  classes: Array<{ id: string; name: string; subject_count: number; section_count: number }>;
+}
+
+/** POST /sections/:id/promotions (FND-05). */
+interface PromotionResult {
+  promoted: Array<{ student_id: string; full_name: string | null }>;
+  skipped: Array<{ student_id: string; full_name: string | null; reason: "ALREADY_ENROLLED" }>;
 }

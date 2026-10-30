@@ -33,7 +33,14 @@ import { ClassEntity } from 'src/classes/entities/class.entity';
 import { AcademicSessionEntity } from 'src/academics/entities/academic-session.entity';
 import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
 import { assertExamSessionOpen } from 'src/academics/session-lock';
-import { activeEnrolmentCondition, examClassAudience, inOfferingRosterCondition, isInExamClassAudience } from 'src/academics/enrolment-queries';
+import {
+  activeEnrolmentCondition,
+  examClassAudience,
+  inOfferingRosterCondition,
+  isInExamClassAudience,
+  promotedFromExamClassCondition,
+  wasPromotedOutOfExamClass,
+} from 'src/academics/enrolment-queries';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { SmsService } from 'src/sms/sms.service';
@@ -347,29 +354,33 @@ export class StudentExamService {
       .getMany();
 
     const classIds = joinedClasses.map((c) => c.id);
-    if (classIds.length > 0) {
-      let examQuery = this.examRepo
-        .createQueryBuilder('exam')
-        .leftJoinAndSelect('exam.class', 'class')
-        .leftJoinAndSelect('exam.primary_subject', 'primary_subject')
-        .leftJoinAndSelect('exam.questionSections', 'questionSections')
-        .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
-        .leftJoin('exam.excluded_students', 'excluded')
-        .where('exam.class_id IN (:...classIds)', { classIds })
-        .andWhere('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
-        .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId })
-        // A subject-class test only for the students who take that subject class (FND-19).
-        .andWhere(`("exam"."offering_id" IS NULL OR ${inOfferingRosterCondition('"exam"."offering_id"')})`);
+    // Tests of the student's classes, and of a class and session they were promoted out of (FND-05).
+    let examQuery = this.examRepo
+      .createQueryBuilder('exam')
+      .leftJoinAndSelect('exam.class', 'class')
+      .leftJoinAndSelect('exam.primary_subject', 'primary_subject')
+      .leftJoinAndSelect('exam.questionSections', 'questionSections')
+      .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
+      .leftJoin('exam.excluded_students', 'excluded')
+      .where(
+        classIds.length > 0
+          ? `(exam.class_id IN (:...classIds) OR ${promotedFromExamClassCondition('exam')})`
+          : promotedFromExamClassCondition('exam'),
+        { classIds, studentId },
+      )
+      .andWhere('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
+      .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId })
+      // A subject-class test only for the students who take that subject class (FND-19).
+      .andWhere(`("exam"."offering_id" IS NULL OR ${inOfferingRosterCondition('"exam"."offering_id"')})`);
 
-      this.applyStudentWorkspaceScopeToExamQuery(examQuery, jwtPayload);
+    this.applyStudentWorkspaceScopeToExamQuery(examQuery, jwtPayload);
 
-      if (!includePast) {
-        examQuery = examQuery.andWhere('exam.exam_end_time > :now', { now });
-      }
-      examQuery = examQuery.orderBy('exam.exam_start_time', sortOrder);
-      const classExams = await examQuery.getMany();
-      classExams.forEach((e) => byId.set(e.id, e));
+    if (!includePast) {
+      examQuery = examQuery.andWhere('exam.exam_end_time > :now', { now });
     }
+    examQuery = examQuery.orderBy('exam.exam_start_time', sortOrder);
+    const classExams = await examQuery.getMany();
+    classExams.forEach((e) => byId.set(e.id, e));
 
     let targetQuery = this.examRepo
       .createQueryBuilder('exam')
@@ -621,10 +632,12 @@ export class StudentExamService {
           exam,
         };
       }
-      // In the class (an invitation is claimed here), and for a subject-class test also in that subject class.
+      // In the class (an invitation is claimed here), and for a subject-class test also in that subject class;
+      // or promoted out of the class in the test's session (FND-05: last year's tests stay theirs).
       const isInClass =
-        (await this.classService.resolveStudentClassMembership(exam.class_id as string, studentId)) &&
-        (!exam.offering_id || (await isInExamClassAudience(this.enrolmentRepo, exam, studentId)));
+        ((await this.classService.resolveStudentClassMembership(exam.class_id as string, studentId)) &&
+          (!exam.offering_id || (await isInExamClassAudience(this.enrolmentRepo, exam, studentId)))) ||
+        (await wasPromotedOutOfExamClass(this.enrolmentRepo, exam, studentId));
       if (!isInClass) {
         return {
           canAccess: false,

@@ -22,6 +22,7 @@ import useAcademicsRequest from "@/hooks/academics/useAcademicsRequest";
 import axiosReq from "@/lib/axios";
 import EditSquareIconSVG from "../svg/EditSquareIconSVG";
 import TrashIcon from "../svg/TrashIcon";
+import PromoteStudentsDrawer from "./PromoteStudentsDrawer";
 
 const STATUS_TONE: Record<EnrolmentStatus, BadgeTone> = {
   ACTIVE: "success",
@@ -35,7 +36,8 @@ const isCurrent = (row: SectionEnrolment) => row.status !== "LEFT" && row.status
 
 /**
  * The students of a section (FND-04): add by phone or email, move to another section of the class,
- * set the roll number, or mark as left. Nobody is deleted; students who left can be shown.
+ * set the roll number, or mark as left. Nobody is deleted; students who left can be shown. Owners
+ * and admins promote the active students into the next session (FND-05), also from a closed session.
  */
 const SectionStudents = ({
   section,
@@ -50,8 +52,9 @@ const SectionStudents = ({
   onChanged: () => void;
 }) => {
   const t = useTranslations("academics.enrolments");
-  const { baseUrl, run } = useAcademicsRequest();
+  const { baseUrl, run, canManageSessions } = useAcademicsRequest();
   const { triggerToast } = useToast();
+  const [promoting, setPromoting] = useState(false);
   const [rows, setRows] = useState<SectionEnrolment[] | null>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [contact, setContact] = useState("");
@@ -117,6 +120,7 @@ const SectionStudents = ({
   };
 
   const visible = (rows ?? []).filter((row) => showLeft || isCurrent(row));
+  const active = (rows ?? []).filter((row) => row.status === "ACTIVE" && row.student);
   const columns: TableColumn<SectionEnrolment>[] = [
     // The student first: on phones the first column is each card's title.
     { key: "student", header: t("student"), cell: nameOf, sortValue: nameOf },
@@ -172,7 +176,14 @@ const SectionStudents = ({
         </form>
       ) : null}
 
-      <Checkbox label={t("showLeft")} checked={showLeft} onChange={(e) => setShowLeft(e.target.checked)} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Checkbox label={t("showLeft")} checked={showLeft} onChange={(e) => setShowLeft(e.target.checked)} />
+        {canManageSessions && active.length > 0 ? (
+          <Button variant="secondary" size="sm" onClick={() => setPromoting(true)}>
+            {t("promote")}
+          </Button>
+        ) : null}
+      </div>
 
       {rows === null ? (
         <Skeleton lines={4} />
@@ -200,6 +211,10 @@ const SectionStudents = ({
           <Input label={t("rollNo")} value={editRoll} maxLength={20} onChange={(e) => setEditRoll(e.target.value)} />
         </div>
       </Modal>
+
+      {promoting ? (
+        <PromoteStudentsDrawer section={section} students={active} onClose={() => setPromoting(false)} onPromoted={reload} />
+      ) : null}
 
       <ConfirmDialog
         open={Boolean(leaving)}
