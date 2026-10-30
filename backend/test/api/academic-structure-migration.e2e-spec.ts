@@ -1,11 +1,10 @@
 import { DeepPartial } from 'typeorm';
 import { currentYearIn } from '../../src/academics/academic-sessions.service';
-import { ClassStudentEntity, ClassStudentStatusEnum } from '../../src/classes/entities/class-student.entity';
 import { ClassSubjectEntity } from '../../src/classes/entities/class-subject.entity';
-import { ClassSubjectTeacherEntity } from '../../src/classes/entities/class-subject-teacher.entity';
-import { ClassTeacherEntity } from '../../src/classes/entities/class-teacher.entity';
 import { ClassKindEnum } from '../../src/classes/enums/class-kind.enum';
 import { AcademicStructure1755400000000 } from '../../src/migrations/1755400000000-AcademicStructure';
+import { ExamSubjectClasses1755410000000 } from '../../src/migrations/1755410000000-ExamSubjectClasses';
+import { DropLegacyClassTables1755420000000 } from '../../src/migrations/1755420000000-DropLegacyClassTables';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
 import { factories } from '../support/factories';
@@ -49,49 +48,62 @@ describe('AcademicStructure migration', () => {
     const soloClass = await make.classOf(solo);
     const soloOrg = await make.soloOrganization(solo);
 
+    // Back before P2-03's contract step: the legacy tables exist again (empty here).
+    const runner = t.dataSource.createQueryRunner();
+    const dropLegacy = new DropLegacyClassTables1755420000000();
+    const examSubjectClasses = new ExamSubjectClasses1755410000000();
+    const migration = new AcademicStructure1755400000000();
+    await dropLegacy.down(runner);
+    const insert = async (table: string, row: Record<string, unknown>): Promise<string> => {
+      const columns = Object.keys(row);
+      const [{ id }] = await runner.query(
+        `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${columns.map((_, i) => `$${i + 1}`).join(', ')}) RETURNING id`,
+        Object.values(row),
+      );
+      return id;
+    };
+
     const classSubjects = t.dataSource.getRepository(ClassSubjectEntity);
     const mathLink = await classSubjects.save({ class_id: schoolClass.id, subject_id: math.id });
     await classSubjects.save({ class_id: schoolClass.id, subject_id: physics.id });
     await classSubjects.save({ class_id: soloClass.id, subject_id: math.id });
 
     // Math has the same teacher twice (subject teacher and class teacher with that subject).
-    await t.dataSource.getRepository(ClassSubjectTeacherEntity).save({ class_subject_id: mathLink.id, teacher_id: subjectTeacher.id });
-    const classTeachers = t.dataSource.getRepository(ClassTeacherEntity);
-    await classTeachers.save({ class_id: schoolClass.id, teacher_id: subjectTeacher.id, subject_id: math.id });
+    await insert('class_subject_teachers', { class_subject_id: mathLink.id, teacher_id: subjectTeacher.id });
+    await insert('class_teachers', { class_id: schoolClass.id, teacher_id: subjectTeacher.id, subject_id: math.id });
     // Two class teachers without a subject: the earlier one becomes section A's class teacher.
-    await classTeachers.save({ class_id: schoolClass.id, teacher_id: classTeacher.id, subject_id: null, created_at: new Date(Date.now() - 60_000) });
-    await classTeachers.save({ class_id: schoolClass.id, teacher_id: laterClassTeacher.id, subject_id: null, created_at: new Date() });
+    await insert('class_teachers', { class_id: schoolClass.id, teacher_id: classTeacher.id, created_at: new Date(Date.now() - 60_000) });
+    await insert('class_teachers', { class_id: schoolClass.id, teacher_id: laterClassTeacher.id, created_at: new Date() });
     // In a solo workspace class teachers are off: the co-teacher only teaches.
-    await classTeachers.save({ class_id: soloClass.id, teacher_id: coTeacher.id, subject_id: null });
+    await insert('class_teachers', { class_id: soloClass.id, teacher_id: coTeacher.id });
 
     const [joined, pending] = [await make.student(), await make.student()];
-    const classStudents = t.dataSource.getRepository(ClassStudentEntity);
-    const joinedRow = await classStudents.save({
-      class_id: schoolClass.id,
-      student_id: joined.id,
-      status: ClassStudentStatusEnum.JOINED,
-      joined_at: new Date('2026-03-01T04:00:00Z'),
-    });
-    const pendingRow = await classStudents.save({ class_id: schoolClass.id, student_id: pending.id, status: ClassStudentStatusEnum.PENDING });
-    const invitedRow = await classStudents.save({
-      class_id: soloClass.id,
-      student_id: null,
-      status: ClassStudentStatusEnum.INVITED,
-      invited_email: 'invitee@test.local',
-      invitation_token: 'token-for-test',
-    });
+    // class_students.joined_at is a timestamp without time zone in the API process's zone.
+    const joinedRow = {
+      id: await insert('class_students', { class_id: schoolClass.id, student_id: joined.id, status: 'JOINED', joined_at: new Date('2026-03-01T04:00:00Z') }),
+    };
+    const pendingRow = { id: await insert('class_students', { class_id: schoolClass.id, student_id: pending.id, status: 'PENDING' }) };
+    const invitedRow = {
+      id: await insert('class_students', {
+        class_id: soloClass.id,
+        status: 'INVITED',
+        invited_email: 'invitee@test.local',
+        invitation_token: 'token-for-test',
+      }),
+    };
     const schoolExam = await make.openExam(owner, { organization_id: school.id, class_id: schoolClass.id });
     const soloExam = await make.openExam(solo);
 
-    // Back to the shape before the migration: no new tables, no exams.session_id.
-    const runner = t.dataSource.createQueryRunner();
-    const migration = new AcademicStructure1755400000000();
+    // Back to the shape before P2-03 (no new tables, no exams.session_id), then forward again, twice.
     try {
+      await examSubjectClasses.down(runner);
       await migration.down(runner);
       const [{ exists }] = await runner.query(`SELECT to_regclass('public.enrolments') IS NOT NULL AS exists`);
       expect(exists).toBe(false);
       await migration.up(runner);
       await migration.up(runner);
+      await examSubjectClasses.up(runner);
+      await examSubjectClasses.up(runner);
     } finally {
       await runner.release();
     }
@@ -167,5 +179,40 @@ describe('AcademicStructure migration', () => {
     );
     expect(counts.enrolments).toBe(counts.class_students);
     expect(console.log).toHaveBeenCalledWith('[AcademicStructure] legacy:', expect.any(Object), '-> new:', expect.any(Object));
+
+    // The contract step drops the legacy tables (twice is harmless) and keeps every enrolment.
+    const contract = t.dataSource.createQueryRunner();
+    try {
+      await new DropLegacyClassTables1755420000000().up(contract);
+      await new DropLegacyClassTables1755420000000().up(contract);
+    } finally {
+      await contract.release();
+    }
+    const [tables] = await q<{ students: boolean; teachers: boolean; subject_teachers: boolean }>(
+      `SELECT to_regclass('public.class_students') IS NOT NULL AS students, to_regclass('public.class_teachers') IS NOT NULL AS teachers,
+              to_regclass('public.class_subject_teachers') IS NOT NULL AS subject_teachers`,
+    );
+    expect(tables).toEqual({ students: false, teachers: false, subject_teachers: false });
+    expect(await q(`SELECT id FROM enrolments WHERE id = ANY($1)`, [[joinedRow.id, pendingRow.id, invitedRow.id]])).toHaveLength(3);
+  });
+
+  it('refuses to drop the legacy tables while a class student has no enrolment', async () => {
+    const teacher = await make.teacher();
+    const classRow = await make.classOf(teacher);
+    const runner = t.dataSource.createQueryRunner();
+    const dropLegacy = new DropLegacyClassTables1755420000000();
+    try {
+      await dropLegacy.down(runner);
+      const [{ id }] = await runner.query(`INSERT INTO class_students (class_id, status) VALUES ($1, 'INVITED') RETURNING id`, [classRow.id]);
+      await expect(dropLegacy.up(runner)).rejects.toThrow(/have no enrolment; nothing dropped/);
+      const [{ present }] = await runner.query(`SELECT to_regclass('public.class_students') IS NOT NULL AS present`);
+      expect(present).toBe(true);
+
+      // Once the row is accounted for, the drop goes through.
+      await runner.query(`DELETE FROM class_students WHERE id = $1`, [id]);
+      await dropLegacy.up(runner);
+    } finally {
+      await runner.release();
+    }
   });
 });

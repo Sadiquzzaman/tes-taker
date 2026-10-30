@@ -225,6 +225,8 @@ interface TeacherExamPublishState {
   endingAt: string | null;
   testAudience: TestAudience;
   selectedClassId: string;
+  /** A subject class of the class (FND-19); empty = the whole class. */
+  selectedOfferingId?: string;
   excluded_students: string[];
   specificStudents: string[];
 }
@@ -265,6 +267,8 @@ interface TeacherExamListItem {
 
 interface TeacherExamDetails {
   id: string;
+  /** The test's academic session; a closed session makes it read-only (FND-01). */
+  session_id?: string | null;
   test_name: string;
   status: "ongoing" | "completed" | "pending";
   is_active?: number;

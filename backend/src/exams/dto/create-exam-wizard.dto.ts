@@ -641,6 +641,13 @@ export class WizardPublishStateDto {
   selectedClassId?: string;
 
   @ApiPropertyOptional({
+    description: 'Optional with selected_class: a subject class (section + subject) of that class; only its students take the test (FND-19)',
+  })
+  @IsOptional()
+  @IsUUID('4')
+  selectedOfferingId?: string;
+
+  @ApiPropertyOptional({
     type: [String],
     description: 'Student UUIDs when testAudience is specific_students',
   })

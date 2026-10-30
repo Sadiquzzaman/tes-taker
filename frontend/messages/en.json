@@ -862,7 +862,8 @@
       "passingScore": "Passing score",
       "negativeMarking": "Negative marking",
       "off": "Off",
-      "questionCount": "{count, plural, one {# question} other {# questions}}"
+      "questionCount": "{count, plural, one {# question} other {# questions}}",
+      "sessionClosed": "This test belongs to a closed session, so it cannot be changed or graded. The owner can reopen the session."
     },
     "audience": {
       "anyone": "Anyone with the link",
@@ -1169,7 +1170,11 @@
       "invalidTitle": "Not an email or phone number",
       "invalid": "Enter a valid email address or phone number.",
       "invalidPhoneTitle": "Invalid phone number",
-      "invalidPhone": "Phone numbers have 11 digits."
+      "invalidPhone": "Phone numbers have 11 digits.",
+      "subjectClass": "Section and subject",
+      "subjectClassHint": "Optional. Only the students who take this subject in this section get the test, e.g. a religion or elective subject.",
+      "wholeClass": "The whole class",
+      "subjectClassOption": "Section {section} · {subject}"
     },
     "subjects": {
       "add": "Add subject",

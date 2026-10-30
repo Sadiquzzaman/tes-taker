@@ -173,6 +173,8 @@ type PublishState = {
   endingAt: string;
   testAudience: TestAudience;
   selectedClassId: string;
+  /** A subject class (section + subject) of the class; empty = the whole class (FND-19). */
+  selectedOfferingId: string;
   excluded_students: string[];
 };
 
@@ -182,6 +184,7 @@ type PublishStateForPayload = {
   endingAt: string;
   testAudience: TestAudience;
   selectedClassId?: string;
+  selectedOfferingId?: string;
   excluded_students?: string[];
 };
 

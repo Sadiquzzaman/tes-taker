@@ -30,10 +30,7 @@ import { ClassService } from './class.service';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto, AddStudentsToClassDto, RemoveStudentsFromClassDto } from './dto/update-class.dto';
 import { AddStudentsBulkDto } from './dto/add-students-bulk.dto';
-import { AssignClassTeacherDto } from './dto/assign-class-teacher.dto';
 import { AddClassSubjectDto } from './dto/add-class-subject.dto';
-import { AssignClassSubjectTeacherDto } from './dto/assign-class-subject-teacher.dto';
-import { UpdateClassSubjectTeacherDto } from './dto/update-class-subject-teacher.dto';
 import { OrganizationContextGuard } from 'src/organizations/guards/organization-context.guard';
 import { OrgContext } from 'src/organizations/decorators/org-context.decorator';
 import { OrgContext as OrgContextType } from 'src/organizations/interfaces/org-context.interface';
@@ -123,58 +120,6 @@ export class ClassController {
   async searchStudents(@Query('query') query: string) {
     const payload = await this.classService.searchStudents(query);
     return { message: 'Students retrieved successfully', payload };
-  }
-
-  @Get(':id/teachers')
-  @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
-  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
-  @ApiOperation({ summary: 'List teachers assigned to a class' })
-  @ApiParam({ name: 'id', description: 'Class UUID' })
-  async listClassTeachers(
-    @Param('id', ParseUUIDPipe) id: string,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-    @OrgContext() orgContext: OrgContextType | null,
-  ) {
-    const payload = await this.classService.listClassTeachers(id, jwtPayload, orgContext);
-    return { message: 'Class teachers retrieved successfully', payload };
-  }
-
-  @Post(':id/teachers')
-  @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
-  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Assign a teacher to a class' })
-  @ApiParam({ name: 'id', description: 'Class UUID' })
-  async assignClassTeacher(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: AssignClassTeacherDto,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-    @OrgContext() orgContext: OrgContextType | null,
-  ) {
-    const payload = await this.classService.assignClassTeacher(
-      id,
-      dto.teacher_id,
-      dto.subject_id,
-      jwtPayload,
-      orgContext,
-    );
-    return { message: 'Class teacher assigned successfully', payload };
-  }
-
-  @Delete(':id/teachers/:classTeacherId')
-  @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
-  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Remove a class teacher assignment' })
-  async removeClassTeacher(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('classTeacherId', ParseUUIDPipe) classTeacherId: string,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-    @OrgContext() orgContext: OrgContextType | null,
-  ) {
-    await this.classService.removeClassTeacher(id, classTeacherId, jwtPayload, orgContext);
-    return { message: 'Class teacher removed successfully', payload: null };
   }
 
   @Get(':id')
@@ -409,72 +354,4 @@ export class ClassController {
     return { message: 'Subject removed from class', payload: { removed: true } };
   }
 
-  @Post(':id/subjects/:classSubjectId/teachers')
-  @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
-  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Assign a teacher to a class subject' })
-  async assignSubjectTeacher(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('classSubjectId', ParseUUIDPipe) classSubjectId: string,
-    @Body() dto: AssignClassSubjectTeacherDto,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-    @OrgContext() orgContext: OrgContextType | null,
-  ) {
-    const payload = await this.classService.assignClassSubjectTeacher(
-      id,
-      classSubjectId,
-      dto.teacher_id,
-      jwtPayload,
-      orgContext,
-      dto.mirror_class_teacher !== false,
-    );
-    return { message: 'Teacher assigned to class subject', payload };
-  }
-
-  @Patch(':id/subjects/:classSubjectId/teachers/:assignmentId')
-  @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
-  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Replace the teacher on a class subject assignment' })
-  async updateSubjectTeacher(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('classSubjectId', ParseUUIDPipe) classSubjectId: string,
-    @Param('assignmentId', ParseUUIDPipe) assignmentId: string,
-    @Body() dto: UpdateClassSubjectTeacherDto,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-    @OrgContext() orgContext: OrgContextType | null,
-  ) {
-    const payload = await this.classService.updateClassSubjectTeacher(
-      id,
-      classSubjectId,
-      assignmentId,
-      dto.teacher_id,
-      jwtPayload,
-      orgContext,
-    );
-    return { message: 'Class subject teacher updated', payload };
-  }
-
-  @Delete(':id/subjects/:classSubjectId/teachers/:assignmentId')
-  @ApiBearerAuth('jwt')
-  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
-  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Remove a teacher from a class subject' })
-  async removeSubjectTeacher(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('classSubjectId', ParseUUIDPipe) classSubjectId: string,
-    @Param('assignmentId', ParseUUIDPipe) assignmentId: string,
-    @UserPayload() jwtPayload: JwtPayloadInterface,
-    @OrgContext() orgContext: OrgContextType | null,
-  ) {
-    await this.classService.removeClassSubjectTeacher(
-      id,
-      classSubjectId,
-      assignmentId,
-      jwtPayload,
-      orgContext,
-    );
-    return { message: 'Teacher removed from class subject', payload: { removed: true } };
-  }
 }

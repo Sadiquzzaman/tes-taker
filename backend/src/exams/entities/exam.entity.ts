@@ -17,6 +17,8 @@ import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ExamKindEnum, PublishTimingEnum, TestAudienceEnum } from '../enums/exam-wizard.enums';
 import { AcademicSessionEntity } from 'src/academics/entities/academic-session.entity';
+import { CourseOfferingEntity } from 'src/academics/entities/course-offering.entity';
+import { TermEntity } from 'src/academics/entities/term.entity';
 import { OrganizationEntity } from 'src/organizations/entities/organization.entity';
 import { ExamCategoryEnum } from '../enums/exam-category.enum';
 
@@ -141,6 +143,22 @@ export class ExamEntity extends CustomBaseEntity {
   @ManyToOne(() => AcademicSessionEntity, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'session_id' })
   session: AcademicSessionEntity | null;
+
+  @ApiPropertyOptional({ description: 'Subject class (FND-19): when set, only its students take the exam' })
+  @Column({ name: 'offering_id', type: 'uuid', nullable: true })
+  offering_id: string | null;
+
+  @ManyToOne(() => CourseOfferingEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'offering_id' })
+  offering: CourseOfferingEntity | null;
+
+  @ApiPropertyOptional({ description: 'Term of the session (PRF-02); reserved, not set by the wizard yet' })
+  @Column({ name: 'term_id', type: 'uuid', nullable: true })
+  term_id: string | null;
+
+  @ManyToOne(() => TermEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'term_id' })
+  term: TermEntity | null;
 
   @ApiPropertyOptional({ description: 'Students excluded when using a class audience' })
   @ManyToMany(() => UserEntity)

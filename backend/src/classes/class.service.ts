@@ -4,18 +4,15 @@ import { TenantContext } from 'src/common/tenancy/tenant-context';
 import { tenantScoped } from 'src/common/tenancy/tenant-repository';
 import { soloOrganizationOf, usesOrganizationRules } from 'src/organizations/organization-rules';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, ILike, IsNull, WhereExpressionBuilder } from 'typeorm';
+import { Repository, In, ILike, WhereExpressionBuilder } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { ClassEntity } from './entities/class.entity';
-import { ClassStudentStatusEnum } from './entities/class-student.entity';
-import { ClassStudentView, toClassStudentView } from './class-student-view';
+import { ClassStudentStatusEnum, ClassStudentView, toClassStudentView } from './class-student-view';
 import { EnrolmentEntity, EnrolmentStatusEnum } from 'src/academics/entities/enrolment.entity';
 import { EnrolmentsService } from 'src/academics/enrolments.service';
 import { activeEnrolmentCondition } from 'src/academics/enrolment-queries';
 import { teachesClassCondition, teachesSubjectCondition } from 'src/academics/teacher-queries';
-import { ClassTeacherEntity } from './entities/class-teacher.entity';
 import { ClassSubjectEntity } from './entities/class-subject.entity';
-import { ClassSubjectTeacherEntity } from './entities/class-subject-teacher.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
@@ -55,12 +52,8 @@ export class ClassService {
     private readonly classRepo: Repository<ClassEntity>,
     @InjectRepository(EnrolmentEntity)
     private readonly enrolmentRepo: Repository<EnrolmentEntity>,
-    @InjectRepository(ClassTeacherEntity)
-    private readonly classTeacherRepo: Repository<ClassTeacherEntity>,
     @InjectRepository(ClassSubjectEntity)
     private readonly classSubjectRepo: Repository<ClassSubjectEntity>,
-    @InjectRepository(ClassSubjectTeacherEntity)
-    private readonly classSubjectTeacherRepo: Repository<ClassSubjectTeacherEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
     @InjectRepository(ExamEntity)
@@ -192,11 +185,8 @@ export class ClassService {
           where: { organization_id: orgContext.organizationId },
           relations: [
             'teacher',
-            'classTeachers',
             'classSubjects',
             'classSubjects.subject',
-            'classSubjects.teachers',
-            'classSubjects.teachers.teacher',
           ],
           order: { created_at: 'DESC' },
         });
@@ -213,11 +203,8 @@ export class ClassService {
         const qb = this.classRepo
           .createQueryBuilder('class')
           .leftJoinAndSelect('class.teacher', 'teacher')
-          .leftJoinAndSelect('class.classTeachers', 'classTeachers')
           .leftJoinAndSelect('class.classSubjects', 'classSubjects')
           .leftJoinAndSelect('classSubjects.subject', 'classSubject')
-          .leftJoinAndSelect('classSubjects.teachers', 'classSubjectTeachers')
-          .leftJoinAndSelect('classSubjectTeachers.teacher', 'classSubjectTeacherUser')
           .where('class.organization_id = :orgId', { orgId: orgContext.organizationId })
           .andWhere('class.id IN (:...assignedIds)', {
             assignedIds: assignedIds.length > 0 ? assignedIds : ['00000000-0000-0000-0000-000000000000'],
@@ -232,11 +219,8 @@ export class ClassService {
         where: { teacher_id: jwtPayload.id },
         relations: [
           'teacher',
-          'classTeachers',
           'classSubjects',
           'classSubjects.subject',
-          'classSubjects.teachers',
-          'classSubjects.teachers.teacher',
         ],
         order: { created_at: 'DESC' },
       });
@@ -271,12 +255,8 @@ export class ClassService {
       relations: jwtPayload
         ? [
             'teacher',
-            'classTeachers',
-            'classTeachers.teacher',
             'classSubjects',
             'classSubjects.subject',
-            'classSubjects.teachers',
-            'classSubjects.teachers.teacher',
           ]
         : [],
     });
@@ -473,6 +453,11 @@ export class ClassService {
     orgContext?: OrgContext | null,
   ): Promise<void> {
     const classEntity = await this.findOne(id, jwtPayload, orgContext);
+    // Deleting a class would delete its student records too, so a class with any (even students who
+    // left) stays (owner decision, P2-03).
+    if (await this.enrolmentRepo.exists({ where: { class_id: id } })) {
+      throw new BadRequestException('This class has student records, so it cannot be deleted');
+    }
     await this.classRepo.remove(classEntity);
   }
 
@@ -1130,109 +1115,6 @@ export class ClassService {
     return this.hydrateClassStudents(await this.enrolments.currentForClass(classId));
   }
 
-  /**
-   * Assign a teacher to a class (optionally for a subject). Org context required for org classes.
-   */
-  async assignClassTeacher(
-    classId: string,
-    teacherId: string,
-    subjectId: string | null | undefined,
-    jwtPayload: JwtPayloadInterface,
-    orgContext?: OrgContext | null,
-  ): Promise<ClassTeacherEntity> {
-    const classEntity = await this.findOne(classId, jwtPayload, orgContext);
-
-    if (usesOrganizationRules(classEntity)) {
-      if (!orgContext?.organizationId) {
-        throw new BadRequestException('X-Organization-Id is required for organization classes');
-      }
-      await this.organizationAccessService.requireAcademicManager(
-        classEntity.organization_id,
-        jwtPayload.id,
-      );
-      const isMember = await this.organizationAccessService.isMember(
-        classEntity.organization_id,
-        teacherId,
-      );
-      if (!isMember) {
-        throw new BadRequestException('Teacher must be a member of the organization');
-      }
-    } else if (classEntity.teacher_id !== jwtPayload.id) {
-      throw new ForbiddenException('Only the class owner can assign teachers');
-    }
-
-    const teacher = await this.userRepo.findOne({ where: { id: teacherId } });
-    if (!teacher) {
-      throw new NotFoundException('Teacher not found');
-    }
-
-    if (subjectId) {
-      const subject = await this.subjectRepo.findOne({ where: { id: subjectId } });
-      if (!subject) {
-        throw new NotFoundException('Subject not found');
-      }
-    }
-
-    const existing = await this.classTeacherRepo.findOne({
-      where: subjectId
-        ? { class_id: classId, teacher_id: teacherId, subject_id: subjectId }
-        : { class_id: classId, teacher_id: teacherId, subject_id: IsNull() },
-    });
-    if (existing) {
-      throw new BadRequestException('Teacher is already assigned to this class for this subject');
-    }
-
-    const row = this.classTeacherRepo.create({
-      class_id: classId,
-      teacher_id: teacherId,
-      subject_id: subjectId ?? null,
-      created_by: jwtPayload.id,
-      created_user_name: jwtPayload.full_name,
-      created_at: new Date(),
-    });
-    return this.classTeacherRepo.save(row);
-  }
-
-  async removeClassTeacher(
-    classId: string,
-    classTeacherId: string,
-    jwtPayload: JwtPayloadInterface,
-    orgContext?: OrgContext | null,
-  ): Promise<void> {
-    const classEntity = await this.findOne(classId, jwtPayload, orgContext);
-
-    if (usesOrganizationRules(classEntity)) {
-      await this.organizationAccessService.requireAcademicManager(
-        classEntity.organization_id,
-        jwtPayload.id,
-      );
-    } else if (classEntity.teacher_id !== jwtPayload.id) {
-      throw new ForbiddenException('Only the class owner can remove teachers');
-    }
-
-    const row = await this.classTeacherRepo.findOne({
-      where: { id: classTeacherId, class_id: classId },
-    });
-    if (!row) {
-      throw new NotFoundException('Class teacher assignment not found');
-    }
-
-    await this.classTeacherRepo.remove(row);
-  }
-
-  async listClassTeachers(
-    classId: string,
-    jwtPayload: JwtPayloadInterface,
-    orgContext?: OrgContext | null,
-  ): Promise<ClassTeacherEntity[]> {
-    await this.findOne(classId, jwtPayload, orgContext);
-    return this.classTeacherRepo.find({
-      where: { class_id: classId },
-      relations: ['teacher', 'subject'],
-      order: { created_at: 'ASC' },
-    });
-  }
-
   async listClassSubjects(
     classId: string,
     jwtPayload: JwtPayloadInterface,
@@ -1241,7 +1123,7 @@ export class ClassService {
     await this.findOne(classId, jwtPayload, orgContext);
     return this.classSubjectRepo.find({
       where: { class_id: classId },
-      relations: ['subject', 'teachers', 'teachers.teacher'],
+      relations: ['subject'],
       order: { created_at: 'ASC' },
     });
   }
@@ -1463,211 +1345,5 @@ export class ClassService {
       throw new NotFoundException('Class subject not found');
     }
     await this.classSubjectRepo.remove(row);
-  }
-
-  async assignClassSubjectTeacher(
-    classId: string,
-    classSubjectId: string,
-    teacherId: string,
-    jwtPayload: JwtPayloadInterface,
-    orgContext?: OrgContext | null,
-    mirrorClassTeacher = true,
-  ): Promise<ClassSubjectTeacherEntity> {
-    const classEntity = await this.findOne(classId, jwtPayload, orgContext);
-    await this.assertCanManageClassSubjects(classEntity, jwtPayload.id);
-
-    const classSubject = await this.classSubjectRepo.findOne({
-      where: { id: classSubjectId, class_id: classId },
-    });
-    if (!classSubject) {
-      throw new NotFoundException('Class subject not found');
-    }
-
-    if (usesOrganizationRules(classEntity)) {
-      const membership = await this.organizationAccessService.getMembership(
-        classEntity.organization_id,
-        teacherId,
-      );
-      if (!membership) {
-        throw new BadRequestException('Teacher must be a member of the organization');
-      }
-      if (!this.organizationAccessService.isAssignableTeachingRole(membership.role)) {
-        throw new BadRequestException(
-          'Only organization owners, admins, and teachers can be assigned to a class subject',
-        );
-      }
-    }
-
-    const teacher = await this.userRepo.findOne({ where: { id: teacherId } });
-    if (!teacher) {
-      throw new NotFoundException('Teacher not found');
-    }
-
-    const existing = await this.classSubjectTeacherRepo.findOne({
-      where: { class_subject_id: classSubjectId, teacher_id: teacherId },
-    });
-    if (existing) {
-      throw new BadRequestException('Teacher is already assigned to this class subject');
-    }
-
-    const row = this.classSubjectTeacherRepo.create({
-      class_subject_id: classSubjectId,
-      teacher_id: teacherId,
-      created_by: jwtPayload.id,
-      created_user_name: jwtPayload.full_name,
-      created_at: new Date(),
-    });
-    const saved = await this.classSubjectTeacherRepo.save(row);
-
-    if (mirrorClassTeacher && !usesOrganizationRules(classEntity)) {
-      const legacy = await this.classTeacherRepo.findOne({
-        where: {
-          class_id: classId,
-          teacher_id: teacherId,
-          subject_id: classSubject.subject_id,
-        },
-      });
-      if (!legacy) {
-        await this.classTeacherRepo.save(
-          this.classTeacherRepo.create({
-            class_id: classId,
-            teacher_id: teacherId,
-            subject_id: classSubject.subject_id,
-            created_by: jwtPayload.id,
-            created_user_name: jwtPayload.full_name,
-            created_at: new Date(),
-          }),
-        );
-      }
-    }
-
-    return this.classSubjectTeacherRepo.findOne({
-      where: { id: saved.id },
-      relations: ['teacher', 'classSubject', 'classSubject.subject'],
-    }) as Promise<ClassSubjectTeacherEntity>;
-  }
-
-  async removeClassSubjectTeacher(
-    classId: string,
-    classSubjectId: string,
-    assignmentId: string,
-    jwtPayload: JwtPayloadInterface,
-    orgContext?: OrgContext | null,
-  ): Promise<void> {
-    const classEntity = await this.findOne(classId, jwtPayload, orgContext);
-    await this.assertCanManageClassSubjects(classEntity, jwtPayload.id);
-
-    const row = await this.classSubjectTeacherRepo.findOne({
-      where: { id: assignmentId, class_subject_id: classSubjectId },
-      relations: ['classSubject'],
-    });
-    if (!row || row.classSubject?.class_id !== classId) {
-      throw new NotFoundException('Class subject teacher assignment not found');
-    }
-    const subjectId = row.classSubject.subject_id;
-    const removedTeacherId = row.teacher_id;
-    await this.classSubjectTeacherRepo.remove(row);
-
-    if (usesOrganizationRules(classEntity)) {
-      await this.removeLegacyOrgClassTeacherMirror(classId, removedTeacherId, subjectId);
-    }
-  }
-
-  async updateClassSubjectTeacher(
-    classId: string,
-    classSubjectId: string,
-    assignmentId: string,
-    teacherId: string,
-    jwtPayload: JwtPayloadInterface,
-    orgContext?: OrgContext | null,
-  ): Promise<ClassSubjectTeacherEntity> {
-    const classEntity = await this.findOne(classId, jwtPayload, orgContext);
-    await this.assertCanManageClassSubjects(classEntity, jwtPayload.id);
-
-    return this.classSubjectTeacherRepo.manager.transaction(async (manager) => {
-      const cstRepo = manager.getRepository(ClassSubjectTeacherEntity);
-      const classTeacherRepo = manager.getRepository(ClassTeacherEntity);
-
-      const assignment = await cstRepo.findOne({
-        where: { id: assignmentId, class_subject_id: classSubjectId },
-        relations: ['classSubject'],
-      });
-      if (!assignment || assignment.classSubject?.class_id !== classId) {
-        throw new NotFoundException('Class subject teacher assignment not found');
-      }
-
-      if (assignment.teacher_id === teacherId) {
-        return cstRepo.findOne({
-          where: { id: assignment.id },
-          relations: ['teacher', 'classSubject', 'classSubject.subject'],
-        }) as Promise<ClassSubjectTeacherEntity>;
-      }
-
-      if (usesOrganizationRules(classEntity)) {
-        const membership = await this.organizationAccessService.getMembership(
-          classEntity.organization_id,
-          teacherId,
-        );
-        if (!membership) {
-          throw new BadRequestException('Teacher must be a member of the organization');
-        }
-        if (!this.organizationAccessService.isAssignableTeachingRole(membership.role)) {
-          throw new BadRequestException(
-            'Only organization owners, admins, and teachers can be assigned to a class subject',
-          );
-        }
-      }
-
-      const teacher = await manager.getRepository(UserEntity).findOne({ where: { id: teacherId } });
-      if (!teacher) {
-        throw new NotFoundException('Teacher not found');
-      }
-
-      const duplicate = await cstRepo.findOne({
-        where: { class_subject_id: classSubjectId, teacher_id: teacherId },
-      });
-      if (duplicate) {
-        throw new BadRequestException('Teacher is already assigned to this class subject');
-      }
-
-      const previousTeacherId = assignment.teacher_id;
-      const subjectId = assignment.classSubject.subject_id;
-      assignment.teacher_id = teacherId;
-      assignment.updated_by = jwtPayload.id;
-      assignment.updated_user_name = jwtPayload.full_name;
-      assignment.updated_at = new Date();
-      await cstRepo.save(assignment);
-
-      if (usesOrganizationRules(classEntity)) {
-        const leftover = await classTeacherRepo.findOne({
-          where: {
-            class_id: classId,
-            teacher_id: previousTeacherId,
-            subject_id: subjectId,
-          },
-        });
-        if (leftover) {
-          await classTeacherRepo.remove(leftover);
-        }
-      }
-
-      return cstRepo.findOne({
-        where: { id: assignment.id },
-        relations: ['teacher', 'classSubject', 'classSubject.subject'],
-      }) as Promise<ClassSubjectTeacherEntity>;
-    });
-  }
-
-  private async removeLegacyOrgClassTeacherMirror(
-    classId: string,
-    teacherId: string,
-    subjectId: string,
-  ): Promise<void> {
-    const leftover = await this.classTeacherRepo.findOne({
-      where: { class_id: classId, teacher_id: teacherId, subject_id: subjectId },
-    });
-    if (leftover) {
-      await this.classTeacherRepo.remove(leftover);
-    }
   }
 }

@@ -6,7 +6,9 @@ import { useToast } from "@/component/Toast/ToastContext";
 import PublishCopyIconSVG from "@/component/svg/PublishCopyIconSVG";
 import { Button, Card, cn, focusRing, Select, TagInput } from "@/design/ui";
 import useGetAllClass from "@/hooks/api/class/useGetAllClass";
+import useSubjectClasses from "@/hooks/academics/useSubjectClasses";
 import useWorkspace from "@/hooks/organization/useWorkspace";
+import { getStoredUser } from "@/lib/authSession";
 import { addExcludedStudent, removeExcludedStudent, setPublishField, setPublishTiming, setTestAudience } from "@/lib/features/createTestSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { buildTestJoinLink, getFrontendAppUrl } from "@/utils/frontendAppUrl";
@@ -23,8 +25,25 @@ const PublishStep = () => {
   const { publishState, editExamId, formState } = useAppSelector((state) => state.createTest as CreateTestState);
   const isIelts = (formState.examCategory ?? "academic") === "ielts";
   const { classList } = useGetAllClass();
-  const { isIndividual } = useWorkspace();
+  const { isIndividual, activeOrganization } = useWorkspace();
   const selectedClass = classList.find((item) => item.id === publishState.selectedClassId);
+
+  // Optional subject class (FND-19): only its students take the test. Teachers pick the subject
+  // classes they teach; owners, admins and solo teachers any subject class of the class.
+  const { sections, offerings } = useSubjectClasses(publishState.testAudience === "selected_class");
+  const offeringOptions = useMemo(() => {
+    const role = activeOrganization?.role;
+    const anyOffering = isIndividual || role === "OWNER" || role === "ADMIN";
+    const userId = getStoredUser()?.id;
+    const sectionName = new Map(
+      sections.filter((section) => section.class_id === publishState.selectedClassId).map((section) => [section.id, section.name]),
+    );
+    return offerings
+      .filter((offering) => sectionName.has(offering.section_id))
+      .filter((offering) => anyOffering || offering.teachers.some((teacher) => teacher.id === userId))
+      .map((offering) => ({ value: offering.id, label: t("subjectClassOption", { section: sectionName.get(offering.section_id) ?? "", subject: offering.subject.name }) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [activeOrganization?.role, isIndividual, offerings, publishState.selectedClassId, sections, t]);
   const [studentInput, setStudentInput] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -127,6 +146,16 @@ const PublishStep = () => {
                   <p className="rounded-input bg-canvas px-3 py-2.5 text-body text-ink">{selectedClass?.class_name || t("fromBasicInfo")}</p>
                 </div>
               )}
+              {publishState.selectedClassId && offeringOptions.length > 0 ? (
+                <Select
+                  label={t("subjectClass")}
+                  hint={t("subjectClassHint")}
+                  placeholder={t("wholeClass")}
+                  value={publishState.selectedOfferingId ?? ""}
+                  onChange={(event) => dispatch(setPublishField({ field: "selectedOfferingId", value: event.target.value }))}
+                  options={offeringOptions}
+                />
+              ) : null}
               {publishState.selectedClassId ? (
                 <>
                   <p className="text-body-sm text-ink-muted">{isIelts ? t("batchStudents") : t("classStudents")}</p>

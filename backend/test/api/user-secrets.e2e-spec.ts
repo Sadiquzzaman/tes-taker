@@ -1,7 +1,5 @@
 import { randomUUID } from 'crypto';
 import { ClassSubjectEntity } from '../../src/classes/entities/class-subject.entity';
-import { ClassSubjectTeacherEntity } from '../../src/classes/entities/class-subject-teacher.entity';
-import { ClassTeacherEntity } from '../../src/classes/entities/class-teacher.entity';
 import { RolesEnum } from '../../src/common/enums/roles.enum';
 import { CryptoUtil } from '../../src/common/utils/crypto.util';
 import { RedisService } from '../../src/config/redis.service';
@@ -53,6 +51,7 @@ describe('user secrets in API responses', () => {
   let subjectTeacher: UserEntity;
   let student: UserEntity;
   let classId: string;
+  let sectionId: string;
   let storedSecrets: string[];
 
   /** Each user gets a unique stored password and refresh-token value so a leak is easy to spot. */
@@ -84,14 +83,19 @@ describe('user secrets in API responses', () => {
     const classRow = await make.classOf(teacher);
     classId = classRow.id;
     await make.enrol(classRow, student);
-    await t.dataSource.getRepository(ClassTeacherEntity).save({ class_id: classId, teacher_id: subjectTeacher.id });
     const subject = await t.dataSource.getRepository(SubjectEntity).save({ name: `Physics ${randomUUID().slice(0, 8)}` });
-    const classSubject = await t.dataSource
-      .getRepository(ClassSubjectEntity)
-      .save({ class_id: classId, subject_id: subject.id });
-    await t.dataSource
-      .getRepository(ClassSubjectTeacherEntity)
-      .save({ class_subject_id: classSubject.id, teacher_id: subjectTeacher.id });
+    await t.dataSource.getRepository(ClassSubjectEntity).save({ class_id: classId, subject_id: subject.id });
+    // The class subject's subject class in section A, taught by the subject teacher.
+    const [offering] = await t.dataSource.query(
+      `SELECT o.id, o.section_id, o.organization_id FROM course_offerings o JOIN sections s ON s.id = o.section_id WHERE s.class_id = $1`,
+      [classId],
+    );
+    sectionId = offering.section_id;
+    await t.dataSource.query(`INSERT INTO offering_teachers (organization_id, offering_id, teacher_id) VALUES ($1, $2, $3)`, [
+      offering.organization_id,
+      offering.id,
+      subjectTeacher.id,
+    ]);
 
     const solo = await make.soloOrganization(teacher);
     const plan = await t.dataSource.getRepository(SubscriptionPlanEntity).findOneByOrFail({ slug: 'basic' });
@@ -124,7 +128,9 @@ describe('user secrets in API responses', () => {
       ['GET /classes/:id', () => t.api.get(`/classes/${classId}`, t.tokenFor(teacher))],
       ['GET /classes/:id (admin)', () => t.api.get(`/classes/${classId}`, t.tokenFor(admin))],
       ['GET /classes/:id/students', () => t.api.get(`/classes/${classId}/students`, t.tokenFor(teacher))],
-      ['GET /classes/:id/teachers', () => t.api.get(`/classes/${classId}/teachers`, t.tokenFor(teacher))],
+      ['GET /sections/:id/offerings', () => t.api.get(`/sections/${sectionId}/offerings`, t.tokenFor(teacher))],
+      ['GET /sections/:id/enrolments', () => t.api.get(`/sections/${sectionId}/enrolments`, t.tokenFor(teacher))],
+      ['GET /classes/:id/discussion-subjects', () => t.api.get(`/classes/${classId}/discussion-subjects`, t.tokenFor(teacher))],
       ['GET /classes/:id/subjects', () => t.api.get(`/classes/${classId}/subjects`, t.tokenFor(teacher))],
       [
         'PATCH /classes/:id',

@@ -16,7 +16,7 @@ import { OfferingTeacherEntity } from './entities/offering-teacher.entity';
 import { SectionEntity } from './entities/section.entity';
 import { TermEntity } from './entities/term.entity';
 import { EnrolmentsService } from './enrolments.service';
-import { LegacyClassSyncSubscriber } from './legacy-class-sync.subscriber';
+import { AcademicDefaultsSubscriber } from './academic-defaults.subscriber';
 import { OfferingRosterService } from './offering-roster.service';
 import { SectionsController } from './sections.controller';
 import { SectionsService } from './sections.service';
@@ -45,7 +45,7 @@ import { SectionsService } from './sections.service';
     UserModule,
   ],
   controllers: [AcademicSessionsController, SectionsController],
-  providers: [AcademicSessionsService, SectionsService, EnrolmentsService, OfferingRosterService, LegacyClassSyncSubscriber],
+  providers: [AcademicSessionsService, SectionsService, EnrolmentsService, OfferingRosterService, AcademicDefaultsSubscriber],
   exports: [AcademicSessionsService, EnrolmentsService, OfferingRosterService],
 })
 export class AcademicsModule {}

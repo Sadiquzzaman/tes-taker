@@ -4,6 +4,7 @@ import { Card, Checkbox, Combobox, Input, RadioGroup, Tooltip } from "@/design/u
 import useGetAllSubject from "@/hooks/api/subject/useGetAllSubject";
 import useGetAllClass from "@/hooks/api/class/useGetAllClass";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
+import useSubjectClasses, { classesTaughtBy } from "@/hooks/academics/useSubjectClasses";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 import { getStoredUser } from "@/lib/authSession";
 import axiosReq from "@/lib/axios";
@@ -60,18 +61,15 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
   }, [dispatch, isIndividual, publishState.testAudience]);
 
   const currentUserId = getStoredUser()?.id;
+  // Classes the teacher teaches in (a subject class or a section's class teacher, P2-03).
+  const subjectClasses = useSubjectClasses(!isIndividual);
   const orgClassOptions = useMemo(() => {
     if (isIndividual) {
       return [];
     }
-    return classList
-      .filter((item) =>
-        (item.classSubjects ?? []).some((row) =>
-          (row.teachers ?? []).some((assignment) => assignment.teacher_id === currentUserId),
-        ),
-      )
-      .map((item) => ({ label: item.class_name, value: item.id }));
-  }, [classList, currentUserId, isIndividual]);
+    const taught = classesTaughtBy(currentUserId, subjectClasses);
+    return classList.filter((item) => taught.has(item.id)).map((item) => ({ label: item.class_name, value: item.id }));
+  }, [classList, currentUserId, isIndividual, subjectClasses]);
 
   useEffect(() => {
     if (isIndividual || !publishState.selectedClassId) {

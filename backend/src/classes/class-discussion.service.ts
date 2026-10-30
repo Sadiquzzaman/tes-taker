@@ -65,13 +65,6 @@ export class ClassDiscussionService {
       .innerJoinAndSelect('classSubject.subject', 'subject')
       .leftJoinAndSelect('classSubject.class', 'classEntity')
       .leftJoinAndSelect('classEntity.teacher', 'classOwner')
-      .leftJoinAndSelect(
-        'classSubject.teachers',
-        'teachers',
-        'teachers.is_active = :teacherActive',
-        { teacherActive: ActiveStatusEnum.ACTIVE },
-      )
-      .leftJoinAndSelect('teachers.teacher', 'assignedTeacher')
       .where('classSubject.class_id = :classId', { classId })
       .andWhere('classSubject.is_active = :classSubjectActive', {
         classSubjectActive: ActiveStatusEnum.ACTIVE,
@@ -90,7 +83,28 @@ export class ClassDiscussionService {
     }
 
     const rows = await qb.getMany();
-    return rows.map((row) => this.mapDiscussionSubject(row));
+    const teachersBySubject = await this.subjectClassTeachers(classId);
+    return rows.map((row) => this.mapDiscussionSubject(row, teachersBySubject.get(row.subject_id) ?? []));
+  }
+
+  /** Teachers of each subject in the class: of its subject classes in the class's sections (open sessions). */
+  private async subjectClassTeachers(classId: string): Promise<Map<string, Array<{ id: string; name: string }>>> {
+    const rows: Array<{ subject_id: string; teacher_id: string; full_name: string | null }> = await this.classSubjectRepo.query(
+      `SELECT DISTINCT o.subject_id, ot.teacher_id, u.full_name
+       FROM offering_teachers ot
+       JOIN course_offerings o ON o.id = ot.offering_id
+       JOIN sections s ON s.id = o.section_id
+       JOIN academic_sessions ses ON ses.id = s.session_id AND ses.status = 'ACTIVE'
+       JOIN users u ON u.id = ot.teacher_id
+       WHERE s.class_id = $1
+       ORDER BY u.full_name`,
+      [classId],
+    );
+    const bySubject = new Map<string, Array<{ id: string; name: string }>>();
+    for (const row of rows) {
+      bySubject.set(row.subject_id, [...(bySubject.get(row.subject_id) ?? []), { id: row.teacher_id, name: row.full_name?.trim() || 'Teacher' }]);
+    }
+    return bySubject;
   }
 
   async listPosts(
@@ -602,13 +616,8 @@ export class ClassDiscussionService {
     return new Map(users.map((user) => [user.id, user.full_name?.trim() || 'User']));
   }
 
-  private mapDiscussionSubject(row: ClassSubjectEntity) {
-    const teachers = (row.teachers || [])
-      .filter((assignment) => assignment.is_active === ActiveStatusEnum.ACTIVE)
-      .map((assignment) => ({
-        id: assignment.teacher_id,
-        name: assignment.teacher?.full_name?.trim() || 'Teacher',
-      }));
+  private mapDiscussionSubject(row: ClassSubjectEntity, subjectTeachers: Array<{ id: string; name: string }>) {
+    const teachers = [...subjectTeachers];
 
     if (row.class && !usesOrganizationRules(row.class) && row.class.teacher_id) {
       if (!teachers.some((teacher) => teacher.id === row.class.teacher_id)) {
