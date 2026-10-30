@@ -13,7 +13,7 @@ import { AuditService } from 'src/audit/audit.service';
 import { EntityManager, In, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { resolveFrontendUrl } from 'src/common/utils/frontend-url.util';
-import { NOTIFICATION_EVENTS, NotificationChannelEnum } from 'src/notifications/notification.constants';
+import { NOTIFICATION_EVENTS } from 'src/notifications/notification.constants';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import {
   SubscriptionPlanEntity,
@@ -46,6 +46,7 @@ import {
   validateLimitsInput,
   mergeFeatures,
   mergeLimits,
+  PlanLimits,
 } from './constants/feature-catalog';
 import {
   AssignPlanDto,
@@ -112,7 +113,10 @@ export class SubscriptionService implements OnModuleInit {
     const created: string[] = [];
     for (const preset of Object.values(SEED_PLAN_PRESETS)) {
       const existing = await this.planRepo.findOne({ where: { slug: preset.slug } });
-      if (existing) continue;
+      if (existing) {
+        await this.addMissingPresetLimits(existing, preset.limits);
+        continue;
+      }
 
       await this.planRepo.save(
         this.planRepo.create({
@@ -133,6 +137,21 @@ export class SubscriptionService implements OnModuleInit {
       created.push(preset.slug);
     }
     if (created.length) this.logger.log(`Subscription plans created: ${created.join(', ')}`);
+  }
+
+  /**
+   * A limit added to the catalogue after a preset plan was created (e.g. `sms_credits_per_month`,
+   * P2-08) gets the preset's value, only while the plan has no value for it. A value an admin saved
+   * in Admin → Plans is never changed.
+   */
+  private async addMissingPresetLimits(plan: SubscriptionPlanEntity, presetLimits: PlanLimits): Promise<void> {
+    const limits = { ...(plan.limits ?? {}) } as Record<string, number>;
+    const added = Object.entries(presetLimits).filter(([key]) => !(key in limits));
+    if (added.length === 0) return;
+    for (const [key, value] of added) limits[key] = Number(value);
+    await this.planRepo.update(plan.id, { limits: limits as PlanLimits });
+    await this.entitlementsService.invalidate();
+    this.logger.log(`Plan ${plan.slug}: added limits ${added.map(([key]) => key).join(', ')}`);
   }
 
   async getAllPlans(includeHidden = false): Promise<SubscriptionPlanEntity[]> {
@@ -925,7 +944,7 @@ export class SubscriptionService implements OnModuleInit {
     });
   }
 
-  /** Emails every active platform admin about a new feature request, in their language. */
+  /** Tells every active platform admin (in-app and email) about a new feature request, in their language. */
   private async notifyPlatformAdminsOfRequest(
     request: FeatureRequestEntity,
     jwtPayload: JwtPayloadInterface,
@@ -939,25 +958,23 @@ export class SubscriptionService implements OnModuleInit {
       manager.findOne(OrganizationEntity, { where: { id: request.organization_id }, select: ['id', 'name'] }),
     ]);
     const feature = FEATURE_CATALOG.find((f) => f.key === request.feature_key)?.label ?? request.feature_key;
-    await this.notifications.enqueue(
-      admins
-        .filter((admin) => admin.email)
-        .map((admin) => ({
-          eventType: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED,
-          channel: NotificationChannelEnum.EMAIL,
-          // A platform notice: not in the organisation's message log.
-          organizationId: null,
-          userId: admin.id,
-          variables: {
-            organization_name: organization?.name ?? '',
-            user_name: jwtPayload.full_name ?? '',
-            feature,
-            note: request.note ?? '',
-            link: `${resolveFrontendUrl(this.configService)}/admin/feature-requests`,
-          },
-          dedupeKey: `feature_request.created:${request.id}:${admin.id}`,
-          createdBy: jwtPayload.id,
-        })),
+    await this.notifications.notifyUsers(
+      {
+        eventType: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED,
+        // A platform notice: not in the organisation's message log.
+        organizationId: null,
+        userIds: admins.filter((admin) => admin.email).map((admin) => admin.id),
+        variables: {
+          organization_name: organization?.name ?? '',
+          user_name: jwtPayload.full_name ?? '',
+          feature,
+          note: request.note ?? '',
+          link: `${resolveFrontendUrl(this.configService)}/admin/feature-requests`,
+          path: '/admin/feature-requests',
+        },
+        dedupeKey: `feature_request.created:${request.id}`,
+        createdBy: jwtPayload.id,
+      },
       manager,
     );
   }

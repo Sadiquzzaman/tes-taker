@@ -2,6 +2,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import {
+  BILLING_SMS_ALLOWANCE_EVERY_MS,
+  BILLING_SMS_ALLOWANCE_JOB,
   EXAMS_AUTO_SUBMIT_EVERY_MS,
   EXAMS_AUTO_SUBMIT_JOB,
   EXAMS_QUEUE,
@@ -37,5 +39,12 @@ export class WorkerSchedulerService implements OnApplicationBootstrap {
       { name: NOTIFICATIONS_SWEEP_JOB },
     );
     this.logger.log(`Scheduled ${NOTIFICATIONS_SWEEP_JOB} every ${NOTIFICATIONS_SWEEP_EVERY_MS / 1000}s`);
+
+    await this.notificationsQueue.upsertJobScheduler(
+      BILLING_SMS_ALLOWANCE_JOB,
+      { every: BILLING_SMS_ALLOWANCE_EVERY_MS },
+      { name: BILLING_SMS_ALLOWANCE_JOB },
+    );
+    this.logger.log(`Scheduled ${BILLING_SMS_ALLOWANCE_JOB} every ${BILLING_SMS_ALLOWANCE_EVERY_MS / 60_000} min`);
   }
 }

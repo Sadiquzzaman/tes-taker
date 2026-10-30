@@ -1342,17 +1342,19 @@ Table notification_outbox {
 Table notifications {
   id uuid [pk]
   user_id uuid [not null, ref: > users.id]
-  organization_id uuid
-  type varchar(60)
-  title varchar(200)
+  organization_id uuid [ref: > organizations.id]
+  outbox_id uuid [ref: > notification_outbox.id, note: 'unique when set: one inbox row per IN_APP outbox row']
+  type varchar(60) [not null, note: 'event type']
+  title varchar(200) [not null]
   body text
-  link varchar(300)
+  link varchar(300) [note: 'a path in the web app']
   read_at timestamptz
   created_at timestamptz
   Indexes {
     (user_id, read_at, created_at)
+    outbox_id [unique, note: 'WHERE outbox_id IS NOT NULL']
   }
-  Note: 'NEW — in-app inbox (bell)'
+  Note: 'NEW, P2-08 — in-app inbox (bell); written by the worker for IN_APP outbox rows'
 }
 
 Table message_templates {
@@ -1375,25 +1377,35 @@ Table message_templates {
 
 Table sms_credit_ledger {
   id bigserial [pk]
-  organization_id uuid [not null]
-  bucket varchar(10) [not null, note: 'ALLOWANCE | TOPUP (decided 22 Oct: monthly allowance plus top-ups)']
-  delta int [not null, note: '+grant/top-up, -send/expire']
-  reason varchar(20) [note: 'MONTHLY_GRANT | MONTHLY_EXPIRE | TOPUP | SEND | REFUND | ADJUST']
+  organization_id uuid [not null, ref: > organizations.id]
+  bucket varchar(10) [not null, note: 'ALLOWANCE | TOPUP (CHECK; decided 22 Oct: monthly allowance plus top-ups)']
+  reason varchar(20) [not null, note: 'MONTHLY_GRANT | MONTHLY_EXPIRE | TOPUP | SEND | REFUND | ADJUST (CHECK)']
+  delta int [not null, note: '+grant/top-up/refund, -send/expire']
+  balance_after int [not null, note: "the bucket's balance after this row"]
+  period varchar(7) [note: 'YYYY-MM in the org time zone (MONTHLY_GRANT, MONTHLY_EXPIRE)']
   outbox_id uuid [ref: > notification_outbox.id]
   payment_id uuid [ref: > payments.id]
-  balance_after int [not null]
+  note text [note: "platform admin's reason for a top-up"]
+  created_by uuid
   created_at timestamptz
-  Note: 'NEW (FND-13) — allowance spent first, then top-ups; balance per bucket = last balance_after; row lock on org'
+  Indexes {
+    (organization_id, bucket, id)
+    (organization_id, bucket, reason, period) [unique, note: 'WHERE period IS NOT NULL: one grant/expiry per month']
+    (outbox_id, bucket, reason) [unique, note: 'WHERE outbox_id IS NOT NULL: charged and refunded once']
+    payment_id [unique, note: 'WHERE payment_id IS NOT NULL: a paid top-up adds credits once']
+  }
+  Note: 'NEW (FND-13), P2-08 — allowance spent first, then top-ups; balance per bucket = last balance_after; per-organisation advisory lock'
 }
 
 Table user_notification_prefs {
   user_id uuid [ref: > users.id]
   event_type varchar(60)
-  channels channel[]
+  channels varchar(10)[] [not null, note: 'IN_APP always included']
+  updated_at timestamptz
   Indexes {
     (user_id, event_type) [pk]
   }
-  Note: 'NEW'
+  Note: 'NEW, P2-08 — no row = the event defaults (NOTIFICATION_PREFERENCES)'
 }
 
 //////////////////////////////////////////////////////////////

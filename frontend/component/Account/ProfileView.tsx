@@ -9,6 +9,7 @@ import useAcademicsRequest from "@/hooks/academics/useAcademicsRequest";
 import useProfile from "@/hooks/api/auth/useProfile";
 import useFormat from "@/i18n/useFormat";
 import AccountBilling from "./AccountBilling";
+import NotificationPrefs from "@/component/Notifications/NotificationPrefs";
 import ChangePasswordForm from "./ChangePasswordForm";
 import TeacherRequestPanel from "./TeacherRequestPanel";
 
@@ -93,6 +94,8 @@ const ProfileView = () => {
       ) : null}
 
       {profile.role === "TEACHER" && isIndividual && ownsWorkspace ? <LevelLabelsCard /> : null}
+
+      <NotificationPrefs />
 
       <ChangePasswordForm />
     </div>

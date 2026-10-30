@@ -8,7 +8,7 @@ export interface DefaultTemplate {
   body: string;
 }
 
-const { SMS, EMAIL } = NotificationChannelEnum;
+const { SMS, EMAIL, IN_APP } = NotificationChannelEnum;
 
 /**
  * The platform's default text for every event (design §8.6), in Bangla and English. Added to
@@ -109,6 +109,50 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
       '<h2>নতুন ফিচার অনুরোধ</h2><p><strong>{{organization_name}}</strong>-এর <strong>{{user_name}}</strong> <strong>{{feature}}</strong> চেয়েছেন।</p>' +
       '<p>{{note}}</p><p><a class="button" href="{{link}}">ফিচার অনুরোধগুলো খুলুন</a></p>',
   },
+
+  // The owner: 10% or less of the month's SMS credits left (FND-13)
+  {
+    event_type: NOTIFICATION_EVENTS.SMS_LOW_CREDIT,
+    channel: EMAIL,
+    locale: 'en',
+    subject: 'SMS credits running low for {{organization_name}}',
+    body:
+      '<h2>Your SMS credits are running low</h2><p><strong>{{organization_name}}</strong> has <strong>{{credits_left}}</strong> SMS credits left this month.</p>' +
+      '<p>When credits run out, SMS stop and are logged as "Not sent — no credit". In-app messages and emails still go out.</p>' +
+      '<p><a class="button" href="{{link}}">Buy SMS credits</a></p>',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.SMS_LOW_CREDIT,
+    channel: EMAIL,
+    locale: 'bn',
+    subject: '{{organization_name}}-এর SMS ক্রেডিট কমে আসছে',
+    body:
+      '<h2>আপনার SMS ক্রেডিট কমে আসছে</h2><p>এই মাসে <strong>{{organization_name}}</strong>-এর <strong>{{credits_left}}</strong>টি SMS ক্রেডিট বাকি আছে।</p>' +
+      '<p>ক্রেডিট শেষ হলে SMS যাওয়া বন্ধ হবে এবং "পাঠানো হয়নি — ক্রেডিট নেই" হিসেবে লগে থাকবে। অ্যাপের বার্তা ও ইমেইল যেতে থাকবে।</p>' +
+      '<p><a class="button" href="{{link}}">SMS ক্রেডিট কিনুন</a></p>',
+  },
+
+  // In-app (the bell): the subject is the title.
+  { event_type: NOTIFICATION_EVENTS.EXAM_SCHEDULED, channel: IN_APP, locale: 'en', subject: 'New test: {{exam_title}}', body: 'Starts {{exam_start_at}}.' },
+  { event_type: NOTIFICATION_EVENTS.EXAM_SCHEDULED, channel: IN_APP, locale: 'bn', subject: 'নতুন পরীক্ষা: {{exam_title}}', body: 'শুরু {{exam_start_at}}।' },
+  {
+    event_type: NOTIFICATION_EVENTS.EXAM_SCHEDULED,
+    channel: EMAIL,
+    locale: 'en',
+    subject: 'New test: {{exam_title}}',
+    body: '<h2>Upcoming test</h2><p><strong>{{exam_title}}</strong> starts {{exam_start_at}}. Please prepare.</p>',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.EXAM_SCHEDULED,
+    channel: EMAIL,
+    locale: 'bn',
+    subject: 'নতুন পরীক্ষা: {{exam_title}}',
+    body: '<h2>আসন্ন পরীক্ষা</h2><p><strong>{{exam_title}}</strong> শুরু {{exam_start_at}}। প্রস্তুতি নিন।</p>',
+  },
+  { event_type: NOTIFICATION_EVENTS.SMS_LOW_CREDIT, channel: IN_APP, locale: 'en', subject: 'SMS credits running low', body: '{{credits_left}} SMS credits left this month for {{organization_name}}.' },
+  { event_type: NOTIFICATION_EVENTS.SMS_LOW_CREDIT, channel: IN_APP, locale: 'bn', subject: 'SMS ক্রেডিট কমে আসছে', body: 'এই মাসে {{organization_name}}-এর {{credits_left}}টি SMS ক্রেডিট বাকি।' },
+  { event_type: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED, channel: IN_APP, locale: 'en', subject: 'Feature request: {{feature}}', body: '{{user_name}} of {{organization_name}} asked for it.' },
+  { event_type: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED, channel: IN_APP, locale: 'bn', subject: 'ফিচার অনুরোধ: {{feature}}', body: '{{organization_name}}-এর {{user_name}} এটি চেয়েছেন।' },
 ];
 
 /** Values shown translated when a variable holds one of these codes (e.g. a member role). */

@@ -53,7 +53,7 @@ import { RolesEnum } from 'src/common/enums/roles.enum';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { generatePublicId } from 'src/common/utils/public-id.util';
 import { NotificationsService } from 'src/notifications/notifications.service';
-import { NOTIFICATION_EVENTS, NotificationChannelEnum } from 'src/notifications/notification.constants';
+import { NOTIFICATION_EVENTS } from 'src/notifications/notification.constants';
 import { SubjectService } from 'src/subjects/subject.service';
 import { EntitlementsService } from 'src/subscriptions/entitlements.service';
 import { FeatureKey, LimitKey } from 'src/subscriptions/constants/feature-catalog';
@@ -1034,8 +1034,8 @@ export class ExamService {
   }
 
   /**
-   * Queues the "test scheduled" SMS for each student (design §8.6): the worker sends them, charges
-   * the organisation's SMS credits and logs each one. Rescheduling the test sends a new notice;
+   * Queues the "test scheduled" notice for each student (design §8.6) on their channels: the worker
+   * sends them, charges the organisation's SMS credits and logs each one. Rescheduling the test sends a new notice;
    * saving it again with the same start time does not.
    */
   private async sendSmsToStudents(
@@ -1048,16 +1048,16 @@ export class ExamService {
     }
 
     const startAt = new Date(exam.exam_start_time).toISOString();
-    const ids = await this.notifications.enqueue(
-      students.map((student) => ({
+    // In-app always, plus SMS (default) or email as each student chose (FND-12).
+    const ids = await this.notifications.notifyUsers(
+      {
         eventType: NOTIFICATION_EVENTS.EXAM_SCHEDULED,
-        channel: NotificationChannelEnum.SMS,
         organizationId: exam.organization_id ?? null,
-        userId: student.id,
-        variables: { exam_title: exam.test_name || exam.subject || '', exam_start_at: startAt },
-        dedupeKey: `exam.scheduled:${exam.id}:${student.id}:${startAt}`,
+        userIds: students.map((student) => student.id),
+        variables: { exam_title: exam.test_name || exam.subject || '', exam_start_at: startAt, path: '/tests' },
+        dedupeKey: `exam.scheduled:${exam.id}:${startAt}`,
         createdBy: exam.created_by ?? null,
-      })),
+      },
       manager,
     );
     return { queued: ids.length };

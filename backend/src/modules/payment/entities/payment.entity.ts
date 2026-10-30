@@ -88,13 +88,15 @@ export class PaymentEntity {
   @Column({ name: 'purpose', type: 'varchar', length: 30, nullable: true })
   purpose: string | null;
 
-  @ApiPropertyOptional({ description: 'Subscription checkout metadata' })
+  @ApiPropertyOptional({ description: 'Checkout metadata (subscription, or the SMS pack and its credits)' })
   @Column({ name: 'metadata', type: 'jsonb', nullable: true })
   metadata: {
     teacherId?: string;
     planId?: string;
     billingCycle?: string;
     subscriptionId?: string;
+    packId?: string;
+    credits?: number;
   } | null;
 
   @ApiProperty({ description: 'Created timestamp' })

@@ -61,6 +61,7 @@ describe('PaymentService (P0-05 payment security)', () => {
     activateSubscriptionFromPayment: jest.Mock;
   };
   let service: PaymentService;
+  let smsCredits: { addTopUp: jest.Mock };
 
   const pendingSubscription = () => ({
     id: SUBSCRIPTION_ID,
@@ -125,6 +126,7 @@ describe('PaymentService (P0-05 payment security)', () => {
       activateSubscriptionFromPayment: jest.fn(async () => ({})),
     };
     const configService = { get: jest.fn((key: string, fallback?: string) => config[key] ?? fallback) };
+    smsCredits = { addTopUp: jest.fn(async () => ({ added: true, summary: {} })) };
     const dataSource = {
       transaction: jest.fn(async (work: (manager: unknown) => unknown) =>
         work({ getRepository: () => paymentRepo }),
@@ -136,6 +138,7 @@ describe('PaymentService (P0-05 payment security)', () => {
       configService as never,
       dataSource as never,
       subscriptionService as unknown as SubscriptionService,
+      smsCredits as never,
     );
   });
 
