@@ -63,12 +63,24 @@ const recentChange: AuditLogItem = {
   reason: "Exam season",
 };
 
+/** The drawer also shows the organisation's SMS credits (P2-08). */
+const smsCredits: SmsCreditSummary = {
+  period: "2026-11",
+  allowance: { granted: 300, left: 280 },
+  top_up: { left: 0 },
+  total_left: 280,
+  low: false,
+  packs: [],
+};
+
 const mockApi = (overrides: FeatureOverrideItem[] = [], changes: AuditLogItem[] = []) =>
   get.mockImplementation((url: string) =>
     Promise.resolve({
       data: url.endsWith("/audit-logs/admin")
         ? { payload: changes, meta: { page: 1, limit: 10, total: changes.length, total_pages: 1 } }
-        : { payload: url.endsWith("/entitlements") ? adminEntitlements(overrides) : url.endsWith("/feature-catalog") ? catalog : plans },
+        : url.includes("/sms-credits/admin/")
+          ? { payload: smsCredits }
+          : { payload: url.endsWith("/entitlements") ? adminEntitlements(overrides) : url.endsWith("/feature-catalog") ? catalog : plans },
     }),
   );
 
@@ -144,7 +156,9 @@ describe("organisation plan & features (FND-07)", () => {
       Promise.resolve({
         data: url.endsWith("/organizations/admin")
           ? { payload: config?.params?.kind === "SOLO" ? [{ ...organization, owner: { full_name: "Rina Akter" } }] : [], meta: { total_pages: 1 } }
-          : { payload: url.endsWith("/entitlements") ? adminEntitlements() : url.endsWith("/feature-catalog") ? catalog : plans },
+          : url.includes("/sms-credits/admin/")
+            ? { payload: smsCredits }
+            : { payload: url.endsWith("/entitlements") ? adminEntitlements() : url.endsWith("/feature-catalog") ? catalog : plans },
       }),
     );
     renderApp(<AdminOrganizationsTable />);
