@@ -85,6 +85,7 @@ describe('student cap at exam start', () => {
       entitlementsService as never,
       {} as never, // soloOrganizations
       {} as never, // sessionRepo
+      { record: jest.fn() } as never, // audit
     );
   });
 

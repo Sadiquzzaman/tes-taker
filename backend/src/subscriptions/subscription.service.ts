@@ -7,6 +7,9 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
+import { auditChanges } from 'src/audit/audit-sanitize';
+import { AuditService } from 'src/audit/audit.service';
 import { Repository } from 'typeorm';
 import {
   SubscriptionPlanEntity,
@@ -85,6 +88,7 @@ export class SubscriptionService implements OnModuleInit {
 
     private readonly entitlementsService: EntitlementsService,
     private readonly soloOrganizations: SoloOrganizationService,
+    private readonly audit: AuditService,
   ) {}
 
   async onModuleInit() {
@@ -173,7 +177,15 @@ export class SubscriptionService implements OnModuleInit {
       created_at: new Date(),
     });
 
-    return this.planRepo.save(plan);
+    const saved = await this.planRepo.save(plan);
+    this.audit.record({
+      action: AUDIT_ACTIONS.PLAN_CREATE,
+      actorId: jwtPayload.id,
+      entityType: 'subscription_plan',
+      entityId: saved.id,
+      after: planState(saved),
+    });
+    return saved;
   }
 
   async updatePlan(
@@ -182,6 +194,7 @@ export class SubscriptionService implements OnModuleInit {
     jwtPayload: JwtPayloadInterface,
   ): Promise<SubscriptionPlanEntity> {
     const plan = await this.getPlanById(planId);
+    const before = planState(plan);
 
     if (dto.slug && dto.slug !== plan.slug) {
       const slugTaken = await this.planRepo.findOne({ where: { slug: dto.slug } });
@@ -211,12 +224,19 @@ export class SubscriptionService implements OnModuleInit {
     plan.updated_at = new Date();
 
     const saved = await this.planRepo.save(plan);
+    this.audit.record({
+      action: AUDIT_ACTIONS.PLAN_UPDATE,
+      actorId: jwtPayload.id,
+      entityType: 'subscription_plan',
+      entityId: saved.id,
+      ...auditChanges(before, planState(saved)),
+    });
     // Every organisation on this plan sees the change at its next page load (FND-07).
     await this.entitlementsService.invalidate();
     return saved;
   }
 
-  async deletePlan(planId: string): Promise<void> {
+  async deletePlan(planId: string, jwtPayload: JwtPayloadInterface): Promise<void> {
     const plan = await this.getPlanById(planId);
     // Every organisation without a subscription is on Free (EntitlementsService.getFreePlan).
     if (plan.slug === 'free') {
@@ -228,7 +248,15 @@ export class SubscriptionService implements OnModuleInit {
     if (activeSubs > 0) {
       throw new BadRequestException('Cannot delete plan with active subscriptions');
     }
+    const before = planState(plan);
     await this.planRepo.remove(plan);
+    this.audit.record({
+      action: AUDIT_ACTIONS.PLAN_DELETE,
+      actorId: jwtPayload.id,
+      entityType: 'subscription_plan',
+      entityId: planId,
+      before,
+    });
   }
 
   async clonePlan(planId: string, jwtPayload: JwtPayloadInterface): Promise<SubscriptionPlanEntity> {
@@ -253,17 +281,27 @@ export class SubscriptionService implements OnModuleInit {
     );
   }
 
-  async reorderPlans(dto: ReorderPlansDto): Promise<SubscriptionPlanEntity[]> {
+  async reorderPlans(dto: ReorderPlansDto, jwtPayload: JwtPayloadInterface): Promise<SubscriptionPlanEntity[]> {
     for (let i = 0; i < dto.plan_ids.length; i++) {
       await this.planRepo.update({ id: dto.plan_ids[i] }, { sort_order: i + 1 });
     }
+    this.audit.record({ action: AUDIT_ACTIONS.PLAN_REORDER, actorId: jwtPayload.id, after: { plan_ids: dto.plan_ids } });
     return this.getAllPlansAdmin();
   }
 
-  async setPlanActive(planId: string, active: boolean): Promise<SubscriptionPlanEntity> {
+  async setPlanActive(planId: string, active: boolean, jwtPayload: JwtPayloadInterface): Promise<SubscriptionPlanEntity> {
     const plan = await this.getPlanById(planId);
+    const wasActive = plan.is_plan_active;
     plan.is_plan_active = active;
     const saved = await this.planRepo.save(plan);
+    this.audit.record({
+      action: active ? AUDIT_ACTIONS.PLAN_ACTIVATE : AUDIT_ACTIONS.PLAN_DEACTIVATE,
+      actorId: jwtPayload.id,
+      entityType: 'subscription_plan',
+      entityId: saved.id,
+      before: { is_plan_active: wasActive },
+      after: { is_plan_active: active },
+    });
     await this.entitlementsService.invalidate();
     return saved;
   }
@@ -430,7 +468,7 @@ export class SubscriptionService implements OnModuleInit {
   async assignPlan(dto: AssignPlanDto, jwtPayload: JwtPayloadInterface): Promise<AccountSubscriptionEntity> {
     const organizationId = await this.resolveAdminTarget(dto);
     const plan = await this.getPlanById(dto.plan_id);
-    await this.cancelActiveSubscription(organizationId);
+    const previous = await this.cancelActiveSubscription(organizationId);
 
     let amount = 0;
     let endDate: Date | undefined;
@@ -477,6 +515,16 @@ export class SubscriptionService implements OnModuleInit {
       );
     }
 
+    this.audit.record({
+      action: AUDIT_ACTIONS.SUBSCRIPTION_PLAN_ASSIGN,
+      organizationId,
+      actorId: jwtPayload.id,
+      entityType: 'account_subscription',
+      entityId: saved.id,
+      before: previous ? subscriptionState(previous) : null,
+      after: { ...subscriptionState(saved), plan_slug: plan.slug, plan_name: plan.name },
+      reason: dto.notes,
+    });
     await this.entitlementsService.invalidate(organizationId);
     const result = await this.subscriptionRepo.findOne({ where: { id: saved.id }, relations: ['plan', 'organization'] });
     if (!result) throw new BadRequestException('Failed to assign subscription');
@@ -509,6 +557,17 @@ export class SubscriptionService implements OnModuleInit {
   async cancelSubscription(organizationId: string, userId: string): Promise<AccountSubscriptionEntity | null> {
     await this.assertCanManageBilling(organizationId, userId);
     const cancelled = await this.cancelActiveSubscription(organizationId);
+    if (cancelled) {
+      this.audit.record({
+        action: AUDIT_ACTIONS.SUBSCRIPTION_CANCEL,
+        organizationId,
+        actorId: userId,
+        entityType: 'account_subscription',
+        entityId: cancelled.id,
+        before: { status: SubscriptionStatusEnum.ACTIVE, plan_id: cancelled.plan_id },
+        after: { status: cancelled.status },
+      });
+    }
     await this.entitlementsService.invalidate(organizationId);
     return cancelled;
   }
@@ -549,12 +608,33 @@ export class SubscriptionService implements OnModuleInit {
           : { created_by: jwtPayload.id, created_user_name: jwtPayload.full_name, created_at: new Date() }),
       }),
     );
+    this.audit.record({
+      action: AUDIT_ACTIONS.SUBSCRIPTION_OVERRIDE_SET,
+      organizationId,
+      actorId: jwtPayload.id,
+      entityType: 'feature_override',
+      entityId: saved.id,
+      before: existing ? overrideState(existing) : null,
+      after: overrideState(saved),
+      reason: dto.reason,
+    });
     await this.entitlementsService.invalidate(organizationId);
     return saved;
   }
 
-  async removeOverride(organizationId: string, key: string): Promise<void> {
+  async removeOverride(organizationId: string, key: string, jwtPayload: JwtPayloadInterface): Promise<void> {
+    const existing = await this.overrideRepo.findOne({ where: { organization_id: organizationId, key } });
     await this.overrideRepo.delete({ organization_id: organizationId, key });
+    if (existing) {
+      this.audit.record({
+        action: AUDIT_ACTIONS.SUBSCRIPTION_OVERRIDE_REMOVE,
+        organizationId,
+        actorId: jwtPayload.id,
+        entityType: 'feature_override',
+        entityId: existing.id,
+        before: overrideState(existing),
+      });
+    }
     await this.entitlementsService.invalidate(organizationId);
   }
 
@@ -698,6 +778,7 @@ export class SubscriptionService implements OnModuleInit {
     if (payment.status === PaymentStatusEnum.COMPLETED) {
       throw new BadRequestException('Payment already confirmed');
     }
+    const previousStatus = payment.status;
 
     payment.status = PaymentStatusEnum.COMPLETED;
     payment.transaction_id = transactionId;
@@ -710,6 +791,15 @@ export class SubscriptionService implements OnModuleInit {
     if (payment.subscription) {
       await this.swapToActiveSubscription(payment.subscription, Number(payment.amount));
     }
+    this.audit.record({
+      action: AUDIT_ACTIONS.PAYMENT_CONFIRM,
+      organizationId: payment.organization_id,
+      actorId: jwtPayload.id,
+      entityType: 'payment',
+      entityId: payment.id,
+      before: { status: previousStatus },
+      after: { status: payment.status, amount: Number(payment.amount), transaction_id: transactionId, subscription_id: payment.subscription_id },
+    });
     return payment;
   }
 
@@ -772,15 +862,26 @@ export class SubscriptionService implements OnModuleInit {
     return { items, total, page, limit };
   }
 
-  async setTeacherActive(teacherId: string, active: boolean): Promise<UserEntity> {
+  async setTeacherActive(teacherId: string, active: boolean, jwtPayload: JwtPayloadInterface): Promise<UserEntity> {
     const teacher = await this.userRepo.findOne({ where: { id: teacherId } });
     if (!teacher || teacher.role !== RolesEnum.TEACHER) {
       throw new NotFoundException('Teacher not found');
     }
 
+    const wasActive = teacher.is_active === ActiveStatusEnum.ACTIVE;
     teacher.is_active = active ? ActiveStatusEnum.ACTIVE : ActiveStatusEnum.INACTIVE;
     teacher.updated_at = new Date();
-    return this.userRepo.save(teacher);
+    const saved = await this.userRepo.save(teacher);
+    this.audit.record({
+      action: AUDIT_ACTIONS.TEACHER_STATUS_CHANGE,
+      organizationId: await this.soloOrganizations.findIdForOwner(teacherId),
+      actorId: jwtPayload.id,
+      entityType: 'user',
+      entityId: teacherId,
+      before: { active: wasActive },
+      after: { active },
+    });
+    return saved;
   }
 
   // ---------------------------------------------------------------------------
@@ -836,6 +937,43 @@ export class SubscriptionService implements OnModuleInit {
     request.updated_by = jwtPayload.id;
     request.updated_user_name = jwtPayload.full_name;
     request.updated_at = new Date();
-    return this.featureRequestRepo.save(request);
+    const saved = await this.featureRequestRepo.save(request);
+    this.audit.record({
+      action: AUDIT_ACTIONS.FEATURE_REQUEST_HANDLED,
+      organizationId: saved.organization_id,
+      actorId: jwtPayload.id,
+      entityType: 'feature_request',
+      entityId: saved.id,
+      after: { feature_key: saved.feature_key, status: saved.status },
+    });
+    return saved;
   }
 }
+
+/** The plan fields the audit log keeps (design §8.10). */
+const planState = (plan: SubscriptionPlanEntity) => ({
+  name: plan.name,
+  slug: plan.slug,
+  price_monthly: Number(plan.price_monthly),
+  price_half_yearly: Number(plan.price_half_yearly),
+  price_yearly: Number(plan.price_yearly),
+  visibility: plan.visibility,
+  is_custom: plan.is_custom,
+  sort_order: plan.sort_order,
+  is_plan_active: plan.is_plan_active,
+  features: plan.features,
+  limits: plan.limits,
+});
+
+const subscriptionState = (subscription: AccountSubscriptionEntity) => ({
+  plan_id: subscription.plan_id,
+  status: subscription.status,
+  billing_cycle: subscription.billing_cycle ?? null,
+  end_date: subscription.end_date ?? null,
+});
+
+const overrideState = (override: FeatureOverrideEntity) => ({
+  key: override.key,
+  value: override.value,
+  expires_at: override.expires_at,
+});

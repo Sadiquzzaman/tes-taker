@@ -36,3 +36,5 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Soft delete for sections, subject classes, terms, subject class teachers and selected students — the owner chose to keep hard deletes there for now (P2-03); only students are soft-deleted and a class with student records cannot be deleted.
 - Use the organisation's level names (`levelLabel()`, FND-03) in SMS and PDFs — P2-04 did the web app; message templates come with P2-08 and the PDF work.
 - Level names in the Flutter app (FND-03) — read `GET /workspace/level-labels` and replace the same tokens when P4 builds the app.
+- Clear `audit_logs.ip` after a set time (e.g. 12 months) — P2-09 stores the IP on every row (shown to platform admins only) and keeps rows for the organisation's lifetime (design §10); retention period is an owner decision.
+- Deactivate an organisation (hidden and closed to members, all data kept) — owner decision 30 Oct: organisations are never deleted (design §10); no screen or endpoint exists yet.

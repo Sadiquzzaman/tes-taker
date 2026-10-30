@@ -254,21 +254,22 @@ Table teacher_role_requests {
 
 Table audit_logs {
   id bigserial [pk]
-  organization_id uuid [ref: > organizations.id]
-  actor_id uuid [ref: > users.id]
-  action varchar(80) [not null, note: 'e.g. attendance.correct, chat.access, grade.update']
+  organization_id uuid [ref: > organizations.id, note: 'NULL for platform-wide actions (plans); ON DELETE CASCADE never fires: organisations are deactivated, never deleted (design §10)']
+  actor_id uuid [ref: > users.id, note: 'NULL for system actions; ON DELETE SET NULL']
+  action varchar(80) [not null, note: 'area.verb, e.g. member.role_change, grade.update (backend/src/audit/audit-actions.ts)']
   entity_type varchar(60)
   entity_id uuid
-  before jsonb
+  before jsonb [note: 'changed fields only; secrets stripped']
   after jsonb
   reason text
-  ip inet
-  created_at timestamptz
+  ip inet [note: 'shown to platform admins only']
+  created_at timestamptz [not null, default: `now()`]
   Indexes {
     (organization_id, created_at)
     (entity_type, entity_id)
+    (actor_id, created_at)
   }
-  Note: 'NEW — append-only'
+  Note: 'NEW (P2-09, migration 1756000000000) — append-only: a trigger rejects UPDATE (except the actor FK set to NULL)'
 }
 
 //////////////////////////////////////////////////////////////

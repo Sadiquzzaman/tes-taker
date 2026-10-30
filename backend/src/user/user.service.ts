@@ -17,6 +17,8 @@ import { randomBytes } from 'crypto';
 import { PublicIdService } from 'src/common/services/public-id.service';
 import { normalizeEmail, normalizePhone } from 'src/common/utils/contact.util';
 import { TestUsersSeedService } from './test-users.seed';
+import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
+import { AuditService } from 'src/audit/audit.service';
 
 type AdminUserListMeta = {
   page: number;
@@ -61,6 +63,7 @@ export class UserService implements OnModuleInit {
     private readonly configService: ConfigService,
     private readonly publicIdService: PublicIdService,
     private readonly testUsersSeedService: TestUsersSeedService,
+    private readonly audit: AuditService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -884,6 +887,7 @@ export class UserService implements OnModuleInit {
       };
     }
 
+    const previousRole = user.role;
     user.role = role;
     if (role === RolesEnum.TEACHER) {
       user.personal_teacher_enabled = true;
@@ -892,6 +896,14 @@ export class UserService implements OnModuleInit {
       }
     }
     const savedUser = await this.userRepository.save(user);
+    this.audit.record({
+      action: AUDIT_ACTIONS.USER_ROLE_CHANGE,
+      actorId: adminId,
+      entityType: 'user',
+      entityId: savedUser.id,
+      before: { role: previousRole },
+      after: { role: savedUser.role },
+    });
 
     return {
       id: savedUser.id,

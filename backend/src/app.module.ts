@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { TenantMiddleware } from "./common/tenancy/tenant.middleware";
+import { AuditRequestMiddleware } from "./audit/audit-request-context";
 import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { AppController } from "./app.controller";
@@ -30,6 +31,7 @@ import { OrganizationsModule } from './organizations/organization.module';
 import { ChatMongoModule } from './chat-mongo/chat-mongo.module';
 import { CommonModule } from './common/common.module';
 import { QueueModule } from './queue/queue.module';
+import { AuditModule } from './audit/audit.module';
 import { AcademicsModule } from './academics/academics.module';
 
 @Module({
@@ -96,6 +98,7 @@ import { AcademicsModule } from './academics/academics.module';
     OrganizationsModule,
     ChatMongoModule,
     QueueModule,
+    AuditModule,
     AcademicsModule,
   ],
   controllers: [AppController],
@@ -108,8 +111,11 @@ import { AcademicsModule } from './academics/academics.module';
   ],
 })
 export class AppModule implements NestModule {
-  /** Every request gets its own tenant store (design §8.1); OrganizationContextGuard fills it in. */
+  /**
+   * Every request gets its own tenant store (design §8.1; OrganizationContextGuard fills it in)
+   * and remembers the caller's IP for the audit log (design §8.10).
+   */
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(TenantMiddleware).forRoutes("*");
+    consumer.apply(TenantMiddleware, AuditRequestMiddleware).forRoutes("*");
   }
 }
