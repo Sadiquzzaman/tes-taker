@@ -366,6 +366,7 @@ export class AuthService {
       member_role: membership.role,
       organization_name: organization.name,
       organization_status: organization.status,
+      organization_default_locale: organization.default_locale,
     }, {
       context_type: 'organization',
     });
@@ -389,6 +390,7 @@ export class AuthService {
       member_role: membership.role,
       organization_name: organization.name,
       organization_status: organization.status,
+      organization_default_locale: organization.default_locale,
     });
   }
 
