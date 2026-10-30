@@ -3,10 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { ClassEntity } from 'src/classes/entities/class.entity';
+import { EnrolmentEntity, EnrolmentStatusEnum } from 'src/academics/entities/enrolment.entity';
 import {
-  ClassStudentEntity,
-  ClassStudentStatusEnum,
-} from 'src/classes/entities/class-student.entity';
+  activeEnrolmentCondition,
+  countActiveByClass,
+  countRosterByOffering,
+  CURRENT_ENROLMENT_STATUSES,
+  openSessionCondition,
+} from 'src/academics/enrolment-queries';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
 import {
   StudentExamSubmissionEntity,
@@ -35,8 +39,8 @@ export class DashboardService {
     private readonly examRepo: Repository<ExamEntity>,
     @InjectRepository(ClassEntity)
     private readonly classRepo: Repository<ClassEntity>,
-    @InjectRepository(ClassStudentEntity)
-    private readonly classStudentRepo: Repository<ClassStudentEntity>,
+    @InjectRepository(EnrolmentEntity)
+    private readonly enrolmentRepo: Repository<EnrolmentEntity>,
     @InjectRepository(StudentExamSubmissionEntity)
     private readonly submissionRepo: Repository<StudentExamSubmissionEntity>,
     private readonly dataSource: DataSource,
@@ -55,7 +59,6 @@ export class DashboardService {
     const [classes, exams] = await Promise.all([
       this.classRepo.find({
         where: { teacher_id: teacherId },
-        relations: ['classStudents'],
         order: { created_at: 'DESC' },
       }),
       this.examRepo.find({
@@ -121,12 +124,13 @@ export class DashboardService {
         };
       });
 
-    const studentsSummary = await this.buildStudentsSummary(classes, teacherId);
+    const enrolmentsByClass = await this.currentEnrolments(classes.map((cls) => cls.id));
+    const studentsSummary = await this.buildStudentsSummary(classes, enrolmentsByClass, teacherId);
     const classesSummary = classes.map((cls) => ({
       id: cls.id,
       name: cls.class_name,
-      student_count: cls.classStudents.filter(
-        (cs) => cs.status === ClassStudentStatusEnum.JOINED,
+      student_count: (enrolmentsByClass.get(cls.id) ?? []).filter(
+        (e) => e.status === EnrolmentStatusEnum.ACTIVE,
       ).length,
     }));
 
@@ -183,8 +187,23 @@ export class DashboardService {
     return total;
   }
 
+  /** Current students of each class (enrolments not LEFT, in open sessions). */
+  private async currentEnrolments(classIds: string[]): Promise<Map<string, EnrolmentEntity[]>> {
+    const byClass = new Map<string, EnrolmentEntity[]>();
+    if (classIds.length === 0) return byClass;
+    const rows = await this.enrolmentRepo
+      .createQueryBuilder('e')
+      .where('e.class_id IN (:...classIds)', { classIds })
+      .andWhere('e.status IN (:...current)', { current: CURRENT_ENROLMENT_STATUSES })
+      .andWhere(openSessionCondition('e'))
+      .getMany();
+    for (const row of rows) byClass.set(row.class_id, [...(byClass.get(row.class_id) ?? []), row]);
+    return byClass;
+  }
+
   private async buildStudentsSummary(
     classes: ClassEntity[],
+    enrolmentsByClass: Map<string, EnrolmentEntity[]>,
     teacherId: string,
   ): Promise<{
     total: number;
@@ -196,12 +215,12 @@ export class DashboardService {
     let pendingCount = 0;
 
     for (const cls of classes) {
-      for (const cs of cls.classStudents ?? []) {
-        if (cs.status === ClassStudentStatusEnum.JOINED && cs.student_id) {
+      for (const cs of enrolmentsByClass.get(cls.id) ?? []) {
+        if (cs.status === EnrolmentStatusEnum.ACTIVE && cs.student_id) {
           joinedStudentIds.add(cs.student_id);
         } else if (
-          cs.status === ClassStudentStatusEnum.PENDING ||
-          cs.status === ClassStudentStatusEnum.INVITED
+          cs.status === EnrolmentStatusEnum.PENDING ||
+          cs.status === EnrolmentStatusEnum.INVITED
         ) {
           pendingCount += 1;
         }
@@ -256,6 +275,7 @@ export class DashboardService {
       return [];
     }
 
+    const activeStudent = activeEnrolmentCondition('cs');
     const rows = await this.dataSource
       .createQueryBuilder()
       .select('exam.class_id', 'class_id')
@@ -272,10 +292,10 @@ export class DashboardService {
       .innerJoin('classes', 'class', 'class.id = exam.class_id')
       .innerJoin('users', 'student', 'student.id = submission.student_id')
       .innerJoin(
-        'class_students',
+        'enrolments',
         'cs',
-        'cs.class_id = exam.class_id AND cs.student_id = submission.student_id AND cs.status = :joined',
-        { joined: ClassStudentStatusEnum.JOINED },
+        `cs.class_id = exam.class_id AND cs.student_id = submission.student_id AND ${activeStudent.sql}`,
+        activeStudent.params,
       )
       .where('exam.created_by = :teacherId', { teacherId })
       .andWhere('exam.class_id IN (:...classIds)', { classIds })
@@ -561,19 +581,11 @@ export class DashboardService {
       ),
     ];
 
-    const joinedByClass = new Map<string, number>();
-    if (classIds.length > 0) {
-      const joinedRows = await this.classStudentRepo
-        .createQueryBuilder('cs')
-        .select('cs.class_id', 'class_id')
-        .addSelect('COUNT(*)', 'cnt')
-        .where('cs.class_id IN (:...classIds)', { classIds })
-        .andWhere('cs.status = :status', { status: ClassStudentStatusEnum.JOINED })
-        .andWhere('cs.student_id IS NOT NULL')
-        .groupBy('cs.class_id')
-        .getRawMany<{ class_id: string; cnt: string }>();
-      joinedRows.forEach((r) => joinedByClass.set(r.class_id, Number(r.cnt) || 0));
-    }
+    const joinedByClass = await countActiveByClass(this.enrolmentRepo, classIds);
+    const rosterByOffering = await countRosterByOffering(
+      this.enrolmentRepo,
+      exams.map((e) => e.offering_id).filter((id): id is string => Boolean(id)),
+    );
 
     const excludedRows = await this.dataSource
       .createQueryBuilder()
@@ -615,7 +627,7 @@ export class DashboardService {
         exam.test_audience === TestAudienceEnum.SELECTED_CLASS &&
         exam.class_id
       ) {
-        const joined = joinedByClass.get(exam.class_id) ?? 0;
+        const joined = exam.offering_id ? rosterByOffering.get(exam.offering_id) ?? 0 : joinedByClass.get(exam.class_id) ?? 0;
         const excluded = excludedByExam.get(exam.id) ?? 0;
         participant_count = Math.max(0, joined - excluded);
       } else if (exam.test_audience === TestAudienceEnum.SPECIFIC_STUDENTS) {

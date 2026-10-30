@@ -33,7 +33,20 @@ import {
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
-import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities/class-student.entity';
+import { AcademicSessionEntity, AcademicSessionStatusEnum } from 'src/academics/entities/academic-session.entity';
+import { CourseOfferingEntity } from 'src/academics/entities/course-offering.entity';
+import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
+import { OfferingTeacherEntity } from 'src/academics/entities/offering-teacher.entity';
+import { assertExamSessionOpen } from 'src/academics/session-lock';
+import {
+  activeEnrolmentCondition,
+  countActiveByClass,
+  countRosterByOffering,
+  examClassAudience,
+  inOfferingRosterCondition,
+  isActiveInClass,
+  isInExamClassAudience,
+} from 'src/academics/enrolment-queries';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { generatePublicId } from 'src/common/utils/public-id.util';
@@ -129,8 +142,8 @@ export class ExamService {
     @InjectRepository(ClassEntity)
     private readonly classRepo: Repository<ClassEntity>,
 
-    @InjectRepository(ClassStudentEntity)
-    private readonly classStudentRepo: Repository<ClassStudentEntity>,
+    @InjectRepository(EnrolmentEntity)
+    private readonly enrolmentRepo: Repository<EnrolmentEntity>,
 
     @InjectRepository(StudentExamSubmissionEntity)
     private readonly submissionRepo: Repository<StudentExamSubmissionEntity>,
@@ -143,6 +156,10 @@ export class ExamService {
     private readonly classService: ClassService,
     private readonly examPaperCache: ExamPaperCacheService,
     private readonly soloOrganizations: SoloOrganizationService,
+    @InjectRepository(CourseOfferingEntity)
+    private readonly offeringRepo: Repository<CourseOfferingEntity>,
+    @InjectRepository(AcademicSessionEntity)
+    private readonly sessionRepo: Repository<AcademicSessionEntity>,
   ) {}
 
   private async assertOrgWizardClassAndSubject(
@@ -181,6 +198,45 @@ export class ExamService {
         primarySubjectId,
       );
     }
+  }
+
+  /**
+   * A subject-class test (FND-19): the subject class must be in the selected class and in an open
+   * session, and the creator must teach it unless they own or run the organisation.
+   */
+  private async resolveExamOffering(
+    publishState: CreateExamWizardDto['publishState'],
+    jwtPayload: JwtPayloadInterface,
+    orgContext?: OrgContext | null,
+  ): Promise<CourseOfferingEntity | null> {
+    if (!publishState.selectedOfferingId) return null;
+    if (publishState.testAudience !== TestAudienceEnum.SELECTED_CLASS || !publishState.selectedClassId) {
+      throw new BadRequestException('A subject class needs a class audience');
+    }
+    const organizationId = orgContext?.organizationId ?? TenantContext.requireOrganizationId();
+    const offering = await this.offeringRepo.findOne({
+      where: { id: publishState.selectedOfferingId, organization_id: organizationId },
+      relations: ['section', 'session'],
+    });
+    if (!offering || offering.section?.class_id !== publishState.selectedClassId) {
+      throw new BadRequestException('This subject class is not part of the selected class');
+    }
+    if (offering.session?.status === AcademicSessionStatusEnum.CLOSED) {
+      throw new BadRequestException('This session is closed; the owner can reopen it');
+    }
+    const managesOrganization =
+      !orgContext?.organizationId ||
+      orgContext.memberRole === OrganizationMemberRoleEnum.OWNER ||
+      orgContext.memberRole === OrganizationMemberRoleEnum.ADMIN;
+    if (!managesOrganization) {
+      const teaches = await this.dataSource
+        .getRepository(OfferingTeacherEntity)
+        .count({ where: { offering_id: offering.id, teacher_id: jwtPayload.id } });
+      if (teaches === 0) {
+        throw new ForbiddenException('You can only create tests for subject classes you teach');
+      }
+    }
+    return offering;
   }
 
   /**
@@ -318,6 +374,8 @@ export class ExamService {
       }
     }
 
+    const offering = await this.resolveExamOffering(publishState, jwtPayload, orgContext);
+
     let targetStudents: UserEntity[] = [];
     if (publishState.testAudience === TestAudienceEnum.SPECIFIC_STUDENTS) {
       const ids = publishState.specificStudents || [];
@@ -347,12 +405,10 @@ export class ExamService {
     if (publishState.testAudience === TestAudienceEnum.SPECIFIC_STUDENTS) {
       studentCount = targetStudents.length;
     } else if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS && publishState.selectedClassId) {
-      const approvedCount = await this.classStudentRepo.count({
-        where: {
-          class_id: publishState.selectedClassId,
-          status: ClassStudentStatusEnum.JOINED,
-        },
-      });
+      // A subject-class test counts that subject class's students; otherwise the class's.
+      const approvedCount = publishState.selectedOfferingId
+        ? (await countRosterByOffering(this.enrolmentRepo, [publishState.selectedOfferingId])).get(publishState.selectedOfferingId) ?? 0
+        : (await countActiveByClass(this.enrolmentRepo, [publishState.selectedClassId])).get(publishState.selectedClassId) ?? 0;
       studentCount = Math.max(0, approvedCount - excludedStudents.length);
     }
 
@@ -413,6 +469,8 @@ export class ExamService {
           publishState.testAudience === TestAudienceEnum.SELECTED_CLASS
             ? publishState.selectedClassId!
             : null,
+        offering_id: offering?.id ?? null,
+        ...(offering ? { session_id: offering.session_id } : {}),
         // Personal exams live in the teacher's SOLO organisation (P2-01).
         organization_id: orgContext?.organizationId ?? TenantContext.requireOrganizationId(),
         public_id: generatePublicId('EXM'),
@@ -939,17 +997,17 @@ export class ExamService {
   private async sendExamNotifications(examId: string): Promise<{ sent: number; failed: number }> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
-      relations: ['class', 'class.classStudents', 'class.classStudents.student', 'excluded_students'],
+      relations: ['class', 'excluded_students'],
     });
 
     if (!exam || !exam.class) {
       return { sent: 0, failed: 0 };
     }
 
-    const classStudentEntities = (exam.class.classStudents || []).filter(
-      (cs) => cs.status === ClassStudentStatusEnum.JOINED && cs.student_id !== null,
-    );
-    const classStudents = classStudentEntities.map((cs) => cs.student).filter((s) => s !== null) as UserEntity[];
+    // The exam's class audience: its subject class's students, or the class's in the exam's session.
+    const classStudents = (await examClassAudience(this.enrolmentRepo, exam))
+      .map((row) => row.student)
+      .filter((s): s is UserEntity => s !== null);
 
     const excludedIds = (exam.excluded_students || []).map((s) => s.id);
 
@@ -1298,15 +1356,7 @@ export class ExamService {
       jwtPayload,
     );
 
-    const membership = await this.classStudentRepo.findOne({
-      where: {
-        class_id: classId,
-        student_id: studentId,
-        status: ClassStudentStatusEnum.JOINED,
-      },
-    });
-
-    if (!membership) {
+    if (!(await isActiveInClass(this.enrolmentRepo, classId, studentId))) {
       throw new ForbiddenException('You are not enrolled in this class');
     }
   }
@@ -1318,13 +1368,14 @@ export class ExamService {
   ): Promise<ExamEntity[]> {
     const byId = new Map<string, ExamEntity>();
 
+    const active = activeEnrolmentCondition('classStudent');
     const classQuery = this.classRepo
       .createQueryBuilder('class')
       .innerJoin(
-        'class.classStudents',
+        EnrolmentEntity,
         'classStudent',
-        'classStudent.student_id = :studentId AND classStudent.status = :status',
-        { studentId, status: ClassStudentStatusEnum.JOINED },
+        `classStudent.class_id = class.id AND classStudent.student_id = :studentId AND ${active.sql}`,
+        { studentId, ...active.params },
       )
       .select(['class.id']);
 
@@ -1348,6 +1399,8 @@ export class ExamService {
         .where('exam.class_id IN (:...classIds)', { classIds })
         .andWhere('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
         .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId })
+        // A subject-class test only for the students who take that subject class (FND-19).
+        .andWhere(`("exam"."offering_id" IS NULL OR ${inOfferingRosterCondition('"exam"."offering_id"')})`)
         .orderBy('exam.exam_start_time', 'DESC')
         .getMany();
       classExams.forEach((e) => byId.set(e.id, e));
@@ -1509,19 +1562,11 @@ export class ExamService {
       ),
     ];
 
-    const joinedByClass = new Map<string, number>();
-    if (classIds.length > 0) {
-      const joinedRows = await this.classStudentRepo
-        .createQueryBuilder('cs')
-        .select('cs.class_id', 'class_id')
-        .addSelect('COUNT(*)', 'cnt')
-        .where('cs.class_id IN (:...classIds)', { classIds })
-        .andWhere('cs.status = :status', { status: ClassStudentStatusEnum.JOINED })
-        .andWhere('cs.student_id IS NOT NULL')
-        .groupBy('cs.class_id')
-        .getRawMany<{ class_id: string; cnt: string }>();
-      joinedRows.forEach((r) => joinedByClass.set(r.class_id, Number(r.cnt) || 0));
-    }
+    const joinedByClass = await countActiveByClass(this.enrolmentRepo, classIds);
+    const rosterByOffering = await countRosterByOffering(
+      this.enrolmentRepo,
+      exams.map((e) => e.offering_id).filter((id): id is string => Boolean(id)),
+    );
 
     const excludedRows = await this.dataSource
       .createQueryBuilder()
@@ -1563,7 +1608,7 @@ export class ExamService {
         exam.test_audience === TestAudienceEnum.SELECTED_CLASS &&
         exam.class_id
       ) {
-        const joined = joinedByClass.get(exam.class_id) ?? 0;
+        const joined = exam.offering_id ? rosterByOffering.get(exam.offering_id) ?? 0 : joinedByClass.get(exam.class_id) ?? 0;
         const excluded = excludedByExam.get(exam.id) ?? 0;
         participant_count = Math.max(0, joined - excluded);
       } else if (exam.test_audience === TestAudienceEnum.SPECIFIC_STUDENTS) {
@@ -1585,25 +1630,8 @@ export class ExamService {
       return false;
     }
 
-    const emailNorm = jwtPayload.email?.toLowerCase()?.trim() || null;
-    const phoneNorm = jwtPayload.phone?.trim() || null;
-
-    const rows = await this.classStudentRepo.find({
-      where: { class_id: exam.class_id, status: ClassStudentStatusEnum.JOINED },
-    });
-
-    return rows.some((cs) => {
-      if (cs.student_id === jwtPayload.id) {
-        return true;
-      }
-      if (emailNorm && cs.invited_email?.toLowerCase().trim() === emailNorm) {
-        return true;
-      }
-      if (phoneNorm && cs.invited_phone?.trim() === phoneNorm) {
-        return true;
-      }
-      return false;
-    });
+    // An active student of the class in the exam's session (joined invitations carry the account).
+    return isInExamClassAudience(this.enrolmentRepo, exam, jwtPayload.id);
   }
 
   /**
@@ -1719,6 +1747,7 @@ export class ExamService {
         endingAt: exam.exam_end_time,
         testAudience: exam.test_audience,
         selectedClassId: exam.class_id ?? '',
+        selectedOfferingId: exam.offering_id ?? '',
         ...(opts.audience === 'teacher'
           ? {
               excluded_students: (exam.excluded_students ?? []).map((s) => s.id),
@@ -1736,6 +1765,8 @@ export class ExamService {
       response.created_user_name = exam.created_user_name;
       response.created_at = exam.created_at;
       response.updated_at = exam.updated_at;
+      // The session decides whether the test can still be changed (closed = read-only, FND-01).
+      response.session_id = exam.session_id;
     }
 
     return response;
@@ -2157,6 +2188,7 @@ export class ExamService {
     ) {
       throw new ForbiddenException('You do not have permission to update this exam');
     }
+    await assertExamSessionOpen(this.sessionRepo, exam.session_id);
 
     this.assertExamEditableBeforeStart(exam);
 
@@ -2201,6 +2233,7 @@ export class ExamService {
         'This exam belongs to an organization. Provide X-Organization-Id.',
       );
     }
+    await assertExamSessionOpen(this.sessionRepo, existing.session_id);
 
     this.assertExamEditableBeforeStart(existing);
 
@@ -2312,6 +2345,8 @@ export class ExamService {
       }
     }
 
+    const offering = await this.resolveExamOffering(publishState, jwtPayload, orgContext);
+
     let targetStudents: UserEntity[] = [];
     if (publishState.testAudience === TestAudienceEnum.SPECIFIC_STUDENTS) {
       const ids = publishState.specificStudents || [];
@@ -2341,12 +2376,10 @@ export class ExamService {
     if (publishState.testAudience === TestAudienceEnum.SPECIFIC_STUDENTS) {
       studentCount = targetStudents.length;
     } else if (publishState.testAudience === TestAudienceEnum.SELECTED_CLASS && publishState.selectedClassId) {
-      const approvedCount = await this.classStudentRepo.count({
-        where: {
-          class_id: publishState.selectedClassId,
-          status: ClassStudentStatusEnum.JOINED,
-        },
-      });
+      // A subject-class test counts that subject class's students; otherwise the class's.
+      const approvedCount = publishState.selectedOfferingId
+        ? (await countRosterByOffering(this.enrolmentRepo, [publishState.selectedOfferingId])).get(publishState.selectedOfferingId) ?? 0
+        : (await countActiveByClass(this.enrolmentRepo, [publishState.selectedClassId])).get(publishState.selectedClassId) ?? 0;
       studentCount = Math.max(0, approvedCount - excludedStudents.length);
     }
 
@@ -2418,6 +2451,8 @@ export class ExamService {
         publishState.testAudience === TestAudienceEnum.SELECTED_CLASS
           ? publishState.selectedClassId!
           : null;
+      examRow.offering_id = offering?.id ?? null;
+      if (offering) examRow.session_id = offering.session_id;
       examRow.excluded_students = excludedStudents;
       examRow.target_students = targetStudents;
       examRow.updated_by = jwtPayload.id;
@@ -2605,6 +2640,7 @@ export class ExamService {
     ) {
       await this.organizationAccessService.assertCanEditExam(exam, jwtPayload.id);
     }
+    await assertExamSessionOpen(this.sessionRepo, exam.session_id);
 
     const students = await this.userRepo.find({
       where: { id: In(studentIds), role: RolesEnum.STUDENT },
@@ -2630,6 +2666,7 @@ export class ExamService {
     ) {
       await this.organizationAccessService.assertCanEditExam(exam, jwtPayload.id);
     }
+    await assertExamSessionOpen(this.sessionRepo, exam.session_id);
 
     await this.examRepo.remove(exam);
     await this.examPaperCache.invalidate(id);
@@ -2842,6 +2879,7 @@ export class ExamService {
     await this.assertTeacherCanMonitorExam(examId, jwtPayload);
 
     const exam = await this.findOneEntity(examId);
+    await assertExamSessionOpen(this.sessionRepo, exam.session_id);
 
     if (exam.result_published_at) {
       return {
@@ -2954,14 +2992,15 @@ export class ExamService {
 
     const exam = await this.examRepo.findOne({
       where: { id: examId },
-      relations: ['class', 'class.classStudents', 'class.classStudents.student', 'excluded_students'],
+      relations: ['class', 'excluded_students'],
     });
     if (!exam) {
       throw new NotFoundException('Exam not found');
     }
 
     const excludedIds = new Set((exam.excluded_students || []).map((student) => student.id));
-    const classStudents = (exam.class?.classStudents || [])
+    const roster = await examClassAudience(this.enrolmentRepo, exam);
+    const classStudents = roster
       .map((row) => row.student)
       .filter((student): student is UserEntity => {
         if (!student) {

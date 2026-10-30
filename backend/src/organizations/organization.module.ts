@@ -4,10 +4,8 @@ import { RedisModule } from 'src/config/redis.module';
 import { UserModule } from 'src/user/user.module';
 import { EmailModule } from 'src/email/email.module';
 import { ClassEntity } from 'src/classes/entities/class.entity';
-import { ClassTeacherEntity } from 'src/classes/entities/class-teacher.entity';
-import { ClassStudentEntity } from 'src/classes/entities/class-student.entity';
+import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
 import { ClassSubjectEntity } from 'src/classes/entities/class-subject.entity';
-import { ClassSubjectTeacherEntity } from 'src/classes/entities/class-subject-teacher.entity';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
@@ -15,6 +13,7 @@ import { OrganizationEntity } from './entities/organization.entity';
 import { OrganizationMemberEntity } from './entities/organization-member.entity';
 import { OrganizationTeacherSubjectEntity } from './entities/organization-teacher-subject.entity';
 import { OrganizationInvitationEntity } from './entities/organization-invitation.entity';
+import { OrgSettingsEntity } from './entities/org-settings.entity';
 import { OrganizationsService } from './organization.service';
 import { OrganizationAccessService } from './organization-access.service';
 import { UserContextService } from './user-context.service';
@@ -22,6 +21,7 @@ import { OrganizationController } from './organization.controller';
 import { OrganizationAdminController } from './organization-admin.controller';
 import { OrganizationContextGuard } from './guards/organization-context.guard';
 import { SoloOrganizationService } from './solo-organization.service';
+import { OrgSettingsService } from './org-settings.service';
 
 @Module({
   imports: [
@@ -30,11 +30,10 @@ import { SoloOrganizationService } from './solo-organization.service';
       OrganizationMemberEntity,
       OrganizationTeacherSubjectEntity,
       OrganizationInvitationEntity,
+      OrgSettingsEntity,
       ClassEntity,
-      ClassTeacherEntity,
-      ClassStudentEntity,
+      EnrolmentEntity,
       ClassSubjectEntity,
-      ClassSubjectTeacherEntity,
       ExamEntity,
       SubjectEntity,
       UserEntity,
@@ -49,6 +48,7 @@ import { SoloOrganizationService } from './solo-organization.service';
     OrganizationAccessService,
     UserContextService,
     SoloOrganizationService,
+    OrgSettingsService,
     OrganizationContextGuard,
   ],
   // Export TypeOrmModule so importing modules (ClassModule, ExamModule) can resolve
@@ -59,6 +59,7 @@ import { SoloOrganizationService } from './solo-organization.service';
     OrganizationAccessService,
     UserContextService,
     SoloOrganizationService,
+    OrgSettingsService,
     OrganizationContextGuard,
   ],
 })

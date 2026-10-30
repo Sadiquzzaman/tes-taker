@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto';
 import { DataSource, DeepPartial } from 'typeorm';
 import { RolesEnum } from '../../src/common/enums/roles.enum';
+import { EnrolmentEntity, EnrolmentStatusEnum } from '../../src/academics/entities/enrolment.entity';
+import { SectionEntity } from '../../src/academics/entities/section.entity';
 import { ClassEntity } from '../../src/classes/entities/class.entity';
 import { ExamEntity } from '../../src/exams/entities/exam.entity';
 import { TestAudienceEnum } from '../../src/exams/enums/exam-wizard.enums';
@@ -90,6 +92,25 @@ export const factories = (dataSource: DataSource) => ({
       ...overrides,
       organization_id,
     } as DeepPartial<ClassEntity>);
+  },
+
+  /**
+   * `student` enrolled in the class's first section (section "A", created with the class), ACTIVE
+   * unless `status` is given. Since P2-03 enrolments are the class roster.
+   */
+  async enrol(classEntity: Pick<ClassEntity, 'id'>, student: UserEntity, status = EnrolmentStatusEnum.ACTIVE): Promise<EnrolmentEntity> {
+    const section = await dataSource
+      .getRepository(SectionEntity)
+      .findOneOrFail({ where: { class_id: classEntity.id }, order: { created_at: 'ASC' } });
+    return dataSource.getRepository(EnrolmentEntity).save({
+      organization_id: section.organization_id,
+      session_id: section.session_id,
+      class_id: classEntity.id,
+      section_id: section.id,
+      student_id: student.id,
+      status,
+      joined_at: new Date(),
+    } as DeepPartial<EnrolmentEntity>);
   },
 
   /**

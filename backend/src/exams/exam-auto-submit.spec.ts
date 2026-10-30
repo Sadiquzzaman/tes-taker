@@ -49,7 +49,7 @@ describe('StudentExamService.autoSubmitExpired', () => {
       { createQueryBuilder: jest.fn(() => queryBuilder) } as never, // submissionRepo
       {} as never, // answerRepo
       {} as never, // classRepo
-      {} as never, // classStudentRepo
+      {} as never, // enrolmentRepo
       {} as never, // userRepo
       {} as never, // smsService
       {} as never, // dataSource
@@ -57,6 +57,7 @@ describe('StudentExamService.autoSubmitExpired', () => {
       { getExamGraph } as never, // examPaperCache
       {} as never, // entitlementsService
       {} as never, // soloOrganizations
+      {} as never, // sessionRepo
     );
     completeSubmission = jest
       .spyOn(service as unknown as Record<string, () => Promise<unknown>>, 'completeSubmission')

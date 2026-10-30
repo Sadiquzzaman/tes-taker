@@ -4,13 +4,15 @@ import { TenantContext } from 'src/common/tenancy/tenant-context';
 import { tenantScoped } from 'src/common/tenancy/tenant-repository';
 import { soloOrganizationOf, usesOrganizationRules } from 'src/organizations/organization-rules';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, ILike, IsNull, WhereExpressionBuilder } from 'typeorm';
+import { Repository, In, ILike, WhereExpressionBuilder } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { ClassEntity } from './entities/class.entity';
-import { ClassStudentEntity, ClassStudentStatusEnum } from './entities/class-student.entity';
-import { ClassTeacherEntity } from './entities/class-teacher.entity';
+import { ClassStudentStatusEnum, ClassStudentView, toClassStudentView } from './class-student-view';
+import { EnrolmentEntity, EnrolmentStatusEnum } from 'src/academics/entities/enrolment.entity';
+import { EnrolmentsService } from 'src/academics/enrolments.service';
+import { activeEnrolmentCondition } from 'src/academics/enrolment-queries';
+import { teachesClassCondition, teachesSubjectCondition } from 'src/academics/teacher-queries';
 import { ClassSubjectEntity } from './entities/class-subject.entity';
-import { ClassSubjectTeacherEntity } from './entities/class-subject-teacher.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
@@ -48,14 +50,10 @@ export class ClassService {
   constructor(
     @InjectRepository(ClassEntity)
     private readonly classRepo: Repository<ClassEntity>,
-    @InjectRepository(ClassStudentEntity)
-    private readonly classStudentRepo: Repository<ClassStudentEntity>,
-    @InjectRepository(ClassTeacherEntity)
-    private readonly classTeacherRepo: Repository<ClassTeacherEntity>,
+    @InjectRepository(EnrolmentEntity)
+    private readonly enrolmentRepo: Repository<EnrolmentEntity>,
     @InjectRepository(ClassSubjectEntity)
     private readonly classSubjectRepo: Repository<ClassSubjectEntity>,
-    @InjectRepository(ClassSubjectTeacherEntity)
-    private readonly classSubjectTeacherRepo: Repository<ClassSubjectTeacherEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
     @InjectRepository(ExamEntity)
@@ -67,6 +65,7 @@ export class ClassService {
     private readonly organizationsService: OrganizationsService,
     private readonly organizationAccessService: OrganizationAccessService,
     private readonly userService: UserService,
+    private readonly enrolments: EnrolmentsService,
   ) {}
 
   /**
@@ -185,41 +184,27 @@ export class ClassService {
         classes = await this.classRepo.find({
           where: { organization_id: orgContext.organizationId },
           relations: [
-            'classStudents',
-            'classStudents.student',
             'teacher',
-            'classTeachers',
             'classSubjects',
             'classSubjects.subject',
-            'classSubjects.teachers',
-            'classSubjects.teachers.teacher',
           ],
           order: { created_at: 'DESC' },
         });
       } else {
-        const assignedRows = await this.classSubjectTeacherRepo
-          .createQueryBuilder('cst')
-          .innerJoin('cst.classSubject', 'classSubject')
-          .innerJoin('classSubject.class', 'assignedClass')
-          .where('cst.teacher_id = :userId', { userId: jwtPayload.id })
-          .andWhere('assignedClass.organization_id = :orgId', {
-            orgId: orgContext.organizationId,
-          })
-          .select('classSubject.class_id', 'class_id')
-          .distinct(true)
+        // Classes the teacher teaches in, or is a section's class teacher of (P2-03 part 2b).
+        const assignedRows = await this.classRepo
+          .createQueryBuilder('assignedClass')
+          .select('assignedClass.id', 'class_id')
+          .where('assignedClass.organization_id = :orgId', { orgId: orgContext.organizationId })
+          .andWhere(teachesClassCondition('assignedClass'), { teacherId: jwtPayload.id })
           .getRawMany<{ class_id: string }>();
         const assignedIds = assignedRows.map((row) => row.class_id);
 
         const qb = this.classRepo
           .createQueryBuilder('class')
-          .leftJoinAndSelect('class.classStudents', 'classStudents')
-          .leftJoinAndSelect('classStudents.student', 'student')
           .leftJoinAndSelect('class.teacher', 'teacher')
-          .leftJoinAndSelect('class.classTeachers', 'classTeachers')
           .leftJoinAndSelect('class.classSubjects', 'classSubjects')
           .leftJoinAndSelect('classSubjects.subject', 'classSubject')
-          .leftJoinAndSelect('classSubjects.teachers', 'classSubjectTeachers')
-          .leftJoinAndSelect('classSubjectTeachers.teacher', 'classSubjectTeacherUser')
           .where('class.organization_id = :orgId', { orgId: orgContext.organizationId })
           .andWhere('class.id IN (:...assignedIds)', {
             assignedIds: assignedIds.length > 0 ? assignedIds : ['00000000-0000-0000-0000-000000000000'],
@@ -233,14 +218,9 @@ export class ClassService {
       classes = await tenantScoped(this.classRepo).find({
         where: { teacher_id: jwtPayload.id },
         relations: [
-          'classStudents',
-          'classStudents.student',
           'teacher',
-          'classTeachers',
           'classSubjects',
           'classSubjects.subject',
-          'classSubjects.teachers',
-          'classSubjects.teachers.teacher',
         ],
         order: { created_at: 'DESC' },
       });
@@ -248,6 +228,7 @@ export class ClassService {
 
     // Past-exam statistics (batch, avoids N+1)
     await this.attachConductedExamStatistics(classes);
+    await this.attachStudents(classes);
 
     return classes;
   }
@@ -273,15 +254,9 @@ export class ClassService {
       where: { id },
       relations: jwtPayload
         ? [
-            'classStudents',
-            'classStudents.student',
             'teacher',
-            'classTeachers',
-            'classTeachers.teacher',
             'classSubjects',
             'classSubjects.subject',
-            'classSubjects.teachers',
-            'classSubjects.teachers.teacher',
           ]
         : [],
     });
@@ -312,7 +287,7 @@ export class ClassService {
       jwtPayload.role === RolesEnum.SUPER_ADMIN
     ) {
       await this.attachConductedExamStatistics([classEntity]);
-      await this.hydrateClassStudents(classEntity);
+      await this.attachStudents([classEntity]);
       return classEntity;
     }
 
@@ -329,25 +304,30 @@ export class ClassService {
 
     // Conducted-exam statistics for teacher/admin detail view
     await this.attachConductedExamStatistics([classEntity]);
-    await this.hydrateClassStudents(classEntity);
+    await this.attachStudents([classEntity]);
 
     return classEntity;
   }
 
+  /** The classes' current students (enrolments in open sessions) in the class_students shape. */
+  private async attachStudents(classEntities: ClassEntity[]): Promise<void> {
+    const byClass = await this.enrolments.currentForClasses(classEntities.map((c) => c.id));
+    for (const classEntity of classEntities) {
+      classEntity.classStudents = await this.hydrateClassStudents(byClass.get(classEntity.id) ?? []);
+    }
+  }
+
   /**
    * Resolve registered users onto class-student rows so the UI can show names
-   * (including when students were added by Student ID / phone / email).
+   * (including when students were added by Student ID / phone / email). An invitation whose
+   * contact now has a verified student account is claimed by that student.
    */
-  private async hydrateClassStudents(classEntity: ClassEntity): Promise<void> {
-    const rows = classEntity.classStudents || [];
-    if (rows.length === 0) {
-      return;
-    }
-
+  private async hydrateClassStudents(rows: EnrolmentEntity[]): Promise<ClassStudentView[]> {
     const linkedStudentIds = new Set(
       rows.map((row) => row.student_id).filter((id): id is string => Boolean(id)),
     );
 
+    const views: ClassStudentView[] = [];
     for (const row of rows) {
       let user = row.student ?? null;
 
@@ -366,25 +346,19 @@ export class ClassService {
         user &&
         user.role === RolesEnum.STUDENT &&
         !row.student_id &&
-        !linkedStudentIds.has(user.id)
+        !linkedStudentIds.has(user.id) &&
+        row.status === EnrolmentStatusEnum.INVITED &&
+        user.is_otp_verified &&
+        user.is_verified
       ) {
-        row.student_id = user.id;
-        row.student = user;
         linkedStudentIds.add(user.id);
-        if (
-          row.status === ClassStudentStatusEnum.INVITED &&
-          user.is_otp_verified &&
-          user.is_verified
-        ) {
-          row.status = ClassStudentStatusEnum.JOINED;
-          row.joined_at = row.joined_at ?? new Date();
-          row.approved_at = row.approved_at ?? new Date();
-        }
-        await this.classStudentRepo.save(row);
-      } else if (user) {
-        row.student = user;
+        const claimed = await this.enrolments.claimInvitation(row, user.id, null);
+        views.push(toClassStudentView({ ...claimed, student: user, section: row.section }));
+        continue;
       }
+      views.push(toClassStudentView({ ...row, student: user ?? null }));
     }
+    return views;
   }
 
   private assertClassMatchesOrgContext(
@@ -479,6 +453,11 @@ export class ClassService {
     orgContext?: OrgContext | null,
   ): Promise<void> {
     const classEntity = await this.findOne(id, jwtPayload, orgContext);
+    // Deleting a class would delete its student records too, so a class with any (even students who
+    // left) stays (owner decision, P2-03).
+    if (await this.enrolmentRepo.exists({ where: { class_id: id } })) {
+      throw new BadRequestException('This class has student records, so it cannot be deleted');
+    }
     await this.classRepo.remove(classEntity);
   }
 
@@ -505,14 +484,10 @@ export class ClassService {
       );
     }
 
-    // Get existing student IDs in class
-    const existingClassStudents = await this.classStudentRepo.find({
-      where: { class_id: classId },
-      select: ['student_id'],
-    });
-    const existingStudentIds = existingClassStudents
-      .map(cs => cs.student_id)
-      .filter(id => id !== null) as string[];
+    // Students already in the class
+    const existingStudentIds = (await this.enrolments.currentForClass(classId))
+      .map((row) => row.student_id)
+      .filter((id): id is string => id !== null);
 
     // Filter out duplicates
     const newStudents = students.filter((s) => !existingStudentIds.includes(s.id));
@@ -521,19 +496,13 @@ export class ClassService {
       throw new BadRequestException('All provided students are already in this class');
     }
 
-    // Create ClassStudentEntity records with status JOINED
-    const classStudentEntities = newStudents.map(student =>
-      this.classStudentRepo.create({
-        class_id: classId,
-        student_id: student.id,
-        status: ClassStudentStatusEnum.JOINED,
-        joined_at: new Date(),
-        approved_at: new Date(),
-        approved_by: jwtPayload.id,
-      })
-    );
-
-    await this.classStudentRepo.save(classStudentEntities);
+    for (const student of newStudents) {
+      await this.enrolments.addToClass(
+        classEntity,
+        { student_id: student.id, status: EnrolmentStatusEnum.ACTIVE, joined_at: new Date() },
+        jwtPayload,
+      );
+    }
 
     if (usesOrganizationRules(classEntity)) {
       for (const student of newStudents) {
@@ -569,10 +538,8 @@ export class ClassService {
     let pending = 0;
     const errors: string[] = [];
 
-    // Get existing class students
-    const existingClassStudents = await this.classStudentRepo.find({
-      where: { class_id: classId },
-    });
+    // Current class students (enrolments in open sessions)
+    const existingClassStudents = await this.enrolments.currentForClass(classId);
 
     const existingStudentIds = existingClassStudents
       .map(cs => cs.student_id)
@@ -583,6 +550,57 @@ export class ClassService {
     const existingInvitedPhones = existingClassStudents
       .map(cs => cs.invited_phone)
       .filter(phone => phone !== null) as string[];
+
+    /** An invitation row (no account yet, or a staff account) and its email. */
+    const invite = async (email: string, phone: string | null): Promise<void> => {
+      await this.enrolments.addToClass(
+        classEntity,
+        {
+          student_id: null,
+          status: EnrolmentStatusEnum.INVITED,
+          invited_email: email,
+          invited_phone: phone,
+          invitation_token: randomUUID(),
+        },
+        jwtPayload,
+      );
+      try {
+        await this.emailService.sendInvitationEmail(
+          email,
+          `${frontendUrl}/join/class/${classId}`,
+          classEntity.class_name,
+          jwtPayload.full_name,
+        );
+        invited++;
+      } catch (error) {
+        errors.push(`Failed to send email to ${email}: ${error.message}`);
+      }
+    };
+
+    /** A student account: joined when verified, otherwise pending approval. */
+    const addStudent = async (student: UserEntity): Promise<void> => {
+      if (student.is_otp_verified && student.is_verified) {
+        await this.enrolments.addToClass(
+          classEntity,
+          { student_id: student.id, status: EnrolmentStatusEnum.ACTIVE, joined_at: new Date() },
+          jwtPayload,
+        );
+        if (usesOrganizationRules(classEntity)) {
+          await this.organizationsService.upsertStudentMember(
+            classEntity.organization_id,
+            student.id,
+          );
+        }
+        added++;
+      } else {
+        await this.enrolments.addToClass(
+          classEntity,
+          { student_id: student.id, status: EnrolmentStatusEnum.PENDING, joined_at: new Date() },
+          jwtPayload,
+        );
+        pending++;
+      }
+    };
 
     for (const contact of contacts) {
       const trimmedContact = contact.trim();
@@ -608,104 +626,15 @@ export class ClassService {
           // Find student by email
           const student = await this.userService.findByContactOrPublicId(trimmedContact);
 
-          if (student) {
-            if (student.role !== RolesEnum.STUDENT) {
-              // User exists but is not a student - still send invitation
-              // This handles cases where phone/email belongs to a teacher or admin
-              const invitationToken = randomUUID();
-              const invitationLink = `${frontendUrl}/join/class/${classId}`;
-
-              await this.classStudentRepo.save(
-                this.classStudentRepo.create({
-                  class_id: classId,
-                  student_id: null,
-                  status: ClassStudentStatusEnum.INVITED,
-                  invited_email: normalizedEmail,
-                  invitation_token: invitationToken,
-                  invited_at: new Date(),
-                })
-              );
-
-              // Send email invitation
-              try {
-                await this.emailService.sendInvitationEmail(
-                  normalizedEmail,
-                  invitationLink,
-                  classEntity.class_name,
-                  jwtPayload.full_name,
-                );
-                invited++;
-              } catch (error) {
-                errors.push(`Failed to send email to ${normalizedEmail}: ${error.message}`);
-              }
-              continue;
-            }
-
+          if (student && student.role === RolesEnum.STUDENT) {
             // Check if already in class
             if (existingStudentIds.includes(student.id)) {
               continue;
             }
-
-            // Add student with appropriate status
-            if (student.is_otp_verified && student.is_verified) {
-              // Directly joined
-              await this.classStudentRepo.save(
-                this.classStudentRepo.create({
-                  class_id: classId,
-                  student_id: student.id,
-                  status: ClassStudentStatusEnum.JOINED,
-                  joined_at: new Date(),
-                  approved_at: new Date(),
-                  approved_by: jwtPayload.id,
-                })
-              );
-              if (usesOrganizationRules(classEntity)) {
-                await this.organizationsService.upsertStudentMember(
-                  classEntity.organization_id,
-                  student.id,
-                );
-              }
-              added++;
-            } else {
-              // Pending approval
-              await this.classStudentRepo.save(
-                this.classStudentRepo.create({
-                  class_id: classId,
-                  student_id: student.id,
-                  status: ClassStudentStatusEnum.PENDING,
-                  joined_at: new Date(),
-                })
-              );
-              pending++;
-            }
+            await addStudent(student);
           } else {
-            // Not onboarded - send invitation
-            const invitationToken = randomUUID();
-            const invitationLink = `${frontendUrl}/join/class/${classId}`;
-
-            await this.classStudentRepo.save(
-              this.classStudentRepo.create({
-                class_id: classId,
-                student_id: null,
-                status: ClassStudentStatusEnum.INVITED,
-                invited_email: normalizedEmail,
-                invitation_token: invitationToken,
-                invited_at: new Date(),
-              })
-            );
-
-            // Send email invitation
-            try {
-            await this.emailService.sendInvitationEmail(
-              normalizedEmail,
-              invitationLink,
-              classEntity.class_name,
-              jwtPayload.full_name,
-            );
-            invited++;
-            } catch (error) {
-              errors.push(`Failed to send email to ${normalizedEmail}: ${error.message}`);
-            }
+            // Not onboarded, or the email belongs to a teacher or admin: send an invitation
+            await invite(normalizedEmail, null);
           }
         } else if (isPhone && normalizedPhone) {
           // Check if already invited
@@ -716,88 +645,23 @@ export class ClassService {
           // Find student by phone
           const student = await this.userService.findByContactOrPublicId(trimmedContact);
 
-          if (student) {
-            if (student.role !== RolesEnum.STUDENT) {
-              // User exists but is not a student - still send invitation via email
-              const inviteEmail = normalizeEmail(student.email);
-              if (!inviteEmail) {
-                errors.push(
-                  `Cannot invite ${normalizedPhone}: no email on file. Provide an email contact instead.`,
-                );
-                continue;
-              }
-
-              const invitationToken = randomUUID();
-              const invitationLink = `${frontendUrl}/join/class/${classId}`;
-
-              await this.classStudentRepo.save(
-                this.classStudentRepo.create({
-                  class_id: classId,
-                  student_id: null,
-                  status: ClassStudentStatusEnum.INVITED,
-                  invited_phone: normalizedPhone,
-                  invited_email: inviteEmail,
-                  invitation_token: invitationToken,
-                  invited_at: new Date(),
-                })
-              );
-
-              try {
-                await this.emailService.sendInvitationEmail(
-                  inviteEmail,
-                  invitationLink,
-                  classEntity.class_name,
-                  jwtPayload.full_name,
-                );
-                invited++;
-              } catch (error) {
-                errors.push(`Failed to send email to ${inviteEmail}: ${error.message}`);
-              }
-              continue;
-            }
-
-            // Check if already in class
-            if (existingStudentIds.includes(student.id)) {
-              continue;
-            }
-
-            // Add student with appropriate status
-            if (student.is_otp_verified && student.is_verified) {
-              // Directly joined
-              await this.classStudentRepo.save(
-                this.classStudentRepo.create({
-                  class_id: classId,
-                  student_id: student.id,
-                  status: ClassStudentStatusEnum.JOINED,
-                  joined_at: new Date(),
-                  approved_at: new Date(),
-                  approved_by: jwtPayload.id,
-                })
-              );
-              if (usesOrganizationRules(classEntity)) {
-                await this.organizationsService.upsertStudentMember(
-                  classEntity.organization_id,
-                  student.id,
-                );
-              }
-              added++;
-            } else {
-              // Pending approval
-              await this.classStudentRepo.save(
-                this.classStudentRepo.create({
-                  class_id: classId,
-                  student_id: student.id,
-                  status: ClassStudentStatusEnum.PENDING,
-                  joined_at: new Date(),
-                })
-              );
-              pending++;
-            }
-          } else {
+          if (!student) {
             // Not onboarded — invitations require a resolvable email (no SMS)
             errors.push(
               `Cannot invite ${normalizedPhone}: no account email found. Invite using an email address instead.`,
             );
+          } else if (student.role !== RolesEnum.STUDENT) {
+            // User exists but is not a student - still send invitation via email
+            const inviteEmail = normalizeEmail(student.email);
+            if (!inviteEmail) {
+              errors.push(
+                `Cannot invite ${normalizedPhone}: no email on file. Provide an email contact instead.`,
+              );
+              continue;
+            }
+            await invite(inviteEmail, normalizedPhone);
+          } else if (!existingStudentIds.includes(student.id)) {
+            await addStudent(student);
           }
         }
       } catch (error) {
@@ -816,26 +680,24 @@ export class ClassService {
     studentId: string,
     jwtPayload: JwtPayloadInterface,
     orgContext?: OrgContext | null,
-  ): Promise<ClassStudentEntity> {
+  ): Promise<ClassStudentView> {
     const classEntity = await this.findOne(classId, jwtPayload, orgContext);
 
-    const classStudent = await this.classStudentRepo.findOne({
-      where: { class_id: classId, student_id: studentId },
-    });
+    const classStudent = await this.enrolments.currentOfStudent(classId, studentId);
 
     if (!classStudent) {
       throw new NotFoundException('Student not found in this class');
     }
 
-    if (classStudent.status !== ClassStudentStatusEnum.PENDING) {
-      throw new BadRequestException(`Student status is ${classStudent.status}, cannot approve`);
+    if (classStudent.status !== EnrolmentStatusEnum.PENDING) {
+      throw new BadRequestException(`Student status is ${toClassStudentView(classStudent).status}, cannot approve`);
     }
 
-    classStudent.status = ClassStudentStatusEnum.JOINED;
-    classStudent.approved_at = new Date();
-    classStudent.approved_by = jwtPayload.id;
-
-    const saved = await this.classStudentRepo.save(classStudent);
+    const saved = await this.enrolments.update(
+      classStudent.id,
+      { status: EnrolmentStatusEnum.ACTIVE, joined_at: classStudent.joined_at ?? new Date() },
+      jwtPayload,
+    );
 
     if (usesOrganizationRules(classEntity)) {
       await this.organizationsService.upsertStudentMember(
@@ -844,7 +706,7 @@ export class ClassService {
       );
     }
 
-    return saved;
+    return toClassStudentView(saved);
   }
 
   /**
@@ -865,7 +727,7 @@ export class ClassService {
    * If the student was pre-invited (INVITED row matching email/phone), they become JOINED.
    * Otherwise they are added as PENDING until the teacher approves.
    */
-  async joinClassByClassId(classId: string, studentId: string): Promise<ClassStudentEntity> {
+  async joinClassByClassId(classId: string, studentId: string): Promise<ClassStudentView> {
     const classEntity = await this.classRepo.findOne({ where: { id: classId } });
 
     if (!classEntity) {
@@ -884,54 +746,39 @@ export class ClassService {
       throw new BadRequestException('Only students can join classes');
     }
 
-    const existingMembership = await this.classStudentRepo.findOne({
-      where: { class_id: classId, student_id: studentId },
-    });
+    const existingMembership = await this.enrolments.currentOfStudent(classId, studentId);
 
-    if (existingMembership?.status === ClassStudentStatusEnum.JOINED) {
+    if (existingMembership?.status === EnrolmentStatusEnum.ACTIVE) {
       throw new BadRequestException('You are already in this class');
     }
 
     const invitedRow = await this.findMatchingInvitedRow(classId, student);
 
     if (invitedRow) {
-      if (existingMembership && existingMembership.status === ClassStudentStatusEnum.PENDING) {
-        await this.classStudentRepo.remove(existingMembership);
-      }
-
-      invitedRow.student_id = studentId;
-      invitedRow.status = ClassStudentStatusEnum.JOINED;
-      invitedRow.joined_at = new Date();
-      invitedRow.invitation_token = null;
-      invitedRow.invited_email = null;
-      invitedRow.invited_phone = null;
-      invitedRow.approved_at = new Date();
-      invitedRow.approved_by = classEntity.teacher_id;
-      const saved = await this.classStudentRepo.save(invitedRow);
+      // A pending request of the same student is folded into the invitation (one row per session).
+      const saved = await this.enrolments.claimInvitation(invitedRow, studentId, { id: classEntity.teacher_id });
       if (usesOrganizationRules(classEntity)) {
         await this.organizationsService.upsertStudentMember(
           classEntity.organization_id,
           studentId,
         );
       }
-      return saved;
+      return toClassStudentView(saved);
     }
 
     if (existingMembership) {
-      if (existingMembership.status === ClassStudentStatusEnum.PENDING) {
+      if (existingMembership.status === EnrolmentStatusEnum.PENDING) {
         throw new BadRequestException('You already have a pending join request for this class');
       }
       throw new BadRequestException('You are already associated with this class');
     }
 
-    const classStudent = this.classStudentRepo.create({
-      class_id: classId,
-      student_id: studentId,
-      status: ClassStudentStatusEnum.PENDING,
-      joined_at: new Date(),
-    });
-
-    return await this.classStudentRepo.save(classStudent);
+    const saved = await this.enrolments.addToClass(
+      classEntity,
+      { student_id: studentId, status: EnrolmentStatusEnum.PENDING, joined_at: new Date() },
+      { id: studentId, full_name: student.full_name },
+    );
+    return toClassStudentView(saved);
   }
 
   /**
@@ -944,15 +791,8 @@ export class ClassService {
       return false;
     }
 
-    const joinedMembership = await this.classStudentRepo.findOne({
-      where: {
-        class_id: classId,
-        student_id: studentId,
-        status: ClassStudentStatusEnum.JOINED,
-      },
-    });
-
-    if (joinedMembership) {
+    const membership = await this.enrolments.currentOfStudent(classId, studentId);
+    if (membership?.status === EnrolmentStatusEnum.ACTIVE) {
       return true;
     }
 
@@ -962,27 +802,7 @@ export class ClassService {
     }
 
     const classEntity = await this.classRepo.findOne({ where: { id: classId } });
-    const pendingMembership = await this.classStudentRepo.findOne({
-      where: {
-        class_id: classId,
-        student_id: studentId,
-        status: ClassStudentStatusEnum.PENDING,
-      },
-    });
-
-    if (pendingMembership) {
-      await this.classStudentRepo.remove(pendingMembership);
-    }
-
-    invitedRow.student_id = studentId;
-    invitedRow.status = ClassStudentStatusEnum.JOINED;
-    invitedRow.joined_at = new Date();
-    invitedRow.invitation_token = null;
-    invitedRow.invited_email = null;
-    invitedRow.invited_phone = null;
-    invitedRow.approved_at = new Date();
-    invitedRow.approved_by = classEntity?.teacher_id ?? null;
-    await this.classStudentRepo.save(invitedRow);
+    await this.enrolments.claimInvitation(invitedRow, studentId, classEntity ? { id: classEntity.teacher_id } : null);
 
     if (classEntity && usesOrganizationRules(classEntity)) {
       await this.organizationsService.upsertStudentMember(classEntity.organization_id, studentId);
@@ -994,10 +814,10 @@ export class ClassService {
   private async findMatchingInvitedRow(
     classId: string,
     student: Pick<UserEntity, 'phone' | 'email'>,
-  ): Promise<ClassStudentEntity | null> {
-    const invitedRows = await this.classStudentRepo.find({
-      where: { class_id: classId, status: ClassStudentStatusEnum.INVITED },
-    });
+  ): Promise<EnrolmentEntity | null> {
+    const invitedRows = (await this.enrolments.currentForClass(classId)).filter(
+      (row) => row.status === EnrolmentStatusEnum.INVITED,
+    );
 
     return (
       invitedRows.find(
@@ -1023,31 +843,18 @@ export class ClassService {
       return;
     }
 
-    const classStudent = await this.findMatchingInvitedRow(classId, {
+    const invitation = await this.findMatchingInvitedRow(classId, {
       phone: phone || student.phone,
       email: email ?? student.email ?? undefined,
     });
 
-    if (!classStudent) {
-      return;
-    }
-
-    if (classStudent.status !== ClassStudentStatusEnum.INVITED) {
+    if (!invitation) {
       return;
     }
 
     const cls = await this.classRepo.findOne({ where: { id: classId } });
 
-    classStudent.student_id = studentId;
-    classStudent.status = ClassStudentStatusEnum.JOINED;
-    classStudent.joined_at = new Date();
-    classStudent.invitation_token = null;
-    classStudent.invited_email = null;
-    classStudent.invited_phone = null;
-    classStudent.approved_at = new Date();
-    classStudent.approved_by = cls?.teacher_id ?? null;
-
-    await this.classStudentRepo.save(classStudent);
+    await this.enrolments.claimInvitation(invitation, studentId, cls ? { id: cls.teacher_id } : null);
 
     if (cls && usesOrganizationRules(cls)) {
       await this.organizationsService.upsertStudentMember(cls.organization_id, studentId);
@@ -1055,7 +862,8 @@ export class ClassService {
   }
 
   /**
-   * Remove students from a class
+   * Remove students from a class. Nothing is deleted: their enrolments are marked LEFT
+   * (owner decision, P2-03), so the history stays.
    */
   async removeStudentsFromClass(
     classId: string,
@@ -1069,13 +877,11 @@ export class ClassService {
       return this.findOne(classId, jwtPayload, orgContext);
     }
 
-    await this.classStudentRepo
-      .createQueryBuilder()
-      .delete()
-      .from(ClassStudentEntity)
-      .where('class_id = :classId', { classId })
-      .andWhere('(id IN (:...ids) OR student_id IN (:...ids))', { ids: studentIds })
-      .execute();
+    // Matched by enrolment (class student row) id or by student id, as before.
+    const rows = (await this.enrolments.currentForClass(classId)).filter(
+      (row) => studentIds.includes(row.id) || (row.student_id !== null && studentIds.includes(row.student_id)),
+    );
+    await this.enrolments.markLeft(rows.map((row) => row.id), jwtPayload);
 
     return this.findOne(classId, jwtPayload, orgContext);
   }
@@ -1105,13 +911,14 @@ export class ClassService {
       context_label: string;
     }>
   > {
-    const qb = this.classStudentRepo
+    const active = activeEnrolmentCondition('cs');
+    const qb = this.enrolmentRepo
       .createQueryBuilder('cs')
       .innerJoinAndSelect('cs.class', 'class')
       .leftJoinAndSelect('class.teacher', 'teacher')
       .leftJoinAndSelect('class.organization', 'organization')
       .where('cs.student_id = :studentId', { studentId })
-      .andWhere('cs.status = :status', { status: ClassStudentStatusEnum.JOINED })
+      .andWhere(active.sql, active.params)
       .orderBy('cs.joined_at', 'DESC');
 
     this.applyStudentWorkspaceScopeToClassQuery(qb, jwtPayload);
@@ -1126,7 +933,11 @@ export class ClassService {
       }).andWhere('class.teacher_id = :teacherId');
     }
 
-    const memberships = await qb.getMany();
+    // One row per class, even when the student is enrolled in two open sessions of it.
+    const memberships: EnrolmentEntity[] = [];
+    for (const row of await qb.getMany()) {
+      if (row.class && !memberships.some((m) => m.class_id === row.class_id)) memberships.push(row);
+    }
 
     const classEntities = memberships.map((m) => m.class).filter(Boolean) as ClassEntity[];
     await this.attachConductedExamStatistics(classEntities);
@@ -1139,7 +950,6 @@ export class ClassService {
     );
 
     return memberships
-      .filter((m) => m.class)
       .map((m) => {
         const teacherName =
           m.class.teacher?.full_name?.trim() ||
@@ -1180,21 +990,15 @@ export class ClassService {
     joined_at: Date | null;
     classmates: Array<{ name: string; joined_at: Date | null }>;
   }> {
-    const membership = await this.classStudentRepo.findOne({
-      where: {
-        class_id: classId,
-        student_id: studentId,
-        status: ClassStudentStatusEnum.JOINED,
-      },
-    });
+    const membership = await this.enrolments.currentOfStudent(classId, studentId);
 
-    if (!membership) {
+    if (membership?.status !== EnrolmentStatusEnum.ACTIVE) {
       throw new ForbiddenException('You are not enrolled in this class');
     }
 
     const classEntity = await this.classRepo.findOne({
       where: { id: classId },
-      relations: ['teacher', 'classStudents', 'classStudents.student'],
+      relations: ['teacher'],
     });
 
     if (!classEntity) {
@@ -1202,7 +1006,7 @@ export class ClassService {
     }
 
     this.assertStudentWorkspaceAllowsClass(classEntity, jwtPayload);
-    await this.hydrateClassStudents(classEntity);
+    await this.attachStudents([classEntity]);
 
     const classmates = (classEntity.classStudents || [])
       .filter(
@@ -1306,121 +1110,9 @@ export class ClassService {
     classId: string,
     jwtPayload: JwtPayloadInterface,
     orgContext?: OrgContext | null,
-  ): Promise<ClassStudentEntity[]> {
+  ): Promise<ClassStudentView[]> {
     await this.findOne(classId, jwtPayload, orgContext);
-    
-    return await this.classStudentRepo.find({
-      where: { class_id: classId },
-      relations: ['student'],
-      order: { created_at: 'DESC' },
-    }).then(async (rows) => {
-      const wrapper = { classStudents: rows } as ClassEntity;
-      await this.hydrateClassStudents(wrapper);
-      return wrapper.classStudents;
-    });
-  }
-
-  /**
-   * Assign a teacher to a class (optionally for a subject). Org context required for org classes.
-   */
-  async assignClassTeacher(
-    classId: string,
-    teacherId: string,
-    subjectId: string | null | undefined,
-    jwtPayload: JwtPayloadInterface,
-    orgContext?: OrgContext | null,
-  ): Promise<ClassTeacherEntity> {
-    const classEntity = await this.findOne(classId, jwtPayload, orgContext);
-
-    if (usesOrganizationRules(classEntity)) {
-      if (!orgContext?.organizationId) {
-        throw new BadRequestException('X-Organization-Id is required for organization classes');
-      }
-      await this.organizationAccessService.requireAcademicManager(
-        classEntity.organization_id,
-        jwtPayload.id,
-      );
-      const isMember = await this.organizationAccessService.isMember(
-        classEntity.organization_id,
-        teacherId,
-      );
-      if (!isMember) {
-        throw new BadRequestException('Teacher must be a member of the organization');
-      }
-    } else if (classEntity.teacher_id !== jwtPayload.id) {
-      throw new ForbiddenException('Only the class owner can assign teachers');
-    }
-
-    const teacher = await this.userRepo.findOne({ where: { id: teacherId } });
-    if (!teacher) {
-      throw new NotFoundException('Teacher not found');
-    }
-
-    if (subjectId) {
-      const subject = await this.subjectRepo.findOne({ where: { id: subjectId } });
-      if (!subject) {
-        throw new NotFoundException('Subject not found');
-      }
-    }
-
-    const existing = await this.classTeacherRepo.findOne({
-      where: subjectId
-        ? { class_id: classId, teacher_id: teacherId, subject_id: subjectId }
-        : { class_id: classId, teacher_id: teacherId, subject_id: IsNull() },
-    });
-    if (existing) {
-      throw new BadRequestException('Teacher is already assigned to this class for this subject');
-    }
-
-    const row = this.classTeacherRepo.create({
-      class_id: classId,
-      teacher_id: teacherId,
-      subject_id: subjectId ?? null,
-      created_by: jwtPayload.id,
-      created_user_name: jwtPayload.full_name,
-      created_at: new Date(),
-    });
-    return this.classTeacherRepo.save(row);
-  }
-
-  async removeClassTeacher(
-    classId: string,
-    classTeacherId: string,
-    jwtPayload: JwtPayloadInterface,
-    orgContext?: OrgContext | null,
-  ): Promise<void> {
-    const classEntity = await this.findOne(classId, jwtPayload, orgContext);
-
-    if (usesOrganizationRules(classEntity)) {
-      await this.organizationAccessService.requireAcademicManager(
-        classEntity.organization_id,
-        jwtPayload.id,
-      );
-    } else if (classEntity.teacher_id !== jwtPayload.id) {
-      throw new ForbiddenException('Only the class owner can remove teachers');
-    }
-
-    const row = await this.classTeacherRepo.findOne({
-      where: { id: classTeacherId, class_id: classId },
-    });
-    if (!row) {
-      throw new NotFoundException('Class teacher assignment not found');
-    }
-
-    await this.classTeacherRepo.remove(row);
-  }
-
-  async listClassTeachers(
-    classId: string,
-    jwtPayload: JwtPayloadInterface,
-    orgContext?: OrgContext | null,
-  ): Promise<ClassTeacherEntity[]> {
-    await this.findOne(classId, jwtPayload, orgContext);
-    return this.classTeacherRepo.find({
-      where: { class_id: classId },
-      relations: ['teacher', 'subject'],
-      order: { created_at: 'ASC' },
-    });
+    return this.hydrateClassStudents(await this.enrolments.currentForClass(classId));
   }
 
   async listClassSubjects(
@@ -1431,7 +1123,7 @@ export class ClassService {
     await this.findOne(classId, jwtPayload, orgContext);
     return this.classSubjectRepo.find({
       where: { class_id: classId },
-      relations: ['subject', 'teachers', 'teachers.teacher'],
+      relations: ['subject'],
       order: { created_at: 'ASC' },
     });
   }
@@ -1443,14 +1135,16 @@ export class ClassService {
     orgContext?: OrgContext | null,
   ) {
     await this.findOne(classId, jwtPayload, orgContext);
-    const rows = await this.classSubjectRepo.find({
-      where: { class_id: classId },
-      relations: ['subject', 'teachers'],
-      order: { created_at: 'ASC' },
-    });
+    // The subjects the teacher teaches in this class (subject class teachers, P2-03 part 2b).
+    const rows = await this.classSubjectRepo
+      .createQueryBuilder('classSubject')
+      .leftJoinAndSelect('classSubject.subject', 'subject')
+      .where('classSubject.class_id = :classId', { classId })
+      .andWhere(teachesSubjectCondition('classSubject'), { teacherId })
+      .orderBy('classSubject.created_at', 'ASC')
+      .getMany();
 
     return rows
-      .filter((row) => row.teachers?.some((assignment) => assignment.teacher_id === teacherId))
       .map((row) => ({
         class_subject_id: row.id,
         subject_id: row.subject_id,
@@ -1470,10 +1164,7 @@ export class ClassService {
     if (!classSubject) {
       throw new ForbiddenException('This subject is not attached to the selected class');
     }
-    const assignment = await this.classSubjectTeacherRepo.findOne({
-      where: { class_subject_id: classSubject.id, teacher_id: teacherId },
-    });
-    if (!assignment) {
+    if (!(await this.organizationAccessService.isAssignedToClassSubject(teacherId, classSubject.id))) {
       throw new ForbiddenException(
         'You can only create tests for subjects assigned to you in this class',
       );
@@ -1654,211 +1345,5 @@ export class ClassService {
       throw new NotFoundException('Class subject not found');
     }
     await this.classSubjectRepo.remove(row);
-  }
-
-  async assignClassSubjectTeacher(
-    classId: string,
-    classSubjectId: string,
-    teacherId: string,
-    jwtPayload: JwtPayloadInterface,
-    orgContext?: OrgContext | null,
-    mirrorClassTeacher = true,
-  ): Promise<ClassSubjectTeacherEntity> {
-    const classEntity = await this.findOne(classId, jwtPayload, orgContext);
-    await this.assertCanManageClassSubjects(classEntity, jwtPayload.id);
-
-    const classSubject = await this.classSubjectRepo.findOne({
-      where: { id: classSubjectId, class_id: classId },
-    });
-    if (!classSubject) {
-      throw new NotFoundException('Class subject not found');
-    }
-
-    if (usesOrganizationRules(classEntity)) {
-      const membership = await this.organizationAccessService.getMembership(
-        classEntity.organization_id,
-        teacherId,
-      );
-      if (!membership) {
-        throw new BadRequestException('Teacher must be a member of the organization');
-      }
-      if (!this.organizationAccessService.isAssignableTeachingRole(membership.role)) {
-        throw new BadRequestException(
-          'Only organization owners, admins, and teachers can be assigned to a class subject',
-        );
-      }
-    }
-
-    const teacher = await this.userRepo.findOne({ where: { id: teacherId } });
-    if (!teacher) {
-      throw new NotFoundException('Teacher not found');
-    }
-
-    const existing = await this.classSubjectTeacherRepo.findOne({
-      where: { class_subject_id: classSubjectId, teacher_id: teacherId },
-    });
-    if (existing) {
-      throw new BadRequestException('Teacher is already assigned to this class subject');
-    }
-
-    const row = this.classSubjectTeacherRepo.create({
-      class_subject_id: classSubjectId,
-      teacher_id: teacherId,
-      created_by: jwtPayload.id,
-      created_user_name: jwtPayload.full_name,
-      created_at: new Date(),
-    });
-    const saved = await this.classSubjectTeacherRepo.save(row);
-
-    if (mirrorClassTeacher && !usesOrganizationRules(classEntity)) {
-      const legacy = await this.classTeacherRepo.findOne({
-        where: {
-          class_id: classId,
-          teacher_id: teacherId,
-          subject_id: classSubject.subject_id,
-        },
-      });
-      if (!legacy) {
-        await this.classTeacherRepo.save(
-          this.classTeacherRepo.create({
-            class_id: classId,
-            teacher_id: teacherId,
-            subject_id: classSubject.subject_id,
-            created_by: jwtPayload.id,
-            created_user_name: jwtPayload.full_name,
-            created_at: new Date(),
-          }),
-        );
-      }
-    }
-
-    return this.classSubjectTeacherRepo.findOne({
-      where: { id: saved.id },
-      relations: ['teacher', 'classSubject', 'classSubject.subject'],
-    }) as Promise<ClassSubjectTeacherEntity>;
-  }
-
-  async removeClassSubjectTeacher(
-    classId: string,
-    classSubjectId: string,
-    assignmentId: string,
-    jwtPayload: JwtPayloadInterface,
-    orgContext?: OrgContext | null,
-  ): Promise<void> {
-    const classEntity = await this.findOne(classId, jwtPayload, orgContext);
-    await this.assertCanManageClassSubjects(classEntity, jwtPayload.id);
-
-    const row = await this.classSubjectTeacherRepo.findOne({
-      where: { id: assignmentId, class_subject_id: classSubjectId },
-      relations: ['classSubject'],
-    });
-    if (!row || row.classSubject?.class_id !== classId) {
-      throw new NotFoundException('Class subject teacher assignment not found');
-    }
-    const subjectId = row.classSubject.subject_id;
-    const removedTeacherId = row.teacher_id;
-    await this.classSubjectTeacherRepo.remove(row);
-
-    if (usesOrganizationRules(classEntity)) {
-      await this.removeLegacyOrgClassTeacherMirror(classId, removedTeacherId, subjectId);
-    }
-  }
-
-  async updateClassSubjectTeacher(
-    classId: string,
-    classSubjectId: string,
-    assignmentId: string,
-    teacherId: string,
-    jwtPayload: JwtPayloadInterface,
-    orgContext?: OrgContext | null,
-  ): Promise<ClassSubjectTeacherEntity> {
-    const classEntity = await this.findOne(classId, jwtPayload, orgContext);
-    await this.assertCanManageClassSubjects(classEntity, jwtPayload.id);
-
-    return this.classSubjectTeacherRepo.manager.transaction(async (manager) => {
-      const cstRepo = manager.getRepository(ClassSubjectTeacherEntity);
-      const classTeacherRepo = manager.getRepository(ClassTeacherEntity);
-
-      const assignment = await cstRepo.findOne({
-        where: { id: assignmentId, class_subject_id: classSubjectId },
-        relations: ['classSubject'],
-      });
-      if (!assignment || assignment.classSubject?.class_id !== classId) {
-        throw new NotFoundException('Class subject teacher assignment not found');
-      }
-
-      if (assignment.teacher_id === teacherId) {
-        return cstRepo.findOne({
-          where: { id: assignment.id },
-          relations: ['teacher', 'classSubject', 'classSubject.subject'],
-        }) as Promise<ClassSubjectTeacherEntity>;
-      }
-
-      if (usesOrganizationRules(classEntity)) {
-        const membership = await this.organizationAccessService.getMembership(
-          classEntity.organization_id,
-          teacherId,
-        );
-        if (!membership) {
-          throw new BadRequestException('Teacher must be a member of the organization');
-        }
-        if (!this.organizationAccessService.isAssignableTeachingRole(membership.role)) {
-          throw new BadRequestException(
-            'Only organization owners, admins, and teachers can be assigned to a class subject',
-          );
-        }
-      }
-
-      const teacher = await manager.getRepository(UserEntity).findOne({ where: { id: teacherId } });
-      if (!teacher) {
-        throw new NotFoundException('Teacher not found');
-      }
-
-      const duplicate = await cstRepo.findOne({
-        where: { class_subject_id: classSubjectId, teacher_id: teacherId },
-      });
-      if (duplicate) {
-        throw new BadRequestException('Teacher is already assigned to this class subject');
-      }
-
-      const previousTeacherId = assignment.teacher_id;
-      const subjectId = assignment.classSubject.subject_id;
-      assignment.teacher_id = teacherId;
-      assignment.updated_by = jwtPayload.id;
-      assignment.updated_user_name = jwtPayload.full_name;
-      assignment.updated_at = new Date();
-      await cstRepo.save(assignment);
-
-      if (usesOrganizationRules(classEntity)) {
-        const leftover = await classTeacherRepo.findOne({
-          where: {
-            class_id: classId,
-            teacher_id: previousTeacherId,
-            subject_id: subjectId,
-          },
-        });
-        if (leftover) {
-          await classTeacherRepo.remove(leftover);
-        }
-      }
-
-      return cstRepo.findOne({
-        where: { id: assignment.id },
-        relations: ['teacher', 'classSubject', 'classSubject.subject'],
-      }) as Promise<ClassSubjectTeacherEntity>;
-    });
-  }
-
-  private async removeLegacyOrgClassTeacherMirror(
-    classId: string,
-    teacherId: string,
-    subjectId: string,
-  ): Promise<void> {
-    const leftover = await this.classTeacherRepo.findOne({
-      where: { class_id: classId, teacher_id: teacherId, subject_id: subjectId },
-    });
-    if (leftover) {
-      await this.classTeacherRepo.remove(leftover);
-    }
   }
 }

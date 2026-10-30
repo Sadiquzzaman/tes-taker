@@ -10,6 +10,7 @@ import {
   FilterBar,
   IconButton,
   Modal,
+  Select,
   StatusPill,
   Table,
   type TableColumn,
@@ -43,15 +44,36 @@ const ClassStudent = ({
   const format = useFormat();
   const dispatch = useAppDispatch();
   const isTeacher = role === "TEACHER";
+  // Sections of the class's current students (P2-03); the filter appears once there are two or more.
+  const sections = [
+    ...new Map(
+      student.flatMap((item): Array<[string, string]> =>
+        "student_id" in item && item.section ? [[item.section.id, item.section.name]] : [],
+      ),
+    ),
+  ].sort((a, b) => a[1].localeCompare(b[1]));
+  const [sectionFilter, setSectionFilter] = useState("");
+  const inSection = sectionFilter
+    ? student.filter((item) => "student_id" in item && item.section?.id === sectionFilter)
+    : student;
   const { searchStudentInput, setSearchStudentInput, filteredStudent, handleRemoveStudent, handleApproveStudent } =
-    useClassStudent({ student, classId, fetch, role });
+    useClassStudent({ student: inSection, classId, fetch, role });
   const [viewing, setViewing] = useState<ClassStudent | null>(null);
   const [removing, setRemoving] = useState<ClassStudent | null>(null);
   const nameOf = (item: ClassStudent) =>
     getClassStudentDisplayName(item, { invited: t("invitedStudent"), withId: (id) => t("studentWithId", { id }) });
 
+  const sectionColumn: TableColumn<ClassStudent> = {
+    key: "section",
+    header: t("section"),
+    cell: (row) => row.section?.name ?? "—",
+    sortValue: (row) => row.section?.name ?? "",
+    hideOnMobile: true,
+  };
+
   const pendingColumns: TableColumn<ClassStudent>[] = [
     { key: "name", header: t("student"), cell: nameOf, sortValue: nameOf },
+    sectionColumn,
     { key: "contact", header: t("contact"), cell: (row) => getClassStudentContact(row) },
     {
       key: "actions",
@@ -68,6 +90,7 @@ const ClassStudent = ({
 
   const memberColumns: TableColumn<ClassStudent>[] = [
     { key: "name", header: t("student"), cell: nameOf, sortValue: nameOf },
+    sectionColumn,
     { key: "contact", header: t("contact"), cell: (row) => getClassStudentContact(row) },
     {
       key: "status",
@@ -112,6 +135,16 @@ const ClassStudent = ({
       ) : (
         <div className="flex flex-col gap-6">
           <FilterBar search={searchStudentInput} onSearchChange={setSearchStudentInput} searchPlaceholder={t("search")} />
+          {isTeacher && sections.length > 1 ? (
+            <Select
+              label={t("section")}
+              placeholder={t("allSections")}
+              value={sectionFilter}
+              fieldClassName="sm:max-w-xs"
+              options={sections.map(([id, name]) => ({ value: id, label: name }))}
+              onChange={(e) => setSectionFilter(e.target.value)}
+            />
+          ) : null}
 
           {isTeacher ? (
             <section className="flex flex-col gap-3">

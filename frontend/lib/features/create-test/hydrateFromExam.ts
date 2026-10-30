@@ -251,6 +251,7 @@ const hydrateFromExam = (_state: CreateTestState, action: PayloadAction<TeacherE
         : initial.publishState.endingAt,
       testAudience: (exam.publishState?.testAudience as TestAudience) ?? "anyone",
       selectedClassId: exam.publishState?.selectedClassId ?? exam.class_id ?? "",
+      selectedOfferingId: exam.publishState?.selectedOfferingId ?? "",
       excluded_students: exam.publishState?.excluded_students ?? [],
     },
   };

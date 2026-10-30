@@ -32,15 +32,6 @@ interface User {
   refresh_token: string;
 }
 
-interface ClassSubjectTeacherAssignment {
-  id: string;
-  teacher_id: string;
-  teacher?: {
-    id: string;
-    full_name?: string | null;
-  };
-}
-
 interface ClassSubject {
   id: string;
   class_id: string;
@@ -50,7 +41,6 @@ interface ClassSubject {
     name: string;
     code?: string | null;
   };
-  teachers?: ClassSubjectTeacherAssignment[];
 }
 
 interface AssignedClassSubject {
@@ -141,6 +131,9 @@ interface ClassStudent {
   joined_at: string | null;
   approved_at: string | null;
   approved_by: string | null;
+  /** The student's section (P2-03); null for rows from before sections. */
+  section?: { id: string; name: string } | null;
+  roll_no?: string | null;
 }
 
 interface DeleteClassStudentPayload {

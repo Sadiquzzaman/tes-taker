@@ -4,21 +4,19 @@ import { useTranslations } from "next-intl";
 import { Breadcrumb, Button, Card, EmptyState, PageHeader, Skeleton, Tabs } from "@/design/ui";
 import useClassDetails from "@/hooks/classes/useClassDetails";
 import useWorkspace from "@/hooks/organization/useWorkspace";
+import ClassSections from "../Academics/ClassSections";
 import ShareIconSVG from "../svg/ShareIconSVG";
 import ClassDiscussions from "./ClassDiscussions";
 import ClassStudent from "./ClassStudent";
-import ClassSubjectsPanel from "./ClassSubjectsPanel";
 import ClassTests from "./ClassTests";
 import ShareClassModal from "./ShareClassModal";
 
-/** A class: its students, tests, discussions and (organisation classes) subjects, as tabs. */
+/** A class: its students, tests, discussions and (for staff) sections, as tabs. */
 const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleUserType | undefined }) => {
   const t = useTranslations("classes");
   const { loading, classData, fetch, apiComplete, testList, handleShareClass } = useClassDetails(classId, role);
   const { isIndividual } = useWorkspace();
   const isTeacher = role === "TEACHER";
-  // Every class has an organisation now (a solo teacher's is a SOLO one); only school classes have subjects to manage.
-  const isOrgClass = classData?.class_kind === "ORGANIZATION";
   const classesHref = isIndividual ? "/classes" : "/organization/classes";
   const breadcrumb = (name?: string) => (
     <Breadcrumb items={[{ label: t("title"), href: classesHref }, { label: name || t("details") }]} />
@@ -66,9 +64,8 @@ const ClassDetailsComponent = ({ classId, role }: { classId: string; role: RoleU
         />
       ),
     },
-    ...(isOrgClass && isTeacher
-      ? [{ key: "subjects", label: t("tabs.subjects"), content: <ClassSubjectsPanel classId={classId} /> }]
-      : []),
+    // Sections with their students and subject classes (P2-03), for school and solo classes alike.
+    ...(isTeacher ? [{ key: "sections", label: t("tabs.sections"), content: <ClassSections classId={classId} /> }] : []),
   ];
 
   return (

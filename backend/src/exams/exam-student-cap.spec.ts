@@ -76,7 +76,7 @@ describe('student cap at exam start', () => {
       submissionRepo as never,
       {} as never, // answerRepo
       {} as never, // classRepo
-      {} as never, // classStudentRepo
+      {} as never, // enrolmentRepo
       {} as never, // userRepo
       {} as never, // smsService
       dataSource as never,
@@ -84,6 +84,7 @@ describe('student cap at exam start', () => {
       { getExamGraph: jest.fn(async () => exam) } as never, // examPaperCache
       entitlementsService as never,
       {} as never, // soloOrganizations
+      {} as never, // sessionRepo
     );
   });
 

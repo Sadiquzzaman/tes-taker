@@ -1,8 +1,7 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, Unique } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { ClassEntity } from './class.entity';
-import { ClassSubjectTeacherEntity } from './class-subject-teacher.entity';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Entity('class_subjects')
@@ -26,6 +25,4 @@ export class ClassSubjectEntity extends CustomBaseEntity {
   @JoinColumn({ name: 'subject_id' })
   subject: SubjectEntity;
 
-  @OneToMany(() => ClassSubjectTeacherEntity, (cst) => cst.classSubject, { cascade: true })
-  teachers: ClassSubjectTeacherEntity[];
 }

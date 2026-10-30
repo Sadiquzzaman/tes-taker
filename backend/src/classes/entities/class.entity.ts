@@ -3,8 +3,7 @@ import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { IsNotEmpty, MaxLength } from 'class-validator';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ClassStudentEntity } from './class-student.entity';
-import { ClassTeacherEntity } from './class-teacher.entity';
+import type { ClassStudentView } from '../class-student-view';
 import { ClassSubjectEntity } from './class-subject.entity';
 import { ClassKindEnum } from '../enums/class-kind.enum';
 import { OrganizationEntity } from 'src/organizations/entities/organization.entity';
@@ -52,11 +51,10 @@ export class ClassEntity extends CustomBaseEntity {
   })
   class_kind: ClassKindEnum;
 
-  @OneToMany(() => ClassStudentEntity, (classStudent) => classStudent.class, { cascade: true })
-  classStudents: ClassStudentEntity[];
+  /** The class's current students, built from enrolments (P2-03); not a database relation. */
+  @ApiPropertyOptional({ description: 'Current students (from enrolments, in open sessions)' })
+  classStudents?: ClassStudentView[];
 
-  @OneToMany(() => ClassTeacherEntity, (ct) => ct.class, { cascade: true })
-  classTeachers: ClassTeacherEntity[];
 
   @OneToMany(() => ClassSubjectEntity, (cs) => cs.class, { cascade: true })
   classSubjects: ClassSubjectEntity[];

@@ -33,7 +33,8 @@
     "account": "Account",
     "help": "Help",
     "features": "More features",
-    "featureRequests": "Feature requests"
+    "featureRequests": "Feature requests",
+    "sessions": "Sessions"
   },
   "shell": {
     "organization": "Organization",
@@ -597,7 +598,7 @@
       "students": "Students",
       "tests": "Tests",
       "discussions": "Discussions",
-      "subjects": "Subjects"
+      "sections": "Sections"
     },
     "form": {
       "title": "Create class",
@@ -691,14 +692,9 @@
       "studentWithId": "Student {id}",
       "removeTitle": "Remove {name}?",
       "removeDetail": "They will lose access to this class and its tests.",
-      "removeConfirm": "Remove"
-    },
-    "subjects": {
-      "managedByOrg": "Subjects and their teachers are managed on the organisation's Assignments page.",
-      "empty": "No subjects in this class yet.",
-      "noTeacher": "No teacher assigned",
-      "subject": "Subject",
-      "teacher": "Teacher"
+      "removeConfirm": "Remove",
+      "section": "Section",
+      "allSections": "All sections"
     },
     "tests": {
       "title": "Tests",
@@ -866,7 +862,8 @@
       "passingScore": "Passing score",
       "negativeMarking": "Negative marking",
       "off": "Off",
-      "questionCount": "{count, plural, one {# question} other {# questions}}"
+      "questionCount": "{count, plural, one {# question} other {# questions}}",
+      "sessionClosed": "This test belongs to a closed session, so it cannot be changed or graded. The owner can reopen the session."
     },
     "audience": {
       "anyone": "Anyone with the link",
@@ -1173,7 +1170,11 @@
       "invalidTitle": "Not an email or phone number",
       "invalid": "Enter a valid email address or phone number.",
       "invalidPhoneTitle": "Invalid phone number",
-      "invalidPhone": "Phone numbers have 11 digits."
+      "invalidPhone": "Phone numbers have 11 digits.",
+      "subjectClass": "Section and subject",
+      "subjectClassHint": "Optional. Only the students who take this subject in this section get the test, e.g. a religion or elective subject.",
+      "wholeClass": "The whole class",
+      "subjectClassOption": "Section {section} · {subject}"
     },
     "subjects": {
       "add": "Add subject",
@@ -1603,7 +1604,7 @@
     },
     "assignments": {
       "title": "Teacher assignments",
-      "intro": "Add subjects to a class, then choose who teaches each one.",
+      "intro": "Add subjects to a class, then choose who teaches each one in each section.",
       "step1": "1. Add a subject to a class",
       "step2": "2. Choose the teacher",
       "step3": "3. Current assignments",
@@ -1650,7 +1651,15 @@
       "unassignedTitle": "Assignment removed",
       "unassignedDetail": "The teacher no longer teaches this class subject.",
       "subjectRemovedTitle": "Subject removed",
-      "subjectRemoved": "The subject and its teacher assignments were removed from the class."
+      "subjectRemoved": "The subject and its teacher assignments were removed from the class.",
+      "section": "Section",
+      "selectSection": "Select a section",
+      "sectionFirst": "Select a section first",
+      "noSections": "This class has no sections in this session",
+      "allSections": "All sections of the class",
+      "session": "Session",
+      "sessionClosed": "This session is closed, so its teachers cannot be changed.",
+      "actions": "Actions"
     }
   },
   "admin": {
@@ -2218,6 +2227,162 @@
       "max_students_per_exam": "Students per test",
       "max_question_bank_size": "Questions in the question bank",
       "max_storage_mb": "Storage (MB)"
+    }
+  },
+  "academics": {
+    "sessions": {
+      "title": "Sessions",
+      "intro": "School years or terms. Several can run at once; new classes and tests go into the default session.",
+      "add": "Add session",
+      "edit": "Edit session",
+      "empty": "No sessions yet",
+      "name": "Name",
+      "namePlaceholder": "e.g. 2027",
+      "start": "Starts",
+      "end": "Ends",
+      "dates": "Dates",
+      "status": "Status",
+      "statusActive": "Active",
+      "statusClosed": "Closed",
+      "default": "Default",
+      "actions": "Actions",
+      "makeDefaultOnCreate": "Make it the default session",
+      "makeDefaultFor": "Make {name} the default session",
+      "closeFor": "Close {name}",
+      "closeTitle": "Close {name}?",
+      "closeDetail": "Its attendance, marks and homework become read-only. Only the owner can reopen it.",
+      "closeConfirm": "Close session",
+      "reopenFor": "Reopen {name}",
+      "termsFor": "Terms of {name}",
+      "editFor": "Edit {name}",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Session saved",
+      "closed": "Session closed",
+      "reopened": "Session reopened",
+      "defaultChanged": "Default session changed",
+      "noAccess": "Only owners and admins can manage sessions.",
+      "datesInvalid": "The end date must be on or after the start date."
+    },
+    "terms": {
+      "empty": "No terms in this session yet",
+      "add": "Add term",
+      "name": "Term name",
+      "namePlaceholder": "e.g. Half-yearly",
+      "start": "Starts",
+      "end": "Ends",
+      "order": "Order",
+      "editFor": "Edit {name}",
+      "deleteFor": "Delete {name}",
+      "deleteTitle": "Delete {name}?",
+      "deleteDetail": "The term is removed from this session.",
+      "deleteConfirm": "Delete",
+      "save": "Save term",
+      "cancelEdit": "Cancel",
+      "saved": "Term saved",
+      "deleted": "Term deleted",
+      "closedNote": "This session is closed; reopen it to change its terms."
+    },
+    "settings": {
+      "title": "Settings",
+      "classTeacher": "Sections have a class teacher",
+      "classTeacherHint": "A class teacher looks after a whole section. Turning this off keeps the class teachers you already chose.",
+      "saved": "Settings saved"
+    },
+    "sections": {
+      "title": "Sections",
+      "session": "Session",
+      "add": "Add section",
+      "edit": "Edit section",
+      "editFor": "Edit section {name}",
+      "deleteFor": "Delete section {name}",
+      "open": "Open section {name}",
+      "empty": "No sections in this session",
+      "name": "Section name",
+      "namePlaceholder": "e.g. A or Morning batch",
+      "shift": "Shift",
+      "shifts": {
+        "MORNING": "Morning",
+        "DAY": "Day",
+        "EVENING": "Evening"
+      },
+      "noShift": "No shift",
+      "room": "Room",
+      "classTeacher": "Class teacher",
+      "noClassTeacher": "No class teacher",
+      "studentCount": "{count, plural, one {# student} other {# students}}",
+      "deleteTitle": "Delete section {name}?",
+      "deleteDetail": "Only an empty section can be deleted, and a class keeps at least one section.",
+      "deleteConfirm": "Delete",
+      "saved": "Section saved",
+      "deleted": "Section deleted",
+      "closedSession": "This session is closed, so its sections cannot be changed.",
+      "sectionTitle": "Section {name}",
+      "tabs": {
+        "students": "Students",
+        "subjects": "Subjects"
+      }
+    },
+    "enrolments": {
+      "empty": "No students in this section yet",
+      "student": "Student",
+      "roll": "Roll",
+      "status": "Status",
+      "actions": "Actions",
+      "statuses": {
+        "INVITED": "Invited",
+        "PENDING": "Waiting for approval",
+        "ACTIVE": "Active",
+        "LEFT": "Left",
+        "PROMOTED": "Promoted"
+      },
+      "add": "Add student",
+      "contact": "Phone or email",
+      "contactHint": "A registered student is added straight away; anyone else gets an invitation that their sign-up claims.",
+      "rollNo": "Roll number",
+      "added": "Student added",
+      "invited": "Invitation saved. Share the class link so they can join.",
+      "pendingAdded": "Added. They appear once their account is verified.",
+      "editFor": "Change the section or roll number of {name}",
+      "editTitle": "Edit {name}",
+      "section": "Section",
+      "saved": "Student updated",
+      "leaveFor": "Mark {name} as left",
+      "leaveTitle": "Mark {name} as left?",
+      "leaveDetail": "They leave this class. Their record is kept, and they can be added again.",
+      "leaveConfirm": "Mark as left",
+      "left": "Student marked as left",
+      "invitedContact": "Invited: {contact}",
+      "showLeft": "Show students who left",
+      "save": "Save"
+    },
+    "subjects": {
+      "empty": "No subjects in this section",
+      "subject": "Subject",
+      "teachers": "Teachers",
+      "noTeacher": "No teacher yet",
+      "takenBy": "Who takes it",
+      "whole": "Whole section",
+      "selected": "{count, plural, one {# selected student} other {# selected students}}",
+      "add": "Add subject",
+      "allAdded": "Every subject of this class is already taught here.",
+      "added": "Subject added",
+      "removeFor": "Stop teaching {name} in this section",
+      "removeTitle": "Stop teaching {name} in this section?",
+      "removeDetail": "The subject class and its teachers are removed from this section.",
+      "removeConfirm": "Remove",
+      "removed": "Subject removed",
+      "editFor": "Edit {name}",
+      "editTitle": "{name}: teachers and students",
+      "teachersLabel": "Teachers",
+      "teachersHint": "All teachers of a subject class are equal.",
+      "addTeacher": "Add a teacher",
+      "removeTeacher": "Remove {name}",
+      "selectedOnly": "Only selected students take it (religion, electives)",
+      "pickStudents": "Students who take it",
+      "noActiveStudents": "This section has no active students yet.",
+      "save": "Save",
+      "saved": "Subject class saved"
     }
   }
 }

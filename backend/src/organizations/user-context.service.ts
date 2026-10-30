@@ -10,7 +10,8 @@ import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { UserService } from 'src/user/user.service';
 import { UserReponseDto } from 'src/user/dto/user-response.dto';
-import { ClassStudentEntity, ClassStudentStatusEnum } from 'src/classes/entities/class-student.entity';
+import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
+import { activeEnrolmentCondition } from 'src/academics/enrolment-queries';
 import { OrganizationMemberEntity } from './entities/organization-member.entity';
 import { OrganizationMemberRoleEnum } from './enums/organization-member-role.enum';
 import { OrganizationKindEnum } from './enums/organization-kind.enum';
@@ -25,8 +26,8 @@ export class UserContextService {
     private readonly memberRepo: Repository<OrganizationMemberEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
-    @InjectRepository(ClassStudentEntity)
-    private readonly classStudentRepo: Repository<ClassStudentEntity>,
+    @InjectRepository(EnrolmentEntity)
+    private readonly enrolmentRepo: Repository<EnrolmentEntity>,
     private readonly userService: UserService,
   ) {}
 
@@ -109,13 +110,14 @@ export class UserContextService {
     }
 
     // Solo teachers' classes the user is enrolled in as a student (classes in SOLO organisations).
-    const personalEnrollments = await this.classStudentRepo
+    const active = activeEnrolmentCondition('cs');
+    const personalEnrollments = await this.enrolmentRepo
       .createQueryBuilder('cs')
       .innerJoinAndSelect('cs.class', 'class')
       .innerJoin('class.organization', 'classOrganization')
       .leftJoinAndSelect('class.teacher', 'teacher')
       .where('cs.student_id = :userId', { userId })
-      .andWhere('cs.status = :status', { status: ClassStudentStatusEnum.JOINED })
+      .andWhere(active.sql, active.params)
       .andWhere('classOrganization.kind = :solo', { solo: OrganizationKindEnum.SOLO })
       .getMany();
 

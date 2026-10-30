@@ -56,18 +56,29 @@ const ExamDetails = ({ examId }: { examId: string }) => {
     void fetchExam();
   }, [fetchExam]);
 
+  // A test in a closed session is read-only (FND-01): no edit, enable/disable or grading.
+  const [sessionClosed, setSessionClosed] = useState(false);
+  const sessionId = exam?.session_id;
+  useEffect(() => {
+    if (!sessionId) return;
+    void axiosReq
+      .get<ApiResponse<AcademicSession[]>>(`${process.env.NEXT_PUBLIC_BASE_URL}/sessions`)
+      .then((res) => setSessionClosed((res.data?.payload ?? []).some((s) => s.id === sessionId && s.status === "CLOSED")))
+      .catch(() => undefined);
+  }, [sessionId]);
+
   const isDisabled = exam?.is_active === 0;
   const startAt = exam?.publishState?.scheduleAt ?? null;
   const endAt = exam?.publishState?.endingAt ?? null;
 
   const canModify = useMemo(() => {
-    if (!startAt) {
+    if (!startAt || sessionClosed) {
       return false;
     }
     return Date.now() < new Date(startAt).getTime();
-  }, [startAt]);
+  }, [sessionClosed, startAt]);
 
-  const canGradeTest = Boolean(exam?.created_by) && exam?.created_by === getStoredUser()?.id;
+  const canGradeTest = !sessionClosed && Boolean(exam?.created_by) && exam?.created_by === getStoredUser()?.id;
 
   const handleToggleStatus = useCallback(async () => {
     if (!exam) {
@@ -174,7 +185,11 @@ const ExamDetails = ({ examId }: { examId: string }) => {
           </>
         }
       />
-      {!canModify ? <p className="-mt-3 text-body-sm text-ink-muted">{t("details.locked")}</p> : null}
+      {sessionClosed ? (
+        <p className="-mt-3 text-body-sm text-ink-muted">{t("details.sessionClosed")}</p>
+      ) : !canModify ? (
+        <p className="-mt-3 text-body-sm text-ink-muted">{t("details.locked")}</p>
+      ) : null}
 
       <Card>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">

@@ -7,6 +7,7 @@ const createInitialPublishState = (): PublishState => ({
   endingAt: dayjs().add(3, "day").toISOString(),
   testAudience: "anyone",
   selectedClassId: "",
+  selectedOfferingId: "",
   excluded_students: [],
 });
 

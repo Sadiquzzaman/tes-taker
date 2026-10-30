@@ -108,6 +108,25 @@ describe("test details", () => {
     expect(await screen.findByText("The test has started or ended, so it can no longer be edited or disabled.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Disable" })).toBeNull();
   });
+
+  it("keeps a test of a closed session read-only, and says why", async () => {
+    get.mockImplementation((url: string) =>
+      Promise.resolve({
+        data: {
+          payload: url.endsWith("/sessions")
+            ? [{ id: "ses-2025", name: "2025", start_date: "2025-01-01", end_date: "2025-12-31", status: "CLOSED", is_default: false }]
+            : { ...exam, session_id: "ses-2025" },
+        },
+      }),
+    );
+    renderApp(<ExamDetails examId="e1" />);
+    expect(
+      await screen.findByText("This test belongs to a closed session, so it cannot be changed or graded. The owner can reopen the session."),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Disable" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Edit" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Grade" })).toBeNull();
+  });
 });
 
 describe("test helpers", () => {

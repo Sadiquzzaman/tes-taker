@@ -117,7 +117,7 @@ describe('exam deadline and attempt status on writes (P0-06)', () => {
       submissionRepo as never,
       answerRepo as never,
       {} as never, // classRepo
-      {} as never, // classStudentRepo
+      {} as never, // enrolmentRepo
       {} as never, // userRepo
       {} as never, // smsService
       dataSource as never,
@@ -126,6 +126,7 @@ describe('exam deadline and attempt status on writes (P0-06)', () => {
       // No student cap (0 = unlimited); the cap has its own spec.
       { getEntitlements: jest.fn(async () => ({ limits: {} })) } as never, // entitlementsService
       {} as never, // soloOrganizations
+      {} as never, // sessionRepo
     );
 
     // Scoring is covered elsewhere; these tests only care about who may write when.

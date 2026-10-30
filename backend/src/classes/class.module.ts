@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClassEntity } from './entities/class.entity';
-import { ClassStudentEntity } from './entities/class-student.entity';
-import { ClassTeacherEntity } from './entities/class-teacher.entity';
+import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
+import { AcademicsModule } from 'src/academics/academics.module';
 import { ClassSubjectEntity } from './entities/class-subject.entity';
-import { ClassSubjectTeacherEntity } from './entities/class-subject-teacher.entity';
 import { ClassService } from './class.service';
 import { ClassController } from './class.controller';
 import { StudentClassController } from './student-class.controller';
@@ -27,10 +26,9 @@ import { ChatMongoModule } from 'src/chat-mongo/chat-mongo.module';
   imports: [
     TypeOrmModule.forFeature([
       ClassEntity,
-      ClassStudentEntity,
-      ClassTeacherEntity,
+      // Read through enrolment-queries; written only by EnrolmentsService (AcademicsModule).
+      EnrolmentEntity,
       ClassSubjectEntity,
-      ClassSubjectTeacherEntity,
       // Legacy PostgreSQL discussion tables are left registered so synchronize
       // does not drop them. Runtime discussion I/O uses MongoDB.
       ClassDiscussionPostEntity,
@@ -41,6 +39,7 @@ import { ChatMongoModule } from 'src/chat-mongo/chat-mongo.module';
       ExamEntity,
       SubjectEntity,
     ]),
+    AcademicsModule,
     ChatMongoModule,
     EmailModule,
     OrganizationsModule,
