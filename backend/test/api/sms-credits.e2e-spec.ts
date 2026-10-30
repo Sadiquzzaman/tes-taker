@@ -244,9 +244,10 @@ describe('SMS credits', () => {
       await sendSms(school); // 0 left
       await sendSms(school); // no credit
       const sent = await warnings();
-      expect(sent).toHaveLength(1);
-      expect(sent[0]).toMatchObject({ recipient_id: owner.id, channel: NotificationChannelEnum.EMAIL });
-      expect(sent[0].payload).toMatchObject({ credits_left: 1, organization_name: school.name });
+      // In-app and email (FND-13), once this month.
+      expect(sent.map((w) => w.channel).sort()).toEqual([NotificationChannelEnum.EMAIL, NotificationChannelEnum.IN_APP]);
+      expect(sent.every((w) => w.recipient_id === owner.id)).toBe(true);
+      expect(sent[0].payload).toMatchObject({ credits_left: 1, organization_name: school.name, path: '/billing' });
       expect((await credits.summary(school.id)).low).toBe(true);
     });
   });

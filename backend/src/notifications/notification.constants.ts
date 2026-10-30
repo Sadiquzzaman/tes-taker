@@ -57,3 +57,22 @@ export const DISPATCH_RETRY_DELAYS_MS = [30_000, 120_000];
 export const DISPATCH_STALE_SENDING_MS = 10 * 60_000;
 /** Rows one sweep picks up. */
 export const DISPATCH_SWEEP_BATCH = 200;
+
+/**
+ * Messages a user can choose channels for (FND-12), with the channels on by default. In-app (the
+ * bell) is always on and free; SMS uses the organisation's credits.
+ */
+export const NOTIFICATION_PREFERENCES: Record<string, { allowed: NotificationChannelEnum[]; defaults: NotificationChannelEnum[] }> = {
+  [NOTIFICATION_EVENTS.EXAM_SCHEDULED]: {
+    allowed: [NotificationChannelEnum.IN_APP, NotificationChannelEnum.SMS, NotificationChannelEnum.EMAIL],
+    defaults: [NotificationChannelEnum.IN_APP, NotificationChannelEnum.SMS],
+  },
+  [NOTIFICATION_EVENTS.SMS_LOW_CREDIT]: {
+    allowed: [NotificationChannelEnum.IN_APP, NotificationChannelEnum.EMAIL],
+    defaults: [NotificationChannelEnum.IN_APP, NotificationChannelEnum.EMAIL],
+  },
+  [NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED]: {
+    allowed: [NotificationChannelEnum.IN_APP, NotificationChannelEnum.EMAIL],
+    defaults: [NotificationChannelEnum.IN_APP, NotificationChannelEnum.EMAIL],
+  },
+};

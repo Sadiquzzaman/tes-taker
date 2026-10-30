@@ -9,7 +9,7 @@ import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization
 import { LimitKey } from 'src/subscriptions/constants/feature-catalog';
 import { EntitlementsService } from 'src/subscriptions/entitlements.service';
 import { SmsCreditBucketEnum, SmsCreditLedgerEntity, SmsCreditReasonEnum } from './entities/sms-credit-ledger.entity';
-import { NOTIFICATION_EVENTS, NotificationChannelEnum } from './notification.constants';
+import { NOTIFICATION_EVENTS } from './notification.constants';
 import { NotificationsService } from './notifications.service';
 import { SMS_LOW_CREDIT_SHARE, SMS_TOP_UP_PACKS, SmsTopUpPack } from './sms-top-up-packs';
 
@@ -243,7 +243,7 @@ export class SmsCreditsService {
     return grant.delta + Number(row?.carried ?? 0) + Number(row?.added ?? 0);
   }
 
-  /** Emails the owner(s) once a month when 10% or less of the month's credits is left. */
+  /** Tells the owner(s) (in-app and email) once a month when 10% or less of the month's credits is left. */
   private async warnIfLow(manager: EntityManager, organizationId: string, period: string, grant: SmsCreditLedgerEntity): Promise<void> {
     const summary = await this.summarize(manager, organizationId, period, grant);
     if (!summary.low) return;
@@ -254,19 +254,19 @@ export class SmsCreditsService {
         select: ['id', 'user_id'],
       }),
     ]);
-    await this.notifications.enqueue(
-      owners.map((owner) => ({
+    await this.notifications.notifyUsers(
+      {
         eventType: NOTIFICATION_EVENTS.SMS_LOW_CREDIT,
-        channel: NotificationChannelEnum.EMAIL,
         organizationId,
-        userId: owner.user_id,
+        userIds: owners.map((owner) => owner.user_id),
         variables: {
           organization_name: organization?.name ?? '',
           credits_left: summary.total_left,
           link: `${resolveFrontendUrl(this.configService)}/billing`,
+          path: '/billing',
         },
-        dedupeKey: `sms.low_credit:${organizationId}:${period}:${owner.user_id}`,
-      })),
+        dedupeKey: `sms.low_credit:${organizationId}:${period}`,
+      },
       manager,
     );
   }

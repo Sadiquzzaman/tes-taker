@@ -6,8 +6,12 @@ import { QueueModule } from 'src/queue/queue.module';
 import { SmsModule } from 'src/sms/sms.module';
 import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 import { MessageTemplateEntity } from './entities/message-template.entity';
+import { NotificationEntity } from './entities/notification.entity';
 import { NotificationOutboxEntity } from './entities/notification-outbox.entity';
 import { SmsCreditLedgerEntity } from './entities/sms-credit-ledger.entity';
+import { UserNotificationPrefEntity } from './entities/user-notification-pref.entity';
+import { InboxController } from './inbox.controller';
+import { InboxService } from './inbox.service';
 import { MessageLogService } from './message-log.service';
 import { MessageTemplatesService } from './message-templates.service';
 import { NotificationDispatcherService } from './notification-dispatcher.service';
@@ -18,13 +22,19 @@ import { SmsCreditsService } from './sms-credits.service';
 
 /**
  * Notifications (design §8.6): the outbox, templates, the dispatcher the worker runs, the message
- * log and SMS credits (FND-13). Global, so any module can inject NotificationsService to queue a message without
+ * log, SMS credits (FND-13) and the in-app inbox with channel choices (FND-12). Global, so any module can inject NotificationsService to queue a message without
  * importing this module (SMS and organisations are both used here and senders themselves).
  */
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([NotificationOutboxEntity, MessageTemplateEntity, SmsCreditLedgerEntity]),
+    TypeOrmModule.forFeature([
+      NotificationOutboxEntity,
+      MessageTemplateEntity,
+      SmsCreditLedgerEntity,
+      NotificationEntity,
+      UserNotificationPrefEntity,
+    ]),
     QueueModule,
     SmsModule,
     EmailModule,
@@ -33,8 +43,15 @@ import { SmsCreditsService } from './sms-credits.service';
     // OrganizationContextGuard for the message log.
     OrganizationsModule,
   ],
-  controllers: [NotificationsController, SmsCreditsController],
-  providers: [NotificationsService, MessageTemplatesService, NotificationDispatcherService, MessageLogService, SmsCreditsService],
+  controllers: [NotificationsController, SmsCreditsController, InboxController],
+  providers: [
+    NotificationsService,
+    MessageTemplatesService,
+    NotificationDispatcherService,
+    MessageLogService,
+    SmsCreditsService,
+    InboxService,
+  ],
   exports: [NotificationsService, NotificationDispatcherService, SmsCreditsService],
 })
 export class NotificationsModule {}
