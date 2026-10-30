@@ -8,6 +8,7 @@ import { RolesEnum } from '../../src/common/enums/roles.enum';
 import { EmailService } from '../../src/email/email.service';
 import { NotificationOutbox1755900000000 } from '../../src/migrations/1755900000000-NotificationOutbox';
 import { SmsCreditLedger1755910000000 } from '../../src/migrations/1755910000000-SmsCreditLedger';
+import { NotificationsInbox1755920000000 } from '../../src/migrations/1755920000000-NotificationsInbox';
 import { MessageTemplateEntity } from '../../src/notifications/entities/message-template.entity';
 import { NotificationOutboxEntity } from '../../src/notifications/entities/notification-outbox.entity';
 import { NotificationDispatcherService } from '../../src/notifications/notification-dispatcher.service';
@@ -373,7 +374,10 @@ describe('notifications: outbox, dispatch and message log', () => {
       expect(created.status).toBe(201);
 
       // Queued in the test's own transaction, before the response.
-      const rows = await rowsOf(NOTIFICATION_EVENTS.EXAM_SCHEDULED);
+      const all = await rowsOf(NOTIFICATION_EVENTS.EXAM_SCHEDULED);
+      // By default each student gets it in-app and by SMS (FND-12).
+      expect(all.filter((r) => r.channel === NotificationChannelEnum.IN_APP).map((r) => r.recipient_id).sort()).toEqual([a.id, b.id].sort());
+      const rows = all.filter((r) => r.channel === NotificationChannelEnum.SMS);
       expect(rows.map((r) => r.recipient_id).sort()).toEqual([a.id, b.id].sort());
       expect(rows[0]).toMatchObject({ organization_id: school.id, channel: NotificationChannelEnum.SMS });
       expect(rows[0].payload).toMatchObject({ exam_title: 'Quiz' });
@@ -391,9 +395,13 @@ describe('notifications: outbox, dispatch and message log', () => {
       const response = await call('POST', '/me/feature-requests', token, { feature_key: 'advanced_analytics', note: 'For our exams' });
       expect(response.status).toBe(201);
 
-      const rows = await rowsOf(NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED);
-      expect(rows.map((r) => r.recipient_id)).toContain(admin.id);
-      expect(rows.every((r) => r.organization_id === null && r.channel === NotificationChannelEnum.EMAIL)).toBe(true);
+      const all = await rowsOf(NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED);
+      expect(all.filter((r) => r.recipient_id === admin.id).map((r) => r.channel).sort()).toEqual([
+        NotificationChannelEnum.EMAIL,
+        NotificationChannelEnum.IN_APP,
+      ]);
+      expect(all.every((r) => r.organization_id === null)).toBe(true);
+      const rows = all.filter((r) => r.channel === NotificationChannelEnum.EMAIL);
       const mine = rows.find((r) => r.recipient_id === admin.id)!;
       expect(mine.payload).toMatchObject({ feature: 'Advanced analytics', organization_name: workspace.name, note: 'For our exams' });
       await dispatcher.dispatch(mine.id);
@@ -485,16 +493,19 @@ describe('notifications: outbox, dispatch and message log', () => {
 
   it('migration is safe to run twice and reversible', async () => {
     const migration = new NotificationOutbox1755900000000();
-    // The SMS credit ledger (part 2) points at the outbox: take it down first and back up last.
+    // The SMS credit ledger and the inbox (parts 2, 3) point at the outbox: take them down first, up last.
     const ledger = new SmsCreditLedger1755910000000();
+    const inbox = new NotificationsInbox1755920000000();
     const runner = t.dataSource.createQueryRunner();
     try {
       await migration.up(runner);
+      await inbox.down(runner);
       await ledger.down(runner);
       await migration.down(runner);
       await migration.up(runner);
       await migration.up(runner);
       await ledger.up(runner);
+      await inbox.up(runner);
     } finally {
       await runner.release();
     }
