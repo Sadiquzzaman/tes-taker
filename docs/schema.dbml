@@ -254,7 +254,7 @@ Table teacher_role_requests {
 
 Table audit_logs {
   id bigserial [pk]
-  organization_id uuid [ref: > organizations.id, note: 'NULL for platform-wide actions (plans); ON DELETE CASCADE (rows go with the organisation)']
+  organization_id uuid [ref: > organizations.id, note: 'NULL for platform-wide actions (plans); ON DELETE CASCADE never fires: organisations are deactivated, never deleted (design §10)']
   actor_id uuid [ref: > users.id, note: 'NULL for system actions; ON DELETE SET NULL']
   action varchar(80) [not null, note: 'area.verb, e.g. member.role_change, grade.update (backend/src/audit/audit-actions.ts)']
   entity_type varchar(60)
