@@ -1658,7 +1658,8 @@
       "noSections": "This class has no sections in this session",
       "allSections": "All sections of the class",
       "session": "Session",
-      "sessionClosed": "This session is closed, so its teachers cannot be changed."
+      "sessionClosed": "This session is closed, so its teachers cannot be changed.",
+      "actions": "Actions"
     }
   },
   "admin": {

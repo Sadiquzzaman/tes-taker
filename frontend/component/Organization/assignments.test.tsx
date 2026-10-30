@@ -126,6 +126,14 @@ describe("assignments by section (P2-03 part 3b)", () => {
     expect(del).not.toHaveBeenCalled();
   });
 
+  it("heads the action column Actions, not Remove", async () => {
+    renderApp(<OrganizationAssignments />);
+    const table = await screen.findByRole("table", { name: "3. Current assignments" });
+    const headers = within(table).getAllByRole("columnheader").map((header) => header.textContent?.trim());
+    expect(headers).toContain("Actions");
+    expect(headers).not.toContain("Remove");
+  });
+
   it("shows the sections in Bangla", async () => {
     renderApp(<OrganizationAssignments />, { locale: "bn" });
     const table = await screen.findByRole("table");
