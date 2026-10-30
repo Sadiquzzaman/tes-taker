@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import useScoreText from "@/component/GradingScale/useScoreText";
 import { Button, Card, ErrorState, Modal, Skeleton, StatTile, Table, type TableColumn } from "@/design/ui";
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
@@ -17,6 +18,7 @@ type RosterStudent = {
   duration_seconds: number | null;
   total_score: number | null;
   max_score: number | null;
+  grade?: Grade | null;
   is_graded: boolean;
   browser_switch_count: number;
   tab_switch_count: number;
@@ -54,6 +56,7 @@ const ExamClassRosterPanel = ({ examId }: { examId: string }) => {
   const t = useTranslations("grading.roster");
   const tSubmissions = useTranslations("grading.submissions");
   const format = useFormat();
+  const scoreText = useScoreText();
   const [payload, setPayload] = useState<RosterPayload | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -106,7 +109,7 @@ const ExamClassRosterPanel = ({ examId }: { examId: string }) => {
     {
       key: "score",
       header: t("score"),
-      cell: (row) => (row.total_score != null && row.max_score != null ? `${format.number(row.total_score)} / ${format.number(row.max_score)}` : "—"),
+      cell: (row) => scoreText({ score: row.total_score, max: row.max_score, grade: row.grade }),
       align: "right",
     },
     { key: "graded", header: t("graded"), cell: (row) => (row.is_graded ? t("yes") : t("no")), hideOnMobile: true },

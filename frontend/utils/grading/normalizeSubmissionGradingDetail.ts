@@ -194,6 +194,7 @@ export const normalizeSubmissionGradingDetail = (payload: SubmissionGradingDetai
       totalScore: payload.submission.total_score,
       maxScore: payload.submission.max_score,
       percentage: payload.submission.percentage,
+      grade: payload.submission.grade ?? null,
       isGraded: payload.submission.is_graded,
       gradingStatus: payload.submission.grading_status,
     },

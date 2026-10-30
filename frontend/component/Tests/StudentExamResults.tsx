@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import GradingQuestionList from "@/component/grading/GradingQuestionList";
+import useScoreText from "@/component/GradingScale/useScoreText";
 import { Breadcrumb, buttonClasses, Card, ErrorState, PageHeader, Skeleton, StatTile } from "@/design/ui";
 import useGetExamResult from "@/hooks/api/exam/useGetExamResult";
 import useFormat from "@/i18n/useFormat";
@@ -12,6 +13,7 @@ import { mapStudentExamResult } from "@/utils/exam/mapStudentExamResult";
 const StudentExamResults = ({ examId }: { examId: string }) => {
   const t = useTranslations("tests");
   const format = useFormat();
+  const scoreText = useScoreText();
   const { loading, error, result, refetch } = useGetExamResult(examId);
   const breadcrumb = <Breadcrumb items={[{ label: t("title"), href: "/tests" }, { label: t("results.title") }]} />;
 
@@ -58,9 +60,15 @@ const StudentExamResults = ({ examId }: { examId: string }) => {
           .join(" · ")}
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <StatTile label={t("results.score")} value={`${format.number(result.total_score ?? 0)} / ${format.number(result.max_score ?? 0)}`} />
-        {result.percentage != null ? (
-          <StatTile label={t("results.percentage")} value={format.number(Number(result.percentage) / 100, { style: "percent", maximumFractionDigits: 1 })} />
+        <StatTile
+          label={t("results.score")}
+          value={scoreText({ score: result.total_score ?? 0, max: result.max_score ?? 0, percentage: result.percentage, grade: result.grade })}
+        />
+        {result.grade ? (
+          <StatTile
+            label={t("results.grade")}
+            value={result.grade.gpa === null ? result.grade.grade : `${result.grade.grade} · ${format.number(result.grade.gpa, { minimumFractionDigits: 2 })}`}
+          />
         ) : null}
       </div>
       <Card title={t("results.answerSheet")}>

@@ -64,6 +64,7 @@ interface GradingModalSubmission {
   totalScore: number;
   maxScore: number;
   percentage: number;
+  grade: Grade | null;
   isGraded: boolean;
   gradingStatus: SubmissionGradingStatus;
 }
