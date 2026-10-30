@@ -34,7 +34,9 @@
     "help": "সাহায্য",
     "features": "আরও ফিচার",
     "featureRequests": "ফিচারের অনুরোধ",
-    "sessions": "সেশন"
+    "sessions": "সেশন",
+    "auditLog": "অডিট লগ",
+    "activityLog": "কার্যক্রমের লগ"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -1844,7 +1846,7 @@
       "choosePlan": "একটি প্ল্যান বেছে নিন",
       "assign": "প্ল্যান দিন",
       "changeOptions": "নিচের পরিবর্তনের বিকল্প",
-      "changeOptionsHint": "নিচে যে সুইচ বা সীমা বদলাবেন, তাতে এই শেষ তারিখ ও কারণ ব্যবহার হবে।",
+      "changeOptionsHint": "যে প্ল্যান দেবেন এবং যে সুইচ বা সীমা বদলাবেন, প্রতিটির সাথে এই কারণ সংরক্ষিত হবে। শেষ তারিখ শুধু সুইচ ও সীমার জন্য।",
       "expiresOn": "যে তারিখ পর্যন্ত (ঐচ্ছিক)",
       "expiresHint": "এই দিনের পর আবার প্ল্যান অনুযায়ী চলবে।",
       "reason": "কারণ (ঐচ্ছিক)",
@@ -1863,7 +1865,8 @@
       "reset": "প্ল্যানেরটা",
       "resetFor": "{name}-এ প্ল্যানের সীমা ব্যবহার করুন",
       "savedTitle": "সংরক্ষিত",
-      "saved": "প্রতিষ্ঠানটি পরের বার পেজ খুললে পরিবর্তন দেখবে।"
+      "saved": "প্রতিষ্ঠানটি পরের বার পেজ খুললে পরিবর্তন দেখবে।",
+      "recentChanges": "সাম্প্রতিক পরিবর্তন"
     },
     "featureRequests": {
       "title": "ফিচারের অনুরোধ",
@@ -2512,5 +2515,148 @@
     "save": "নাম সংরক্ষণ করুন",
     "saved": "নাম সংরক্ষিত হয়েছে",
     "loadFailed": "নামগুলো লোড হয়নি।"
+  },
+  "audit": {
+    "title": "অডিট লগ",
+    "platformIntro": "কে, কোন প্রতিষ্ঠানে, কী বদলেছেন এবং কখন। বিস্তারিত দেখতে একটি সারি খুলুন।",
+    "organizationTitle": "কার্যক্রমের লগ",
+    "organizationIntro": "এই ওয়ার্কস্পেসে কে কী বদলেছেন এবং কখন: সদস্য, প্ল্যান ও ফলাফল। বিস্তারিত দেখতে একটি সারি খুলুন।",
+    "when": "কখন",
+    "who": "কে",
+    "organization": "প্রতিষ্ঠান",
+    "action": "কী",
+    "summary": "পরিবর্তন",
+    "record": "রেকর্ড",
+    "reason": "কারণ",
+    "reasonValue": "কারণ: {reason}",
+    "ip": "আইপি ঠিকানা",
+    "platform": "প্ল্যাটফর্ম",
+    "system": "সিস্টেম",
+    "unknownUser": "মুছে ফেলা ব্যবহারকারী",
+    "area": "বিভাগ",
+    "allAreas": "সব বিভাগ",
+    "from": "থেকে",
+    "to": "পর্যন্ত",
+    "organizationFilter": "প্রতিষ্ঠান: {name}",
+    "onlyThisOrganization": "শুধু এই প্রতিষ্ঠান দেখান",
+    "empty": "এখনো কিছু রেকর্ড হয়নি।",
+    "emptyFiltered": "এই ফিল্টারে কিছু মেলেনি।",
+    "changes": "কী বদলেছে",
+    "noChanges": "এই কাজের কোনো বিস্তারিত রেকর্ড নেই।",
+    "beforeAfter": "{before} থেকে {after}",
+    "more": "আরও {count, number}টি",
+    "yes": "হ্যাঁ",
+    "no": "না",
+    "byOn": "{who} করেছেন, {when}",
+    "noRecentChanges": "এখনো কোনো পরিবর্তন নেই।",
+    "loadFailed": "পরিবর্তনগুলো লোড হয়নি।",
+    "areas": {
+      "member": "সদস্য",
+      "subscription": "প্ল্যান ও সুইচ",
+      "plan": "প্ল্যান",
+      "payment": "পেমেন্ট",
+      "feature_request": "ফিচারের অনুরোধ",
+      "exam": "টেস্ট",
+      "grade": "নম্বর",
+      "organization": "প্রতিষ্ঠান",
+      "teacher_request": "শিক্ষক হওয়ার অনুরোধ",
+      "user": "ব্যবহারকারী",
+      "teacher": "শিক্ষক"
+    },
+    "actions": {
+      "plan": {
+        "create": "প্ল্যান তৈরি",
+        "update": "প্ল্যান সম্পাদনা",
+        "delete": "প্ল্যান মুছে ফেলা",
+        "reorder": "প্ল্যানের ক্রম বদল",
+        "activate": "প্ল্যান চালু",
+        "deactivate": "প্ল্যান বন্ধ"
+      },
+      "subscription": {
+        "plan_assign": "প্ল্যান দেওয়া হয়েছে",
+        "cancel": "প্ল্যান বাতিল",
+        "override_set": "ফিচার বা সীমা বদল",
+        "override_remove": "ফিচার বা সীমা প্ল্যানে ফেরত"
+      },
+      "payment": {
+        "confirm": "পেমেন্ট নিশ্চিত"
+      },
+      "feature_request": {
+        "handled": "ফিচারের অনুরোধ সম্পন্ন"
+      },
+      "organization": {
+        "approve": "প্রতিষ্ঠান অনুমোদিত",
+        "reject": "প্রতিষ্ঠান প্রত্যাখ্যাত"
+      },
+      "teacher_request": {
+        "approve": "শিক্ষক হওয়ার অনুরোধ অনুমোদিত",
+        "reject": "শিক্ষক হওয়ার অনুরোধ প্রত্যাখ্যাত"
+      },
+      "user": {
+        "role_change": "অ্যাকাউন্টের ভূমিকা বদল"
+      },
+      "teacher": {
+        "status_change": "শিক্ষক চালু বা বন্ধ"
+      },
+      "member": {
+        "add": "সদস্য যোগ",
+        "role_change": "সদস্যের ভূমিকা বদল",
+        "remove": "সদস্য সরানো"
+      },
+      "exam": {
+        "results_publish": "ফলাফল প্রকাশ"
+      },
+      "grade": {
+        "update": "প্রকাশের পর নম্বর বদল"
+      }
+    },
+    "fields": {
+      "role": "ভূমিকা",
+      "status": "অবস্থা",
+      "active": "সক্রিয়",
+      "user_name": "সদস্য",
+      "user_id": "ব্যবহারকারী",
+      "via": "যেভাবে যোগ",
+      "reactivated": "আবার যোগ",
+      "plan_id": "প্ল্যান",
+      "plan_slug": "প্ল্যান",
+      "plan_name": "প্ল্যানের নাম",
+      "billing_cycle": "বিলিং মেয়াদ",
+      "end_date": "শেষ",
+      "key": "ফিচার বা সীমা",
+      "value": "মান",
+      "expires_at": "পর্যন্ত",
+      "name": "নাম",
+      "slug": "সংক্ষিপ্ত নাম",
+      "price_monthly": "মাসিক মূল্য",
+      "price_half_yearly": "ষাণ্মাসিক মূল্য",
+      "price_yearly": "বার্ষিক মূল্য",
+      "visibility": "দৃশ্যমানতা",
+      "is_custom": "কাস্টম",
+      "sort_order": "ক্রম",
+      "is_plan_active": "চালু",
+      "features": "ফিচার",
+      "limits": "সীমা",
+      "plan_ids": "ক্রম",
+      "amount": "পরিমাণ",
+      "transaction_id": "লেনদেন",
+      "subscription_id": "সাবস্ক্রিপশন",
+      "feature_key": "ফিচার",
+      "test_name": "টেস্ট",
+      "published_at": "প্রকাশিত",
+      "submissions": "জমা",
+      "total_score": "মোট নম্বর",
+      "marks": "নম্বর",
+      "exam_id": "টেস্ট",
+      "student_id": "শিক্ষার্থী",
+      "organization": "প্রতিষ্ঠান",
+      "organization_member": "সদস্য",
+      "account_subscription": "প্ল্যান",
+      "feature_override": "ফিচার বা সীমা",
+      "subscription_plan": "প্ল্যান",
+      "teacher_role_request": "শিক্ষক হওয়ার অনুরোধ",
+      "student_exam_submission": "উত্তরপত্র",
+      "exam": "টেস্ট"
+    }
   }
 }

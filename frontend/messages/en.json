@@ -34,7 +34,9 @@
     "help": "Help",
     "features": "More features",
     "featureRequests": "Feature requests",
-    "sessions": "Sessions"
+    "sessions": "Sessions",
+    "auditLog": "Audit log",
+    "activityLog": "Activity log"
   },
   "shell": {
     "organization": "Organization",
@@ -1844,7 +1846,7 @@
       "choosePlan": "Choose a plan",
       "assign": "Assign plan",
       "changeOptions": "Options for the changes below",
-      "changeOptionsHint": "Each switch or limit you change below uses this end date and reason.",
+      "changeOptionsHint": "The reason is saved with the plan you assign and with each switch or limit you change. The end date applies to switches and limits.",
       "expiresOn": "Until (optional)",
       "expiresHint": "After this day the plan applies again.",
       "reason": "Reason (optional)",
@@ -1863,7 +1865,8 @@
       "reset": "Use plan",
       "resetFor": "Use the plan's {name}",
       "savedTitle": "Saved",
-      "saved": "The organisation sees the change on its next page load."
+      "saved": "The organisation sees the change on its next page load.",
+      "recentChanges": "Recent changes"
     },
     "featureRequests": {
       "title": "Feature requests",
@@ -2512,5 +2515,148 @@
     "save": "Save names",
     "saved": "Names saved",
     "loadFailed": "The names did not load."
+  },
+  "audit": {
+    "title": "Audit log",
+    "platformIntro": "Who changed what, in which organisation, and when. Open a row for the details.",
+    "organizationTitle": "Activity log",
+    "organizationIntro": "Who changed what in this workspace, and when: members, plan and results. Open a row for the details.",
+    "when": "When",
+    "who": "Who",
+    "organization": "Organisation",
+    "action": "What",
+    "summary": "Change",
+    "record": "Record",
+    "reason": "Reason",
+    "reasonValue": "Reason: {reason}",
+    "ip": "IP address",
+    "platform": "Platform",
+    "system": "System",
+    "unknownUser": "Deleted user",
+    "area": "Area",
+    "allAreas": "All areas",
+    "from": "From",
+    "to": "To",
+    "organizationFilter": "Organisation: {name}",
+    "onlyThisOrganization": "Show only this organisation",
+    "empty": "Nothing has been recorded yet.",
+    "emptyFiltered": "Nothing matches these filters.",
+    "changes": "What changed",
+    "noChanges": "No details were recorded for this action.",
+    "beforeAfter": "{before} → {after}",
+    "more": "+{count, number} more",
+    "yes": "Yes",
+    "no": "No",
+    "byOn": "{who}, {when}",
+    "noRecentChanges": "No changes yet.",
+    "loadFailed": "The changes did not load.",
+    "areas": {
+      "member": "Members",
+      "subscription": "Plan and switches",
+      "plan": "Plans",
+      "payment": "Payments",
+      "feature_request": "Feature requests",
+      "exam": "Tests",
+      "grade": "Marks",
+      "organization": "Organisations",
+      "teacher_request": "Teacher requests",
+      "user": "Users",
+      "teacher": "Teachers"
+    },
+    "actions": {
+      "plan": {
+        "create": "Plan created",
+        "update": "Plan edited",
+        "delete": "Plan deleted",
+        "reorder": "Plans reordered",
+        "activate": "Plan turned on",
+        "deactivate": "Plan turned off"
+      },
+      "subscription": {
+        "plan_assign": "Plan assigned",
+        "cancel": "Plan cancelled",
+        "override_set": "Feature or limit changed",
+        "override_remove": "Feature or limit back to plan"
+      },
+      "payment": {
+        "confirm": "Payment confirmed"
+      },
+      "feature_request": {
+        "handled": "Feature request handled"
+      },
+      "organization": {
+        "approve": "Organisation approved",
+        "reject": "Organisation rejected"
+      },
+      "teacher_request": {
+        "approve": "Teacher request approved",
+        "reject": "Teacher request rejected"
+      },
+      "user": {
+        "role_change": "Account role changed"
+      },
+      "teacher": {
+        "status_change": "Teacher enabled or disabled"
+      },
+      "member": {
+        "add": "Member added",
+        "role_change": "Member role changed",
+        "remove": "Member removed"
+      },
+      "exam": {
+        "results_publish": "Results published"
+      },
+      "grade": {
+        "update": "Marks changed after publishing"
+      }
+    },
+    "fields": {
+      "role": "Role",
+      "status": "Status",
+      "active": "Active",
+      "user_name": "Member",
+      "user_id": "User",
+      "via": "Added by",
+      "reactivated": "Rejoined",
+      "plan_id": "Plan",
+      "plan_slug": "Plan",
+      "plan_name": "Plan name",
+      "billing_cycle": "Billing cycle",
+      "end_date": "Ends",
+      "key": "Feature or limit",
+      "value": "Value",
+      "expires_at": "Until",
+      "name": "Name",
+      "slug": "Short name",
+      "price_monthly": "Monthly price",
+      "price_half_yearly": "Half-yearly price",
+      "price_yearly": "Yearly price",
+      "visibility": "Visibility",
+      "is_custom": "Custom",
+      "sort_order": "Order",
+      "is_plan_active": "Turned on",
+      "features": "Features",
+      "limits": "Limits",
+      "plan_ids": "Order",
+      "amount": "Amount",
+      "transaction_id": "Transaction",
+      "subscription_id": "Subscription",
+      "feature_key": "Feature",
+      "test_name": "Test",
+      "published_at": "Published",
+      "submissions": "Submissions",
+      "total_score": "Total marks",
+      "marks": "Marks",
+      "exam_id": "Test",
+      "student_id": "Student",
+      "organization": "Organisation",
+      "organization_member": "Member",
+      "account_subscription": "Plan",
+      "feature_override": "Feature or limit",
+      "subscription_plan": "Plan",
+      "teacher_role_request": "Teacher request",
+      "student_exam_submission": "Answer sheet",
+      "exam": "Test"
+    }
   }
 }
