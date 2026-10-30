@@ -3,6 +3,7 @@
 import { AxiosError } from "axios";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import AuditRecentChanges from "@/component/Audit/AuditRecentChanges";
 import useFeatureNames from "@/component/Subscription/useFeatureNames";
 import { useToast } from "@/component/Toast/ToastContext";
 import { Badge, Button, DatePicker, Drawer, ErrorState, Input, Select, Skeleton } from "@/design/ui";
@@ -38,6 +39,7 @@ const AdminOrganizationPlanDrawer = ({ organization, onClose }: { organization: 
   const [expiresOn, setExpiresOn] = useState("");
   const [reason, setReason] = useState("");
   const [limitDrafts, setLimitDrafts] = useState<Record<string, string>>({});
+  const [changesVersion, setChangesVersion] = useState(0);
   const organizationId = organization?.id;
 
   const loadEntitlements = useCallback(async () => {
@@ -76,6 +78,7 @@ const AdminOrganizationPlanDrawer = ({ organization, onClose }: { organization: 
     try {
       await action();
       await loadEntitlements();
+      setChangesVersion((version) => version + 1);
       triggerToast({ title: t("savedTitle"), description: t("saved"), type: "success" });
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
@@ -100,7 +103,14 @@ const AdminOrganizationPlanDrawer = ({ organization, onClose }: { organization: 
     });
 
   const assignPlan = () =>
-    run("plan", () => axiosReq.post(`${baseUrl}/subscriptions/admin/assign`, { organization_id: organizationId, plan_id: planId, billing_cycle: cycle }));
+    run("plan", () =>
+      axiosReq.post(`${baseUrl}/subscriptions/admin/assign`, {
+        organization_id: organizationId,
+        plan_id: planId,
+        billing_cycle: cycle,
+        notes: reason.trim() || undefined,
+      }),
+    );
 
   const onOff = (value: boolean | undefined) => (value ? t("on") : t("off"));
   const untilText = (override?: FeatureOverrideItem) =>
@@ -112,6 +122,14 @@ const AdminOrganizationPlanDrawer = ({ organization, onClose }: { organization: 
     const { entitlements } = data;
     return (
       <div className="flex flex-col gap-6">
+        <section className="flex flex-col gap-3 rounded-input bg-canvas p-3" aria-label={t("changeOptions")}>
+          <p className="text-body-sm text-ink-muted">{t("changeOptionsHint")}</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <DatePicker label={t("expiresOn")} hint={t("expiresHint")} value={expiresOn} onChange={setExpiresOn} />
+            <Input label={t("reason")} value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} />
+          </div>
+        </section>
+
         <section className="flex flex-col gap-3" aria-labelledby="org-plan-heading">
           <h3 id="org-plan-heading" className="text-title-sm font-semibold text-ink">
             {t("planHeading")}
@@ -138,14 +156,6 @@ const AdminOrganizationPlanDrawer = ({ organization, onClose }: { organization: 
             <Button disabled={!planId || Boolean(saving)} loading={saving === "plan"} onClick={() => void assignPlan()}>
               {t("assign")}
             </Button>
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-3 rounded-input bg-canvas p-3" aria-label={t("changeOptions")}>
-          <p className="text-body-sm text-ink-muted">{t("changeOptionsHint")}</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <DatePicker label={t("expiresOn")} hint={t("expiresHint")} value={expiresOn} onChange={setExpiresOn} />
-            <Input label={t("reason")} value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} />
           </div>
         </section>
 
@@ -242,6 +252,13 @@ const AdminOrganizationPlanDrawer = ({ organization, onClose }: { organization: 
               );
             })}
           </ul>
+        </section>
+
+        <section className="flex flex-col gap-2" aria-labelledby="org-changes-heading">
+          <h3 id="org-changes-heading" className="text-title-sm font-semibold text-ink">
+            {t("recentChanges")}
+          </h3>
+          {organizationId ? <AuditRecentChanges organizationId={organizationId} action="subscription." reloadKey={changesVersion} /> : null}
         </section>
       </div>
     );
