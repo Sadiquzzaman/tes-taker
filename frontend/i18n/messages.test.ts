@@ -2,6 +2,7 @@ import { createTranslator } from "next-intl";
 import { describe, expect, it } from "vitest";
 import bn from "@/messages/bn.json";
 import en from "@/messages/en.json";
+import { applyLevelLabels, DEFAULT_LEVEL_LABELS, LEVEL_LABEL_PRESETS } from "./levelLabels";
 
 type Tree = { [key: string]: string | Tree };
 
@@ -49,7 +50,8 @@ describe("messages", () => {
   });
 
   it("is actually translated into Bangla", () => {
-    for (const [key, value] of Object.entries(bangla)) {
+    // As rendered: level tokens such as [[class]] become Bangla words.
+    for (const [key, value] of Object.entries(flatten(applyLevelLabels(bn, DEFAULT_LEVEL_LABELS, "bn")))) {
       if (!LATIN_IN_BANGLA.has(key)) {
         expect(value, key).toMatch(/[ঀ-৿]/);
       }
@@ -79,5 +81,43 @@ describe("messages", () => {
     expect(t("exam.permissions.rules.limit", { count: 10 })).toBe("১০টি ফ্ল্যাগ পেলে পরীক্ষা বাতিল হয়ে যাবে।");
     // English keeps Latin digits.
     expect(createTranslator({ locale: "en", messages: en })("exam.totalMarks", { marks: 40 })).toBe("Total Marks: 40");
+  });
+
+  describe("level names (FND-03)", () => {
+    const tokensIn = (message: string) => [...message.matchAll(/\[\[([^\]]*)\]\]/g)].map((match) => match[1]);
+    const levelsIn = (message: string) =>
+      [...new Set(tokensIn(message).map((token) => (token.toLowerCase().startsWith("class") ? "class" : "section")))].sort();
+
+    it("uses only the known tokens", () => {
+      const known = new Set(["class", "Class", "classes", "Classes", "section", "Section", "sections", "Sections"]);
+      for (const [key, message] of [...Object.entries(english), ...Object.entries(bangla)]) {
+        for (const token of tokensIn(message)) {
+          expect(known.has(token), `${key} uses [[${token}]]`).toBe(true);
+        }
+      }
+    });
+
+    it("names the same levels in Bangla and English", () => {
+      for (const key of Object.keys(english)) {
+        expect(levelsIn(bangla[key] ?? ""), key).toEqual(levelsIn(english[key]));
+      }
+    });
+
+    it("renders the organisation's words", () => {
+      const courseBatch = LEVEL_LABEL_PRESETS.COURSE_BATCH;
+      const english = createTranslator({ locale: "en", messages: applyLevelLabels(en, courseBatch, "en") });
+      expect(english("classes.create")).toBe("Create course");
+      expect(english("academics.sections.title")).toBe("Batches");
+      expect(english("organization.assignments.noSections")).toBe("This course has no batches in this session");
+      const bangla = createTranslator({ locale: "bn", messages: applyLevelLabels(bn, courseBatch, "bn") });
+      expect(bangla("classes.create")).toBe("কোর্স তৈরি করুন");
+      expect(bangla("academics.sections.add")).toBe("ব্যাচ যোগ করুন");
+    });
+
+    it("keeps Class / Section by default", () => {
+      const english = createTranslator({ locale: "en", messages: applyLevelLabels(en, DEFAULT_LEVEL_LABELS, "en") });
+      expect(english("classes.create")).toBe("Create class");
+      expect(english("nav.classes")).toBe("Classes");
+    });
   });
 });

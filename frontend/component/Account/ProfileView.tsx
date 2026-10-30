@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { Avatar, Badge, Card, ErrorState, PageHeader, Skeleton, StatusPill } from "@/design/ui";
+import LevelLabelsCard from "@/component/Organization/LevelLabelsCard";
+import useAcademicsRequest from "@/hooks/academics/useAcademicsRequest";
 import useProfile from "@/hooks/api/auth/useProfile";
 import useFormat from "@/i18n/useFormat";
 import AccountBilling from "./AccountBilling";
@@ -17,11 +19,13 @@ const InfoRow = ({ label, value }: { label: string; value: ReactNode }) => (
   </div>
 );
 
-/** The signed-in user's profile, teacher request or billing, and password. */
+/** The signed-in user's profile, teacher request or billing, level names (own workspace), and password. */
 const ProfileView = () => {
   const t = useTranslations("account");
   const format = useFormat();
   const { profile, loading, error, refetch } = useProfile();
+  // A solo teacher names the levels of their own workspace here; organisation owners do it on the overview.
+  const { isIndividual, ownsWorkspace } = useAcademicsRequest();
 
   if (loading) {
     return (
@@ -87,6 +91,8 @@ const ProfileView = () => {
           <AccountBilling />
         </Suspense>
       ) : null}
+
+      {profile.role === "TEACHER" && isIndividual && ownsWorkspace ? <LevelLabelsCard /> : null}
 
       <ChangePasswordForm />
     </div>

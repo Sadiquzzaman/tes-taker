@@ -384,6 +384,8 @@ export class UserService implements OnModuleInit {
       member_role: string;
       organization_name: string;
       organization_status: string;
+      /** Language for members who have not chosen one (organizations.default_locale). */
+      organization_default_locale?: string;
     } | null,
     options?: {
       context_type?:
@@ -431,6 +433,7 @@ export class UserService implements OnModuleInit {
             organization_number: orgSession.organization_number,
             role: orgSession.member_role,
             status: orgSession.organization_status,
+            default_locale: orgSession.organization_default_locale ?? null,
           }
         : null,
       access_token,
@@ -715,6 +718,7 @@ export class UserService implements OnModuleInit {
       member_role: string;
       organization_name: string;
       organization_status: string;
+      organization_default_locale?: string;
     },
   ): Promise<UserReponseDto> {
     const verification = this.refreshTokenUtil.verify(refreshToken);

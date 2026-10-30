@@ -31,8 +31,8 @@ Table organizations {
   workspace_type workspace_type [not null, default: 'ACADEMIC', note: 'added in P2-01']
   kind org_kind [not null, default: 'SCHOOL', note: 'added in P2-01; SOLO replaces personal-teacher mode (one per teacher, created on first use)']
   timezone varchar(64) [not null, default: 'Asia/Dhaka', note: 'added in P2-01']
-  default_locale varchar(5) [not null, default: 'bn', note: 'added in P2-01; not read yet (P2-04)']
-  level_labels jsonb [note: 'NEW: {"class":{"bn":"শ্রেণি","en":"Class"},"section":{...}} (FND-03)']
+  default_locale varchar(5) [not null, default: 'bn', note: 'added in P2-01; language for members who have not chosen one (P2-04)']
+  level_labels jsonb [note: 'added in P2-04 (FND-03); null = Class / Section. {"preset":"CLASS_SECTION|COURSE_BATCH|CUSTOM","class":{"en":{"one":"Course","other":"Courses"},"bn":"কোর্স"},"section":{...}}']
   logo_file_id uuid [ref: > file_objects.id]
   rejected_reason text
   reviewed_by uuid
