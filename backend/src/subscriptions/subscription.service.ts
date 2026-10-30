@@ -46,6 +46,7 @@ import {
   validateLimitsInput,
   mergeFeatures,
   mergeLimits,
+  PlanLimits,
 } from './constants/feature-catalog';
 import {
   AssignPlanDto,
@@ -112,7 +113,10 @@ export class SubscriptionService implements OnModuleInit {
     const created: string[] = [];
     for (const preset of Object.values(SEED_PLAN_PRESETS)) {
       const existing = await this.planRepo.findOne({ where: { slug: preset.slug } });
-      if (existing) continue;
+      if (existing) {
+        await this.addMissingPresetLimits(existing, preset.limits);
+        continue;
+      }
 
       await this.planRepo.save(
         this.planRepo.create({
@@ -133,6 +137,21 @@ export class SubscriptionService implements OnModuleInit {
       created.push(preset.slug);
     }
     if (created.length) this.logger.log(`Subscription plans created: ${created.join(', ')}`);
+  }
+
+  /**
+   * A limit added to the catalogue after a preset plan was created (e.g. `sms_credits_per_month`,
+   * P2-08) gets the preset's value, only while the plan has no value for it. A value an admin saved
+   * in Admin → Plans is never changed.
+   */
+  private async addMissingPresetLimits(plan: SubscriptionPlanEntity, presetLimits: PlanLimits): Promise<void> {
+    const limits = { ...(plan.limits ?? {}) } as Record<string, number>;
+    const added = Object.entries(presetLimits).filter(([key]) => !(key in limits));
+    if (added.length === 0) return;
+    for (const [key, value] of added) limits[key] = Number(value);
+    await this.planRepo.update(plan.id, { limits: limits as PlanLimits });
+    await this.entitlementsService.invalidate();
+    this.logger.log(`Plan ${plan.slug}: added limits ${added.map(([key]) => key).join(', ')}`);
   }
 
   async getAllPlans(includeHidden = false): Promise<SubscriptionPlanEntity[]> {

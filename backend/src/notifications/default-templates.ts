@@ -109,6 +109,28 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
       '<h2>নতুন ফিচার অনুরোধ</h2><p><strong>{{organization_name}}</strong>-এর <strong>{{user_name}}</strong> <strong>{{feature}}</strong> চেয়েছেন।</p>' +
       '<p>{{note}}</p><p><a class="button" href="{{link}}">ফিচার অনুরোধগুলো খুলুন</a></p>',
   },
+
+  // The owner: 10% or less of the month's SMS credits left (FND-13)
+  {
+    event_type: NOTIFICATION_EVENTS.SMS_LOW_CREDIT,
+    channel: EMAIL,
+    locale: 'en',
+    subject: 'SMS credits running low for {{organization_name}}',
+    body:
+      '<h2>Your SMS credits are running low</h2><p><strong>{{organization_name}}</strong> has <strong>{{credits_left}}</strong> SMS credits left this month.</p>' +
+      '<p>When credits run out, SMS stop and are logged as "Not sent — no credit". In-app messages and emails still go out.</p>' +
+      '<p><a class="button" href="{{link}}">Buy SMS credits</a></p>',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.SMS_LOW_CREDIT,
+    channel: EMAIL,
+    locale: 'bn',
+    subject: '{{organization_name}}-এর SMS ক্রেডিট কমে আসছে',
+    body:
+      '<h2>আপনার SMS ক্রেডিট কমে আসছে</h2><p>এই মাসে <strong>{{organization_name}}</strong>-এর <strong>{{credits_left}}</strong>টি SMS ক্রেডিট বাকি আছে।</p>' +
+      '<p>ক্রেডিট শেষ হলে SMS যাওয়া বন্ধ হবে এবং "পাঠানো হয়নি — ক্রেডিট নেই" হিসেবে লগে থাকবে। অ্যাপের বার্তা ও ইমেইল যেতে থাকবে।</p>' +
+      '<p><a class="button" href="{{link}}">SMS ক্রেডিট কিনুন</a></p>',
+  },
 ];
 
 /** Values shown translated when a variable holds one of these codes (e.g. a member role). */

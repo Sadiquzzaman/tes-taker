@@ -17,6 +17,8 @@ type PaymentView = {
   currency: string;
   paymentMethod: string | null;
   subscriptionId?: string;
+  purpose?: string | null;
+  credits?: number;
 };
 
 type Outcome = "checking" | "paid" | "pending" | "cancelled" | "failed" | "notVisible" | "unconfirmed";
@@ -95,7 +97,9 @@ export default function PaymentSuccessContent() {
               ["status", t(`statuses.${payment.status}`)],
               ["amount", `${payment.currency} ${format.number(Number(payment.amount), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
               ["method", payment.paymentMethod ?? "—"],
-              ["subscription", payment.status === "PAID" ? t("active") : t("waiting")],
+              payment.purpose === "SMS_CREDITS"
+                ? (["smsCredits", payment.status === "PAID" ? t("smsAdded", { count: payment.credits ?? 0 }) : t("waiting")] as const)
+                : (["subscription", payment.status === "PAID" ? t("active") : t("waiting")] as const),
             ] as const
           ).map(([key, value]) => (
             <div key={key} className="flex justify-between gap-3">

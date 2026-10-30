@@ -4,6 +4,7 @@ import { AxiosError } from "axios";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AuditRecentChanges from "@/component/Audit/AuditRecentChanges";
+import AdminSmsCredits from "./AdminSmsCredits";
 import useFeatureNames from "@/component/Subscription/useFeatureNames";
 import { useToast } from "@/component/Toast/ToastContext";
 import { Badge, Button, DatePicker, Drawer, ErrorState, Input, Select, Skeleton } from "@/design/ui";
@@ -12,6 +13,8 @@ import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
 
 const CYCLES: BillingCycle[] = ["MONTHLY", "HALF_YEARLY", "YEARLY"];
+/** The monthly SMS allowance: unlike other limits, 0 means none, not unlimited (FND-13). */
+const SMS_LIMIT_KEY = "sms_credits_per_month";
 
 /** The end of the chosen day, so an override set "until 30 Nov" still counts on 30 Nov. */
 export const expiryFromDate = (date: string) => (date ? new Date(`${date}T23:59:59`).toISOString() : undefined);
@@ -217,7 +220,7 @@ const AdminOrganizationPlanDrawer = ({ organization, onClose }: { organization: 
                   <div className="flex min-w-0 flex-col">
                     <span className="text-body-sm font-medium text-ink">{name}</span>
                     <span className="text-caption text-ink-muted">
-                      {t("effective", { value: effective ? format.number(effective) : t("noLimit") })}
+                      {t("effective", { value: effective ? format.number(effective) : limit.key === SMS_LIMIT_KEY ? t("noSms") : t("noLimit") })}
                       {override ? ` · ${untilText(override)}` : ` · ${t("fromPlan")}`}
                     </span>
                   </div>
@@ -229,7 +232,7 @@ const AdminOrganizationPlanDrawer = ({ organization, onClose }: { organization: 
                       min={0}
                       inputMode="numeric"
                       fieldClassName="w-28"
-                      placeholder={planValue ? String(planValue) : t("noLimit")}
+                      placeholder={planValue ? String(planValue) : limit.key === SMS_LIMIT_KEY ? t("noSms") : t("noLimit")}
                       value={draft}
                       onChange={(event) => setLimitDrafts((prev) => ({ ...prev, [limit.key]: event.target.value }))}
                     />
@@ -253,6 +256,8 @@ const AdminOrganizationPlanDrawer = ({ organization, onClose }: { organization: 
             })}
           </ul>
         </section>
+
+        {organizationId ? <AdminSmsCredits organizationId={organizationId} onChanged={() => setChangesVersion((v) => v + 1)} /> : null}
 
         <section className="flex flex-col gap-2" aria-labelledby="org-changes-heading">
           <h3 id="org-changes-heading" className="text-title-sm font-semibold text-ink">
