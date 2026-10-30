@@ -10,6 +10,7 @@ import axiosReq from "@/lib/axios";
 import LevelLabelsCard from "./LevelLabelsCard";
 import OrganizationSettingsCard from "./OrganizationSettingsCard";
 import OrganizationWorkspaceGate from "./OrganizationWorkspaceGate";
+import SetupBanner from "./SetupBanner";
 
 const STATUS_TONE = { pending: "warning", approved: "success", rejected: "danger", inactive: "neutral" } as const;
 
@@ -55,6 +56,7 @@ const OrganizationOverviewContent = () => {
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader title={t("overview.title")} description={activeOrganization?.name} />
+      {organizationId ? <SetupBanner /> : null}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {tiles.map((tile) =>
           loading ? (

@@ -2360,7 +2360,8 @@
       "left": "Student marked as left",
       "invitedContact": "Invited: {contact}",
       "showLeft": "Show students who left",
-      "save": "Save"
+      "save": "Save",
+      "promote": "Promote students"
     },
     "subjects": {
       "empty": "No subjects in this [[section]]",
@@ -2389,6 +2390,100 @@
       "noActiveStudents": "This [[section]] has no active students yet.",
       "save": "Save",
       "saved": "Subject class saved"
+    },
+    "promotion": {
+      "title": "Promote students of [[section]] {name}",
+      "intro": "Move students to a [[section]] of another session. This year's records stay with this [[section]].",
+      "session": "Session",
+      "class": "[[Class]]",
+      "section": "[[Section]]",
+      "noSection": "This [[class]] has no [[section]] in that session yet. Add one on the [[class]] page.",
+      "noSession": "No other open session",
+      "noSessionDetail": "Add next year's session first, then promote students into it.",
+      "students": "Students",
+      "studentsHint": "Untick students who are held back or leaving; they stay in this [[section]].",
+      "studentWithRoll": "{name} (roll {roll})",
+      "summary": "{count, plural, one {# student moves} other {# students move}} to {className} · {section} ({session}). {held, plural, =0 {Nobody stays behind.} one {# student stays here.} other {# students stay here.}}",
+      "promote": "{count, plural, =0 {Promote} one {Promote # student} other {Promote # students}}",
+      "cancel": "Cancel",
+      "done": "Done",
+      "moved": "{count, plural, =0 {No students were moved.} one {# student was promoted.} other {# students were promoted.}}",
+      "skipped": "{count, plural, one {# student was already in that [[class]] and was not moved:} other {# students were already in that [[class]] and were not moved:}}"
+    },
+    "setup": {
+      "title": "Academic setup",
+      "intro": "Five short steps: names and language, the session, [[classes]] and subjects, [[sections]], and a final check. Everything is saved as you go.",
+      "steps": {
+        "basics": "Names and language",
+        "session": "Session",
+        "classes": "[[Classes]] and subjects",
+        "sections": "[[Sections]]",
+        "summary": "Check and finish"
+      },
+      "back": "Back",
+      "next": "Next",
+      "finish": "Finish setup",
+      "finished": "Setup finished",
+      "basics": {
+        "namesTitle": "Names for classes and sections",
+        "ownerOnly": "Only the owner can rename [[classes]] and [[sections]]. They are called “[[Class]]” and “[[Section]]” now."
+      },
+      "session": {
+        "title": "Session",
+        "intro": "The school year or term you are setting up. New [[classes]] get their [[sections]] in the default session.",
+        "add": "Add session",
+        "default": "Default",
+        "edit": "Edit",
+        "editFor": "Edit session {name}"
+      },
+      "classes": {
+        "title": "[[Classes]] and subjects",
+        "intro": "Add each [[class]] and the subjects taught in it. Every new [[class]] starts with [[section]] A.",
+        "className": "[[Class]] name",
+        "classNamePlaceholder": "e.g. Class 6, HSC Physics",
+        "addClass": "Add [[class]]",
+        "classAdded": "[[Class]] added",
+        "empty": "No [[classes]] yet",
+        "emptyDetail": "Add your first [[class]] above.",
+        "noSubjects": "No subjects yet.",
+        "subject": "Subject",
+        "chooseSubject": "Choose a subject",
+        "subjectFor": "Subject to add to {name}",
+        "addSubject": "Add subject",
+        "subjectAdded": "Subject added",
+        "newSubject": "New subject",
+        "newSubjectIntro": "A subject that is not in the list yet. It can then be added to any [[class]].",
+        "subjectName": "Subject name",
+        "subjectCode": "Code",
+        "createSubject": "Create subject",
+        "subjectCreated": "Subject created"
+      },
+      "sections": {
+        "intro": "Each [[class]] needs at least one [[section]]. Set the shift, room and class teacher, or add more [[sections]].",
+        "noClasses": "No [[classes]] yet",
+        "noClassesDetail": "Go back one step and add your [[classes]]."
+      },
+      "summary": {
+        "title": "Check and finish",
+        "session": "Session {name}",
+        "class": "[[Class]]",
+        "subjects": "Subjects",
+        "sections": "[[Sections]]",
+        "status": "Status",
+        "ready": "Ready",
+        "noSubjects": "No subjects",
+        "needsSection": "Needs a [[section]]",
+        "needsClass": "Add at least one [[class]] before finishing.",
+        "needsSectionDetail": "Add a [[section]] to: {names}.",
+        "noSubjectsDetail": "No subjects yet in: {names}. You can finish now and add them later."
+      },
+      "banner": {
+        "title": "Finish setting up",
+        "detail": "Name your [[classes]] and [[sections]], set the session, and add [[classes]], subjects and [[sections]] in five short steps.",
+        "start": "Start setup",
+        "continue": "Continue setup",
+        "reopen": "Open academic setup"
+      }
     }
   },
   "levelLabels": {

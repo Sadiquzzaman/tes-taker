@@ -2360,7 +2360,8 @@
       "left": "শিক্ষার্থীকে চলে গেছে হিসেবে চিহ্নিত করা হয়েছে",
       "invitedContact": "আমন্ত্রিত: {contact}",
       "showLeft": "চলে যাওয়া শিক্ষার্থীদেরও দেখান",
-      "save": "সংরক্ষণ"
+      "save": "সংরক্ষণ",
+      "promote": "শিক্ষার্থীদের প্রমোশন দিন"
     },
     "subjects": {
       "empty": "এই [[section]]ে কোনো বিষয় নেই",
@@ -2389,6 +2390,100 @@
       "noActiveStudents": "এই [[section]]ে এখনো কোনো সক্রিয় শিক্ষার্থী নেই।",
       "save": "সংরক্ষণ",
       "saved": "বিষয়ভিত্তিক ক্লাস সংরক্ষিত হয়েছে"
+    },
+    "promotion": {
+      "title": "[[section]] {name}-এর শিক্ষার্থীদের প্রমোশন",
+      "intro": "শিক্ষার্থীদের অন্য সেশনের একটি [[section]]ে পাঠান। এ বছরের রেকর্ড এই [[section]]েই থাকবে।",
+      "session": "সেশন",
+      "class": "[[class]]",
+      "section": "[[section]]",
+      "noSection": "ওই সেশনে এই [[class]]ের এখনো কোনো [[section]] নেই। [[class]]ের পাতায় একটি যোগ করুন।",
+      "noSession": "আর কোনো চালু সেশন নেই",
+      "noSessionDetail": "আগে আগামী বছরের সেশন যোগ করুন, তারপর সেখানে শিক্ষার্থীদের প্রমোশন দিন।",
+      "students": "শিক্ষার্থী",
+      "studentsHint": "যারা আটকে থাকছে বা চলে যাচ্ছে তাদের টিক তুলে দিন; তারা এই [[section]]েই থাকবে।",
+      "studentWithRoll": "{name} (রোল {roll})",
+      "summary": "{count, plural, other {#জন শিক্ষার্থী}} যাবে {className} · {section} ({session})-এ। {held, plural, =0 {কেউ থেকে যাচ্ছে না।} other {#জন এখানে থাকবে।}}",
+      "promote": "{count, plural, =0 {প্রমোশন দিন} other {#জনকে প্রমোশন দিন}}",
+      "cancel": "বাতিল",
+      "done": "ঠিক আছে",
+      "moved": "{count, plural, =0 {কোনো শিক্ষার্থীকে সরানো হয়নি।} other {#জন শিক্ষার্থী প্রমোশন পেয়েছে।}}",
+      "skipped": "{count, plural, other {#জন আগে থেকেই ওই [[class]]ে আছে, তাই সরানো হয়নি:}}"
+    },
+    "setup": {
+      "title": "একাডেমিক সেটআপ",
+      "intro": "পাঁচটি ছোট ধাপ: নাম ও ভাষা, সেশন, [[class]] ও বিষয়, [[section]], আর শেষে একবার যাচাই। প্রতিটি ধাপ সঙ্গে সঙ্গে সংরক্ষিত হয়।",
+      "steps": {
+        "basics": "নাম ও ভাষা",
+        "session": "সেশন",
+        "classes": "[[class]] ও বিষয়",
+        "sections": "[[section]]",
+        "summary": "যাচাই ও শেষ"
+      },
+      "back": "পেছনে",
+      "next": "পরের ধাপ",
+      "finish": "সেটআপ শেষ করুন",
+      "finished": "সেটআপ শেষ হয়েছে",
+      "basics": {
+        "namesTitle": "ক্লাস ও সেকশনের নাম",
+        "ownerOnly": "শুধু মালিক [[class]] ও [[section]]ের নাম বদলাতে পারেন। এখন এগুলোকে “[[class]]” ও “[[section]]” বলা হয়।"
+      },
+      "session": {
+        "title": "সেশন",
+        "intro": "যে শিক্ষাবর্ষ বা টার্মের সেটআপ করছেন। নতুন [[class]]ের [[section]] ডিফল্ট সেশনে তৈরি হয়।",
+        "add": "সেশন যোগ করুন",
+        "default": "ডিফল্ট",
+        "edit": "সম্পাদনা",
+        "editFor": "সেশন {name} সম্পাদনা"
+      },
+      "classes": {
+        "title": "[[class]] ও বিষয়",
+        "intro": "প্রতিটি [[class]] আর তাতে পড়ানো বিষয়গুলো যোগ করুন। প্রতিটি নতুন [[class]] [[section]] ক দিয়ে শুরু হয়।",
+        "className": "[[class]]ের নাম",
+        "classNamePlaceholder": "যেমন: ক্লাস ৬, এইচএসসি পদার্থবিজ্ঞান",
+        "addClass": "[[class]] যোগ করুন",
+        "classAdded": "[[class]] যোগ হয়েছে",
+        "empty": "এখনো কোনো [[class]] নেই",
+        "emptyDetail": "ওপরে প্রথম [[class]]টি যোগ করুন।",
+        "noSubjects": "এখনো কোনো বিষয় নেই।",
+        "subject": "বিষয়",
+        "chooseSubject": "বিষয় বেছে নিন",
+        "subjectFor": "{name}-এ যোগ করার বিষয়",
+        "addSubject": "বিষয় যোগ করুন",
+        "subjectAdded": "বিষয় যোগ হয়েছে",
+        "newSubject": "নতুন বিষয়",
+        "newSubjectIntro": "যে বিষয় এখনো তালিকায় নেই। এরপর এটি যেকোনো [[class]]ে যোগ করা যাবে।",
+        "subjectName": "বিষয়ের নাম",
+        "subjectCode": "কোড",
+        "createSubject": "বিষয় তৈরি করুন",
+        "subjectCreated": "বিষয় তৈরি হয়েছে"
+      },
+      "sections": {
+        "intro": "প্রতিটি [[class]]ে অন্তত একটি [[section]] লাগে। শিফট, রুম ও শ্রেণি শিক্ষক ঠিক করুন, বা আরও [[section]] যোগ করুন।",
+        "noClasses": "এখনো কোনো [[class]] নেই",
+        "noClassesDetail": "এক ধাপ পেছনে গিয়ে [[class]] যোগ করুন।"
+      },
+      "summary": {
+        "title": "যাচাই ও শেষ",
+        "session": "সেশন {name}",
+        "class": "[[class]]",
+        "subjects": "বিষয়",
+        "sections": "[[section]]",
+        "status": "অবস্থা",
+        "ready": "প্রস্তুত",
+        "noSubjects": "বিষয় নেই",
+        "needsSection": "[[section]] দরকার",
+        "needsClass": "শেষ করার আগে অন্তত একটি [[class]] যোগ করুন।",
+        "needsSectionDetail": "এগুলোতে একটি [[section]] যোগ করুন: {names}।",
+        "noSubjectsDetail": "এগুলোতে এখনো বিষয় নেই: {names}। এখন শেষ করে পরে যোগ করতে পারেন।"
+      },
+      "banner": {
+        "title": "সেটআপ শেষ করুন",
+        "detail": "পাঁচটি ছোট ধাপে [[class]] ও [[section]]ের নাম দিন, সেশন ঠিক করুন, আর [[class]], বিষয় ও [[section]] যোগ করুন।",
+        "start": "সেটআপ শুরু করুন",
+        "continue": "সেটআপ চালিয়ে যান",
+        "reopen": "একাডেমিক সেটআপ খুলুন"
+      }
     }
   },
   "levelLabels": {
