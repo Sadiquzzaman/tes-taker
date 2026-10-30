@@ -422,7 +422,7 @@ Table enrolments {
     (section_id, status)
     (organization_id, student_id)
   }
-  Note: 'NEW — replaces class_students (FND-04, FND-05). BUILT P2-03: rows copied from class_students keep that row id (JOINED = ACTIVE); since part 2a the only roster (EnrolmentsService writes it, class_students is read-only). Never hard-deleted: removal = LEFT + left_at; re-adding in the same session reuses the row'
+  Note: 'NEW — replaces class_students (FND-04, FND-05). BUILT P2-03: rows copied from class_students keep that row id (JOINED = ACTIVE); since part 2a the only roster (EnrolmentsService writes it; class_students dropped). Never hard-deleted: removal = LEFT + left_at; re-adding in the same session reuses the row'
 }
 
 Enum guardian_relation { FATHER MOTHER OTHER }
@@ -711,8 +711,8 @@ Table exams {
   id uuid [pk]
   organization_id uuid
   session_id uuid [ref: > academic_sessions.id, note: 'NEW column, BUILT P2-03 (new exams get the default session)']
-  term_id uuid [ref: > terms.id, note: 'NEW column']
-  offering_id uuid [ref: > course_offerings.id, note: 'NEW column; audience = offering students when set']
+  term_id uuid [ref: > terms.id, note: 'NEW column, BUILT P2-03 (reserved; not set yet)']
+  offering_id uuid [ref: > course_offerings.id, note: 'NEW column, BUILT P2-03; audience = the subject class roster when set']
   class_id uuid [ref: > classes.id]
   primary_subject_id uuid [ref: > subjects.id]
   test_name varchar
@@ -1527,9 +1527,9 @@ Table ielts_results {
 //////////////////////////////////////////////////////////////
 // teacher_subscriptions        -> account_subscriptions + feature_overrides
 // payment_history              -> payments
-// class_students               -> enrolments (read-only since P2-03 part 2a)
-// class_teachers               -> course_offerings + offering_teachers (+ sections.class_teacher_id)
-// class_subject_teachers       -> course_offerings + offering_teachers
+// class_students               -> enrolments (DROPPED in P2-03)
+// class_teachers               -> course_offerings + offering_teachers (+ sections.class_teacher_id) (DROPPED in P2-03)
+// class_subject_teachers       -> course_offerings + offering_teachers (DROPPED in P2-03)
 // (organization_teacher_subjects is kept: it lists what a teacher can teach, not an assignment — P2-03 decision)
 // class_discussion_posts, class_discussion_comments,
 // class_private_conversations, class_private_messages   -> MongoDB only (already the runtime store)
