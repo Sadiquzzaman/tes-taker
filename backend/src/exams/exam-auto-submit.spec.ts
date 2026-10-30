@@ -59,6 +59,7 @@ describe('StudentExamService.autoSubmitExpired', () => {
       {} as never, // soloOrganizations
       {} as never, // sessionRepo
       { record: jest.fn() } as never, // audit
+      {} as never, // gradingScales
     );
     completeSubmission = jest
       .spyOn(service as unknown as Record<string, () => Promise<unknown>>, 'completeSubmission')

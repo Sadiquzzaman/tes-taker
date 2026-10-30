@@ -95,6 +95,16 @@ describe("submissions table", () => {
     expect(store.getState().gradeDetails.openModal).toBe("result");
     expect(store.getState().gradeDetails.selectedSubmission?.submission_id).toBe("b");
   });
+
+  it("shows marks with percentage and the grade (FND-11), in Bangla too", () => {
+    const graded = { ...submission("b", true), percentage: 80, grade: { grade: "A+", gpa: 5 } };
+    renderApp(<StudentSubmissionsTable />, { store: storeWith("NEEDS_GRADING", 0, [graded]) });
+    const table = screen.getAllByRole("table")[0];
+    expect(within(table).getByText("8/10 · 80% (A+)")).toBeTruthy();
+    cleanup();
+    renderApp(<StudentSubmissionsTable />, { store: storeWith("NEEDS_GRADING", 0, [graded]), locale: "bn" });
+    expect(within(screen.getAllByRole("table")[0]).getByText("৮/১০ · ৮০% (A+)")).toBeTruthy();
+  });
 });
 
 describe("class progress", () => {
@@ -107,6 +117,7 @@ describe("class progress", () => {
           students: [
             {
               ...submission("a", true),
+              grade: { grade: "A+", gpa: 5 },
               duration_seconds: 600,
               browser_switch_count: 1,
               tab_switch_count: 3,
@@ -118,6 +129,7 @@ describe("class progress", () => {
       },
     });
     renderApp(<ExamClassRosterPanel examId="e1" />);
+    expect((await screen.findAllByText("8/10 · 80% (A+)")).length).toBeGreaterThan(0);
     fireEvent.click(await screen.findAllByRole("button", { name: "Proctoring details" }).then((buttons) => buttons[0]));
     const dialog = await screen.findByRole("dialog", { name: "Proctoring for Rina" });
     expect(within(dialog).getByText("Left the test tab")).toBeTruthy();

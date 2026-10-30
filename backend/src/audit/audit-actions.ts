@@ -34,6 +34,10 @@ export const AUDIT_ACTIONS = {
   // Results (design §8.11: grade changes are traced)
   EXAM_RESULTS_PUBLISH: 'exam.results_publish',
   GRADE_UPDATE: 'grade.update',
+
+  // Grading scale (owner and admins, FND-11)
+  GRADING_SCALE_UPDATE: 'grading_scale.update',
+  GRADING_SCALE_RESET: 'grading_scale.reset',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

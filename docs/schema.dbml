@@ -1027,10 +1027,17 @@ Table lesson_log_topics {
 
 Table grading_scales {
   id uuid [pk]
-  organization_id uuid [note: 'null = platform default (Bangladesh national)']
-  name varchar(60)
-  is_default boolean
-  Note: 'NEW (FND-11)'
+  organization_id uuid [ref: > organizations.id, note: 'null = platform default (Bangladesh national)']
+  name varchar(60) [not null]
+  is_default boolean [not null, default: false, note: 'true only on the platform default row']
+  is_active varchar [note: "base column ('1' | '0'); '0' = replaced or reset (soft delete, kept as history)"]
+  deactivated_at timestamptz
+  deactivated_by uuid
+  Indexes {
+    organization_id [unique, name: 'UQ_grading_scales_active_org', note: 'partial: WHERE organization_id IS NOT NULL AND is_active = 1 — one active scale per org']
+    is_default [unique, name: 'UQ_grading_scales_platform_default', note: 'partial: WHERE is_default = true AND is_active = 1']
+  }
+  Note: 'NEW (FND-11), BUILT P2-06. An org without an active row uses the platform default. Saving bands deactivates the current row and inserts a new one; reset deactivates it. Never deleted'
 }
 
 Table grading_bands {
@@ -1040,7 +1047,10 @@ Table grading_bands {
   max_pct numeric(5,2) [not null]
   grade varchar(5) [not null]
   gpa numeric(3,2)
-  Note: 'NEW'
+  Indexes {
+    scale_id
+  }
+  Note: 'NEW, BUILT P2-06. Inclusive ranges covering 0–100 in 0.01 steps, distinct grades; never edited in place (a new scale row is written)'
 }
 
 Table score_weights {
