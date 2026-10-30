@@ -8,7 +8,7 @@ export interface DefaultTemplate {
   body: string;
 }
 
-const { SMS, EMAIL } = NotificationChannelEnum;
+const { SMS, EMAIL, IN_APP } = NotificationChannelEnum;
 
 /**
  * The platform's default text for every event (design §8.6), in Bangla and English. Added to
@@ -131,6 +131,28 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
       '<p>ক্রেডিট শেষ হলে SMS যাওয়া বন্ধ হবে এবং "পাঠানো হয়নি — ক্রেডিট নেই" হিসেবে লগে থাকবে। অ্যাপের বার্তা ও ইমেইল যেতে থাকবে।</p>' +
       '<p><a class="button" href="{{link}}">SMS ক্রেডিট কিনুন</a></p>',
   },
+
+  // In-app (the bell): the subject is the title.
+  { event_type: NOTIFICATION_EVENTS.EXAM_SCHEDULED, channel: IN_APP, locale: 'en', subject: 'New test: {{exam_title}}', body: 'Starts {{exam_start_at}}.' },
+  { event_type: NOTIFICATION_EVENTS.EXAM_SCHEDULED, channel: IN_APP, locale: 'bn', subject: 'নতুন পরীক্ষা: {{exam_title}}', body: 'শুরু {{exam_start_at}}।' },
+  {
+    event_type: NOTIFICATION_EVENTS.EXAM_SCHEDULED,
+    channel: EMAIL,
+    locale: 'en',
+    subject: 'New test: {{exam_title}}',
+    body: '<h2>Upcoming test</h2><p><strong>{{exam_title}}</strong> starts {{exam_start_at}}. Please prepare.</p>',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.EXAM_SCHEDULED,
+    channel: EMAIL,
+    locale: 'bn',
+    subject: 'নতুন পরীক্ষা: {{exam_title}}',
+    body: '<h2>আসন্ন পরীক্ষা</h2><p><strong>{{exam_title}}</strong> শুরু {{exam_start_at}}। প্রস্তুতি নিন।</p>',
+  },
+  { event_type: NOTIFICATION_EVENTS.SMS_LOW_CREDIT, channel: IN_APP, locale: 'en', subject: 'SMS credits running low', body: '{{credits_left}} SMS credits left this month for {{organization_name}}.' },
+  { event_type: NOTIFICATION_EVENTS.SMS_LOW_CREDIT, channel: IN_APP, locale: 'bn', subject: 'SMS ক্রেডিট কমে আসছে', body: 'এই মাসে {{organization_name}}-এর {{credits_left}}টি SMS ক্রেডিট বাকি।' },
+  { event_type: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED, channel: IN_APP, locale: 'en', subject: 'Feature request: {{feature}}', body: '{{user_name}} of {{organization_name}} asked for it.' },
+  { event_type: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED, channel: IN_APP, locale: 'bn', subject: 'ফিচার অনুরোধ: {{feature}}', body: '{{organization_name}}-এর {{user_name}} এটি চেয়েছেন।' },
 ];
 
 /** Values shown translated when a variable holds one of these codes (e.g. a member role). */

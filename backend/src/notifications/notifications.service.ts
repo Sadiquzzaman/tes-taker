@@ -2,11 +2,13 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { NOTIFICATIONS_DISPATCH_JOB, NOTIFICATIONS_QUEUE } from 'src/queue/queue.constants';
 import { NotificationOutboxEntity } from './entities/notification-outbox.entity';
+import { UserNotificationPrefEntity } from './entities/user-notification-pref.entity';
 import {
+  NOTIFICATION_PREFERENCES,
   NotificationChannelEnum,
   NotificationEvent,
   NotificationLocale,
@@ -44,6 +46,17 @@ export interface OutboxMessage {
   createdBy?: string | null;
 }
 
+/** One message to several users, sent on each user's chosen channels (`notifyUsers`). */
+export interface UserNotification {
+  eventType: NotificationEvent;
+  organizationId: string | null;
+  userIds: string[];
+  variables?: Record<string, unknown>;
+  /** Base dedupe key; the user and channel are appended (`<key>:<userId>:<channel>`). */
+  dedupeKey?: string;
+  createdBy?: string | null;
+}
+
 /**
  * The one way to send SMS and email (design §8.6, CLAUDE.md): write an outbox row, the worker sends
  * it. Pass the transaction's EntityManager so the row commits (or rolls back) with your change:
@@ -67,6 +80,8 @@ export class NotificationsService {
   constructor(
     @InjectRepository(NotificationOutboxEntity)
     private readonly outboxRepo: Repository<NotificationOutboxEntity>,
+    @InjectRepository(UserNotificationPrefEntity)
+    private readonly prefRepo: Repository<UserNotificationPrefEntity>,
     @InjectQueue(NOTIFICATIONS_QUEUE)
     private readonly queue: Queue,
   ) {}
@@ -91,6 +106,51 @@ export class NotificationsService {
     const baseDelay = manager?.queryRunner?.isTransactionActive ? 2_000 : 0;
     await this.queueJobs(inserted, baseDelay);
     return inserted.map((row) => row.id);
+  }
+
+  /**
+   * Notifies users on the channels each one chose for this event (FND-12), or the event's defaults:
+   * the in-app inbox (the bell) always, plus SMS or email. Use this for messages to users;
+   * `enqueue` for one channel or an address (guardians always get SMS).
+   */
+  async notifyUsers(notification: UserNotification, manager?: EntityManager): Promise<string[]> {
+    const userIds = [...new Set(notification.userIds)];
+    if (userIds.length === 0) return [];
+    const channelsOf = await this.channelsFor(notification.eventType, userIds, manager);
+    const messages: OutboxMessage[] = userIds.flatMap((userId) =>
+      channelsOf(userId).map((channel) => ({
+        eventType: notification.eventType,
+        channel,
+        organizationId: notification.organizationId,
+        userId,
+        variables: notification.variables,
+        dedupeKey: notification.dedupeKey ? `${notification.dedupeKey}:${userId}:${channel}` : undefined,
+        createdBy: notification.createdBy,
+      })),
+    );
+    return this.enqueue(messages, manager);
+  }
+
+  /** Each user's channels for an event: their choice (allowed channels only) or the defaults; in-app always. */
+  private async channelsFor(
+    eventType: string,
+    userIds: string[],
+    manager?: EntityManager,
+  ): Promise<(userId: string) => NotificationChannelEnum[]> {
+    const preference = NOTIFICATION_PREFERENCES[eventType];
+    const defaults = preference?.defaults ?? [NotificationChannelEnum.IN_APP];
+    const rows = preference
+      ? await (manager?.getRepository(UserNotificationPrefEntity) ?? this.prefRepo).find({
+          where: { event_type: eventType, user_id: In(userIds) },
+        })
+      : [];
+    const chosen = new Map(rows.map((row) => [row.user_id, row.channels]));
+    return (userId) => {
+      const picked = chosen.get(userId);
+      if (!picked) return defaults;
+      const channels = preference.allowed.filter((c) => c === NotificationChannelEnum.IN_APP || picked.includes(c));
+      return channels.includes(NotificationChannelEnum.IN_APP) ? channels : [NotificationChannelEnum.IN_APP, ...channels];
+    };
   }
 
   private hasRecipient(message: OutboxMessage): boolean {

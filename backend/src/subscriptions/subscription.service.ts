@@ -13,7 +13,7 @@ import { AuditService } from 'src/audit/audit.service';
 import { EntityManager, In, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { resolveFrontendUrl } from 'src/common/utils/frontend-url.util';
-import { NOTIFICATION_EVENTS, NotificationChannelEnum } from 'src/notifications/notification.constants';
+import { NOTIFICATION_EVENTS } from 'src/notifications/notification.constants';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import {
   SubscriptionPlanEntity,
@@ -944,7 +944,7 @@ export class SubscriptionService implements OnModuleInit {
     });
   }
 
-  /** Emails every active platform admin about a new feature request, in their language. */
+  /** Tells every active platform admin (in-app and email) about a new feature request, in their language. */
   private async notifyPlatformAdminsOfRequest(
     request: FeatureRequestEntity,
     jwtPayload: JwtPayloadInterface,
@@ -958,25 +958,23 @@ export class SubscriptionService implements OnModuleInit {
       manager.findOne(OrganizationEntity, { where: { id: request.organization_id }, select: ['id', 'name'] }),
     ]);
     const feature = FEATURE_CATALOG.find((f) => f.key === request.feature_key)?.label ?? request.feature_key;
-    await this.notifications.enqueue(
-      admins
-        .filter((admin) => admin.email)
-        .map((admin) => ({
-          eventType: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED,
-          channel: NotificationChannelEnum.EMAIL,
-          // A platform notice: not in the organisation's message log.
-          organizationId: null,
-          userId: admin.id,
-          variables: {
-            organization_name: organization?.name ?? '',
-            user_name: jwtPayload.full_name ?? '',
-            feature,
-            note: request.note ?? '',
-            link: `${resolveFrontendUrl(this.configService)}/admin/feature-requests`,
-          },
-          dedupeKey: `feature_request.created:${request.id}:${admin.id}`,
-          createdBy: jwtPayload.id,
-        })),
+    await this.notifications.notifyUsers(
+      {
+        eventType: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED,
+        // A platform notice: not in the organisation's message log.
+        organizationId: null,
+        userIds: admins.filter((admin) => admin.email).map((admin) => admin.id),
+        variables: {
+          organization_name: organization?.name ?? '',
+          user_name: jwtPayload.full_name ?? '',
+          feature,
+          note: request.note ?? '',
+          link: `${resolveFrontendUrl(this.configService)}/admin/feature-requests`,
+          path: '/admin/feature-requests',
+        },
+        dedupeKey: `feature_request.created:${request.id}`,
+        createdBy: jwtPayload.id,
+      },
       manager,
     );
   }
