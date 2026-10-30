@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { OrganizationEntity } from './organization.entity';
@@ -21,4 +21,8 @@ export class OrgSettingsEntity extends CustomBaseEntity {
   @ApiProperty({ description: 'Sections have a class teacher (FND-02). Default: on for schools, off for solo teachers' })
   @Column({ name: 'class_teacher_enabled', type: 'boolean', default: true })
   class_teacher_enabled: boolean;
+
+  @ApiPropertyOptional({ description: 'When the academic setup wizard was finished (P2-04); null = not yet' })
+  @Column({ name: 'setup_completed_at', type: 'timestamptz', nullable: true })
+  setup_completed_at: Date | null;
 }

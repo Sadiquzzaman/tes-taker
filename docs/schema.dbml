@@ -31,8 +31,8 @@ Table organizations {
   workspace_type workspace_type [not null, default: 'ACADEMIC', note: 'added in P2-01']
   kind org_kind [not null, default: 'SCHOOL', note: 'added in P2-01; SOLO replaces personal-teacher mode (one per teacher, created on first use)']
   timezone varchar(64) [not null, default: 'Asia/Dhaka', note: 'added in P2-01']
-  default_locale varchar(5) [not null, default: 'bn', note: 'added in P2-01; not read yet (P2-04)']
-  level_labels jsonb [note: 'NEW: {"class":{"bn":"শ্রেণি","en":"Class"},"section":{...}} (FND-03)']
+  default_locale varchar(5) [not null, default: 'bn', note: 'added in P2-01; language for members who have not chosen one (P2-04)']
+  level_labels jsonb [note: 'added in P2-04 (FND-03); null = Class / Section. {"preset":"CLASS_SECTION|COURSE_BATCH|CUSTOM","class":{"en":{"one":"Course","other":"Courses"},"bn":"কোর্স"},"section":{...}}']
   logo_file_id uuid [ref: > file_objects.id]
   rejected_reason text
   reviewed_by uuid
@@ -59,6 +59,7 @@ Table org_settings {
   id uuid [pk, note: 'base-entity id (P2-03); organization_id is unique']
   organization_id uuid [unique, not null, ref: - organizations.id]
   class_teacher_enabled boolean [not null, default: true, note: 'BUILT P2-03 (FND-02): sections have a class teacher. Migration/default: true for schools, false for SOLO']
+  setup_completed_at timestamptz [note: 'BUILT P2-04 (FND-02): when the academic setup wizard was finished; null = not yet. Migration: set for organisations that already had classes']
   attendance_method attendance_method [default: 'OFF']
   selfie_required boolean [default: false]
   class_attendance_mode class_attendance_mode [default: 'PER_SESSION']

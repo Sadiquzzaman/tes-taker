@@ -5,6 +5,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { OrganizationKindEnum } from '../enums/organization-kind.enum';
 import { OrganizationStatusEnum } from '../enums/organization-status.enum';
 import { WorkspaceTypeEnum } from '../enums/workspace-type.enum';
+import { LevelLabels } from '../level-labels';
 
 @Entity('organizations')
 export class OrganizationEntity extends CustomBaseEntity {
@@ -68,6 +69,10 @@ export class OrganizationEntity extends CustomBaseEntity {
   @ApiProperty({ example: 'bn', description: 'Language for members who have not chosen one' })
   @Column({ name: 'default_locale', type: 'varchar', length: 5, default: 'bn' })
   default_locale: string;
+
+  @ApiPropertyOptional({ description: 'Names of the two academic levels (FND-03); null = Class / Section' })
+  @Column({ name: 'level_labels', type: 'jsonb', nullable: true })
+  level_labels: LevelLabels | null;
 
   @ApiPropertyOptional()
   @Column({ name: 'rejected_reason', type: 'varchar', length: 500, nullable: true })

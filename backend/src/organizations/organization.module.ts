@@ -22,6 +22,7 @@ import { OrganizationAdminController } from './organization-admin.controller';
 import { OrganizationContextGuard } from './guards/organization-context.guard';
 import { SoloOrganizationService } from './solo-organization.service';
 import { OrgSettingsService } from './org-settings.service';
+import { WorkspaceController } from './workspace.controller';
 
 @Module({
   imports: [
@@ -42,7 +43,7 @@ import { OrgSettingsService } from './org-settings.service';
     UserModule,
     EmailModule,
   ],
-  controllers: [OrganizationAdminController, OrganizationController],
+  controllers: [OrganizationAdminController, OrganizationController, WorkspaceController],
   providers: [
     OrganizationsService,
     OrganizationAccessService,

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { DEFAULT_LEVEL_LABELS, writeLevelLabelsCookie } from "@/i18n/levelLabels";
 import { applyAccountLocale } from "@/i18n/localeCookie";
 import { clearStoredWorkspace } from "./workspace";
 
@@ -12,6 +13,7 @@ const clearAuthSession = async () => {
 
   localStorage.removeItem("user");
   clearStoredWorkspace();
+  writeLevelLabelsCookie(DEFAULT_LEVEL_LABELS);
 
   try {
     await axios.post(SESSION_LOGOUT_PATH);
@@ -40,8 +42,8 @@ const getStoredUser = (): LoginResponsePayload | null => {
 };
 
 /**
- * Stores the session. Returns true when the account's saved language differs from the one on this
- * device (the cookie was updated, so the caller should refresh the page to re-render in it).
+ * Stores the session. Returns true when the account's saved language (or, if it has none, the
+ * organisation's) differs from the one on this device (the cookie was updated, so the caller should refresh the page to re-render in it).
  */
 const persistAuthSession = async (payload: LoginResponsePayload): Promise<boolean> => {
   const setTokenResponse = await axios.post(SESSION_SET_TOKEN_PATH, {
@@ -59,7 +61,8 @@ const persistAuthSession = async (payload: LoginResponsePayload): Promise<boolea
   }
 
   localStorage.setItem("user", JSON.stringify(payload));
-  return applyAccountLocale(payload.locale);
+  // The user's own language wins; without one, an organisation session uses the organisation's (FND-18).
+  return applyAccountLocale(payload.locale ?? payload.organization?.default_locale);
 };
 
 let refreshPromise: Promise<LoginResponsePayload | null> | null = null;

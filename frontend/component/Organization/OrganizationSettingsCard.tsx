@@ -4,11 +4,16 @@ import { AxiosError } from "axios";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
-import { Card, Skeleton, Switch } from "@/design/ui";
+import { Card, Select, Skeleton, Switch } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
 import axiosReq from "@/lib/axios";
 
-/** Organisation settings (owners and admins): for now, whether sections have a class teacher (FND-02). */
+const LANGUAGES: OrganizationLocale[] = ["bn", "en"];
+
+/**
+ * Organisation settings (owners and admins): whether sections have a class teacher (FND-02) and the
+ * language for members who have not chosen one (FND-18).
+ */
 const OrganizationSettingsCard = ({ organizationId }: { organizationId: string }) => {
   const t = useTranslations("academics.settings");
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
@@ -30,12 +35,10 @@ const OrganizationSettingsCard = ({ organizationId }: { organizationId: string }
     void load();
   }, [load]);
 
-  const toggle = async (classTeacherEnabled: boolean) => {
+  const update = async (change: Partial<Pick<OrganizationSettings, "class_teacher_enabled" | "default_locale">>) => {
     setSaving(true);
     try {
-      const res = await axiosReq.patch<ApiResponse<OrganizationSettings>>(`${baseUrl}/organizations/${organizationId}/settings`, {
-        class_teacher_enabled: classTeacherEnabled,
-      });
+      const res = await axiosReq.patch<ApiResponse<OrganizationSettings>>(`${baseUrl}/organizations/${organizationId}/settings`, change);
       setSettings(res.data?.payload ?? null);
       triggerToast({ title: t("saved"), type: "success" });
     } catch (error) {
@@ -48,13 +51,25 @@ const OrganizationSettingsCard = ({ organizationId }: { organizationId: string }
   return (
     <Card title={t("title")}>
       {settings ? (
-        <Switch
-          label={t("classTeacher")}
-          hint={t("classTeacherHint")}
-          checked={settings.class_teacher_enabled}
-          disabled={saving}
-          onChange={(checked) => void toggle(checked)}
-        />
+        <div className="flex flex-col gap-6">
+          <Switch
+            label={t("classTeacher")}
+            hint={t("classTeacherHint")}
+            checked={settings.class_teacher_enabled}
+            disabled={saving}
+            onChange={(checked) => void update({ class_teacher_enabled: checked })}
+          />
+          <Select
+            label={t("language")}
+            hint={t("languageHint")}
+            value={settings.default_locale}
+            disabled={saving}
+            placeholder={false}
+            options={LANGUAGES.map((value) => ({ value, label: t(`languages.${value}`) }))}
+            onChange={(event) => void update({ default_locale: event.target.value as OrganizationLocale })}
+            fieldClassName="sm:max-w-xs"
+          />
+        </div>
       ) : (
         <Skeleton lines={2} />
       )}

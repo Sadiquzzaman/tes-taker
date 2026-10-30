@@ -14,7 +14,7 @@ import { AcademicSessionEntity } from './entities/academic-session.entity';
 import { EnrolmentEntity, EnrolmentStatusEnum } from './entities/enrolment.entity';
 import { SectionEntity } from './entities/section.entity';
 import { CURRENT_ENROLMENT_STATUSES, openSessionCondition } from './enrolment-queries';
-import { EnrolStudentDto, UpdateEnrolmentDto } from './dto/enrolment.dto';
+import { EnrolStudentDto, PromoteStudentsDto, UpdateEnrolmentDto } from './dto/enrolment.dto';
 
 interface Actor {
   id: string;
@@ -31,6 +31,14 @@ export interface EnrolmentClass {
 export type EnrolmentFields = Partial<
   Pick<EnrolmentEntity, 'student_id' | 'status' | 'invited_email' | 'invited_phone' | 'invitation_token' | 'joined_at' | 'roll_no'>
 >;
+
+type PromotedStudent = { student_id: string; full_name: string | null };
+
+export interface PromotionResult {
+  promoted: PromotedStudent[];
+  /** ALREADY_ENROLLED: the student is already in the target class for that session; nothing changed. */
+  skipped: Array<PromotedStudent & { reason: 'ALREADY_ENROLLED' }>;
+}
 
 export interface EnrolResult {
   enrolment: EnrolmentEntity;
@@ -234,6 +242,78 @@ export class EnrolmentsService {
     }
     await this.enrolmentRepo.update({ id }, patch);
     return this.enrolmentRepo.findOneOrFail({ where: { id }, relations: ['student', 'section'] });
+  }
+
+  /**
+   * Promotes students (FND-05): each chosen ACTIVE student of the section gets an ACTIVE enrolment
+   * in the target section (another session; any class), and their old enrolment becomes PROMOTED,
+   * so the old year's records stay with it and the student still sees that year's tests. Roll
+   * numbers and optional-subject choices are not carried over. Students already in the target class
+   * for that session are skipped, so running it again changes nothing. The target session must be
+   * open; the old one may already be closed. One transaction.
+   */
+  async promote(sourceSectionId: string, dto: PromoteStudentsDto, actor: Actor): Promise<PromotionResult> {
+    const source = await tenantScoped(this.sectionRepo).findOne({ where: { id: sourceSectionId } });
+    if (!source) throw new NotFoundException('Section not found');
+    const target = await tenantScoped(this.sectionRepo).findOne({ where: { id: dto.target_section_id } });
+    if (!target) throw new NotFoundException('Target section not found');
+    if (target.session_id === source.session_id) {
+      throw new BadRequestException('Choose a section in another session; to change sections in this session, move the student');
+    }
+    this.sessions.assertSessionOpen(await this.sessionOf(target));
+
+    const ids = [...new Set(dto.enrolment_ids)];
+    const rows = await this.enrolmentRepo.find({ where: { id: In(ids), section_id: source.id }, relations: ['student'] });
+    if (rows.length !== ids.length) throw new BadRequestException('Some of these students are not in this section');
+    if (rows.some((row) => row.status !== EnrolmentStatusEnum.ACTIVE || !row.student_id)) {
+      throw new BadRequestException('Only active students can be promoted');
+    }
+
+    const result: PromotionResult = { promoted: [], skipped: [] };
+    const now = new Date();
+    const stamp = { updated_by: actor.id, updated_user_name: actor.full_name ?? undefined, updated_at: now };
+    await this.enrolmentRepo.manager.transaction(async (manager) => {
+      const repo = manager.getRepository(EnrolmentEntity);
+      for (const row of rows) {
+        const student = { student_id: row.student_id as string, full_name: row.student?.full_name ?? null };
+        const existing = await repo.findOne({
+          where: { session_id: target.session_id, class_id: target.class_id, student_id: student.student_id },
+        });
+        if (existing && CURRENT_ENROLMENT_STATUSES.includes(existing.status)) {
+          result.skipped.push({ ...student, reason: 'ALREADY_ENROLLED' });
+          continue;
+        }
+        if (existing) {
+          // A LEFT (or earlier PROMOTED) row of that class and session comes back, as place() does.
+          await repo.update(
+            { id: existing.id },
+            { status: EnrolmentStatusEnum.ACTIVE, section_id: target.id, roll_no: null, joined_at: now, left_at: null, ...stamp },
+          );
+        } else {
+          await repo.save(
+            repo.create({
+              organization_id: target.organization_id,
+              session_id: target.session_id,
+              class_id: target.class_id,
+              section_id: target.id,
+              student_id: student.student_id,
+              status: EnrolmentStatusEnum.ACTIVE,
+              roll_no: null,
+              joined_at: now,
+              invited_email: null,
+              invited_phone: null,
+              invitation_token: null,
+              created_by: actor.id,
+              created_user_name: actor.full_name ?? undefined,
+              created_at: now,
+            }),
+          );
+        }
+        await repo.update({ id: row.id }, { status: EnrolmentStatusEnum.PROMOTED, left_at: now, ...stamp });
+        result.promoted.push(student);
+      }
+    });
+    return result;
   }
 
   // ------------------------------------------------------------------ helpers

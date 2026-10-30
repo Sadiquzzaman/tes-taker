@@ -8,6 +8,8 @@ interface LoginOrganizationSession {
   role: OrganizationMemberRole;
   status: OrganizationStatus;
   public_id?: string | null;
+  /** The organisation's language, for members who have not chosen one (FND-18). */
+  default_locale?: "bn" | "en" | null;
 }
 
 interface UserContextItem {

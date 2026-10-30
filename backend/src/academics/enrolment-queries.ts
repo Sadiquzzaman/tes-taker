@@ -5,8 +5,14 @@ import { EnrolmentEntity, EnrolmentStatusEnum } from './entities/enrolment.entit
 import { OfferingEnrolmentStatusEnum } from './entities/offering-enrolment.entity';
 
 /**
+ * Statuses that count as "was in the class in that session" for the session's tests: ACTIVE, or
+ * PROMOTED out of it (FND-05, P2-04: a promoted student keeps last year's tests and results).
+ */
+const IN_SESSION_SQL = `('${EnrolmentStatusEnum.ACTIVE}', '${EnrolmentStatusEnum.PROMOTED}')`;
+
+/**
  * The one rule for "this student is in the class" (P2-03): an ACTIVE enrolment in a session that is
- * not closed, or, when a session is given (an exam's session), an ACTIVE enrolment in that session.
+ * not closed, or, when a session is given (an exam's session), an ACTIVE or PROMOTED enrolment in that session.
  * Every module that reads enrolments joins with this condition; writes go through EnrolmentsService.
  * Aliases are quoted because TypeORM does not rewrite aliases inside raw subqueries.
  *
@@ -15,7 +21,10 @@ import { OfferingEnrolmentStatusEnum } from './entities/offering-enrolment.entit
 export function activeEnrolmentCondition(alias: string, sessionId?: string | null): { sql: string; params: ObjectLiteral } {
   const active = `"${alias}"."status" = '${EnrolmentStatusEnum.ACTIVE}' AND "${alias}"."student_id" IS NOT NULL`;
   if (sessionId) {
-    return { sql: `${active} AND "${alias}"."session_id" = :activeEnrolmentSessionId`, params: { activeEnrolmentSessionId: sessionId } };
+    return {
+      sql: `"${alias}"."status" IN ${IN_SESSION_SQL} AND "${alias}"."student_id" IS NOT NULL AND "${alias}"."session_id" = :activeEnrolmentSessionId`,
+      params: { activeEnrolmentSessionId: sessionId },
+    };
   }
   return { sql: `${active} AND ${openSessionCondition(alias)}`, params: {} };
 }
@@ -84,15 +93,16 @@ export async function isActiveInClass(
 
 /**
  * Active enrolments that take a subject class (alias `e`): ACTIVE in its section, and for a SELECTED
- * subject class also picked (offering_enrolments). The same rule as OfferingRosterService.
+ * subject class also picked (offering_enrolments). The same rule as OfferingRosterService. For a
+ * test's audience (`forTests`), students promoted out of the section still count.
  */
-function offeringRosterQuery(repo: Repository<EnrolmentEntity>, offeringId: string) {
+function offeringRosterQuery(repo: Repository<EnrolmentEntity>, offeringId: string, forTests = false) {
   return repo
     .createQueryBuilder('e')
     .innerJoin('course_offerings', 'roster_offering', 'roster_offering.id = :rosterOfferingId AND roster_offering.section_id = e.section_id', {
       rosterOfferingId: offeringId,
     })
-    .where(`e.status = '${EnrolmentStatusEnum.ACTIVE}' AND e.student_id IS NOT NULL`)
+    .where(`e.status ${forTests ? `IN ${IN_SESSION_SQL}` : `= '${EnrolmentStatusEnum.ACTIVE}'`} AND e.student_id IS NOT NULL`)
     .andWhere(
       `(roster_offering.enrolment_mode = '${OfferingEnrolmentModeEnum.WHOLE_SECTION}' OR EXISTS (
         SELECT 1 FROM offering_enrolments roster_pick
@@ -108,7 +118,7 @@ type ClassExam = { class_id: string | null; session_id: string | null; offering_
 /** The exam's class audience: its subject class's students, or the class's active students in the exam's session. */
 export async function examClassAudience(repo: Repository<EnrolmentEntity>, exam: ClassExam): Promise<EnrolmentEntity[]> {
   if (exam.offering_id) {
-    return offeringRosterQuery(repo, exam.offering_id).innerJoinAndSelect('e.student', 'student').orderBy('e.roll_no', 'ASC', 'NULLS LAST').getMany();
+    return offeringRosterQuery(repo, exam.offering_id, true).innerJoinAndSelect('e.student', 'student').orderBy('e.roll_no', 'ASC', 'NULLS LAST').getMany();
   }
   return exam.class_id ? activeStudentsOfClass(repo, exam.class_id, exam.session_id) : [];
 }
@@ -116,9 +126,30 @@ export async function examClassAudience(repo: Repository<EnrolmentEntity>, exam:
 /** Whether the student is in the exam's class audience (see examClassAudience). */
 export async function isInExamClassAudience(repo: Repository<EnrolmentEntity>, exam: ClassExam, studentId: string): Promise<boolean> {
   if (exam.offering_id) {
-    return (await offeringRosterQuery(repo, exam.offering_id).andWhere('e.student_id = :studentId', { studentId }).getCount()) > 0;
+    return (await offeringRosterQuery(repo, exam.offering_id, true).andWhere('e.student_id = :studentId', { studentId }).getCount()) > 0;
   }
   return exam.class_id ? isActiveInClass(repo, exam.class_id, studentId, exam.session_id) : false;
+}
+
+/**
+ * Whether the student was promoted out of the class (FND-05): in the given session (an exam's), or
+ * in any session. A promoted student keeps that year's tests; for a subject-class test they must
+ * also have taken that subject class.
+ */
+export async function wasPromotedOutOfClass(
+  repo: Repository<EnrolmentEntity>,
+  classId: string,
+  studentId: string,
+  sessionId?: string | null,
+): Promise<boolean> {
+  const where = { class_id: classId, student_id: studentId, status: EnrolmentStatusEnum.PROMOTED, ...(sessionId ? { session_id: sessionId } : {}) };
+  return (await repo.count({ where })) > 0;
+}
+
+/** Whether the student was promoted out of the exam's class audience in the exam's session (see wasPromotedOutOfClass). */
+export async function wasPromotedOutOfExamClass(repo: Repository<EnrolmentEntity>, exam: ClassExam, studentId: string): Promise<boolean> {
+  if (!exam.class_id || !exam.session_id || !(await wasPromotedOutOfClass(repo, exam.class_id, studentId, exam.session_id))) return false;
+  return !exam.offering_id || isInExamClassAudience(repo, exam, studentId);
 }
 
 /** Number of students who take each subject class. */
@@ -131,19 +162,32 @@ export async function countRosterByOffering(repo: Repository<EnrolmentEntity>, o
 }
 
 /**
- * SQL for "the student `:studentParam` takes the subject class `offeringIdExpr`", for filtering
- * exam lists inside a larger query (quoted aliases: TypeORM does not rewrite raw subqueries).
+ * SQL for "the student `:studentParam` takes (or was promoted out of) the subject class
+ * `offeringIdExpr`", for filtering exam lists inside a larger query (quoted aliases: TypeORM does
+ * not rewrite raw subqueries).
  */
 export function inOfferingRosterCondition(offeringIdExpr: string, studentParam = 'studentId'): string {
   return `EXISTS (
     SELECT 1 FROM course_offerings roster_offering
     JOIN enrolments roster_enrolment ON roster_enrolment.section_id = roster_offering.section_id
-     AND roster_enrolment.status = '${EnrolmentStatusEnum.ACTIVE}' AND roster_enrolment.student_id = :${studentParam}
+     AND roster_enrolment.status IN ${IN_SESSION_SQL} AND roster_enrolment.student_id = :${studentParam}
     WHERE roster_offering.id = ${offeringIdExpr}
       AND (roster_offering.enrolment_mode = '${OfferingEnrolmentModeEnum.WHOLE_SECTION}' OR EXISTS (
         SELECT 1 FROM offering_enrolments roster_pick
         WHERE roster_pick.offering_id = roster_offering.id AND roster_pick.student_id = roster_enrolment.student_id
           AND roster_pick.status = '${OfferingEnrolmentStatusEnum.ACTIVE}'
       ))
+  )`;
+}
+
+/**
+ * SQL for "the student `:studentParam` was promoted out of the class of exam `examAlias` in the
+ * exam's session" (FND-05): those tests stay in the student's lists after the promotion.
+ */
+export function promotedFromExamClassCondition(examAlias: string, studentParam = 'studentId'): string {
+  return `EXISTS (
+    SELECT 1 FROM enrolments promoted_enrolment
+    WHERE promoted_enrolment.class_id = "${examAlias}"."class_id" AND promoted_enrolment.session_id = "${examAlias}"."session_id"
+      AND promoted_enrolment.student_id = :${studentParam} AND promoted_enrolment.status = '${EnrolmentStatusEnum.PROMOTED}'
   )`;
 }

@@ -7,6 +7,8 @@ import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { UserModule } from 'src/user/user.module';
 import { AcademicSessionsController } from './academic-sessions.controller';
+import { AcademicSetupController } from './academic-setup.controller';
+import { AcademicSetupService } from './academic-setup.service';
 import { AcademicSessionsService } from './academic-sessions.service';
 import { AcademicSessionEntity } from './entities/academic-session.entity';
 import { CourseOfferingEntity } from './entities/course-offering.entity';
@@ -44,8 +46,8 @@ import { SectionsService } from './sections.service';
     OrganizationsModule,
     UserModule,
   ],
-  controllers: [AcademicSessionsController, SectionsController],
-  providers: [AcademicSessionsService, SectionsService, EnrolmentsService, OfferingRosterService, AcademicDefaultsSubscriber],
+  controllers: [AcademicSessionsController, SectionsController, AcademicSetupController],
+  providers: [AcademicSessionsService, SectionsService, AcademicSetupService, EnrolmentsService, OfferingRosterService, AcademicDefaultsSubscriber],
   exports: [AcademicSessionsService, EnrolmentsService, OfferingRosterService],
 })
 export class AcademicsModule {}

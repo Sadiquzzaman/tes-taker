@@ -231,6 +231,7 @@ export class UserContextService {
           member_role: membership.role,
           organization_name: org.name,
           organization_status: org.status,
+          organization_default_locale: org.default_locale,
         },
         {
           context_type: 'organization',

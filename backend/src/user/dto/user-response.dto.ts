@@ -16,6 +16,13 @@ export class OrganizationSessionDto {
 
   @ApiProperty()
   status: string;
+
+  @ApiProperty({
+    enum: ['bn', 'en'],
+    nullable: true,
+    description: "The organisation's language, for members who have not chosen one (FND-18)",
+  })
+  default_locale: string | null;
 }
 
 export class UserReponseDto {
