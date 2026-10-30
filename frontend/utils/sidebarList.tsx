@@ -132,6 +132,14 @@ const sidebarList: SideBarList[] = [
     image: <SidebarResultsIconSVG width={16} />,
   },
   {
+    category: "Platform",
+    label: "gradingScale",
+    route: "/grading-scale",
+    role: ["TEACHER"],
+    personalWorkspaceOnly: true,
+    image: <SidebarGradingIconSVG width={16} />,
+  },
+  {
     category: "Organization",
     label: "overview",
     route: "/organization",
@@ -226,6 +234,14 @@ const sidebarList: SideBarList[] = [
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN"],
     image: <SidebarResultsIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
+    label: "gradingScale",
+    route: "/grading-scale",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN"],
+    image: <SidebarGradingIconSVG width={16} />,
   },
   {
     category: "System",
