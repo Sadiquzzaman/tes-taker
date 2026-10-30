@@ -51,6 +51,7 @@ const persistAuthSession = async (payload: LoginResponsePayload): Promise<boolea
     sessionMode: payload.session_mode === "organization" ? "organization" : "individual",
     memberRole: payload.organization?.role ?? "",
     organizationId: payload.organization?.id ?? "",
+    personalTeacherEnabled: payload.personal_teacher_enabled === true,
   });
 
   if (setTokenResponse.status !== 200) {

@@ -11,6 +11,8 @@ const patch = vi.fn();
 const put = vi.fn();
 const del = vi.fn();
 const workspace = vi.fn();
+const storedUser = vi.fn();
+vi.mock("@/lib/authSession", () => ({ getStoredUser: () => storedUser() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => "/sessions" }));
 vi.mock("@/lib/axios", () => ({
   default: {
@@ -29,6 +31,10 @@ const school = (role: OrganizationMemberRole) => ({
   activeOrganization: { id: "org-1", name: "Green School", status: "approved", role },
 });
 const solo = { isIndividual: true, organizationId: null, activeOrganization: null };
+/** The signed-in session: a school session, or a personal one with personal teaching on or off. */
+const SCHOOL_USER = { session_mode: "organization" };
+const SOLO_USER = { session_mode: "individual", personal_teacher_enabled: true };
+const NO_PERSONAL_USER = { session_mode: "individual", personal_teacher_enabled: false };
 
 const ok = <T,>(payload: T) => Promise.resolve({ data: { payload } });
 
@@ -47,6 +53,7 @@ const batch: AcademicSession = { id: "s2", name: "Batch 2", start_date: "2027-01
 
 beforeEach(() => {
   vi.clearAllMocks();
+  storedUser.mockReturnValue(SCHOOL_USER);
   post.mockResolvedValue({ data: { payload: {} } });
   patch.mockResolvedValue({ data: { payload: {} } });
   put.mockResolvedValue({ data: { payload: {} } });
@@ -117,9 +124,34 @@ describe("sessions page (FND-01)", () => {
     cleanup();
 
     workspace.mockReturnValue(solo);
+    storedUser.mockReturnValue(SOLO_USER);
     renderApp(<SessionsPage />, { locale: "bn" });
     expect(await screen.findByRole("heading", { name: "সেশন" })).toBeTruthy();
     expect(within(await screen.findByRole("table")).getByText("ডিফল্ট")).toBeTruthy();
+  });
+});
+
+describe("whose workspace it is (beta check after P2-03)", () => {
+  it("gives a teacher with personal teaching off no sessions of their own, and asks the API nothing", async () => {
+    workspace.mockReturnValue(solo);
+    storedUser.mockReturnValue(NO_PERSONAL_USER);
+    renderApp(<SessionsPage />);
+    expect(screen.getByText("Only owners and admins can manage sessions.")).toBeTruthy();
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it("waits for a school workspace to load instead of treating the session as personal", async () => {
+    // Right after sign-in the workspace state still says "personal" while the session is a school's.
+    workspace.mockReturnValue({ ...solo, isIndividual: true });
+    storedUser.mockReturnValue({ ...SCHOOL_USER, personal_teacher_enabled: true });
+    renderApp(<SessionsPage />);
+    expect(get).not.toHaveBeenCalled();
+    cleanup();
+
+    routes({ "/sessions": [thisYear] });
+    workspace.mockReturnValue(school("OWNER"));
+    renderApp(<SessionsPage />);
+    expect(await screen.findByRole("table")).toBeTruthy();
   });
 });
 
@@ -216,7 +248,13 @@ describe("class sections (FND-02, FND-04, FND-19)", () => {
     renderApp(<ClassSections classId="c1" />);
     fireEvent.click(within(await screen.findByRole("table")).getByRole("button", { name: "Open section A" }));
     const drawer = await screen.findByRole("dialog", { name: "Section A" });
-    fireEvent.click(within(await within(drawer).findByRole("table")).getByRole("button", { name: "Mark Karim Uddin as left" }));
+    const roster = await within(drawer).findByRole("table");
+    // The student's name comes first (on phones it is each card's title), then the roll number.
+    expect(within(roster).getAllByRole("columnheader").map((header) => header.textContent?.trim())).toEqual(
+      expect.arrayContaining(["Student", "Roll"]),
+    );
+    expect(within(roster).getAllByRole("columnheader")[0].textContent).toMatch(/^Student/);
+    fireEvent.click(within(roster).getByRole("button", { name: "Mark Karim Uddin as left" }));
     const confirm = await screen.findByRole("dialog", { name: "Mark Karim Uddin as left?" });
     expect(within(confirm).getByText("They leave this class. Their record is kept, and they can be added again.")).toBeTruthy();
     fireEvent.click(within(confirm).getByRole("button", { name: "Mark as left" }));
@@ -259,6 +297,7 @@ describe("class sections (FND-02, FND-04, FND-19)", () => {
 
   it("has no class teachers or teacher picker in a solo workspace", async () => {
     workspace.mockReturnValue(solo);
+    storedUser.mockReturnValue(SOLO_USER);
     setup(true);
     renderApp(<ClassSections classId="c1" />, { locale: "bn" });
     await screen.findByRole("table");

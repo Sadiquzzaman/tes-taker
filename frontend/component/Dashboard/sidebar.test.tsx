@@ -44,3 +44,23 @@ describe("sidebar billing and features (P2-02)", () => {
     expect(links()).not.toContain("More features");
   });
 });
+
+describe("sidebar sessions (P2-03)", () => {
+  it("shows a solo teacher Sessions in their own workspace", async () => {
+    await renderSidebar({ role: "TEACHER", personal_teacher: "1" });
+    expect(links()).toContain("Sessions");
+  });
+
+  it("hides it from a teacher with personal teaching off, who has no workspace of their own", async () => {
+    await renderSidebar({ role: "TEACHER" });
+    expect(links()).not.toContain("Sessions");
+  });
+
+  it("shows it to a school's owner, not to its teachers", async () => {
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "OWNER" });
+    expect(links()).toContain("Sessions");
+    cleanup();
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "TEACHER" });
+    expect(links()).not.toContain("Sessions");
+  });
+});
