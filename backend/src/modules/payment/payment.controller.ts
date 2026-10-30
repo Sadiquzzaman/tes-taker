@@ -6,6 +6,7 @@ import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiParam, ApiResponse,
 import type { Request, Response } from 'express';
 import { PaymentService } from './payment.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
+import { BuySmsTopUpDto } from 'src/notifications/dto/sms-credits.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { SslCommerzCallbackDto } from './dto/sslcommerz-callback.dto';
 import { SslCallbackPayload } from './interfaces/sslcommerz.interface';
@@ -35,6 +36,22 @@ export class PaymentController {
   @ApiResponse({ status: 201, description: 'Payment session created' })
   async initiate(@Body() dto: InitiatePaymentDto, @UserPayload() user: JwtPayloadInterface) {
     const payload = await this.paymentService.initiatePayment(dto, user);
+    return { message: 'Payment session created successfully', payload };
+  }
+
+  @Post('sms-top-up')
+  @Throttle({ default: { ttl: 60000, limit: 15 } })
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
+  @Roles(RolesEnum.TEACHER)
+  @ApiOperation({
+    summary: 'Buy an SMS top-up pack (FND-13)',
+    description:
+      "The workspace owner or admin picks a pack; credits and price come from the server. Returns the GatewayPageURL; the credits are added when the payment settles.",
+  })
+  @ApiResponse({ status: 201, description: 'Payment session created' })
+  async smsTopUp(@Body() dto: BuySmsTopUpDto, @UserPayload() user: JwtPayloadInterface) {
+    const payload = await this.paymentService.initiateSmsTopUp(dto.packId, user);
     return { message: 'Payment session created successfully', payload };
   }
 

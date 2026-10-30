@@ -12,6 +12,8 @@ export enum LimitKey {
   MAX_STUDENTS_PER_EXAM = 'max_students_per_exam',
   MAX_QUESTION_BANK_SIZE = 'max_question_bank_size',
   MAX_STORAGE_MB = 'max_storage_mb',
+  /** The plan's monthly SMS allowance (FND-13). Unlike the other limits, 0 means none, not unlimited. */
+  SMS_CREDITS_PER_MONTH = 'sms_credits_per_month',
 }
 
 export enum FeatureKey {
@@ -187,6 +189,7 @@ export const LIMIT_CATALOG: CatalogLimitDefinition[] = [
   { key: LimitKey.MAX_STUDENTS_PER_EXAM, label: 'Max students per exam', min: 1 },
   { key: LimitKey.MAX_QUESTION_BANK_SIZE, label: 'Max question bank size', min: 0 },
   { key: LimitKey.MAX_STORAGE_MB, label: 'Max storage (MB)', min: 0 },
+  { key: LimitKey.SMS_CREDITS_PER_MONTH, label: 'SMS per month', description: 'Monthly SMS allowance; 0 = none', min: 0 },
 ];
 
 export const ALL_FEATURE_KEYS = FEATURE_CATALOG.map((f) => f.key);
@@ -273,6 +276,7 @@ export const SEED_PLAN_PRESETS = {
     limits: {
       [LimitKey.MAX_TOTAL_EXAMS]: 2,
       [LimitKey.MAX_STUDENTS_PER_EXAM]: 15,
+      [LimitKey.SMS_CREDITS_PER_MONTH]: 50,
     },
   },
   basic: {
@@ -298,6 +302,7 @@ export const SEED_PLAN_PRESETS = {
     limits: {
       [LimitKey.MAX_EXAMS_PER_MONTH]: 5,
       [LimitKey.MAX_STUDENTS_PER_EXAM]: 30,
+      [LimitKey.SMS_CREDITS_PER_MONTH]: 300,
     },
   },
   premium: {
@@ -330,6 +335,7 @@ export const SEED_PLAN_PRESETS = {
     limits: {
       [LimitKey.MAX_EXAMS_PER_MONTH]: 5,
       [LimitKey.MAX_STUDENTS_PER_EXAM]: 80,
+      [LimitKey.SMS_CREDITS_PER_MONTH]: 1_000,
     },
   },
   pro: {
@@ -373,6 +379,7 @@ export const SEED_PLAN_PRESETS = {
     limits: {
       [LimitKey.MAX_EXAMS_PER_MONTH]: 50,
       [LimitKey.MAX_STUDENTS_PER_EXAM]: 200,
+      [LimitKey.SMS_CREDITS_PER_MONTH]: 3_000,
     },
   },
 } as const;

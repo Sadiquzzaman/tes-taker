@@ -39,6 +39,7 @@ export const NOTIFICATION_EVENTS = {
   ORGANIZATION_INVITATION: 'organization.invitation',
   EXAM_SCHEDULED: 'exam.scheduled',
   FEATURE_REQUEST_CREATED: 'feature_request.created',
+  SMS_LOW_CREDIT: 'sms.low_credit',
 } as const;
 
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFICATION_EVENTS];

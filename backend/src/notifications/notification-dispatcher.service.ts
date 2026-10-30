@@ -18,10 +18,13 @@ import {
   OutboxStatusEnum,
   SENSITIVE_EVENTS,
 } from './notification.constants';
+import { SmsCreditsService } from './sms-credits.service';
 import { countSmsSegments } from './sms-segments';
 import { renderTemplate, wrapEmailHtml } from './template-render';
 
 const DEFAULT_TIME_ZONE = 'Asia/Dhaka';
+/** What the message log shows for an SMS stopped at zero credits (FND-13). */
+export const NO_CREDIT_ERROR = 'Not sent — no credit';
 
 /** A row claimed for sending, with the text rendered for its recipient. */
 interface ClaimedMessage {
@@ -40,6 +43,9 @@ const isLocale = (value: unknown): value is NotificationLocale =>
  *    mark it SENDING and commit. A row can only be claimed once, so it is never sent twice.
  * 2. Send through the provider (no transaction open while waiting for it).
  * 3. Record SENT, or retry later (PENDING with `send_after`), FAILED after the last attempt.
+ *
+ * An organisation's SMS are charged when claimed (NO_CREDIT and not sent at zero) and refunded
+ * if they fail for good.
  */
 @Injectable()
 export class NotificationDispatcherService {
@@ -50,6 +56,7 @@ export class NotificationDispatcherService {
     private readonly templates: MessageTemplatesService,
     private readonly smsService: SmsService,
     private readonly emailService: EmailService,
+    private readonly smsCredits: SmsCreditsService,
   ) {}
 
   /** Sends one row if it is due and not taken; returns its new status (null when skipped). */
@@ -154,8 +161,20 @@ export class NotificationDispatcherService {
     row.subject = subject ? subject.slice(0, 200) : null;
     // Codes are never stored in the log.
     row.body = SENSITIVE_EVENTS.has(row.event_type) ? null : text;
-    // Platform messages (sign-up codes) are never charged to an organisation.
-    row.credits_used = row.channel === NotificationChannelEnum.SMS && row.organization_id ? countSmsSegments(text) : 0;
+
+    // An organisation's SMS use its credits (FND-13); platform messages (sign-up codes) never do.
+    row.credits_used = 0;
+    if (row.channel === NotificationChannelEnum.SMS && row.organization_id) {
+      const credits = countSmsSegments(text);
+      if (!(await this.smsCredits.charge(manager, row.organization_id, row.id, credits))) {
+        row.status = OutboxStatusEnum.NO_CREDIT;
+        row.error = NO_CREDIT_ERROR;
+        this.forgetSecrets(row);
+        await manager.save(row);
+        return { row, subject, text };
+      }
+      row.credits_used = credits;
+    }
     row.status = OutboxStatusEnum.SENDING;
     row.attempts += 1;
     row.error = null;
@@ -192,7 +211,14 @@ export class NotificationDispatcherService {
     if (outcome.status === OutboxStatusEnum.SENT) row.sent_at = new Date();
     if (outcome.retryAt) row.send_after = outcome.retryAt;
     if (outcome.status !== OutboxStatusEnum.PENDING) this.forgetSecrets(row);
-    await this.dataSource.getRepository(NotificationOutboxEntity).save(row);
+    await this.dataSource.transaction(async (manager) => {
+      // Failed for good: the credits it was charged go back.
+      if (outcome.status === OutboxStatusEnum.FAILED && row.organization_id && row.credits_used > 0) {
+        await this.smsCredits.refund(manager, row.organization_id, row.id);
+        row.credits_used = 0;
+      }
+      await manager.save(row);
+    });
     return row.status;
   }
 

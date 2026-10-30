@@ -8,4 +8,8 @@ export interface PaymentView {
   currency: string;
   paymentMethod: string | null;
   subscriptionId?: string;
+  /** SUBSCRIPTION | SMS_CREDITS */
+  purpose?: string | null;
+  /** SMS credits bought (SMS top-ups) */
+  credits?: number;
 }

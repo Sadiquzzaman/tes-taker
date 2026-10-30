@@ -15,7 +15,7 @@ const INTL_LOCALE: Record<NotificationLocale, string> = { bn: 'bn-BD', en: 'en-G
 const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 
-/** One variable as text: dates (`*_at`) in the recipient's language and zone, codes by label. */
+/** One variable as text: dates (`*_at`) and numbers in the recipient's language and zone, codes by label. */
 export function formatVariable(key: string, value: unknown, options: Omit<RenderOptions, 'html'>): string {
   if (value === null || value === undefined) return '';
   if (key.endsWith('_at')) {
@@ -28,6 +28,7 @@ export function formatVariable(key: string, value: unknown, options: Omit<Render
       }).format(date);
     }
   }
+  if (typeof value === 'number') return new Intl.NumberFormat(INTL_LOCALE[options.locale]).format(value);
   const text = String(value);
   return VALUE_LABELS[options.locale][text] ?? text;
 }

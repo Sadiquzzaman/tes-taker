@@ -2,7 +2,13 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
-import { NOTIFICATIONS_DISPATCH_JOB, NOTIFICATIONS_QUEUE, NOTIFICATIONS_SWEEP_JOB } from '../queue/queue.constants';
+import { SmsCreditsService } from '../notifications/sms-credits.service';
+import {
+  BILLING_SMS_ALLOWANCE_JOB,
+  NOTIFICATIONS_DISPATCH_JOB,
+  NOTIFICATIONS_QUEUE,
+  NOTIFICATIONS_SWEEP_JOB,
+} from '../queue/queue.constants';
 
 /**
  * Runs the jobs on the notifications queue (worker process only, design §8.6). Each send is
@@ -13,7 +19,10 @@ import { NOTIFICATIONS_DISPATCH_JOB, NOTIFICATIONS_QUEUE, NOTIFICATIONS_SWEEP_JO
 export class NotificationsProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationsProcessor.name);
 
-  constructor(private readonly dispatcher: NotificationDispatcherService) {
+  constructor(
+    private readonly dispatcher: NotificationDispatcherService,
+    private readonly smsCredits: SmsCreditsService,
+  ) {
     super();
   }
 
@@ -23,6 +32,8 @@ export class NotificationsProcessor extends WorkerHost {
         return job.data.outboxId ? this.dispatcher.dispatch(job.data.outboxId) : null;
       case NOTIFICATIONS_SWEEP_JOB:
         return this.dispatcher.sweep();
+      case BILLING_SMS_ALLOWANCE_JOB:
+        return this.smsCredits.grantMonthlyAllowances();
       default:
         this.logger.warn(`Unknown job on ${NOTIFICATIONS_QUEUE}: ${job.name}`);
         return undefined;

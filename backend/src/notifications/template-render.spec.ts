@@ -17,6 +17,11 @@ describe('renderTemplate (design §8.6)', () => {
     expect(bn).toMatch(/২০২৬/);
   });
 
+  it('shows numbers with Bangla digits in Bangla', () => {
+    expect(renderTemplate('{{n}}', { n: 1250 }, { locale: 'bn', timeZone: 'Asia/Dhaka', html: false })).toBe('১,২৫০');
+    expect(renderTemplate('{{n}}', { n: 1250 }, { locale: 'en', timeZone: 'Asia/Dhaka', html: false })).toBe('1,250');
+  });
+
   it('translates known codes such as a member role', () => {
     expect(renderTemplate('{{role}}', { role: 'TEACHER' }, { locale: 'bn', timeZone: 'Asia/Dhaka', html: false })).toBe('শিক্ষক');
     expect(renderTemplate('{{role}}', { role: 'TEACHER' }, { locale: 'en', timeZone: 'Asia/Dhaka', html: false })).toBe('teacher');
