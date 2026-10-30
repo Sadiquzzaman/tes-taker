@@ -3041,6 +3041,7 @@ export class ExamService {
       where: { exam_id: examId },
     });
     const byStudent = new Map(submissions.map((submission) => [submission.student_id, submission]));
+    const scale = await this.gradingScales.getScale(exam.organization_id ?? null);
     const { parseProctoringEvents, summarizeProctoringEvents } = await import(
       './utils/proctoring-events.util'
     );
@@ -3086,6 +3087,7 @@ export class ExamService {
         duration_seconds: durationSeconds,
         total_score: submission?.total_score ?? null,
         max_score: submission?.max_score ?? null,
+        grade: submission ? gradeForPercentage(scale.bands, computePercentage(submission.total_score, submission.max_score)) : null,
         is_graded: submission?.is_graded ?? false,
         browser_switch_count: submission?.browser_switch_count ?? 0,
         tab_switch_count: submission?.tab_switch_count ?? 0,

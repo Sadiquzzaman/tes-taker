@@ -133,7 +133,9 @@ describe('grading scale API', () => {
     it('shows the grade beside the marks and regrades when the scale changes, without touching marks', async () => {
       const teacher = await make.teacher();
       const student = await make.student();
-      const exam = await make.openExam(teacher, { test_name: 'Essay test' });
+      const classEntity = await make.classOf(teacher);
+      await make.enrol(classEntity, student);
+      const exam = await make.openExam(teacher, { test_name: 'Essay test', class_id: classEntity.id });
       const question = await t.dataSource.getRepository(ExamQuestionEntity).save({
         exam: { id: exam.id },
         question: 'Explain gravity.',
@@ -159,6 +161,9 @@ describe('grading scale API', () => {
       type Summary = Body<{ submissions: Array<{ percentage: number; grade: unknown }> }>;
       const summary = await t.api.get<Summary>(`/exams/grading/${exam.id}`, token);
       expect(summary.body.payload.submissions[0]).toMatchObject({ percentage: 80, grade: { grade: 'A+', gpa: 5 } });
+      type Roster = Body<{ students: Array<{ student_id: string; grade: unknown }> }>;
+      const roster = await t.api.get<Roster>(`/exams/grading/${exam.id}/roster`, token);
+      expect(roster.body.payload.students).toEqual([expect.objectContaining({ student_id: student.id, grade: { grade: 'A+', gpa: 5 } })]);
 
       const studentToken = t.tokenFor(student);
       type Result = Body<{ total_score: number; percentage: number; grade: unknown; submission: { grade: unknown } }>;
