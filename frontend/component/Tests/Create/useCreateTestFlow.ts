@@ -22,6 +22,7 @@ const handlePublishStateForSubmission = (publishState: PublishState) => {
   if (publishState.testAudience === "selected_class") {
     result.selectedClassId = publishState.selectedClassId;
     result.excluded_students = publishState.excluded_students;
+    if (publishState.selectedOfferingId) result.selectedOfferingId = publishState.selectedOfferingId;
   }
 
   return result;

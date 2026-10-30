@@ -32,15 +32,6 @@ interface User {
   refresh_token: string;
 }
 
-interface ClassSubjectTeacherAssignment {
-  id: string;
-  teacher_id: string;
-  teacher?: {
-    id: string;
-    full_name?: string | null;
-  };
-}
-
 interface ClassSubject {
   id: string;
   class_id: string;
@@ -50,7 +41,6 @@ interface ClassSubject {
     name: string;
     code?: string | null;
   };
-  teachers?: ClassSubjectTeacherAssignment[];
 }
 
 interface AssignedClassSubject {

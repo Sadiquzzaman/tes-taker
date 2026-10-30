@@ -862,7 +862,8 @@
       "passingScore": "পাস নম্বর",
       "negativeMarking": "নেতিবাচক নম্বর",
       "off": "বন্ধ",
-      "questionCount": "{count, plural, other {#টি প্রশ্ন}}"
+      "questionCount": "{count, plural, other {#টি প্রশ্ন}}",
+      "sessionClosed": "এই টেস্টটি একটি বন্ধ সেশনের, তাই এটি বদলানো বা মূল্যায়ন করা যাবে না। মালিক সেশনটি আবার চালু করতে পারেন।"
     },
     "audience": {
       "anyone": "লিংক থাকলে যে কেউ",
@@ -1169,7 +1170,11 @@
       "invalidTitle": "ইমেইল বা ফোন নম্বর নয়",
       "invalid": "সঠিক ইমেইল ঠিকানা বা ফোন নম্বর লিখুন।",
       "invalidPhoneTitle": "ফোন নম্বর সঠিক নয়",
-      "invalidPhone": "ফোন নম্বর ১১ অঙ্কের হয়।"
+      "invalidPhone": "ফোন নম্বর ১১ অঙ্কের হয়।",
+      "subjectClass": "সেকশন ও বিষয়",
+      "subjectClassHint": "ঐচ্ছিক। শুধু এই সেকশনে যারা এই বিষয় পড়ে তারা টেস্টটি পাবে, যেমন ধর্ম বা ঐচ্ছিক বিষয়।",
+      "wholeClass": "পুরো ক্লাস",
+      "subjectClassOption": "সেকশন {section} · {subject}"
     },
     "subjects": {
       "add": "বিষয় যোগ করুন",
