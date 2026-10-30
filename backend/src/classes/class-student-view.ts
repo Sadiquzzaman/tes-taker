@@ -1,11 +1,17 @@
 import { EnrolmentEntity, EnrolmentStatusEnum } from 'src/academics/entities/enrolment.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
-import { ClassStudentStatusEnum } from './entities/class-student.entity';
+
+/** The class screens' student status (the former class_students.status). */
+export enum ClassStudentStatusEnum {
+  INVITED = 'INVITED',
+  PENDING = 'PENDING',
+  JOINED = 'JOINED',
+}
 
 /**
  * A class student as the class screens have always received it (the class_students row shape),
- * built from an enrolment since P2-03 part 2a. `id` is the enrolment id; `section` is new.
- * Kept until the class screens move to sections (P2-03 part 3).
+ * built from an enrolment since P2-03 part 2a (class_students was dropped in P2-03). `id` is the
+ * enrolment id; `section` and `roll_no` are new.
  */
 export interface ClassStudentView {
   id: string;

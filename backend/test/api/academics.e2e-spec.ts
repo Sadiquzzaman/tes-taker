@@ -381,7 +381,7 @@ describe('academic structure API', () => {
     });
   });
 
-  describe('the class screens (students since part 2a, teachers mirrored until part 2b)', () => {
+  describe('the class screens', () => {
     it('add students straight into the default section; removing marks them LEFT and keeps the row', async () => {
       const classId = await schoolClass('Class 3');
       const [section] = await sectionsOf(classId);
@@ -394,9 +394,6 @@ describe('academic structure API', () => {
       expect(joined.status).toBe(EnrolmentStatusEnum.ACTIVE);
       const invited = enrolments.body.payload.find((e) => !e.student) as Enrolment;
       expect(invited.status).toBe(EnrolmentStatusEnum.INVITED);
-      // class_students is read-only now.
-      const [{ legacy }] = await t.dataSource.query(`SELECT COUNT(*)::int AS legacy FROM class_students WHERE class_id = $1`, [classId]);
-      expect(legacy).toBe(0);
 
       expect((await call('DELETE', `/classes/${classId}/students`, asOwner(), { student_ids: [student.id] })).status).toBe(200);
       const left = await t.dataSource.getRepository(EnrolmentEntity).findOneByOrFail({ id: joined.id });
@@ -404,37 +401,32 @@ describe('academic structure API', () => {
       expect(left.left_at).toBeInstanceOf(Date);
     });
 
-    it('mirrors subject teachers and class teachers into subject class teachers', async () => {
+    it('keeps subject classes in step with the class subjects; the class-level teacher endpoints are gone', async () => {
       const classId = await schoolClass('Class 2', [math, religion]);
       const [section] = await sectionsOf(classId);
-      const teachersOf = async (subject: SubjectEntity) =>
-        ((await offeringsOf(section.id)).find((o) => o.subject.id === subject.id) as Offering).teachers.map((p) => p.id).sort();
+      expect((await offeringsOf(section.id)).map((o) => o.subject.id).sort()).toEqual([math.id, religion.id].sort());
 
-      const [mathLink] = await t.dataSource.query(`SELECT id FROM class_subjects WHERE class_id = $1 AND subject_id = $2`, [classId, math.id]);
-      const assigned = await call<Payload<{ id: string }>>('POST', `/classes/${classId}/subjects/${mathLink.id}/teachers`, asOwner(), { teacher_id: teacherA.id });
-      expect(assigned.status).toBe(201);
-      expect(await teachersOf(math)).toEqual([teacherA.id]);
-      expect(await teachersOf(religion)).toEqual([]);
-
-      // A class teacher without a subject teaches every subject of the class.
-      const classTeacher = await call<Payload<{ id: string }>>('POST', `/classes/${classId}/teachers`, asOwner(), { teacher_id: teacherB.id });
-      expect(classTeacher.status).toBe(201);
-      expect(await teachersOf(math)).toEqual([teacherA.id, teacherB.id].sort());
-      expect(await teachersOf(religion)).toEqual([teacherB.id]);
-
-      // Switching the subject teacher moves the mirror; removing the class teacher removes theirs.
-      expect(
-        (await call('PATCH', `/classes/${classId}/subjects/${mathLink.id}/teachers/${assigned.body.payload.id}`, asOwner(), { teacher_id: admin.id })).status,
-      ).toBe(200);
-      expect(await teachersOf(math)).toEqual([admin.id, teacherB.id].sort());
-      expect((await call('DELETE', `/classes/${classId}/teachers/${classTeacher.body.payload.id}`, asOwner())).status).toBe(200);
-      expect(await teachersOf(math)).toEqual([admin.id]);
-      expect(await teachersOf(religion)).toEqual([]);
-
-      // Removing a class subject removes its subject class.
       const [religionLink] = await t.dataSource.query(`SELECT id FROM class_subjects WHERE class_id = $1 AND subject_id = $2`, [classId, religion.id]);
       expect((await call('DELETE', `/classes/${classId}/subjects/${religionLink.id}`, asOwner())).status).toBe(200);
       expect((await offeringsOf(section.id)).map((o) => o.subject.id)).toEqual([math.id]);
+
+      // Teachers are set on subject classes only (P2-03 contract step).
+      expect((await call('GET', `/classes/${classId}/teachers`, asOwner())).status).toBe(404);
+      expect((await call('POST', `/classes/${classId}/teachers`, asOwner(), { teacher_id: teacherA.id })).status).toBe(404);
+      expect((await call('POST', `/classes/${classId}/subjects/${religionLink.id}/teachers`, asOwner(), { teacher_id: teacherA.id })).status).toBe(404);
+    });
+
+    it('keeps a class that has student records, even of students who left', async () => {
+      const classId = await schoolClass('Class 13');
+      const student = await make.student();
+      await call('POST', `/classes/${classId}/students`, asOwner(), { students: [student.email] });
+      await call('DELETE', `/classes/${classId}/students`, asOwner(), { student_ids: [student.id] });
+      const refused = await call<{ message: string }>('DELETE', `/classes/${classId}`, asOwner());
+      expect(refused.status).toBe(400);
+      expect(refused.body.message).toBe('This class has student records, so it cannot be deleted');
+
+      const empty = await schoolClass('Class 14');
+      expect((await call('DELETE', `/classes/${empty}`, asOwner())).status).toBe(200);
     });
 
     it('gives a solo teacher a section for each class they create', async () => {

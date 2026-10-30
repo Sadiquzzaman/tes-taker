@@ -81,16 +81,6 @@ describe('teacher access API', () => {
     await t.close();
   });
 
-  it('gives a subject teacher from the class screens the class and that subject only', async () => {
-    const { classId } = await newClass('Class 6');
-    const teacher = await newTeacher();
-    const [mathLink] = await t.dataSource.query(`SELECT id FROM class_subjects WHERE class_id = $1 AND subject_id = $2`, [classId, math.id]);
-    expect((await call('POST', `/classes/${classId}/subjects/${mathLink.id}/teachers`, asOwner(), { teacher_id: teacher.id })).status).toBe(201);
-
-    expect(await reach(teacher, classId)).toEqual({ listed: true, opens: true, subjects: [math.id], discussions: [math.id] });
-    expect(await reach(await newTeacher(), classId)).toEqual(none);
-  });
-
   it('gives access to a teacher set on a subject class through the section API, and takes it away again', async () => {
     const { classId, offeringOf } = await newClass('Class 7');
     const teacher = await newTeacher();
@@ -99,13 +89,6 @@ describe('teacher access API', () => {
 
     await call('PUT', `/offerings/${offeringOf(science).id}/teachers`, asOwner(), { teacher_ids: [] });
     expect(await reach(teacher, classId)).toEqual(none);
-  });
-
-  it('lets a class teacher without a subject teach every subject of the class', async () => {
-    const { classId } = await newClass('Class 8');
-    const teacher = await newTeacher();
-    expect((await call('POST', `/classes/${classId}/teachers`, asOwner(), { teacher_id: teacher.id })).status).toBe(201);
-    expect(await reach(teacher, classId)).toEqual({ listed: true, opens: true, subjects: [math.id, science.id].sort(), discussions: [math.id, science.id].sort() });
   });
 
   it("gives a section's class teacher the class but no subject they do not teach, while class teachers are on", async () => {
