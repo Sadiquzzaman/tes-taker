@@ -50,12 +50,25 @@ const adminEntitlements = (overrides: FeatureOverrideItem[] = []): AdminOrganiza
   overrides,
 });
 
-const mockApi = (overrides: FeatureOverrideItem[] = []) =>
+const recentChange: AuditLogItem = {
+  id: "9",
+  created_at: "2026-10-30T09:00:00.000Z",
+  action: "subscription.override_set",
+  organization: { id: "org-1", name: "Rina Akter" },
+  actor: { id: "a1", full_name: "Platform Admin" },
+  entity_type: "feature_override",
+  entity_id: "o1",
+  before: null,
+  after: { key: "max_exams_per_month", value: 40 },
+  reason: "Exam season",
+};
+
+const mockApi = (overrides: FeatureOverrideItem[] = [], changes: AuditLogItem[] = []) =>
   get.mockImplementation((url: string) =>
     Promise.resolve({
-      data: {
-        payload: url.endsWith("/entitlements") ? adminEntitlements(overrides) : url.endsWith("/feature-catalog") ? catalog : plans,
-      },
+      data: url.endsWith("/audit-logs/admin")
+        ? { payload: changes, meta: { page: 1, limit: 10, total: changes.length, total_pages: 1 } }
+        : { payload: url.endsWith("/entitlements") ? adminEntitlements(overrides) : url.endsWith("/feature-catalog") ? catalog : plans },
     }),
   );
 
@@ -101,7 +114,29 @@ describe("organisation plan & features (FND-07)", () => {
     fireEvent.change(screen.getByLabelText("Plan to assign"), { target: { value: "pro" } });
     fireEvent.click(screen.getByRole("button", { name: "Assign plan" }));
     await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
-    expect(post.mock.calls[0][1]).toEqual({ organization_id: "org-1", plan_id: "pro", billing_cycle: "MONTHLY" });
+    expect(post.mock.calls[0][1]).toEqual({ organization_id: "org-1", plan_id: "pro", billing_cycle: "MONTHLY", notes: undefined });
+  });
+
+  it("sends the reason with a plan assignment, and shows the organisation's recent changes again after a save", async () => {
+    mockApi([], [recentChange]);
+    post.mockResolvedValue({ data: {} });
+    renderApp(<AdminOrganizationPlanDrawer organization={organization} onClose={() => {}} />);
+
+    expect(await screen.findByText("Feature or limit changed")).toBeTruthy();
+    expect(screen.getByText(/Tests per month · Value: 40/)).toBeTruthy();
+    expect(screen.getByText(/Platform Admin, .* · Exam season/)).toBeTruthy();
+    expect(get).toHaveBeenCalledWith(expect.stringMatching(/\/audit-logs\/admin$/), {
+      params: { organization_id: "org-1", action: "subscription.", limit: 10 },
+    });
+    const auditCalls = () => get.mock.calls.filter(([url]) => String(url).endsWith("/audit-logs/admin")).length;
+    const before = auditCalls();
+
+    fireEvent.change(screen.getByLabelText("Reason (optional)"), { target: { value: "Paid by bank transfer" } });
+    fireEvent.change(screen.getByLabelText("Plan to assign"), { target: { value: "pro" } });
+    fireEvent.click(screen.getByRole("button", { name: "Assign plan" }));
+    await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+    expect(post.mock.calls[0][1]).toEqual({ organization_id: "org-1", plan_id: "pro", billing_cycle: "MONTHLY", notes: "Paid by bank transfer" });
+    await waitFor(() => expect(auditCalls()).toBe(before + 1));
   });
 
   it("lists solo teachers' workspaces and opens their plan", async () => {

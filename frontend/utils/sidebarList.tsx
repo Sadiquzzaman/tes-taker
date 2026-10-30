@@ -60,6 +60,13 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Admin",
+    label: "auditLog",
+    route: "/admin/audit-log",
+    role: ["ADMIN", "SUPER_ADMIN"],
+    image: <SidebarResultsIconSVG width={16} />,
+  },
+  {
+    category: "Admin",
     label: "subjects",
     route: "/admin/subjects",
     role: ["ADMIN", "SUPER_ADMIN"],
@@ -115,6 +122,14 @@ const sidebarList: SideBarList[] = [
     route: "/features",
     role: ["TEACHER"],
     image: <SidebarTestsIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
+    label: "activityLog",
+    route: "/activity-log",
+    role: ["TEACHER"],
+    personalWorkspaceOnly: true,
+    image: <SidebarResultsIconSVG width={16} />,
   },
   {
     category: "Organization",
@@ -203,6 +218,14 @@ const sidebarList: SideBarList[] = [
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
     image: <SidebarTestsIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
+    label: "activityLog",
+    route: "/activity-log",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN"],
+    image: <SidebarResultsIconSVG width={16} />,
   },
   {
     category: "System",
