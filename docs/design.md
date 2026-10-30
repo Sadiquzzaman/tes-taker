@@ -332,6 +332,8 @@ interface AiProvider {
   - `GET /students/{id}/score-history` returns this history.
   - It is visible to the teacher who made the change, org admins and the org owner (filtered by role in the service).
 
+* **Grading scale, built in P2-06 (decided):** the `performance` module owns `grading_scales` and `grading_bands` (FND-11). One scale per organisation, not per session. The migration seeds the platform default (Bangladesh national, `organization_id` NULL, `is_default`); an organisation without its own active scale uses it, and so do exams with no organisation. Grades are worked out when a result is read (`GradingScaleService.getScale/getScales/gradeFor`, `gradeForPercentage`), never stored, so a scale change regrades everything at once and never touches raw marks; report cards will freeze the grade in their snapshot. Bands are inclusive, two decimals, must cover 0–100 exactly once in 0.01 steps with distinct grades (codes `GRADING_SCALE_*`; the web client runs the same checks). The percentage is rounded to two decimals and kept within 0–100 before the lookup. **No hard deletes (owner):** saving bands deactivates the current scale (`is_active` 0, `deactivated_at`, `deactivated_by`) and inserts a new one; "Reset to Bangladesh default" only deactivates it. A partial unique index allows one active scale per organisation. Not plan-gated (every mark on every plan has a grade). API: `GET /grading-scale` (any member of the workspace), `PUT` and `DELETE /grading-scale` (OWNER/ADMIN, a solo teacher in their own workspace); both write `grading_scale.update` / `grading_scale.reset` audit rows with the bands before and after. Exam results that return `percentage` also return `grade: { grade, gpa }` (student results and history, teacher grading summary, submission detail and roster), graded on the exam's organisation's scale. **Web:** Settings → Grading scale (`/settings/grading-scale`), and marks are shown as "64/80 · 80% (A+)" (`formatScore`).
+
 ## 9. Database schema
 
 The target PostgreSQL schema has **95 tables**: 4 kept as they are, 11 changed and 80 new. 9 legacy tables are dropped after migration (`organization_teacher_subjects` stays, P2-03). Chat stays in MongoDB.
@@ -477,7 +479,7 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 
 | Table | Status | Purpose and key columns |
 | --- | --- | --- |
-| grading\_scales, grading\_bands | New | Bangladesh default + org-edited bands (pct range → grade, GPA) |
+| grading\_scales, grading\_bands | New (built P2-06) | Bangladesh default + org-edited bands (pct range → grade, GPA); replaced scales kept inactive |
 | score\_weights | New | Exams / homework / attendance / behaviour % per session + class |
 | behaviour\_criteria, behaviour\_ratings | New | 1–5 ratings per student per criterion |
 | student\_term\_scores | New | Read model: component %, overall, grade, GPA, rank per term (and per subject) |

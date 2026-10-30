@@ -36,7 +36,8 @@
     "featureRequests": "Feature requests",
     "sessions": "Sessions",
     "auditLog": "Audit log",
-    "activityLog": "Activity log"
+    "activityLog": "Activity log",
+    "gradingScale": "Grading scale"
   },
   "shell": {
     "organization": "Organization",
@@ -893,7 +894,8 @@
       "score": "Score",
       "answerSheet": "Answer sheet",
       "failed": "Your results did not load.",
-      "percentage": "Percentage"
+      "percentage": "Percentage",
+      "grade": "Grade"
     },
     "join": {
       "unavailable": "Test unavailable",
@@ -1297,7 +1299,7 @@
       "empty": "This submission has no answers to show.",
       "answerSheet": "Answer sheet",
       "manualProgress": "Marked by hand: {done, number} of {total, number}",
-      "score": "Score: {score, number} / {max, number}",
+      "score": "Score: {score}",
       "close": "Close",
       "submit": "Save grades",
       "submitting": "Saving…",
@@ -2516,6 +2518,43 @@
     "saved": "Names saved",
     "loadFailed": "The names did not load."
   },
+  "gradingScale": {
+    "title": "Grading scale",
+    "intro": "One scale for every mark in this workspace. The percentage is marks obtained ÷ total marks × 100; the grade is the band it falls in. Changing the scale changes grades everywhere at once, never the marks.",
+    "defaultName": "Bangladesh national (default)",
+    "customName": "Custom",
+    "loadFailed": "The grading scale did not load.",
+    "readOnly": "Only owners and admins can change the grading scale.",
+    "bands": "Bands",
+    "editHint": "Each band runs from one percentage to another, both included, with up to two decimals. Together the bands must cover 0% to 100% with no gaps.",
+    "name": "Scale name",
+    "nameHint": "Optional, for example \"English medium\".",
+    "from": "From",
+    "to": "To",
+    "grade": "Grade",
+    "gpa": "GPA",
+    "fromRow": "From (band {row, number})",
+    "toRow": "To (band {row, number})",
+    "gradeRow": "Grade (band {row, number})",
+    "gpaRow": "GPA (band {row, number}, optional)",
+    "removeRow": "Remove band {row, number}",
+    "addBand": "Add a band",
+    "save": "Save scale",
+    "saved": "Grading scale saved",
+    "reset": "Reset to Bangladesh default",
+    "resetTitle": "Go back to the Bangladesh national scale?",
+    "resetDescription": "Every grade will be shown on the Bangladesh national scale again. Marks do not change, and your scale is kept in the activity log.",
+    "resetDone": "Back on the Bangladesh national scale",
+    "errors": {
+      "GRADING_SCALE_EMPTY": "Add at least one band.",
+      "GRADING_SCALE_TOO_MANY_BANDS": "A scale can have at most 20 bands.",
+      "GRADING_SCALE_BAND_INVALID": "Band {row, number}: enter From and To between 0 and 100 (From not above To, up to two decimals), a grade of up to 5 characters, and a GPA from 0 to 9.99 or leave it empty.",
+      "GRADING_SCALE_MUST_START_AT_0": "Band {row, number}: the lowest band must start at 0%.",
+      "GRADING_SCALE_MUST_END_AT_100": "Band {row, number}: the highest band must end at 100%.",
+      "GRADING_SCALE_GAP_OR_OVERLAP": "Band {row, number}: each band must start 0.01% above the one below it, with no gap or overlap.",
+      "GRADING_SCALE_DUPLICATE_GRADE": "Band {row, number}: this grade is already used."
+    }
+  },
   "audit": {
     "title": "Audit log",
     "platformIntro": "Who changed what, in which organisation, and when. Open a row for the details.",
@@ -2558,6 +2597,7 @@
       "feature_request": "Feature requests",
       "exam": "Tests",
       "grade": "Marks",
+      "grading_scale": "Grading scale",
       "organization": "Organisations",
       "teacher_request": "Teacher requests",
       "user": "Users",
@@ -2608,6 +2648,10 @@
       },
       "grade": {
         "update": "Marks changed after publishing"
+      },
+      "grading_scale": {
+        "update": "Grading scale changed",
+        "reset": "Grading scale reset to default"
       }
     },
     "fields": {
@@ -2656,7 +2700,9 @@
       "subscription_plan": "Plan",
       "teacher_role_request": "Teacher request",
       "student_exam_submission": "Answer sheet",
-      "exam": "Test"
+      "exam": "Test",
+      "bands": "Bands",
+      "grading_scale": "Grading scale"
     }
   }
 }

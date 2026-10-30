@@ -128,6 +128,7 @@ describe('exam deadline and attempt status on writes (P0-06)', () => {
       {} as never, // soloOrganizations
       {} as never, // sessionRepo
       { record: jest.fn() } as never, // audit
+      {} as never, // gradingScales
     );
 
     // Scoring is covered elsewhere; these tests only care about who may write when.

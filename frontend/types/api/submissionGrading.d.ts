@@ -122,6 +122,7 @@ interface SubmissionGradingSubmissionApi {
   total_score: number;
   max_score: number;
   percentage: number;
+  grade?: Grade | null;
   is_graded: boolean;
   grading_status: SubmissionGradingStatus;
 }

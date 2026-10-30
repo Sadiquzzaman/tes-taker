@@ -22,6 +22,7 @@ import { ClassModule } from 'src/classes/class.module';
 import { OrganizationsModule } from 'src/organizations/organization.module';
 import { RedisModule } from 'src/config/redis.module';
 import { ExamPaperCacheService } from './exam-paper-cache.service';
+import { PerformanceModule } from 'src/performance/performance.module';
 
 @Module({
   imports: [
@@ -45,6 +46,8 @@ import { ExamPaperCacheService } from './exam-paper-cache.service';
     ClassModule,
     OrganizationsModule,
     RedisModule,
+    // Grades next to marks (FND-11).
+    PerformanceModule,
   ],
   controllers: [ExamController, StudentExamController, ExamGradingController],
   providers: [ExamService, StudentExamService, ExamPaperCacheService],

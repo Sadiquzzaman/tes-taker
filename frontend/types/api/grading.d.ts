@@ -91,6 +91,7 @@ interface GradingSubmissionListItem {
   total_score: number | null;
   max_score: number | null;
   percentage: number | null;
+  grade?: Grade | null;
   is_graded: boolean;
   grading_status: SubmissionGradingStatus;
   browser_switch_count?: number;
@@ -186,6 +187,7 @@ interface SubmissionGradingDetail {
     total_score: number;
     max_score: number;
     percentage: number;
+    grade?: Grade | null;
     is_graded: boolean;
     grading_status: SubmissionGradingStatus;
   };

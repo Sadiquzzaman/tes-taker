@@ -92,6 +92,8 @@ import { ExamPaperCacheService } from './exam-paper-cache.service';
 import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
 import { AuditService } from 'src/audit/audit.service';
 import { TenantContext } from 'src/common/tenancy/tenant-context';
+import { GradingScaleService } from 'src/performance/grading-scale.service';
+import { gradeForPercentage } from 'src/performance/grading-scale.util';
 
 export type ExamAccessValidation = {
   canAccess: boolean;
@@ -161,6 +163,7 @@ export class StudentExamService {
     @InjectRepository(AcademicSessionEntity)
     private readonly sessionRepo: Repository<AcademicSessionEntity>,
     private readonly audit: AuditService,
+    private readonly gradingScales: GradingScaleService,
   ) {}
 
   private static readonly UUID_V4_RE =
@@ -482,10 +485,14 @@ export class StudentExamService {
     });
 
     const soloOrganizationId = await this.studentSoloOrganizationId(jwtPayload);
-    return submissions.filter((sub) => this.examMatchesStudentWorkspace(sub.exam, jwtPayload, soloOrganizationId)).map((sub) => {
+    const visible = submissions.filter((sub) => this.examMatchesStudentWorkspace(sub.exam, jwtPayload, soloOrganizationId));
+    // Each exam is graded on its own organisation's scale (FND-11).
+    const scales = await this.gradingScales.getScales(visible.map((sub) => sub.exam.organization_id ?? null));
+    return visible.map((sub) => {
       const hasManualQuestions = examHasManualQuestions(sub.exam);
       const resultPublished = Boolean(sub.exam.result_published_at);
       const canShowScores = !hasManualQuestions || resultPublished;
+      const percentage = canShowScores ? computePercentage(sub.total_score, sub.max_score) : null;
 
       return {
         id: sub.exam_id,
@@ -500,9 +507,8 @@ export class StudentExamService {
         correct_answers: canShowScores ? sub.correct_answers : null,
         wrong_answers: canShowScores ? sub.wrong_answers : null,
         total_questions: sub.total_questions,
-        percentage: canShowScores
-          ? computePercentage(sub.total_score, sub.max_score)
-          : null,
+        percentage,
+        grade: gradeForPercentage(scales.get(sub.exam.organization_id ?? null)?.bands ?? [], percentage),
       };
     });
   }
@@ -1659,6 +1665,7 @@ export class StudentExamService {
     });
     const answerByQuestionId = new Map(answers.map((answer) => [answer.question_id, answer]));
     const scores = resolveSubmissionScores(submission.exam, answers);
+    const grade = await this.gradingScales.gradeFor(submission.exam.organization_id ?? null, scores.percentage);
     const questions = buildSubmissionQuestions(submission.exam, answerByQuestionId);
     const manualQuestions = getManualQuestions(submission.exam);
     const autoQuestions = getAutoScoredQuestions(submission.exam);
@@ -1680,6 +1687,7 @@ export class StudentExamService {
       total_score: scores.total_score,
       max_score: scores.max_score,
       percentage: scores.percentage,
+      grade,
       submission: {
         submission_id: submission.id,
         exam_id: submission.exam_id,
@@ -1692,6 +1700,7 @@ export class StudentExamService {
         total_score: scores.total_score,
         max_score: scores.max_score,
         percentage: scores.percentage ?? 0,
+        grade,
         is_graded: submission.is_graded,
         grading_status: submission.is_graded
           ? SubmissionGradingStatusEnum.GRADED
@@ -1729,6 +1738,7 @@ export class StudentExamService {
     persistSubmissionScores(submission, scores);
     submission.updated_at = new Date();
     await this.submissionRepo.save(submission);
+    const grade = await this.gradingScales.gradeFor(exam.organization_id ?? null, scores.percentage);
 
     const questions = buildSubmissionQuestions(exam, answerByQuestionId);
     const manualQuestions = getManualQuestions(exam);
@@ -1751,6 +1761,7 @@ export class StudentExamService {
         total_score: scores.total_score,
         max_score: scores.max_score,
         percentage: scores.percentage,
+        grade,
         is_graded: submission.is_graded,
         grading_status: submission.is_graded
           ? SubmissionGradingStatusEnum.GRADED
@@ -1885,6 +1896,7 @@ export class StudentExamService {
       total_score: scores.total_score,
       max_score: scores.max_score,
       percentage: scores.percentage,
+      grade: await this.gradingScales.gradeFor(exam.organization_id ?? null, scores.percentage),
       is_graded: submission.is_graded,
       grading_status: submission.is_graded
         ? SubmissionGradingStatusEnum.GRADED

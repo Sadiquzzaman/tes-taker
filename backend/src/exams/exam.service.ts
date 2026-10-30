@@ -97,6 +97,8 @@ import { ExamPaperCacheService } from './exam-paper-cache.service';
 import { shuffleStudentPaper } from './utils/exam-shuffle.util';
 import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
 import { AuditService } from 'src/audit/audit.service';
+import { GradingScaleService } from 'src/performance/grading-scale.service';
+import { gradeForPercentage } from 'src/performance/grading-scale.util';
 
 type ExamListMetrics = {
   participant_count: number;
@@ -165,6 +167,7 @@ export class ExamService {
     @InjectRepository(AcademicSessionEntity)
     private readonly sessionRepo: Repository<AcademicSessionEntity>,
     private readonly audit: AuditService,
+    private readonly gradingScales: GradingScaleService,
   ) {}
 
   private async assertOrgWizardClassAndSubject(
@@ -2825,6 +2828,7 @@ export class ExamService {
       .getManyAndCount();
 
     const gradingStatus = computeGradingStatus(exam, hasManualQuestions, stat.submitted_submissions);
+    const scale = await this.gradingScales.getScale(exam.organization_id ?? null);
     const { parseProctoringEvents, summarizeProctoringEvents } = await import(
       './utils/proctoring-events.util'
     );
@@ -2854,6 +2858,7 @@ export class ExamService {
       submissions: submissions.map((submission) => {
         const events = parseProctoringEvents(submission.proctoring_events_json);
         const summary = summarizeProctoringEvents(events);
+        const percentage = computePercentage(submission.total_score, submission.max_score);
         return {
           submission_id: submission.id,
           student_id: submission.student_id,
@@ -2865,7 +2870,8 @@ export class ExamService {
           status: submission.status,
           total_score: submission.total_score ?? null,
           max_score: submission.max_score ?? null,
-          percentage: computePercentage(submission.total_score, submission.max_score),
+          percentage,
+          grade: gradeForPercentage(scale.bands, percentage),
           is_graded: submission.is_graded,
           grading_status: submission.is_graded
             ? SubmissionGradingStatusEnum.GRADED
@@ -3035,6 +3041,7 @@ export class ExamService {
       where: { exam_id: examId },
     });
     const byStudent = new Map(submissions.map((submission) => [submission.student_id, submission]));
+    const scale = await this.gradingScales.getScale(exam.organization_id ?? null);
     const { parseProctoringEvents, summarizeProctoringEvents } = await import(
       './utils/proctoring-events.util'
     );
@@ -3080,6 +3087,7 @@ export class ExamService {
         duration_seconds: durationSeconds,
         total_score: submission?.total_score ?? null,
         max_score: submission?.max_score ?? null,
+        grade: submission ? gradeForPercentage(scale.bands, computePercentage(submission.total_score, submission.max_score)) : null,
         is_graded: submission?.is_graded ?? false,
         browser_switch_count: submission?.browser_switch_count ?? 0,
         tab_switch_count: submission?.tab_switch_count ?? 0,

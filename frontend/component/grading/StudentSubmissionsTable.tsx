@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import useScoreText from "@/component/GradingScale/useScoreText";
 import { Button, Card, EmptyState, FilterBar, Pagination, StatusPill, Table, type TableColumn } from "@/design/ui";
 import useFormat from "@/i18n/useFormat";
 import { setCurrentPage, setOpenModal, setSearchStudentInput, setSelectedSubmission } from "@/lib/features/gradeDetailsSlice";
@@ -11,6 +12,7 @@ const StudentSubmissionsTable = () => {
   const t = useTranslations("grading.submissions");
   const tRoster = useTranslations("grading.roster");
   const format = useFormat();
+  const scoreText = useScoreText();
   const dispatch = useAppDispatch();
   const { currentPage, searchStudentInput, submissions, totalPages } = useAppSelector((state) => state.gradeDetails);
 
@@ -46,7 +48,7 @@ const StudentSubmissionsTable = () => {
     {
       key: "score",
       header: t("score"),
-      cell: (row) => (row.total_score === null || row.max_score === null ? "—" : `${format.number(row.total_score)} / ${format.number(row.max_score)}`),
+      cell: (row) => scoreText({ score: row.total_score, max: row.max_score, percentage: row.percentage, grade: row.grade }),
       align: "right",
     },
     {

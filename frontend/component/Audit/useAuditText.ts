@@ -12,6 +12,7 @@ export const AUDIT_AREAS = [
   "feature_request",
   "exam",
   "grade",
+  "grading_scale",
   "organization",
   "teacher_request",
   "user",
