@@ -20,7 +20,8 @@ import { ExamEntity } from 'src/exams/entities/exam.entity';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { UserService } from 'src/user/user.service';
-import { EmailService } from 'src/email/email.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NOTIFICATION_EVENTS, NotificationChannelEnum } from 'src/notifications/notification.constants';
 import { normalizeEmail, normalizePhone } from 'src/common/utils/contact.util';
 import { resolveFrontendUrl } from 'src/common/utils/frontend-url.util';
 import { OrganizationEntity } from './entities/organization.entity';
@@ -68,7 +69,7 @@ export class OrganizationsService {
     private readonly accessService: OrganizationAccessService,
     private readonly dataSource: DataSource,
     private readonly publicIdService: PublicIdService,
-    private readonly emailService: EmailService,
+    private readonly notifications: NotificationsService,
     private readonly configService: ConfigService,
     private readonly audit: AuditService,
   ) {}
@@ -1237,7 +1238,6 @@ export class OrganizationsService {
 
     const frontendUrl = resolveFrontendUrl(this.configService);
     const invitationLink = `${frontendUrl}/signup?orgInvite=${invitation.token}`;
-    const roleLabel = params.role.toLowerCase();
 
     let deliveryEmail = params.email ? normalizeEmail(params.email) : null;
     if (!deliveryEmail && params.phone) {
@@ -1256,13 +1256,19 @@ export class OrganizationsService {
       invitation = await this.invitationRepo.save(invitation);
     }
 
-    await this.emailService.sendOrganizationInvitationEmail(
-      deliveryEmail,
-      invitationLink,
-      organization.name,
-      roleLabel,
-      actor.full_name ?? undefined,
-    );
+    await this.notifications.enqueue({
+      eventType: NOTIFICATION_EVENTS.ORGANIZATION_INVITATION,
+      channel: NotificationChannelEnum.EMAIL,
+      organizationId: params.organizationId,
+      address: deliveryEmail,
+      variables: {
+        organization_name: organization.name,
+        role: params.role,
+        inviter_name: actor.full_name || 'An administrator',
+        link: invitationLink,
+      },
+      createdBy: params.actorUserId,
+    });
 
     return invitation;
   }

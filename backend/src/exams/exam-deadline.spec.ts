@@ -119,7 +119,6 @@ describe('exam deadline and attempt status on writes (P0-06)', () => {
       {} as never, // classRepo
       {} as never, // enrolmentRepo
       {} as never, // userRepo
-      {} as never, // smsService
       dataSource as never,
       {} as never, // classService (ANYONE audience skips class lookup)
       examPaperCache as never,

@@ -52,7 +52,8 @@ import {
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { generatePublicId } from 'src/common/utils/public-id.util';
-import { SmsService } from 'src/sms/sms.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NOTIFICATION_EVENTS, NotificationChannelEnum } from 'src/notifications/notification.constants';
 import { SubjectService } from 'src/subjects/subject.service';
 import { EntitlementsService } from 'src/subscriptions/entitlements.service';
 import { FeatureKey, LimitKey } from 'src/subscriptions/constants/feature-catalog';
@@ -154,7 +155,7 @@ export class ExamService {
     @InjectRepository(StudentExamSubmissionEntity)
     private readonly submissionRepo: Repository<StudentExamSubmissionEntity>,
 
-    private readonly smsService: SmsService,
+    private readonly notifications: NotificationsService,
     private readonly subjectService: SubjectService,
     private readonly entitlementsService: EntitlementsService,
     private readonly dataSource: DataSource,
@@ -523,12 +524,12 @@ export class ExamService {
         publishState.selectedClassId
       ) {
         this.sendExamNotifications(reloaded.id).catch((err) => {
-          this.logger.error(`Failed to send exam notifications: ${err instanceof Error ? err.message : String(err)}`);
+          this.logger.error(`Failed to queue exam notifications: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
       if (publishState.testAudience === TestAudienceEnum.SPECIFIC_STUDENTS) {
         this.sendExamNotificationsToTargets(reloaded.id).catch((err) => {
-          this.logger.error(`Failed to send exam notifications: ${err instanceof Error ? err.message : String(err)}`);
+          this.logger.error(`Failed to queue exam notifications: ${err instanceof Error ? err.message : String(err)}`);
         });
       }
 
@@ -921,7 +922,7 @@ export class ExamService {
 
     if (dto.class_id) {
       this.sendExamNotifications(savedExam.id).catch((err) => {
-        this.logger.error(`Failed to send exam notifications: ${err instanceof Error ? err.message : String(err)}`);
+        this.logger.error(`Failed to queue exam notifications: ${err instanceof Error ? err.message : String(err)}`);
       });
     }
 
@@ -993,7 +994,7 @@ export class ExamService {
 
     if (dto.class_id) {
       this.sendExamNotifications(savedExam.id).catch((err) => {
-        this.logger.error(`Failed to send exam notifications: ${err instanceof Error ? err.message : String(err)}`);
+        this.logger.error(`Failed to queue exam notifications: ${err instanceof Error ? err.message : String(err)}`);
       });
     }
 
@@ -1002,14 +1003,14 @@ export class ExamService {
     return this.findOne(savedExam.id, jwtPayload);
   }
 
-  private async sendExamNotifications(examId: string): Promise<{ sent: number; failed: number }> {
+  private async sendExamNotifications(examId: string): Promise<{ queued: number }> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
       relations: ['class', 'excluded_students'],
     });
 
     if (!exam || !exam.class) {
-      return { sent: 0, failed: 0 };
+      return { queued: 0 };
     }
 
     // The exam's class audience: its subject class's students, or the class's in the exam's session.
@@ -1024,55 +1025,41 @@ export class ExamService {
     return this.sendSmsToStudents(assignedStudents, exam);
   }
 
-  private async sendExamNotificationsToTargets(examId: string): Promise<{ sent: number; failed: number }> {
+  private async sendExamNotificationsToTargets(examId: string): Promise<{ queued: number }> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
       relations: ['target_students'],
     });
-    if (!exam?.target_students?.length) return { sent: 0, failed: 0 };
+    if (!exam?.target_students?.length) return { queued: 0 };
     return this.sendSmsToStudents(exam.target_students, exam);
   }
 
+  /**
+   * Queues the "test scheduled" SMS for each student (design §8.6): the worker sends them, charges
+   * the organisation's SMS credits and logs each one. Rescheduling the test sends a new notice;
+   * saving it again with the same start time does not.
+   */
   private async sendSmsToStudents(
     students: UserEntity[],
     exam: ExamEntity,
-  ): Promise<{ sent: number; failed: number }> {
+  ): Promise<{ queued: number }> {
     if (students.length === 0) {
-      return { sent: 0, failed: 0 };
+      return { queued: 0 };
     }
 
-    let sent = 0;
-    let failed = 0;
-
-    const examDate = new Date(exam.exam_start_time);
-    const formattedDate = examDate.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    const title = exam.test_name || exam.subject || 'Your exam';
-
-    for (const student of students) {
-      if (student.phone) {
-        try {
-          const message = `You have an upcoming exam "${title}" scheduled for ${formattedDate}. Please prepare accordingly. - Testaker`;
-          const result = await this.smsService.sendSms(student.phone, message);
-          if (result) sent++;
-          else failed++;
-        } catch (error) {
-          this.logger.error(`Failed to send notification to ${student.phone}: ${error instanceof Error ? error.message : String(error)}`);
-          failed++;
-        }
-      } else {
-        failed++;
-      }
-    }
-
-    return { sent, failed };
+    const startAt = new Date(exam.exam_start_time).toISOString();
+    const ids = await this.notifications.enqueue(
+      students.map((student) => ({
+        eventType: NOTIFICATION_EVENTS.EXAM_SCHEDULED,
+        channel: NotificationChannelEnum.SMS,
+        organizationId: exam.organization_id ?? null,
+        userId: student.id,
+        variables: { exam_title: exam.test_name || exam.subject || '', exam_start_at: startAt },
+        dedupeKey: `exam.scheduled:${exam.id}:${student.id}:${startAt}`,
+        createdBy: exam.created_by ?? null,
+      })),
+    );
+    return { queued: ids.length };
   }
 
   async findAll(
