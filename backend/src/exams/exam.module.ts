@@ -7,7 +7,10 @@ import { ExamService } from './exam.service';
 import { ExamEntity } from './entities/exam.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
+import { AcademicSessionEntity } from 'src/academics/entities/academic-session.entity';
+import { CourseOfferingEntity } from 'src/academics/entities/course-offering.entity';
 import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
+import { OfferingTeacherEntity } from 'src/academics/entities/offering-teacher.entity';
 import { StudentExamSubmissionEntity, StudentExamAnswerEntity } from './entities/student-exam-answer.entity';
 import { StudentExamController } from './student-exam.controller';
 import { StudentExamService } from './student-exam.service';
@@ -29,6 +32,10 @@ import { ExamPaperCacheService } from './exam-paper-cache.service';
       UserEntity,
       ClassEntity,
       EnrolmentEntity,
+      // Read only: subject classes, their teachers and sessions (tests per subject class, closed sessions).
+      CourseOfferingEntity,
+      OfferingTeacherEntity,
+      AcademicSessionEntity,
       StudentExamSubmissionEntity,
       StudentExamAnswerEntity,
     ]),

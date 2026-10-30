@@ -30,8 +30,10 @@ import {
   ExamSubmissionStatusEnum 
 } from './entities/student-exam-answer.entity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
+import { AcademicSessionEntity } from 'src/academics/entities/academic-session.entity';
 import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
-import { activeEnrolmentCondition, activeStudentsOfClass } from 'src/academics/enrolment-queries';
+import { assertExamSessionOpen } from 'src/academics/session-lock';
+import { activeEnrolmentCondition, examClassAudience, inOfferingRosterCondition, isInExamClassAudience } from 'src/academics/enrolment-queries';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { SmsService } from 'src/sms/sms.service';
@@ -146,6 +148,8 @@ export class StudentExamService {
 
     private readonly entitlementsService: EntitlementsService,
     private readonly soloOrganizations: SoloOrganizationService,
+    @InjectRepository(AcademicSessionEntity)
+    private readonly sessionRepo: Repository<AcademicSessionEntity>,
   ) {}
 
   private static readonly UUID_V4_RE =
@@ -259,8 +263,8 @@ export class StudentExamService {
       return { sent: 0, failed: 0 };
     }
 
-    // Active students of the class in the exam's session
-    const classStudents = (await activeStudentsOfClass(this.enrolmentRepo, exam.class.id, exam.session_id))
+    // The exam's class audience (its subject class's students, or the class's in the exam's session)
+    const classStudents = (await examClassAudience(this.enrolmentRepo, exam))
       .map((row) => row.student)
       .filter((s): s is UserEntity => s !== null);
 
@@ -353,7 +357,9 @@ export class StudentExamService {
         .leftJoin('exam.excluded_students', 'excluded')
         .where('exam.class_id IN (:...classIds)', { classIds })
         .andWhere('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
-        .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId });
+        .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId })
+        // A subject-class test only for the students who take that subject class (FND-19).
+        .andWhere(`("exam"."offering_id" IS NULL OR ${inOfferingRosterCondition('"exam"."offering_id"')})`);
 
       this.applyStudentWorkspaceScopeToExamQuery(examQuery, jwtPayload);
 
@@ -615,10 +621,10 @@ export class StudentExamService {
           exam,
         };
       }
-      const isInClass = await this.classService.resolveStudentClassMembership(
-        exam.class_id as string,
-        studentId,
-      );
+      // In the class (an invitation is claimed here), and for a subject-class test also in that subject class.
+      const isInClass =
+        (await this.classService.resolveStudentClassMembership(exam.class_id as string, studentId)) &&
+        (!exam.offering_id || (await isInExamClassAudience(this.enrolmentRepo, exam, studentId)));
       if (!isInClass) {
         return {
           canAccess: false,
@@ -1753,6 +1759,7 @@ export class StudentExamService {
     jwtPayload: JwtPayloadInterface,
   ): Promise<Record<string, unknown>> {
     const exam = await this.assertTeacherOwnsExam(examId, jwtPayload);
+    await assertExamSessionOpen(this.sessionRepo, exam.session_id);
     const submission = await this.loadGradableSubmission(examId, submissionId);
     const manualQuestionMap = new Map(
       getManualQuestions(exam).map((question) => [question.id, question]),

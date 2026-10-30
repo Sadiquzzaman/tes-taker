@@ -1,6 +1,8 @@
 import { ObjectLiteral, Repository } from 'typeorm';
 import { AcademicSessionStatusEnum } from './entities/academic-session.entity';
+import { OfferingEnrolmentModeEnum } from './entities/course-offering.entity';
 import { EnrolmentEntity, EnrolmentStatusEnum } from './entities/enrolment.entity';
+import { OfferingEnrolmentStatusEnum } from './entities/offering-enrolment.entity';
 
 /**
  * The one rule for "this student is in the class" (P2-03): an ACTIVE enrolment in a session that is
@@ -78,4 +80,70 @@ export async function isActiveInClass(
     .andWhere(active.sql, active.params)
     .getCount();
   return count > 0;
+}
+
+/**
+ * Active enrolments that take a subject class (alias `e`): ACTIVE in its section, and for a SELECTED
+ * subject class also picked (offering_enrolments). The same rule as OfferingRosterService.
+ */
+function offeringRosterQuery(repo: Repository<EnrolmentEntity>, offeringId: string) {
+  return repo
+    .createQueryBuilder('e')
+    .innerJoin('course_offerings', 'roster_offering', 'roster_offering.id = :rosterOfferingId AND roster_offering.section_id = e.section_id', {
+      rosterOfferingId: offeringId,
+    })
+    .where(`e.status = '${EnrolmentStatusEnum.ACTIVE}' AND e.student_id IS NOT NULL`)
+    .andWhere(
+      `(roster_offering.enrolment_mode = '${OfferingEnrolmentModeEnum.WHOLE_SECTION}' OR EXISTS (
+        SELECT 1 FROM offering_enrolments roster_pick
+        WHERE roster_pick.offering_id = roster_offering.id AND roster_pick.student_id = e.student_id
+          AND roster_pick.status = '${OfferingEnrolmentStatusEnum.ACTIVE}'
+      ))`,
+    );
+}
+
+/** An exam that targets a class: the whole class (in its session) or one of its subject classes. */
+type ClassExam = { class_id: string | null; session_id: string | null; offering_id: string | null };
+
+/** The exam's class audience: its subject class's students, or the class's active students in the exam's session. */
+export async function examClassAudience(repo: Repository<EnrolmentEntity>, exam: ClassExam): Promise<EnrolmentEntity[]> {
+  if (exam.offering_id) {
+    return offeringRosterQuery(repo, exam.offering_id).innerJoinAndSelect('e.student', 'student').orderBy('e.roll_no', 'ASC', 'NULLS LAST').getMany();
+  }
+  return exam.class_id ? activeStudentsOfClass(repo, exam.class_id, exam.session_id) : [];
+}
+
+/** Whether the student is in the exam's class audience (see examClassAudience). */
+export async function isInExamClassAudience(repo: Repository<EnrolmentEntity>, exam: ClassExam, studentId: string): Promise<boolean> {
+  if (exam.offering_id) {
+    return (await offeringRosterQuery(repo, exam.offering_id).andWhere('e.student_id = :studentId', { studentId }).getCount()) > 0;
+  }
+  return exam.class_id ? isActiveInClass(repo, exam.class_id, studentId, exam.session_id) : false;
+}
+
+/** Number of students who take each subject class. */
+export async function countRosterByOffering(repo: Repository<EnrolmentEntity>, offeringIds: string[]): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  for (const offeringId of new Set(offeringIds)) {
+    counts.set(offeringId, await offeringRosterQuery(repo, offeringId).getCount());
+  }
+  return counts;
+}
+
+/**
+ * SQL for "the student `:studentParam` takes the subject class `offeringIdExpr`", for filtering
+ * exam lists inside a larger query (quoted aliases: TypeORM does not rewrite raw subqueries).
+ */
+export function inOfferingRosterCondition(offeringIdExpr: string, studentParam = 'studentId'): string {
+  return `EXISTS (
+    SELECT 1 FROM course_offerings roster_offering
+    JOIN enrolments roster_enrolment ON roster_enrolment.section_id = roster_offering.section_id
+     AND roster_enrolment.status = '${EnrolmentStatusEnum.ACTIVE}' AND roster_enrolment.student_id = :${studentParam}
+    WHERE roster_offering.id = ${offeringIdExpr}
+      AND (roster_offering.enrolment_mode = '${OfferingEnrolmentModeEnum.WHOLE_SECTION}' OR EXISTS (
+        SELECT 1 FROM offering_enrolments roster_pick
+        WHERE roster_pick.offering_id = roster_offering.id AND roster_pick.student_id = roster_enrolment.student_id
+          AND roster_pick.status = '${OfferingEnrolmentStatusEnum.ACTIVE}'
+      ))
+  )`;
 }

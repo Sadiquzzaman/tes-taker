@@ -7,6 +7,7 @@ import { EnrolmentEntity, EnrolmentStatusEnum } from 'src/academics/entities/enr
 import {
   activeEnrolmentCondition,
   countActiveByClass,
+  countRosterByOffering,
   CURRENT_ENROLMENT_STATUSES,
   openSessionCondition,
 } from 'src/academics/enrolment-queries';
@@ -581,6 +582,10 @@ export class DashboardService {
     ];
 
     const joinedByClass = await countActiveByClass(this.enrolmentRepo, classIds);
+    const rosterByOffering = await countRosterByOffering(
+      this.enrolmentRepo,
+      exams.map((e) => e.offering_id).filter((id): id is string => Boolean(id)),
+    );
 
     const excludedRows = await this.dataSource
       .createQueryBuilder()
@@ -622,7 +627,7 @@ export class DashboardService {
         exam.test_audience === TestAudienceEnum.SELECTED_CLASS &&
         exam.class_id
       ) {
-        const joined = joinedByClass.get(exam.class_id) ?? 0;
+        const joined = exam.offering_id ? rosterByOffering.get(exam.offering_id) ?? 0 : joinedByClass.get(exam.class_id) ?? 0;
         const excluded = excludedByExam.get(exam.id) ?? 0;
         participant_count = Math.max(0, joined - excluded);
       } else if (exam.test_audience === TestAudienceEnum.SPECIFIC_STUDENTS) {
