@@ -10,7 +10,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
 import { auditChanges } from 'src/audit/audit-sanitize';
 import { AuditService } from 'src/audit/audit.service';
-import { Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
+import { resolveFrontendUrl } from 'src/common/utils/frontend-url.util';
+import { NOTIFICATION_EVENTS, NotificationChannelEnum } from 'src/notifications/notification.constants';
+import { NotificationsService } from 'src/notifications/notifications.service';
 import {
   SubscriptionPlanEntity,
   BillingCycleEnum,
@@ -35,6 +39,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import {
   ALL_FEATURE_KEYS,
+  FEATURE_CATALOG,
   ALL_LIMIT_KEYS,
   SEED_PLAN_PRESETS,
   validateFeaturesInput,
@@ -89,6 +94,8 @@ export class SubscriptionService implements OnModuleInit {
     private readonly entitlementsService: EntitlementsService,
     private readonly soloOrganizations: SoloOrganizationService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
+    private readonly configService: ConfigService,
   ) {}
 
   async onModuleInit() {
@@ -899,17 +906,59 @@ export class SubscriptionService implements OnModuleInit {
     });
     if (open) return open;
 
-    return this.featureRequestRepo.save(
-      this.featureRequestRepo.create({
-        organization_id: organizationId,
-        user_id: jwtPayload.id,
-        feature_key: dto.feature_key,
-        note: dto.note?.trim() || null,
-        status: FeatureRequestStatusEnum.OPEN,
-        created_by: jwtPayload.id,
-        created_user_name: jwtPayload.full_name,
-        created_at: new Date(),
+    // The request and the email to platform admins (FND-08) commit together.
+    return this.featureRequestRepo.manager.transaction(async (manager) => {
+      const saved = await manager.save(
+        this.featureRequestRepo.create({
+          organization_id: organizationId,
+          user_id: jwtPayload.id,
+          feature_key: dto.feature_key,
+          note: dto.note?.trim() || null,
+          status: FeatureRequestStatusEnum.OPEN,
+          created_by: jwtPayload.id,
+          created_user_name: jwtPayload.full_name,
+          created_at: new Date(),
+        }),
+      );
+      await this.notifyPlatformAdminsOfRequest(saved, jwtPayload, manager);
+      return saved;
+    });
+  }
+
+  /** Emails every active platform admin about a new feature request, in their language. */
+  private async notifyPlatformAdminsOfRequest(
+    request: FeatureRequestEntity,
+    jwtPayload: JwtPayloadInterface,
+    manager: EntityManager,
+  ): Promise<void> {
+    const [admins, organization] = await Promise.all([
+      manager.find(UserEntity, {
+        where: { role: In([RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN]), is_active: ActiveStatusEnum.ACTIVE },
+        select: ['id', 'email'],
       }),
+      manager.findOne(OrganizationEntity, { where: { id: request.organization_id }, select: ['id', 'name'] }),
+    ]);
+    const feature = FEATURE_CATALOG.find((f) => f.key === request.feature_key)?.label ?? request.feature_key;
+    await this.notifications.enqueue(
+      admins
+        .filter((admin) => admin.email)
+        .map((admin) => ({
+          eventType: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED,
+          channel: NotificationChannelEnum.EMAIL,
+          // A platform notice: not in the organisation's message log.
+          organizationId: null,
+          userId: admin.id,
+          variables: {
+            organization_name: organization?.name ?? '',
+            user_name: jwtPayload.full_name ?? '',
+            feature,
+            note: request.note ?? '',
+            link: `${resolveFrontendUrl(this.configService)}/admin/feature-requests`,
+          },
+          dedupeKey: `feature_request.created:${request.id}:${admin.id}`,
+          createdBy: jwtPayload.id,
+        })),
+      manager,
     );
   }
 

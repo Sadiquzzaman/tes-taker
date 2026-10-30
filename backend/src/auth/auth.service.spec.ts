@@ -8,7 +8,8 @@ describe('AuthService password-reset OTP', () => {
   const user = { id: 'user-1', phone: identifier, email: null, full_name: 'Test User' };
   let smsRateLimitService: SmsRateLimitService;
   let userService: { findByPhoneOrEmail: jest.Mock; updatePassword: jest.Mock };
-  let smsService: { generateOtp: jest.Mock; sendSms: jest.Mock };
+  let smsService: { generateOtp: jest.Mock };
+  let notifications: { enqueue: jest.Mock };
   let service: AuthService;
 
   beforeEach(() => {
@@ -21,13 +22,13 @@ describe('AuthService password-reset OTP', () => {
     };
     smsService = {
       generateOtp: jest.fn().mockReturnValue('482913'),
-      sendSms: jest.fn().mockResolvedValue(true),
     };
+    notifications = { enqueue: jest.fn().mockResolvedValue(['outbox-1']) };
     service = new AuthService(
       userService as never,
       smsService as never,
       smsRateLimitService,
-      {} as never,
+      notifications as never,
       {} as never,
       {} as never,
       {} as never,
@@ -46,7 +47,15 @@ describe('AuthService password-reset OTP', () => {
   it('keeps the SMS forgot-password flow working with the right code', async () => {
     const sent = await service.forgotPassword({ identifier });
     expect(sent.data.channel).toBe('sms');
-    expect(smsService.sendSms).toHaveBeenCalledWith(identifier, expect.stringContaining('482913'));
+    expect(notifications.enqueue).toHaveBeenCalledWith({
+      eventType: 'auth.password_reset',
+      channel: 'SMS',
+      organizationId: null,
+      userId: 'user-1',
+      address: identifier,
+      variables: { otp: '482913', name: 'Test User' },
+      urgent: true,
+    });
 
     await expect(service.verifyResetOtp({ identifier, otp: '482913' })).resolves.toMatchObject({ success: true });
     await expect(
@@ -71,9 +80,9 @@ describe('AuthService password-reset OTP', () => {
     await lockedError(
       service.resetPassword({ identifier, otp: '482913', password: 'NewPass123!', confirm_password: 'NewPass123!' }),
     );
-    smsService.sendSms.mockClear();
+    notifications.enqueue.mockClear();
     await lockedError(service.forgotPassword({ identifier }));
-    expect(smsService.sendSms).not.toHaveBeenCalled();
+    expect(notifications.enqueue).not.toHaveBeenCalled();
     expect(userService.updatePassword).not.toHaveBeenCalled();
 
     // After the lockout a fresh code works.

@@ -34,6 +34,7 @@ import { QueueModule } from './queue/queue.module';
 import { AuditModule } from './audit/audit.module';
 import { AcademicsModule } from './academics/academics.module';
 import { PerformanceModule } from './performance/performance.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -102,6 +103,7 @@ import { PerformanceModule } from './performance/performance.module';
     AuditModule,
     AcademicsModule,
     PerformanceModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

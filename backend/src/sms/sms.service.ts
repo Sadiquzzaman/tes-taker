@@ -2,7 +2,16 @@ import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { randomInt } from 'crypto';
+import { NOTIFICATION_EVENTS, NotificationChannelEnum, NotificationLocale } from '../notifications/notification.constants';
+import { NotificationsService } from '../notifications/notifications.service';
 import { SmsRateLimitService } from './sms-rate-limit.service';
+
+/** BulkSMS BD's JSON answer (fields we read). */
+interface BulkSmsResponse {
+  response_code?: number | string;
+  message_id?: number | string;
+  error_message?: string;
+}
 
 @Injectable()
 export class SmsService {
@@ -11,6 +20,7 @@ export class SmsService {
   constructor(
     private readonly configService: ConfigService,
     private readonly smsRateLimitService: SmsRateLimitService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private getApiKey(): string {
@@ -33,31 +43,30 @@ export class SmsService {
     return 'http://bulksmsbd.net/api/smsapi';
   }
 
-  async sendSms(phoneNumber: string, message: string): Promise<boolean> {
-    try {
-      const apiKey = this.getApiKey();
-      const senderId = this.getSenderId();
-      const baseUrl = this.getBaseUrl();
+  /**
+   * Sends one SMS through BulkSMS BD or throws. Only the notification worker calls it (design §8.6):
+   * features queue SMS with NotificationsService.enqueue, never send them from a request.
+   */
+  async deliver(phoneNumber: string, message: string): Promise<{ messageId: string | null }> {
+    const apiKey = this.getApiKey();
+    const senderId = this.getSenderId();
+    const baseUrl = this.getBaseUrl();
 
+    const url = `${baseUrl}?api_key=${apiKey}&type=text&number=${encodeURIComponent(phoneNumber)}&senderid=${senderId}&message=${encodeURIComponent(message)}`;
 
-      const url = `${baseUrl}?api_key=${apiKey}&type=text&number=${phoneNumber}&senderid=${senderId}&message=${encodeURIComponent(message)}`;
-
-      const response = await axios.post(url);
-
-      this.logger.debug(`BulkSMS response: ${JSON.stringify(response.data)}`);
-
-      // Check if SMS was sent successfully
-      // The API response format may vary, adjust according to bulksmsbd documentation
-      return response.status === 200;
-    } catch (error) {
-      this.logger.error(
-        `SMS sending failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return false;
+    const response = await axios.post<BulkSmsResponse>(url, undefined, { timeout: 15_000 });
+    const data = response.data;
+    // BulkSMS BD answers 200 with response_code 202 when the SMS is accepted.
+    if (response.status !== 200 || (data?.response_code !== undefined && Number(data.response_code) !== 202)) {
+      throw new Error(`BulkSMS rejected the SMS: ${data?.error_message || data?.response_code || response.status}`);
     }
+    return { messageId: data?.message_id !== undefined ? String(data.message_id) : null };
   }
 
-  async sendOtp(phoneNumber: string): Promise<{ success: boolean; otp?: string; message: string }> {
+  async sendOtp(
+    phoneNumber: string,
+    locale?: NotificationLocale,
+  ): Promise<{ success: boolean; otp?: string; message: string }> {
     // A new code does not lift a wrong-guess lockout.
     await this.smsRateLimitService.assertOtpNotLocked('register', phoneNumber);
 
@@ -84,28 +93,24 @@ export class SmsService {
     }
 
     
-    // Send SMS
-    const smsMessage = `Your OTP is: ${otp}. Valid for 5 minutes.`;
-    const smsSent = await this.sendSms(phoneNumber, smsMessage);
-    
-    if (smsSent) {
-      // Store OTP in Redis
-      await this.smsRateLimitService.storeOtp(phoneNumber, otp);
-      
-      // Record the attempt
-      await this.smsRateLimitService.recordSmsAttempt(phoneNumber);
-      
-      return { 
-        success: true, 
-        otp, 
-        message: `OTP sent successfully. ${(rateLimitCheck.remainingAttempts ?? 1) - 1} attempts remaining.` 
-      };
-    } else {
-      return { 
-        success: false, 
-        message: 'Failed to send OTP. Please try again.' 
-      };
-    }
+    // Store the code, then queue the SMS (sent by the worker within seconds; platform-paid).
+    await this.smsRateLimitService.storeOtp(phoneNumber, otp);
+    await this.notifications.enqueue({
+      eventType: NOTIFICATION_EVENTS.AUTH_OTP,
+      channel: NotificationChannelEnum.SMS,
+      organizationId: null,
+      address: phoneNumber,
+      locale,
+      variables: { otp },
+      urgent: true,
+    });
+    await this.smsRateLimitService.recordSmsAttempt(phoneNumber);
+
+    return {
+      success: true,
+      otp,
+      message: `OTP sent successfully. ${(rateLimitCheck.remainingAttempts ?? 1) - 1} attempts remaining.`,
+    };
   }
 
   async verifyOtp(phoneNumber: string, otp: string): Promise<{ success: boolean; message: string }> {

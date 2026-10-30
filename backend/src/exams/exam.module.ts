@@ -15,7 +15,6 @@ import { StudentExamSubmissionEntity, StudentExamAnswerEntity } from './entities
 import { StudentExamController } from './student-exam.controller';
 import { StudentExamService } from './student-exam.service';
 import { ExamGradingController } from './exam-grading.controller';
-import { SmsModule } from 'src/sms/sms.module';
 import { SubjectModule } from 'src/subjects/subject.module';
 import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 import { ClassModule } from 'src/classes/class.module';
@@ -40,7 +39,6 @@ import { PerformanceModule } from 'src/performance/performance.module';
       StudentExamSubmissionEntity,
       StudentExamAnswerEntity,
     ]),
-    SmsModule,
     SubjectModule,
     SubscriptionModule,
     ClassModule,

@@ -51,7 +51,6 @@ describe('StudentExamService.autoSubmitExpired', () => {
       {} as never, // classRepo
       {} as never, // enrolmentRepo
       {} as never, // userRepo
-      {} as never, // smsService
       {} as never, // dataSource
       {} as never, // classService
       { getExamGraph } as never, // examPaperCache

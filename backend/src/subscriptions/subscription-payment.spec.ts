@@ -64,6 +64,8 @@ describe('SubscriptionService payment guards (P0-05, P2-02)', () => {
       entitlements as never,
       {} as never, // soloOrganizations
       { record: jest.fn() } as never, // audit
+      {} as never, // notifications
+      {} as never, // configService
     );
   });
 

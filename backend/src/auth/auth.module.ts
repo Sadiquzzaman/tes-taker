@@ -4,7 +4,6 @@ import { AuthController } from './auth.controller';
 import { GoogleAuthService } from './google-auth.service';
 import { UserModule } from 'src/user/user.module';
 import { SmsModule } from 'src/sms/sms.module';
-import { EmailModule } from 'src/email/email.module';
 import { ClassModule } from 'src/classes/class.module';
 import { OrganizationsModule } from 'src/organizations/organization.module';
 import { TeacherRequestModule } from 'src/teacher-requests/teacher-request.module';
@@ -17,7 +16,6 @@ import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
   imports: [
     UserModule,
     SmsModule,
-    EmailModule,
     ClassModule,
     OrganizationsModule,
     TeacherRequestModule,

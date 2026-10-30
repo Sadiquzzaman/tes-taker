@@ -195,7 +195,7 @@ All jobs run in the worker on BullMQ.
 | `retention.purge` | Daily 03:00 | Deletes selfies and snapshots older than 90 days | — | Retention |
 | `billing.expire` | Daily 00:10 | Expires subscriptions past `end_date`; sends renewal reminders 7 days and 1 day before | Upsert | Billing |
 
-**Proposed SMS quiet hours (confirm with product):** never send guardian SMS between 10 PM and 7 AM, except the 11:59 PM absence message, which the spec requires. All other messages are held in the outbox until 7 AM.
+**SMS quiet hours (decided, 30 Oct): none.** SMS go out when they are queued; `urgent` only gives a message (sign-up codes) priority in the queue.
 
 **Added job (SMS decision, 22 Oct):** `billing.sms-allowance` runs at the start of each org's billing month. It expires the unused allowance and grants the new one. Its idempotency key is (org, month).
 
@@ -278,6 +278,15 @@ All jobs run in the worker on BullMQ.
 - `billing.sms-allowance` writes a MONTHLY\_GRANT row at the start of the billing month. It also writes a MONTHLY\_EXPIRE row for any unused allowance; whether unused allowance expires is a proposal, see FND-13.
 - Dispatch debits ALLOWANCE first, then TOPUP, in the same transaction, with a row lock per org.
 - The balance shown to the owner = allowance left + top-ups left.
+
+**Built in P2-08 (decided):**
+
+* **One way to send.** `NotificationsService.enqueue(message | messages, manager?)` writes `notification_outbox` rows (in the caller's transaction when `manager` is passed) and queues a `notifications.dispatch` job per row. A message names the event, channel, organisation (null = platform message, never charged, not in any log), and either a `userId` (address and language read at send time) or an `address` (with `recipientType: GUARDIAN` + `recipientId` for guardians), plus variables, an optional `dedupeKey` and `sendAfter`. Nothing is sent from a request; `SmsService.deliver` and `EmailService.deliver` are called only by the worker.
+* **Dispatch.** The worker claims a row (`FOR UPDATE SKIP LOCKED`, status `SENDING`, commit), then calls the provider with no transaction open, then records `SENT`, or `PENDING` with `send_after` (+30 s, +2 min), `FAILED` after 3 attempts. `notifications.sweep` (every 30 s) sends due rows whose job was lost and marks rows left `SENDING` for 10 minutes as `FAILED` (never re-sent: they may have gone out). Push (FCM) is deferred until the mobile app.
+* **Language.** Message language = the row's `locale`, else the user's, else the organisation's `default_locale`, else English. Dates (`*_at` variables) are shown in that language (Bangla digits) and the organisation's time zone.
+* **Templates.** Platform defaults (bn + en per event and channel) are added at API start-up when missing; existing rows are never changed, so platform admins' edits (`PATCH /notifications/admin/templates/:id`, audited) are kept. Email bodies are HTML with variables escaped, wrapped in one layout.
+* **Codes.** Sign-up and password-reset codes are urgent platform messages; their variables are emptied and their text not stored once sent.
+* **Message log (FND-14).** `GET /notifications/log` for an organisation's owner and admins: filters by date, recipient (student), event (or area prefix), channel and status.
 
 ### 8.7 AI provider
 

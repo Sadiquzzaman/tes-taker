@@ -1302,32 +1302,41 @@ Table reminder_rules {
 // L. Notifications
 //////////////////////////////////////////////////////////////
 
-Enum channel { IN_APP PUSH EMAIL SMS }
-Enum outbox_status { PENDING HELD SENT DELIVERED FAILED NO_CREDIT }
+// P2-08: channel and status are varchar + CHECK (design §9: status columns that grow). PUSH is deferred
+// until the mobile app; HELD dropped (no quiet hours, owner decision 30 Oct); SENDING added (claimed by the worker).
+Enum channel { IN_APP EMAIL SMS }
+Enum outbox_status { PENDING SENDING SENT DELIVERED FAILED NO_CREDIT }
 
 Table notification_outbox {
   id uuid [pk]
-  organization_id uuid
-  event_type varchar(60) [not null, note: 'attendance.absent, homework.assigned, ...']
-  recipient_type varchar(10) [note: 'USER | GUARDIAN']
-  recipient_id uuid
-  to_address varchar(200) [note: 'phone / email / fcm token resolved at dispatch']
-  channel channel [not null]
-  locale varchar(5)
-  payload jsonb
+  organization_id uuid [ref: > organizations.id, note: 'null = platform message (sign-up codes, platform admin notices); not in any message log']
+  event_type varchar(60) [not null, note: 'exam.scheduled, auth.otp, ... (NOTIFICATION_EVENTS)']
+  recipient_type varchar(10) [not null, note: 'USER | GUARDIAN | ADDRESS (CHECK)']
+  recipient_id uuid [note: 'user or guardian; no FK (guardians are another table)']
+  to_address varchar(200) [note: 'phone / email; filled from the user at send time when empty']
+  channel varchar(10) [not null, note: 'channel (CHECK)']
+  locale varchar(5) [note: 'chosen at send time: user, then organisation default, then en']
+  payload jsonb [not null, default: '{}', note: 'template variables; emptied for codes once sent']
+  subject varchar(200) [note: 'rendered at send time']
+  body text [note: 'rendered at send time; null for codes']
   dedupe_key varchar(200) [unique]
-  status outbox_status [not null, default: 'PENDING']
-  send_after timestamptz
-  attempts smallint [default: 0]
+  status varchar(20) [not null, default: 'PENDING', note: 'outbox_status (CHECK)']
+  urgent boolean [not null, default: false, note: 'job priority only (sign-up codes)']
+  send_after timestamptz [note: 'not before; also the next retry']
+  attempts smallint [not null, default: 0]
   provider_msg_id varchar(100)
-  credits_used smallint
+  credits_used smallint [not null, default: 0, note: 'SMS segments charged to the organisation']
   sent_at timestamptz
   error text
+  created_by uuid [note: 'who caused it']
+  created_at timestamptz
+  updated_at timestamptz
   Indexes {
     (status, send_after)
     (organization_id, created_at)
+    (recipient_id, created_at)
   }
-  Note: 'NEW (FND-12..14) — PARTITION BY RANGE (created_at), monthly'
+  Note: 'NEW (FND-12..14), P2-08 — also the message log. Plain table for now; monthly partitioning by created_at is in docs/TODO.md'
 }
 
 Table notifications {
@@ -1348,16 +1357,20 @@ Table notifications {
 
 Table message_templates {
   id uuid [pk]
-  event_type varchar(60)
-  channel channel
-  locale varchar(5)
+  organization_id uuid [note: 'null = platform default (no organisation templates screen yet)']
+  event_type varchar(60) [not null]
+  channel varchar(10) [not null, note: 'channel (CHECK)']
+  locale varchar(5) [not null, note: 'bn | en (CHECK)']
   subject varchar(200)
-  body text [note: 'with {{variables}}']
-  organization_id uuid [note: 'null = platform default']
+  body text [not null, note: 'with {{variables}}; HTML for email']
+  updated_by uuid
+  created_at timestamptz
+  updated_at timestamptz
   Indexes {
-    (organization_id, event_type, channel, locale) [unique]
+    (event_type, channel, locale) [unique, note: 'WHERE organization_id IS NULL']
+    (organization_id, event_type, channel, locale) [unique, note: 'WHERE organization_id IS NOT NULL']
   }
-  Note: 'NEW'
+  Note: 'NEW, P2-08 — defaults added by the API at start-up when missing; platform admins edit them (audited)'
 }
 
 Table sms_credit_ledger {
