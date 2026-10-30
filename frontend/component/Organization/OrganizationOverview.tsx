@@ -7,6 +7,7 @@ import { Badge, Card, PageHeader, Skeleton, StatTile, StatusPill } from "@/desig
 import { useApiError } from "@/hooks/api/useApiError";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 import axiosReq from "@/lib/axios";
+import LevelLabelsCard from "./LevelLabelsCard";
 import OrganizationSettingsCard from "./OrganizationSettingsCard";
 import OrganizationWorkspaceGate from "./OrganizationWorkspaceGate";
 
@@ -82,6 +83,7 @@ const OrganizationOverviewContent = () => {
         </dl>
       </Card>
       {organizationId ? <OrganizationSettingsCard organizationId={organizationId} /> : null}
+      {organizationId && activeOrganization?.role === "OWNER" ? <LevelLabelsCard /> : null}
     </div>
   );
 };

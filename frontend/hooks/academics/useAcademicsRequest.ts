@@ -40,6 +40,9 @@ export default function useAcademicsRequest() {
     [handleError, triggerToast],
   );
 
+  // The owner of this workspace: a solo teacher in their own, or an organisation's OWNER.
+  const ownsWorkspace = ownsPersonalWorkspace || (!isIndividual && role === "OWNER");
+
   return {
     baseUrl,
     run,
@@ -47,6 +50,7 @@ export default function useAcademicsRequest() {
     organizationId,
     canManageStructure: ownsPersonalWorkspace || Boolean(!isIndividual && role && MANAGE_STRUCTURE.includes(role)),
     canManageSessions: ownsPersonalWorkspace || Boolean(!isIndividual && role && MANAGE_SESSIONS.includes(role)),
-    canReopenSessions: ownsPersonalWorkspace || (!isIndividual && role === "OWNER"),
+    canReopenSessions: ownsWorkspace,
+    ownsWorkspace,
   };
 }

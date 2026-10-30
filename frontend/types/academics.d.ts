@@ -70,7 +70,11 @@ interface RosterStudent {
   roll_no: string | null;
 }
 
+type OrganizationLocale = "bn" | "en";
+
 interface OrganizationSettings {
   organization_id: string;
   class_teacher_enabled: boolean;
+  /** Language for members who have not chosen one (organizations.default_locale). */
+  default_locale: OrganizationLocale;
 }
