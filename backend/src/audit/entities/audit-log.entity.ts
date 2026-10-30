@@ -5,7 +5,8 @@ import { UserEntity } from 'src/user/entities/user.entity';
 
 /**
  * One recorded action (design §8.10): who did what, to which organisation and record, when.
- * Append-only: a trigger rejects UPDATE; rows go only with their organisation (design §10).
+ * Append-only: a trigger rejects UPDATE. Organisations are deactivated, never deleted (design §10),
+ * so the rows are kept for good.
  * Written only by AuditService.
  */
 @Entity('audit_logs')
