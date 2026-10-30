@@ -118,8 +118,9 @@ const SectionStudents = ({
 
   const visible = (rows ?? []).filter((row) => showLeft || isCurrent(row));
   const columns: TableColumn<SectionEnrolment>[] = [
-    { key: "roll", header: t("roll"), cell: (row) => row.roll_no || "—", sortValue: (row) => Number(row.roll_no) || row.roll_no || "" },
+    // The student first: on phones the first column is each card's title.
     { key: "student", header: t("student"), cell: nameOf, sortValue: nameOf },
+    { key: "roll", header: t("roll"), cell: (row) => row.roll_no || "—", sortValue: (row) => Number(row.roll_no) || row.roll_no || "" },
     {
       key: "status",
       header: t("status"),

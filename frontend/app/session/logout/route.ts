@@ -21,6 +21,7 @@ export async function POST() {
   cookieStore.set("session_mode", "", expireOptions);
   cookieStore.set("member_role", "", expireOptions);
   cookieStore.set("organization_id", "", expireOptions);
+  cookieStore.set("personal_teacher", "", expireOptions);
 
   return Response.json({ success: true });
 }

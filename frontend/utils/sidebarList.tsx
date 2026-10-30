@@ -84,6 +84,8 @@ const sidebarList: SideBarList[] = [
     label: "sessions",
     route: "/sessions",
     role: ["TEACHER"],
+    // A teacher with personal teaching off has no workspace of their own, so no sessions there.
+    personalWorkspaceOnly: true,
     image: <SidebarDashboardIconSVG width={16} />,
   },
   {

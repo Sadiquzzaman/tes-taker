@@ -24,6 +24,7 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
   const sessionMode = (cookieStore.get("session_mode")?.value || "individual") as SessionMode;
   const memberRoleValue = cookieStore.get("member_role")?.value;
   const memberRole = isOrgMemberRole(memberRoleValue) ? memberRoleValue : undefined;
+  const personalTeacher = cookieStore.get("personal_teacher")?.value === "1";
 
   const isOrgStudent = sessionMode === "organization" && memberRole === "STUDENT";
 
@@ -41,6 +42,9 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
       {visibleCategories.map((category) => {
         const items = sidebarList.filter((element) => {
           if (element.category !== category || !element.role.includes(role)) {
+            return false;
+          }
+          if (element.personalWorkspaceOnly && sessionMode !== "organization" && !personalTeacher) {
             return false;
           }
           if (element.memberRoles) {
