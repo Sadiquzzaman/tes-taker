@@ -11,8 +11,15 @@ import {
   EXAMS_AUTO_SUBMIT_EVERY_MS,
   EXAMS_AUTO_SUBMIT_JOB,
   EXAMS_QUEUE,
+  NOTIFICATIONS_QUEUE,
+  NOTIFICATIONS_SWEEP_EVERY_MS,
+  NOTIFICATIONS_SWEEP_JOB,
   WORKER_HEARTBEAT_KEY,
 } from '../../src/queue/queue.constants';
+import { NotificationOutboxEntity } from '../../src/notifications/entities/notification-outbox.entity';
+import { NOTIFICATION_EVENTS, NotificationChannelEnum, OutboxStatusEnum } from '../../src/notifications/notification.constants';
+import { NotificationsService } from '../../src/notifications/notifications.service';
+import { SmsService } from '../../src/sms/sms.service';
 import { UserEntity } from '../../src/user/entities/user.entity';
 import { WorkerModule } from '../../src/worker/worker.module';
 import { factories } from '../support/factories';
@@ -123,5 +130,30 @@ describe('worker: exams.auto-submit', () => {
       t.tokenFor(student),
     );
     expect(eligibility.body.payload.reason_code).toBe('ALREADY_SUBMITTED');
+  });
+
+  it('sends a queued SMS from the notifications job, and sweeps every 30 s (P2-08)', async () => {
+    const notificationsQueue = worker.get<Queue>(getQueueToken(NOTIFICATIONS_QUEUE));
+    expect((await notificationsQueue.getJobScheduler(NOTIFICATIONS_SWEEP_JOB))?.every).toBe(NOTIFICATIONS_SWEEP_EVERY_MS);
+
+    // The fake provider in the worker: nothing leaves the test.
+    const deliver = jest.spyOn(worker.get(SmsService), 'deliver').mockResolvedValue({ messageId: 'worker-1' });
+    const student = await make.student();
+    const [id] = await t.app.get(NotificationsService).enqueue({
+      eventType: NOTIFICATION_EVENTS.EXAM_SCHEDULED,
+      channel: NotificationChannelEnum.SMS,
+      organizationId: null,
+      userId: student.id,
+      variables: { exam_title: 'Algebra', exam_start_at: new Date().toISOString() },
+    });
+
+    const outbox = t.dataSource.getRepository(NotificationOutboxEntity);
+    let status: OutboxStatusEnum | undefined;
+    for (let i = 0; i < 100 && status !== OutboxStatusEnum.SENT; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      status = (await outbox.findOneByOrFail({ id })).status;
+    }
+    expect(status).toBe(OutboxStatusEnum.SENT);
+    expect(deliver).toHaveBeenCalledWith(student.phone, expect.stringContaining('Algebra'));
   });
 });
