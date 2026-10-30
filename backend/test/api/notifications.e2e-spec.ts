@@ -7,6 +7,7 @@ import { AuditLogEntity } from '../../src/audit/entities/audit-log.entity';
 import { RolesEnum } from '../../src/common/enums/roles.enum';
 import { EmailService } from '../../src/email/email.service';
 import { NotificationOutbox1755900000000 } from '../../src/migrations/1755900000000-NotificationOutbox';
+import { SmsCreditLedger1755910000000 } from '../../src/migrations/1755910000000-SmsCreditLedger';
 import { MessageTemplateEntity } from '../../src/notifications/entities/message-template.entity';
 import { NotificationOutboxEntity } from '../../src/notifications/entities/notification-outbox.entity';
 import { NotificationDispatcherService } from '../../src/notifications/notification-dispatcher.service';
@@ -79,7 +80,8 @@ describe('notifications: outbox, dispatch and message log', () => {
     // The fake providers: nothing leaves the test.
     smsDeliver = jest.spyOn(t.app.get(SmsService), 'deliver').mockResolvedValue({ messageId: 'sms-1' });
     emailDeliver = jest.spyOn(t.app.get(EmailService), 'deliver').mockResolvedValue({ messageId: 'email-1' });
-    await outbox.clear();
+    // The SMS credit ledger points at outbox rows (P2-08 part 2).
+    await t.dataSource.query('TRUNCATE "notification_outbox" CASCADE');
   });
 
   afterEach(() => {
@@ -487,12 +489,16 @@ describe('notifications: outbox, dispatch and message log', () => {
 
   it('migration is safe to run twice and reversible', async () => {
     const migration = new NotificationOutbox1755900000000();
+    // The SMS credit ledger (part 2) points at the outbox: take it down first and back up last.
+    const ledger = new SmsCreditLedger1755910000000();
     const runner = t.dataSource.createQueryRunner();
     try {
       await migration.up(runner);
+      await ledger.down(runner);
       await migration.down(runner);
       await migration.up(runner);
       await migration.up(runner);
+      await ledger.up(runner);
     } finally {
       await runner.release();
     }
