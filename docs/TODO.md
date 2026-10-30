@@ -16,7 +16,6 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Terms of Service and Privacy Policy pages — the signup checkbox links went to `#`; P1-05 shows them as plain text until the pages exist.
 - Proctoring flag details sent to the teacher's live log stay in English — the student now sees translated text by flag type; translate the teacher view with the teacher screens.
 - Put `feature` on the first menu items in `frontend/utils/sidebarList.tsx` — P2-02 added the gate (hidden while the plan has the feature off), but today's keys are options inside pages, so no item uses it until the epics (attendance, homework, …) add their keys.
-- Notification bell contents — the top-bar bell is decorative until the P2-08 inbox exists.
 - Dark mode — not in the plan yet; the tokens are ready for a second set of values.
 - Build the Docker images in GitHub Actions and have beta only pull them — beta (3.8 GB RAM) ran out of memory building the frontend on 2026-10-24; a 4 GB swap file fixed it for now.
 - Translate the dashboard activity chart's labels ("Jan", "Mon", "Oct 5") — the API builds them as English text (`dashboard.service.ts`); return dates instead and format them in the browser.
@@ -40,3 +39,4 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Partition `notification_outbox` by month on `created_at` (design §10) — P2-08 made it a plain table; a partitioned table cannot keep `dedupe_key` unique on its own, so add the date to the key when volume needs it.
 - SMS delivery reports (`notifications.dlr`, FND-14 "delivered") — status stops at "sent" until BulkSMS BD's report API is confirmed.
 - Push notifications (FCM / web push) — deferred until the mobile app; web uses the in-app inbox and bell.
+- Live bell updates over the `/notify` socket (design §8.4) — the bell polls every minute since P2-08; the worker runs in another process and cannot emit socket events without a Redis emitter package (owner approval needed).
