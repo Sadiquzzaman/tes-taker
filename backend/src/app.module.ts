@@ -33,6 +33,7 @@ import { CommonModule } from './common/common.module';
 import { QueueModule } from './queue/queue.module';
 import { AuditModule } from './audit/audit.module';
 import { AcademicsModule } from './academics/academics.module';
+import { PerformanceModule } from './performance/performance.module';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { AcademicsModule } from './academics/academics.module';
     QueueModule,
     AuditModule,
     AcademicsModule,
+    PerformanceModule,
   ],
   controllers: [AppController],
   providers: [
