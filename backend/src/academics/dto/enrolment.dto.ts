@@ -1,5 +1,5 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsIn, IsOptional, IsString, IsUUID, MaxLength, ValidateIf } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ArrayMaxSize, ArrayNotEmpty, IsArray, IsEmail, IsIn, IsOptional, IsString, IsUUID, MaxLength, ValidateIf } from 'class-validator';
 import { EnrolmentStatusEnum } from '../entities/enrolment.entity';
 
 /** One student: an existing student account, or a phone number or email (an invitation when unknown). */
@@ -45,4 +45,18 @@ export class UpdateEnrolmentDto {
   @IsOptional()
   @IsIn([EnrolmentStatusEnum.LEFT])
   status?: EnrolmentStatusEnum.LEFT;
+}
+
+/** FND-05: move the chosen students of a section into a section of another session. */
+export class PromoteStudentsDto {
+  @ApiProperty({ description: 'The section in the next session (any class)' })
+  @IsUUID()
+  target_section_id: string;
+
+  @ApiProperty({ type: [String], description: 'Enrolments of this section to move; students left out stay (held back or leaving)' })
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(500)
+  @IsUUID('all', { each: true })
+  enrolment_ids: string[];
 }

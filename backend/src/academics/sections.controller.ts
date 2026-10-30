@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
@@ -10,7 +10,7 @@ import { OrganizationContextGuard } from 'src/organizations/guards/organization-
 import { AcademicAccess } from './academic-access';
 import { SectionsService } from './sections.service';
 import { EnrolmentsService } from './enrolments.service';
-import { EnrolStudentDto, UpdateEnrolmentDto } from './dto/enrolment.dto';
+import { EnrolStudentDto, PromoteStudentsDto, UpdateEnrolmentDto } from './dto/enrolment.dto';
 import {
   CreateOfferingDto,
   CreateSectionDto,
@@ -100,6 +100,18 @@ export class SectionsController {
     AcademicAccess.manageStructure();
     const { enrolment, outcome } = await this.enrolmentsService.enrol(id, dto, user);
     return { message: 'Student enrolled successfully', payload: { ...enrolment, outcome } };
+  }
+
+  @Post('sections/:id/promotions')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Promote students to a section of another session (Owner/Admin)',
+    description:
+      'FND-05. Chosen students get an ACTIVE enrolment in the target section; their old one becomes PROMOTED and stays viewable. Students already in the target class for that session are skipped.',
+  })
+  async promote(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PromoteStudentsDto, @UserPayload() user: JwtPayloadInterface) {
+    AcademicAccess.manageSessions();
+    return { message: 'Students promoted successfully', payload: await this.enrolmentsService.promote(id, dto, user) };
   }
 
   @Patch('enrolments/:id')

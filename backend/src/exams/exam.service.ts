@@ -46,6 +46,8 @@ import {
   inOfferingRosterCondition,
   isActiveInClass,
   isInExamClassAudience,
+  promotedFromExamClassCondition,
+  wasPromotedOutOfClass,
 } from 'src/academics/enrolment-queries';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
@@ -1356,7 +1358,8 @@ export class ExamService {
       jwtPayload,
     );
 
-    if (!(await isActiveInClass(this.enrolmentRepo, classId, studentId))) {
+    // Students of the class, and students promoted out of it (FND-05), see its tests.
+    if (!(await isActiveInClass(this.enrolmentRepo, classId, studentId)) && !(await wasPromotedOutOfClass(this.enrolmentRepo, classId, studentId))) {
       throw new ForbiddenException('You are not enrolled in this class');
     }
   }
@@ -1388,23 +1391,31 @@ export class ExamService {
     const classes = await classQuery.getMany();
     const classIds = classes.map((c) => c.id);
 
-    if (classIds.length > 0) {
-      const classExams = await this.examRepo
-        .createQueryBuilder('exam')
-        .leftJoinAndSelect('exam.class', 'class')
-        .leftJoinAndSelect('exam.primary_subject', 'primary_subject')
-        .leftJoinAndSelect('exam.questionSections', 'questionSections')
-        .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
-        .leftJoin('exam.excluded_students', 'excluded')
-        .where('exam.class_id IN (:...classIds)', { classIds })
-        .andWhere('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
-        .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId })
-        // A subject-class test only for the students who take that subject class (FND-19).
-        .andWhere(`("exam"."offering_id" IS NULL OR ${inOfferingRosterCondition('"exam"."offering_id"')})`)
-        .orderBy('exam.exam_start_time', 'DESC')
-        .getMany();
-      classExams.forEach((e) => byId.set(e.id, e));
+    // Tests of the student's classes, and of a class and session they were promoted out of (FND-05).
+    const classExamQuery = this.examRepo
+      .createQueryBuilder('exam')
+      .leftJoinAndSelect('exam.class', 'class')
+      .leftJoinAndSelect('exam.primary_subject', 'primary_subject')
+      .leftJoinAndSelect('exam.questionSections', 'questionSections')
+      .leftJoinAndSelect('questionSections.subject', 'sectionSubject')
+      .leftJoin('exam.excluded_students', 'excluded')
+      .where(
+        classIds.length > 0
+          ? `(exam.class_id IN (:...classIds) OR ${promotedFromExamClassCondition('exam')})`
+          : promotedFromExamClassCondition('exam'),
+        { classIds, studentId },
+      )
+      .andWhere('exam.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
+      .andWhere('(excluded.id IS NULL OR excluded.id != :studentId)', { studentId })
+      // A subject-class test only for the students who take that subject class (FND-19).
+      .andWhere(`("exam"."offering_id" IS NULL OR ${inOfferingRosterCondition('"exam"."offering_id"')})`)
+      .orderBy('exam.exam_start_time', 'DESC');
+    this.applyStudentWorkspaceScopeToExamQuery(classExamQuery, jwtPayload);
+    if (classId) {
+      classExamQuery.andWhere('exam.class_id = :classId', { classId });
     }
+    const classExams = await classExamQuery.getMany();
+    classExams.forEach((e) => byId.set(e.id, e));
 
     if (!classId) {
       const targetQuery = this.examRepo

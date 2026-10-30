@@ -19,6 +19,8 @@ export interface OrgSettingsView {
   class_teacher_enabled: boolean;
   /** Language for members who have not chosen one (organizations.default_locale, FND-18). */
   default_locale: OrganizationLocale;
+  /** When the academic setup wizard was finished (P2-04); null = not yet. */
+  setup_completed_at: Date | null;
 }
 
 /**
@@ -83,7 +85,33 @@ export class OrgSettingsService {
       organization_id: organizationId,
       class_teacher_enabled: row ? row.class_teacher_enabled : OrgSettingsService.defaultsFor(organization.kind).class_teacher_enabled,
       default_locale: organization.default_locale === 'en' ? 'en' : 'bn',
+      setup_completed_at: row?.setup_completed_at ?? null,
     };
+  }
+
+  /**
+   * Records that the academic setup is finished (the academics module checks the structure first).
+   * Finishing again keeps the first time.
+   */
+  async markSetupComplete(organizationId: string, userId: string): Promise<OrgSettingsView> {
+    const existing = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
+    if (!existing) {
+      await this.settingsRepo.save(
+        this.settingsRepo.create({
+          organization_id: organizationId,
+          ...OrgSettingsService.defaultsFor((await this.organization(organizationId)).kind),
+          setup_completed_at: new Date(),
+          created_by: userId,
+          created_at: new Date(),
+        }),
+      );
+    } else if (!existing.setup_completed_at) {
+      await this.settingsRepo.update(
+        { organization_id: organizationId },
+        { setup_completed_at: new Date(), updated_by: userId, updated_at: new Date() },
+      );
+    }
+    return this.get(organizationId);
   }
 
   /**
