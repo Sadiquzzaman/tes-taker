@@ -6,7 +6,7 @@ import { INestApplication, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { createHash, timingSafeEqual } from 'crypto';
 import type { NextFunction, Request, Response } from 'express';
-import { EXAMS_QUEUE } from './queue.constants';
+import { EXAMS_QUEUE, NOTIFICATIONS_QUEUE } from './queue.constants';
 
 export const BULL_BOARD_PATH = '/api/admin/queues';
 
@@ -56,7 +56,7 @@ export function mountBullBoard(app: INestApplication): boolean {
   const serverAdapter = new ExpressAdapter();
   serverAdapter.setBasePath(BULL_BOARD_PATH);
   createBullBoard({
-    queues: [new BullMQAdapter(app.get<Queue>(getQueueToken(EXAMS_QUEUE)))],
+    queues: [EXAMS_QUEUE, NOTIFICATIONS_QUEUE].map((name) => new BullMQAdapter(app.get<Queue>(getQueueToken(name)))),
     serverAdapter,
   });
   app.use(BULL_BOARD_PATH, basicAuth(user, password), serverAdapter.getRouter());

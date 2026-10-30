@@ -1,11 +1,12 @@
 import * as crypto from 'crypto';
+import axios from 'axios';
 import { HttpStatus } from '@nestjs/common';
 import { InMemoryRedis } from 'src/common/testing/in-memory-redis';
 import { SmsRateLimitService } from './sms-rate-limit.service';
 import { SmsService } from './sms.service';
 
 describe('SmsService.generateOtp', () => {
-  const service = new SmsService({} as never, {} as never);
+  const service = new SmsService({} as never, {} as never, {} as never);
 
   afterEach(() => jest.restoreAllMocks());
 
@@ -38,7 +39,7 @@ describe('SmsService registration OTP lockout', () => {
 
   beforeEach(async () => {
     rateLimit = new SmsRateLimitService(new InMemoryRedis() as never);
-    service = new SmsService({} as never, rateLimit);
+    service = new SmsService({} as never, rateLimit, { enqueue: jest.fn().mockResolvedValue(['id']) } as never);
     await rateLimit.storeOtp(phone, '482913');
   });
 
@@ -60,14 +61,14 @@ describe('SmsService.sendOtp send limit', () => {
   const phone = '01700000001';
   let rateLimit: SmsRateLimitService;
   let service: SmsService;
-  let sendSms: jest.SpyInstance;
+  let enqueue: jest.Mock;
 
   beforeEach(() => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-10-23T08:00:00Z'));
     rateLimit = new SmsRateLimitService(new InMemoryRedis() as never);
-    service = new SmsService({} as never, rateLimit);
-    sendSms = jest.spyOn(service, 'sendSms').mockResolvedValue(true);
+    enqueue = jest.fn().mockResolvedValue(['id']);
+    service = new SmsService({} as never, rateLimit, { enqueue } as never);
   });
 
   afterEach(() => {
@@ -84,7 +85,23 @@ describe('SmsService.sendOtp send limit', () => {
 
     expect(blocked.success).toBe(false);
     expect(blocked.message).toMatch(/SMS blocked until/);
-    expect(sendSms).toHaveBeenCalledTimes(3);
+    expect(enqueue).toHaveBeenCalledTimes(3);
+  });
+
+  it('queues the code as an urgent, platform-paid SMS through the outbox', async () => {
+    jest.spyOn(service, 'generateOtp').mockReturnValue('482913');
+    await service.sendOtp(phone, 'bn');
+
+    expect(enqueue).toHaveBeenCalledWith({
+      eventType: 'auth.otp',
+      channel: 'SMS',
+      organizationId: null,
+      address: phone,
+      locale: 'bn',
+      variables: { otp: '482913' },
+      urgent: true,
+    });
+    await expect(service.verifyOtp(phone, '482913')).resolves.toMatchObject({ success: true });
   });
 
   it('allows sending again after the 1-hour block', async () => {
@@ -95,6 +112,31 @@ describe('SmsService.sendOtp send limit', () => {
     jest.advanceTimersByTime(60 * 60 * 1000 + 1000);
 
     await expect(service.sendOtp(phone)).resolves.toMatchObject({ success: true });
-    expect(sendSms).toHaveBeenCalledTimes(4);
+    expect(enqueue).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe('SmsService.deliver (worker only)', () => {
+  const config = { get: (key: string) => ({ BULKSMS_API_KEY: 'test-key', BULKSMS_SENDER_ID: 'test' })[key] };
+  const service = new SmsService(config as never, {} as never, {} as never);
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it('returns the message id when BulkSMS accepts the SMS (response_code 202)', async () => {
+    const post = jest.spyOn(axios, 'post').mockResolvedValue({ status: 200, data: { response_code: 202, message_id: 991 } });
+    await expect(service.deliver('01700000002', 'আসন্ন পরীক্ষা')).resolves.toEqual({ messageId: '991' });
+    const url = post.mock.calls[0][0];
+    expect(url).toContain('number=01700000002');
+    expect(url).toContain(`message=${encodeURIComponent('আসন্ন পরীক্ষা')}`);
+  });
+
+  it('throws when BulkSMS rejects it, so the worker retries', async () => {
+    jest.spyOn(axios, 'post').mockResolvedValue({ status: 200, data: { response_code: 1007, error_message: 'Balance insufficient' } });
+    await expect(service.deliver('01700000002', 'Hi')).rejects.toThrow('BulkSMS rejected the SMS: Balance insufficient');
+  });
+
+  it('throws when the API key is missing', async () => {
+    const unconfigured = new SmsService({ get: () => undefined } as never, {} as never, {} as never);
+    await expect(unconfigured.deliver('01700000002', 'Hi')).rejects.toThrow('BULKSMS_API_KEY is not configured');
   });
 });

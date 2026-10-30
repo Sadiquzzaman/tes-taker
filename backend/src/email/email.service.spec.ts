@@ -26,7 +26,7 @@ describe('EmailService start-up', () => {
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     const service = new EmailService(configWith({}) as never);
 
-    await expect(service.sendInvitationEmail('a@example.com', 'https://x', 'Class')).rejects.toThrow(
+    await expect(service.deliver('a@example.com', 'Subject', '<p>Hi</p>')).rejects.toThrow(
       /Please set BREVO_API_KEY/,
     );
   });

@@ -2601,7 +2601,8 @@
       "organization": "প্রতিষ্ঠান",
       "teacher_request": "শিক্ষক হওয়ার অনুরোধ",
       "user": "ব্যবহারকারী",
-      "teacher": "শিক্ষক"
+      "teacher": "শিক্ষক",
+      "message_template": "মেসেজ টেমপ্লেট"
     },
     "actions": {
       "plan": {
@@ -2652,6 +2653,9 @@
       "grading_scale": {
         "update": "গ্রেডিং স্কেল বদল",
         "reset": "গ্রেডিং স্কেল ডিফল্টে ফেরা"
+      },
+      "message_template": {
+        "update": "মেসেজ টেমপ্লেট সম্পাদিত"
       }
     },
     "fields": {
@@ -2702,7 +2706,13 @@
       "student_exam_submission": "উত্তরপত্র",
       "exam": "টেস্ট",
       "bands": "ধাপসমূহ",
-      "grading_scale": "গ্রেডিং স্কেল"
+      "grading_scale": "গ্রেডিং স্কেল",
+      "event_type": "মেসেজ",
+      "channel": "মাধ্যম",
+      "locale": "ভাষা",
+      "subject": "বিষয়",
+      "body": "লেখা",
+      "message_template": "মেসেজ টেমপ্লেট"
     }
   }
 }

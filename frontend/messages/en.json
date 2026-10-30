@@ -2601,7 +2601,8 @@
       "organization": "Organisations",
       "teacher_request": "Teacher requests",
       "user": "Users",
-      "teacher": "Teachers"
+      "teacher": "Teachers",
+      "message_template": "Message templates"
     },
     "actions": {
       "plan": {
@@ -2652,6 +2653,9 @@
       "grading_scale": {
         "update": "Grading scale changed",
         "reset": "Grading scale reset to default"
+      },
+      "message_template": {
+        "update": "Message template edited"
       }
     },
     "fields": {
@@ -2702,7 +2706,13 @@
       "student_exam_submission": "Answer sheet",
       "exam": "Test",
       "bands": "Bands",
-      "grading_scale": "Grading scale"
+      "grading_scale": "Grading scale",
+      "event_type": "Message",
+      "channel": "Channel",
+      "locale": "Language",
+      "subject": "Subject",
+      "body": "Text",
+      "message_template": "Message template"
     }
   }
 }
