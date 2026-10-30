@@ -89,6 +89,9 @@ import {
 } from './utils/submission-response.util';
 import { ClassService } from 'src/classes/class.service';
 import { ExamPaperCacheService } from './exam-paper-cache.service';
+import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
+import { AuditService } from 'src/audit/audit.service';
+import { TenantContext } from 'src/common/tenancy/tenant-context';
 
 export type ExamAccessValidation = {
   canAccess: boolean;
@@ -157,6 +160,7 @@ export class StudentExamService {
     private readonly soloOrganizations: SoloOrganizationService,
     @InjectRepository(AcademicSessionEntity)
     private readonly sessionRepo: Repository<AcademicSessionEntity>,
+    private readonly audit: AuditService,
   ) {}
 
   private static readonly UUID_V4_RE =
@@ -1777,6 +1781,9 @@ export class StudentExamService {
     const manualQuestionMap = new Map(
       getManualQuestions(exam).map((question) => [question.id, question]),
     );
+    // After results are published, every changed mark is traced (design §8.11).
+    const previousTotal = submission.total_score ?? null;
+    const changedMarks: Record<string, { before: number | null; after: number }> = {};
 
     for (const grade of dto.grades) {
       const question = manualQuestionMap.get(grade.question_id);
@@ -1797,6 +1804,14 @@ export class StudentExamService {
           question_id: grade.question_id,
         },
       });
+
+      const previousMarks = answer?.marks_obtained ?? null;
+      if (previousMarks === null || Number(previousMarks) !== Number(grade.marks_obtained)) {
+        changedMarks[grade.question_id] = {
+          before: previousMarks === null ? null : Number(previousMarks),
+          after: Number(grade.marks_obtained),
+        };
+      }
 
       if (answer) {
         answer.marks_obtained = grade.marks_obtained;
@@ -1838,6 +1853,27 @@ export class StudentExamService {
     const scores = resolveSubmissionScores(exam, answers);
     persistSubmissionScores(submission, scores);
     await this.submissionRepo.save(submission);
+
+    const changedQuestionIds = Object.keys(changedMarks);
+    if (exam.result_published_at && changedQuestionIds.length > 0) {
+      this.audit.record({
+        action: AUDIT_ACTIONS.GRADE_UPDATE,
+        organizationId: exam.organization_id ?? TenantContext.current()?.organizationId,
+        actorId: jwtPayload.id,
+        entityType: 'student_exam_submission',
+        entityId: submission.id,
+        before: {
+          total_score: previousTotal === null ? null : Number(previousTotal),
+          marks: Object.fromEntries(changedQuestionIds.map((id) => [id, changedMarks[id].before])),
+        },
+        after: {
+          total_score: scores.total_score,
+          marks: Object.fromEntries(changedQuestionIds.map((id) => [id, changedMarks[id].after])),
+          exam_id: exam.id,
+          student_id: submission.student_id,
+        },
+      });
+    }
 
     const manualGradedCount = [...manualQuestionMap.values()].filter((question) => {
       const answer = answerByQuestionId.get(question.id);

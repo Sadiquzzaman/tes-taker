@@ -19,7 +19,7 @@ describe('TeacherRequestService.createRequest', () => {
     const userService = {
       findById: jest.fn().mockResolvedValue({ id: USER_ID, role: RolesEnum.STUDENT, full_name: 'Test Student' }),
     };
-    const service = new TeacherRequestService(requestRepo as never, userService as never);
+    const service = new TeacherRequestService(requestRepo as never, userService as never, { record: jest.fn() } as never);
     return { service, requestRepo };
   }
 

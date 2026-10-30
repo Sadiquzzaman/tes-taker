@@ -31,6 +31,8 @@ import { OrganizationMemberRoleEnum } from './enums/organization-member-role.enu
 import { OrganizationStatusEnum } from './enums/organization-status.enum';
 import { OrganizationInvitationStatusEnum } from './enums/organization-invitation-status.enum';
 import { PublicIdService } from 'src/common/services/public-id.service';
+import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
+import { AuditEntry, AuditService } from 'src/audit/audit.service';
 import { AddOrganizationMemberDto } from './dto/add-organization-member.dto';
 import { ImportOrganizationMembersDto } from './dto/import-organization-members.dto';
 import { ListOrganizationsQueryDto } from './dto/list-organizations-query.dto';
@@ -68,6 +70,7 @@ export class OrganizationsService {
     private readonly publicIdService: PublicIdService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
+    private readonly audit: AuditService,
   ) {}
 
   orgRegRedisKey(phone: string): string {
@@ -430,7 +433,17 @@ export class OrganizationsService {
     organization.updated_by = adminId;
     organization.updated_at = new Date();
 
-    return this.organizationRepo.save(organization);
+    const saved = await this.organizationRepo.save(organization);
+    this.audit.record({
+      action: AUDIT_ACTIONS.ORGANIZATION_APPROVE,
+      organizationId: saved.id,
+      actorId: adminId,
+      entityType: 'organization',
+      entityId: saved.id,
+      before: { status: OrganizationStatusEnum.PENDING },
+      after: { status: saved.status },
+    });
+    return saved;
   }
 
   async reject(adminId: string, organizationId: string, reason?: string) {
@@ -451,7 +464,18 @@ export class OrganizationsService {
     organization.updated_by = adminId;
     organization.updated_at = new Date();
 
-    return this.organizationRepo.save(organization);
+    const saved = await this.organizationRepo.save(organization);
+    this.audit.record({
+      action: AUDIT_ACTIONS.ORGANIZATION_REJECT,
+      organizationId: saved.id,
+      actorId: adminId,
+      entityType: 'organization',
+      entityId: saved.id,
+      before: { status: OrganizationStatusEnum.PENDING },
+      after: { status: saved.status },
+      reason: saved.rejected_reason,
+    });
+    return saved;
   }
 
   async listMembers(organizationId: string, actorUserId: string) {
@@ -558,12 +582,13 @@ export class OrganizationsService {
       if (!user.is_otp_verified) {
         throw new BadRequestException('User has not verified their account yet');
       }
-      const member = await this.attachOrReactivateMember(
+      const { member, reactivated } = await this.attachOrReactivateMember(
         organizationId,
         user,
         role,
         actorUserId,
       );
+      this.audit.record(this.memberAddedEntry(organizationId, actorUserId, member, reactivated, 'direct'));
       return {
         status: 'added' as const,
         member: this.toMemberView(member),
@@ -610,6 +635,7 @@ export class OrganizationsService {
 
     const inviteMissing = dto.invite_missing !== false;
     const seen = new Set<string>();
+    const added: AuditEntry[] = [];
     const results: Array<{
       identifier: string;
       status:
@@ -688,7 +714,8 @@ export class OrganizationsService {
             continue;
           }
 
-          await this.attachOrReactivateMember(organizationId, user, role, actorUserId);
+          const { member, reactivated } = await this.attachOrReactivateMember(organizationId, user, role, actorUserId);
+          added.push(this.memberAddedEntry(organizationId, actorUserId, member, reactivated, 'import'));
           results.push({
             identifier: phone,
             status: existing ? 'reactivated' : 'imported',
@@ -742,7 +769,8 @@ export class OrganizationsService {
             continue;
           }
 
-          await this.attachOrReactivateMember(organizationId, user, role, actorUserId);
+          const { member, reactivated } = await this.attachOrReactivateMember(organizationId, user, role, actorUserId);
+          added.push(this.memberAddedEntry(organizationId, actorUserId, member, reactivated, 'import'));
           results.push({
             identifier,
             status: existing ? 'reactivated' : 'imported',
@@ -782,6 +810,9 @@ export class OrganizationsService {
         });
       }
     }
+
+    // One insert for the whole import.
+    this.audit.recordMany(added);
 
     return {
       total: results.length,
@@ -825,10 +856,20 @@ export class OrganizationsService {
       throw new BadRequestException('You cannot change your own role');
     }
 
+    const previousRole = membership.role;
     membership.role = role;
     membership.updated_by = actorUserId;
     membership.updated_at = new Date();
     const saved = await this.memberRepo.save(membership);
+    this.audit.record({
+      action: AUDIT_ACTIONS.MEMBER_ROLE_CHANGE,
+      organizationId,
+      actorId: actorUserId,
+      entityType: 'organization_member',
+      entityId: saved.id,
+      before: { role: previousRole },
+      after: { role: saved.role, user_id: saved.user_id, user_name: membership.user?.full_name ?? null },
+    });
     return this.toMemberView(saved);
   }
 
@@ -867,6 +908,16 @@ export class OrganizationsService {
     membership.updated_by = actorUserId;
     membership.updated_at = new Date();
     await this.memberRepo.save(membership);
+    const removedUser = await this.userRepo.findOne({ where: { id: membership.user_id }, select: ['id', 'full_name'] });
+    this.audit.record({
+      action: AUDIT_ACTIONS.MEMBER_REMOVE,
+      organizationId,
+      actorId: actorUserId,
+      entityType: 'organization_member',
+      entityId: membership.id,
+      before: { role: membership.role, user_id: membership.user_id, user_name: removedUser?.full_name ?? null },
+      after: { active: false },
+    });
   }
 
   /**
@@ -943,12 +994,13 @@ export class OrganizationsService {
 
     for (const invitation of invitations) {
       try {
-        await this.attachOrReactivateMember(
+        const { member, reactivated } = await this.attachOrReactivateMember(
           invitation.organization_id,
           user,
           invitation.role,
           invitation.invited_by,
         );
+        this.audit.record(this.memberAddedEntry(invitation.organization_id, invitation.invited_by, member, reactivated, 'invitation'));
         invitation.status = OrganizationInvitationStatusEnum.ACCEPTED;
         invitation.accepted_user_id = params.userId;
         invitation.accepted_at = new Date();
@@ -1036,7 +1088,7 @@ export class OrganizationsService {
     user: UserEntity,
     role: OrganizationMemberRoleEnum,
     actorUserId: string,
-  ): Promise<OrganizationMemberEntity> {
+  ): Promise<{ member: OrganizationMemberEntity; reactivated: boolean }> {
     const existing = await this.memberRepo.findOne({
       where: { organization_id: organizationId, user_id: user.id },
       relations: ['user'],
@@ -1078,7 +1130,7 @@ export class OrganizationsService {
         where: { id: saved.id },
         relations: ['user'],
       });
-      return withUser ?? saved;
+      return { member: withUser ?? saved, reactivated: true };
     }
 
     const membership = this.memberRepo.create({
@@ -1098,7 +1150,25 @@ export class OrganizationsService {
       where: { id: saved.id },
       relations: ['user'],
     });
-    return withUser ?? saved;
+    return { member: withUser ?? saved, reactivated: false };
+  }
+
+  /** The audit row for a member added by an owner or admin (directly, by import or by invitation). */
+  private memberAddedEntry(
+    organizationId: string,
+    actorUserId: string | null,
+    member: OrganizationMemberEntity,
+    reactivated: boolean,
+    via: 'direct' | 'import' | 'invitation',
+  ): AuditEntry {
+    return {
+      action: AUDIT_ACTIONS.MEMBER_ADD,
+      organizationId,
+      actorId: actorUserId,
+      entityType: 'organization_member',
+      entityId: member.id,
+      after: { role: member.role, user_id: member.user_id, user_name: member.user?.full_name ?? null, via, reactivated },
+    };
   }
 
   private async createAndSendInvitation(params: {

@@ -95,6 +95,8 @@ import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization
 import { ClassService } from 'src/classes/class.service';
 import { ExamPaperCacheService } from './exam-paper-cache.service';
 import { shuffleStudentPaper } from './utils/exam-shuffle.util';
+import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
+import { AuditService } from 'src/audit/audit.service';
 
 type ExamListMetrics = {
   participant_count: number;
@@ -162,6 +164,7 @@ export class ExamService {
     private readonly offeringRepo: Repository<CourseOfferingEntity>,
     @InjectRepository(AcademicSessionEntity)
     private readonly sessionRepo: Repository<AcademicSessionEntity>,
+    private readonly audit: AuditService,
   ) {}
 
   private async assertOrgWizardClassAndSubject(
@@ -2916,6 +2919,14 @@ export class ExamService {
     exam.updated_at = new Date();
     exam.updated_by = jwtPayload.id;
     await this.examRepo.save(exam);
+    this.audit.record({
+      action: AUDIT_ACTIONS.EXAM_RESULTS_PUBLISH,
+      organizationId: exam.organization_id ?? TenantContext.current()?.organizationId,
+      actorId: jwtPayload.id,
+      entityType: 'exam',
+      entityId: exam.id,
+      after: { test_name: exam.test_name, published_at: exam.result_published_at, submissions: submittedSubmissions.length },
+    });
 
     return {
       is_result_published: true,

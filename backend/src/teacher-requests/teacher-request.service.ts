@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
+import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
+import { AuditService } from 'src/audit/audit.service';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { isUniqueViolation } from 'src/common/utils/db-error.util';
 import { UserService } from 'src/user/user.service';
@@ -19,6 +21,7 @@ export class TeacherRequestService {
     @InjectRepository(TeacherRoleRequestEntity)
     private readonly requestRepo: Repository<TeacherRoleRequestEntity>,
     private readonly userService: UserService,
+    private readonly audit: AuditService,
   ) {}
 
   async getMyRequest(userId: string) {
@@ -126,6 +129,7 @@ export class TeacherRequestService {
     request.updated_at = new Date();
 
     const saved = await this.requestRepo.save(request);
+    this.recordReview(AUDIT_ACTIONS.TEACHER_REQUEST_APPROVE, adminId, saved);
     const withUser = await this.requestRepo.findOne({
       where: { id: saved.id },
       relations: ['user'],
@@ -145,12 +149,29 @@ export class TeacherRequestService {
     request.updated_at = new Date();
 
     const saved = await this.requestRepo.save(request);
+    this.recordReview(AUDIT_ACTIONS.TEACHER_REQUEST_REJECT, adminId, saved);
     const withUser = await this.requestRepo.findOne({
       where: { id: saved.id },
       relations: ['user'],
     });
 
     return this.toAdminView(withUser ?? saved);
+  }
+
+  private recordReview(
+    action: typeof AUDIT_ACTIONS.TEACHER_REQUEST_APPROVE | typeof AUDIT_ACTIONS.TEACHER_REQUEST_REJECT,
+    adminId: string,
+    request: TeacherRoleRequestEntity,
+  ): void {
+    this.audit.record({
+      action,
+      actorId: adminId,
+      entityType: 'teacher_role_request',
+      entityId: request.id,
+      before: { status: TeacherRequestStatusEnum.PENDING },
+      after: { status: request.status, user_id: request.user_id },
+      reason: request.note,
+    });
   }
 
   private async findPendingOrThrow(requestId: string): Promise<TeacherRoleRequestEntity> {
