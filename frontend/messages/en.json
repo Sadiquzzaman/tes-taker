@@ -2816,5 +2816,28 @@
         "created": "Feature request"
       }
     }
+  },
+  "notifications": {
+    "bell": "Notifications",
+    "bellUnread": "{count, plural, one {Notifications, # unread} other {Notifications, # unread}}",
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "unread": "Unread",
+    "empty": "No notifications yet",
+    "emptyHint": "Tests, SMS credit warnings and other news show up here.",
+    "prefs": {
+      "title": "Notifications",
+      "intro": "Choose how you hear about each kind of message. You always get them here in the app (the bell).",
+      "inAppAlways": "Always in the app",
+      "channels": {
+        "SMS": "SMS",
+        "EMAIL": "Email"
+      },
+      "channelFor": "{channel} for {message}",
+      "saved": "Your notification settings are saved.",
+      "savedTitle": "Saved",
+      "loadFailed": "Your notification settings did not load.",
+      "smsHint": "SMS are paid from your school's or workspace's SMS credits."
+    }
   }
 }
