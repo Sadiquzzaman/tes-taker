@@ -211,8 +211,11 @@ export class SubscriptionController {
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
-  async deletePlan(@Param('planId', ParseUUIDPipe) planId: string) {
-    await this.subscriptionService.deletePlan(planId);
+  async deletePlan(
+    @Param('planId', ParseUUIDPipe) planId: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    await this.subscriptionService.deletePlan(planId, jwtPayload);
     return { message: 'Plan deleted successfully', payload: null };
   }
 
@@ -232,8 +235,8 @@ export class SubscriptionController {
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
-  async reorderPlans(@Body() dto: ReorderPlansDto) {
-    const payload = await this.subscriptionService.reorderPlans(dto);
+  async reorderPlans(@Body() dto: ReorderPlansDto, @UserPayload() jwtPayload: JwtPayloadInterface) {
+    const payload = await this.subscriptionService.reorderPlans(dto, jwtPayload);
     return { message: 'Plans reordered successfully', payload };
   }
 
@@ -241,8 +244,11 @@ export class SubscriptionController {
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
-  async activatePlan(@Param('planId', ParseUUIDPipe) planId: string) {
-    const payload = await this.subscriptionService.setPlanActive(planId, true);
+  async activatePlan(
+    @Param('planId', ParseUUIDPipe) planId: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.subscriptionService.setPlanActive(planId, true, jwtPayload);
     return { message: 'Plan activated successfully', payload };
   }
 
@@ -250,8 +256,11 @@ export class SubscriptionController {
   @ApiBearerAuth('jwt')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
-  async deactivatePlan(@Param('planId', ParseUUIDPipe) planId: string) {
-    const payload = await this.subscriptionService.setPlanActive(planId, false);
+  async deactivatePlan(
+    @Param('planId', ParseUUIDPipe) planId: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.subscriptionService.setPlanActive(planId, false, jwtPayload);
     return { message: 'Plan deactivated successfully', payload };
   }
 
@@ -345,8 +354,9 @@ export class SubscriptionController {
   async setTeacherActive(
     @Param('teacherId', ParseUUIDPipe) teacherId: string,
     @Body() dto: SetTeacherActiveDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
-    const payload = await this.subscriptionService.setTeacherActive(teacherId, dto.active);
+    const payload = await this.subscriptionService.setTeacherActive(teacherId, dto.active, jwtPayload);
     return {
       message: dto.active ? 'Teacher enabled successfully' : 'Teacher disabled successfully',
       payload,
@@ -390,8 +400,9 @@ export class SubscriptionController {
   async removeOrganizationOverride(
     @Param('organizationId', ParseUUIDPipe) organizationId: string,
     @Param('key') key: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
-    await this.subscriptionService.removeOverride(organizationId, key);
+    await this.subscriptionService.removeOverride(organizationId, key, jwtPayload);
     return { message: 'Override removed' };
   }
 
