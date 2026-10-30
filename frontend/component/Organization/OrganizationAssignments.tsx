@@ -384,7 +384,7 @@ const OrganizationAssignmentsContent = () => {
       ? [
           {
             key: "actions",
-            header: t("remove"),
+            header: t("actions"),
             align: "right" as const,
             cell: (row: AssignmentRow) =>
               row.unassigned ? (
