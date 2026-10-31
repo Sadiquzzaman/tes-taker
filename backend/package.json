@@ -31,6 +31,7 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1126.0",
+    "@aws-sdk/s3-request-presigner": "3.1126.0",
     "@bull-board/api": "9.10.5",
     "@bull-board/express": "9.10.5",
     "@getbrevo/brevo": "^4.0.1",
