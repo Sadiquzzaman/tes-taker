@@ -1,23 +1,24 @@
 import { Logger } from '@nestjs/common';
+import * as sharpModule from 'sharp';
 
-// sharp is CJS; Nest's CommonJS emit + sharp typings disagree on the callable export.
-// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-const sharp = require('sharp') as any;
+// sharp's typings describe its ES module (a default export); under our CommonJS build the
+// required module itself is the function.
+const sharp = sharpModule as unknown as typeof sharpModule.default;
 
 const logger = new Logger('ImageOptimize');
 
-/** Longest edge after resize (px). Larger originals are scaled down; smaller ones are kept. */
-export const IMAGE_MAX_EDGE_PX = 1920;
-/** JPEG quality for stored images (mozjpeg). */
-export const IMAGE_JPEG_QUALITY = 80;
-/** Skip recompress when the file is already tiny and compression does not shrink it. */
-const SKIP_IF_UNDER_BYTES = 120 * 1024;
+/** Longest edge after resize (px), FND-15. Larger originals are scaled down; smaller ones are kept. */
+export const IMAGE_MAX_EDGE_PX = 1600;
+/** WebP quality for stored images (FND-15: "about 80%"). */
+export const IMAGE_WEBP_QUALITY = 80;
 
 export type OptimizedImage = {
   buffer: Buffer;
   contentType: string;
-  /** Suggested filename extension including the leading dot, e.g. `.jpg`. */
+  /** Filename extension without the dot, e.g. `webp`. */
   extension: string;
+  width: number | null;
+  height: number | null;
   originalBytes: number;
   optimizedBytes: number;
 };
@@ -29,25 +30,18 @@ export function isOptimizableImageMime(mime: string): boolean {
 }
 
 /**
- * Downscale + recompress uploaded images before they hit storage.
- * Always outputs JPEG for consistent size/quality (GIF becomes a still frame).
+ * Resize to at most 1600 px on the long side and save as WebP at quality 80 (FND-15). Runs in the
+ * worker's files.process job, never in a request. A GIF becomes a still frame. Returns null for
+ * types that are not images; an image that cannot be decoded is returned unchanged.
  */
-export async function optimizeImageBuffer(
-  input: Buffer,
-  mime: string,
-): Promise<OptimizedImage | null> {
+export async function optimizeImageBuffer(input: Buffer, mime: string): Promise<OptimizedImage | null> {
   if (!isOptimizableImageMime(mime)) {
     return null;
   }
 
   const originalBytes = input.byteLength;
-
   try {
-    const meta = await sharp(input, { failOn: 'none', animated: false }).metadata();
-    const width = meta.width ?? 0;
-    const height = meta.height ?? 0;
-
-    const optimized = await sharp(input, { failOn: 'none', animated: false })
+    const { data, info } = await sharp(input, { failOn: 'none', animated: false })
       .rotate()
       .resize({
         width: IMAGE_MAX_EDGE_PX,
@@ -55,66 +49,21 @@ export async function optimizeImageBuffer(
         fit: 'inside',
         withoutEnlargement: true,
       })
-      .jpeg({ quality: IMAGE_JPEG_QUALITY, mozjpeg: true })
-      .toBuffer();
+      .webp({ quality: IMAGE_WEBP_QUALITY })
+      .toBuffer({ resolveWithObject: true });
 
-    // Keep the original when compression did not help and the file is already small.
-    if (optimized.byteLength >= originalBytes && originalBytes <= SKIP_IF_UNDER_BYTES) {
-      logger.debug(
-        `Keeping original image (${originalBytes} B) — already small / no gain from recompress`,
-      );
-      return {
-        buffer: input,
-        contentType: mime.toLowerCase(),
-        extension: extensionForMime(mime),
-        originalBytes,
-        optimizedBytes: originalBytes,
-      };
-    }
-
-    logger.debug(
-      `Optimized image ${originalBytes} B → ${optimized.byteLength} B ` +
-        `(${width}x${height} → max ${IMAGE_MAX_EDGE_PX}px, jpeg q=${IMAGE_JPEG_QUALITY})`,
-    );
-
+    logger.debug(`Optimized image ${originalBytes} B -> ${data.byteLength} B (${info.width}x${info.height} webp)`);
     return {
-      buffer: optimized,
-      contentType: 'image/jpeg',
-      extension: '.jpg',
+      buffer: data,
+      contentType: 'image/webp',
+      extension: 'webp',
+      width: info.width,
+      height: info.height,
       originalBytes,
-      optimizedBytes: optimized.byteLength,
+      optimizedBytes: data.byteLength,
     };
   } catch (error) {
-    logger.warn(
-      `Image optimize failed, storing original: ${error instanceof Error ? error.message : String(error)}`,
-    );
-    return {
-      buffer: input,
-      contentType: mime.toLowerCase(),
-      extension: extensionForMime(mime),
-      originalBytes,
-      optimizedBytes: originalBytes,
-    };
+    logger.warn(`Image optimize failed, storing original: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
   }
-}
-
-function extensionForMime(mime: string): string {
-  switch (mime.toLowerCase()) {
-    case 'image/jpeg':
-      return '.jpg';
-    case 'image/png':
-      return '.png';
-    case 'image/webp':
-      return '.webp';
-    case 'image/gif':
-      return '.gif';
-    default:
-      return '';
-  }
-}
-
-/** Replace or append a file extension on a safe basename. */
-export function withExtension(fileName: string, extension: string): string {
-  const base = fileName.replace(/\.[^.]+$/, '') || 'image';
-  return `${base}${extension || ''}`;
 }
