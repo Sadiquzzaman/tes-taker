@@ -7,6 +7,7 @@ import { ExamSubjectClasses1755410000000 } from '../../src/migrations/1755410000
 import { DropLegacyClassTables1755420000000 } from '../../src/migrations/1755420000000-DropLegacyClassTables';
 import { OrgSetupCompleted1755510000000 } from '../../src/migrations/1755510000000-OrgSetupCompleted';
 import { Guardians1755600000000 } from '../../src/migrations/1755600000000-Guardians';
+import { EnrolmentInvitedName1755610000000 } from '../../src/migrations/1755610000000-EnrolmentInvitedName';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
 import { factories } from '../support/factories';
@@ -100,7 +101,9 @@ describe('AcademicStructure migration', () => {
     // Later migrations on these tables go down first and come back last, so the schema ends as it was.
     const setupCompleted = new OrgSetupCompleted1755510000000();
     const guardians = new Guardians1755600000000();
+    const invitedName = new EnrolmentInvitedName1755610000000();
     try {
+      await invitedName.down(runner);
       await guardians.down(runner);
       await setupCompleted.down(runner);
       await examSubjectClasses.down(runner);
@@ -113,6 +116,8 @@ describe('AcademicStructure migration', () => {
       await examSubjectClasses.up(runner);
       await setupCompleted.up(runner);
       await guardians.up(runner);
+      await invitedName.up(runner);
+      await invitedName.up(runner);
     } finally {
       await runner.release();
     }
