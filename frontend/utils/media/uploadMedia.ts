@@ -1,3 +1,4 @@
+import axios from "axios";
 import axiosReq from "@/lib/axios";
 import { compressImageFile, IMAGE_COMPRESS, isCompressibleImage } from "@/utils/media/compressImage";
 
@@ -9,13 +10,24 @@ export type UploadedMedia = {
   url: string;
   file_name: string;
   mime_type: string;
+  /** Final size once the server compressed it (FND-15), otherwise the uploaded size. */
   size: number;
   kind: "image" | "file";
   purpose?: MediaUploadPurpose;
+  /** The workspace has used 90% or more of its storage (FND-16). */
+  storage_warning?: boolean;
+};
+
+export type UploadOptions = {
+  /** 0–100 while the file is sent. */
+  onProgress?: (percent: number) => void;
+  /** How long to wait for the server's compression before returning the uploaded size. */
+  waitForReadyMs?: number;
 };
 
 const API_BASE = (process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/$/, "");
 const API_ORIGIN = API_BASE.replace(/\/api\/v1\/?$/, "");
+const READY_POLL_MS = 1000;
 
 /**
  * Turn stored media URLs into something the browser can load.
@@ -31,9 +43,7 @@ export const resolveMediaUrl = (url: string) => {
   );
   if (s3Match) {
     const key = decodeURIComponent(s3Match[2].split("?")[0]);
-    const proxied = `${API_BASE}/uploads/content?key=${encodeURIComponent(key)}`;
-    console.debug("[media] resolveMediaUrl: rewritten S3 URL → proxy", { from: url, to: proxied });
-    return proxied;
+    return `${API_BASE}/uploads/content?key=${encodeURIComponent(key)}`;
   }
 
   if (/^https?:\/\//i.test(url)) return url;
@@ -42,66 +52,64 @@ export const resolveMediaUrl = (url: string) => {
   return url;
 };
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
- * Upload a file through the backend StorageService (local or S3).
- * Images are compressed in the browser first; the API compresses again as a safety net.
+ * Upload a file (design §8.5): images are compressed in the browser first, then the API checks
+ * type, size and the storage quota and hands out a signed link; the file goes straight to
+ * storage, and the server compresses it again in the background. A 403 PLAN_LIMIT_REACHED means
+ * the workspace's storage is full.
  */
 export const uploadMedia = async (
   purpose: MediaUploadPurpose,
   file: File,
   scopeId?: string,
+  options: UploadOptions = {},
 ): Promise<UploadedMedia> => {
-  let uploadFile = file;
-  if (isCompressibleImage(file)) {
-    uploadFile = await compressImageFile(file);
-  }
+  const uploadFile = isCompressibleImage(file) ? await compressImageFile(file) : file;
+  const mime = uploadFile.type || file.type;
 
-  const formData = new FormData();
-  formData.append("file", uploadFile);
-
-  const params = new URLSearchParams({ purpose });
-  if (scopeId?.trim()) {
-    params.set("scopeId", scopeId.trim());
-  }
-
-  const endpoint = `${API_BASE}/uploads/media?${params.toString()}`;
-  console.debug("[media] uploadMedia:start", {
-    purpose,
-    scopeId,
-    name: uploadFile.name,
-    type: uploadFile.type,
-    originalSize: file.size,
-    uploadSize: uploadFile.size,
-    endpoint,
+  const presigned = await axiosReq.post<ApiResponse<PresignedUpload>>(`${API_BASE}/files/presign`, {
+    purpose: purpose.toUpperCase(),
+    mime,
+    size: uploadFile.size,
+    name: file.name,
+    ...(purpose === "discussion" && scopeId?.trim() ? { scope_id: scopeId.trim() } : {}),
   });
+  const { file: created, upload, storage } = presigned.data.payload;
 
-  try {
-    const response = await axiosReq.post<ApiResponse<UploadedMedia>>(endpoint, formData);
-    const payload = response.data.payload;
-    const displayUrl = resolveMediaUrl(payload.url);
-    console.debug("[media] uploadMedia:success", {
-      key: payload.key,
-      url: payload.url,
-      displayUrl,
-      storedSize: payload.size,
-      status: response.status,
-    });
-    return { ...payload, url: displayUrl };
-  } catch (error) {
-    const axiosError = error as {
-      message?: string;
-      response?: { status?: number; data?: unknown };
-    };
-    console.error("[media] uploadMedia:error", {
-      message: axiosError?.message,
-      status: axiosError?.response?.status,
-      data: axiosError?.response?.data,
-    });
-    throw error;
+  // Plain axios: the signed link must not get the API's Authorization or workspace headers.
+  await axios.put(upload.url, uploadFile, {
+    headers: upload.headers,
+    onUploadProgress: (event) => {
+      if (event.total) options.onProgress?.(Math.round((event.loaded / event.total) * 100));
+    },
+  });
+  options.onProgress?.(100);
+
+  const completed = await axiosReq.post<ApiResponse<StoredFile>>(`${API_BASE}/files/${created.id}/complete`, {});
+  let stored = completed.data.payload;
+
+  const deadline = Date.now() + (options.waitForReadyMs ?? 15_000);
+  while (stored.status === "PENDING" && Date.now() < deadline) {
+    await wait(READY_POLL_MS);
+    stored = (await axiosReq.get<ApiResponse<StoredFile>>(`${API_BASE}/files/${created.id}`)).data.payload;
   }
+
+  return {
+    id: stored.id,
+    key: stored.id,
+    url: resolveMediaUrl(stored.url),
+    file_name: stored.name ?? file.name,
+    mime_type: stored.mime,
+    size: stored.size_bytes,
+    kind: stored.mime.startsWith("image/") ? "image" : "file",
+    purpose,
+    storage_warning: storage.warning,
+  };
 };
 
-export const uploadExamImage = (file: File, examId?: string) =>
-  uploadMedia("exam", file, examId || "draft");
+export const uploadExamImage = (file: File, examId?: string, options?: UploadOptions) =>
+  uploadMedia("exam", file, examId || "draft", options);
 
 export { IMAGE_COMPRESS };

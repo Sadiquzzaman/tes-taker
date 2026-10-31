@@ -758,7 +758,9 @@
       "maxFiles": "You can attach up to 5 files.",
       "uploadFailed": "Upload failed. Please try again.",
       "postFailed": "Could not post. Please try again.",
-      "sendFailed": "Could not send. Please try again."
+      "sendFailed": "Could not send. Please try again.",
+      "uploadingProgress": "Uploading… {percent, number}%",
+      "storageWarning": "Your workspace has used 90% of its storage. Uploads stop when it is full."
     },
     "feed": {
       "empty": "No posts yet",
@@ -2780,6 +2782,10 @@
       },
       "student": {
         "import": "Students imported from CSV"
+      },
+      "file": {
+        "upload": "File uploaded",
+        "delete": "File deleted"
       }
     },
     "fields": {
@@ -2960,6 +2966,22 @@
       "savedTitle": "Saved",
       "loadFailed": "Your notification settings did not load.",
       "smsHint": "SMS are paid from your school's or workspace's SMS credits."
+    }
+  },
+  "storage": {
+    "title": "Storage",
+    "intro": "Files your workspace keeps count toward your plan. Space frees up when files are deleted.",
+    "used": "{usedSize} of {limitSize} used",
+    "usedNoLimit": "{usedSize} used — your plan has no storage limit",
+    "percentUsed": "{percent, number}% used",
+    "warning": "Almost full. At 100% uploads stop.",
+    "full": "Storage is full. Delete files or upgrade your plan to upload more.",
+    "loadFailed": "Could not load storage use.",
+    "byType": {
+      "homework": "Homework",
+      "resources": "Resources",
+      "video": "Video",
+      "other": "Tests and discussions"
     }
   }
 }
