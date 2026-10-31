@@ -13,6 +13,7 @@ import { AcademicSessionsService } from './academic-sessions.service';
 import { AcademicSessionEntity } from './entities/academic-session.entity';
 import { CourseOfferingEntity } from './entities/course-offering.entity';
 import { EnrolmentEntity } from './entities/enrolment.entity';
+import { GuardianEntity } from './entities/guardian.entity';
 import { OfferingEnrolmentEntity } from './entities/offering-enrolment.entity';
 import { OfferingTeacherEntity } from './entities/offering-teacher.entity';
 import { SectionEntity } from './entities/section.entity';
@@ -22,10 +23,12 @@ import { AcademicDefaultsSubscriber } from './academic-defaults.subscriber';
 import { OfferingRosterService } from './offering-roster.service';
 import { SectionsController } from './sections.controller';
 import { SectionsService } from './sections.service';
+import { GuardiansController } from './guardians.controller';
+import { GuardiansService } from './guardians.service';
 
 /**
  * Academic structure (design §9.3): sessions and terms, sections, subject classes with their
- * teachers and students, enrolments. Writes only these tables; reads classes, class subjects and users.
+ * teachers and students, enrolments, guardians. Writes only these tables; reads classes, class subjects and users.
  */
 @Module({
   imports: [
@@ -37,6 +40,7 @@ import { SectionsService } from './sections.service';
       OfferingTeacherEntity,
       OfferingEnrolmentEntity,
       EnrolmentEntity,
+      GuardianEntity,
       ClassEntity,
       ClassSubjectEntity,
       SubjectEntity,
@@ -46,8 +50,16 @@ import { SectionsService } from './sections.service';
     OrganizationsModule,
     UserModule,
   ],
-  controllers: [AcademicSessionsController, SectionsController, AcademicSetupController],
-  providers: [AcademicSessionsService, SectionsService, AcademicSetupService, EnrolmentsService, OfferingRosterService, AcademicDefaultsSubscriber],
-  exports: [AcademicSessionsService, EnrolmentsService, OfferingRosterService],
+  controllers: [AcademicSessionsController, SectionsController, AcademicSetupController, GuardiansController],
+  providers: [
+    AcademicSessionsService,
+    SectionsService,
+    AcademicSetupService,
+    EnrolmentsService,
+    GuardiansService,
+    OfferingRosterService,
+    AcademicDefaultsSubscriber,
+  ],
+  exports: [AcademicSessionsService, EnrolmentsService, GuardiansService, OfferingRosterService],
 })
 export class AcademicsModule {}

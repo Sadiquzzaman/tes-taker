@@ -21,6 +21,8 @@ export interface OrgSettingsView {
   default_locale: OrganizationLocale;
   /** When the academic setup wizard was finished (P2-04); null = not yet. */
   setup_completed_at: Date | null;
+  /** Guardian SMS language (FND-10): the organisation's choice, else its default language. */
+  sms_locale: OrganizationLocale;
 }
 
 /**
@@ -56,7 +58,7 @@ export class OrgSettingsService {
         { default_locale: dto.default_locale, updated_by: userId, updated_at: new Date() },
       );
     }
-    if (dto.class_teacher_enabled !== undefined) {
+    if (dto.class_teacher_enabled !== undefined || dto.sms_locale !== undefined) {
       const existing = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
       const row =
         existing ??
@@ -66,7 +68,8 @@ export class OrgSettingsService {
           created_by: userId,
           created_at: new Date(),
         });
-      row.class_teacher_enabled = dto.class_teacher_enabled;
+      if (dto.class_teacher_enabled !== undefined) row.class_teacher_enabled = dto.class_teacher_enabled;
+      if (dto.sms_locale !== undefined) row.sms_locale = dto.sms_locale;
       if (existing) {
         row.updated_by = userId;
         row.updated_at = new Date();
@@ -81,11 +84,13 @@ export class OrgSettingsService {
     const em = manager ?? this.settingsRepo.manager;
     const organization = await this.organization(organizationId, em);
     const row = await em.getRepository(OrgSettingsEntity).findOne({ where: { organization_id: organizationId } });
+    const defaultLocale: OrganizationLocale = organization.default_locale === 'en' ? 'en' : 'bn';
     return {
       organization_id: organizationId,
       class_teacher_enabled: row ? row.class_teacher_enabled : OrgSettingsService.defaultsFor(organization.kind).class_teacher_enabled,
-      default_locale: organization.default_locale === 'en' ? 'en' : 'bn',
+      default_locale: defaultLocale,
       setup_completed_at: row?.setup_completed_at ?? null,
+      sms_locale: row?.sms_locale === 'bn' || row?.sms_locale === 'en' ? row.sms_locale : defaultLocale,
     };
   }
 

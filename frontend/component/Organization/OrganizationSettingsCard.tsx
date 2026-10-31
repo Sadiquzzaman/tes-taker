@@ -11,8 +11,8 @@ import axiosReq from "@/lib/axios";
 const LANGUAGES: OrganizationLocale[] = ["bn", "en"];
 
 /**
- * Organisation settings (owners and admins): whether sections have a class teacher (FND-02) and the
- * language for members who have not chosen one (FND-18).
+ * Organisation settings (owners and admins): whether sections have a class teacher (FND-02), the
+ * language for members who have not chosen one (FND-18) and the guardian SMS language (FND-10).
  */
 const OrganizationSettingsCard = ({ organizationId }: { organizationId: string }) => {
   const t = useTranslations("academics.settings");
@@ -35,7 +35,7 @@ const OrganizationSettingsCard = ({ organizationId }: { organizationId: string }
     void load();
   }, [load]);
 
-  const update = async (change: Partial<Pick<OrganizationSettings, "class_teacher_enabled" | "default_locale">>) => {
+  const update = async (change: Partial<Pick<OrganizationSettings, "class_teacher_enabled" | "default_locale" | "sms_locale">>) => {
     setSaving(true);
     try {
       const res = await axiosReq.patch<ApiResponse<OrganizationSettings>>(`${baseUrl}/organizations/${organizationId}/settings`, change);
@@ -67,6 +67,16 @@ const OrganizationSettingsCard = ({ organizationId }: { organizationId: string }
             placeholder={false}
             options={LANGUAGES.map((value) => ({ value, label: t(`languages.${value}`) }))}
             onChange={(event) => void update({ default_locale: event.target.value as OrganizationLocale })}
+            fieldClassName="sm:max-w-xs"
+          />
+          <Select
+            label={t("smsLanguage")}
+            hint={t("smsLanguageHint")}
+            value={settings.sms_locale}
+            disabled={saving}
+            placeholder={false}
+            options={LANGUAGES.map((value) => ({ value, label: t(`languages.${value}`) }))}
+            onChange={(event) => void update({ sms_locale: event.target.value as OrganizationLocale })}
             fieldClassName="sm:max-w-xs"
           />
         </div>

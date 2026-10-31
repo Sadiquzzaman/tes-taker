@@ -79,6 +79,27 @@ interface OrganizationSettings {
   default_locale: OrganizationLocale;
   /** When the academic setup wizard was finished (P2-04); null = not yet. */
   setup_completed_at: string | null;
+  /** Guardian SMS language (FND-10): the organisation's choice, else its default language. */
+  sms_locale: OrganizationLocale;
+}
+
+type GuardianRelation = "FATHER" | "MOTHER" | "OTHER";
+
+/** A student's guardian (FND-09). */
+interface Guardian {
+  id: string;
+  name: string;
+  relation: GuardianRelation;
+  phone: string;
+  is_primary: boolean;
+}
+
+/** GET/PUT /enrolments/:id/guardians. */
+interface StudentGuardians {
+  guardians: Guardian[];
+  /** The student's own SMS language; null = the organisation's. */
+  sms_locale: OrganizationLocale | null;
+  organization_sms_locale: OrganizationLocale;
 }
 
 /** GET /setup: progress of the academic setup wizard (P2-04, FND-02). */

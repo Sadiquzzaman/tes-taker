@@ -242,6 +242,17 @@ describe("class sections (FND-02, FND-04, FND-19)", () => {
     expect(screen.queryByRole("button", { name: "Delete section A" })).toBeNull();
   });
 
+  it("gives teachers the guardians of the section's students, without the student changes", async () => {
+    workspace.mockReturnValue(school("TEACHER"));
+    setup(true);
+    renderApp(<ClassSections classId="c1" />);
+    fireEvent.click(within(await screen.findByRole("table")).getByRole("button", { name: "Open section A" }));
+    const drawer = await screen.findByRole("dialog", { name: "Section A" });
+    const roster = await within(drawer).findByRole("table");
+    expect(within(roster).getByRole("button", { name: "Guardians of Karim Uddin" })).toBeTruthy();
+    expect(within(roster).queryByRole("button", { name: "Mark Karim Uddin as left" })).toBeNull();
+  });
+
   it("marks a student as left after asking; nothing is deleted", async () => {
     workspace.mockReturnValue(school("ASSISTANT"));
     setup(true);

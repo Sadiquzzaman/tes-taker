@@ -398,6 +398,8 @@ Every column, type, index and enum is in the companion file `instructor-schema-v
 | enrolments | New | Student in a section for a session, roll no, status; unique per (session, class, student). Replaces `class_students` |
 | guardians | New | Up to 2 per student: name, relation, phone, primary |
 
+**Guardians (built P2-05, FND-09/10).** A student's guardians are edited through any of their enrolments (`GET/PUT /enrolments/:id/guardians`, saved as a whole), so an invited student who has not signed up yet can have guardians too (`guardians.enrolment_id`, `student_id` null); `EnrolmentsService.claimInvitation` hands them to the student in the same transaction (if the student already has guardians in that organisation, theirs stay and the invitation's are soft-deleted). Owners, admins, assistants and teachers who teach the enrolment's class may read and change them; removed guardians are kept (`deleted_at`, `deleted_by`) and every change is audited. SMS language: `guardians.sms_locale` (per student) → `org_settings.sms_locale` → `organizations.default_locale`; senders use `GuardiansService.contactsForStudent()`, which returns each guardian with that language.
+
 **Subject classes are the core teaching unit (decided 23 Oct, FND-19).**
 
 A `course_offering` is section + subject + session, with an optional term. Every epic links to it: `class_attendance.offering_id`, `homework_targets`, `exams.offering_id`, `offline_exams`, `behaviour_ratings`, `syllabus_progress`, `lesson_logs`, `routine_slots`, `resource_shares` and the group chat.
