@@ -1420,27 +1420,33 @@ Table user_notification_prefs {
 // M. Files, AI
 //////////////////////////////////////////////////////////////
 
-Enum file_status { PENDING READY FAILED DELETED }
-
 Table file_objects {
   id uuid [pk]
-  organization_id uuid
-  owner_id uuid [ref: > users.id]
-  purpose varchar(30) [note: 'HOMEWORK | RESOURCE | VIDEO | SELFIE | SNAPSHOT | SYLLABUS | REPORT | AVATAR | ...']
-  s3_key varchar(400)
-  mime varchar(100)
-  size_bytes bigint [note: 'counts toward org storage']
-  original_size_bytes bigint
+  organization_id uuid [not null, ref: > organizations.id]
+  owner_id uuid [ref: > users.id, note: 'uploader; null for moved legacy files']
+  purpose varchar(30) [not null, note: 'EXAM | DISCUSSION | IMAGE | HOMEWORK | RESOURCE | VIDEO | … (checked in code)']
+  s3_key varchar(400) [not null, note: 'tmp/{uuid} until processed, then org/{orgId}/{purpose}/{yyyy}/{uuid}.{ext}']
+  mime varchar(100) [not null]
+  original_name varchar(255)
+  size_bytes bigint [not null, default: 0, note: 'counts toward org storage (declared size until processed)']
+  original_size_bytes bigint [note: 'set when the upload is completed']
   width int
   height int
   duration_s int
-  status file_status
+  status varchar(10) [not null, default: 'PENDING', note: 'PENDING | READY | FAILED (CHECK); PENDING + READY count toward the quota']
+  legacy_key varchar(400) [note: 'M4: key under the old /uploads storage; unique where set']
   delete_after timestamptz [note: 'retention: selfies/snapshots +90 days']
+  deleted_at timestamptz [note: 'soft delete: frees quota, object kept']
+  deleted_by uuid [ref: > users.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
   Indexes {
     (organization_id, purpose)
+    (status, created_at)
     (delete_after)
+    legacy_key [unique, note: 'WHERE legacy_key IS NOT NULL']
   }
-  Note: 'NEW (FND-15, FND-16) — replaces local /uploads'
+  Note: 'BUILT (P2-07, FND-15, FND-16) — replaces local /uploads'
 }
 
 Table ai_task_configs {

@@ -7,6 +7,9 @@ import {
   EXAMS_AUTO_SUBMIT_EVERY_MS,
   EXAMS_AUTO_SUBMIT_JOB,
   EXAMS_QUEUE,
+  FILES_QUEUE,
+  FILES_SWEEP_EVERY_MS,
+  FILES_SWEEP_JOB,
   NOTIFICATIONS_QUEUE,
   NOTIFICATIONS_SWEEP_EVERY_MS,
   NOTIFICATIONS_SWEEP_JOB,
@@ -23,6 +26,7 @@ export class WorkerSchedulerService implements OnApplicationBootstrap {
   constructor(
     @InjectQueue(EXAMS_QUEUE) private readonly examsQueue: Queue,
     @InjectQueue(NOTIFICATIONS_QUEUE) private readonly notificationsQueue: Queue,
+    @InjectQueue(FILES_QUEUE) private readonly filesQueue: Queue,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -46,5 +50,8 @@ export class WorkerSchedulerService implements OnApplicationBootstrap {
       { name: BILLING_SMS_ALLOWANCE_JOB },
     );
     this.logger.log(`Scheduled ${BILLING_SMS_ALLOWANCE_JOB} every ${BILLING_SMS_ALLOWANCE_EVERY_MS / 60_000} min`);
+
+    await this.filesQueue.upsertJobScheduler(FILES_SWEEP_JOB, { every: FILES_SWEEP_EVERY_MS }, { name: FILES_SWEEP_JOB });
+    this.logger.log(`Scheduled ${FILES_SWEEP_JOB} every ${FILES_SWEEP_EVERY_MS / 60_000} min`);
   }
 }

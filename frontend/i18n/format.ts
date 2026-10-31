@@ -17,6 +17,24 @@ export const formatClock = (totalSeconds: number, locale: Locale) => {
   return `${formatTwoDigits(Math.floor(seconds / 60), locale)}:${formatTwoDigits(seconds % 60, locale)}`;
 };
 
+const SIZE_UNITS = ["byte", "kilobyte", "megabyte", "gigabyte"] as const;
+
+/** A file size such as "1.4 MB" / "১.৪ MB" (1 KB = 1024 bytes), for upload sizes and storage use. */
+export const formatFileSize = (bytes: number, locale: Locale) => {
+  let value = Math.max(0, bytes);
+  let unit = 0;
+  while (value >= 1024 && unit < SIZE_UNITS.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return formatNumber(value, locale, {
+    style: "unit",
+    unit: SIZE_UNITS[unit],
+    unitDisplay: "short",
+    maximumFractionDigits: unit >= 2 ? 1 : 0,
+  });
+};
+
 const toDate = (value: Date | string | number) => (value instanceof Date ? value : new Date(value));
 
 /** A date such as "24 Oct 2026" / "২৪ অক্টো, ২০২৬". */

@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import AccountBilling from "@/component/Account/AccountBilling";
+import StorageUsageCard from "@/component/Files/StorageUsageCard";
 import SmsCreditsCard from "@/component/Notifications/SmsCreditsCard";
 import PageLayout from "@/component/Layout";
 import { PageHeader, Skeleton } from "@/design/ui";
@@ -14,6 +15,7 @@ export default async function BillingPage() {
         <Suspense fallback={<Skeleton className="h-40 rounded-card" />}>
           <AccountBilling />
         </Suspense>
+        <StorageUsageCard />
         <SmsCreditsCard />
       </div>
     </PageLayout>

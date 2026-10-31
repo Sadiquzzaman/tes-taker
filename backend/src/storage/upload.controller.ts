@@ -17,23 +17,14 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { randomUUID } from 'crypto';
+import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { Roles } from 'src/common/decorators/roles.decorator';
+import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { RolesGuard } from 'src/common/guard/roles.guard';
-import { optimizeImageBuffer, withExtension } from './image-optimize.util';
-import { StorageService } from './storage.service';
-
-/** Raw upload ceiling — images are compressed afterward. */
-const MAX_BYTES = 20 * 1024 * 1024;
-
-const IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-const FILE_MIME = new Set([
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'text/plain',
-]);
+import { isImageMime, MAX_UPLOAD_BYTES as MAX_BYTES } from 'src/files/file-rules';
+import { FilesService } from 'src/files/files.service';
+import { OrganizationContextGuard } from 'src/organizations/guards/organization-context.guard';
 
 /** Known upload namespaces. Extend as new product surfaces need media. */
 const UPLOAD_PURPOSES = ['discussion', 'exam', 'image'] as const;
@@ -46,20 +37,25 @@ type UploadedMediaFile = {
   buffer: Buffer;
 };
 
+/**
+ * The older multipart uploads. They go through FilesService like presigned uploads (type, size,
+ * storage quota, a file_objects row, compression in the worker) and return the stable
+ * /files/{id}/content link. The web app uses POST /files/presign instead.
+ */
 @ApiTags('Uploads')
 @ApiBearerAuth('jwt')
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'), RolesGuard, OrganizationContextGuard)
 @Roles(RolesEnum.TEACHER, RolesEnum.STUDENT)
 @Controller({ path: 'uploads', version: '1' })
 export class UploadController {
-  constructor(private readonly storageService: StorageService) {}
+  constructor(private readonly files: FilesService) {}
 
   @Post('media')
   @ApiOperation({
     summary: 'Upload media to the configured storage driver (local or S3)',
     description:
       'purpose=discussion allows images + documents; purpose=exam|image is images only. ' +
-      'Images are automatically resized/compressed before storage. ' +
+      'Counts toward the storage quota; images are compressed in the background (FND-15). ' +
       'scopeId namespaces the object key (e.g. classId, examId).',
   })
   @ApiConsumes('multipart/form-data')
@@ -90,9 +86,10 @@ export class UploadController {
   async uploadMedia(
     @UploadedFile() file: UploadedMediaFile | undefined,
     @Query('purpose') purposeRaw: string,
+    @UserPayload() user: JwtPayloadInterface,
     @Query('scopeId') scopeId?: string,
   ) {
-    return this.storeUpload(file, purposeRaw, scopeId);
+    return this.storeUpload(user, file, purposeRaw, scopeId);
   }
 
   @Post('discussion')
@@ -118,14 +115,16 @@ export class UploadController {
   async uploadDiscussionFile(
     @UploadedFile() file: UploadedMediaFile | undefined,
     @Query('classId') classId: string,
+    @UserPayload() user: JwtPayloadInterface,
   ) {
     if (!classId?.trim()) {
       throw new BadRequestException('classId query parameter is required');
     }
-    return this.storeUpload(file, 'discussion', classId.trim());
+    return this.storeUpload(user, file, 'discussion', classId.trim());
   }
 
   private async storeUpload(
+    user: JwtPayloadInterface,
     file: UploadedMediaFile | undefined,
     purposeRaw: string,
     scopeId?: string,
@@ -141,67 +140,23 @@ export class UploadController {
       );
     }
 
-    let mime = (file.mimetype || '').toLowerCase();
-    const isImage = IMAGE_MIME.has(mime);
-    const isFile = FILE_MIME.has(mime);
-
-    if (purpose === 'discussion') {
-      if (!isImage && !isFile) {
-        throw new BadRequestException(
-          'Unsupported file type. Allowed: jpeg, png, webp, gif, pdf, doc, docx, txt.',
-        );
-      }
-      if (!scopeId?.trim()) {
-        throw new BadRequestException('scopeId (classId) is required for discussion uploads');
-      }
-      // Non-image discussion docs stay under 5 MB.
-      if (!isImage && file.size > 5 * 1024 * 1024) {
-        throw new BadRequestException('Document size must be 5 MB or less');
-      }
-    } else if (!isImage) {
-      throw new BadRequestException(
-        'Unsupported file type. Allowed images: jpeg, png, webp, gif.',
-      );
-    }
-
-    let body: Buffer = file.buffer;
-    let safeName =
-      file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'file';
-
-    if (isImage) {
-      const optimized = await optimizeImageBuffer(file.buffer, mime);
-      if (optimized) {
-        body = optimized.buffer;
-        mime = optimized.contentType;
-        safeName = withExtension(safeName, optimized.extension);
-      }
-    }
-
-    const scope = (scopeId || 'general').trim().replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80);
-    const folder =
-      purpose === 'discussion'
-        ? `discussions/${scope}`
-        : purpose === 'exam'
-          ? `exams/${scope}`
-          : `images/${scope}`;
-    const key = `${folder}/${randomUUID()}-${safeName}`;
-
-    const stored = await this.storageService.put({
-      key,
-      body,
-      contentType: mime,
-    });
+    const mime = (file.mimetype || '').toLowerCase();
+    const stored = await this.files.uploadBuffer(
+      user,
+      { purpose, mime, name: file.originalname, scopeId: scopeId?.trim() },
+      file.buffer,
+    );
 
     const payload = {
-      id: randomUUID(),
-      key: stored.key,
-      // Private S3 buckets cannot serve virtual-hosted URLs in <img>; use API proxy.
-      url: this.storageService.getClientUrl(stored.key),
-      file_name: safeName,
-      mime_type: mime,
-      size: stored.size ?? body.byteLength,
-      kind: isImage ? ('image' as const) : ('file' as const),
+      id: stored.id,
+      key: stored.id,
+      url: stored.url,
+      file_name: stored.name ?? 'file',
+      mime_type: stored.mime,
+      size: stored.size_bytes,
+      kind: isImageMime(stored.mime) ? ('image' as const) : ('file' as const),
       purpose,
+      status: stored.status,
     };
 
     return { message: 'File uploaded successfully', payload };

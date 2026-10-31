@@ -50,6 +50,25 @@ describe('plan seeding', () => {
     expect(await plans().countBy({ slug: 'basic' })).toBe(1);
   });
 
+  it('adds the storage quota (FND-16) only to preset plans that have none, keeping an admin value', async () => {
+    const free = await plans().findOneByOrFail({ slug: 'free' });
+    const pro = await plans().findOneByOrFail({ slug: 'pro' });
+    const { max_storage_mb: _free, ...freeLimits } = free.limits as Record<string, number>;
+    await plans().save({ ...free, limits: freeLimits });
+    await plans().save({ ...pro, limits: { ...pro.limits, max_storage_mb: 0 } });
+
+    await restart();
+
+    expect((await plans().findOneByOrFail({ slug: 'free' })).limits.max_storage_mb).toBe(500);
+    expect((await plans().findOneByOrFail({ slug: 'pro' })).limits.max_storage_mb).toBe(0);
+
+    // Back to the preset for the other test files sharing these plans.
+    const { max_storage_mb: _pro, ...proLimits } = pro.limits as Record<string, number>;
+    await plans().save({ ...pro, limits: proLimits });
+    await restart();
+    expect((await plans().findOneByOrFail({ slug: 'pro' })).limits.max_storage_mb).toBe(51_200);
+  });
+
   it('refuses to delete the Free plan, which organisations without a subscription use', async () => {
     const admin = await make.user(RolesEnum.SUPER_ADMIN);
     const free = await plans().findOneByOrFail({ slug: 'free' });

@@ -11,11 +11,16 @@ import {
   EXAMS_AUTO_SUBMIT_EVERY_MS,
   EXAMS_AUTO_SUBMIT_JOB,
   EXAMS_QUEUE,
+  FILES_QUEUE,
+  FILES_SWEEP_EVERY_MS,
+  FILES_SWEEP_JOB,
   NOTIFICATIONS_QUEUE,
   NOTIFICATIONS_SWEEP_EVERY_MS,
   NOTIFICATIONS_SWEEP_JOB,
   WORKER_HEARTBEAT_KEY,
 } from '../../src/queue/queue.constants';
+import { FileObjectEntity } from '../../src/files/entities/file-object.entity';
+import { FileStatusEnum } from '../../src/files/file-rules';
 import { NotificationOutboxEntity } from '../../src/notifications/entities/notification-outbox.entity';
 import { NOTIFICATION_EVENTS, NotificationChannelEnum, OutboxStatusEnum } from '../../src/notifications/notification.constants';
 import { NotificationsService } from '../../src/notifications/notifications.service';
@@ -155,5 +160,34 @@ describe('worker: exams.auto-submit', () => {
     }
     expect(status).toBe(OutboxStatusEnum.SENT);
     expect(deliver).toHaveBeenCalledWith(student.phone, expect.stringContaining('Algebra'));
+  });
+
+  it('compresses an upload in the files.process job, and sweeps files every 10 min (P2-07)', async () => {
+    const filesQueue = worker.get<Queue>(getQueueToken(FILES_QUEUE));
+    expect((await filesQueue.getJobScheduler(FILES_SWEEP_JOB))?.every).toBe(FILES_SWEEP_EVERY_MS);
+
+    const teacher = await make.teacher();
+    const form = new FormData();
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP8z8DAwMDAxMDAwMDAAAANHQEDasKb6QAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    form.append('file', new Blob([new Uint8Array(png)], { type: 'image/png' }), 'dot.png');
+    const origin = (await t.app.getUrl()).replace('[::1]', '127.0.0.1');
+    const response = await fetch(`${origin}/api/v1/uploads/media?purpose=exam`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${t.tokenFor(teacher)}` },
+      body: form,
+    });
+    expect(response.status).toBe(201);
+    const { payload } = (await response.json()) as { payload: { id: string } };
+
+    const files = t.dataSource.getRepository(FileObjectEntity);
+    let file = await files.findOneByOrFail({ id: payload.id });
+    for (let i = 0; i < 100 && file.status === FileStatusEnum.PENDING; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      file = await files.findOneByOrFail({ id: payload.id });
+    }
+    expect(file).toMatchObject({ status: FileStatusEnum.READY, mime: 'image/webp', width: 2, height: 2 });
   });
 });

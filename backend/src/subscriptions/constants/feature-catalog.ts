@@ -13,6 +13,7 @@ export enum LimitKey {
   /** Students in the organisation's open sessions (FND-04 import; 0 or unset = unlimited). */
   MAX_STUDENTS = 'max_students',
   MAX_QUESTION_BANK_SIZE = 'max_question_bank_size',
+  /** Total storage held by the organisation's files (FND-16; 0 or unset = unlimited). */
   MAX_STORAGE_MB = 'max_storage_mb',
   /** The plan's monthly SMS allowance (FND-13). Unlike the other limits, 0 means none, not unlimited. */
   SMS_CREDITS_PER_MONTH = 'sms_credits_per_month',
@@ -191,7 +192,7 @@ export const LIMIT_CATALOG: CatalogLimitDefinition[] = [
   { key: LimitKey.MAX_STUDENTS_PER_EXAM, label: 'Max students per exam', min: 1 },
   { key: LimitKey.MAX_STUDENTS, label: 'Max students', description: 'Students in open sessions; 0 = unlimited', min: 0 },
   { key: LimitKey.MAX_QUESTION_BANK_SIZE, label: 'Max question bank size', min: 0 },
-  { key: LimitKey.MAX_STORAGE_MB, label: 'Max storage (MB)', min: 0 },
+  { key: LimitKey.MAX_STORAGE_MB, label: 'Max storage (MB)', description: 'Total storage held by files; 0 = unlimited', min: 0 },
   { key: LimitKey.SMS_CREDITS_PER_MONTH, label: 'SMS per month', description: 'Monthly SMS allowance; 0 = none', min: 0 },
 ];
 
@@ -280,6 +281,7 @@ export const SEED_PLAN_PRESETS = {
       [LimitKey.MAX_TOTAL_EXAMS]: 2,
       [LimitKey.MAX_STUDENTS_PER_EXAM]: 15,
       [LimitKey.SMS_CREDITS_PER_MONTH]: 50,
+      [LimitKey.MAX_STORAGE_MB]: 500,
     },
   },
   basic: {
@@ -306,6 +308,7 @@ export const SEED_PLAN_PRESETS = {
       [LimitKey.MAX_EXAMS_PER_MONTH]: 5,
       [LimitKey.MAX_STUDENTS_PER_EXAM]: 30,
       [LimitKey.SMS_CREDITS_PER_MONTH]: 300,
+      [LimitKey.MAX_STORAGE_MB]: 2_048,
     },
   },
   premium: {
@@ -339,6 +342,7 @@ export const SEED_PLAN_PRESETS = {
       [LimitKey.MAX_EXAMS_PER_MONTH]: 5,
       [LimitKey.MAX_STUDENTS_PER_EXAM]: 80,
       [LimitKey.SMS_CREDITS_PER_MONTH]: 1_000,
+      [LimitKey.MAX_STORAGE_MB]: 10_240,
     },
   },
   pro: {
@@ -383,6 +387,7 @@ export const SEED_PLAN_PRESETS = {
       [LimitKey.MAX_EXAMS_PER_MONTH]: 50,
       [LimitKey.MAX_STUDENTS_PER_EXAM]: 200,
       [LimitKey.SMS_CREDITS_PER_MONTH]: 3_000,
+      [LimitKey.MAX_STORAGE_MB]: 51_200,
     },
   },
 } as const;

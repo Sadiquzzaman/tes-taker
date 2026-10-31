@@ -45,6 +45,6 @@ import { ChatMongoModule } from 'src/chat-mongo/chat-mongo.module';
   ],
   controllers: [ClassController, StudentClassController, ClassDiscussionController],
   providers: [ClassService, ClassDiscussionService, DiscussionAccessService],
-  exports: [ClassService],
+  exports: [ClassService, DiscussionAccessService],
 })
 export class ClassModule {}
