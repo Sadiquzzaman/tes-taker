@@ -2312,7 +2312,9 @@
       "languages": {
         "bn": "Bangla",
         "en": "English"
-      }
+      },
+      "smsLanguage": "Guardian SMS language",
+      "smsLanguageHint": "Students can have their own. One SMS holds 160 English or 70 Bangla characters, so Bangla SMS use more credits."
     },
     "sections": {
       "title": "[[Sections]]",
@@ -2503,6 +2505,36 @@
         "continue": "Continue setup",
         "reopen": "Open academic setup"
       }
+    },
+    "guardians": {
+      "open": "Guardians",
+      "openFor": "Guardians of {name}",
+      "title": "Guardians of {name}",
+      "intro": "Up to 2 guardians. Alerts and reports go to them by SMS.",
+      "empty": "No guardians yet",
+      "guardianN": "Guardian {n}",
+      "name": "Name",
+      "relation": "Relation",
+      "phone": "Mobile number",
+      "phoneHint": "01XXXXXXXXX",
+      "relations": {
+        "FATHER": "Father",
+        "MOTHER": "Mother",
+        "OTHER": "Other"
+      },
+      "primary": "Primary guardian",
+      "add": "Add a guardian",
+      "remove": "Remove",
+      "removeFor": "Remove guardian {n}",
+      "smsLanguage": "SMS language for this student",
+      "smsDefault": "Organisation default ({language})",
+      "smsHint": "One SMS holds 160 English or 70 Bangla characters, so Bangla SMS use more credits.",
+      "save": "Save",
+      "saved": "Guardians saved",
+      "cancel": "Cancel",
+      "invalidPhone": "Enter a Bangladeshi mobile number, 01XXXXXXXXX",
+      "samePhone": "Two guardians cannot have the same number",
+      "nameRequired": "Enter the guardian's name"
     }
   },
   "levelLabels": {
@@ -2617,7 +2649,8 @@
       "user": "Users",
       "teacher": "Teachers",
       "message_template": "Message templates",
-      "sms_credits": "SMS credits"
+      "sms_credits": "SMS credits",
+      "guardian": "Guardians"
     },
     "actions": {
       "plan": {
@@ -2674,6 +2707,11 @@
       },
       "sms_credits": {
         "top_up": "SMS credits added"
+      },
+      "guardian": {
+        "create": "Guardian added",
+        "update": "Guardian changed",
+        "delete": "Guardian removed"
       }
     },
     "fields": {
@@ -2732,7 +2770,12 @@
       "body": "Text",
       "message_template": "Message template",
       "credits": "Credits",
-      "top_up_left": "Top-up credits left"
+      "top_up_left": "Top-up credits left",
+      "relation": "Relation",
+      "phone": "Mobile number",
+      "is_primary": "Primary",
+      "sms_locale": "SMS language",
+      "guardian": "Guardian"
     }
   },
   "smsCredits": {
