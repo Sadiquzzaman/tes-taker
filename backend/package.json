@@ -10,6 +10,7 @@
     "start:prod": "node .",
     "start:worker": "node dist/src/worker.js",
     "start:worker:dev": "NODE_PATH=. ts-node --transpile-only src/worker.ts",
+    "files:migrate-legacy": "NODE_PATH=. ts-node --transpile-only src/files-migrate-legacy.ts",
     "lint": "eslint src test",
     "typeorm": "typeorm-ts-node-commonjs -d ./src/data-source.ts",
     "migration:create": "typeorm-ts-node-commonjs migration:create ./src/migrations/Migration",
