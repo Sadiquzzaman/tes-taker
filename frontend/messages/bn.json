@@ -37,7 +37,8 @@
     "sessions": "সেশন",
     "auditLog": "অডিট লগ",
     "activityLog": "কার্যক্রমের লগ",
-    "gradingScale": "গ্রেডিং স্কেল"
+    "gradingScale": "গ্রেডিং স্কেল",
+    "messageLog": "মেসেজ লগ"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -1444,7 +1445,9 @@
       "PAID": "পরিশোধিত",
       "FAILED": "ব্যর্থ",
       "CANCELLED": "বাতিল"
-    }
+    },
+    "smsCredits": "SMS ক্রেডিট",
+    "smsAdded": "{count, number}টি যোগ হয়েছে"
   },
   "organization": {
     "roles": {
@@ -1868,7 +1871,8 @@
       "resetFor": "{name}-এ প্ল্যানের সীমা ব্যবহার করুন",
       "savedTitle": "সংরক্ষিত",
       "saved": "প্রতিষ্ঠানটি পরের বার পেজ খুললে পরিবর্তন দেখবে।",
-      "recentChanges": "সাম্প্রতিক পরিবর্তন"
+      "recentChanges": "সাম্প্রতিক পরিবর্তন",
+      "noSms": "SMS নেই"
     },
     "featureRequests": {
       "title": "ফিচারের অনুরোধ",
@@ -1883,6 +1887,15 @@
       "handledTitle": "সম্পন্ন চিহ্নিত",
       "handled": "অনুরোধটি বন্ধ হয়েছে।",
       "empty": "কোনো ফিচারের অনুরোধ নেই।"
+    },
+    "smsCredits": {
+      "heading": "SMS ক্রেডিট",
+      "balance": "{total, number}টি SMS বাকি: এই মাসে প্ল্যান থেকে {granted, number}টির মধ্যে {allowance, number}টি, টপ-আপ {topUp, number}টি।",
+      "credits": "যোগ করার ক্রেডিট",
+      "reason": "টপ-আপের কারণ (ঐচ্ছিক)",
+      "add": "ক্রেডিট যোগ করুন",
+      "addedTitle": "SMS ক্রেডিট যোগ হয়েছে",
+      "added": "{count, number}টি SMS ক্রেডিট যোগ হয়েছে।"
     }
   },
   "notFound": {
@@ -2231,7 +2244,8 @@
       "max_total_exams": "মোট পরীক্ষা",
       "max_students_per_exam": "প্রতি পরীক্ষায় শিক্ষার্থী",
       "max_question_bank_size": "প্রশ্নব্যাংকে প্রশ্ন",
-      "max_storage_mb": "স্টোরেজ (MB)"
+      "max_storage_mb": "স্টোরেজ (MB)",
+      "sms_credits_per_month": "প্রতি মাসে SMS"
     }
   },
   "academics": {
@@ -2601,7 +2615,9 @@
       "organization": "প্রতিষ্ঠান",
       "teacher_request": "শিক্ষক হওয়ার অনুরোধ",
       "user": "ব্যবহারকারী",
-      "teacher": "শিক্ষক"
+      "teacher": "শিক্ষক",
+      "message_template": "মেসেজ টেমপ্লেট",
+      "sms_credits": "SMS ক্রেডিট"
     },
     "actions": {
       "plan": {
@@ -2652,6 +2668,12 @@
       "grading_scale": {
         "update": "গ্রেডিং স্কেল বদল",
         "reset": "গ্রেডিং স্কেল ডিফল্টে ফেরা"
+      },
+      "message_template": {
+        "update": "মেসেজ টেমপ্লেট সম্পাদিত"
+      },
+      "sms_credits": {
+        "top_up": "SMS ক্রেডিট যোগ হয়েছে"
       }
     },
     "fields": {
@@ -2702,7 +2724,120 @@
       "student_exam_submission": "উত্তরপত্র",
       "exam": "টেস্ট",
       "bands": "ধাপসমূহ",
-      "grading_scale": "গ্রেডিং স্কেল"
+      "grading_scale": "গ্রেডিং স্কেল",
+      "event_type": "মেসেজ",
+      "channel": "মাধ্যম",
+      "locale": "ভাষা",
+      "subject": "বিষয়",
+      "body": "লেখা",
+      "message_template": "মেসেজ টেমপ্লেট",
+      "credits": "ক্রেডিট",
+      "top_up_left": "বাকি টপ-আপ ক্রেডিট"
+    }
+  },
+  "smsCredits": {
+    "title": "SMS ক্রেডিট",
+    "intro": "আপনার প্ল্যানে প্রতি মাসে SMS আছে। দরকার হলে আরও কিনুন।",
+    "openLog": "মেসেজ লগ",
+    "loadFailed": "SMS ক্রেডিট লোড হয়নি।",
+    "totalLeft": "{count, plural, other {#টি SMS বাকি}}",
+    "low": "কমে আসছে",
+    "allowance": "এই মাসে আপনার প্ল্যান থেকে",
+    "allowanceLeft": "{granted, number}টির মধ্যে {left, number}টি বাকি",
+    "noAllowance": "আপনার প্ল্যানে মাসিক SMS নেই",
+    "allowanceHint": "প্রতি মাসের শুরুতে নতুন করে আসে। না-ব্যবহৃত SMS পরের মাসে যায় না।",
+    "topUp": "টপ-আপ ক্রেডিট",
+    "credits": "{count, plural, other {#টি SMS}}",
+    "topUpHint": "কেনা ক্রেডিট শেষ না হওয়া পর্যন্ত থাকে।",
+    "buyHeading": "আরও SMS কিনুন",
+    "price": "৳{price}",
+    "buy": "কিনুন",
+    "buyPack": "{count, number}টি SMS কিনুন",
+    "noCreditHint": "প্রতিটি SMS অংশে একটি ক্রেডিট লাগে (ইংরেজিতে ১৬০ বা বাংলায় ৭০ অক্ষর)। ক্রেডিট শেষ হলে SMS বন্ধ হয়; অ্যাপের বার্তা ও ইমেইল যেতে থাকে।"
+  },
+  "messageLog": {
+    "title": "মেসেজ লগ",
+    "intro": "এই ওয়ার্কস্পেস থেকে পাঠানো প্রতিটি SMS ও ইমেইল: কার কাছে, কখন, এবং গেছে কি না।",
+    "when": "কখন",
+    "to": "প্রাপক",
+    "type": "ধরন",
+    "channel": "মাধ্যম",
+    "status": "অবস্থা",
+    "message": "বার্তা",
+    "credits": "ক্রেডিট",
+    "from": "থেকে",
+    "toDay": "পর্যন্ত",
+    "allTypes": "সব ধরন",
+    "allChannels": "সব মাধ্যম",
+    "allStatuses": "সব অবস্থা",
+    "unknown": "অজানা",
+    "hidden": "কোড লুকানো",
+    "onlyRecipient": "শুধু {name}-এর বার্তা দেখুন",
+    "recipientFilter": "প্রাপক: {name}",
+    "empty": "এখনও কোনো বার্তা নেই।",
+    "emptyFiltered": "এই ফিল্টারে কোনো বার্তা নেই।",
+    "channels": {
+      "SMS": "এসএমএস",
+      "EMAIL": "ইমেইল",
+      "IN_APP": "অ্যাপে"
+    },
+    "statuses": {
+      "PENDING": "অপেক্ষমাণ",
+      "SENDING": "পাঠানো হচ্ছে",
+      "SENT": "পাঠানো হয়েছে",
+      "DELIVERED": "পৌঁছেছে",
+      "FAILED": "ব্যর্থ",
+      "NO_CREDIT": "পাঠানো হয়নি — ক্রেডিট নেই"
+    },
+    "areas": {
+      "exam": "টেস্ট",
+      "class": "ক্লাসের আমন্ত্রণ",
+      "organization": "প্রতিষ্ঠানের আমন্ত্রণ",
+      "sms": "SMS ক্রেডিট"
+    },
+    "events": {
+      "exam": {
+        "scheduled": "টেস্টের সময়সূচি"
+      },
+      "class": {
+        "invitation": "ক্লাসের আমন্ত্রণ"
+      },
+      "organization": {
+        "invitation": "প্রতিষ্ঠানের আমন্ত্রণ"
+      },
+      "sms": {
+        "low_credit": "SMS ক্রেডিট কমে আসছে"
+      },
+      "auth": {
+        "otp": "সাইন-আপ কোড",
+        "password_reset": "পাসওয়ার্ড রিসেট কোড"
+      },
+      "feature_request": {
+        "created": "ফিচারের অনুরোধ"
+      }
+    }
+  },
+  "notifications": {
+    "bell": "নোটিফিকেশন",
+    "bellUnread": "{count, plural, other {নোটিফিকেশন, #টি অপঠিত}}",
+    "title": "নোটিফিকেশন",
+    "markAllRead": "সব পঠিত হিসেবে চিহ্নিত করুন",
+    "unread": "অপঠিত",
+    "empty": "এখনও কোনো নোটিফিকেশন নেই",
+    "emptyHint": "টেস্ট, SMS ক্রেডিটের সতর্কতা ও অন্যান্য খবর এখানে দেখাবে।",
+    "prefs": {
+      "title": "নোটিফিকেশন",
+      "intro": "প্রতিটি ধরনের বার্তা কীভাবে পেতে চান বেছে নিন। অ্যাপে (ঘণ্টা আইকনে) সবসময় পাবেন।",
+      "inAppAlways": "সবসময় অ্যাপে",
+      "channels": {
+        "SMS": "এসএমএস",
+        "EMAIL": "ইমেইল"
+      },
+      "channelFor": "{message}-এর জন্য {channel}",
+      "saved": "আপনার নোটিফিকেশন সেটিংস সংরক্ষিত হয়েছে।",
+      "savedTitle": "সংরক্ষিত",
+      "loadFailed": "আপনার নোটিফিকেশন সেটিংস লোড হয়নি।",
+      "smsHint": "SMS আপনার স্কুল বা ওয়ার্কস্পেসের SMS ক্রেডিট থেকে খরচ হয়।"
     }
   }
 }

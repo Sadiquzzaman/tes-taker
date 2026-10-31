@@ -15,7 +15,6 @@ import { ClassDiscussionCommentEntity } from './entities/class-discussion-commen
 import { ClassPrivateConversationEntity } from './entities/class-private-conversation.entity';
 import { ClassPrivateMessageEntity } from './entities/class-private-message.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
-import { EmailModule } from 'src/email/email.module';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { OrganizationsModule } from 'src/organizations/organization.module';
@@ -41,7 +40,6 @@ import { ChatMongoModule } from 'src/chat-mongo/chat-mongo.module';
     ]),
     AcademicsModule,
     ChatMongoModule,
-    EmailModule,
     OrganizationsModule,
     UserModule,
   ],

@@ -35,7 +35,6 @@ import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
 import { assertExamSessionOpen } from 'src/academics/session-lock';
 import {
   activeEnrolmentCondition,
-  examClassAudience,
   inOfferingRosterCondition,
   isInExamClassAudience,
   promotedFromExamClassCondition,
@@ -43,7 +42,6 @@ import {
 } from 'src/academics/enrolment-queries';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
-import { SmsService } from 'src/sms/sms.service';
 import {
   StartExamDto,
   SaveAnswerDto,
@@ -150,8 +148,6 @@ export class StudentExamService {
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
 
-    private readonly smsService: SmsService,
-
     private readonly dataSource: DataSource,
 
     private readonly classService: ClassService,
@@ -254,78 +250,6 @@ export class StudentExamService {
     return ordered
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
       .filter((q) => !(q.category === QuestionCategoryEnum.PASSAGE && !q.parent_id));
-  }
-
-  // ========================
-  // NOTIFICATION SERVICE
-  // ========================
-
-  /**
-   * Send exam notification to all assigned students
-   */
-  async sendExamNotificationToStudents(examId: string): Promise<{ sent: number; failed: number }> {
-    const exam = await this.examRepo.findOne({
-      where: { id: examId },
-      relations: ['class', 'excluded_students'],
-    });
-
-    if (!exam) {
-      throw new NotFoundException('Exam not found');
-    }
-
-    if (!exam.class) {
-      return { sent: 0, failed: 0 };
-    }
-
-    // The exam's class audience (its subject class's students, or the class's in the exam's session)
-    const classStudents = (await examClassAudience(this.enrolmentRepo, exam))
-      .map((row) => row.student)
-      .filter((s): s is UserEntity => s !== null);
-
-    const excludedIds = (exam.excluded_students || []).map((s) => s.id);
-
-    const assignedStudents = classStudents.filter((s) => !excludedIds.includes(s.id));
-
-    if (assignedStudents.length === 0) {
-      return { sent: 0, failed: 0 };
-    }
-
-    let sent = 0;
-    let failed = 0;
-
-    // Format date for message
-    const examDate = new Date(exam.exam_start_time);
-    const formattedDate = examDate.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    // Send notification to each student
-    for (const student of assignedStudents) {
-      if (student.phone) {
-        try {
-          const title = exam.test_name || exam.subject || 'Your exam';
-          const message = `You have an upcoming exam "${title}" scheduled for ${formattedDate}. Please prepare accordingly. - Testaker`;
-          const result = await this.smsService.sendSms(student.phone, message);
-          if (result) {
-            sent++;
-          } else {
-            failed++;
-          }
-        } catch (error) {
-          this.logger.error(`Failed to send notification to ${student.phone}: ${error instanceof Error ? error.message : String(error)}`);
-          failed++;
-        }
-      } else {
-        failed++; // No phone number
-      }
-    }
-
-    return { sent, failed };
   }
 
   // ========================

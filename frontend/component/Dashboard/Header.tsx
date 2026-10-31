@@ -1,7 +1,7 @@
 import sidebarList from "@/utils/sidebarList";
 import { getTranslations } from "next-intl/server";
-import BellIconSVG from "../svg/BellIconSVG";
 import LanguageSwitcher from "../Layout/LanguageSwitcher";
+import NotificationBell from "../Notifications/NotificationBell";
 import HeaderProfile from "./HeaderProfile";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
@@ -25,13 +25,11 @@ const Header = async ({ activeRoute, subText = "" }: { activeRoute: string; subT
   );
 };
 
-/** Right side of the top bar. The bell has no inbox yet (P2-08), so it is decorative. */
+/** Right side of the top bar: workspace, the notifications bell (P2-08), language and profile. */
 export const HeaderActions = () => (
   <>
     <WorkspaceSwitcher />
-    <span aria-hidden="true" className="hidden text-ink sm:inline-flex">
-      <BellIconSVG width={16} />
-    </span>
+    <NotificationBell />
     <LanguageSwitcher />
     <HeaderProfile />
   </>

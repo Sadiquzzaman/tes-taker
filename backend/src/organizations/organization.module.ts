@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from 'src/config/redis.module';
 import { UserModule } from 'src/user/user.module';
-import { EmailModule } from 'src/email/email.module';
 import { ClassEntity } from 'src/classes/entities/class.entity';
 import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
 import { ClassSubjectEntity } from 'src/classes/entities/class-subject.entity';
@@ -41,7 +40,6 @@ import { WorkspaceController } from './workspace.controller';
     ]),
     RedisModule,
     UserModule,
-    EmailModule,
   ],
   controllers: [OrganizationAdminController, OrganizationController, WorkspaceController],
   providers: [

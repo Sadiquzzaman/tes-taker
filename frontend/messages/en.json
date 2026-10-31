@@ -37,7 +37,8 @@
     "sessions": "Sessions",
     "auditLog": "Audit log",
     "activityLog": "Activity log",
-    "gradingScale": "Grading scale"
+    "gradingScale": "Grading scale",
+    "messageLog": "Message log"
   },
   "shell": {
     "organization": "Organization",
@@ -1444,7 +1445,9 @@
       "PAID": "Paid",
       "FAILED": "Failed",
       "CANCELLED": "Cancelled"
-    }
+    },
+    "smsCredits": "SMS credits",
+    "smsAdded": "{count, number} added"
   },
   "organization": {
     "roles": {
@@ -1868,7 +1871,8 @@
       "resetFor": "Use the plan's {name}",
       "savedTitle": "Saved",
       "saved": "The organisation sees the change on its next page load.",
-      "recentChanges": "Recent changes"
+      "recentChanges": "Recent changes",
+      "noSms": "No SMS"
     },
     "featureRequests": {
       "title": "Feature requests",
@@ -1883,6 +1887,15 @@
       "handledTitle": "Marked handled",
       "handled": "The request is closed.",
       "empty": "No feature requests."
+    },
+    "smsCredits": {
+      "heading": "SMS credits",
+      "balance": "{total, number} SMS left: {allowance, number} of {granted, number} from the plan this month, {topUp, number} top-up.",
+      "credits": "Credits to add",
+      "reason": "Reason for the top-up (optional)",
+      "add": "Add credits",
+      "addedTitle": "SMS credits added",
+      "added": "{count, number} SMS credits added."
     }
   },
   "notFound": {
@@ -2231,7 +2244,8 @@
       "max_total_exams": "Tests in total",
       "max_students_per_exam": "Students per test",
       "max_question_bank_size": "Questions in the question bank",
-      "max_storage_mb": "Storage (MB)"
+      "max_storage_mb": "Storage (MB)",
+      "sms_credits_per_month": "SMS per month"
     }
   },
   "academics": {
@@ -2601,7 +2615,9 @@
       "organization": "Organisations",
       "teacher_request": "Teacher requests",
       "user": "Users",
-      "teacher": "Teachers"
+      "teacher": "Teachers",
+      "message_template": "Message templates",
+      "sms_credits": "SMS credits"
     },
     "actions": {
       "plan": {
@@ -2652,6 +2668,12 @@
       "grading_scale": {
         "update": "Grading scale changed",
         "reset": "Grading scale reset to default"
+      },
+      "message_template": {
+        "update": "Message template edited"
+      },
+      "sms_credits": {
+        "top_up": "SMS credits added"
       }
     },
     "fields": {
@@ -2702,7 +2724,120 @@
       "student_exam_submission": "Answer sheet",
       "exam": "Test",
       "bands": "Bands",
-      "grading_scale": "Grading scale"
+      "grading_scale": "Grading scale",
+      "event_type": "Message",
+      "channel": "Channel",
+      "locale": "Language",
+      "subject": "Subject",
+      "body": "Text",
+      "message_template": "Message template",
+      "credits": "Credits",
+      "top_up_left": "Top-up credits left"
+    }
+  },
+  "smsCredits": {
+    "title": "SMS credits",
+    "intro": "Your plan includes SMS each month. Buy more when you need them.",
+    "openLog": "Message log",
+    "loadFailed": "SMS credits did not load.",
+    "totalLeft": "{count, plural, one {# SMS left} other {# SMS left}}",
+    "low": "Running low",
+    "allowance": "From your plan this month",
+    "allowanceLeft": "{left, number} of {granted, number} left",
+    "noAllowance": "Your plan has no monthly SMS",
+    "allowanceHint": "Resets at the start of each month. Unused SMS do not carry over.",
+    "topUp": "Top-up credits",
+    "credits": "{count, plural, one {# SMS} other {# SMS}}",
+    "topUpHint": "Bought credits carry over until used.",
+    "buyHeading": "Buy more SMS",
+    "price": "৳{price}",
+    "buy": "Buy",
+    "buyPack": "Buy {count, number} SMS",
+    "noCreditHint": "Each SMS part uses one credit (160 English or 70 Bangla characters). With no credits left, SMS stop; in-app messages and emails still go out."
+  },
+  "messageLog": {
+    "title": "Message log",
+    "intro": "Every SMS and email sent from this workspace: who it was for, when, and whether it went out.",
+    "when": "When",
+    "to": "To",
+    "type": "Type",
+    "channel": "Channel",
+    "status": "Status",
+    "message": "Message",
+    "credits": "Credits",
+    "from": "From",
+    "toDay": "To",
+    "allTypes": "All types",
+    "allChannels": "All channels",
+    "allStatuses": "All statuses",
+    "unknown": "Unknown",
+    "hidden": "Code hidden",
+    "onlyRecipient": "Show only messages to {name}",
+    "recipientFilter": "To: {name}",
+    "empty": "No messages yet.",
+    "emptyFiltered": "No messages match these filters.",
+    "channels": {
+      "SMS": "SMS",
+      "EMAIL": "Email",
+      "IN_APP": "In-app"
+    },
+    "statuses": {
+      "PENDING": "Waiting",
+      "SENDING": "Sending",
+      "SENT": "Sent",
+      "DELIVERED": "Delivered",
+      "FAILED": "Failed",
+      "NO_CREDIT": "Not sent — no credit"
+    },
+    "areas": {
+      "exam": "Tests",
+      "class": "Class invitations",
+      "organization": "Organisation invitations",
+      "sms": "SMS credits"
+    },
+    "events": {
+      "exam": {
+        "scheduled": "Test scheduled"
+      },
+      "class": {
+        "invitation": "Class invitation"
+      },
+      "organization": {
+        "invitation": "Organisation invitation"
+      },
+      "sms": {
+        "low_credit": "SMS credits running low"
+      },
+      "auth": {
+        "otp": "Sign-up code",
+        "password_reset": "Password reset code"
+      },
+      "feature_request": {
+        "created": "Feature request"
+      }
+    }
+  },
+  "notifications": {
+    "bell": "Notifications",
+    "bellUnread": "{count, plural, one {Notifications, # unread} other {Notifications, # unread}}",
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "unread": "Unread",
+    "empty": "No notifications yet",
+    "emptyHint": "Tests, SMS credit warnings and other news show up here.",
+    "prefs": {
+      "title": "Notifications",
+      "intro": "Choose how you hear about each kind of message. You always get them here in the app (the bell).",
+      "inAppAlways": "Always in the app",
+      "channels": {
+        "SMS": "SMS",
+        "EMAIL": "Email"
+      },
+      "channelFor": "{channel} for {message}",
+      "saved": "Your notification settings are saved.",
+      "savedTitle": "Saved",
+      "loadFailed": "Your notification settings did not load.",
+      "smsHint": "SMS are paid from your school's or workspace's SMS credits."
     }
   }
 }

@@ -10,7 +10,8 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UserService } from 'src/user/user.service';
 import { SmsService } from 'src/sms/sms.service';
 import { SmsRateLimitService } from 'src/sms/sms-rate-limit.service';
-import { EmailService } from 'src/email/email.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NOTIFICATION_EVENTS, NotificationChannelEnum } from 'src/notifications/notification.constants';
 import { ClassService } from 'src/classes/class.service';
 import { OrganizationsService } from 'src/organizations/organization.service';
 import { UserContextService } from 'src/organizations/user-context.service';
@@ -28,7 +29,7 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly smsService: SmsService,
     private readonly smsRateLimitService: SmsRateLimitService,
-    private readonly emailService: EmailService,
+    private readonly notifications: NotificationsService,
     private readonly classService: ClassService,
     private readonly organizationsService: OrganizationsService,
     private readonly userContextService: UserContextService,
@@ -442,25 +443,7 @@ export class AuthService {
       if (!user.email) {
         throw new BadRequestException('This account does not have an email address on file');
       }
-      try {
-        const html = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #232A25;">Reset your Instructor password</h2>
-            <p>Hello ${user.full_name || ''},</p>
-            <p>Use the verification code below to reset your password. This code is valid for 5 minutes.</p>
-            <p style="margin: 24px 0;">
-              <span style="display: inline-block; font-size: 28px; letter-spacing: 6px; font-weight: 700; color: #49734F;">${otp}</span>
-            </p>
-            <p style="color: #747775; font-size: 13px;">If you didn't request a password reset, you can safely ignore this email.</p>
-          </div>
-        `;
-        await this.emailService.sendEmail(user.email, 'Reset your Instructor password', html);
-      } catch (error) {
-        this.logger.error(
-          `Failed to send password reset OTP via email: ${error instanceof Error ? error.message : String(error)}`,
-        );
-        throw new BadRequestException('Failed to send password reset code via email. Please try again.');
-      }
+      await this.queueResetCode(user.id, NotificationChannelEnum.EMAIL, user.email, otp, user.full_name);
 
       return {
         success: true,
@@ -479,15 +462,7 @@ export class AuthService {
       throw new BadRequestException('This account does not have a phone number on file');
     }
 
-    const message = `Your Instructor password reset OTP is: ${otp}. Valid for 5 minutes.`;
-    try {
-      await this.smsService.sendSms(user.phone, message);
-    } catch (error) {
-      this.logger.error(
-        `Failed to send password reset OTP via SMS: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      throw new BadRequestException('Failed to send password reset code via SMS. Please try again.');
-    }
+    await this.queueResetCode(user.id, NotificationChannelEnum.SMS, user.phone, otp, user.full_name);
 
     return {
       success: true,
@@ -548,6 +523,25 @@ export class AuthService {
     if (result === 'invalid') {
       throw new BadRequestException('Invalid OTP. Please try again.');
     }
+  }
+
+  /** The reset code goes out through the outbox (urgent, platform-paid), in the user's language. */
+  private async queueResetCode(
+    userId: string,
+    channel: NotificationChannelEnum,
+    address: string,
+    otp: string,
+    name: string | null | undefined,
+  ): Promise<void> {
+    await this.notifications.enqueue({
+      eventType: NOTIFICATION_EVENTS.AUTH_PASSWORD_RESET,
+      channel,
+      organizationId: null,
+      userId,
+      address,
+      variables: { otp, name: name ?? '' },
+      urgent: true,
+    });
   }
 
   private maskPhone(phone: string): string {

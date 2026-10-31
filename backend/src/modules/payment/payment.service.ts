@@ -11,7 +11,9 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import axios from 'axios';
 import { randomBytes } from 'crypto';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
+import { SmsCreditsService } from 'src/notifications/sms-credits.service';
+import { findSmsTopUpPack } from 'src/notifications/sms-top-up-packs';
 import { PaymentEntity } from './entities/payment.entity';
 import { PaymentStatusEnum } from './enums/payment-status.enum';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
@@ -23,7 +25,6 @@ import {
   SslValidationResponse,
 } from './interfaces/sslcommerz.interface';
 import { SubscriptionService } from 'src/subscriptions/subscription.service';
-import { AccountSubscriptionEntity } from 'src/subscriptions/entities/account-subscription.entity';
 import { TenantContext } from 'src/common/tenancy/tenant-context';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 
@@ -31,6 +32,8 @@ const SUCCESSFUL_VALIDATION_STATUSES = ['VALID', 'VALIDATED'];
 const HTTP_TIMEOUT_MS = 20000;
 const AMOUNT_TOLERANCE = 0.01;
 const PAYMENT_CURRENCY = 'BDT';
+/** payments.purpose of an SMS top-up (design §9.1). */
+export const SMS_CREDITS_PURPOSE = 'SMS_CREDITS';
 
 @Injectable()
 export class PaymentService {
@@ -43,6 +46,7 @@ export class PaymentService {
     private readonly dataSource: DataSource,
     @Inject(forwardRef(() => SubscriptionService))
     private readonly subscriptionService: SubscriptionService,
+    private readonly smsCredits: SmsCreditsService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -103,7 +107,73 @@ export class PaymentService {
       `Initiating payment | paymentId=${payment.id} tran_id=${transactionId} subscriptionId=${subscription.id} amount=${amount}`,
     );
 
-    const body = this.buildSessionPayload(config, payment, subscription);
+    const gatewayPageUrl = await this.openGatewaySession(config, payment, {
+      name: `${subscription.plan?.name ?? 'Instructor'} Subscription`,
+      category: 'subscription',
+    });
+
+    return {
+      paymentId: payment.id,
+      orderId: payment.orderId,
+      transactionId: payment.transactionId,
+      amount: Number(payment.amount),
+      currency: payment.currency,
+      gatewayPageUrl,
+    };
+  }
+
+  /**
+   * Start a checkout for an SMS top-up pack (FND-13). The pack's credits and price come from the
+   * server (sms-top-up-packs.ts); the credits are added when the payment settles.
+   */
+  async initiateSmsTopUp(
+    packId: string,
+    user: JwtPayloadInterface,
+  ): Promise<{ paymentId: string; transactionId: string; amount: number; currency: string; credits: number; gatewayPageUrl: string }> {
+    const config = this.getConfig();
+    const organizationId = TenantContext.requireOrganizationId();
+    await this.subscriptionService.assertCanManageBilling(organizationId, user.id);
+    const pack = findSmsTopUpPack(packId);
+    if (!pack) throw new BadRequestException('Unknown SMS pack');
+
+    const transactionId = this.generateTransactionId();
+    const payment = this.paymentRepo.create({
+      orderId: `SMS_${organizationId}_${Date.now()}`,
+      transactionId,
+      amount: pack.price,
+      currency: PAYMENT_CURRENCY,
+      status: PaymentStatusEnum.PENDING,
+      customerName: user.full_name || 'Teacher',
+      customerEmail: user.email || 'teacher@instructor.academy',
+      customerPhone: user.phone || '00000000000',
+      organizationId,
+      userId: user.id,
+      subscriptionId: null,
+      purpose: SMS_CREDITS_PURPOSE,
+      metadata: { teacherId: user.id, packId: pack.id, credits: pack.credits },
+    });
+    await this.paymentRepo.save(payment);
+    this.logger.log(`Initiating SMS top-up | paymentId=${payment.id} tran_id=${transactionId} pack=${pack.id} amount=${pack.price}`);
+
+    const gatewayPageUrl = await this.openGatewaySession(config, payment, { name: `${pack.credits} SMS credits`, category: 'sms-credits' });
+    return {
+      paymentId: payment.id,
+      transactionId: payment.transactionId,
+      amount: Number(payment.amount),
+      currency: payment.currency,
+      credits: pack.credits,
+      gatewayPageUrl,
+    };
+  }
+
+  /** Asks SSLCommerz for a checkout session; marks the payment FAILED when that does not work. */
+  private async openGatewaySession(
+    config: SslCommerzConfig,
+    payment: PaymentEntity,
+    product: { name: string; category: string },
+  ): Promise<string> {
+    const transactionId = payment.transactionId;
+    const body = this.buildSessionPayload(config, payment, product);
 
     let session: SslSessionResponse;
     try {
@@ -133,15 +203,7 @@ export class PaymentService {
     }
 
     await this.paymentRepo.save(payment);
-
-    return {
-      paymentId: payment.id,
-      orderId: payment.orderId,
-      transactionId: payment.transactionId,
-      amount: Number(payment.amount),
-      currency: payment.currency,
-      gatewayPageUrl: session.GatewayPageURL,
-    };
+    return session.GatewayPageURL;
   }
 
   /**
@@ -324,6 +386,7 @@ export class PaymentService {
       await repo.save(payment);
 
       await this.activateSubscriptionIfNeeded(payment);
+      await this.addSmsCreditsIfNeeded(payment, manager);
 
       this.logger.log(`Payment settled successfully | tran_id=${transactionId} status=PAID`);
       return payment;
@@ -426,7 +489,7 @@ export class PaymentService {
   private buildSessionPayload(
     config: SslCommerzConfig,
     payment: PaymentEntity,
-    subscription: AccountSubscriptionEntity,
+    product: { name: string; category: string },
   ): URLSearchParams {
     const payload = new URLSearchParams();
     payload.append('store_id', config.storeId);
@@ -458,8 +521,8 @@ export class PaymentService {
     payload.append('num_of_item', '1');
 
     // Product info (mandatory)
-    payload.append('product_name', `${subscription.plan?.name ?? 'Instructor'} Subscription`);
-    payload.append('product_category', 'subscription');
+    payload.append('product_name', product.name);
+    payload.append('product_category', product.category);
     payload.append('product_profile', 'non-physical-goods');
     return payload;
   }
@@ -484,6 +547,8 @@ export class PaymentService {
       currency: payment.currency,
       paymentMethod: payment.paymentMethod ?? null,
       subscriptionId: payment.metadata?.subscriptionId,
+      purpose: payment.purpose,
+      credits: payment.purpose === SMS_CREDITS_PURPOSE ? Number(payment.metadata?.credits) || undefined : undefined,
     };
   }
 
@@ -517,6 +582,18 @@ export class PaymentService {
     }
 
     return config;
+  }
+
+  /** An SMS top-up adds its credits in the settlement's transaction, once per payment (FND-13). */
+  private async addSmsCreditsIfNeeded(payment: PaymentEntity, manager: EntityManager): Promise<void> {
+    if (payment.purpose !== SMS_CREDITS_PURPOSE || !payment.organizationId) return;
+    const credits = Number(payment.metadata?.credits);
+    if (!Number.isInteger(credits) || credits <= 0) {
+      this.logger.error(`SMS top-up without credits | tran_id=${payment.transactionId}`);
+      return;
+    }
+    const { added } = await this.smsCredits.addTopUp(payment.organizationId, credits, { paymentId: payment.id, createdBy: payment.userId }, manager);
+    if (added) this.logger.log(`SMS credits added | tran_id=${payment.transactionId} credits=${credits}`);
   }
 
   private async activateSubscriptionIfNeeded(payment: PaymentEntity): Promise<void> {

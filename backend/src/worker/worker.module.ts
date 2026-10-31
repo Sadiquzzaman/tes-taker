@@ -4,12 +4,13 @@ import { RedisModule } from '../config/redis.module';
 import { ExamModule } from '../exams/exam.module';
 import { QueueModule } from '../queue/queue.module';
 import { ExamsProcessor } from './exams.processor';
+import { NotificationsProcessor } from './notifications.processor';
 import { WorkerHeartbeatService } from './worker-heartbeat.service';
 import { WorkerSchedulerService } from './worker-scheduler.service';
 
 /** The worker process: the whole app context plus the queue processors and schedules. */
 @Module({
   imports: [AppModule, ExamModule, QueueModule, RedisModule],
-  providers: [ExamsProcessor, WorkerSchedulerService, WorkerHeartbeatService],
+  providers: [ExamsProcessor, NotificationsProcessor, WorkerSchedulerService, WorkerHeartbeatService],
 })
 export class WorkerModule {}

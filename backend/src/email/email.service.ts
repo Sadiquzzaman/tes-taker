@@ -1,7 +1,11 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BrevoClient } from '@getbrevo/brevo';
 
+/**
+ * Sends one email through Brevo. Only the notification worker calls it (design §8.6): features
+ * queue emails with NotificationsService.enqueue, never send them from a request.
+ */
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
@@ -28,112 +32,20 @@ export class EmailService {
     }
   }
 
-  async sendInvitationEmail(
-    email: string,
-    invitationLink: string,
-    className: string,
-    teacherName?: string,
-  ): Promise<boolean> {
-    try {
-      if (!this.useBrevo || !this.brevoClient) {
-        throw new Error('Email service not configured. Please set BREVO_API_KEY in your .env file');
-      }
-
-      const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">You've been invited to join a class!</h2>
-          <p>Hello,</p>
-          <p>${teacherName || 'A teacher'} has invited you to join the class <strong>${className}</strong> on Instructor.</p>
-          <p>Click the link below to register and join the class:</p>
-          <p style="margin: 30px 0;">
-            <a href="${invitationLink}" 
-               style="background-color: #4CAF50; color: white; padding: 12px 24px; 
-                      text-decoration: none; border-radius: 5px; display: inline-block;">
-              Join Class
-            </a>
-          </p>
-          <p>Or copy and paste this link into your browser:</p>
-          <p style="color: #666; word-break: break-all;">${invitationLink}</p>
-          <p style="margin-top: 30px; color: #666; font-size: 12px;">
-            This invitation link will expire in 7 days.
-          </p>
-          <p style="margin-top: 20px; color: #666; font-size: 12px;">
-            If you didn't expect this invitation, you can safely ignore this email.
-          </p>
-        </div>
-      `;
-
-      const result = await this.brevoClient.transactionalEmails.sendTransacEmail({
-        subject: `Invitation to join ${className} on Instructor`,
-        htmlContent: html,
-        sender: { name: this.fromName, email: this.fromEmail },
-        to: [{ email }],
-      });
-
-      this.logger.log(`Invitation email sent via Brevo (messageId: ${result.messageId})`);
-      return true;
-    } catch (error) {
-      this.logger.error(
-        `Failed to send email: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      throw new BadRequestException(
-        `Failed to send email: ${error instanceof Error ? error.message : String(error)}`,
-      );
+  /** Sends the email or throws (the worker records the error and retries). */
+  async deliver(to: string, subject: string, html: string): Promise<{ messageId: string | null }> {
+    if (!this.useBrevo || !this.brevoClient) {
+      throw new Error('Email service not configured. Please set BREVO_API_KEY.');
     }
-  }
 
-  async sendOrganizationInvitationEmail(
-    email: string,
-    invitationLink: string,
-    organizationName: string,
-    roleLabel: string,
-    inviterName?: string,
-  ): Promise<boolean> {
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">You've been invited to join an organization</h2>
-        <p>Hello,</p>
-        <p>${inviterName || 'An administrator'} invited you to join
-          <strong>${organizationName}</strong> as <strong>${roleLabel}</strong> on Instructor.</p>
-        <p>Register or sign in with this email (or your phone) to accept:</p>
-        <p style="margin: 30px 0;">
-          <a href="${invitationLink}"
-             style="background-color: #49734F; color: white; padding: 12px 24px;
-                    text-decoration: none; border-radius: 5px; display: inline-block;">
-            Join Organization
-          </a>
-        </p>
-        <p style="color: #666; word-break: break-all;">${invitationLink}</p>
-        <p style="margin-top: 30px; color: #666; font-size: 12px;">
-          This invitation link will expire in 7 days.
-        </p>
-      </div>
-    `;
+    const result = await this.brevoClient.transactionalEmails.sendTransacEmail({
+      subject,
+      htmlContent: html,
+      sender: { name: this.fromName, email: this.fromEmail },
+      to: [{ email: to }],
+    });
 
-    return this.sendEmail(email, `Invitation to join ${organizationName} on Instructor`, html);
-  }
-
-  async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
-    try {
-      if (!this.useBrevo || !this.brevoClient) {
-        this.logger.error('Email service not configured. Please set BREVO_API_KEY.');
-        return false;
-      }
-
-      const result = await this.brevoClient.transactionalEmails.sendTransacEmail({
-        subject,
-        htmlContent: html,
-        sender: { name: this.fromName, email: this.fromEmail },
-        to: [{ email: to }],
-      });
-
-      this.logger.log(`Email sent via Brevo (messageId: ${result.messageId})`);
-      return true;
-    } catch (error) {
-      this.logger.error(
-        `Failed to send email: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return false;
-    }
+    this.logger.log(`Email sent via Brevo (messageId: ${result.messageId})`);
+    return { messageId: result.messageId ?? null };
   }
 }

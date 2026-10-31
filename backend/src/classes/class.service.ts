@@ -26,7 +26,8 @@ export type ClassPublicSummary = {
   created_user_name: string | null;
 };
 import { RolesEnum } from 'src/common/enums/roles.enum';
-import { EmailService } from 'src/email/email.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NOTIFICATION_EVENTS, NotificationChannelEnum } from 'src/notifications/notification.constants';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
 import { randomUUID } from 'crypto';
 import {
@@ -60,7 +61,7 @@ export class ClassService {
     private readonly examRepo: Repository<ExamEntity>,
     @InjectRepository(SubjectEntity)
     private readonly subjectRepo: Repository<SubjectEntity>,
-    private readonly emailService: EmailService,
+    private readonly notifications: NotificationsService,
     private readonly configService: ConfigService,
     private readonly organizationsService: OrganizationsService,
     private readonly organizationAccessService: OrganizationAccessService,
@@ -565,12 +566,18 @@ export class ClassService {
         jwtPayload,
       );
       try {
-        await this.emailService.sendInvitationEmail(
-          email,
-          `${frontendUrl}/join/class/${classId}`,
-          classEntity.class_name,
-          jwtPayload.full_name,
-        );
+        await this.notifications.enqueue({
+          eventType: NOTIFICATION_EVENTS.CLASS_INVITATION,
+          channel: NotificationChannelEnum.EMAIL,
+          organizationId: classEntity.organization_id ?? null,
+          address: email,
+          variables: {
+            class_name: classEntity.class_name,
+            inviter_name: jwtPayload.full_name || 'A teacher',
+            link: `${frontendUrl}/join/class/${classId}`,
+          },
+          createdBy: jwtPayload.id,
+        });
         invited++;
       } catch (error) {
         errors.push(`Failed to send email to ${email}: ${error.message}`);

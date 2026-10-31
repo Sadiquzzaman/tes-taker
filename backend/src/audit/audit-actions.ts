@@ -38,6 +38,10 @@ export const AUDIT_ACTIONS = {
   // Grading scale (owner and admins, FND-11)
   GRADING_SCALE_UPDATE: 'grading_scale.update',
   GRADING_SCALE_RESET: 'grading_scale.reset',
+
+  // Notifications (platform admin, design §8.6)
+  MESSAGE_TEMPLATE_UPDATE: 'message_template.update',
+  SMS_CREDITS_TOP_UP: 'sms_credits.top_up',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
