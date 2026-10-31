@@ -40,3 +40,8 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - SMS delivery reports (`notifications.dlr`, FND-14 "delivered") — status stops at "sent" until BulkSMS BD's report API is confirmed.
 - Push notifications (FCM / web push) — deferred until the mobile app; web uses the in-app inbox and bell.
 - Live bell updates over the `/notify` socket (design §8.4) — the bell polls every minute since P2-08; the worker runs in another process and cannot emit socket events without a Redis emitter package (owner approval needed).
+- HEIC photos (FND-15) — sharp's prebuilt binaries cannot read HEIC, so uploads refuse it; needs a converter package (e.g. `heic-convert`) approved by the owner (P2-07).
+- Optimise PDFs in `files.process` (FND-15) — needs Ghostscript in the backend image (~40 MB); P2-07 stores PDFs as they are.
+- Remove deleted files' objects from S3 — P2-07 soft-deletes `file_objects` rows (quota freed, object kept); deciding when objects may go is an owner decision.
+- Contract step for M4 (one release after P2-07 runs on beta/production): remove the public `/uploads/content` proxy, the local `/uploads` static route and the older `POST /uploads/media` + `/uploads/discussion` (the web app uses `/files/presign`).
+- Load file links with the login (signed link per request) instead of the open `/files/{id}/content` redirect — P2-07 kept open-by-unguessable-id so `<img>` tags work; every image renderer would need to change.
