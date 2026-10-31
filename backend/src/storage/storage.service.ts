@@ -1,7 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  ObjectInfo,
   PutObjectInput,
+  SignedUpload,
   StorageDriver,
   StoredObject,
 } from './storage.types';
@@ -40,6 +42,26 @@ export class StorageService {
 
   getPublicUrl(key: string): string {
     return this.driver.getPublicUrl(key);
+  }
+
+  head(key: string): Promise<ObjectInfo | null> {
+    return this.driver.head(key);
+  }
+
+  copy(fromKey: string, toKey: string): Promise<void> {
+    return this.driver.copy(fromKey, toKey);
+  }
+
+  signUpload(key: string, contentType: string, expiresInSeconds: number): Promise<SignedUpload> {
+    return this.driver.signUpload(key, contentType, expiresInSeconds);
+  }
+
+  signDownload(
+    key: string,
+    expiresInSeconds: number,
+    options?: { contentType?: string; fileName?: string },
+  ): Promise<string> {
+    return this.driver.signDownload(key, expiresInSeconds, options);
   }
 
   /**

@@ -1,9 +1,12 @@
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   Injectable,
   Logger,
@@ -13,7 +16,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Readable } from 'stream';
 import {
+  ObjectInfo,
   PutObjectInput,
+  SignedUpload,
   StorageDriver,
   StoredObject,
 } from './storage.types';
@@ -26,7 +31,9 @@ import {
  *
  * Public object URLs use the virtual-hosted style:
  *   https://{bucket}.s3.{region}.amazonaws.com/{key}
- * Ensure the bucket (or prefix) allows public GetObject for browser display.
+ * The bucket is private: browsers upload and read through short-lived signed links
+ * (`signUpload`, `signDownload`, design §8.5). Browser uploads need a bucket CORS rule that
+ * allows PUT from the web origins.
  */
 @Injectable()
 export class S3StorageDriver implements StorageDriver {
@@ -128,6 +135,67 @@ export class S3StorageDriver implements StorageDriver {
         `S3 delete failed for key=${key}: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+
+  async head(key: string): Promise<ObjectInfo | null> {
+    this.assertConfigured();
+    try {
+      const result = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
+      return { size: Number(result.ContentLength ?? 0), contentType: result.ContentType };
+    } catch (error) {
+      const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+      if (status === 404 || (error as { name?: string }).name === 'NotFound') {
+        return null;
+      }
+      this.logger.error(`S3 head failed for key=${key}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new ServiceUnavailableException('File storage is not reachable');
+    }
+  }
+
+  async copy(fromKey: string, toKey: string): Promise<void> {
+    this.assertConfigured();
+    const source = `${this.bucket}/${fromKey
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/')}`;
+    try {
+      await this.client.send(new CopyObjectCommand({ Bucket: this.bucket, CopySource: source, Key: toKey }));
+    } catch (error) {
+      this.logger.error(
+        `S3 copy failed ${fromKey} -> ${toKey}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new ServiceUnavailableException('Failed to copy file in S3');
+    }
+  }
+
+  async signUpload(key: string, contentType: string, expiresInSeconds: number): Promise<SignedUpload> {
+    this.assertConfigured();
+    const url = await getSignedUrl(
+      this.client,
+      new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType }),
+      { expiresIn: expiresInSeconds },
+    );
+    return { url, method: 'PUT', headers: { 'Content-Type': contentType } };
+  }
+
+  async signDownload(
+    key: string,
+    expiresInSeconds: number,
+    options: { contentType?: string; fileName?: string } = {},
+  ): Promise<string> {
+    this.assertConfigured();
+    return getSignedUrl(
+      this.client,
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ResponseContentType: options.contentType,
+        ResponseContentDisposition: options.fileName
+          ? `inline; filename*=UTF-8''${encodeURIComponent(options.fileName)}`
+          : undefined,
+      }),
+      { expiresIn: expiresInSeconds },
+    );
   }
 
   getPublicUrl(key: string): string {

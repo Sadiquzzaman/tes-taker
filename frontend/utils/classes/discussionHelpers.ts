@@ -1,4 +1,4 @@
-import { resolveMediaUrl, uploadMedia } from "@/utils/media/uploadMedia";
+import { resolveMediaUrl, uploadMedia, type UploadOptions } from "@/utils/media/uploadMedia";
 
 export const resolveAttachmentUrl = (url: string) => resolveMediaUrl(url);
 
@@ -16,9 +16,19 @@ export const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export const uploadDiscussionAttachment = async (classId: string, file: File) => {
-  const uploaded = await uploadMedia("discussion", file, classId);
-  return uploaded as DiscussionAttachment;
+/** Uploads one attachment; `storageWarning` is true when the workspace has used 90% of its storage. */
+export const uploadDiscussionAttachment = async (classId: string, file: File, options?: UploadOptions) => {
+  const uploaded = await uploadMedia("discussion", file, classId, options);
+  const attachment: DiscussionAttachment = {
+    id: uploaded.id,
+    key: uploaded.key,
+    url: uploaded.url,
+    file_name: uploaded.file_name,
+    mime_type: uploaded.mime_type,
+    size: uploaded.size,
+    kind: uploaded.kind,
+  };
+  return { attachment, storageWarning: Boolean(uploaded.storage_warning) };
 };
 
 /** Filter chips on the class feed (labels under discussions.filter). */

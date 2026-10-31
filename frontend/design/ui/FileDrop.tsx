@@ -13,6 +13,8 @@ export interface FileDropItem {
   name: string;
   /** 0–100 while uploading or compressing (FND-15); leave out when not started. */
   progress?: number;
+  /** Stored size in bytes once uploaded (after compression), shown next to the name. */
+  sizeBytes?: number;
   error?: string;
 }
 
@@ -142,7 +144,9 @@ const FileDrop = ({
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex items-center justify-between gap-2 text-body-sm">
                   <span className="truncate text-ink">{item.name}</span>
-                  {typeof item.progress === "number" ? (
+                  {typeof item.sizeBytes === "number" ? (
+                    <span className="shrink-0 text-ink-muted">{format.fileSize(item.sizeBytes)}</span>
+                  ) : typeof item.progress === "number" ? (
                     <span className="shrink-0 text-ink-muted">{format.number(Math.round(item.progress))}%</span>
                   ) : null}
                 </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, formatDate, formatDateTime, formatNumber, formatTwoDigits } from "./format";
+import { formatClock, formatDate, formatDateTime, formatFileSize, formatNumber, formatTwoDigits } from "./format";
 
 describe("format helpers", () => {
   it("writes numbers with Bangla digits in Bangla", () => {
@@ -12,6 +12,14 @@ describe("format helpers", () => {
   it("pads to two digits", () => {
     expect(formatTwoDigits(7, "bn")).toBe("০৭");
     expect(formatTwoDigits(7, "en")).toBe("07");
+  });
+
+  it("shows file sizes in the largest whole unit (FND-15, FND-16)", () => {
+    expect(formatFileSize(1.4 * 1024 * 1024, "en")).toBe("1.4 MB");
+    expect(formatFileSize(500 * 1024 * 1024, "bn")).toBe("৫০০ MB");
+    expect(formatFileSize(50 * 1024 ** 3, "en")).toBe("50 GB");
+    expect(formatFileSize(12_800, "en")).toBe("13 kB");
+    expect(formatFileSize(0, "en")).toBe("0 byte");
   });
 
   it("shows a countdown as MM:SS", () => {

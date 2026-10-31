@@ -190,7 +190,8 @@ All jobs run in the worker on BullMQ.
 | `reports.report-cards` | Admin request | Renders PDFs (headless Chromium), zips them, uploads to S3 | Job id = (term, section) | PRF-09 |
 | `performance.recompute` | Score, weight or attendance change | Recomputes `student_term_scores` for affected students | Upsert | PRF-01, 05 |
 | `integrity.similarity` | Homework due passed, or on demand | MinHash similarity over submission text; writes matches | Upsert per pair | PLG-01 |
-| `files.process` | Upload complete | Compresses images, optimises PDFs, extracts text | file id | FND-15 |
+| `files.process` | Upload complete | Compresses images, optimises PDFs, extracts text | file id | FND-15 — **built (P2-07)**: images only; PDFs and Word files stored as they are |
+| `files.sweep` | Every 10 min | Marks links not completed in 24 h FAILED (frees quota); re-queues completed uploads still PENDING after 10 min | Status checks | FND-16 — **built (P2-07)** |
 | `media.transcode` | Video uploaded | MediaConvert job → HLS 720p; deletes original | file id | RES-02 |
 | `retention.purge` | Daily 03:00 | Deletes selfies and snapshots older than 90 days | — | Retention |
 | `billing.expire` | Daily 00:10 | Expires subscriptions past `end_date`; sends renewal reminders 7 days and 1 day before | Upsert | Billing |
@@ -258,6 +259,15 @@ All jobs run in the worker on BullMQ.
 4. The `files.process` job compresses the file (FND-15) and moves it to `org/{orgId}/{purpose}/{yyyy}/{uuid}.{ext}`. It updates `file_objects.size_bytes`, which counts toward the org's storage quota.
 
 **Download:** CloudFront signed URLs valid for 1 hour; the bucket is private. Today's public `/uploads/content` route and local-disk storage are removed after migration.
+
+* **Built in P2-07 (decided):**
+  - S3 is the storage on beta and production; the local driver (`STORAGE_DRIVER=local`) is for development and tests only, where `PUT /files/local-upload` (HMAC-signed link) stands in for the presigned S3 PUT.
+  - Purposes uploadable now: `EXAM` and `IMAGE` (JPG, PNG, WebP, GIF) and `DISCUSSION` (those plus PDF, DOC, DOCX, TXT). A discussion file belongs to its class's organisation (students outside a workspace session post there too); everything else to the current workspace. HEIC and PDF optimisation come later (TODO).
+  - `files.process` turns images into WebP, at most 1600 px on the long side, quality 80; other files are stored as they are. Until it finishes, the uploaded file is served.
+  - **Quota:** the plan's `max_storage_mb` (0 = unlimited; presets Free 500 MB, Basic 2 GB, Premium 10 GB, Pro 50 GB, added only where a plan has none). Usage = `size_bytes` of the organisation's PENDING and READY files that are not deleted; reservations take a per-organisation advisory lock. Over the limit: 403 `PLAN_LIMIT_REACHED` (`limit: max_storage_mb`); the presign answer and `GET /files/usage` (owner and admins, by homework / resources / video / other) carry `warning` from 90%.
+  - **Download (decided):** no CloudFront yet. `GET /files/{id}/content` is reached by the unguessable file id (like the old proxy, so `<img>` tags work without the login header) and redirects to a 1-hour signed S3 link. `GET /files/{id}` (metadata) is login- and organisation-checked; another organisation's file is 404.
+  - **Delete:** soft delete only (`deleted_at`, `deleted_by`), by the uploader or the workspace owner and admins; frees quota, keeps the object. Uploads and deletes are audited (`file.upload`, `file.delete`).
+  - The older `POST /uploads/media` and `/uploads/discussion` run through the same service (quota, row, worker compression).
 
 **Video:** `media.transcode` runs a MediaConvert job to HLS 720p, deletes the original, and streams through CloudFront signed cookies.
 
@@ -658,6 +668,7 @@ Every step ships separately and can be rolled back until the contract step. Each
    - Copy `./uploads` to S3 under `org/{orgId}/legacy/` and create `file_objects` rows.
    - Rewrite URLs in `exam_questions.image_url`, option and matching JSON, and discussion attachments.
    - Keep the local `/uploads` route read-only for one release.
+   - **Built in P2-07:** `pnpm files:migrate-legacy` (in the container: `node dist/src/files-migrate-legacy.js`), a dry run unless `--apply`. It finds old links (`/uploads/…`, direct S3 URLs and `/uploads/content?key=…`) in exam questions and in Mongo discussion posts and private messages, copies each file to `org/{orgId}/legacy/{old key}`, records it (unique `legacy_key`, so a re-run reuses it) and rewrites the link to `/api/v1/files/{id}/content`. It logs found / copied / reused / missing / no organisation / rewritten per source and never deletes the old files.
 5. **M5 — Chat tables.** Verify that MongoDB holds every post, comment and message (counts by class), then mark the four PostgreSQL chat tables read-only.
 6. **M6 — New epics.** Only additive tables, released per epic: Foundations → Attendance → Homework → Calendar → Syllabus → Performance → Resources → Communication upgrades → Integrity → IELTS.
 7. **M7 — Contract.** Drop the 9 legacy tables in 9.12 one release after their replacement went live, after a final backup snapshot.

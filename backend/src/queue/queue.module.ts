@@ -1,7 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EXAMS_QUEUE, NOTIFICATIONS_QUEUE } from './queue.constants';
+import { EXAMS_QUEUE, FILES_QUEUE, NOTIFICATIONS_QUEUE } from './queue.constants';
 
 const SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60;
 
@@ -29,7 +29,7 @@ const SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60;
         },
       }),
     }),
-    BullModule.registerQueue({ name: EXAMS_QUEUE }, { name: NOTIFICATIONS_QUEUE }),
+    BullModule.registerQueue({ name: EXAMS_QUEUE }, { name: NOTIFICATIONS_QUEUE }, { name: FILES_QUEUE }),
   ],
   exports: [BullModule],
 })

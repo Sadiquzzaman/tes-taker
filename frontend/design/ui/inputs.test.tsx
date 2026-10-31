@@ -133,4 +133,12 @@ describe("FileDrop", () => {
     expect(bar.getAttribute("aria-valuenow")).toBe("40");
     expect(screen.getByText("৪০%")).toBeTruthy();
   });
+
+  it("shows the stored size once a file is uploaded (FND-15)", () => {
+    renderWithIntl(
+      <FileDrop label="Photos" onFiles={() => {}} items={[{ id: "a", name: "page-1.jpg", progress: 100, sizeBytes: 1.4 * 1024 * 1024 }]} />,
+      "bn",
+    );
+    expect(screen.getByText("১.৪ MB")).toBeTruthy();
+  });
 });

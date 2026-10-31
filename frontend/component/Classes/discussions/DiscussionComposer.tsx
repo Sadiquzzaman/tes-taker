@@ -4,8 +4,9 @@ import { AxiosError } from "axios";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { Button, cn, focusRing, Textarea } from "@/design/ui";
-import { CATEGORY_OPTIONS, uploadDiscussionAttachment } from "@/utils/classes/discussionHelpers";
+import { CATEGORY_OPTIONS } from "@/utils/classes/discussionHelpers";
 import AttachmentChip from "./AttachmentChip";
+import useAttachmentUploads from "./useAttachmentUploads";
 
 const MAX_FILES = 5;
 
@@ -27,8 +28,8 @@ const DiscussionComposer = ({
   const [content, setContent] = useState("");
   const [category, setCategory] = useState<DiscussionPostCategory>("question");
   const [attachments, setAttachments] = useState<DiscussionAttachment[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [localError, setLocalError] = useState("");
+  const { upload, uploading, status, warning } = useAttachmentUploads(classId);
 
   const canSubmit = Boolean(content.trim() || attachments.length) && !disabled && !uploading && !submitting;
   const full = attachments.length >= MAX_FILES;
@@ -40,22 +41,11 @@ const DiscussionComposer = ({
       return;
     }
     setLocalError("");
-    setUploading(true);
-    try {
-      const selected = Array.from(files).slice(0, MAX_FILES - attachments.length);
-      const uploaded: DiscussionAttachment[] = [];
-      for (const file of selected) {
-        uploaded.push(await uploadDiscussionAttachment(classId, file));
-      }
-      setAttachments((current) => [...current, ...uploaded]);
-    } catch (caught) {
-      const error = caught as AxiosError<{ message?: string }>;
-      setLocalError(error.response?.data?.message || t("composer.uploadFailed"));
-    } finally {
-      setUploading(false);
-      if (imageInputRef.current) imageInputRef.current.value = "";
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+    const result = await upload(Array.from(files).slice(0, MAX_FILES - attachments.length));
+    setAttachments((current) => [...current, ...result.attachments]);
+    if (result.error !== undefined) setLocalError(result.error);
+    if (imageInputRef.current) imageInputRef.current.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = async () => {
@@ -104,6 +94,7 @@ const DiscussionComposer = ({
         disabled={disabled || submitting}
         error={localError || undefined}
       />
+      {warning ? <p className="text-caption text-warning">{warning}</p> : null}
       {attachments.length > 0 ? (
         <div className="grid gap-2 sm:grid-cols-2">
           {attachments.map((attachment) => (
@@ -131,7 +122,11 @@ const DiscussionComposer = ({
           <Button variant="secondary" size="sm" disabled={disabled || uploading || full} onClick={() => fileInputRef.current?.click()}>
             {t("composer.file")}
           </Button>
-          {uploading ? <span className="text-caption text-ink-muted">{t("composer.uploading")}</span> : null}
+          {status ? (
+            <span className="text-caption text-ink-muted" role="status">
+              {status}
+            </span>
+          ) : null}
         </div>
         <Button disabled={!canSubmit} loading={submitting} onClick={() => void handleSubmit()}>
           {submitting ? t("composer.posting") : t("composer.post")}

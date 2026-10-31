@@ -4,7 +4,7 @@ import { AxiosError } from "axios";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Avatar, Button, cn, FilterBar, focusRing, Select, Skeleton, Textarea } from "@/design/ui";
-import { uploadDiscussionAttachment } from "@/utils/classes/discussionHelpers";
+import useAttachmentUploads from "./useAttachmentUploads";
 import AttachmentChip from "./AttachmentChip";
 import ChatBubble from "./ChatBubble";
 
@@ -48,8 +48,8 @@ const PrivateDiscussionPane = ({
   const [search, setSearch] = useState("");
   const [content, setContent] = useState("");
   const [attachments, setAttachments] = useState<DiscussionAttachment[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [localError, setLocalError] = useState("");
+  const { upload, uploading, status, warning } = useAttachmentUploads(classId);
   const [fileInput, setFileInput] = useState<HTMLInputElement | null>(null);
 
   const peerOf = (conversation: DiscussionConversation) => (isTeacher ? conversation.student.name : conversation.teacher.name);
@@ -58,27 +58,16 @@ const PrivateDiscussionPane = ({
   const active = conversations.find((item) => item.id === activeConversationId);
   const canSend = Boolean(activeConversationId) && Boolean(content.trim() || attachments.length) && !uploading && !submitting;
 
-  const handleFiles = async (files: FileList | null) => {
-    if (!files?.length) return;
+  const handleFiles = async (files: File[]) => {
+    if (!files.length) return;
     if (attachments.length >= MAX_FILES) {
       setLocalError(t("composer.maxFiles"));
       return;
     }
     setLocalError("");
-    setUploading(true);
-    try {
-      const uploaded: DiscussionAttachment[] = [];
-      for (const file of Array.from(files).slice(0, MAX_FILES - attachments.length)) {
-        uploaded.push(await uploadDiscussionAttachment(classId, file));
-      }
-      setAttachments((current) => [...current, ...uploaded]);
-    } catch (caught) {
-      const error = caught as AxiosError<{ message?: string }>;
-      setLocalError(error.response?.data?.message || t("composer.uploadFailed"));
-    } finally {
-      setUploading(false);
-      if (fileInput) fileInput.value = "";
-    }
+    const result = await upload(files.slice(0, MAX_FILES - attachments.length));
+    setAttachments((current) => [...current, ...result.attachments]);
+    if (result.error !== undefined) setLocalError(result.error);
   };
 
   const handleSend = async () => {
@@ -159,6 +148,12 @@ const PrivateDiscussionPane = ({
             )}
           </div>
           <div className="flex flex-col gap-2 border-t border-border p-3">
+            {status ? (
+              <p className="text-caption text-ink-muted" role="status">
+                {status}
+              </p>
+            ) : null}
+            {warning ? <p className="text-caption text-warning">{warning}</p> : null}
             {attachments.length > 0 ? (
               <div className="grid gap-2 sm:grid-cols-2">
                 {attachments.map((attachment) => (
@@ -176,7 +171,11 @@ const PrivateDiscussionPane = ({
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.doc,.docx,.txt,application/pdf"
                 className="hidden"
-                onChange={(event) => void handleFiles(event.target.files)}
+                onChange={(event) => {
+                  const files = Array.from(event.target.files ?? []);
+                  event.target.value = "";
+                  void handleFiles(files);
+                }}
               />
               <Button variant="secondary" disabled={!activeConversationId || uploading || attachments.length >= MAX_FILES} onClick={() => fileInput?.click()}>
                 {t("composer.attach")}
