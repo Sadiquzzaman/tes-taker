@@ -50,6 +50,10 @@ export const AUDIT_ACTIONS = {
   // Notifications (platform admin, design §8.6)
   MESSAGE_TEMPLATE_UPDATE: 'message_template.update',
   SMS_CREDITS_TOP_UP: 'sms_credits.top_up',
+
+  // Files (FND-15, FND-16)
+  FILE_UPLOAD: 'file.upload',
+  FILE_DELETE: 'file.delete',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

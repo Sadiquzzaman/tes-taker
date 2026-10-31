@@ -17,6 +17,12 @@ export const NOTIFICATIONS_SWEEP_EVERY_MS = 30_000;
 export const BILLING_SMS_ALLOWANCE_JOB = 'billing.sms-allowance';
 export const BILLING_SMS_ALLOWANCE_EVERY_MS = 60 * 60_000;
 
+/** Stored files (FND-15, design §8.5): compress and move one upload; sweep stuck or abandoned ones. */
+export const FILES_QUEUE = 'files';
+export const FILES_PROCESS_JOB = 'files.process';
+export const FILES_SWEEP_JOB = 'files.sweep';
+export const FILES_SWEEP_EVERY_MS = 10 * 60_000;
+
 /** Redis key the worker refreshes so its container health check can see it is alive. */
 export const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
 export const WORKER_HEARTBEAT_EVERY_MS = 30_000;

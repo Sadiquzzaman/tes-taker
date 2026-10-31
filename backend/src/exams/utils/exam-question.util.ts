@@ -326,7 +326,7 @@ export function mapOptionsForStorage(options: WizardOptionDto[] | undefined) {
   });
 }
 
-/** Persist only http(s) or local /uploads URLs — never data: URLs (too large for varchar/json). */
+/** Persist only http(s), local /uploads or /api/v1/files/… URLs — never data: URLs (too large for varchar/json). */
 export function normalizeStoredMediaUrl(value: unknown): string | null {
   if (typeof value !== 'string') {
     return null;
@@ -338,7 +338,7 @@ export function normalizeStoredMediaUrl(value: unknown): string | null {
   if (/^https?:\/\//i.test(trimmed)) {
     return trimmed;
   }
-  if (trimmed.startsWith('/uploads/')) {
+  if (trimmed.startsWith('/uploads/') || trimmed.startsWith('/api/v1/files/')) {
     return trimmed;
   }
   return null;
