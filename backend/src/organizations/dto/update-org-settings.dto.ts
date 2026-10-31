@@ -12,4 +12,9 @@ export class UpdateOrgSettingsDto {
   @IsOptional()
   @IsIn(ORGANIZATION_LOCALES)
   default_locale?: OrganizationLocale;
+
+  @ApiPropertyOptional({ enum: ORGANIZATION_LOCALES, description: 'Language of SMS to guardians (FND-10); a student can override it' })
+  @IsOptional()
+  @IsIn(ORGANIZATION_LOCALES)
+  sms_locale?: OrganizationLocale;
 }

@@ -13,6 +13,7 @@ import { AcademicSessionsService } from './academic-sessions.service';
 import { AcademicSessionEntity } from './entities/academic-session.entity';
 import { EnrolmentEntity, EnrolmentStatusEnum } from './entities/enrolment.entity';
 import { SectionEntity } from './entities/section.entity';
+import { GuardiansService } from './guardians.service';
 import { CURRENT_ENROLMENT_STATUSES, openSessionCondition } from './enrolment-queries';
 import { EnrolStudentDto, PromoteStudentsDto, UpdateEnrolmentDto } from './dto/enrolment.dto';
 
@@ -64,6 +65,7 @@ export class EnrolmentsService {
     private readonly sessions: AcademicSessionsService,
     private readonly organizationsService: OrganizationsService,
     private readonly userService: UserService,
+    private readonly guardians: GuardiansService,
   ) {}
 
   // ------------------------------------------------------------- class reads
@@ -122,28 +124,42 @@ export class EnrolmentsService {
    * A student claims an invitation (sign-up, join link). The student keeps one row per class per
    * session: if they already have one there (pending, or LEFT earlier), that row becomes ACTIVE in the
    * invitation's section and the invitation is marked LEFT; otherwise the invitation row becomes theirs.
+   * Guardians entered on the invitation become the student's in the same transaction (FND-09).
    */
   async claimInvitation(invitation: EnrolmentEntity, studentId: string, actor: Actor | null): Promise<EnrolmentEntity> {
     const now = new Date();
-    const own = await this.enrolmentRepo.findOne({
-      where: { session_id: invitation.session_id, class_id: invitation.class_id, student_id: studentId },
+    return this.enrolmentRepo.manager.transaction(async (manager) => {
+      const repo = manager.getRepository(EnrolmentEntity);
+      const own = await repo.findOne({
+        where: { session_id: invitation.session_id, class_id: invitation.class_id, student_id: studentId },
+      });
+      const stamp = { updated_by: actor?.id ?? studentId, updated_at: now };
+      let claimedId = invitation.id;
+      if (!own) {
+        await repo.update(
+          { id: invitation.id },
+          {
+            student_id: studentId,
+            status: EnrolmentStatusEnum.ACTIVE,
+            joined_at: now,
+            invitation_token: null,
+            invited_email: null,
+            invited_phone: null,
+            updated_by: actor?.id ?? null,
+            updated_at: now,
+          },
+        );
+      } else {
+        await repo.update({ id: invitation.id }, { status: EnrolmentStatusEnum.LEFT, left_at: now, ...stamp });
+        await repo.update(
+          { id: own.id },
+          { status: EnrolmentStatusEnum.ACTIVE, section_id: invitation.section_id, joined_at: now, left_at: null, ...stamp },
+        );
+        claimedId = own.id;
+      }
+      await this.guardians.linkInvitedStudent(invitation, studentId, manager);
+      return repo.findOneOrFail({ where: { id: claimedId } });
     });
-    if (!own) {
-      return this.update(
-        invitation.id,
-        { student_id: studentId, status: EnrolmentStatusEnum.ACTIVE, joined_at: now, invitation_token: null, invited_email: null, invited_phone: null },
-        actor,
-      );
-    }
-    await this.enrolmentRepo.update(
-      { id: invitation.id },
-      { status: EnrolmentStatusEnum.LEFT, left_at: now, updated_by: actor?.id ?? studentId, updated_at: now },
-    );
-    await this.enrolmentRepo.update(
-      { id: own.id },
-      { status: EnrolmentStatusEnum.ACTIVE, section_id: invitation.section_id, joined_at: now, left_at: null, updated_by: actor?.id ?? studentId, updated_at: now },
-    );
-    return this.enrolmentRepo.findOneOrFail({ where: { id: own.id } });
   }
 
   /** Soft removal: the rows stay as LEFT, with when and by whom. */
