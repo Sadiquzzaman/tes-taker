@@ -183,8 +183,8 @@ describe("class sections (FND-02, FND-04, FND-19)", () => {
   };
   const sectionB: ClassSection = { ...sectionA, id: "sec-b", name: "B", shift: null, room: null, class_teacher: null, student_count: 0 };
   const enrolments: SectionEnrolment[] = [
-    { id: "e1", student: { id: "u1", full_name: "Nadia Rahman", email: null, phone: null }, roll_no: "1", status: "ACTIVE", invited_email: null, invited_phone: null, joined_at: null },
-    { id: "e2", student: { id: "u2", full_name: "Karim Uddin", email: null, phone: null }, roll_no: "2", status: "ACTIVE", invited_email: null, invited_phone: null, joined_at: null },
+    { id: "e1", student: { id: "u1", full_name: "Nadia Rahman", email: null, phone: null }, roll_no: "1", status: "ACTIVE", invited_email: null, invited_phone: null, invited_name: null, joined_at: null },
+    { id: "e2", student: { id: "u2", full_name: "Karim Uddin", email: null, phone: null }, roll_no: "2", status: "ACTIVE", invited_email: null, invited_phone: null, invited_name: null, joined_at: null },
   ];
   const religion: SubjectClass = {
     id: "o1",
