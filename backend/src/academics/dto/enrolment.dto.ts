@@ -26,6 +26,12 @@ export class EnrolStudentDto {
   @IsString()
   @MaxLength(20)
   roll_no?: string;
+
+  @ApiPropertyOptional({ description: "The student's name, kept on an invitation until they sign up" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  name?: string;
 }
 
 export class UpdateEnrolmentDto {

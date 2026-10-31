@@ -2245,7 +2245,8 @@
       "max_students_per_exam": "Students per test",
       "max_question_bank_size": "Questions in the question bank",
       "max_storage_mb": "Storage (MB)",
-      "sms_credits_per_month": "SMS per month"
+      "sms_credits_per_month": "SMS per month",
+      "max_students": "Students"
     }
   },
   "academics": {
@@ -2312,7 +2313,9 @@
       "languages": {
         "bn": "Bangla",
         "en": "English"
-      }
+      },
+      "smsLanguage": "Guardian SMS language",
+      "smsLanguageHint": "Students can have their own. One SMS holds 160 English or 70 Bangla characters, so Bangla SMS use more credits."
     },
     "sections": {
       "title": "[[Sections]]",
@@ -2380,7 +2383,8 @@
       "invitedContact": "Invited: {contact}",
       "showLeft": "Show students who left",
       "save": "Save",
-      "promote": "Promote students"
+      "promote": "Promote students",
+      "invitedNamed": "{name} (invited: {contact})"
     },
     "subjects": {
       "empty": "No subjects in this [[section]]",
@@ -2503,6 +2507,98 @@
         "continue": "Continue setup",
         "reopen": "Open academic setup"
       }
+    },
+    "guardians": {
+      "open": "Guardians",
+      "openFor": "Guardians of {name}",
+      "title": "Guardians of {name}",
+      "intro": "Up to 2 guardians. Alerts and reports go to them by SMS.",
+      "empty": "No guardians yet",
+      "guardianN": "Guardian {n, number}",
+      "name": "Name",
+      "relation": "Relation",
+      "phone": "Mobile number",
+      "phoneHint": "01XXXXXXXXX",
+      "relations": {
+        "FATHER": "Father",
+        "MOTHER": "Mother",
+        "OTHER": "Other"
+      },
+      "primary": "Primary guardian",
+      "add": "Add a guardian",
+      "remove": "Remove",
+      "removeFor": "Remove guardian {n, number}",
+      "smsLanguage": "SMS language for this student",
+      "smsDefault": "Organisation default ({language})",
+      "smsHint": "One SMS holds 160 English or 70 Bangla characters, so Bangla SMS use more credits.",
+      "save": "Save",
+      "saved": "Guardians saved",
+      "cancel": "Cancel",
+      "invalidPhone": "Enter a Bangladeshi mobile number, 01XXXXXXXXX",
+      "samePhone": "Two guardians cannot have the same number",
+      "nameRequired": "Enter the guardian's name"
+    },
+    "import": {
+      "open": "Import from CSV",
+      "title": "Import students from CSV",
+      "intro": "Every row is checked before anything is saved. Rows with problems are skipped.",
+      "columnsHint": "Columns: name, phone or email, [[section]], roll number, and up to 2 guardians (name, relation, phone).",
+      "template": "Download template",
+      "file": "CSV file",
+      "fileTypes": "CSV, up to 2 MB",
+      "missingColumns": "The first line must name the columns, with name and phone or email. Start from the template.",
+      "noRows": "This file has no students under the header.",
+      "tooManyRows": "Import at most {max, number} students at a time.",
+      "previewSummary": "{session}: {valid, plural, one {# student} other {# students}} ready, {invalid, plural, =0 {no problems} one {# row with problems} other {# rows with problems}}.",
+      "resultSummary": "{imported, plural, one {# student} other {# students}} imported, {skipped, plural, =0 {none skipped} other {# skipped}}. {sent, plural, =0 {No invitations sent.} one {# invitation sent.} other {# invitations sent.}}",
+      "overLimit": "Your plan allows {max, number} students. You have {current, number}, and this file adds {adding, number}. Upgrade the plan or import fewer students.",
+      "sendInvitations": "Send invitations to students without an account",
+      "sendInvitationsHint": "By email when the row has one; otherwise by SMS, which uses your SMS credits.",
+      "importCount": "{count, plural, =0 {Import} one {Import # student} other {Import # students}}",
+      "cancel": "Cancel",
+      "done": "Done",
+      "hasErrors": "Not imported",
+      "guardianIssue": "Guardian {n, number}: {issue}",
+      "guardianCount": "{count, plural, one {# guardian} other {# guardians}}",
+      "columns": {
+        "row": "Row",
+        "name": "Name",
+        "contact": "Phone or email",
+        "section": "[[Section]] · Roll",
+        "status": "Result"
+      },
+      "plans": {
+        "ENROL": "Will be added",
+        "PENDING": "Will wait for verification",
+        "INVITE": "Will be invited"
+      },
+      "outcomes": {
+        "ENROLLED": "Added",
+        "PENDING": "Waiting for verification",
+        "INVITED": "Invited",
+        "SKIPPED": "Skipped"
+      },
+      "issues": {
+        "NAME_REQUIRED": "Name is missing",
+        "NAME_TOO_LONG": "Name is longer than 150 characters",
+        "CONTACT_REQUIRED": "Give a phone number or email",
+        "INVALID_PHONE": "Phone is not a Bangladeshi mobile number (01XXXXXXXXX)",
+        "INVALID_EMAIL": "Email is not valid",
+        "SECTION_REQUIRED": "[[Section]] is missing",
+        "SECTION_NOT_FOUND": "No [[section]] with this name in this [[class]]",
+        "ROLL_TOO_LONG": "Roll number is longer than 20 characters",
+        "ROLL_TAKEN": "This roll number is already used in the [[section]]",
+        "DUPLICATE_IN_FILE": "This student is already in an earlier row",
+        "ALREADY_IN_CLASS": "Already in this [[class]] this session",
+        "ALREADY_INVITED": "Already invited to this [[class]]",
+        "STAFF_ACCOUNT": "This phone or email belongs to a staff account",
+        "GUARDIAN_INCOMPLETE": "name and phone are needed",
+        "GUARDIAN_RELATION": "relation must be Father, Mother or Other",
+        "GUARDIAN_PHONE": "phone is not a Bangladeshi mobile number",
+        "GUARDIAN_SAME_PHONE": "same phone as guardian 1",
+        "SAVE_FAILED": "Could not be saved; try this row again",
+        "GUARDIANS_KEPT": "Already has guardians; the ones on record are kept"
+      }
     }
   },
   "levelLabels": {
@@ -2617,7 +2713,9 @@
       "user": "Users",
       "teacher": "Teachers",
       "message_template": "Message templates",
-      "sms_credits": "SMS credits"
+      "sms_credits": "SMS credits",
+      "guardian": "Guardians",
+      "student": "Students"
     },
     "actions": {
       "plan": {
@@ -2674,6 +2772,14 @@
       },
       "sms_credits": {
         "top_up": "SMS credits added"
+      },
+      "guardian": {
+        "create": "Guardian added",
+        "update": "Guardian changed",
+        "delete": "Guardian removed"
+      },
+      "student": {
+        "import": "Students imported from CSV"
       }
     },
     "fields": {
@@ -2732,7 +2838,23 @@
       "body": "Text",
       "message_template": "Message template",
       "credits": "Credits",
-      "top_up_left": "Top-up credits left"
+      "top_up_left": "Top-up credits left",
+      "relation": "Relation",
+      "phone": "Mobile number",
+      "is_primary": "Primary",
+      "sms_locale": "SMS language",
+      "guardian": "Guardian",
+      "class_name": "Class",
+      "session_name": "Session",
+      "rows": "Rows",
+      "imported": "Imported",
+      "skipped": "Skipped",
+      "enrolled": "Added",
+      "pending": "Waiting",
+      "invited": "Invited",
+      "guardians": "Guardians",
+      "invitations_sent": "Invitations sent",
+      "class": "Class"
     }
   },
   "smsCredits": {

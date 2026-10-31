@@ -61,6 +61,7 @@ export interface EnrolmentView {
   status: EnrolmentStatusEnum;
   invited_phone: string | null;
   invited_email: string | null;
+  invited_name: string | null;
   joined_at: Date | null;
 }
 
@@ -223,6 +224,7 @@ export class SectionsService {
       status: row.status,
       invited_phone: row.invited_phone,
       invited_email: row.invited_email,
+      invited_name: row.invited_name,
       joined_at: row.joined_at,
     }));
   }

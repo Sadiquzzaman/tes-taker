@@ -10,6 +10,8 @@ export enum LimitKey {
   MAX_EXAMS_PER_MONTH = 'max_exams_per_month',
   MAX_TOTAL_EXAMS = 'max_total_exams',
   MAX_STUDENTS_PER_EXAM = 'max_students_per_exam',
+  /** Students in the organisation's open sessions (FND-04 import; 0 or unset = unlimited). */
+  MAX_STUDENTS = 'max_students',
   MAX_QUESTION_BANK_SIZE = 'max_question_bank_size',
   MAX_STORAGE_MB = 'max_storage_mb',
   /** The plan's monthly SMS allowance (FND-13). Unlike the other limits, 0 means none, not unlimited. */
@@ -187,6 +189,7 @@ export const LIMIT_CATALOG: CatalogLimitDefinition[] = [
   { key: LimitKey.MAX_EXAMS_PER_MONTH, label: 'Max exams per month', min: 0 },
   { key: LimitKey.MAX_TOTAL_EXAMS, label: 'Max total exams (lifetime)', min: 0 },
   { key: LimitKey.MAX_STUDENTS_PER_EXAM, label: 'Max students per exam', min: 1 },
+  { key: LimitKey.MAX_STUDENTS, label: 'Max students', description: 'Students in open sessions; 0 = unlimited', min: 0 },
   { key: LimitKey.MAX_QUESTION_BANK_SIZE, label: 'Max question bank size', min: 0 },
   { key: LimitKey.MAX_STORAGE_MB, label: 'Max storage (MB)', min: 0 },
   { key: LimitKey.SMS_CREDITS_PER_MONTH, label: 'SMS per month', description: 'Monthly SMS allowance; 0 = none', min: 0 },

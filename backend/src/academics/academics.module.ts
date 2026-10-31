@@ -5,6 +5,7 @@ import { ClassSubjectEntity } from 'src/classes/entities/class-subject.entity';
 import { OrganizationsModule } from 'src/organizations/organization.module';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
+import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 import { UserModule } from 'src/user/user.module';
 import { AcademicSessionsController } from './academic-sessions.controller';
 import { AcademicSetupController } from './academic-setup.controller';
@@ -13,6 +14,7 @@ import { AcademicSessionsService } from './academic-sessions.service';
 import { AcademicSessionEntity } from './entities/academic-session.entity';
 import { CourseOfferingEntity } from './entities/course-offering.entity';
 import { EnrolmentEntity } from './entities/enrolment.entity';
+import { GuardianEntity } from './entities/guardian.entity';
 import { OfferingEnrolmentEntity } from './entities/offering-enrolment.entity';
 import { OfferingTeacherEntity } from './entities/offering-teacher.entity';
 import { SectionEntity } from './entities/section.entity';
@@ -22,10 +24,14 @@ import { AcademicDefaultsSubscriber } from './academic-defaults.subscriber';
 import { OfferingRosterService } from './offering-roster.service';
 import { SectionsController } from './sections.controller';
 import { SectionsService } from './sections.service';
+import { GuardiansController } from './guardians.controller';
+import { GuardiansService } from './guardians.service';
+import { StudentImportController } from './student-import.controller';
+import { StudentImportService } from './student-import.service';
 
 /**
  * Academic structure (design §9.3): sessions and terms, sections, subject classes with their
- * teachers and students, enrolments. Writes only these tables; reads classes, class subjects and users.
+ * teachers and students, enrolments, guardians. Writes only these tables; reads classes, class subjects and users.
  */
 @Module({
   imports: [
@@ -37,6 +43,7 @@ import { SectionsService } from './sections.service';
       OfferingTeacherEntity,
       OfferingEnrolmentEntity,
       EnrolmentEntity,
+      GuardianEntity,
       ClassEntity,
       ClassSubjectEntity,
       SubjectEntity,
@@ -45,9 +52,20 @@ import { SectionsService } from './sections.service';
     // OrganizationContextGuard, OrganizationAccessService, OrgSettingsService, OrganizationsService.
     OrganizationsModule,
     UserModule,
+    // EntitlementsService: the plan's max_students for the CSV import.
+    SubscriptionModule,
   ],
-  controllers: [AcademicSessionsController, SectionsController, AcademicSetupController],
-  providers: [AcademicSessionsService, SectionsService, AcademicSetupService, EnrolmentsService, OfferingRosterService, AcademicDefaultsSubscriber],
-  exports: [AcademicSessionsService, EnrolmentsService, OfferingRosterService],
+  controllers: [AcademicSessionsController, SectionsController, AcademicSetupController, GuardiansController, StudentImportController],
+  providers: [
+    AcademicSessionsService,
+    SectionsService,
+    AcademicSetupService,
+    EnrolmentsService,
+    GuardiansService,
+    StudentImportService,
+    OfferingRosterService,
+    AcademicDefaultsSubscriber,
+  ],
+  exports: [AcademicSessionsService, EnrolmentsService, GuardiansService, OfferingRosterService],
 })
 export class AcademicsModule {}

@@ -21,6 +21,7 @@ import axiosReq from "@/lib/axios";
 import EditSquareIconSVG from "../svg/EditSquareIconSVG";
 import TrashIcon from "../svg/TrashIcon";
 import SectionFormDrawer from "./SectionFormDrawer";
+import StudentImportDrawer from "./StudentImportDrawer";
 import SectionStudents from "./SectionStudents";
 import SectionSubjects from "./SectionSubjects";
 
@@ -30,6 +31,7 @@ import SectionSubjects from "./SectionSubjects";
  */
 const ClassSections = ({ classId }: { classId: string }) => {
   const t = useTranslations("academics.sections");
+  const tImport = useTranslations("academics.import");
   const format = useFormat();
   const { baseUrl, run, canManageStructure, isIndividual, organizationId } = useAcademicsRequest();
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
@@ -38,6 +40,7 @@ const ClassSections = ({ classId }: { classId: string }) => {
   const [teachers, setTeachers] = useState<AcademicPerson[]>([]);
   const [editing, setEditing] = useState<ClassSection | "new" | null>(null);
   const [deleting, setDeleting] = useState<ClassSection | null>(null);
+  const [importing, setImporting] = useState(false);
   const [openSectionId, setOpenSectionId] = useState<string | null>(null);
 
   // Sessions, settings and teachers once; sections whenever the session changes.
@@ -133,7 +136,18 @@ const ClassSections = ({ classId }: { classId: string }) => {
   return (
     <Card
       title={t("title")}
-      actions={editable ? <Button size="sm" onClick={() => setEditing("new")}>{t("add")}</Button> : undefined}
+      actions={
+        editable ? (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setImporting(true)}>
+              {tImport("open")}
+            </Button>
+            <Button size="sm" onClick={() => setEditing("new")}>
+              {t("add")}
+            </Button>
+          </div>
+        ) : undefined
+      }
     >
       <div className="flex flex-col gap-4">
         {sessions.length > 1 ? (
@@ -156,6 +170,10 @@ const ClassSections = ({ classId }: { classId: string }) => {
           <Table caption={t("title")} columns={columns} rows={sections} getRowId={(row) => row.id} defaultSort={{ key: "name", direction: "asc" }} />
         )}
       </div>
+
+      {importing && sessionId ? (
+        <StudentImportDrawer classId={classId} sessionId={sessionId} onClose={() => setImporting(false)} onImported={loadSections} />
+      ) : null}
 
       {editing !== null ? (
         <SectionFormDrawer

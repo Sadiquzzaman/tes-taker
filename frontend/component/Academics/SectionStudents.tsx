@@ -22,6 +22,7 @@ import useAcademicsRequest from "@/hooks/academics/useAcademicsRequest";
 import axiosReq from "@/lib/axios";
 import EditSquareIconSVG from "../svg/EditSquareIconSVG";
 import TrashIcon from "../svg/TrashIcon";
+import GuardiansDrawer from "./GuardiansDrawer";
 import PromoteStudentsDrawer from "./PromoteStudentsDrawer";
 
 const STATUS_TONE: Record<EnrolmentStatus, BadgeTone> = {
@@ -38,6 +39,7 @@ const isCurrent = (row: SectionEnrolment) => row.status !== "LEFT" && row.status
  * The students of a section (FND-04): add by phone or email, move to another section of the class,
  * set the roll number, or mark as left. Nobody is deleted; students who left can be shown. Owners
  * and admins promote the active students into the next session (FND-05), also from a closed session.
+ * Each current student's guardians (FND-09) open in a drawer, for teachers of the class too.
  */
 const SectionStudents = ({
   section,
@@ -52,6 +54,7 @@ const SectionStudents = ({
   onChanged: () => void;
 }) => {
   const t = useTranslations("academics.enrolments");
+  const tGuardians = useTranslations("academics.guardians");
   const { baseUrl, run, canManageSessions } = useAcademicsRequest();
   const { triggerToast } = useToast();
   const [promoting, setPromoting] = useState(false);
@@ -64,6 +67,7 @@ const SectionStudents = ({
   const [editSection, setEditSection] = useState("");
   const [editRoll, setEditRoll] = useState("");
   const [leaving, setLeaving] = useState<SectionEnrolment | null>(null);
+  const [guardiansOf, setGuardiansOf] = useState<SectionEnrolment | null>(null);
 
   const fetchRows = useCallback(
     () => run(() => axiosReq.get<ApiResponse<SectionEnrolment[]>>(`${baseUrl}/sections/${section.id}/enrolments`)).then((res) => res?.data?.payload ?? []),
@@ -80,7 +84,10 @@ const SectionStudents = ({
   };
 
   const nameOf = (row: SectionEnrolment) =>
-    row.student?.full_name || t("invitedContact", { contact: row.invited_email || row.invited_phone || "—" });
+    row.student?.full_name ||
+    (row.invited_name
+      ? t("invitedNamed", { name: row.invited_name, contact: row.invited_email || row.invited_phone || "—" })
+      : t("invitedContact", { contact: row.invited_email || row.invited_phone || "—" }));
 
   const add = async () => {
     const value = contact.trim();
@@ -131,31 +138,34 @@ const SectionStudents = ({
       cell: (row) => <StatusPill tone={STATUS_TONE[row.status]}>{t(`statuses.${row.status}`)}</StatusPill>,
       sortValue: (row) => row.status,
     },
-    ...(editable
-      ? [
-          {
-            key: "actions",
-            header: t("actions"),
-            align: "right" as const,
-            cell: (row: SectionEnrolment) =>
-              isCurrent(row) ? (
-                <div className="flex justify-end gap-1">
-                  <IconButton
-                    size="sm"
-                    label={t("editFor", { name: nameOf(row) })}
-                    icon={<EditSquareIconSVG />}
-                    onClick={() => {
-                      setEditing(row);
-                      setEditSection(section.id);
-                      setEditRoll(row.roll_no ?? "");
-                    }}
-                  />
-                  <IconButton size="sm" label={t("leaveFor", { name: nameOf(row) })} icon={<TrashIcon />} className="text-danger" onClick={() => setLeaving(row)} />
-                </div>
-              ) : null,
-          },
-        ]
-      : []),
+    {
+      key: "actions",
+      header: t("actions"),
+      align: "right" as const,
+      cell: (row: SectionEnrolment) =>
+        isCurrent(row) ? (
+          <div className="flex justify-end gap-1">
+            <Button variant="ghost" size="sm" aria-label={tGuardians("openFor", { name: nameOf(row) })} onClick={() => setGuardiansOf(row)}>
+              {tGuardians("open")}
+            </Button>
+            {editable ? (
+              <>
+                <IconButton
+                  size="sm"
+                  label={t("editFor", { name: nameOf(row) })}
+                  icon={<EditSquareIconSVG />}
+                  onClick={() => {
+                    setEditing(row);
+                    setEditSection(section.id);
+                    setEditRoll(row.roll_no ?? "");
+                  }}
+                />
+                <IconButton size="sm" label={t("leaveFor", { name: nameOf(row) })} icon={<TrashIcon />} className="text-danger" onClick={() => setLeaving(row)} />
+              </>
+            ) : null}
+          </div>
+        ) : null,
+    },
   ];
 
   return (
@@ -211,6 +221,10 @@ const SectionStudents = ({
           <Input label={t("rollNo")} value={editRoll} maxLength={20} onChange={(e) => setEditRoll(e.target.value)} />
         </div>
       </Modal>
+
+      {guardiansOf ? (
+        <GuardiansDrawer enrolmentId={guardiansOf.id} studentName={nameOf(guardiansOf)} onClose={() => setGuardiansOf(null)} />
+      ) : null}
 
       {promoting ? (
         <PromoteStudentsDrawer section={section} students={active} onClose={() => setPromoting(false)} onPromoted={reload} />

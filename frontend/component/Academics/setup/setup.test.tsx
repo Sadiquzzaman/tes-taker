@@ -162,6 +162,7 @@ describe("promoting students (FND-05)", () => {
     status: "ACTIVE",
     invited_email: null,
     invited_phone: null,
+    invited_name: null,
     joined_at: null,
   });
   const students = [student("e1", "Nadia Rahman", "1"), student("e2", "Karim Uddin", "2")];

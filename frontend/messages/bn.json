@@ -2245,7 +2245,8 @@
       "max_students_per_exam": "প্রতি পরীক্ষায় শিক্ষার্থী",
       "max_question_bank_size": "প্রশ্নব্যাংকে প্রশ্ন",
       "max_storage_mb": "স্টোরেজ (MB)",
-      "sms_credits_per_month": "প্রতি মাসে SMS"
+      "sms_credits_per_month": "প্রতি মাসে SMS",
+      "max_students": "শিক্ষার্থী"
     }
   },
   "academics": {
@@ -2312,7 +2313,9 @@
       "languages": {
         "bn": "বাংলা",
         "en": "ইংরেজি"
-      }
+      },
+      "smsLanguage": "অভিভাবকদের SMS-এর ভাষা",
+      "smsLanguageHint": "শিক্ষার্থীভিত্তিক আলাদা ভাষাও রাখা যায়। একটি SMS-এ ১৬০টি ইংরেজি বা ৭০টি বাংলা অক্ষর ধরে, তাই বাংলা SMS-এ বেশি ক্রেডিট লাগে।"
     },
     "sections": {
       "title": "[[section]]",
@@ -2380,7 +2383,8 @@
       "invitedContact": "আমন্ত্রিত: {contact}",
       "showLeft": "চলে যাওয়া শিক্ষার্থীদেরও দেখান",
       "save": "সংরক্ষণ",
-      "promote": "শিক্ষার্থীদের প্রমোশন দিন"
+      "promote": "শিক্ষার্থীদের প্রমোশন দিন",
+      "invitedNamed": "{name} (আমন্ত্রিত: {contact})"
     },
     "subjects": {
       "empty": "এই [[section]]ে কোনো বিষয় নেই",
@@ -2503,6 +2507,98 @@
         "continue": "সেটআপ চালিয়ে যান",
         "reopen": "একাডেমিক সেটআপ খুলুন"
       }
+    },
+    "guardians": {
+      "open": "অভিভাবক",
+      "openFor": "{name} এর অভিভাবক",
+      "title": "{name} এর অভিভাবক",
+      "intro": "সর্বোচ্চ ২ জন অভিভাবক। সতর্কবার্তা ও রিপোর্ট তাঁদের কাছে SMS-এ যাবে।",
+      "empty": "এখনো কোনো অভিভাবক নেই",
+      "guardianN": "অভিভাবক {n, number}",
+      "name": "নাম",
+      "relation": "সম্পর্ক",
+      "phone": "মোবাইল নম্বর",
+      "phoneHint": "১১ অঙ্কের নম্বর, যেমন 01XXXXXXXXX",
+      "relations": {
+        "FATHER": "বাবা",
+        "MOTHER": "মা",
+        "OTHER": "অন্যান্য"
+      },
+      "primary": "প্রধান অভিভাবক",
+      "add": "অভিভাবক যোগ করুন",
+      "remove": "সরান",
+      "removeFor": "অভিভাবক {n, number} সরান",
+      "smsLanguage": "এই শিক্ষার্থীর SMS-এর ভাষা",
+      "smsDefault": "প্রতিষ্ঠানের ডিফল্ট ({language})",
+      "smsHint": "একটি SMS-এ ১৬০টি ইংরেজি বা ৭০টি বাংলা অক্ষর ধরে, তাই বাংলা SMS-এ বেশি ক্রেডিট লাগে।",
+      "save": "সংরক্ষণ",
+      "saved": "অভিভাবকের তথ্য সংরক্ষিত হয়েছে",
+      "cancel": "বাতিল",
+      "invalidPhone": "বাংলাদেশি মোবাইল নম্বর দিন, 01XXXXXXXXX",
+      "samePhone": "দুজন অভিভাবকের একই নম্বর হতে পারে না",
+      "nameRequired": "অভিভাবকের নাম লিখুন"
+    },
+    "import": {
+      "open": "CSV থেকে ইমপোর্ট",
+      "title": "CSV থেকে শিক্ষার্থী ইমপোর্ট",
+      "intro": "কিছু সংরক্ষণের আগে প্রতিটি সারি যাচাই করা হয়। সমস্যাযুক্ত সারি বাদ পড়ে।",
+      "columnsHint": "কলাম: নাম, ফোন বা ইমেইল, [[section]], রোল নম্বর এবং সর্বোচ্চ ২ জন অভিভাবক (নাম, সম্পর্ক, ফোন)।",
+      "template": "টেমপ্লেট ডাউনলোড",
+      "file": "CSV ফাইল",
+      "fileTypes": "CSV, সর্বোচ্চ ২ MB",
+      "missingColumns": "প্রথম লাইনে কলামের নাম থাকতে হবে, অন্তত নাম এবং ফোন বা ইমেইল। টেমপ্লেট থেকে শুরু করুন।",
+      "noRows": "এই ফাইলে শিরোনামের নিচে কোনো শিক্ষার্থী নেই।",
+      "tooManyRows": "একবারে সর্বোচ্চ {max, number} জন শিক্ষার্থী ইমপোর্ট করুন।",
+      "previewSummary": "{session}: {valid, number} জন শিক্ষার্থী প্রস্তুত, {invalid, plural, =0 {কোনো সমস্যা নেই} other {# টি সারিতে সমস্যা}}।",
+      "resultSummary": "{imported, number} জন শিক্ষার্থী ইমপোর্ট হয়েছে, {skipped, plural, =0 {কেউ বাদ পড়েনি} other {# জন বাদ পড়েছে}}। {sent, plural, =0 {কোনো আমন্ত্রণ পাঠানো হয়নি।} other {# টি আমন্ত্রণ পাঠানো হয়েছে।}}",
+      "overLimit": "আপনার প্ল্যানে {max, number} জন শিক্ষার্থী রাখা যায়। এখন আছে {current, number} জন, এই ফাইলে যোগ হবে {adding, number} জন। প্ল্যান আপগ্রেড করুন বা কম শিক্ষার্থী ইমপোর্ট করুন।",
+      "sendInvitations": "যাদের অ্যাকাউন্ট নেই তাদের আমন্ত্রণ পাঠান",
+      "sendInvitationsHint": "সারিতে ইমেইল থাকলে ইমেইলে; না থাকলে SMS-এ, যাতে আপনার SMS ক্রেডিট খরচ হয়।",
+      "importCount": "{count, plural, =0 {ইমপোর্ট} other {# জন শিক্ষার্থী ইমপোর্ট করুন}}",
+      "cancel": "বাতিল",
+      "done": "শেষ",
+      "hasErrors": "ইমপোর্ট হবে না",
+      "guardianIssue": "অভিভাবক {n, number}: {issue}",
+      "guardianCount": "{count, number} জন অভিভাবক",
+      "columns": {
+        "row": "সারি",
+        "name": "নাম",
+        "contact": "ফোন বা ইমেইল",
+        "section": "[[section]] · রোল",
+        "status": "ফলাফল"
+      },
+      "plans": {
+        "ENROL": "যোগ হবে",
+        "PENDING": "যাচাইয়ের অপেক্ষায় থাকবে",
+        "INVITE": "আমন্ত্রণ যাবে"
+      },
+      "outcomes": {
+        "ENROLLED": "যোগ হয়েছে",
+        "PENDING": "যাচাইয়ের অপেক্ষায়",
+        "INVITED": "আমন্ত্রিত",
+        "SKIPPED": "বাদ পড়েছে"
+      },
+      "issues": {
+        "NAME_REQUIRED": "নাম নেই",
+        "NAME_TOO_LONG": "নাম ১৫০ অক্ষরের বেশি",
+        "CONTACT_REQUIRED": "ফোন নম্বর বা ইমেইল দিন",
+        "INVALID_PHONE": "ফোন নম্বরটি বাংলাদেশি মোবাইল নম্বর নয় (01XXXXXXXXX)",
+        "INVALID_EMAIL": "ইমেইল সঠিক নয়",
+        "SECTION_REQUIRED": "[[section]] নেই",
+        "SECTION_NOT_FOUND": "এই [[class]]ে এই নামে কোনো [[section]] নেই",
+        "ROLL_TOO_LONG": "রোল নম্বর ২০ অক্ষরের বেশি",
+        "ROLL_TAKEN": "এই রোল নম্বর [[section]]ে আগেই আছে",
+        "DUPLICATE_IN_FILE": "এই শিক্ষার্থী আগের একটি সারিতে আছে",
+        "ALREADY_IN_CLASS": "এই সেশনে আগেই এই [[class]]ে আছে",
+        "ALREADY_INVITED": "আগেই এই [[class]]ে আমন্ত্রিত",
+        "STAFF_ACCOUNT": "এই ফোন বা ইমেইল একটি স্টাফ অ্যাকাউন্টের",
+        "GUARDIAN_INCOMPLETE": "নাম ও ফোন দুটোই লাগবে",
+        "GUARDIAN_RELATION": "সম্পর্ক হবে বাবা, মা বা অন্যান্য",
+        "GUARDIAN_PHONE": "ফোন নম্বরটি বাংলাদেশি মোবাইল নম্বর নয়",
+        "GUARDIAN_SAME_PHONE": "অভিভাবক ১-এর একই নম্বর",
+        "SAVE_FAILED": "সংরক্ষণ করা যায়নি; সারিটি আবার চেষ্টা করুন",
+        "GUARDIANS_KEPT": "আগে থেকেই অভিভাবক আছে; সেগুলোই রাখা হয়েছে"
+      }
     }
   },
   "levelLabels": {
@@ -2617,7 +2713,9 @@
       "user": "ব্যবহারকারী",
       "teacher": "শিক্ষক",
       "message_template": "মেসেজ টেমপ্লেট",
-      "sms_credits": "SMS ক্রেডিট"
+      "sms_credits": "SMS ক্রেডিট",
+      "guardian": "অভিভাবক",
+      "student": "শিক্ষার্থী"
     },
     "actions": {
       "plan": {
@@ -2674,6 +2772,14 @@
       },
       "sms_credits": {
         "top_up": "SMS ক্রেডিট যোগ হয়েছে"
+      },
+      "guardian": {
+        "create": "অভিভাবক যোগ",
+        "update": "অভিভাবকের তথ্য বদল",
+        "delete": "অভিভাবক সরানো"
+      },
+      "student": {
+        "import": "CSV থেকে শিক্ষার্থী ইমপোর্ট"
       }
     },
     "fields": {
@@ -2732,7 +2838,23 @@
       "body": "লেখা",
       "message_template": "মেসেজ টেমপ্লেট",
       "credits": "ক্রেডিট",
-      "top_up_left": "বাকি টপ-আপ ক্রেডিট"
+      "top_up_left": "বাকি টপ-আপ ক্রেডিট",
+      "relation": "সম্পর্ক",
+      "phone": "মোবাইল নম্বর",
+      "is_primary": "প্রধান",
+      "sms_locale": "SMS-এর ভাষা",
+      "guardian": "অভিভাবক",
+      "class_name": "ক্লাস",
+      "session_name": "সেশন",
+      "rows": "সারি",
+      "imported": "ইমপোর্ট হয়েছে",
+      "skipped": "বাদ পড়েছে",
+      "enrolled": "যোগ হয়েছে",
+      "pending": "অপেক্ষায়",
+      "invited": "আমন্ত্রিত",
+      "guardians": "অভিভাবক",
+      "invitations_sent": "পাঠানো আমন্ত্রণ",
+      "class": "ক্লাস"
     }
   },
   "smsCredits": {
