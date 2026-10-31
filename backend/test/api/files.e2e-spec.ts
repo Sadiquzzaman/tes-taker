@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { Model } from 'mongoose';
 import * as sharpModule from 'sharp';
 import { DeepPartial, Repository } from 'typeorm';
+import { AuditService } from '../../src/audit/audit.service';
 import { AuditLogEntity } from '../../src/audit/entities/audit-log.entity';
 import { DiscussionPost } from '../../src/chat-mongo/schemas/discussion-post.schema';
 import { ExamQuestionEntity } from '../../src/exams/entities/exam-question.entity';
@@ -160,6 +161,8 @@ describe('files', () => {
       expect(content.status).toBe(302);
       expect(content.location).toContain(`/uploads/${row.s3_key}`);
 
+      // Audit rows are written in the background; wait for them before reading.
+      await t.app.get(AuditService).flush();
       const audit = await t.dataSource.getRepository(AuditLogEntity).findOneByOrFail({ action: 'file.upload', entity_id: fileId });
       expect(audit).toMatchObject({ actor_id: teacher.id, organization_id: row.organization_id });
     });
@@ -235,6 +238,8 @@ describe('files', () => {
       const row = await files.findOneByOrFail({ id: first.body.payload.file.id });
       expect(row.deleted_at).not.toBeNull();
       expect(row.deleted_by).toBe(owner.id);
+      // Audit rows are written in the background; wait for them before reading.
+      await t.app.get(AuditService).flush();
       expect(await t.dataSource.getRepository(AuditLogEntity).countBy({ action: 'file.delete', entity_id: row.id })).toBe(1);
 
       expect((await presign(token, { purpose: 'EXAM', mime: 'image/png', size: Math.ceil(0.1 * MB) })).status).toBe(201);
