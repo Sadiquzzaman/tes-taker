@@ -47,6 +47,20 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
   // Class invitation
   {
     event_type: NOTIFICATION_EVENTS.CLASS_INVITATION,
+    channel: SMS,
+    locale: 'en',
+    subject: null,
+    body: '{{inviter_name}} added you to {{class_name}} on Instructor. Sign up with this number to join: {{link}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.CLASS_INVITATION,
+    channel: SMS,
+    locale: 'bn',
+    subject: null,
+    body: '{{inviter_name}} আপনাকে Instructor-এ {{class_name}} ক্লাসে যোগ করেছেন। যোগ দিতে এই নম্বর দিয়ে সাইন আপ করুন: {{link}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.CLASS_INVITATION,
     channel: EMAIL,
     locale: 'en',
     subject: 'Invitation to join {{class_name}} on Instructor',

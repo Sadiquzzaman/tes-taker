@@ -84,7 +84,10 @@ const SectionStudents = ({
   };
 
   const nameOf = (row: SectionEnrolment) =>
-    row.student?.full_name || t("invitedContact", { contact: row.invited_email || row.invited_phone || "—" });
+    row.student?.full_name ||
+    (row.invited_name
+      ? t("invitedNamed", { name: row.invited_name, contact: row.invited_email || row.invited_phone || "—" })
+      : t("invitedContact", { contact: row.invited_email || row.invited_phone || "—" }));
 
   const add = async () => {
     const value = contact.trim();

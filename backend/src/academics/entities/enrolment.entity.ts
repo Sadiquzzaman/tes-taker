@@ -77,6 +77,10 @@ export class EnrolmentEntity extends CustomBaseEntity {
   @Column({ name: 'invited_email', type: 'varchar', length: 100, nullable: true })
   invited_email: string | null;
 
+  @ApiPropertyOptional({ description: 'Name given for an invited student (CSV import); null once they have an account' })
+  @Column({ name: 'invited_name', type: 'varchar', length: 150, nullable: true })
+  invited_name: string | null;
+
   @ApiPropertyOptional()
   @Column({ name: 'invitation_token', type: 'varchar', length: 100, nullable: true })
   invitation_token: string | null;

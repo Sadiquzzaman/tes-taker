@@ -416,6 +416,7 @@ Table enrolments {
   status enrolment_status [not null]
   invited_phone varchar
   invited_email varchar
+  invited_name varchar(150) [note: 'BUILT P2-05 (FND-04 CSV import): the name given for an invited student; cleared when they claim the invitation']
   invitation_token varchar
   joined_at timestamptz
   left_at timestamptz

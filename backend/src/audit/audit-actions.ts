@@ -36,6 +36,9 @@ export const AUDIT_ACTIONS = {
   GUARDIAN_UPDATE: 'guardian.update',
   GUARDIAN_DELETE: 'guardian.delete',
 
+  // Students (owners, admins and assistants, FND-04)
+  STUDENT_IMPORT: 'student.import',
+
   // Results (design §8.11: grade changes are traced)
   EXAM_RESULTS_PUBLISH: 'exam.results_publish',
   GRADE_UPDATE: 'grade.update',
