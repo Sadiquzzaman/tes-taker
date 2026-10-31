@@ -67,7 +67,7 @@ Table org_settings {
   student_entry_time time [default: '09:00']
   teacher_entry_time time [default: '08:45']
   guardian_sms jsonb [note: '{"late":true,"absent":true,"leave":true}']
-  sms_locale varchar(5) [default: 'bn']
+  sms_locale varchar(5) [note: "BUILT P2-05 (FND-10): guardian SMS language, CHECK bn | en; null = the organisation's default_locale"]
   homework_policy jsonb [note: '{"late":"ALLOW","penalty":{"type":"NONE"},"max_resubmissions":1,"max_files":5}']
   at_risk_thresholds jsonb [note: '{"score_pct":40,"attendance_pct":75,"missing_homework":3}']
   plagiarism_thresholds jsonb [note: '{"high":40,"medium":20,"min_words":50}']
@@ -432,16 +432,23 @@ Enum guardian_relation { FATHER MOTHER OTHER }
 Table guardians {
   id uuid [pk]
   organization_id uuid [not null]
-  student_id uuid [not null, ref: > users.id]
+  student_id uuid [ref: > users.id, note: 'null while the student has not signed up (then enrolment_id); filled in when they claim the invitation']
+  enrolment_id uuid [ref: > enrolments.id, note: 'the enrolment the guardian was entered on; the only link for an invited student. CHECK student_id or enrolment_id is set']
   name varchar(120) [not null]
   relation guardian_relation [not null]
   phone varchar(14) [not null, note: '01XXXXXXXXX']
-  is_primary boolean [default: false]
-  sms_locale varchar(5) [note: 'override of org sms_locale']
+  is_primary boolean [not null, default: false]
+  sms_locale varchar(5) [note: "the student's override of org_settings.sms_locale (same value on all their guardians), CHECK bn | en"]
+  deleted_at timestamptz [note: 'soft delete: removed guardians are kept']
+  deleted_by uuid
   Indexes {
-    (organization_id, student_id, phone) [unique]
+    (organization_id, student_id, phone) [unique, note: 'WHERE deleted_at IS NULL AND student_id IS NOT NULL']
+    (organization_id, enrolment_id, phone) [unique, note: 'WHERE deleted_at IS NULL AND student_id IS NULL']
+    (organization_id, student_id) [unique, note: 'one primary: WHERE deleted_at IS NULL AND is_primary AND student_id IS NOT NULL']
+    (organization_id, enrolment_id) [unique, note: 'one primary: WHERE deleted_at IS NULL AND is_primary AND student_id IS NULL']
+    enrolment_id
   }
-  Note: 'NEW (FND-09) — max 2 per student per org, enforced in service'
+  Note: 'BUILT P2-05 (FND-09) — max 2 live guardians per student per org, enforced in GuardiansService (row lock on the enrolment); every change in audit_logs (guardian.create/update/delete)'
 }
 
 //////////////////////////////////////////////////////////////
