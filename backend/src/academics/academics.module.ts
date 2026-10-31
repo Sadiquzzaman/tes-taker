@@ -5,6 +5,7 @@ import { ClassSubjectEntity } from 'src/classes/entities/class-subject.entity';
 import { OrganizationsModule } from 'src/organizations/organization.module';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
+import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 import { UserModule } from 'src/user/user.module';
 import { AcademicSessionsController } from './academic-sessions.controller';
 import { AcademicSetupController } from './academic-setup.controller';
@@ -25,6 +26,8 @@ import { SectionsController } from './sections.controller';
 import { SectionsService } from './sections.service';
 import { GuardiansController } from './guardians.controller';
 import { GuardiansService } from './guardians.service';
+import { StudentImportController } from './student-import.controller';
+import { StudentImportService } from './student-import.service';
 
 /**
  * Academic structure (design §9.3): sessions and terms, sections, subject classes with their
@@ -49,14 +52,17 @@ import { GuardiansService } from './guardians.service';
     // OrganizationContextGuard, OrganizationAccessService, OrgSettingsService, OrganizationsService.
     OrganizationsModule,
     UserModule,
+    // EntitlementsService: the plan's max_students for the CSV import.
+    SubscriptionModule,
   ],
-  controllers: [AcademicSessionsController, SectionsController, AcademicSetupController, GuardiansController],
+  controllers: [AcademicSessionsController, SectionsController, AcademicSetupController, GuardiansController, StudentImportController],
   providers: [
     AcademicSessionsService,
     SectionsService,
     AcademicSetupService,
     EnrolmentsService,
     GuardiansService,
+    StudentImportService,
     OfferingRosterService,
     AcademicDefaultsSubscriber,
   ],

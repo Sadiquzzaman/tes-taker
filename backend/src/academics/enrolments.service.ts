@@ -30,7 +30,7 @@ export interface EnrolmentClass {
 
 /** Fields a class screen sets on an enrolment. */
 export type EnrolmentFields = Partial<
-  Pick<EnrolmentEntity, 'student_id' | 'status' | 'invited_email' | 'invited_phone' | 'invitation_token' | 'joined_at' | 'roll_no'>
+  Pick<EnrolmentEntity, 'student_id' | 'status' | 'invited_email' | 'invited_phone' | 'invited_name' | 'invitation_token' | 'joined_at' | 'roll_no'>
 >;
 
 type PromotedStudent = { student_id: string; full_name: string | null };
@@ -145,6 +145,7 @@ export class EnrolmentsService {
             invitation_token: null,
             invited_email: null,
             invited_phone: null,
+            invited_name: null,
             updated_by: actor?.id ?? null,
             updated_at: now,
           },
@@ -227,7 +228,14 @@ export class EnrolmentsService {
     if (duplicate > 0) throw new ConflictException('This contact is already invited to this class');
     const enrolment = await this.place(
       section,
-      { student_id: null, status: EnrolmentStatusEnum.INVITED, invited_email, invited_phone, roll_no: dto.roll_no ?? null },
+      {
+        student_id: null,
+        status: EnrolmentStatusEnum.INVITED,
+        invited_email,
+        invited_phone,
+        invited_name: dto.name?.trim() || null,
+        roll_no: dto.roll_no ?? null,
+      },
       actor,
     );
     return { enrolment, outcome: 'INVITED' };
@@ -368,6 +376,7 @@ export class EnrolmentsService {
       this.enrolmentRepo.create({
         invited_email: null,
         invited_phone: null,
+        invited_name: null,
         invitation_token: null,
         joined_at: null,
         roll_no: null,
