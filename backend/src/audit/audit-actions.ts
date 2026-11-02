@@ -47,6 +47,12 @@ export const AUDIT_ACTIONS = {
   GRADING_SCALE_UPDATE: 'grading_scale.update',
   GRADING_SCALE_RESET: 'grading_scale.reset',
 
+  // Attendance settings and holidays (owner and admins, ATT-01, CAL-04)
+  ATTENDANCE_SETTINGS_UPDATE: 'attendance_settings.update',
+  HOLIDAY_CREATE: 'holiday.create',
+  HOLIDAY_UPDATE: 'holiday.update',
+  HOLIDAY_REMOVE: 'holiday.remove',
+
   // Notifications (platform admin, design §8.6)
   MESSAGE_TEMPLATE_UPDATE: 'message_template.update',
   SMS_CREDITS_TOP_UP: 'sms_credits.top_up',

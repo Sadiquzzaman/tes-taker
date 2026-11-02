@@ -38,7 +38,9 @@
     "auditLog": "Audit log",
     "activityLog": "Activity log",
     "gradingScale": "Grading scale",
-    "messageLog": "Message log"
+    "messageLog": "Message log",
+    "attendanceSettings": "Attendance settings",
+    "holidays": "Holidays"
   },
   "shell": {
     "organization": "Organization",
@@ -2121,7 +2123,8 @@
       "Branding": "Branding",
       "Analytics": "Analytics",
       "Notifications": "Notifications",
-      "Proctoring": "Proctoring"
+      "Proctoring": "Proctoring",
+      "Attendance": "Attendance"
     },
     "catalog": {
       "allow_graded_questions": {
@@ -2239,6 +2242,10 @@
       "proctoring_auto_disqualification": {
         "name": "Automatic disqualification",
         "description": "End a test automatically after repeated flags."
+      },
+      "attendance": {
+        "name": "Attendance",
+        "description": "Attendance settings, holidays, check-in and roll call."
       }
     },
     "limits": {
@@ -2717,7 +2724,9 @@
       "message_template": "Message templates",
       "sms_credits": "SMS credits",
       "guardian": "Guardians",
-      "student": "Students"
+      "student": "Students",
+      "attendance_settings": "Attendance settings",
+      "holiday": "Holidays"
     },
     "actions": {
       "plan": {
@@ -2786,6 +2795,14 @@
       "file": {
         "upload": "File uploaded",
         "delete": "File deleted"
+      },
+      "attendance_settings": {
+        "update": "Attendance settings changed"
+      },
+      "holiday": {
+        "create": "Holiday added",
+        "update": "Holiday changed",
+        "remove": "Holiday removed"
       }
     },
     "fields": {
@@ -2860,7 +2877,19 @@
       "invited": "Invited",
       "guardians": "Guardians",
       "invitations_sent": "Invitations sent",
-      "class": "Class"
+      "class": "Class",
+      "attendance_method": "Daily presence",
+      "selfie_required": "Selfie required",
+      "class_attendance_mode": "Class attendance",
+      "weekly_off_days": "Weekly off days",
+      "student_entry_time": "Students' entry time",
+      "teacher_entry_time": "Teachers' entry time",
+      "guardian_sms": "Guardian SMS",
+      "repeat_absence_days": "Repeated-absence alert (days)",
+      "date_from": "First day",
+      "date_to": "Last day",
+      "org_settings": "Settings",
+      "holiday": "Holiday"
     }
   },
   "smsCredits": {
@@ -2982,6 +3011,137 @@
       "resources": "Resources",
       "video": "Video",
       "other": "Tests and discussions"
+    }
+  },
+  "attendanceSettings": {
+    "title": "Attendance settings",
+    "intro": "Choose how your institution records attendance. Changes apply from now on; attendance already saved is kept.",
+    "loadFailed": "Couldn't load the attendance settings.",
+    "readOnly": "Only the owner and admins can change these settings.",
+    "presenceTitle": "Daily presence",
+    "presenceIntro": "Check-in and check-out at the institution. Only one method can be on at a time.",
+    "presenceLegend": "How do people check in?",
+    "method": {
+      "OFF": "Off",
+      "WEB": "Website check-in",
+      "ZKTECO": "ZKTeco machine",
+      "APP": "Mobile app"
+    },
+    "methodHint": {
+      "OFF": "No check-in. Class attendance decides who was present.",
+      "WEB": "Students and teachers check in and out on the website. The check-in screen comes in the next update.",
+      "ZKTECO": "Punches from fingerprint or face machines, imported every hour.",
+      "APP": "Check-in in the mobile app within a set distance of the campus."
+    },
+    "comingSoon": "Coming soon",
+    "soloPresence": "Your workspace takes class attendance only. Daily check-in is for schools and coaching centres.",
+    "classTitle": "Class attendance",
+    "classIntro": "Teachers mark each student Present, Absent, Late or Leave.",
+    "classLegend": "When do teachers take attendance?",
+    "classMode": {
+      "PER_SESSION": "Every class",
+      "DAILY": "Once a day",
+      "OFF": "Off"
+    },
+    "classModeHint": {
+      "PER_SESSION": "A roll call for each subject class.",
+      "DAILY": "One roll call a day for each [[section]].",
+      "OFF": "Teachers don't take class attendance."
+    },
+    "hoursTitle": "School days and hours",
+    "hoursIntro": "Anyone who checks in after the entry time is marked Late.",
+    "studentEntry": "Students' entry time",
+    "teacherEntry": "Teachers' entry time",
+    "offDays": "Weekly off days",
+    "offDaysHint": "No attendance and no absence SMS on these days. Add other holidays on the Holidays page.",
+    "weekday": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday",
+      "7": "Sunday"
+    },
+    "alertsTitle": "Alerts",
+    "alertsIntro": "SMS to guardians use your SMS credits.",
+    "guardianSms": "Send guardians an SMS when a student is",
+    "sms": {
+      "late": "Late",
+      "absent": "Absent",
+      "leave": "On leave"
+    },
+    "smsHint": {
+      "late": "Sent when the student checks in late.",
+      "absent": "Sent at the end of the day.",
+      "leave": "Sent when leave is applied for."
+    },
+    "repeatDays": "Alert the class teacher after",
+    "repeatDaysHint": "School days absent in a row (2 to 30).",
+    "daysUnit": "days",
+    "repeatDaysError": "Enter a whole number from 2 to 30.",
+    "save": "Save settings",
+    "undo": "Undo changes",
+    "saved": "Attendance settings saved",
+    "switchTitle": "Switch the daily presence method?",
+    "switchDescription": "A session is running. Switching from {from} to {to} changes how check-ins are recorded from now on. Attendance already saved is kept.",
+    "switchConfirm": "Switch method",
+    "errors": {
+      "ATTENDANCE_METHOD_NOT_AVAILABLE": "This method isn't available yet.",
+      "ATTENDANCE_PRESENCE_NOT_FOR_SOLO": "A personal workspace takes class attendance only.",
+      "ATTENDANCE_SELFIE_NEEDS_APP": "A selfie can only be required with mobile app check-in.",
+      "ATTENDANCE_NO_WORKING_DAY": "Leave at least one school day in the week."
+    }
+  },
+  "holidays": {
+    "title": "Holidays",
+    "intro": "Mark holidays and closures. Attendance and absence SMS are skipped on these days and on the weekly off days.",
+    "add": "Add holiday",
+    "year": "Year",
+    "offDays": "Weekly off days: {days}.",
+    "noOffDays": "No weekly off days.",
+    "changeOffDays": "Change",
+    "listTitle": "Holidays in {year}",
+    "summary": "{count, plural, one {# holiday} other {# holidays}}, {days, plural, one {# day} other {# days}} in all",
+    "loadFailed": "Couldn't load the holidays.",
+    "empty": "No holidays in {year} yet",
+    "emptyHint": "Add public holidays, exam breaks and other closures.",
+    "dates": "Dates",
+    "days": "Days",
+    "note": "Note",
+    "status": "Status",
+    "actions": "Actions",
+    "when": {
+      "past": "Past",
+      "now": "Ongoing",
+      "upcoming": "Upcoming"
+    },
+    "edit": "Edit",
+    "remove": "Remove",
+    "editNamed": "Edit holiday on {dates}",
+    "removeNamed": "Remove holiday on {dates}",
+    "locked": "Can't be changed",
+    "range": "{from} – {to}",
+    "addTitle": "Add holiday",
+    "editTitle": "Edit holiday",
+    "formHint": "Today or later only. Past days can't be changed because attendance may already be recorded.",
+    "from": "First day",
+    "to": "Last day",
+    "toHint": "Leave empty for a single day.",
+    "noteLabel": "Note (optional)",
+    "noteHint": "For example: Victory Day, winter break.",
+    "cancel": "Cancel",
+    "saveChanges": "Save changes",
+    "added": "Holiday added",
+    "updated": "Holiday updated",
+    "removed": "Holiday removed",
+    "removeTitle": "Remove this holiday?",
+    "removeDescription": "{dates} will be a normal school day again. The record stays in the activity log.",
+    "errors": {
+      "HOLIDAY_INVALID_DATE": "Choose the first day.",
+      "HOLIDAY_RANGE_INVALID": "The last day can't be before the first day.",
+      "HOLIDAY_RANGE_TOO_LONG": "A holiday can be at most 120 days long.",
+      "HOLIDAY_PAST_LOCKED": "Past days can't be changed. Choose today or a later date."
     }
   }
 }

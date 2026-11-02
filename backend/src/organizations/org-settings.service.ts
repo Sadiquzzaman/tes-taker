@@ -2,7 +2,9 @@ import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/com
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { TenantContext } from 'src/common/tenancy/tenant-context';
-import { OrgSettingsEntity } from './entities/org-settings.entity';
+import { DEFAULT_GUARDIAN_SMS, GuardianSmsSwitches, OrgSettingsEntity } from './entities/org-settings.entity';
+import { AttendanceMethodEnum } from './enums/attendance-method.enum';
+import { ClassAttendanceModeEnum } from './enums/class-attendance-mode.enum';
 import { OrganizationEntity } from './entities/organization.entity';
 import { OrganizationKindEnum } from './enums/organization-kind.enum';
 import { OrganizationMemberRoleEnum } from './enums/organization-member-role.enum';
@@ -24,6 +26,31 @@ export interface OrgSettingsView {
   /** Guardian SMS language (FND-10): the organisation's choice, else its default language. */
   sms_locale: OrganizationLocale;
 }
+
+/** Attendance settings as stored (ATT-01). Times are `HH:MM` in the organisation's time zone. */
+export interface AttendanceSettings {
+  attendance_method: AttendanceMethodEnum;
+  selfie_required: boolean;
+  class_attendance_mode: ClassAttendanceModeEnum;
+  /** ISO day numbers (1 = Monday … 7 = Sunday), ascending. */
+  weekly_off_days: number[];
+  student_entry_time: string;
+  teacher_entry_time: string;
+  guardian_sms: GuardianSmsSwitches;
+  repeat_absence_days: number;
+}
+
+/** The spec's defaults (Epic 1 settings table), used while an organisation has no row. */
+export const DEFAULT_ATTENDANCE_SETTINGS: AttendanceSettings = {
+  attendance_method: AttendanceMethodEnum.OFF,
+  selfie_required: false,
+  class_attendance_mode: ClassAttendanceModeEnum.PER_SESSION,
+  weekly_off_days: [5],
+  student_entry_time: '09:00',
+  teacher_entry_time: '08:45',
+  guardian_sms: DEFAULT_GUARDIAN_SMS,
+  repeat_absence_days: 3,
+};
 
 /**
  * Per-organisation settings (org_settings, design §9.1). An organisation without a row uses the
@@ -119,6 +146,46 @@ export class OrgSettingsService {
     return this.get(organizationId);
   }
 
+  /** The organisation's time zone (school days are dates in it, design §8.9). */
+  async timeZone(organizationId: string): Promise<string> {
+    return (await this.organization(organizationId)).timezone || 'Asia/Dhaka';
+  }
+
+  /** The organisation's attendance settings (no access check; the attendance module checks). */
+  async getAttendance(organizationId: string, manager?: EntityManager): Promise<AttendanceSettings> {
+    const em = manager ?? this.settingsRepo.manager;
+    const row = await em.getRepository(OrgSettingsEntity).findOne({ where: { organization_id: organizationId } });
+    return row ? attendanceOf(row) : { ...DEFAULT_ATTENDANCE_SETTINGS, guardian_sms: { ...DEFAULT_GUARDIAN_SMS } };
+  }
+
+  /**
+   * Saves attendance settings the attendance module has already validated, creating the row on the
+   * first change. Returns the settings before and after.
+   */
+  async saveAttendance(
+    organizationId: string,
+    userId: string,
+    changes: Partial<AttendanceSettings>,
+  ): Promise<{ before: AttendanceSettings; after: AttendanceSettings }> {
+    const existing = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
+    const before = existing ? attendanceOf(existing) : await this.getAttendance(organizationId);
+    const row =
+      existing ??
+      this.settingsRepo.create({
+        organization_id: organizationId,
+        ...OrgSettingsService.defaultsFor((await this.organization(organizationId)).kind),
+        created_by: userId,
+        created_at: new Date(),
+      });
+    Object.assign(row, changes);
+    if (existing) {
+      row.updated_by = userId;
+      row.updated_at = new Date();
+    }
+    const saved = await this.settingsRepo.save(row);
+    return { before, after: attendanceOf(saved) };
+  }
+
   /**
    * The level names of the request's workspace (FND-03). Anyone signed in may read them; without
    * a workspace (a student who has not chosen a teacher yet) they are Class / Section.
@@ -149,4 +216,20 @@ export class OrgSettingsService {
   private organization(organizationId: string, manager?: EntityManager): Promise<OrganizationEntity> {
     return (manager ?? this.organizationRepo.manager).getRepository(OrganizationEntity).findOneOrFail({ where: { id: organizationId } });
   }
+}
+
+/** `HH:MM:SS` from PostgreSQL `time` → `HH:MM`. */
+const hhmm = (time: string): string => time.slice(0, 5);
+
+function attendanceOf(row: OrgSettingsEntity): AttendanceSettings {
+  return {
+    attendance_method: row.attendance_method ?? DEFAULT_ATTENDANCE_SETTINGS.attendance_method,
+    selfie_required: row.selfie_required ?? false,
+    class_attendance_mode: row.class_attendance_mode ?? DEFAULT_ATTENDANCE_SETTINGS.class_attendance_mode,
+    weekly_off_days: [...(row.weekly_off_days ?? DEFAULT_ATTENDANCE_SETTINGS.weekly_off_days)].map(Number).sort((a, b) => a - b),
+    student_entry_time: hhmm(row.student_entry_time ?? DEFAULT_ATTENDANCE_SETTINGS.student_entry_time),
+    teacher_entry_time: hhmm(row.teacher_entry_time ?? DEFAULT_ATTENDANCE_SETTINGS.teacher_entry_time),
+    guardian_sms: { ...DEFAULT_GUARDIAN_SMS, ...(row.guardian_sms ?? {}) },
+    repeat_absence_days: row.repeat_absence_days ?? DEFAULT_ATTENDANCE_SETTINGS.repeat_absence_days,
+  };
 }

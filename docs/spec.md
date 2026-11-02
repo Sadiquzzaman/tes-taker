@@ -211,7 +211,8 @@ Guardians have no login. They receive SMS and PDF reports.
 
 There are two independent parts, and an org can use either or both:
 
-- **Daily presence:** check-in and check-out at the institution, by ZKTeco device *or* by app button (never both in one org).
+- **Daily presence:** check-in and check-out at the institution, by website check-in, ZKTeco device *or* app button (only one per org).
+- **Decided (owner, 2 Nov 2026):** students check themselves in on the website first, and each student sees only their own check-ins. ZKTeco (ATT-02/03) and the mobile app (ATT-04/05) are future work. P3-01 built the settings with Web as a method; the check-in screen is a separate package (plan P3-07).
 - **Class attendance:** the teacher marks each student in a class, either per class session or once a day, as the org chooses.
 
 &#91;embedded content: Daily student status · 4 outcomes\]
@@ -222,7 +223,7 @@ Late and absent come from daily presence when it is on, otherwise from class att
 
 | Setting | Options | Default |
 | --- | --- | --- |
-| Daily presence method | Off / ZKTeco / App | Off |
+| Daily presence method | Off / Web / ZKTeco / App (Web first; ZKTeco and App later) | Off |
 | App check-in radius | 25–1000 m around a pin on the map | 100 m |
 | Selfie at app check-in | On / Off | Off |
 | Entry time | One time per org; can be overridden per shift or section; separate time for teachers | 9:00 AM |

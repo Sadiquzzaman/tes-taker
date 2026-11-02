@@ -225,6 +225,9 @@ A `/dev/ui` page shows every component in every state. Claude Code screenshots i
 | P3-04 | Status resolver, 11:59 PM job, guardian SMS | ATT-06, 10 | 3 |
 | P3-05 | ZKTeco: device registry, user mapping, agent program, hourly push, health alerts | ATT-02, 03 | 5 |
 | P3-06 | Corrections, daily summary, monthly register (PDF/Excel), repeated-absence alert | ATT-12, 13, 14 | 3 |
+| P3-07 | Student web self check-in: check-in/check-out on the website, "My attendance" (own records only: today, month calendar, counts, %) — added 2 Nov 2026, see HANDOFF.md | ATT-01 (Web), new story | 3 (estimate) |
+
+**Change on 2 Nov 2026 (owner):** daily presence is **web only for now**. ZKTeco (P3-05) and mobile-app check-in (P4-03) are future work; P3-07 adds website self check-in. The next planning session should re-order P3 (P3-07 needs P3-04's `daily_attendance`) and decide how a web check-in is proven (see HANDOFF.md).
 
 ### P4 — Flutter app v1 (weeks 15–19)
 
