@@ -1,0 +1,7 @@
+/** Error codes of the attendance API; the web app translates them (messages `attendanceSettings.errors`). */
+export const ATTENDANCE_ERRORS = {
+  METHOD_NOT_AVAILABLE: 'ATTENDANCE_METHOD_NOT_AVAILABLE',
+  METHOD_CHANGE_CONFIRM: 'ATTENDANCE_METHOD_CHANGE_CONFIRM',
+  PRESENCE_NOT_FOR_SOLO: 'ATTENDANCE_PRESENCE_NOT_FOR_SOLO',
+  SELFIE_NEEDS_APP: 'ATTENDANCE_SELFIE_NEEDS_APP',
+} as const;

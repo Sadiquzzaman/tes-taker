@@ -36,6 +36,8 @@ import { AcademicsModule } from './academics/academics.module';
 import { PerformanceModule } from './performance/performance.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { FilesModule } from './files/files.module';
+import { AttendanceModule } from './attendance/attendance.module';
+import { CalendarModule } from './calendar/calendar.module';
 
 @Module({
   imports: [
@@ -106,6 +108,8 @@ import { FilesModule } from './files/files.module';
     PerformanceModule,
     NotificationsModule,
     FilesModule,
+    CalendarModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [

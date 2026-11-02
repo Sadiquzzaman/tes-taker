@@ -4,6 +4,7 @@ export enum FeatureGroup {
   ANALYTICS = 'Analytics',
   NOTIFICATIONS = 'Notifications',
   PROCTORING = 'Proctoring',
+  ATTENDANCE = 'Attendance',
 }
 
 export enum LimitKey {
@@ -49,6 +50,8 @@ export enum FeatureKey {
   PROCTORING_VIDEO_MONITORING = 'proctoring_video_monitoring',
   PROCTORING_REAL_TIME_ALERTS = 'proctoring_real_time_alerts',
   PROCTORING_AUTO_DISQUALIFICATION = 'proctoring_auto_disqualification',
+  /** Epic 1 (design §8.3). The method keys (attendance.zkteco, attendance.app_checkin, …) come with those methods. */
+  ATTENDANCE = 'attendance',
 }
 
 export type PlanFeatures = Partial<Record<FeatureKey, boolean>>;
@@ -183,6 +186,12 @@ export const FEATURE_CATALOG: CatalogFeatureDefinition[] = [
     group: FeatureGroup.PROCTORING,
     label: 'Auto-disqualification',
     proctoringHook: 'autoDisqualify',
+  },
+  {
+    key: FeatureKey.ATTENDANCE,
+    group: FeatureGroup.ATTENDANCE,
+    label: 'Attendance',
+    description: 'Attendance settings, holidays, check-in and roll call',
   },
 ];
 
@@ -337,6 +346,7 @@ export const SEED_PLAN_PRESETS = {
       [FeatureKey.PROCTORING_DOUBLE_DISPLAY]: true,
       [FeatureKey.GRAPHICAL_ANALYTICS]: true,
       [FeatureKey.PERFORMANCE_GRAPHS]: true,
+      [FeatureKey.ATTENDANCE]: true,
     },
     limits: {
       [LimitKey.MAX_EXAMS_PER_MONTH]: 5,
@@ -382,6 +392,7 @@ export const SEED_PLAN_PRESETS = {
       [FeatureKey.PERFORMANCE_GRAPHS]: true,
       [FeatureKey.PUSH_NOTIFICATIONS]: true,
       [FeatureKey.SUSPICIOUS_ACTIVITY_NOTIFICATIONS]: true,
+      [FeatureKey.ATTENDANCE]: true,
     },
     limits: {
       [LimitKey.MAX_EXAMS_PER_MONTH]: 50,
