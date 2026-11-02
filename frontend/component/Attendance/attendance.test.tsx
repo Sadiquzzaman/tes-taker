@@ -119,7 +119,7 @@ describe("attendance settings page (ATT-01)", () => {
 
   it("asks before switching the method while a session is running, then saves with the confirmation", async () => {
     serve({ "/attendance/settings": { ...DEFAULTS, attendance_method: "WEB" } });
-    patch.mockReturnValueOnce(failWith(409, "ATTENDANCE_METHOD_CHANGE_CONFIRM")).mockReturnValueOnce(ok(DEFAULTS));
+    patch.mockImplementationOnce(() => failWith(409, "ATTENDANCE_METHOD_CHANGE_CONFIRM")).mockImplementationOnce(() => ok(DEFAULTS));
     renderApp(<AttendanceSettingsPage />);
 
     await screen.findByRole("group", { name: "How do people check in?" });
@@ -227,7 +227,7 @@ describe("holidays page (CAL-04)", () => {
 
   it("checks the dates before sending, and shows the server's reason", async () => {
     serve({ "/holidays": [], "/attendance/settings": DEFAULTS });
-    post.mockReturnValue(failWith(400, "HOLIDAY_RANGE_TOO_LONG"));
+    post.mockImplementation(() => failWith(400, "HOLIDAY_RANGE_TOO_LONG"));
     renderApp(<HolidaysPage />);
 
     fireEvent.click((await screen.findAllByRole("button", { name: "Add holiday" }))[0]);
