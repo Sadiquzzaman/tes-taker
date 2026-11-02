@@ -42,6 +42,7 @@ const eslintConfig = defineConfig([
       "app/forgot-password/**/*.{ts,tsx}",
       "component/Organization/**/*.{ts,tsx}",
       "component/Academics/**/*.{ts,tsx}",
+      "component/Attendance/**/*.{ts,tsx}",
       "app/organization/**/*.{ts,tsx}",
       "component/Admin/**/*.{ts,tsx}",
       "app/admin/**/*.{ts,tsx}",

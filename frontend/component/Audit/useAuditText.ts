@@ -21,6 +21,8 @@ export const AUDIT_AREAS = [
   "sms_credits",
   "guardian",
   "student",
+  "attendance_settings",
+  "holiday",
 ] as const;
 
 export interface AuditChange {
