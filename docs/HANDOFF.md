@@ -62,3 +62,20 @@ These are already exported to Markdown in `docs/` (Claude Code cannot open claud
 - CI was not run in the planning environment (no npm registry access); the frontend lint step may fail on existing code — report, don't hide.
 - SMS: confirm the proposals that unused monthly allowance expires and top-ups carry over.
 - Who installs the ZKTeco agent at each institution (after beta).
+
+## Owner decisions for the next planning session (2 Nov 2026, during P3-01)
+
+**Web self check-in replaces ZKTeco and the app for now.** The owner wants students to check themselves in on the website, each student seeing only their own check-ins (a "My attendance" page with today's in/out, a month calendar and counts, in the spirit of an HR attendance dashboard but for students). ZKTeco (P3-05, ATT-02/03) and mobile-app check-in (P4-03, ATT-04/05) become future work.
+
+What P3-01 already did for it:
+
+- `org_settings.attendance_method` has a `WEB` value (Off / Web / ZKTeco / App). The settings page offers Off and Website check-in; ZKTeco and App show "Coming soon" and the API refuses them (`ATTENDANCE_METHOD_NOT_AVAILABLE`). No check-in screen or records exist yet.
+- Holidays and weekly off days are in place, and `HolidaysService.closedDays()` tells which days are closed.
+
+Open questions for the planning session (the owner has not answered these yet):
+
+1. **Proof of presence on the web.** The spec's app rules (radius, 50 m GPS accuracy, live selfie, mock-location detection) can't be enforced in a browser: laptop locations are often worse than 50 m and easy to fake. Options raised: a code on the teacher's screen that changes every 30 seconds (suggested), browser location within a radius, school Wi-Fi only, or no check (trust).
+2. **Order.** Web check-in needs the `daily_attendance` records and the status resolver from P3-04; plan.md lists it as P3-07, which should probably come after P3-04 (or merge with it).
+3. **Teachers.** ATT-11 says teachers use the organisation's method; confirm teachers also check in on the website.
+4. **Leave balance.** The demo showed a leave allowance; the spec has no student leave allowance (leave is applied for and approved, ATT-09). Confirm students see their leave requests rather than a balance.
+

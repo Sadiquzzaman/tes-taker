@@ -7,7 +7,7 @@ import SidebarResultsIconSVG from "@/component/svg/SidebarResultsIconSVG";
 import SidebarTestsIconSVG from "@/component/svg/SidebarTestsIconSVG";
 
 // `label` is a message key under `nav` in messages/*.json. `feature` hides an item while the
-// workspace's plan has that feature off (FND-07); the first such items come with the epics (attendance, …).
+// workspace's plan has that feature off (FND-07); attendance (P3-01) is the first to use it.
 const sidebarList: SideBarList[] = [
   {
     category: "Admin",
@@ -148,6 +148,24 @@ const sidebarList: SideBarList[] = [
     image: <SidebarGradingIconSVG width={16} />,
   },
   {
+    category: "Platform",
+    label: "attendanceSettings",
+    route: "/attendance-settings",
+    role: ["TEACHER"],
+    personalWorkspaceOnly: true,
+    feature: "attendance",
+    image: <SidebarClassesIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
+    label: "holidays",
+    route: "/holidays",
+    role: ["TEACHER"],
+    personalWorkspaceOnly: true,
+    feature: "attendance",
+    image: <SidebarDashboardIconSVG width={16} />,
+  },
+  {
     category: "Organization",
     label: "overview",
     route: "/organization",
@@ -258,6 +276,24 @@ const sidebarList: SideBarList[] = [
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN"],
     image: <SidebarGradingIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
+    label: "attendanceSettings",
+    route: "/attendance-settings",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN"],
+    feature: "attendance",
+    image: <SidebarClassesIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
+    label: "holidays",
+    route: "/holidays",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN"],
+    feature: "attendance",
+    image: <SidebarDashboardIconSVG width={16} />,
   },
   {
     category: "System",

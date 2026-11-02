@@ -240,6 +240,8 @@ All jobs run in the worker on BullMQ.
 * **Built in P2-02 (decided):** plans keep the fine-grained keys the code enforces today (`allow_passage_questions`, `proctoring_tab_switch`, …, see `feature-catalog.ts`); the epic keys above are added when each epic is built, instead of renaming now. Entitlements are per organisation (a solo teacher's SOLO organisation or a school); no ACTIVE `account_subscriptions` row means Free. Usage is counted live from the organisation's exams; plan and overrides are cached in Redis (`ent:{orgId}`, 5 minutes). Errors carry `code` (`FEATURE_NOT_IN_PLAN`, `PLAN_LIMIT_REACHED`) and `feature` or `limit` at the top level of the error body. Existing schools started on Pro (owner decision).
 * **Clients (P2-02 web):** the signed-in layout loads `/me/entitlements` once per page load (teachers only) and shares it. A 403 with `FEATURE_NOT_IN_PLAN` or `PLAN_LIMIT_REACHED` opens the locked-feature dialog instead of a toast; "owner or admin" means a solo teacher in their own workspace or a school's OWNER/ADMIN (`useBillingAccess`), who also are the only ones offered plans on Billing. Menu items can carry a `feature` key and are hidden while it is off. "More features" (`/features`) lists the catalog with translated names and "Request this feature". Platform admins set plan, feature switches and limits (optional end date and reason) per organisation in Admin → Organisations, which lists solo teachers' workspaces with `GET /organizations/admin?kind=SOLO`, and work through Admin → Feature requests.
 
+* **Built in P3-01 (decided):** `attendance` is the first epic key and the first whole-feature gate: `@RequiresFeature('attendance')` on `/attendance/settings` and `/holidays` (holidays move to "`attendance` or `calendar`" when P5 adds the `calendar` key), and the first menu items with `feature` (Attendance settings, Holidays). The Premium and Pro presets include it for new installs only; existing plans are switched on in Admin → Plans. The method keys (`attendance.zkteco`, `attendance.app_checkin`, `attendance.selfie`) are added with those methods.
+
 ### 8.4 Real-time
 
 - Socket.IO with `@socket.io/redis-adapter`, authenticated with the JWT in the handshake. The ALB uses sticky sessions for the WebSocket upgrade.
@@ -461,6 +463,8 @@ Departments, programmes, prerequisites, credit-weighted CGPA and registration wi
 | class\_attendance\_photos | New | Up to 3 proof photos |
 | leave\_requests | New | Dates, reason, file, PENDING/APPROVED/REJECTED, approver |
 | attendance\_corrections | New | Old/new status, reason, who corrected |
+
+**Built in P3-01:** attendance settings live in `org_settings` (owned by `organizations`; the `attendance` module validates them: one method, a confirmation (409 `ATTENDANCE_METHOD_CHANGE_CONFIRM`) to switch it while a session covers today, SOLO orgs class attendance only). Daily presence methods are Off / Web / ZKTeco / App; only Off and **Web** (website check-in, owner decision 2 Nov 2026) can be chosen until ZKTeco and the app are built. `holidays` is owned by the `calendar` module, which exports `HolidaysService.closedDays(orgId, from, to)` (weekly off days + active holidays) for the P3-04 resolver and 11:59 PM job.
 
 ### 9.5 Homework
 
