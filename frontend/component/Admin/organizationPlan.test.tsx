@@ -171,30 +171,41 @@ describe("organisation plan & features (FND-07)", () => {
 });
 
 describe("feature requests (FND-08)", () => {
-  it("lists open requests and marks one handled", async () => {
-    get.mockResolvedValue({
-      data: {
-        payload: [
-          {
-            id: "r1",
-            organization_id: "org-1",
-            feature_key: "allow_passage_questions",
-            note: "For reading tests",
-            status: "OPEN",
-            created_at: "2026-10-28T10:00:00.000Z",
-            handled_at: null,
-            organization: { id: "org-1", name: "Rina Akter", kind: "SOLO" },
-            user: { id: "u1", full_name: "Rina Akter", email: "rina@example.com" },
-          },
-        ],
-      },
-    });
+  const openRequest = {
+    id: "r1",
+    organization_id: "org-1",
+    feature_key: "allow_passage_questions",
+    note: "For reading tests",
+    status: "OPEN",
+    created_at: "2026-10-28T10:00:00.000Z",
+    handled_at: null,
+    organization: { id: "org-1", name: "Rina Akter", kind: "SOLO" },
+    user: { id: "u1", full_name: "Rina Akter", email: "rina@example.com" },
+  };
+
+  it("switches the requested feature on and closes the request", async () => {
+    get.mockResolvedValue({ data: { payload: [openRequest] } });
     patch.mockResolvedValue({ data: {} });
     renderApp(<AdminFeatureRequestsTable />);
     expect((await screen.findAllByText("Passage questions")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("For reading tests").length).toBeGreaterThan(0);
     expect(get.mock.calls[0][1]).toEqual({ params: { status: "OPEN" } });
-    fireEvent.click(screen.getAllByRole("button", { name: "Mark handled" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Switch on and close" })[0]);
+    await waitFor(() => expect(patch).toHaveBeenCalledTimes(1));
+    expect(patch.mock.calls[0][0]).toMatch(/\/subscriptions\/admin\/feature-requests\/r1\/grant$/);
+    expect(await screen.findByText("Rina Akter can use Passage questions now. The request is closed.")).toBeTruthy();
+  });
+
+  it("asks before closing a request without switching the feature on", async () => {
+    get.mockResolvedValue({ data: { payload: [openRequest] } });
+    patch.mockResolvedValue({ data: {} });
+    renderApp(<AdminFeatureRequestsTable />);
+    fireEvent.click((await screen.findAllByRole("button", { name: "Close only" }))[0]);
+    expect(await screen.findByText("Close without switching on?")).toBeTruthy();
+    expect(screen.getByText(/Rina Akter will not get Passage questions/)).toBeTruthy();
+    expect(patch).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close only" }));
     await waitFor(() => expect(patch).toHaveBeenCalledTimes(1));
     expect(patch.mock.calls[0][0]).toMatch(/\/subscriptions\/admin\/feature-requests\/r1\/handled$/);
   });
