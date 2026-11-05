@@ -3390,7 +3390,7 @@
     "monthTitle": "This month",
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
-    "attendancePct": "Attendance",
+    "attendancePct": "Attendance rate",
     "calendarLabel": "Attendance in {month}",
     "legend": "What the marks mean",
     "markLabel": "{section}, {time}: {status}",

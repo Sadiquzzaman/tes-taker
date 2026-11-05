@@ -3390,7 +3390,7 @@
     "monthTitle": "এই মাস",
     "previousMonth": "আগের মাস",
     "nextMonth": "পরের মাস",
-    "attendancePct": "উপস্থিতি",
+    "attendancePct": "উপস্থিতির হার",
     "calendarLabel": "{month}-এর উপস্থিতি",
     "legend": "চিহ্নগুলোর অর্থ",
     "markLabel": "{section}, {time}-এর ক্লাস: {status}",
