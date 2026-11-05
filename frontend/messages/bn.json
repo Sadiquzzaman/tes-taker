@@ -43,7 +43,8 @@
     "holidays": "ছুটির দিন",
     "branches": "শাখা",
     "classSetup": "ক্লাস সেটআপ",
-    "myAttendance": "আমার উপস্থিতি"
+    "myAttendance": "আমার উপস্থিতি",
+    "classAttendance": "ক্লাসের উপস্থিতি"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -2737,7 +2738,8 @@
       "holiday": "ছুটির দিন",
       "branch": "শাখা",
       "section_attendance": "[[Section]] সেটআপ",
-      "schedule": "সময়সূচি"
+      "schedule": "সময়সূচি",
+      "attendance": "উপস্থিতি"
     },
     "actions": {
       "plan": {
@@ -2825,6 +2827,9 @@
       },
       "schedule": {
         "update": "সময়সূচি বদলানো হয়েছে"
+      },
+      "attendance": {
+        "correct": "উপস্থিতি সংশোধন করা হয়েছে"
       }
     },
     "fields": {
@@ -2925,7 +2930,8 @@
       "slots": "সময়সূচি",
       "source": "কীভাবে",
       "from_section_id": "যেখান থেকে কপি",
-      "section": "[[Section]]"
+      "section": "[[Section]]",
+      "late_minutes": "দেরির মিনিট"
     }
   },
   "smsCredits": {
@@ -3440,6 +3446,73 @@
       "ATTENDANCE_CHECKIN_PAPER_REGISTER": "এই ক্লাসের উপস্থিতি কাগজের খাতায় রাখা হয়।",
       "ATTENDANCE_CHECKIN_NO_CLASS_TODAY": "এই ক্লাস আজ হয় না।",
       "ATTENDANCE_CHECKIN_NOT_YOUR_CLASS": "আপনি শুধু নিজের ক্লাসে চেক-ইন করতে পারেন।"
+    }
+  },
+  "classAttendance": {
+    "title": "ক্লাসের উপস্থিতি",
+    "intro": "প্রতিটি ক্লাসে কে চেক-ইন করেছে। শিক্ষার্থীরা নিজেরাই চেক-ইন করে; আপনি শুধু কারণসহ ভুল ঠিক করবেন।",
+    "date": "তারিখ",
+    "classesOn": "{date}-এর ক্লাস",
+    "loadFailed": "ক্লাসগুলো লোড করা যায়নি।",
+    "empty": "এই দিনে কোনো ক্লাস নেই",
+    "emptyHint": "ক্লাস সেটআপের সাপ্তাহিক সময়সূচি থেকে ক্লাস আসে।",
+    "class": "ক্লাস",
+    "checkIn": "চেক-ইন",
+    "students": "শিক্ষার্থী",
+    "teachers": "শিক্ষক",
+    "actions": "কাজ",
+    "closedDay": "ক্লাস নেই (বন্ধ)",
+    "paperRegister": "কাগজের খাতা",
+    "state": {
+      "UPCOMING": "এখনো খোলেনি",
+      "OPEN": "এখন খোলা",
+      "CLOSED": "বন্ধ"
+    },
+    "countsLabel": "{students, number} জন শিক্ষার্থী: {present, number} উপস্থিত, {late, number} দেরি, {absent, number} অনুপস্থিত, {leave, number} ছুটিতে, {waiting, number} এখনো আসেনি, {flagged, number} চিহ্নিত",
+    "countPresent": "উ {count, number}",
+    "countLate": "দে {count, number}",
+    "countAbsent": "অ {count, number}",
+    "countLeave": "ছু {count, number}",
+    "countWaiting": "এখনো আসেনি {count, number}",
+    "countFlagged": "চিহ্নিত {count, number}",
+    "view": "দেখুন",
+    "viewAndCorrect": "দেখুন ও ঠিক করুন",
+    "openFor": "{section} খুলুন",
+    "closed": {
+      "WEEKLY_OFF": "সাপ্তাহিক ছুটি: কোনো ক্লাস নেই।",
+      "HOLIDAY": "ছুটির দিন: কোনো ক্লাস নেই। {name}"
+    },
+    "timeRange": "{start}–{end} সময়",
+    "studentsCount": "শিক্ষার্থী ({count, number})",
+    "noStudents": "এই [[section]]-এ এখনো কোনো শিক্ষার্থী নেই।",
+    "notStartedHint": "ক্লাস শুরু হলে সংশোধন করা যাবে।",
+    "checkedInAt": "{time}-এ চেক-ইন",
+    "distance": "{distance, number} মিটার দূরে (±{accuracy, number} মিটার)",
+    "flag": {
+      "EDGE_ACCURACY": "সীমানার কাছে অস্পষ্ট অবস্থান",
+      "IMPOSSIBLE_JUMP": "আগের চেক-ইন থেকে অনেক দূরে"
+    },
+    "correct": "ঠিক করুন",
+    "correctFor": "{name}-এর উপস্থিতি ঠিক করুন",
+    "trailFor": "{name}-এর সংশোধন",
+    "trailLine": "{from} → {to}, করেছেন {who}, {when}",
+    "noRecord": "চেক-ইন নেই",
+    "someone": "কেউ একজন",
+    "newStatus": "নতুন অবস্থা",
+    "lateMinutes": "কত মিনিট দেরি",
+    "reason": "কারণ",
+    "reasonHint": "রেকর্ডের সাথে রাখা হবে, যেমন \"ফোনে ইন্টারনেট ছিল না; ক্লাসে ছিল\"।",
+    "reasonRequired": "কেন ঠিক করছেন লিখুন (অন্তত ৩ অক্ষর)।",
+    "cancel": "বাতিল",
+    "saving": "সংরক্ষণ হচ্ছে…",
+    "saveCorrection": "সংশোধন সংরক্ষণ করুন",
+    "corrected": "{name}-এর উপস্থিতি ঠিক করা হয়েছে",
+    "errors": {
+      "ATTENDANCE_CORRECTION_NOT_STARTED": "এই ক্লাস এখনো শুরু হয়নি।",
+      "ATTENDANCE_CORRECTION_CLOSED_DAY": "সেদিন কোনো ক্লাস ছিল না।",
+      "ATTENDANCE_CORRECTION_PERSON_NOT_FOUND": "এই ব্যক্তি এই ক্লাসে নেই।",
+      "ATTENDANCE_CORRECTION_TEACHER_RECORD": "শিক্ষকের উপস্থিতি শুধু মালিক, অ্যাডমিন ও সহকারী ঠিক করতে পারেন।",
+      "ATTENDANCE_CORRECTION_NO_CHANGE": "রেকর্ডে আগে থেকেই এই অবস্থা আছে।"
     }
   }
 }

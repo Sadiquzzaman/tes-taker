@@ -190,3 +190,57 @@ interface MyCalendar {
   counts: { present: number; late: number; absent: number; leave: number };
   attendance_pct: number | null;
 }
+
+/** A correction in a record's trail (ATT-12). */
+interface AttendanceCorrection {
+  id: string;
+  old_status: AttendanceStatus | null;
+  new_status: AttendanceStatus;
+  reason: string;
+  corrected_by: { id: string; full_name: string } | null;
+  created_at: string;
+}
+
+/** A class on a date for staff (`GET /attendance/sessions`, ATT-07). */
+interface ClassSessionSummary {
+  slot_id: string;
+  date: string;
+  section: { id: string; name: string; class_name: string };
+  start_time: string;
+  end_time: string;
+  class_type: SectionClassType;
+  mode: SectionAttendanceMode;
+  starts_at: string;
+  late_after: string;
+  ends_at: string;
+  state: "UPCOMING" | "OPEN" | "CLOSED";
+  closed: ClosedDay | null;
+  teacher: { id: string; full_name: string } | null;
+  counts: { students: number; present: number; late: number; absent: number; leave: number; waiting: number; flagged: number };
+  can_correct: boolean;
+}
+
+/** One person on a class's list. */
+interface ClassRosterRow {
+  person: { id: string; full_name: string; roll_no: string | null };
+  role: "STUDENT" | "TEACHER";
+  status: CalendarStatus;
+  record: AttendanceRecord | null;
+  corrections: AttendanceCorrection[];
+  can_correct: boolean;
+}
+
+/** `GET /attendance/sessions/:slotId/:date`. */
+interface ClassSessionDetail extends ClassSessionSummary {
+  students: ClassRosterRow[];
+  teachers: ClassRosterRow[];
+}
+
+/** `GET /attendance/sessions`. */
+interface ClassSessionsOnDate {
+  date: string;
+  today: string;
+  time_zone: string;
+  closed: ClosedDay | null;
+  sessions: ClassSessionSummary[];
+}

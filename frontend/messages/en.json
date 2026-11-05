@@ -43,7 +43,8 @@
     "holidays": "Holidays",
     "branches": "Branches",
     "classSetup": "Class setup",
-    "myAttendance": "My attendance"
+    "myAttendance": "My attendance",
+    "classAttendance": "Class attendance"
   },
   "shell": {
     "organization": "Organization",
@@ -2737,7 +2738,8 @@
       "holiday": "Holidays",
       "branch": "Branches",
       "section_attendance": "[[Section]] setup",
-      "schedule": "Schedules"
+      "schedule": "Schedules",
+      "attendance": "Attendance"
     },
     "actions": {
       "plan": {
@@ -2825,6 +2827,9 @@
       },
       "schedule": {
         "update": "Schedule changed"
+      },
+      "attendance": {
+        "correct": "Attendance corrected"
       }
     },
     "fields": {
@@ -2925,7 +2930,8 @@
       "slots": "Schedule",
       "source": "How",
       "from_section_id": "Copied from",
-      "section": "[[Section]]"
+      "section": "[[Section]]",
+      "late_minutes": "Minutes late"
     }
   },
   "smsCredits": {
@@ -3440,6 +3446,73 @@
       "ATTENDANCE_CHECKIN_PAPER_REGISTER": "Attendance for this class is kept on paper.",
       "ATTENDANCE_CHECKIN_NO_CLASS_TODAY": "This class doesn't meet today.",
       "ATTENDANCE_CHECKIN_NOT_YOUR_CLASS": "You can check in only to your own classes."
+    }
+  },
+  "classAttendance": {
+    "title": "Class attendance",
+    "intro": "Who checked in to each class. Students check themselves in; you only fix mistakes, with a reason.",
+    "date": "Date",
+    "classesOn": "Classes on {date}",
+    "loadFailed": "Couldn't load the classes.",
+    "empty": "No classes on this day",
+    "emptyHint": "Classes come from the weekly schedules in Class setup.",
+    "class": "Class",
+    "checkIn": "Check-in",
+    "students": "Students",
+    "teachers": "Teachers",
+    "actions": "Actions",
+    "closedDay": "No classes (closed)",
+    "paperRegister": "Paper register",
+    "state": {
+      "UPCOMING": "Not open yet",
+      "OPEN": "Open now",
+      "CLOSED": "Closed"
+    },
+    "countsLabel": "{students, number} students: {present, number} present, {late, number} late, {absent, number} absent, {leave, number} on leave, {waiting, number} not in yet, {flagged, number} flagged",
+    "countPresent": "P {count, number}",
+    "countLate": "L {count, number}",
+    "countAbsent": "A {count, number}",
+    "countLeave": "LV {count, number}",
+    "countWaiting": "Not in yet {count, number}",
+    "countFlagged": "Flagged {count, number}",
+    "view": "View",
+    "viewAndCorrect": "View and correct",
+    "openFor": "Open {section}",
+    "closed": {
+      "WEEKLY_OFF": "Weekly off day: no classes.",
+      "HOLIDAY": "Holiday: no classes. {name}"
+    },
+    "timeRange": "{start}–{end}",
+    "studentsCount": "Students ({count, number})",
+    "noStudents": "No students in this [[section]] yet.",
+    "notStartedHint": "Corrections open when the class starts.",
+    "checkedInAt": "checked in at {time}",
+    "distance": "{distance, number} m away (±{accuracy, number} m)",
+    "flag": {
+      "EDGE_ACCURACY": "Unclear location at the edge",
+      "IMPOSSIBLE_JUMP": "Far from the last check-in"
+    },
+    "correct": "Correct",
+    "correctFor": "Correct {name}",
+    "trailFor": "Corrections of {name}",
+    "trailLine": "{from} → {to} by {who}, {when}",
+    "noRecord": "No check-in",
+    "someone": "Someone",
+    "newStatus": "New status",
+    "lateMinutes": "Minutes late",
+    "reason": "Reason",
+    "reasonHint": "Kept with the record, e.g. \"Phone had no internet; was in class\".",
+    "reasonRequired": "Write why you are correcting this (at least 3 characters).",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "saveCorrection": "Save correction",
+    "corrected": "Attendance of {name} corrected",
+    "errors": {
+      "ATTENDANCE_CORRECTION_NOT_STARTED": "This class hasn't started yet.",
+      "ATTENDANCE_CORRECTION_CLOSED_DAY": "There was no class that day.",
+      "ATTENDANCE_CORRECTION_PERSON_NOT_FOUND": "This person isn't in this class.",
+      "ATTENDANCE_CORRECTION_TEACHER_RECORD": "Only owners, admins and assistants correct a teacher's attendance.",
+      "ATTENDANCE_CORRECTION_NO_CHANGE": "The record already has this status."
     }
   }
 }
