@@ -157,8 +157,9 @@ A `/dev/ui` page shows every component in every state. Claude Code screenshots i
 
 | Pattern | Rule | Used by |
 | --- | --- | --- |
-| Home = "Today" | Top strip shows what needs action now: classes now and next, roll calls not taken, leave to approve, work to mark, live exams. Charts sit below | Teacher, admin, owner, student homes |
-| One-tap roll call | Everyone starts Present; tap a student to cycle Absent → Late → Leave; one Save; works offline on mobile | ATT-07 |
+| Home = "Today" | Top strip shows what needs action now: classes now and next, classes now and check-ins so far, leave to approve, work to mark, live exams. Charts sit below | Teacher, admin, owner, student homes |
+| Attendance calendar | Month grid; each class a dot with a letter: grey upcoming, green P present on time, yellow L late, red A absent, blue leave, light grey/striped holiday or cancelled, empty = no class. Colour is never the only signal | ATT-18, teacher section view |
+| Corrections, not roll call | Students check themselves in; the teacher's section view lists everyone's status and any row can be changed (with a reason, ATT-12); no Save-everyone step | ATT-07 (changed 5 Nov 2026) |
 | List → detail | Filterable list; the detail page has tabs; edits open in a drawer, never a new page | Classes, students, homework, exams |
 | Side-by-side review | Source on the left (photo crop or submission), editable result on the right, flagged items highlighted amber | Syllabus import, homework marking, plagiarism |
 | Live grid | Tiles with a status colour, sorted with problems first, click for a timeline | Proctoring live monitor, attendance today |
@@ -215,19 +216,21 @@ A `/dev/ui` page shows every component in every state. Claude Code screenshots i
 | P2-08 | Notifications: outbox, templates, SMS allowance + top-ups, inbox bell, FCM, message log | FND-12, 13, 14 | 4 |
 | P2-09 | Audit log; platform-admin feature switches and limits UI | Design §8.3, §8.10 | 2 |
 
-### P3 — Attendance on the web + ZKTeco (weeks 11–14)
+### P3 — Attendance on the web (weeks 11–14)
+
+Re-planned on 5 Nov 2026 for the class-based design (spec Epic 1, "Design"): students check themselves in per class session on the website, the system marks Late and Absent, teachers only correct. ZKTeco and mobile-app check-in are later.
 
 | ID | Work package | Stories / design | Days |
 | --- | --- | --- | --- |
-| P3-01 | Attendance settings and holidays | ATT-01, CAL-04 | 1.5 |
-| P3-02 | One-tap roll call (web), locking, photo proof | ATT-07, 08 | 3 |
-| P3-03 | Leave requests and approvals (students and teachers) | ATT-09, 11 | 2 |
-| P3-04 | Status resolver, 11:59 PM job, guardian SMS | ATT-06, 10 | 3 |
-| P3-05 | ZKTeco: device registry, user mapping, agent program, hourly push, health alerts | ATT-02, 03 | 5 |
-| P3-06 | Corrections, daily summary, monthly register (PDF/Excel), repeated-absence alert | ATT-12, 13, 14 | 3 |
-| P3-07 | Student web self check-in: check-in/check-out on the website, "My attendance" (own records only: today, month calendar, counts, %) — added 2 Nov 2026, see HANDOFF.md | ATT-01 (Web), new story | 3 (estimate) |
+| P3-01 | Attendance settings and holidays — **done** (#155, released #156) | ATT-01, CAL-04 | 1.5 |
+| P3-02 | Branches (pin, radius, hidden default branch) and section attendance setup: branch, in person / online, mode (self check-in / paper register), grace period, schedules (grid, copy, apply to a class or shift, CSV import, stored as routine slots); rework P3-01's settings (presence method and entry times → per-section mode, schedules and grace period) | ATT-01, 15, 16 | 4 |
+| P3-03 | Web self check-in (window, radius and accuracy, online, flags) for students and teachers; "My attendance" calendar; teacher section view with corrections and their trail | ATT-04, 06, 07, 11, 12, 18 | 4 |
+| P3-04 | Automatic Absent when check-in closes, class cancellation by the teacher, guardian SMS (Late at once, Absent once a day), repeated-absence alert | ATT-10, 14, 19 | 3 |
+| P3-05 | Paper register: CSV template per section and month, preview, apply (idempotent), export | ATT-17, 13 (export) | 2.5 |
+| P3-06 | Leave requests and approvals (students and teachers) | ATT-09, 11 | 2 |
+| P3-07 | Reports: daily summary per section, monthly register (PDF/Excel), attendance % for Performance, teacher report | ATT-13 | 3 |
 
-**Change on 2 Nov 2026 (owner):** daily presence is **web only for now**. ZKTeco (P3-05) and mobile-app check-in (P4-03) are future work; P3-07 adds website self check-in. The next planning session should re-order P3 (P3-07 needs P3-04's `daily_attendance`) and decide how a web check-in is proven (see HANDOFF.md).
+Order: P3-02 → P3-03 → P3-04; P3-05 and P3-06 after P3-03; P3-07 last. **Later:** ZKTeco gate presence (ATT-02, 03), class photos (ATT-08), selfie (ATT-05).
 
 ### P4 — Flutter app v1 (weeks 15–19)
 
@@ -235,8 +238,8 @@ A `/dev/ui` page shows every component in every state. Claude Code screenshots i
 | --- | --- | --- | --- |
 | P4-01 | Flutter project, theme from tokens, i18n, API client generated from OpenAPI, token login + refresh | Design §8.2 | 4 |
 | P4-02 | Login/OTP, org switcher, "Today" home per role, notification inbox + push | FND-12, 17 | 4 |
-| P4-03 | Check-in with radius, selfie and mock-location detection | ATT-04, 05 | 3 |
-| P4-04 | Offline roll call for teachers; leave apply/approve | ATT-07, 09 | 3 |
+| P4-03 | App check-in with the same rules as the web (ATT-04), plus selfie and mock-location detection | ATT-04, 05 | 3 |
+| P4-04 | Teacher corrections in the app (offline); leave apply/approve | ATT-07, 09 | 3 |
 | P4-05 | Play Store internal testing + TestFlight pipeline | Design §11 | 2 |
 
 ### P5 — Homework and calendar (weeks 20–23) → management v1 on beta
@@ -346,7 +349,7 @@ The AI-writing indicator (PLG-04, Could) is not scheduled. Add it only if custom
 | --- | --- | --- |
 | One person, 42 weeks | Illness or support load stalls everything | Ship per phase; keep production to the existing product until P5; time-box support to mornings |
 | Flutter is new to you | P4 overruns | Claude Code writes the Flutter code; keep app v1 to check-in, roll call, leave, inbox and home; use the web for everything else until P9 |
-| ZKTeco hardware | Can't test the agent without a device | Buy the ZKTeco model your first customers use before P3; test the agent against it; support only tested models at first |
+| ZKTeco hardware | Can't test the agent without a device | ZKTeco is a later phase since 5 Nov 2026. When it starts, buy the model your first customers use and test the agent against it; support only tested models at first |
 | Code you didn't write | Hidden bugs in money, tenancy, exams | Tests first in those areas; read those diffs line by line; fresh-eyes review on every PR |
 | AI accuracy on poor photos | Teachers lose trust in syllabus import | Required review screen; photo tips; manual editor always available; track edit rate |
 | Scope creep from early customers | The plan slips | New requests go to a backlog and are scheduled at the end of a phase, never in the middle |

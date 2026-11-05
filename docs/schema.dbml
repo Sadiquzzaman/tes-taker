@@ -49,7 +49,7 @@ Table branches {
   geo_lng numeric(9,6)
   checkin_radius_m int [default: 100, note: '25..1000']
   is_default boolean [default: false, note: 'hidden default branch for single-campus orgs']
-  Note: 'NEW (FND-06)'
+  Note: 'NEW (FND-06). PLANNED P3-02 (ATT-15, 5 Nov 2026): built with the class-based attendance; every organisation gets a hidden default branch, whose pin and radius are the organisation\'s'
 }
 
 Enum attendance_method { OFF WEB ZKTECO APP } // BUILT P3-01; WEB = website check-in (owner decision 2 Nov 2026), ZKTECO and APP not selectable yet
@@ -60,12 +60,13 @@ Table org_settings {
   organization_id uuid [unique, not null, ref: - organizations.id]
   class_teacher_enabled boolean [not null, default: true, note: 'BUILT P2-03 (FND-02): sections have a class teacher. Migration/default: true for schools, false for SOLO']
   setup_completed_at timestamptz [note: 'BUILT P2-04 (FND-02): when the academic setup wizard was finished; null = not yet. Migration: set for organisations that already had classes']
-  attendance_method attendance_method [not null, default: 'OFF', note: 'BUILT P3-01 (ATT-01): one daily presence method at a time; SOLO orgs stay OFF']
-  selfie_required boolean [not null, default: false, note: 'BUILT P3-01: only with APP']
-  class_attendance_mode class_attendance_mode [not null, default: 'PER_SESSION', note: 'BUILT P3-01']
+  attendance_method attendance_method [not null, default: 'OFF', note: 'BUILT P3-01 (ATT-01); TO BE REPLACED in P3-02 by the per-section attendance mode (class-based design, 5 Nov 2026)']
+  selfie_required boolean [not null, default: false, note: 'BUILT P3-01: only with APP; TO BE DROPPED in P3-02 (selfie is a later app feature)']
+  class_attendance_mode class_attendance_mode [not null, default: 'PER_SESSION', note: 'BUILT P3-01; TO BE DROPPED in P3-02 (one session per section schedule, no per-period mode)']
   weekly_off_days smallint[] [not null, default: '{5}', note: 'BUILT P3-01: ISO day numbers; 5 = Friday; at least one working day']
-  student_entry_time time [not null, default: '09:00', note: "BUILT P3-01: in the organisation's time zone"]
-  teacher_entry_time time [not null, default: '08:45', note: 'BUILT P3-01']
+  student_entry_time time [not null, default: '09:00', note: "BUILT P3-01; TO BE REPLACED in P3-02 by section schedules + grace period"]
+  teacher_entry_time time [not null, default: '08:45', note: 'BUILT P3-01; TO BE REPLACED in P3-02 by section schedules + grace period']
+  late_grace_minutes smallint [not null, default: 10, note: 'PLANNED P3-02 (ATT-06): 0..60; a section can override it']
   guardian_sms jsonb [not null, default: '{"late":true,"absent":true,"leave":true}', note: 'BUILT P3-01']
   sms_locale varchar(5) [note: "BUILT P2-05 (FND-10): guardian SMS language, CHECK bn | en; null = the organisation's default_locale"]
   homework_policy jsonb [note: '{"late":"ALLOW","penalty":{"type":"NONE"},"max_resubmissions":1,"max_files":5}']
@@ -329,7 +330,8 @@ Table sections {
   shift shift
   room varchar(40)
   class_teacher_id uuid [ref: > users.id, note: 'one per section, only used when org_settings.class_teacher_enabled; a teacher may be class teacher of several sections; approves student leave']
-  entry_time_override time [note: 'not built yet (attendance)']
+  entry_time_override time [note: 'DROPPED from the plan (5 Nov 2026): section schedules (routine_slots) give the start time']
+  branch_id uuid [ref: > branches.id, note: 'PLANNED P3-02 (ATT-15): the branch where the batch meets; default branch when null']
   Indexes {
     (class_id, session_id, name) [unique]
     (organization_id, session_id)
@@ -523,13 +525,25 @@ Table daily_attendance {
   check_out_at timestamptz
   late_minutes smallint
   leave_request_id uuid [ref: > leave_requests.id]
-  resolved_by varchar(20) [note: 'PUNCH | CLASS_ROLL | EOD_JOB | CORRECTION']
+  resolved_by varchar(20) [note: 'PUNCH | CLASS_ROLL | EOD_JOB | CORRECTION. Class-based design: summarises the day\'s class sessions; absent SMS only if every class was missed']
   Indexes {
     (id, date) [pk]
     (organization_id, person_id, date) [unique]
     (organization_id, section_id, date)
   }
   Note: 'NEW (ATT-06, ATT-10, ATT-11) — PARTITION BY RANGE (date), monthly'
+}
+
+Enum section_class_type { IN_PERSON ONLINE }
+Enum section_attendance_mode { SELF_CHECKIN PAPER_REGISTER }
+
+Table section_attendance_settings {
+  section_id uuid [pk, ref: - sections.id]
+  organization_id uuid [not null]
+  class_type section_class_type [not null, default: 'IN_PERSON']
+  mode section_attendance_mode [not null, default: 'SELF_CHECKIN']
+  grace_minutes smallint [note: 'null = org_settings.late_grace_minutes']
+  Note: 'PLANNED P3-02 (ATT-16, 5 Nov 2026) — owned by attendance (sections belong to academic); a section without a row uses the defaults'
 }
 
 Table class_attendance {
@@ -542,10 +556,13 @@ Table class_attendance {
   marked_by uuid [ref: > users.id]
   marked_at timestamptz
   locked_at timestamptz [note: 'midnight; edits after this need admin + reason']
+  starts_at timestamptz [note: 'PLANNED P3-03: from the routine slot, for the check-in window and Late']
+  ends_at timestamptz
+  status varchar(20) [note: "PLANNED P3-03/04: SCHEDULED | OPEN | CLOSED | CANCELLED (ATT-19, with cancelled_by and a note)"]
   Indexes {
     (section_id, offering_id, date, routine_slot_id) [unique]
   }
-  Note: 'NEW (ATT-07)'
+  Note: 'NEW (ATT-07). Class-based design (5 Nov 2026): one row per class session, created by the worker from section schedules, not by a teacher'
 }
 
 Table class_attendance_records {
@@ -553,8 +570,14 @@ Table class_attendance_records {
   organization_id uuid [not null]
   class_attendance_id uuid [not null, ref: > class_attendance.id]
   date date [not null, note: 'copied for partitioning']
-  student_id uuid [not null, ref: > users.id]
+  student_id uuid [not null, ref: > users.id, note: 'the person; teachers check in per session too (ATT-11)']
   status day_status [not null, note: 'PRESENT | LATE | ABSENT | LEAVE']
+  checked_in_at timestamptz [note: 'PLANNED P3-03: server time']
+  late_minutes smallint
+  source varchar(20) [note: 'PLANNED: SELF | AUTO_ABSENT | IMPORT | CORRECTION']
+  distance_m int [note: 'in-person self check-in only']
+  accuracy_m int
+  flag varchar(40) [note: 'why a check-in looks odd; saved, not blocked']
   note varchar(200)
   Indexes {
     (id, date) [pk]

@@ -87,8 +87,9 @@ A `/dev/ui` page shows every component in every state. Claude Code screenshots i
 
 | Pattern | Rule | Used by |
 | --- | --- | --- |
-| Home = "Today" | Top strip shows what needs action now: classes now and next, roll calls not taken, leave to approve, work to mark, live exams. Charts sit below | Teacher, admin, owner, student homes |
-| One-tap roll call | Everyone starts Present; tap a student to cycle Absent → Late → Leave; one Save; works offline on mobile | ATT-07 |
+| Home = "Today" | Top strip shows what needs action now: classes now and next, classes now and check-ins so far, leave to approve, work to mark, live exams. Charts sit below | Teacher, admin, owner, student homes |
+| Attendance calendar | Month grid; each class a dot with a letter: grey upcoming, green P present on time, yellow L late, red A absent, blue leave, light grey/striped holiday or cancelled, empty = no class. Colour is never the only signal | ATT-18, teacher section view |
+| Corrections, not roll call | Students check themselves in; the teacher's section view lists everyone's status and any row can be changed (with a reason, ATT-12); no Save-everyone step | ATT-07 (changed 5 Nov 2026) |
 | List → detail | Filterable list; the detail page has tabs; edits open in a drawer, never a new page | Classes, students, homework, exams |
 | Side-by-side review | Source on the left (photo crop or submission), editable result on the right, flagged items highlighted amber | Syllabus import, homework marking, plagiarism |
 | Live grid | Tiles with a status colour, sorted with problems first, click for a timeline | Proctoring live monitor, attendance today |
