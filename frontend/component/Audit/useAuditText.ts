@@ -24,6 +24,8 @@ export const AUDIT_AREAS = [
   "attendance_settings",
   "holiday",
   "branch",
+  "section_attendance",
+  "schedule",
 ] as const;
 
 export interface AuditChange {
