@@ -3,8 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { TenantContext } from 'src/common/tenancy/tenant-context';
 import { DEFAULT_GUARDIAN_SMS, GuardianSmsSwitches, OrgSettingsEntity } from './entities/org-settings.entity';
-import { AttendanceMethodEnum } from './enums/attendance-method.enum';
-import { ClassAttendanceModeEnum } from './enums/class-attendance-mode.enum';
 import { OrganizationEntity } from './entities/organization.entity';
 import { OrganizationKindEnum } from './enums/organization-kind.enum';
 import { OrganizationMemberRoleEnum } from './enums/organization-member-role.enum';
@@ -27,27 +25,23 @@ export interface OrgSettingsView {
   sms_locale: OrganizationLocale;
 }
 
-/** Attendance settings as stored (ATT-01). Times are `HH:MM` in the organisation's time zone. */
+/**
+ * Organisation attendance settings as stored (ATT-01 as changed on 5 Nov 2026). Class times come
+ * from each section's schedule; the pin and radius live on the organisation's branches (ATT-15).
+ */
 export interface AttendanceSettings {
-  attendance_method: AttendanceMethodEnum;
-  selfie_required: boolean;
-  class_attendance_mode: ClassAttendanceModeEnum;
+  /** Minutes after a class starts before a check-in is Late (ATT-06); a section can override it. */
+  late_grace_minutes: number;
   /** ISO day numbers (1 = Monday … 7 = Sunday), ascending. */
   weekly_off_days: number[];
-  student_entry_time: string;
-  teacher_entry_time: string;
   guardian_sms: GuardianSmsSwitches;
   repeat_absence_days: number;
 }
 
 /** The spec's defaults (Epic 1 settings table), used while an organisation has no row. */
 export const DEFAULT_ATTENDANCE_SETTINGS: AttendanceSettings = {
-  attendance_method: AttendanceMethodEnum.OFF,
-  selfie_required: false,
-  class_attendance_mode: ClassAttendanceModeEnum.PER_SESSION,
+  late_grace_minutes: 10,
   weekly_off_days: [5],
-  student_entry_time: '09:00',
-  teacher_entry_time: '08:45',
   guardian_sms: DEFAULT_GUARDIAN_SMS,
   repeat_absence_days: 3,
 };
@@ -218,17 +212,10 @@ export class OrgSettingsService {
   }
 }
 
-/** `HH:MM:SS` from PostgreSQL `time` → `HH:MM`. */
-const hhmm = (time: string): string => time.slice(0, 5);
-
 function attendanceOf(row: OrgSettingsEntity): AttendanceSettings {
   return {
-    attendance_method: row.attendance_method ?? DEFAULT_ATTENDANCE_SETTINGS.attendance_method,
-    selfie_required: row.selfie_required ?? false,
-    class_attendance_mode: row.class_attendance_mode ?? DEFAULT_ATTENDANCE_SETTINGS.class_attendance_mode,
+    late_grace_minutes: row.late_grace_minutes ?? DEFAULT_ATTENDANCE_SETTINGS.late_grace_minutes,
     weekly_off_days: [...(row.weekly_off_days ?? DEFAULT_ATTENDANCE_SETTINGS.weekly_off_days)].map(Number).sort((a, b) => a - b),
-    student_entry_time: hhmm(row.student_entry_time ?? DEFAULT_ATTENDANCE_SETTINGS.student_entry_time),
-    teacher_entry_time: hhmm(row.teacher_entry_time ?? DEFAULT_ATTENDANCE_SETTINGS.teacher_entry_time),
     guardian_sms: { ...DEFAULT_GUARDIAN_SMS, ...(row.guardian_sms ?? {}) },
     repeat_absence_days: row.repeat_absence_days ?? DEFAULT_ATTENDANCE_SETTINGS.repeat_absence_days,
   };

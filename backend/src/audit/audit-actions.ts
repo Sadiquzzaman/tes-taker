@@ -53,6 +53,11 @@ export const AUDIT_ACTIONS = {
   HOLIDAY_UPDATE: 'holiday.update',
   HOLIDAY_REMOVE: 'holiday.remove',
 
+  // Branches with their check-in pin and radius (owner and admins, ATT-15)
+  BRANCH_CREATE: 'branch.create',
+  BRANCH_UPDATE: 'branch.update',
+  BRANCH_REMOVE: 'branch.remove',
+
   // Notifications (platform admin, design §8.6)
   MESSAGE_TEMPLATE_UPDATE: 'message_template.update',
   SMS_CREDITS_TOP_UP: 'sms_credits.top_up',

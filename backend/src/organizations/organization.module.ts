@@ -13,6 +13,7 @@ import { OrganizationMemberEntity } from './entities/organization-member.entity'
 import { OrganizationTeacherSubjectEntity } from './entities/organization-teacher-subject.entity';
 import { OrganizationInvitationEntity } from './entities/organization-invitation.entity';
 import { OrgSettingsEntity } from './entities/org-settings.entity';
+import { BranchEntity } from './entities/branch.entity';
 import { OrganizationsService } from './organization.service';
 import { OrganizationAccessService } from './organization-access.service';
 import { UserContextService } from './user-context.service';
@@ -21,6 +22,7 @@ import { OrganizationAdminController } from './organization-admin.controller';
 import { OrganizationContextGuard } from './guards/organization-context.guard';
 import { SoloOrganizationService } from './solo-organization.service';
 import { OrgSettingsService } from './org-settings.service';
+import { BranchesService } from './branches.service';
 import { WorkspaceController } from './workspace.controller';
 
 @Module({
@@ -31,6 +33,7 @@ import { WorkspaceController } from './workspace.controller';
       OrganizationTeacherSubjectEntity,
       OrganizationInvitationEntity,
       OrgSettingsEntity,
+      BranchEntity,
       ClassEntity,
       EnrolmentEntity,
       ClassSubjectEntity,
@@ -48,6 +51,7 @@ import { WorkspaceController } from './workspace.controller';
     UserContextService,
     SoloOrganizationService,
     OrgSettingsService,
+    BranchesService,
     OrganizationContextGuard,
   ],
   // Export TypeOrmModule so importing modules (ClassModule, ExamModule) can resolve
@@ -59,6 +63,7 @@ import { WorkspaceController } from './workspace.controller';
     UserContextService,
     SoloOrganizationService,
     OrgSettingsService,
+    BranchesService,
     OrganizationContextGuard,
   ],
 })

@@ -15,6 +15,7 @@ import { EnrolmentEntity, EnrolmentStatusEnum } from './entities/enrolment.entit
 import { OfferingEnrolmentEntity, OfferingEnrolmentStatusEnum } from './entities/offering-enrolment.entity';
 import { OfferingTeacherEntity } from './entities/offering-teacher.entity';
 import { SectionEntity } from './entities/section.entity';
+import { openSessionCondition } from './enrolment-queries';
 import { OfferingRosterService, RosterStudent } from './offering-roster.service';
 import {
   CreateOfferingDto,
@@ -120,6 +121,22 @@ export class SectionsService {
       order: { name: 'ASC' },
     });
     return this.toSectionViews(sections);
+  }
+
+  /**
+   * How many sections of open sessions meet at each branch (ATT-15), keyed by branch id; sections
+   * without a branch (the default branch) are counted under `null`. No access check; callers check.
+   */
+  async countOpenSectionsByBranch(organizationId: string): Promise<Map<string | null, number>> {
+    const rows: { branch_id: string | null; count: number }[] = await tenantScoped(this.sectionRepo)
+      .forOrganization(organizationId)
+      .createQueryBuilder('section')
+      .andWhere(openSessionCondition('section'))
+      .select('section.branch_id', 'branch_id')
+      .addSelect('count(*)::int', 'count')
+      .groupBy('section.branch_id')
+      .getRawMany();
+    return new Map(rows.map((row) => [row.branch_id, row.count]));
   }
 
   async findSection(id: string): Promise<SectionEntity> {

@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
+import { BranchEntity } from 'src/organizations/entities/branch.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { AcademicSessionEntity } from './academic-session.entity';
 
@@ -20,6 +21,7 @@ export enum SectionShiftEnum {
 @Index(['class_id', 'session_id', 'name'], { unique: true })
 @Index(['organization_id', 'session_id'])
 @Index(['class_teacher_id'])
+@Index('IDX_sections_branch', ['branch_id'])
 export class SectionEntity extends CustomBaseEntity {
   @ApiProperty()
   @Column({ name: 'organization_id', type: 'uuid' })
@@ -60,4 +62,12 @@ export class SectionEntity extends CustomBaseEntity {
   @ManyToOne(() => UserEntity, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'class_teacher_id' })
   class_teacher: UserEntity | null;
+
+  @ApiPropertyOptional({ description: "Where the section meets (ATT-15); null = the organisation's default branch" })
+  @Column({ name: 'branch_id', type: 'uuid', nullable: true })
+  branch_id: string | null;
+
+  @ManyToOne(() => BranchEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'branch_id', foreignKeyConstraintName: 'FK_sections_branch' })
+  branch: BranchEntity | null;
 }
