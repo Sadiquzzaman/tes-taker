@@ -78,4 +78,4 @@ Read spec Epic 1 ("Design") and plan §P3 first; they hold the result. In short:
 - **Later:** ZKTeco (gate presence), mobile-app check-in (same rules), selfie, class photos.
 - **P3-01's settings** (presence method, entry times, class attendance mode, selfie) are replaced in P3-02; nobody has used them yet. Dropping those columns needs the owner's approval in P3-02's plan.
 
-Not decided yet: none for P3-02. The feature-request "Mark handled" gap (it does not switch the feature on) is parked in `docs/TODO.md`; the owner will look at it later.
+**P3-02 is built** (#163, #164, #165): branches, section setup, schedules as `routine_slots`, schedule CSV import. P3-01's unused `org_settings` columns are dropped after the release (expand → contract, `docs/TODO.md`). Not decided yet: none. The feature-request "Mark handled" gap (it does not switch the feature on) is parked in `docs/TODO.md`; the owner will look at it later.

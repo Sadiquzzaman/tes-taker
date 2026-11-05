@@ -73,3 +73,43 @@ interface ApplyScheduleResult {
   dry_run: boolean;
   sections: { id: string; name: string; class_name: string; slots_before: number; teachers_dropped: number }[];
 }
+
+/** Why a schedule CSV row cannot be used (messages `classSetup.import.issues`). */
+type ScheduleImportIssue =
+  | "CLASS_MISSING"
+  | "CLASS_NOT_FOUND"
+  | "SECTION_MISSING"
+  | "SECTION_NOT_FOUND"
+  | "NAME_AMBIGUOUS"
+  | "NOT_YOUR_SECTION"
+  | "DAYS_INVALID"
+  | "START_INVALID"
+  | "END_INVALID"
+  | "END_BEFORE_START"
+  | "OVERLAP"
+  | "TOO_MANY"
+  | "CLASS_TYPE_INVALID"
+  | "MODE_INVALID"
+  | "GRACE_INVALID"
+  | "BRANCH_NOT_FOUND"
+  | "BRANCH_NOT_ALLOWED"
+  | "SETTINGS_CONFLICT";
+
+/** One checked row of a schedule CSV (`POST /attendance/setup/import/preview`); `row` is its line in the file. */
+interface ScheduleImportRowResult {
+  row: number;
+  class: string | null;
+  section: string | null;
+  days: number[];
+  start: string | null;
+  end: string | null;
+  errors: ScheduleImportIssue[];
+}
+
+interface ScheduleImportPreview {
+  session: { id: string; name: string };
+  /** No row has a problem; only then can the file be imported. */
+  valid: boolean;
+  rows: ScheduleImportRowResult[];
+  sections: { id: string; name: string; class_name: string; slots_before: number; slots_after: number; settings_changed: boolean }[];
+}

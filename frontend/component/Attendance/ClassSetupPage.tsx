@@ -13,6 +13,7 @@ import { rowsFromSlots } from "@/utils/attendance/schedule";
 import type { IsoDay } from "@/utils/schoolDate";
 import ApplyScheduleDialog from "./ApplyScheduleDialog";
 import ScheduleDrawer from "./ScheduleDrawer";
+import ScheduleImportDrawer from "./ScheduleImportDrawer";
 
 const CLASS_TYPES: SectionClassType[] = ["IN_PERSON", "ONLINE"];
 const MODES: SectionAttendanceMode[] = ["SELF_CHECKIN", "PAPER_REGISTER"];
@@ -42,6 +43,7 @@ const ClassSetupPage = () => {
   const [editing, setEditing] = useState<SectionSetup | null>(null);
   const [applying, setApplying] = useState<SectionSetup | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
     setFailed(false);
@@ -262,7 +264,17 @@ const ClassSetupPage = () => {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
-      <PageHeader title={t("title")} description={t("intro")} />
+      <PageHeader
+        title={t("title")}
+        description={t("intro")}
+        actions={
+          setup?.sections.some((row) => row.can_edit) ? (
+            <Button variant="secondary" onClick={() => setImporting(true)}>
+              {t("importCsv")}
+            </Button>
+          ) : undefined
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         {sessionOptions.length > 1 ? (
@@ -315,6 +327,19 @@ const ClassSetupPage = () => {
         }}
         onError={handleError}
       />
+
+      {setup ? (
+        <ScheduleImportDrawer
+          open={importing}
+          sessionId={setup.session.id}
+          onClose={() => setImporting(false)}
+          onImported={(count) => {
+            setImporting(false);
+            triggerToast({ title: t("imported", { count }), type: "success" });
+            void load();
+          }}
+        />
+      ) : null}
 
       <ApplyScheduleDialog
         baseUrl={baseUrl}

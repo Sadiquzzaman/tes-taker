@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, IsNull, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, IsNull, Repository } from 'typeorm';
 import { tenantScoped } from 'src/common/tenancy/tenant-repository';
 import { ClassEntity } from 'src/classes/entities/class.entity';
 import { ClassSubjectEntity } from 'src/classes/entities/class-subject.entity';
@@ -171,8 +171,8 @@ export class SectionsService {
   }
 
   /** Moves a section to a branch (ATT-15); null = the main branch. The attendance module checks the branch. */
-  async setBranch(section: SectionEntity, branchId: string | null, actorId: string): Promise<void> {
-    await this.sectionRepo.update(
+  async setBranch(section: SectionEntity, branchId: string | null, actorId: string, manager?: EntityManager): Promise<void> {
+    await (manager ?? this.sectionRepo.manager).getRepository(SectionEntity).update(
       { id: section.id, organization_id: section.organization_id },
       { branch_id: branchId, updated_by: actorId, updated_at: new Date() },
     );

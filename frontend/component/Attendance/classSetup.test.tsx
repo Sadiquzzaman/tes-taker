@@ -276,6 +276,98 @@ describe("class setup page (ATT-16)", () => {
   });
 });
 
+const chooseFile = (drawer: HTMLElement, text: string) => {
+  const input = drawer.querySelector('input[type="file"]') as HTMLInputElement;
+  const file = new File([text], "schedule.csv", { type: "text/csv" });
+  Object.defineProperty(file, "text", { value: () => Promise.resolve(text) });
+  fireEvent.change(input, { target: { files: [file] } });
+};
+
+const CSV = "class,section,days,start,end\nClass 6,A,Sat;Mon,16:00,17:30\nClass 6,B,Sun,9:00 AM,10:00 AM\n";
+
+describe("schedule CSV import (ATT-16)", () => {
+  const openImport = async () => {
+    renderApp(<ClassSetupPage />);
+    await screen.findByRole("table");
+    fireEvent.click(screen.getByRole("button", { name: "Import CSV" }));
+    return await screen.findByRole("dialog", { name: "Import schedules from CSV" });
+  };
+
+  it("checks the file, shows what each section gets, then imports and reloads", async () => {
+    serve();
+    const plan: ScheduleImportPreview = {
+      session: { id: "ses-1", name: "2026" },
+      valid: true,
+      rows: [
+        { row: 2, class: "Class 6", section: "A", days: [6, 1], start: "16:00", end: "17:30", errors: [] },
+        { row: 3, class: "Class 6", section: "B", days: [7], start: "09:00", end: "10:00", errors: [] },
+      ],
+      sections: [
+        { id: "s6a", name: "A", class_name: "Class 6", slots_before: 3, slots_after: 2, settings_changed: false },
+        { id: "s6b", name: "B", class_name: "Class 6", slots_before: 0, slots_after: 1, settings_changed: true },
+      ],
+    };
+    post.mockReturnValue(ok(plan));
+    const drawer = await openImport();
+    chooseFile(drawer, CSV);
+
+    expect(await within(drawer).findByText("Every row is right. 2 sections in 2026 will get the times below.")).toBeTruthy();
+    expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/attendance\/setup\/import\/preview$/), {
+      session_id: "ses-1",
+      rows: [
+        { class: "Class 6", section: "A", days: "Sat;Mon", start: "16:00", end: "17:30" },
+        { class: "Class 6", section: "B", days: "Sun", start: "9:00 AM", end: "10:00 AM" },
+      ],
+    });
+    expect(within(drawer).getByText("3 → 2 times")).toBeTruthy();
+    expect(within(drawer).getByText("0 → 1 times · settings change")).toBeTruthy();
+
+    fireEvent.click(within(drawer).getByRole("button", { name: "Import 2 sections" }));
+    await waitFor(() => expect(post).toHaveBeenLastCalledWith(expect.stringMatching(/\/attendance\/setup\/import$/), expect.objectContaining({ session_id: "ses-1" })));
+    expect(await screen.findByText("Schedules imported for 2 sections")).toBeTruthy();
+    expect(get.mock.calls.filter(([url]) => String(url).endsWith("/attendance/setup")).length).toBe(2);
+  });
+
+  it("shows each row's problems and does not offer to import", async () => {
+    serve();
+    post.mockReturnValue(
+      ok({
+        session: { id: "ses-1", name: "2026" },
+        valid: false,
+        rows: [
+          { row: 2, class: "Class 6", section: "A", days: [6, 1], start: "16:00", end: "17:30", errors: [] },
+          { row: 3, class: "Class 9", section: "B", days: [], start: null, end: "10:00", errors: ["CLASS_NOT_FOUND", "DAYS_INVALID", "START_INVALID"] },
+        ],
+        sections: [{ id: "s6a", name: "A", class_name: "Class 6", slots_before: 0, slots_after: 2, settings_changed: false }],
+      }),
+    );
+    const drawer = await openImport();
+    chooseFile(drawer, CSV);
+
+    expect(await within(drawer).findByText(/1 row has a problem/)).toBeTruthy();
+    const table = within(within(drawer).getByRole("table"));
+    expect(table.getByText("No class with this name in the session.")).toBeTruthy();
+    expect(table.getByText("Days not understood. Write them like Sat;Mon.")).toBeTruthy();
+    expect(within(drawer).getByRole("button", { name: /^Import/ })).toHaveProperty("disabled", true);
+  });
+
+  it("refuses a file without the needed columns before asking the API", async () => {
+    serve();
+    const drawer = await openImport();
+    chooseFile(drawer, "class,section,days\nClass 6,A,Sat\n");
+    expect(await within(drawer).findByText("The file needs these columns: start, end.")).toBeTruthy();
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("reads in Bangla", async () => {
+    serve();
+    renderApp(<ClassSetupPage />, { locale: "bn" });
+    await screen.findByRole("table");
+    fireEvent.click(screen.getByRole("button", { name: "CSV থেকে আনুন" }));
+    expect(await screen.findByRole("dialog", { name: "CSV থেকে সময়সূচি আনুন" })).toBeTruthy();
+  });
+});
+
 describe("menu", () => {
   it("shows class setup to every staff role of an organisation and to solo teachers, with the attendance feature", () => {
     const items = sidebarList.filter((item) => item.route === "/attendance-setup");

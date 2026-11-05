@@ -8,7 +8,9 @@ import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.decorator';
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
 import { ATTENDANCE_STAFF, requireAttendanceRole } from './attendance-access';
+import { ScheduleImportDto } from './dto/schedule-import.dto';
 import { ApplyScheduleDto, CopyScheduleDto, ReplaceSlotsDto, SetupQueryDto, UpdateSectionSetupDto } from './dto/section-setup.dto';
+import { ScheduleImportService } from './schedule-import.service';
 import { SectionSetupService } from './section-setup.service';
 
 const STAFF_ONLY = 'Only staff can see the class setup';
@@ -25,7 +27,10 @@ const STAFF_ONLY = 'Only staff can see the class setup';
 @RequiresFeature(FeatureKey.ATTENDANCE)
 @Controller({ path: 'attendance/setup', version: '1' })
 export class SectionSetupController {
-  constructor(private readonly setup: SectionSetupService) {}
+  constructor(
+    private readonly setup: SectionSetupService,
+    private readonly imports: ScheduleImportService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: "The setup grid: every section of a session (default: the organisation's default session)" })
@@ -66,5 +71,24 @@ export class SectionSetupController {
     const tenant = requireAttendanceRole(ATTENDANCE_STAFF, STAFF_ONLY);
     const payload = await this.setup.apply(tenant, user.id, dto);
     return { message: dto.dry_run ? 'Sections to change' : 'Schedule applied', payload };
+  }
+
+  @Post('import/preview')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Check a schedule CSV (rows as JSON): problems per row and what each section will get; nothing is saved' })
+  async importPreview(@Body() dto: ScheduleImportDto, @UserPayload() user: JwtPayloadInterface) {
+    const tenant = requireAttendanceRole(ATTENDANCE_STAFF, STAFF_ONLY);
+    return { message: 'Schedule file checked', payload: await this.imports.preview(tenant, user.id, dto) };
+  }
+
+  @Post('import')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Import a schedule CSV: each section in the file gets exactly its listed times (all or nothing)',
+    description: '400 ATTENDANCE_SCHEDULE_IMPORT_INVALID while any row has a problem; check with import/preview first.',
+  })
+  async import(@Body() dto: ScheduleImportDto, @UserPayload() user: JwtPayloadInterface) {
+    const tenant = requireAttendanceRole(ATTENDANCE_STAFF, STAFF_ONLY);
+    return { message: 'Schedule imported', payload: await this.imports.import(tenant, user.id, dto) };
   }
 }
