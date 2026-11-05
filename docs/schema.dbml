@@ -546,12 +546,13 @@ Enum section_class_type { IN_PERSON ONLINE }
 Enum section_attendance_mode { SELF_CHECKIN PAPER_REGISTER }
 
 Table section_attendance_settings {
-  section_id uuid [pk, ref: - sections.id]
+  id uuid [pk, note: 'base-entity id; section_id is unique']
   organization_id uuid [not null]
-  class_type section_class_type [not null, default: 'IN_PERSON']
+  section_id uuid [not null, unique, ref: - sections.id, note: 'FK ON DELETE CASCADE']
+  class_type section_class_type [not null, default: 'IN_PERSON', note: 'ONLINE: check in from anywhere']
   mode section_attendance_mode [not null, default: 'SELF_CHECKIN']
-  grace_minutes smallint [note: 'null = org_settings.late_grace_minutes']
-  Note: 'PLANNED P3-02 (ATT-16, 5 Nov 2026) — owned by attendance (sections belong to academic); a section without a row uses the defaults'
+  grace_minutes smallint [note: 'CHECK 0..60; null = org_settings.late_grace_minutes']
+  Note: 'BUILT P3-02 (ATT-16) — owned by attendance (sections belong to academic); a section without a row uses the defaults. The branch is sections.branch_id'
 }
 
 Table class_attendance {
@@ -1261,20 +1262,24 @@ Table routine_slots {
   id uuid [pk]
   organization_id uuid [not null]
   session_id uuid [not null, ref: > academic_sessions.id]
-  section_id uuid [not null, ref: > sections.id, note: 'denormalised for the section clash check']
-  offering_id uuid [ref: > course_offerings.id, note: 'null = non-subject slot (assembly, break)']
-  teacher_id uuid [ref: > users.id]
+  section_id uuid [not null, ref: > sections.id, note: 'denormalised for the section clash check; FK ON DELETE CASCADE']
+  offering_id uuid [ref: > course_offerings.id, note: 'null = whole-section class (P3-02 schedules) or a non-subject slot (assembly, break)']
+  teacher_id uuid [ref: > users.id, note: 'optional (P3-02); a teacher is never in two overlapping slots of a session']
   room varchar(40)
-  day_of_week smallint [not null, note: 'ISO 1..7']
-  start_time time [not null]
-  end_time time [not null]
+  day_of_week smallint [not null, note: 'ISO 1..7, CHECK']
+  start_time time [not null, note: "organisation's time zone"]
+  end_time time [not null, note: 'CHECK end_time > start_time (no overnight slots)']
   valid_from date
   valid_to date
+  is_active varchar [note: "'1' in force, '0' removed (soft delete)"]
+  removed_at timestamptz
+  removed_by uuid
   Indexes {
     (teacher_id, day_of_week, start_time)
     (section_id, day_of_week, start_time)
+    (organization_id, session_id)
   }
-  Note: 'NEW (CAL-01) — clash check in service (CAL-02)'
+  Note: 'NEW (CAL-01), BUILT P3-02 as section schedules (ATT-16, calendar module, RoutineSlotsService): no overlap within a section, teacher clash check (CAL-02); saving replaces a section\'s schedule, keeping unchanged rows and soft-removing the rest. P5 builds the routine on the same rows'
 }
 
 Enum exception_type { CANCEL MOVE SUBSTITUTE }

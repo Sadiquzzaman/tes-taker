@@ -207,7 +207,7 @@ Guardians have no login. They receive SMS and PDF reports.
 
 **Goal:** record who attends each class, for students and teachers, without anyone spending time on it, and tell guardians the same day.
 
-**Built today:** organisation attendance settings and holidays (P3-01, CAL-04); branches with their pin and radius, and the grace period in place of the daily presence method and entry times (P3-02 part 1, ATT-15, ATT-01). Section setup and schedules (ATT-16) follow in P3-02.
+**Built today:** organisation attendance settings and holidays (P3-01, CAL-04); branches with their pin and radius, and the grace period in place of the daily presence method and entry times (P3-02 part 1, ATT-15, ATT-01); section setup and weekly schedules with copy and apply to a class or shift (P3-02 part 2, ATT-16). The schedule CSV import follows.
 
 ### Design (decided by the owner, 5 Nov 2026)
 
