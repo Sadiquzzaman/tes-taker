@@ -1,17 +1,8 @@
-/** Daily presence method (ATT-01). Only OFF and WEB can be chosen today; ZKTECO and APP come later. */
-type AttendanceMethod = "OFF" | "WEB" | "ZKTECO" | "APP";
-
-/** How teachers take class attendance (ATT-07). */
-type ClassAttendanceMode = "OFF" | "PER_SESSION" | "DAILY";
-
-/** `GET /attendance/settings`. Times are "HH:MM" in the organisation's time zone; days are ISO (1 = Monday … 7 = Sunday). */
+/** `GET /attendance/settings` (ATT-01 as changed on 5 Nov 2026); days are ISO (1 = Monday … 7 = Sunday). */
 interface AttendanceSettings {
-  attendance_method: AttendanceMethod;
-  selfie_required: boolean;
-  class_attendance_mode: ClassAttendanceMode;
+  /** Minutes after a class starts before a check-in is Late; a section can override it. */
+  late_grace_minutes: number;
   weekly_off_days: number[];
-  student_entry_time: string;
-  teacher_entry_time: string;
   guardian_sms: { late: boolean; absent: boolean; leave: boolean };
   repeat_absence_days: number;
 }
@@ -23,4 +14,17 @@ interface Holiday {
   date_to: string;
   name: string | null;
   days: number;
+}
+
+/** `GET /attendance/branches` (ATT-15). The main (default) branch comes first; its name may be null. */
+interface Branch {
+  id: string;
+  name: string | null;
+  address: string | null;
+  geo_lat: number | null;
+  geo_lng: number | null;
+  checkin_radius_m: number;
+  is_default: boolean;
+  /** Sections of open sessions that meet here. */
+  section_count: number;
 }
