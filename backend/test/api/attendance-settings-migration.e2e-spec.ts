@@ -1,4 +1,5 @@
 import { AttendanceSettingsHolidays1756100000000 } from '../../src/migrations/1756100000000-AttendanceSettingsHolidays';
+import { DropP301PresenceSettings1756220000000 } from '../../src/migrations/1756220000000-DropP301PresenceSettings';
 import { factories } from '../support/factories';
 import { createTestApp, TestApp } from '../support/test-app';
 
@@ -78,6 +79,8 @@ describe('AttendanceSettingsHolidays migration', () => {
         /CHK_org_settings_repeat_absence_days/,
       );
     } finally {
+      // P3-02 dropped P3-01's presence columns again; end with the current schema.
+      await new DropP301PresenceSettings1756220000000().up(runner);
       await runner.release();
     }
   });

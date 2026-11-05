@@ -11,6 +11,7 @@ import { EnrolmentInvitedName1755610000000 } from '../../src/migrations/17556100
 import { AttendanceSettingsHolidays1756100000000 } from '../../src/migrations/1756100000000-AttendanceSettingsHolidays';
 import { AttendanceBranches1756200000000 } from '../../src/migrations/1756200000000-AttendanceBranches';
 import { SectionSchedules1756210000000 } from '../../src/migrations/1756210000000-SectionSchedules';
+import { DropP301PresenceSettings1756220000000 } from '../../src/migrations/1756220000000-DropP301PresenceSettings';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
 import { factories } from '../support/factories';
@@ -108,7 +109,9 @@ describe('AcademicStructure migration', () => {
     const attendanceSettings = new AttendanceSettingsHolidays1756100000000();
     const attendanceBranches = new AttendanceBranches1756200000000();
     const sectionSchedules = new SectionSchedules1756210000000();
+    const dropPresence = new DropP301PresenceSettings1756220000000();
     try {
+      await dropPresence.down(runner);
       await sectionSchedules.down(runner);
       await attendanceBranches.down(runner);
       await attendanceSettings.down(runner);
@@ -130,6 +133,7 @@ describe('AcademicStructure migration', () => {
       await attendanceSettings.up(runner);
       await attendanceBranches.up(runner);
       await sectionSchedules.up(runner);
+      await dropPresence.up(runner);
     } finally {
       await runner.release();
     }
