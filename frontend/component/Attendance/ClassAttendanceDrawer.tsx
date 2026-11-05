@@ -66,7 +66,7 @@ const ClassAttendanceDrawer = ({ baseUrl, target, timeZone, onClose, onCorrected
     };
   }, [baseUrl, target]);
 
-  const clock = (iso: string) => format.date(iso, { hour: "numeric", minute: "2-digit", timeZone });
+  const clock = (iso: string) => format.date(iso, { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone });
 
   const startEditing = (row: ClassRosterRow) => {
     setEditing(row.person.id);

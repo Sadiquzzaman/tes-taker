@@ -61,7 +61,7 @@ const ClassAttendancePage = () => {
     };
   }, [fetchDay, handleError]);
 
-  const clock = (iso: string) => format.date(iso, { hour: "numeric", minute: "2-digit", timeZone: data?.time_zone });
+  const clock = (iso: string) => format.date(iso, { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: data?.time_zone });
   const title = (row: ClassSessionSummary) => `${row.section.class_name} ${row.section.name}`;
 
   const columns: TableColumn<ClassSessionSummary>[] = [
