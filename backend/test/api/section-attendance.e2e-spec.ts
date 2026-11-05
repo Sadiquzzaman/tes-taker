@@ -109,6 +109,8 @@ describe('section attendance API', () => {
         });
         expect(saved.status).toBe(200);
       }
+      // Set up well before the dates the tests look at.
+      await t.dataSource.query(`UPDATE routine_slots SET created_at = '2026-10-01 00:00:00' WHERE section_id IN ($1, $2)`, [c8.section.id, c9.section.id]);
     }
     const slotOf = async (sectionId: string) =>
       ((await t.dataSource.query(`SELECT id FROM routine_slots WHERE section_id = $1 AND is_active = '1'`, [sectionId])) as { id: string }[])[0]?.id;
@@ -271,6 +273,20 @@ describe('section attendance API', () => {
     const byOwner = await correct(s.ownerToken, s.slot8, s.teacher.id, { status: 'PRESENT', reason: 'Seen in class' });
     expect(byOwner.status).toBe(200);
     expect(byOwner.body.payload.teachers).toMatchObject([{ person: { id: s.teacher.id }, status: 'PRESENT', can_correct: true }]);
+  });
+
+  it('shows no class on a date before its slot was added, and takes no correction there', async () => {
+    const s = await school();
+    await t.dataSource.query(`UPDATE routine_slots SET created_at = '2026-11-07 01:00:00' WHERE section_id = $1`, [s.c8.section.id]);
+    setNow(`${DATE}T12:00:00Z`);
+    // Saturday 31 Oct: the schedule did not exist yet, so nobody was absent.
+    expect((await list(s.ownerToken, '2026-10-31')).body.payload.sessions.map((x) => x.slot_id)).toEqual([s.slot9]);
+    expect((await detail(s.ownerToken, s.slot8, '2026-10-31')).status).toBe(404);
+    const refused = await correct(s.ownerToken, s.slot8, s.karim.user.id, { status: 'PRESENT', reason: 'Before the schedule' }, '2026-10-31');
+    expect(refused.status).toBe(404);
+    expect(refused.body.code).toBe('ATTENDANCE_SESSION_NOT_FOUND');
+    // The day it was added counts.
+    expect((await list(s.ownerToken)).body.payload.sessions.map((x) => x.slot_id)).toContain(s.slot8);
   });
 
   it("refuses people outside the class, other teachers' classes, other organisations and a plan without attendance", async () => {
