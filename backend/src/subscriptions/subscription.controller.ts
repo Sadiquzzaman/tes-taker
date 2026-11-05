@@ -38,6 +38,7 @@ import {
   CreatePlanDto,
   GrantTempAccessDto,
   ReorderPlansDto,
+  GrantFeatureRequestDto,
   SetFeatureOverrideDto,
   SetTeacherActiveDto,
   SubscribeByPlanIdDto,
@@ -413,6 +414,20 @@ export class SubscriptionController {
   async listFeatureRequests(@Query('status') status?: FeatureRequestStatusEnum) {
     const payload = await this.subscriptionService.listFeatureRequests(status);
     return { message: 'Feature requests retrieved successfully', payload };
+  }
+
+  @Patch('admin/feature-requests/:id/grant')
+  @ApiBearerAuth('jwt')
+  @ApiOperation({ summary: 'Switch the requested feature on for the organisation and close the request' })
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  async grantFeatureRequest(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: GrantFeatureRequestDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    const payload = await this.subscriptionService.grantFeatureRequest(id, dto, jwtPayload);
+    return { message: 'Feature switched on and request closed', payload };
   }
 
   @Patch('admin/feature-requests/:id/handled')

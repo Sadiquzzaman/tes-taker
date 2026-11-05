@@ -466,6 +466,16 @@ Departments, programmes, prerequisites, credit-weighted CGPA and registration wi
 
 **Built in P3-01:** attendance settings live in `org_settings` (owned by `organizations`; the `attendance` module validates them: one method, a confirmation (409 `ATTENDANCE_METHOD_CHANGE_CONFIRM`) to switch it while a session covers today, SOLO orgs class attendance only). Daily presence methods are Off / Web / ZKTeco / App; only Off and **Web** (website check-in, owner decision 2 Nov 2026) can be chosen until ZKTeco and the app are built. `holidays` is owned by the `calendar` module, which exports `HolidaysService.closedDays(orgId, from, to)` (weekly off days + active holidays) for the P3-04 resolver and 11:59 PM job.
 
+**Class-based design (decided 5 Nov 2026, spec Epic 1 "Design"; plan P3-02 to P3-07).** This changes the tables above as follows; each package adds its own migration and updates `schema.dbml`.
+
+- **Sessions, not days.** `class_attendance` becomes one row per class session: a section meeting on a date from a schedule slot (`routine_slots`, owned by `calendar`, with `offering_id` null for a whole-section class). Sessions are created from the schedules by the worker, not by a teacher; a cancelled session (ATT-19) keeps its row with a status.
+- **Records.** `class_attendance_records` holds one row per student or teacher per session: status (PRESENT, LATE, ABSENT, LEAVE), `checked_in_at` (server time), minutes late, source (SELF, IMPORT, CORRECTION), and for in-person check-ins the distance, accuracy and a `flagged` reason. Corrections go to `attendance_corrections` (ATT-12).
+- **Branches.** `branches` (pin, `checkin_radius_m`) is built in P3-02 with a hidden default branch per organisation; `sections.branch_id` (not `classes.branch_id`: a coaching course runs batches at several branches).
+- **Per-section settings** (class type, attendance mode, grace override) live in a table owned by `attendance` keyed by `section_id`, since `sections` belongs to `academic`.
+- **Days.** `daily_attendance` stays as the per-person-per-day summary that drives the end-of-day absence SMS (one SMS only if every class that day was missed) and reports.
+- **Later.** `attendance_devices`, `device_user_maps` and `attendance_punches` wait for ZKTeco gate presence; `class_attendance_photos` waits for ATT-08.
+- **P3-01's settings:** `org_settings.attendance_method`, `selfie_required`, `student_entry_time`, `teacher_entry_time` and `class_attendance_mode` are replaced in P3-02 by the per-section mode, schedules and an organisation grace period (`weekly_off_days`, `guardian_sms`, `repeat_absence_days` and `holidays` stay). No organisation has used them yet (all OFF on beta, 2 Nov). Dropping the old columns needs the owner's approval in P3-02's plan (CLAUDE.md rule 3).
+
 ### 9.5 Homework
 
 | Table | Status | Purpose and key columns |

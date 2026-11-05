@@ -205,100 +205,123 @@ Guardians have no login. They receive SMS and PDF reports.
 
 ## Epic 1 — Attendance
 
-**Goal:** record who is at the institution and who attends each class, for students and teachers, and tell guardians the same day.
+**Goal:** record who attends each class, for students and teachers, without anyone spending time on it, and tell guardians the same day.
 
-**Built today:** nothing.
+**Built today (P3-01):** organisation attendance settings (`org_settings`) and holidays (CAL-04). The settings will be reworked by the class-based design below (plan P3-02).
 
-There are two independent parts, and an org can use either or both:
+### Design (decided by the owner, 5 Nov 2026)
 
-- **Daily presence:** check-in and check-out at the institution, by website check-in, ZKTeco device *or* app button (only one per org).
-- **Decided (owner, 2 Nov 2026):** students check themselves in on the website first, and each student sees only their own check-ins. ZKTeco (ATT-02/03) and the mobile app (ATT-04/05) are future work. P3-01 built the settings with Web as a method; the check-in screen is a separate package (plan P3-07).
-- **Class attendance:** the teacher marks each student in a class, either per class session or once a day, as the org chooses.
+This replaces the earlier "daily presence + roll call" design. Story IDs are kept; changed stories say so.
 
-&#91;embedded content: Daily student status · 4 outcomes\]
+- **Class-based.** Attendance is taken per class session: one session each time a section (batch) meets on its schedule. A school section meets once a day, so it has one session a day; a coaching batch has one per meeting. There is no check-in per subject period.
+- **No time wasted.** Students check themselves in. Late and Absent are worked out by the system. Teachers only correct mistakes and mark closures. Nobody takes a roll call.
+- **Where.** In-person classes accept check-ins only inside the radius of the section's branch. Online classes accept them from anywhere, and the teacher can correct them by hand if they want to.
+- **Branches.** An organisation can have branches (e.g. Motijheel, Farmgate, Badda), each with its own pin and radius. An organisation without branches has one hidden default branch, so the rules are the same everywhere. A section (batch) belongs to one branch.
+- **Paper register instead.** A section can be set to keep attendance on paper (khata-kolom) instead of self check-in; its attendance is then imported from a CSV file.
+- **Works for everyone.** Schools, coaching centres and solo teachers (including online-only ones) use the same rules. No projector or device is needed at the institution.
+- **Later.** ZKTeco machines (ATT-02/03) and mobile-app check-in (ATT-04/05 in the Flutter app) are future work. The app will follow the same rules as the website.
 
-Late and absent come from daily presence when it is on, otherwise from class attendance. Leave always comes from an approved or pending leave application.
+### Settings
 
-### Settings (per org)
+**Per organisation**
 
 | Setting | Options | Default |
 | --- | --- | --- |
-| Daily presence method | Off / Web / ZKTeco / App (Web first; ZKTeco and App later) | Off |
-| App check-in radius | 25–1000 m around a pin on the map | 100 m |
-| Selfie at app check-in | On / Off | Off |
-| Entry time | One time per org; can be overridden per shift or section; separate time for teachers | 9:00 AM |
-| Class attendance | Off / Per class session / Once per day | Per class session |
+| Pin and check-in radius (for the hidden default branch) | A pin on the map; 25–1000 m | none (set before in-person check-in works); 100 m |
+| Grace period before Late | 0–60 minutes | 10 minutes |
 | Weekly off days | Any days | Friday |
 | Guardian SMS | Late / Absent / Leave, each on or off | All on |
+| Repeated-absence alert | 2–30 days in a row | 3 |
+
+**Per branch:** name, pin and radius (defaults to the organisation's radius).
+
+**Per section (batch)**
+
+| Setting | Options | Default |
+| --- | --- | --- |
+| Branch | One of the organisation's branches | The default branch |
+| Class type | In person / Online | In person |
+| Attendance mode | Self check-in / Paper register (CSV import) | Self check-in |
+| Schedule | Days of the week, start and end time | none (set once, see ATT-16) |
+| Grace period | Organisation default, or own value | Organisation default |
+
+### Calendar colours (student and teacher views)
+
+Each day shows a colour and a letter or icon, so colour is never the only signal (design-system rule).
+
+| Colour | Meaning |
+| --- | --- |
+| Grey | Upcoming class |
+| Green (P) | Present, on time |
+| Yellow (L) | Late |
+| Red (A) | Absent |
+| Blue | On approved leave |
+| Light grey / striped | Holiday, weekly off day or class cancelled |
+| No colour | No class that day |
+
+A day with more than one class (e.g. two batches) shows one dot per class; monthly summaries count classes.
 
 ### Stories
 
-**ATT-01 · Choose the attendance setup (Must)** As an org admin, I want to choose the daily presence method and class attendance mode so that the system matches how we work.
+**ATT-01 · Organisation attendance setup (Must, changed 5 Nov)** As an org admin, I want to set the grace period, weekly off days, guardian SMS and the repeated-absence alert once so that attendance runs on its own.
 
-- Only one daily presence method can be active.
-- Switching method mid-session asks for confirmation. Records already saved are kept.
+- Built in P3-01 as organisation settings; P3-02 replaces the "daily presence method" and entry times with the per-section mode and schedules. Changes never touch attendance already saved.
 
-**ATT-02 · Register ZKTeco devices (Must)** As an org admin, I want to add our ZKTeco machines and link each device user to a student or teacher so that punches land on the right person.
+**ATT-15 · Branches and check-in radius (Must, new)** As an org admin, I want to add our branches with a pin and radius so that students can only check in at the branch where their class is.
 
-- A device has a name, serial number, branch and connection details.
-- Device users are mapped to students or teachers by roll number or employee ID, in bulk by CSV, with a list of unmapped device users.
-- *Developer note:* most ZKTeco machines sit on the local network. Plan for push mode (ADMS) where the device supports it, and otherwise a small sync agent installed on a PC at the institution.
+- An organisation without branches sets one pin and radius (stored on its hidden default branch).
+- A solo teacher who only teaches online never needs a pin.
+- Each section belongs to one branch.
 
-**ATT-03 · Hourly ZKTeco import (Must)** As an org admin, I want punches imported every hour so that attendance is up to date without manual work.
+**ATT-16 · Section schedules, set up quickly (Must, new)** As an org admin or teacher, I want to set when each section meets so that check-in opens at the right time without anyone pressing anything.
 
-- Punches are imported every hour. The first punch of the day is the check-in and the last is the check-out. Duplicate punches are ignored.
-- A "Sync now" button runs an import on demand.
-- If two imports in a row fail, admins get an in-app and email alert naming the device.
+- A schedule is days of the week plus a start and end time; a section can have more than one slot (e.g. Sat/Mon 4 PM, Wed 6 PM).
+- Built in a grid with one row per section; "copy from another section" and "apply to all sections of this class or shift"; import from CSV.
+- Stored as weekly routine slots (CAL-01), so the calendar epic extends the same data.
+- The section's class type (in person / online), attendance mode and grace period are set here too.
 
-**ATT-04 · App check-in within a radius (Must)** As a student or teacher, I want to tap "Check in" in the mobile app when I arrive so that my attendance is recorded.
+**ATT-04 · Web self check-in (Must, changed 5 Nov)** As a student or teacher, I want to check in for my class on the website so that my attendance is recorded.
 
-- The button works only inside the radius. Outside it, the app shows the distance ("You are 340 m away").
-- GPS accuracy must be 50 m or better; otherwise the app asks the user to wait or move outdoors.
-- One check-in and one check-out per day. The time is taken from the server, not the phone.
+- Check-in opens 15 minutes before the scheduled start and closes at the end time.
+- In-person classes: only inside the branch radius. The browser must allow location and report an accuracy of 100 m or better; otherwise the page asks the user to move near a window and try again, or shows the distance ("You are 340 m away").
+- Online classes: from anywhere.
+- One check-in per person per class session. The time is taken from the server, not the device.
+- Each check-in stores the distance and accuracy (in-person). Check-ins that look odd (poor accuracy at the edge of the radius, impossible jumps between check-ins) are saved but flagged for the teacher and admins.
 
-**ATT-05 · Selfie with app check-in (Must when the setting is on)** As an org admin, I want a selfie with each app check-in so that check-ins can't be faked from home.
+**ATT-05 · Selfie with check-in (Could, later)** Kept for the mobile app; not part of the web check-in.
 
-- The selfie must be taken live with the front camera; gallery uploads are not allowed. It is compressed and stored with the record.
-- Android mock-location apps are detected. The check-in is still saved but marked "Suspicious" for the admin.
-- Admins can view the selfie and location for any check-in.
+**ATT-06 · Mark late (Must, changed 5 Nov)** As an org admin, I want anyone who checks in after the class start plus the grace period marked Late, with minutes late, so that punctuality is tracked.
 
-**ATT-06 · Mark late (Must)** As an org admin, I want anyone who checks in after entry time marked Late, with minutes late, so that punctuality is tracked.
+- Late = check-in after the session's start time + the section's grace period.
+- The guardian gets a Late SMS at once when that switch is on. Example: "Rahim (Class 8-A) arrived late at 9:24 AM on 21 Oct."
 
-- Late = check-in time after the applicable entry time (section or shift time if set, otherwise the org time).
-- For students, the guardian SMS is sent at once (ZKTeco: at the hourly import). Example: "Rahim (Class 8-A) arrived late at 9:24 AM on 21 Oct."
+**ATT-07 · Teacher corrections instead of roll call (Must, changed 5 Nov)** As a teacher, I want to see who checked in to my class and fix any mistakes so that the record is right without a roll call.
 
-**ATT-07 · Teacher marks class attendance (Must)** As a teacher, I want a roster for my section and subject where everyone starts as Present and I tap the exceptions so that attendance takes under a minute.
+- The section view lists every student with their status for the session; the teacher can change any status (e.g. Absent → Present for a student whose phone had no internet).
+- Every change is a correction (ATT-12).
 
-- The statuses are Present, Absent, Late and Leave.
-- Students with approved leave are pre-filled as Leave. If daily presence is on, students with no check-in are pre-filled as Absent.
-- The teacher can edit until midnight. After that, only an admin can edit, and must give a reason.
-- Works offline in the mobile app and syncs when the connection returns.
-
-**ATT-08 · Class photo as proof (Should)** As a teacher, I want to attach one or more class photos to an attendance record so that the admin can verify it.
-
-- Up to 3 photos per record, compressed (FND-15).
-- In v1, photos are proof only; there is no automatic face recognition (see Future).
+**ATT-08 · Class photo as proof (Could, later)** Kept for later; not needed for self check-in.
 
 **ATT-09 · Student leave application (Must)** As a student (or a teacher or admin acting for them), I want to apply for leave with dates and a reason so that my absence is excused.
 
 - An application has from and to dates, a reason and an optional attachment (for example a doctor's note).
 - The guardian gets an SMS as soon as the leave is applied for.
 - The class/batch teacher approves or rejects it with a comment, and the student is notified.
-- Approved days show as Leave. Rejected days fall back to the normal Present/Late/Absent rules.
+- Approved days show as Leave (blue). Rejected days fall back to the normal Present/Late/Absent rules.
 
-**ATT-10 · End-of-day absent alert (Must)** As an org admin, I want students with no check-in, no class presence and no leave marked Absent at 11:59 PM with a guardian SMS so that families know the same day.
+**ATT-10 · Automatic absent and the absence SMS (Must, changed 5 Nov)** As an org admin, I want students who did not check in marked Absent automatically, and guardians told once a day, so that families know the same day.
 
-- Runs at 11:59 PM Bangladesh time every working day.
-- It skips weekly off days and holidays from the academic calendar (Epic 9).
-- Example SMS: "Rahim (Class 8-A) was absent today, 21 Oct."
+- When a session's check-in closes, everyone in the section without a check-in or leave is marked Absent.
+- At the end of the school day (11:59 PM Bangladesh time) the guardian gets **one** SMS if the student missed **every** class that day. Example: "Rahim (Class 8-A) was absent today, 21 Oct."
+- No sessions (and no Absent) on weekly off days, holidays or cancelled classes.
 
-**ATT-11 · Teacher attendance and leave (Must)** As an org admin, I want teachers to check in the same way as students, and to apply for leave that I approve, so that staff attendance is recorded.
+**ATT-11 · Teacher attendance and leave (Must, changed 5 Nov)** As an org admin, I want teachers to check in for each class they teach, the same way as students, and to apply for leave that I approve, so that staff attendance is recorded.
 
-- Teachers use the org's daily presence method, with their own entry time.
+- Teachers check in per class session, inside the same radius (anywhere for online classes).
 - Teacher leave is approved by an Org Admin or the Owner.
 - No guardian SMS. Admins get a daily summary of late and absent teachers.
 
-**ATT-12 · Corrections with a trail (Must)** As an org admin, I want to correct any attendance record with a reason so that mistakes can be fixed without hiding changes.
+**ATT-12 · Corrections with a trail (Must)** As an org admin or teacher, I want to correct any attendance record with a reason so that mistakes can be fixed without hiding changes.
 
 - Each correction stores the old value, new value, who made it, when, and the reason.
 - Correcting Absent to Present after the SMS was sent offers to send a correction SMS.
@@ -306,14 +329,36 @@ Late and absent come from daily presence when it is on, otherwise from class att
 **ATT-13 · Attendance reports (Must)** As an admin or teacher, I want daily and monthly attendance reports so that I can spot problems and print registers.
 
 - **Daily summary per section:** present, late, absent and on leave, with counts and names.
-- **Monthly register:** a student × day grid, exportable to PDF and Excel.
+- **Monthly register:** a student × class-day grid, exportable to PDF and Excel (and CSV, the same format as ATT-17).
 - **Attendance % per student:** feeds Performance (Epic 3).
 - **Teacher attendance report:** for admins only.
 
 **ATT-14 · Repeated absence alert (Should)** As a class teacher, I want to be alerted when a student is absent 3 days in a row so that I can follow up early.
 
-- The threshold is configurable per org; the default is 3 days in a row.
+- The threshold is configurable per org; the default is 3 school days in a row.
 - The alert goes to the class/batch teacher in-app.
+
+**ATT-17 · Paper register import (Must, new)** As a teacher or admin of a section that keeps attendance on paper, I want to upload it from a CSV file so that the system stays in sync without typing it in.
+
+- Download a template per section and month: roll number, name and one column per class day; fill in P, L, A or Leave.
+- Upload shows a preview with problems per row (unknown student, unknown code, a day with no class) before anything is saved; then apply.
+- Uploading the same month again updates it; nothing is duplicated. Each import is audited.
+
+**ATT-18 · My attendance (Must, new)** As a student, I want to see my own attendance so that I know where I stand.
+
+- Today's classes with check-in status and a "Check in" button while a session is open.
+- A month calendar in the colours above, with counts (present, late, absent, leave) and attendance %.
+- Only the student's own records.
+
+**ATT-19 · Cancel one class (Must, new)** As a teacher of a section, I want to cancel my class for one day so that students are not marked absent for it.
+
+- The section's teacher or class teacher (and admins) can cancel a session with an optional note; students are told in-app.
+- Organisation-wide holidays stay with owners and admins (CAL-04).
+
+**ATT-02 · Register ZKTeco devices (Future)** and **ATT-03 · Hourly ZKTeco import (Future)** Kept for a later phase as gate presence beside class attendance; the details below still apply then.
+
+- A device has a name, serial number, branch and connection details. Device users are mapped to students or teachers by roll number or employee ID.
+- Punches are imported every hour; a "Sync now" button runs an import on demand; two failed imports in a row alert admins.
 
 ## Epic 2 — Homework
 
@@ -754,8 +799,9 @@ The syllabus is the topic list that question tags (QA-01), homework (HW-01) and 
 
 **CAL-04 · Holidays and off days (Must)** As an org admin, I want to mark holidays and closures so that classes, attendance and absence SMS are skipped those days.
 
-- Single days or ranges, with an optional note.
+- Single days or ranges, with an optional note. Built in P3-01: owners and admins, today or later only, removing keeps the record.
 - Weekly off days come from the attendance settings (Epic 1).
+- A single section's class can be cancelled for a day by its teacher (ATT-19).
 - Bangladesh public holidays can be loaded each year as a starting list (Should).
 
 **CAL-05 · Multiple reminders per event (Must)** As a teacher, I want several reminders for one class at times I choose, each with its own channel, so that I'm never late.
@@ -884,7 +930,7 @@ Features are grouped into three sellable modules plus add-ons. Any account can b
 | Epic | Module | Academic | IELTS | Solo teacher |
 | --- | --- | --- | --- | --- |
 | Foundations | Core (always on) | Yes | Yes (Course/Batch labels) | Yes (hidden branch, default session) |
-| 1 · Attendance | Management | Yes | Yes | Class attendance only |
+| 1 · Attendance | Management | Yes | Yes | Yes (online classes need no pin) |
 | 2 · Homework | Management | Yes | Yes | Yes |
 | 3 · Performance & Reporting | Management (uses Exams results when Exams is on) | Yes | Replaced by IEL-08 and IEL-09 | Yes, without org dashboard |
 | 4 · Question & homework authoring | Exams (question bank shared with Management homework) | Yes | Yes | Yes |

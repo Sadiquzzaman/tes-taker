@@ -3,6 +3,7 @@ import { RolesEnum } from '../../src/common/enums/roles.enum';
 import { OrganizationEntity } from '../../src/organizations/entities/organization.entity';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
+import { FeatureRequestEntity, FeatureRequestStatusEnum } from '../../src/subscriptions/entities/feature-request.entity';
 import { SubscriptionPlanEntity } from '../../src/subscriptions/entities/subscription-plan.entity';
 import { UserEntity } from '../../src/user/entities/user.entity';
 import { factories } from '../support/factories';
@@ -210,6 +211,46 @@ describe('entitlements API', () => {
     );
     // Only what the list shows: never the password hash.
     expect(Object.keys(row?.user ?? {}).sort()).toEqual(['email', 'full_name', 'id', 'phone']);
+  });
+
+  it('"Switch on and close" gives the asking workspace the feature; closing alone does not', async () => {
+    const granted = await make.teacher();
+    const closedOnly = await make.teacher();
+    const ask = async (teacher: UserEntity) =>
+      (await t.api.post<Payload<{ id: string }>>('/me/feature-requests', { feature_key: 'allow_model_tests' }, t.tokenFor(teacher))).body.payload.id;
+    const grantedRequest = await ask(granted);
+    const closedRequest = await ask(closedOnly);
+
+    // Only platform admins may grant.
+    const byTeacher = await t.api.request('PATCH', `/subscriptions/admin/feature-requests/${grantedRequest}/grant`, { body: {}, token: t.tokenFor(granted) });
+    expect(byTeacher.status).toBe(403);
+
+    const grant = await t.api.request<Payload<{ status: string }>>('PATCH', `/subscriptions/admin/feature-requests/${grantedRequest}/grant`, {
+      body: { reason: 'Requested' },
+      token: t.tokenFor(admin),
+    });
+    expect(grant.status).toBe(200);
+    expect(grant.body.payload.status).toBe('HANDLED');
+    expect((await entitlementsFor(t.tokenFor(granted))).features.allow_model_tests).toBe(true);
+
+    const closed = await t.api.request('PATCH', `/subscriptions/admin/feature-requests/${closedRequest}/handled`, { body: {}, token: t.tokenFor(admin) });
+    expect(closed.status).toBe(200);
+    expect((await entitlementsFor(t.tokenFor(closedOnly))).features.allow_model_tests).toBeFalsy();
+
+    // A closed request cannot be granted afterwards.
+    const again = await t.api.request('PATCH', `/subscriptions/admin/feature-requests/${closedRequest}/grant`, { body: {}, token: t.tokenFor(admin) });
+    expect(again.status).toBe(400);
+
+    // Limits are set in Plan & features, never through a request.
+    const solo = await make.soloOrganization(closedOnly);
+    const limitRequest = await t.dataSource.getRepository(FeatureRequestEntity).save({
+      organization_id: solo.id,
+      user_id: closedOnly.id,
+      feature_key: 'max_total_exams',
+      status: FeatureRequestStatusEnum.OPEN,
+    });
+    const limit = await t.api.request('PATCH', `/subscriptions/admin/feature-requests/${limitRequest.id}/grant`, { body: {}, token: t.tokenFor(admin) });
+    expect(limit.status).toBe(400);
   });
 
   it('has no entitlements for a student without a workspace', async () => {

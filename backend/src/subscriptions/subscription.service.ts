@@ -55,6 +55,7 @@ import {
   GrantTempAccessDto,
   ReorderPlansDto,
   CreateFeatureRequestDto,
+  GrantFeatureRequestDto,
   SetFeatureOverrideDto,
   SubscribeByPlanIdDto,
   SubscriptionOverridesDto,
@@ -993,6 +994,30 @@ export class SubscriptionService implements OnModuleInit {
       organization: organization ? { id: organization.id, name: organization.name, kind: organization.kind } : null,
       user: user ? { id: user.id, full_name: user.full_name, email: user.email, phone: user.phone } : null,
     }));
+  }
+
+  /**
+   * "Switch on and close": the asking organisation gets the feature as a platform-admin override,
+   * then the request is closed. Marking a request handled on its own grants nothing.
+   */
+  async grantFeatureRequest(
+    id: string,
+    dto: GrantFeatureRequestDto,
+    jwtPayload: JwtPayloadInterface,
+  ): Promise<FeatureRequestEntity> {
+    const request = await this.featureRequestRepo.findOne({ where: { id } });
+    if (!request) throw new NotFoundException('Request not found');
+    if (request.status !== FeatureRequestStatusEnum.OPEN) throw new BadRequestException('This request is already closed');
+    if (!(ALL_FEATURE_KEYS as string[]).includes(request.feature_key)) {
+      throw new BadRequestException(`"${request.feature_key}" is not a feature that can be switched on`);
+    }
+    await this.setOverride(
+      request.organization_id,
+      request.feature_key,
+      { value: true, expires_at: dto.expires_at, reason: dto.reason || 'Feature request' },
+      jwtPayload,
+    );
+    return this.markFeatureRequestHandled(id, jwtPayload);
   }
 
   async markFeatureRequestHandled(id: string, jwtPayload: JwtPayloadInterface): Promise<FeatureRequestEntity> {
