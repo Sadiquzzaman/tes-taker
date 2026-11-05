@@ -117,7 +117,7 @@ describe('attendance settings API', () => {
     expect((await getSettings(studentToken)).status).toBe(403);
   });
 
-  it("no longer takes P3-01's presence method, selfie, class mode or entry times, and keeps their stored values", async () => {
+  it("no longer takes P3-01's presence method, selfie, class mode or entry times, whose columns are gone", async () => {
     const { organization, token } = await school();
     const response = await patchSettings(token, {
       attendance_method: 'WEB',
@@ -130,20 +130,14 @@ describe('attendance settings API', () => {
     });
     expect(response.status).toBe(200);
     expect(response.body.payload).toEqual({ ...DEFAULTS, late_grace_minutes: 0 });
-    // The unused columns stay as they were until a later release drops them (expand → contract).
-    const [row] = await t.dataSource.query(
-      `SELECT attendance_method, selfie_required, class_attendance_mode, student_entry_time, teacher_entry_time, late_grace_minutes
-       FROM org_settings WHERE organization_id = $1`,
-      [organization.id],
+    // Dropped after the P3-02 release (expand → contract, owner approval 6 Nov 2026).
+    const columns = await t.dataSource.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = 'org_settings' AND column_name = ANY($1)`,
+      [['attendance_method', 'selfie_required', 'class_attendance_mode', 'student_entry_time', 'teacher_entry_time']],
     );
-    expect(row).toEqual({
-      attendance_method: 'OFF',
-      selfie_required: false,
-      class_attendance_mode: 'PER_SESSION',
-      student_entry_time: '09:00:00',
-      teacher_entry_time: '08:45:00',
-      late_grace_minutes: 0,
-    });
+    expect(columns).toEqual([]);
+    const [row] = await t.dataSource.query(`SELECT late_grace_minutes FROM org_settings WHERE organization_id = $1`, [organization.id]);
+    expect(row).toEqual({ late_grace_minutes: 0 });
   });
 
   it("lets a solo teacher set the grace period and off days of their workspace", async () => {

@@ -76,10 +76,10 @@ describe('AttendanceBranches migration', () => {
       );
       expect(sectionsAfter).toEqual(sectionsBefore.map((section: object) => ({ ...section, branch_id: null })));
       const [settings] = await runner.query(
-        `SELECT late_grace_minutes, weekly_off_days, attendance_method FROM org_settings WHERE organization_id = $1`,
+        `SELECT late_grace_minutes, weekly_off_days FROM org_settings WHERE organization_id = $1`,
         [school.id],
       );
-      expect(settings).toEqual({ late_grace_minutes: 10, weekly_off_days: [5, 6], attendance_method: 'OFF' });
+      expect(settings).toEqual({ late_grace_minutes: 10, weekly_off_days: [5, 6] });
 
       // The database keeps the rules: one main branch, a radius of 25–1000 m, a whole pin, a name for other branches, grace 0–60.
       await expect(runner.query(`INSERT INTO branches (organization_id, is_default) VALUES ($1, true)`, [school.id])).rejects.toThrow(
