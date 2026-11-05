@@ -63,19 +63,19 @@ These are already exported to Markdown in `docs/` (Claude Code cannot open claud
 - SMS: confirm the proposals that unused monthly allowance expires and top-ups carry over.
 - Who installs the ZKTeco agent at each institution (after beta).
 
-## Owner decisions for the next planning session (2 Nov 2026, during P3-01)
+## Attendance: owner decisions (2 and 5 Nov 2026, during P3-01)
 
-**Web self check-in replaces ZKTeco and the app for now.** The owner wants students to check themselves in on the website, each student seeing only their own check-ins (a "My attendance" page with today's in/out, a month calendar and counts, in the spirit of an HR attendance dashboard but for students). ZKTeco (P3-05, ATT-02/03) and mobile-app check-in (P4-03, ATT-04/05) become future work.
+Read spec Epic 1 ("Design") and plan §P3 first; they hold the result. In short:
 
-What P3-01 already did for it:
+- **Class-based, nobody wastes time.** Attendance is per class session, from each section's fixed schedule. Students (and teachers) check themselves in on the website; the system marks Late (after start + grace, default 10 minutes) and Absent (when check-in closes). Teachers only correct mistakes and cancel a class for a day. There is no roll call.
+- **Radius per organisation and per branch.** Organisations with branches (e.g. Udvash: Motijheel, Farmgate, Badda) set a pin and radius per branch; others set one (stored on a hidden default branch). A section belongs to a branch.
+- **Per section:** in person or online (online = check in from anywhere; the teacher can correct by hand), self check-in or paper register, grace period, schedule.
+- **Schedules must be quick to create:** a grid, copy from another section, apply to a whole class or shift, CSV import. Stored as routine slots so the calendar epic (P5) builds on them.
+- **Paper register (khata-kolom):** organisations that don't want self check-in keep paper and import it per section and month from CSV (preview, then apply; re-import updates).
+- **Location (my call, owner agreed):** browser location must be allowed with 100 m accuracy or better; distance and accuracy are stored; odd check-ins are flagged, not blocked.
+- **Colours:** grey upcoming, green present on time, yellow late, red absent; plus blue leave, light grey/striped holiday or cancelled, empty = no class. Always with a letter, not colour alone.
+- **SMS:** Late at once; Absent once a day, only if the student missed every class that day.
+- **Later:** ZKTeco (gate presence), mobile-app check-in (same rules), selfie, class photos.
+- **P3-01's settings** (presence method, entry times, class attendance mode, selfie) are replaced in P3-02; nobody has used them yet. Dropping those columns needs the owner's approval in P3-02's plan.
 
-- `org_settings.attendance_method` has a `WEB` value (Off / Web / ZKTeco / App). The settings page offers Off and Website check-in; ZKTeco and App show "Coming soon" and the API refuses them (`ATTENDANCE_METHOD_NOT_AVAILABLE`). No check-in screen or records exist yet.
-- Holidays and weekly off days are in place, and `HolidaysService.closedDays()` tells which days are closed.
-
-Open questions for the planning session (the owner has not answered these yet):
-
-1. **Proof of presence on the web.** The spec's app rules (radius, 50 m GPS accuracy, live selfie, mock-location detection) can't be enforced in a browser: laptop locations are often worse than 50 m and easy to fake. Options raised: a code on the teacher's screen that changes every 30 seconds (suggested), browser location within a radius, school Wi-Fi only, or no check (trust).
-2. **Order.** Web check-in needs the `daily_attendance` records and the status resolver from P3-04; plan.md lists it as P3-07, which should probably come after P3-04 (or merge with it).
-3. **Teachers.** ATT-11 says teachers use the organisation's method; confirm teachers also check in on the website.
-4. **Leave balance.** The demo showed a leave allowance; the spec has no student leave allowance (leave is applied for and approved, ATT-09). Confirm students see their leave requests rather than a balance.
-
+Not decided yet: none for P3-02. The feature-request "Mark handled" gap (it does not switch the feature on) is parked in `docs/TODO.md`; the owner will look at it later.
