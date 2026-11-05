@@ -1,17 +1,8 @@
-/** Daily presence method (ATT-01). Only OFF and WEB can be chosen today; ZKTECO and APP come later. */
-type AttendanceMethod = "OFF" | "WEB" | "ZKTECO" | "APP";
-
-/** How teachers take class attendance (ATT-07). */
-type ClassAttendanceMode = "OFF" | "PER_SESSION" | "DAILY";
-
-/** `GET /attendance/settings`. Times are "HH:MM" in the organisation's time zone; days are ISO (1 = Monday … 7 = Sunday). */
+/** `GET /attendance/settings` (ATT-01 as changed on 5 Nov 2026); days are ISO (1 = Monday … 7 = Sunday). */
 interface AttendanceSettings {
-  attendance_method: AttendanceMethod;
-  selfie_required: boolean;
-  class_attendance_mode: ClassAttendanceMode;
+  /** Minutes after a class starts before a check-in is Late; a section can override it. */
+  late_grace_minutes: number;
   weekly_off_days: number[];
-  student_entry_time: string;
-  teacher_entry_time: string;
   guardian_sms: { late: boolean; absent: boolean; leave: boolean };
   repeat_absence_days: number;
 }
@@ -23,4 +14,102 @@ interface Holiday {
   date_to: string;
   name: string | null;
   days: number;
+}
+
+/** `GET /attendance/branches` (ATT-15). The main (default) branch comes first; its name may be null. */
+interface Branch {
+  id: string;
+  name: string | null;
+  address: string | null;
+  geo_lat: number | null;
+  geo_lng: number | null;
+  checkin_radius_m: number;
+  is_default: boolean;
+  /** Sections of open sessions that meet here. */
+  section_count: number;
+}
+
+type SectionClassType = "IN_PERSON" | "ONLINE";
+type SectionAttendanceMode = "SELF_CHECKIN" | "PAPER_REGISTER";
+
+/** A weekly slot of a section (ATT-16): ISO day, "HH:MM" times, an optional teacher. */
+interface ScheduleSlot {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  teacher_id: string | null;
+  teacher: { id: string; full_name: string } | null;
+}
+
+/** One row of `GET /attendance/setup`. */
+interface SectionSetup {
+  id: string;
+  name: string;
+  class: { id: string; name: string };
+  shift: "MORNING" | "DAY" | "EVENING" | null;
+  /** The main branch's id when the section has none of its own. */
+  branch_id: string;
+  class_type: SectionClassType;
+  mode: SectionAttendanceMode;
+  /** null = the organisation's grace period. */
+  grace_minutes: number | null;
+  slots: ScheduleSlot[];
+  can_edit: boolean;
+}
+
+/** `GET /attendance/setup`. */
+interface ClassSetup {
+  session: { id: string; name: string; status: string };
+  late_grace_minutes: number;
+  main_branch_id: string;
+  /** May move sections between branches and apply a schedule to a class or shift. */
+  can_manage: boolean;
+  sections: SectionSetup[];
+}
+
+/** `POST /attendance/setup/apply`. */
+interface ApplyScheduleResult {
+  dry_run: boolean;
+  sections: { id: string; name: string; class_name: string; slots_before: number; teachers_dropped: number }[];
+}
+
+/** Why a schedule CSV row cannot be used (messages `classSetup.import.issues`). */
+type ScheduleImportIssue =
+  | "CLASS_MISSING"
+  | "CLASS_NOT_FOUND"
+  | "SECTION_MISSING"
+  | "SECTION_NOT_FOUND"
+  | "NAME_AMBIGUOUS"
+  | "NOT_YOUR_SECTION"
+  | "DAYS_INVALID"
+  | "START_INVALID"
+  | "END_INVALID"
+  | "END_BEFORE_START"
+  | "OVERLAP"
+  | "TOO_MANY"
+  | "CLASS_TYPE_INVALID"
+  | "MODE_INVALID"
+  | "GRACE_INVALID"
+  | "BRANCH_NOT_FOUND"
+  | "BRANCH_NOT_ALLOWED"
+  | "SETTINGS_CONFLICT";
+
+/** One checked row of a schedule CSV (`POST /attendance/setup/import/preview`); `row` is its line in the file. */
+interface ScheduleImportRowResult {
+  row: number;
+  class: string | null;
+  section: string | null;
+  days: number[];
+  start: string | null;
+  end: string | null;
+  errors: ScheduleImportIssue[];
+}
+
+interface ScheduleImportPreview {
+  session: { id: string; name: string };
+  /** No row has a problem; only then can the file be imported. */
+  valid: boolean;
+  rows: ScheduleImportRowResult[];
+  sections: { id: string; name: string; class_name: string; slots_before: number; slots_after: number; settings_changed: boolean }[];
 }

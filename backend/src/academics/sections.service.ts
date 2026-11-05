@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, IsNull, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, IsNull, Repository } from 'typeorm';
 import { tenantScoped } from 'src/common/tenancy/tenant-repository';
 import { ClassEntity } from 'src/classes/entities/class.entity';
 import { ClassSubjectEntity } from 'src/classes/entities/class-subject.entity';
@@ -15,6 +15,7 @@ import { EnrolmentEntity, EnrolmentStatusEnum } from './entities/enrolment.entit
 import { OfferingEnrolmentEntity, OfferingEnrolmentStatusEnum } from './entities/offering-enrolment.entity';
 import { OfferingTeacherEntity } from './entities/offering-teacher.entity';
 import { SectionEntity } from './entities/section.entity';
+import { openSessionCondition } from './enrolment-queries';
 import { OfferingRosterService, RosterStudent } from './offering-roster.service';
 import {
   CreateOfferingDto,
@@ -120,6 +121,78 @@ export class SectionsService {
       order: { name: 'ASC' },
     });
     return this.toSectionViews(sections);
+  }
+
+  /**
+   * The request organisation's sections of a session (the default session if none is given) with
+   * their class, ordered by class and section name, for the attendance setup grid (ATT-16).
+   */
+  async listWithClasses(sessionId?: string): Promise<{ session: AcademicSessionEntity; sections: SectionEntity[] }> {
+    const organizationId = tenantScoped(this.sectionRepo).currentOrganizationId;
+    const session = await this.resolveSession(organizationId, sessionId);
+    const sections = await tenantScoped(this.sectionRepo)
+      .createQueryBuilder('section')
+      .innerJoinAndSelect('section.class', 'class')
+      .andWhere('section.session_id = :sessionId', { sessionId: session.id })
+      .orderBy('lower(class.class_name)', 'ASC')
+      .addOrderBy('lower(section.name)', 'ASC')
+      .getMany();
+    return { session, sections };
+  }
+
+  /** A section of the request organisation with its class and session (404 otherwise). */
+  async findSectionWithClass(id: string): Promise<SectionEntity> {
+    const section = await tenantScoped(this.sectionRepo).findOne({ where: { id }, relations: ['class', 'session'] });
+    if (!section) throw new NotFoundException('Section not found');
+    return section;
+  }
+
+  /**
+   * Sections of a session the teacher looks after (ATT-16): they teach one of its subject classes,
+   * or are its class teacher while the organisation uses class teachers.
+   */
+  async sectionIdsTaughtBy(organizationId: string, sessionId: string, teacherId: string): Promise<Set<string>> {
+    const settings = await this.settings.get(organizationId);
+    const rows: { id: string }[] = await tenantScoped(this.sectionRepo)
+      .forOrganization(organizationId)
+      .createQueryBuilder('section')
+      .select('section.id', 'id')
+      .andWhere('section.session_id = :sessionId', { sessionId })
+      .andWhere(
+        `(EXISTS (
+          SELECT 1 FROM offering_teachers teaching
+          JOIN course_offerings teaching_offering ON teaching_offering.id = teaching.offering_id
+          WHERE teaching.teacher_id = :teacherId AND teaching_offering.section_id = section.id
+        )${settings.class_teacher_enabled ? ' OR section.class_teacher_id = :teacherId' : ''})`,
+        { teacherId },
+      )
+      .getRawMany();
+    return new Set(rows.map((row) => row.id));
+  }
+
+  /** Moves a section to a branch (ATT-15); null = the main branch. The attendance module checks the branch. */
+  async setBranch(section: SectionEntity, branchId: string | null, actorId: string, manager?: EntityManager): Promise<void> {
+    await (manager ?? this.sectionRepo.manager).getRepository(SectionEntity).update(
+      { id: section.id, organization_id: section.organization_id },
+      { branch_id: branchId, updated_by: actorId, updated_at: new Date() },
+    );
+    section.branch_id = branchId;
+  }
+
+  /**
+   * How many sections of open sessions meet at each branch (ATT-15), keyed by branch id; sections
+   * without a branch (the default branch) are counted under `null`. No access check; callers check.
+   */
+  async countOpenSectionsByBranch(organizationId: string): Promise<Map<string | null, number>> {
+    const rows: { branch_id: string | null; count: number }[] = await tenantScoped(this.sectionRepo)
+      .forOrganization(organizationId)
+      .createQueryBuilder('section')
+      .andWhere(openSessionCondition('section'))
+      .select('section.branch_id', 'branch_id')
+      .addSelect('count(*)::int', 'count')
+      .groupBy('section.branch_id')
+      .getRawMany();
+    return new Map(rows.map((row) => [row.branch_id, row.count]));
   }
 
   async findSection(id: string): Promise<SectionEntity> {

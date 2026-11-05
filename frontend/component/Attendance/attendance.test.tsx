@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderApp } from "@/i18n/test-utils";
 import sidebarList from "@/utils/sidebarList";
 import AttendanceSettingsPage from "./AttendanceSettingsPage";
+import BranchesPage from "./BranchesPage";
 import HolidaysPage from "./HolidaysPage";
 
 const get = vi.fn();
@@ -27,19 +28,26 @@ const ok = <T,>(payload: T) => Promise.resolve({ data: { payload } });
 const failWith = (status: number, code: string) => Promise.reject({ response: { status, data: { code, message: code } } });
 
 const DEFAULTS: AttendanceSettings = {
-  attendance_method: "OFF",
-  selfie_required: false,
-  class_attendance_mode: "PER_SESSION",
+  late_grace_minutes: 10,
   weekly_off_days: [5],
-  student_entry_time: "09:00",
-  teacher_entry_time: "08:45",
   guardian_sms: { late: true, absent: true, leave: true },
   repeat_absence_days: 3,
 };
 
 /** The desktop table (the Table also renders a card per row for phones). */
 const table = () => within(screen.getByRole("table"));
-const presence = () => within(screen.getByRole("group", { name: "How do people check in?" }));
+
+const MAIN: Branch = { id: "b-main", name: null, address: null, geo_lat: null, geo_lng: null, checkin_radius_m: 100, is_default: true, section_count: 3 };
+const FARMGATE: Branch = {
+  id: "b-farmgate",
+  name: "Farmgate",
+  address: "Green Road",
+  geo_lat: 23.7577,
+  geo_lng: 90.3897,
+  checkin_radius_m: 150,
+  is_default: false,
+  section_count: 2,
+};
 
 const asRole = (role: OrganizationMemberRole) =>
   workspace.mockReturnValue({
@@ -75,113 +83,235 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("attendance settings page (ATT-01)", () => {
-  it("shows the settings, offers Off and Website check-in, and marks ZKTeco and the app as coming soon", async () => {
-    serve({ "/attendance/settings": DEFAULTS });
+describe("attendance settings page (ATT-01, ATT-15)", () => {
+  it("shows the grace period, off days, alerts and the main branch's pin, without the old presence and roll-call choices", async () => {
+    serve({ "/attendance/settings": DEFAULTS, "/attendance/branches": [MAIN] });
     renderApp(<AttendanceSettingsPage />);
 
-    await screen.findByRole("group", { name: "How do people check in?" });
-    expect(presence().getByRole("radio", { name: "Off" })).toHaveProperty("checked", true);
-    expect(screen.getByRole("radio", { name: "Website check-in" })).toHaveProperty("disabled", false);
-    expect(screen.getByRole("radio", { name: /ZKTeco machine/ })).toHaveProperty("disabled", true);
-    expect(screen.getByRole("radio", { name: /Mobile app/ })).toHaveProperty("disabled", true);
-    expect(screen.getAllByText("Coming soon")).toHaveLength(2);
-    expect(screen.getByRole("radio", { name: "Every class" })).toHaveProperty("checked", true);
+    expect(((await screen.findByLabelText(/Late after/)) as HTMLInputElement).value).toBe("10");
     expect(screen.getByRole("checkbox", { name: "Friday" })).toHaveProperty("checked", true);
-    expect((screen.getByLabelText(/Students' entry time/) as HTMLInputElement).value).toBe("09:00");
+    expect((screen.getByLabelText(/Check-in radius/) as HTMLInputElement).value).toBe("100");
+    expect(screen.getByText("No pin yet. In-person check-in needs one.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Add branches" }).getAttribute("href")).toBe("/attendance-branches");
+    expect(screen.queryByText(/Daily presence|Website check-in|entry time|roll call/i)).toBeNull();
   });
 
-  it("saves the owner's choices", async () => {
-    serve({ "/attendance/settings": DEFAULTS });
-    const saved = { ...DEFAULTS, attendance_method: "WEB", weekly_off_days: [5, 6], guardian_sms: { late: false, absent: true, leave: true } };
-    patch.mockReturnValue(ok(saved));
+  it("saves the settings and the pin pasted from a Google Maps link", async () => {
+    serve({ "/attendance/settings": DEFAULTS, "/attendance/branches": [MAIN] });
+    patch.mockImplementation((url: string, body: unknown) =>
+      url.endsWith("/attendance/settings") ? ok({ ...DEFAULTS, ...(body as object) }) : ok({ ...MAIN, ...(body as object) }),
+    );
     renderApp(<AttendanceSettingsPage />);
 
-    fireEvent.click(await screen.findByRole("radio", { name: "Website check-in" }));
+    fireEvent.change(await screen.findByLabelText(/Late after/), { target: { value: "15" } });
     fireEvent.click(screen.getByRole("checkbox", { name: "Saturday" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Late" }));
-    fireEvent.change(screen.getByLabelText(/Students' entry time/), { target: { value: "08:30" } });
+    fireEvent.change(screen.getByLabelText(/Google Maps link/), { target: { value: "https://www.google.com/maps/@23.8103,90.4125,15z" } });
+    expect((screen.getByLabelText("Latitude") as HTMLInputElement).value).toBe("23.8103");
+    expect(screen.getByRole("link", { name: "Check the pin on Google Maps" }).getAttribute("href")).toBe("https://www.google.com/maps?q=23.8103,90.4125");
+    fireEvent.change(screen.getByLabelText(/Check-in radius/), { target: { value: "200" } });
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
 
-    await waitFor(() =>
-      expect(patch).toHaveBeenCalledWith(expect.stringMatching(/\/attendance\/settings$/), {
-        attendance_method: "WEB",
-        class_attendance_mode: "PER_SESSION",
-        weekly_off_days: [5, 6],
-        student_entry_time: "08:30",
-        teacher_entry_time: "08:45",
-        guardian_sms: { late: false, absent: true, leave: true },
-        repeat_absence_days: 3,
-      }),
-    );
+    await waitFor(() => expect(patch).toHaveBeenCalledTimes(2));
+    expect(patch).toHaveBeenCalledWith(expect.stringMatching(/\/attendance\/settings$/), {
+      late_grace_minutes: 15,
+      weekly_off_days: [5, 6],
+      guardian_sms: { late: false, absent: true, leave: true },
+      repeat_absence_days: 3,
+    });
+    expect(patch).toHaveBeenCalledWith(expect.stringMatching(/\/attendance\/branches\/b-main$/), {
+      geo_lat: 23.8103,
+      geo_lng: 90.4125,
+      checkin_radius_m: 200,
+    });
     expect(await screen.findByText("Attendance settings saved")).toBeTruthy();
   });
 
-  it("asks before switching the method while a session is running, then saves with the confirmation", async () => {
-    serve({ "/attendance/settings": { ...DEFAULTS, attendance_method: "WEB" } });
-    patch.mockImplementationOnce(() => failWith(409, "ATTENDANCE_METHOD_CHANGE_CONFIRM")).mockImplementationOnce(() => ok(DEFAULTS));
+  it("does not touch the pin when only the settings changed", async () => {
+    serve({ "/attendance/settings": DEFAULTS, "/attendance/branches": [{ ...MAIN, geo_lat: 23.75, geo_lng: 90.38 }] });
+    patch.mockReturnValue(ok({ ...DEFAULTS, repeat_absence_days: 4 }));
     renderApp(<AttendanceSettingsPage />);
 
-    await screen.findByRole("group", { name: "How do people check in?" });
-    fireEvent.click(presence().getByRole("radio", { name: "Off" }));
+    fireEvent.change(await screen.findByLabelText("Alert the class teacher after"), { target: { value: "4" } });
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
-
-    const dialog = await screen.findByRole("dialog", { name: "Switch the daily presence method?" });
-    expect(within(dialog).getByText(/Switching from Website check-in to Off/)).toBeTruthy();
-    expect(within(dialog).getByText(/Attendance already saved is kept/)).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Switch method" }));
-
-    await waitFor(() => expect(patch).toHaveBeenCalledTimes(2));
-    expect(patch.mock.calls[1][1]).toMatchObject({ attendance_method: "OFF", confirm_method_change: true });
+    await waitFor(() => expect(patch).toHaveBeenCalledTimes(1));
+    expect(patch.mock.calls[0][0]).toMatch(/\/attendance\/settings$/);
   });
 
-  it("keeps at least one school day and checks the alert days before saving", async () => {
-    serve({ "/attendance/settings": { ...DEFAULTS, weekly_off_days: [1, 2, 3, 4, 5, 6] } });
+  it("checks the grace period, school days, alert days and the pin before saving", async () => {
+    serve({ "/attendance/settings": { ...DEFAULTS, weekly_off_days: [1, 2, 3, 4, 5, 6] }, "/attendance/branches": [MAIN] });
     renderApp(<AttendanceSettingsPage />);
+    const save = async () => screen.getByRole("button", { name: "Save settings" });
 
     fireEvent.click(await screen.findByRole("checkbox", { name: "Sunday" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
-    expect(await screen.findByText("Leave at least one school day in the week.")).toBeTruthy();
-    expect(patch).not.toHaveBeenCalled();
+    expect(screen.getByText("Leave at least one school day in the week.")).toBeTruthy();
+    expect(await save()).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Sunday" }));
+    expect(await save()).toHaveProperty("disabled", false);
+
+    fireEvent.change(screen.getByLabelText(/Late after/), { target: { value: "61" } });
+    expect(screen.getByText("Enter a whole number from 0 to 60.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Late after/), { target: { value: "0" } });
 
     fireEvent.change(screen.getByLabelText("Alert the class teacher after"), { target: { value: "1" } });
     expect(screen.getByText("Enter a whole number from 2 to 30.")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Save settings" })).toHaveProperty("disabled", true);
+    fireEvent.change(screen.getByLabelText("Alert the class teacher after"), { target: { value: "3" } });
+
+    fireEvent.change(screen.getByLabelText("Latitude"), { target: { value: "23.75" } });
+    expect(screen.getByText("Enter both latitude and longitude.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Check-in radius/), { target: { value: "10" } });
+    expect(screen.getByText("Enter a whole number from 25 to 1,000.")).toBeTruthy();
+    expect(await save()).toHaveProperty("disabled", true);
+    expect(patch).not.toHaveBeenCalled();
+  });
+
+  it("fills the pin from this device's location", async () => {
+    serve({ "/attendance/settings": DEFAULTS, "/attendance/branches": [MAIN] });
+    const getCurrentPosition = vi.fn((done: PositionCallback) =>
+      done({ coords: { latitude: 23.7577123, longitude: 90.3897456, accuracy: 18.4 } } as GeolocationPosition),
+    );
+    vi.stubGlobal("navigator", { ...navigator, geolocation: { getCurrentPosition } });
+    renderApp(<AttendanceSettingsPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Use my current location" }));
+    expect((screen.getByLabelText("Latitude") as HTMLInputElement).value).toBe("23.757712");
+    expect((screen.getByLabelText("Longitude") as HTMLInputElement).value).toBe("90.389746");
+    expect(screen.getByText("Location found (accurate to about 18 m).")).toBeTruthy();
+    vi.unstubAllGlobals();
+  });
+
+  it("lists the branches instead of one pin once the organisation has several", async () => {
+    serve({ "/attendance/settings": DEFAULTS, "/attendance/branches": [MAIN, FARMGATE] });
+    renderApp(<AttendanceSettingsPage />);
+
+    expect(await screen.findByText("2 branches, each with its own pin")).toBeTruthy();
+    expect(screen.getByText("Main branch")).toBeTruthy();
+    expect(screen.getByText("Within 150 m")).toBeTruthy();
+    expect(screen.queryByLabelText("Latitude")).toBeNull();
+    expect(screen.getByRole("link", { name: "Manage branches" })).toBeTruthy();
   });
 
   it("shows teachers the settings read-only", async () => {
     asRole("TEACHER");
-    serve({ "/attendance/settings": DEFAULTS });
+    serve({ "/attendance/settings": DEFAULTS, "/attendance/branches": [MAIN] });
     renderApp(<AttendanceSettingsPage />);
 
     expect(await screen.findByText("Only the owner and admins can change these settings.")).toBeTruthy();
-    expect(screen.getByRole("radio", { name: "Website check-in" })).toHaveProperty("disabled", true);
     expect(screen.getByRole("checkbox", { name: "Friday" })).toHaveProperty("disabled", true);
+    expect(screen.getByLabelText(/Late after/)).toHaveProperty("disabled", true);
+    expect(screen.getByLabelText("Latitude")).toHaveProperty("disabled", true);
+    expect(screen.queryByRole("button", { name: "Use my current location" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save settings" })).toBeNull();
   });
 
-  it("gives a solo teacher class attendance only, without a presence method", async () => {
+  it("gives a solo teacher one pin and no branches", async () => {
     asSoloTeacher();
-    serve({ "/attendance/settings": DEFAULTS });
-    patch.mockReturnValue(ok({ ...DEFAULTS, class_attendance_mode: "DAILY" }));
+    serve({ "/attendance/settings": DEFAULTS, "/attendance/branches": [MAIN] });
     renderApp(<AttendanceSettingsPage />);
 
-    expect(await screen.findByText(/Your workspace takes class attendance only/)).toBeTruthy();
-    expect(screen.queryByRole("radio", { name: "Website check-in" })).toBeNull();
-    fireEvent.click(screen.getByRole("radio", { name: "Once a day" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
-    await waitFor(() => expect(patch).toHaveBeenCalled());
-    expect(patch.mock.calls[0][1]).not.toHaveProperty("attendance_method");
-    expect(patch.mock.calls[0][1]).toMatchObject({ class_attendance_mode: "DAILY" });
+    expect(await screen.findByLabelText("Latitude")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Add branches" })).toBeNull();
+    expect(screen.getByText(/Online classes can check in from anywhere/)).toBeTruthy();
   });
 
   it("reads in Bangla", async () => {
-    serve({ "/attendance/settings": DEFAULTS });
+    serve({ "/attendance/settings": DEFAULTS, "/attendance/branches": [MAIN] });
     renderApp(<AttendanceSettingsPage />, { locale: "bn" });
-    expect(await screen.findByRole("heading", { name: "উপস্থিতির সেটিংস" })).toBeTruthy();
-    expect(screen.getByRole("radio", { name: "ওয়েবসাইটে চেক-ইন" })).toBeTruthy();
+    // The header shows while the settings load; wait for the loaded cards.
+    expect(await screen.findByText("চেক-ইনের জায়গা")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "উপস্থিতির সেটিংস" })).toBeTruthy();
     expect(screen.getByRole("checkbox", { name: "শুক্রবার" })).toHaveProperty("checked", true);
-    expect(screen.getAllByText("শীঘ্রই আসছে")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "আমার এখনকার লোকেশন নিন" })).toBeTruthy();
+  });
+});
+
+describe("branches page (ATT-15)", () => {
+  it("lists the main branch first with pins, radius and sections", async () => {
+    serve({ "/attendance/branches": [MAIN, FARMGATE] });
+    renderApp(<BranchesPage />);
+
+    await screen.findByRole("table");
+    const rows = table().getAllByRole("row").slice(1);
+    expect(within(rows[0]).getByText("Main branch")).toBeTruthy();
+    expect(within(rows[0]).getByText("Main")).toBeTruthy();
+    expect(within(rows[0]).getByText("No pin yet")).toBeTruthy();
+    expect(within(rows[1]).getByText("Within 150 m")).toBeTruthy();
+    // The main branch can be edited but not removed.
+    expect(table().queryByRole("button", { name: "Remove Main branch" })).toBeNull();
+    expect(table().getByRole("button", { name: "Remove Farmgate" })).toBeTruthy();
+  });
+
+  it("adds a branch with a pin, taking the main branch's radius", async () => {
+    serve({ "/attendance/branches": [{ ...MAIN, checkin_radius_m: 300 }] });
+    post.mockReturnValue(ok(FARMGATE));
+    renderApp(<BranchesPage />);
+
+    expect(await screen.findByText(/You have one location/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Add branch" }));
+    const drawer = within(await screen.findByRole("dialog", { name: "Add a branch" }));
+    expect((drawer.getByLabelText(/Check-in radius/) as HTMLInputElement).value).toBe("300");
+    fireEvent.change(drawer.getByLabelText(/^Name/), { target: { value: " Farmgate " } });
+    fireEvent.change(drawer.getByLabelText(/Google Maps link/), { target: { value: "https://maps.google.com/?q=23.7577,90.3897" } });
+    fireEvent.click(drawer.getByRole("button", { name: "Add branch" }));
+
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/attendance\/branches$/), {
+        name: "Farmgate",
+        address: null,
+        geo_lat: 23.7577,
+        geo_lng: 90.3897,
+        checkin_radius_m: 300,
+      }),
+    );
+    expect(await screen.findByText("Branch added")).toBeTruthy();
+  });
+
+  it("needs a name for a new branch and shows the API's reason when one is refused", async () => {
+    serve({ "/attendance/branches": [MAIN, FARMGATE] });
+    post.mockImplementation(() => failWith(409, "ATTENDANCE_BRANCH_NAME_TAKEN"));
+    renderApp(<BranchesPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Add branch" }));
+    const drawer = within(await screen.findByRole("dialog", { name: "Add a branch" }));
+    fireEvent.click(drawer.getByRole("button", { name: "Add branch" }));
+    expect(await drawer.findByText("Enter a name for the branch.")).toBeTruthy();
+    expect(post).not.toHaveBeenCalled();
+
+    fireEvent.change(drawer.getByLabelText(/^Name/), { target: { value: "farmgate" } });
+    fireEvent.click(drawer.getByRole("button", { name: "Add branch" }));
+    expect(await drawer.findByText("Another branch already has this name.")).toBeTruthy();
+  });
+
+  it("explains why a branch still in use cannot be removed", async () => {
+    serve({ "/attendance/branches": [MAIN, FARMGATE] });
+    del.mockImplementation(() => failWith(409, "ATTENDANCE_BRANCH_IN_USE"));
+    renderApp(<BranchesPage />);
+
+    await screen.findByRole("table");
+    fireEvent.click(table().getByRole("button", { name: "Remove Farmgate" }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Remove this branch?" }));
+    expect(dialog.getByText(/Its record and past attendance are kept/)).toBeTruthy();
+    fireEvent.click(dialog.getByRole("button", { name: "Remove" }));
+    await waitFor(() => expect(del).toHaveBeenCalledWith(expect.stringMatching(/\/attendance\/branches\/b-farmgate$/)));
+    expect(await dialog.findByText(/still meet here. Move them to another branch first/)).toBeTruthy();
+  });
+
+  it("shows teachers the branches without changes", async () => {
+    asRole("TEACHER");
+    serve({ "/attendance/branches": [MAIN, FARMGATE] });
+    renderApp(<BranchesPage />);
+    await screen.findByRole("table");
+    expect(screen.queryByRole("button", { name: "Add branch" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Edit/ })).toBeNull();
+  });
+
+  it("reads in Bangla", async () => {
+    serve({ "/attendance/branches": [MAIN, FARMGATE] });
+    renderApp(<BranchesPage />, { locale: "bn" });
+    await screen.findByRole("table");
+    expect(screen.getByRole("heading", { name: "শাখা" })).toBeTruthy();
+    expect(table().getByText("প্রধান শাখা")).toBeTruthy();
+    expect(table().getByText("১৫০ মিটারের মধ্যে")).toBeTruthy();
   });
 });
 
@@ -294,9 +424,13 @@ describe("holidays page (CAL-04)", () => {
 });
 
 describe("menu", () => {
-  it("shows attendance settings and holidays to owners, admins and solo teachers, only with the attendance feature", () => {
+  it("shows attendance settings, branches and holidays to owners, admins and solo teachers, only with the attendance feature", () => {
     const items = sidebarList.filter((item) => item.route === "/attendance-settings" || item.route === "/holidays");
     expect(items).toHaveLength(4);
+    const branches = sidebarList.filter((item) => item.route === "/attendance-branches");
+    // Branches are for organisations; a solo teacher sets their one pin in the settings.
+    expect(branches).toHaveLength(1);
+    expect(branches[0]).toMatchObject({ category: "Organization", memberRoles: ["OWNER", "ADMIN"], feature: "attendance" });
     expect(items.every((item) => item.feature === "attendance")).toBe(true);
     expect(items.filter((item) => item.category === "Organization").every((item) => item.memberRoles?.join() === "OWNER,ADMIN")).toBe(true);
     expect(items.filter((item) => item.category === "Platform").every((item) => item.personalWorkspaceOnly)).toBe(true);

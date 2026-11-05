@@ -40,7 +40,9 @@
     "gradingScale": "Grading scale",
     "messageLog": "Message log",
     "attendanceSettings": "Attendance settings",
-    "holidays": "Holidays"
+    "holidays": "Holidays",
+    "branches": "Branches",
+    "classSetup": "Class setup"
   },
   "shell": {
     "organization": "Organization",
@@ -2731,7 +2733,10 @@
       "guardian": "Guardians",
       "student": "Students",
       "attendance_settings": "Attendance settings",
-      "holiday": "Holidays"
+      "holiday": "Holidays",
+      "branch": "Branches",
+      "section_attendance": "[[Section]] setup",
+      "schedule": "Schedules"
     },
     "actions": {
       "plan": {
@@ -2808,6 +2813,17 @@
         "create": "Holiday added",
         "update": "Holiday changed",
         "remove": "Holiday removed"
+      },
+      "branch": {
+        "create": "Branch added",
+        "update": "Branch changed",
+        "remove": "Branch removed"
+      },
+      "section_attendance": {
+        "update": "[[Section]] setup changed"
+      },
+      "schedule": {
+        "update": "Schedule changed"
       }
     },
     "fields": {
@@ -2894,7 +2910,21 @@
       "date_from": "First day",
       "date_to": "Last day",
       "org_settings": "Settings",
-      "holiday": "Holiday"
+      "holiday": "Holiday",
+      "late_grace_minutes": "Late after (minutes)",
+      "address": "Address",
+      "geo_lat": "Latitude",
+      "geo_lng": "Longitude",
+      "checkin_radius_m": "Check-in radius (m)",
+      "branch": "Branch",
+      "branch_id": "Branch",
+      "class_type": "Class type",
+      "mode": "Attendance mode",
+      "grace_minutes": "Late after (minutes)",
+      "slots": "Schedule",
+      "source": "How",
+      "from_section_id": "Copied from",
+      "section": "[[Section]]"
     }
   },
   "smsCredits": {
@@ -3020,43 +3050,9 @@
   },
   "attendanceSettings": {
     "title": "Attendance settings",
-    "intro": "Choose how your institution records attendance. Changes apply from now on; attendance already saved is kept.",
+    "intro": "Set up attendance once and it runs on its own. Students check in for each class; changes apply from now on and attendance already saved is kept.",
     "loadFailed": "Couldn't load the attendance settings.",
     "readOnly": "Only the owner and admins can change these settings.",
-    "presenceTitle": "Daily presence",
-    "presenceIntro": "Check-in and check-out at the institution. Only one method can be on at a time.",
-    "presenceLegend": "How do people check in?",
-    "method": {
-      "OFF": "Off",
-      "WEB": "Website check-in",
-      "ZKTECO": "ZKTeco machine",
-      "APP": "Mobile app"
-    },
-    "methodHint": {
-      "OFF": "No check-in. Class attendance decides who was present.",
-      "WEB": "Students and teachers check in and out on the website. The check-in screen comes in the next update.",
-      "ZKTECO": "Punches from fingerprint or face machines, imported every hour.",
-      "APP": "Check-in in the mobile app within a set distance of the campus."
-    },
-    "comingSoon": "Coming soon",
-    "soloPresence": "Your workspace takes class attendance only. Daily check-in is for schools and coaching centres.",
-    "classTitle": "Class attendance",
-    "classIntro": "Teachers mark each student Present, Absent, Late or Leave.",
-    "classLegend": "When do teachers take attendance?",
-    "classMode": {
-      "PER_SESSION": "Every class",
-      "DAILY": "Once a day",
-      "OFF": "Off"
-    },
-    "classModeHint": {
-      "PER_SESSION": "A roll call for each subject class.",
-      "DAILY": "One roll call a day for each [[section]].",
-      "OFF": "Teachers don't take class attendance."
-    },
-    "hoursTitle": "School days and hours",
-    "hoursIntro": "Anyone who checks in after the entry time is marked Late.",
-    "studentEntry": "Students' entry time",
-    "teacherEntry": "Teachers' entry time",
     "offDays": "Weekly off days",
     "offDaysHint": "No attendance and no absence SMS on these days. Add other holidays on the Holidays page.",
     "weekday": {
@@ -3088,15 +3084,19 @@
     "save": "Save settings",
     "undo": "Undo changes",
     "saved": "Attendance settings saved",
-    "switchTitle": "Switch the daily presence method?",
-    "switchDescription": "A session is running. Switching from {from} to {to} changes how check-ins are recorded from now on. Attendance already saved is kept.",
-    "switchConfirm": "Switch method",
-    "errors": {
-      "ATTENDANCE_METHOD_NOT_AVAILABLE": "This method isn't available yet.",
-      "ATTENDANCE_PRESENCE_NOT_FOR_SOLO": "A personal workspace takes class attendance only.",
-      "ATTENDANCE_SELFIE_NEEDS_APP": "A selfie can only be required with mobile app check-in.",
-      "ATTENDANCE_NO_WORKING_DAY": "Leave at least one school day in the week."
-    }
+    "locationTitle": "Check-in location",
+    "locationIntro": "Students and teachers in in-person classes can check in only inside this radius. Online classes can check in from anywhere, so they need no pin.",
+    "moreBranches": "Classes at more than one place?",
+    "addBranches": "Add branches",
+    "branchesSummary": "{count, plural, one {# branch, each with its own pin} other {# branches, each with its own pin}}",
+    "manageBranches": "Manage branches",
+    "daysTitle": "Class days and lateness",
+    "daysIntro": "Class times come from each [[section]]'s schedule.",
+    "grace": "Late after",
+    "graceHint": "Minutes after a class starts before a check-in counts as Late (0 to 60). A [[section]] can set its own.",
+    "minutesUnit": "minutes",
+    "graceError": "Enter a whole number from 0 to 60.",
+    "noWorkingDay": "Leave at least one school day in the week."
   },
   "holidays": {
     "title": "Holidays",
@@ -3147,6 +3147,219 @@
       "HOLIDAY_RANGE_INVALID": "The last day can't be before the first day.",
       "HOLIDAY_RANGE_TOO_LONG": "A holiday can be at most 120 days long.",
       "HOLIDAY_PAST_LOCKED": "Past days can't be changed. Choose today or a later date."
+    }
+  },
+  "branches": {
+    "title": "Branches",
+    "intro": "Places where your classes meet. Each branch has a pin and a radius; in-person check-in works only inside it.",
+    "add": "Add branch",
+    "loadFailed": "Couldn't load the branches.",
+    "mainBranch": "Main branch",
+    "main": "Main",
+    "onlyMain": "You have one location. Add a branch if your classes also meet somewhere else.",
+    "name": "Name",
+    "address": "Address",
+    "addressHint": "Optional, to help people find it.",
+    "pin": "Check-in",
+    "noPin": "No pin yet",
+    "radiusShort": "Within {radius} m",
+    "sections": "[[Sections]]",
+    "actions": "Actions",
+    "edit": "Edit",
+    "remove": "Remove",
+    "editNamed": "Edit {name}",
+    "removeNamed": "Remove {name}",
+    "addTitle": "Add a branch",
+    "editTitle": "Edit {name}",
+    "formHint": "Stand at the branch and use this device's location, or paste a Google Maps link.",
+    "mainNameHint": "Leave empty to call it Main branch.",
+    "cancel": "Cancel",
+    "saveChanges": "Save changes",
+    "added": "Branch added",
+    "updated": "Branch saved",
+    "removed": "Branch removed",
+    "removeTitle": "Remove this branch?",
+    "removeDescription": "{name} will no longer be offered for [[sections]]. Its record and past attendance are kept.",
+    "errors": {
+      "ATTENDANCE_BRANCH_NAME_REQUIRED": "Enter a name for the branch.",
+      "ATTENDANCE_BRANCH_NAME_TAKEN": "Another branch already has this name.",
+      "ATTENDANCE_BRANCH_PIN_INCOMPLETE": "A pin needs both latitude and longitude.",
+      "ATTENDANCE_BRANCH_DEFAULT_KEPT": "The main branch can't be removed.",
+      "ATTENDANCE_BRANCH_IN_USE": "[[Sections]] of this session still meet here. Move them to another branch first.",
+      "ATTENDANCE_BRANCHES_NOT_FOR_SOLO": "Your workspace has one location. Set its pin in the attendance settings."
+    },
+    "location": {
+      "link": "Google Maps link",
+      "linkHint": "Open the place in Google Maps, copy the link from the address bar and paste it here.",
+      "linkFailed": "No location found in this link. Short share links don't work; open the link first and copy the full address.",
+      "useMine": "Use my current location",
+      "useMineHint": "Works best when you are at the branch.",
+      "located": "Location found (accurate to about {accuracy} m).",
+      "locateFailed": "Couldn't get this device's location. Allow location access, or paste a link.",
+      "lat": "Latitude",
+      "lng": "Longitude",
+      "check": "Check the pin on Google Maps",
+      "clear": "Remove pin",
+      "noPin": "No pin yet. In-person check-in needs one.",
+      "radius": "Check-in radius",
+      "radiusHint": "From {min} to {max} metres.",
+      "metres": "metres",
+      "errors": {
+        "pinIncomplete": "Enter both latitude and longitude.",
+        "latInvalid": "Latitude is a number from -90 to 90.",
+        "lngInvalid": "Longitude is a number from -180 to 180.",
+        "radiusInvalid": "Enter a whole number from {min} to {max}."
+      }
+    },
+    "removedBranch": "Removed branch"
+  },
+  "classSetup": {
+    "title": "Class setup",
+    "intro": "When each [[section]] meets and how its attendance is taken. Check-in opens and closes on its own from these times.",
+    "loadFailed": "Couldn't load the class setup.",
+    "sectionsIn": "[[Sections]] in {session}",
+    "session": "Session",
+    "class": "[[Class]]",
+    "allClasses": "All [[classes]]",
+    "shiftLabel": "Shift",
+    "allShifts": "All shifts",
+    "shift": {
+      "MORNING": "Morning",
+      "DAY": "Day",
+      "EVENING": "Evening"
+    },
+    "section": "[[Section]]",
+    "schedule": "Weekly schedule",
+    "branch": "Branch",
+    "classType": "Class",
+    "mode": "Attendance",
+    "grace": "Late after",
+    "actions": "Actions",
+    "noSchedule": "No schedule yet",
+    "withoutSchedule": "{count, plural, one {# [[section]] has no schedule yet; no check-in opens for it.} other {# [[sections]] have no schedule yet; no check-in opens for them.}}",
+    "dayShort": {
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat",
+      "7": "Sun"
+    },
+    "classTypes": {
+      "IN_PERSON": "In person",
+      "ONLINE": "Online"
+    },
+    "modes": {
+      "SELF_CHECKIN": "Self check-in",
+      "PAPER_REGISTER": "Paper register"
+    },
+    "graceDefault": "Default ({minutes, number} min)",
+    "graceMinutes": "{minutes, number} min",
+    "noPin": "Its branch has no pin yet",
+    "branchFor": "Branch of {section}",
+    "classTypeFor": "Class type of {section}",
+    "modeFor": "Attendance mode of {section}",
+    "graceFor": "Late after, {section}",
+    "editSchedule": "Schedule",
+    "editScheduleFor": "Edit the schedule of {section}",
+    "apply": "Apply to…",
+    "applyFor": "Apply the schedule of {section} to other [[sections]]",
+    "saved": "{section} saved",
+    "scheduleSaved": "Schedule of {section} saved",
+    "copied": "Schedule copied to {section}",
+    "applied": "{count, plural, one {Schedule applied to # [[section]]} other {Schedule applied to # [[sections]]}}",
+    "empty": "No [[sections]] in this session",
+    "emptyHint": "Add [[classes]] and [[sections]] first; then set when they meet.",
+    "goToClasses": "Go to [[classes]]",
+    "scheduleTitle": "Schedule of {section}",
+    "scheduleHint": "One line per time. Tick the days that share the same start and end.",
+    "copyFrom": "Copy from another [[section]]",
+    "copyPlaceholder": "Choose a [[section]]",
+    "copy": "Copy",
+    "slotLabel": "Time {number}",
+    "start": "Starts",
+    "end": "Ends",
+    "teacher": "Teacher",
+    "teacherHint": "Optional. A teacher can't be in two classes at once.",
+    "noTeacher": "No teacher",
+    "removeSlot": "Remove this time",
+    "addSlot": "Add another time",
+    "cancel": "Cancel",
+    "saveSchedule": "Save schedule",
+    "rowErrors": {
+      "noDays": "Tick at least one day.",
+      "noTimes": "Enter the start and end time.",
+      "endBeforeStart": "The end must be after the start.",
+      "overlap": "This overlaps another time on the same day."
+    },
+    "errors": {
+      "SCHEDULE_TIME_INVALID": "The end must be after the start.",
+      "SCHEDULE_OVERLAP": "This overlaps another time on the same day.",
+      "SCHEDULE_TEACHER_CLASH": "This teacher already has a class at this time ({section}).",
+      "SCHEDULE_TOO_MANY": "A [[section]] can have at most 30 times a week.",
+      "ATTENDANCE_SETUP_TEACHER_INVALID": "Choose a teacher of this organisation.",
+      "ATTENDANCE_SETUP_SOURCE_INVALID": "Copy from another [[section]] of the same session."
+    },
+    "applyTitle": "Apply this schedule",
+    "applyIntro": "Use the schedule of {section} for other [[sections]]. Their own schedules are replaced; teachers are not copied.",
+    "applyTo": "Apply to",
+    "applyToClass": "Every other [[section]] of {class}",
+    "applyToShift": "Every other [[section]] of the {shift} shift",
+    "includeSettings": "Also copy in person / online, the attendance mode and the late time",
+    "includeSettingsHint": "The branch is never copied.",
+    "applyNone": "There are no other [[sections]] to change.",
+    "applyWillReplace": "{count, plural, one {# [[section]] will get this schedule:} other {# [[sections]] will get this schedule:}}",
+    "applySlotsBefore": "replaces {count, number} times",
+    "applyEmpty": "no schedule yet",
+    "applyTeachersDropped": "{count, plural, one {# time with a teacher will be replaced.} other {# times with a teacher will be replaced.}}",
+    "applyConfirm": "{count, plural, one {Apply to # [[section]]} other {Apply to # [[sections]]}}",
+    "importCsv": "Import CSV",
+    "imported": "{count, plural, one {Schedule imported for # [[section]]} other {Schedules imported for # [[sections]]}}",
+    "import": {
+      "title": "Import schedules from CSV",
+      "intro": "One line per [[section]] and time. Each [[section]] in the file gets exactly the times listed for it; other [[sections]] are not changed.",
+      "columnsHint": "Columns: class, section, days (e.g. Sat;Mon), start, end. Optional: class_type, mode, grace, branch.",
+      "template": "Download template",
+      "file": "CSV file",
+      "fileTypes": "CSV, up to 2 MB",
+      "missingColumns": "The file needs these columns: {columns}.",
+      "noRows": "The file has no rows.",
+      "tooManyRows": "A file can have at most {max, number} rows.",
+      "previewProblems": "{count, plural, one {# row has a problem. Fix the file and choose it again; nothing is imported until every row is right.} other {# rows have problems. Fix the file and choose it again; nothing is imported until every row is right.}}",
+      "previewReady": "{sections, plural, one {Every row is right. # [[section]] in {session} will get the times below.} other {Every row is right. # [[sections]] in {session} will get the times below.}}",
+      "sectionPlan": "{before, number} → {after, number} times",
+      "settingsChanged": "settings change",
+      "ok": "OK",
+      "hasErrors": "Problem",
+      "cancel": "Cancel",
+      "importCount": "{count, plural, one {Import # [[section]]} other {Import # [[sections]]}}",
+      "columns": {
+        "row": "Line",
+        "section": "[[Section]]",
+        "time": "Days and time",
+        "status": "Check"
+      },
+      "issues": {
+        "CLASS_MISSING": "Enter the [[class]].",
+        "CLASS_NOT_FOUND": "No [[class]] with this name in the session.",
+        "SECTION_MISSING": "Enter the [[section]].",
+        "SECTION_NOT_FOUND": "This [[class]] has no [[section]] with this name.",
+        "NAME_AMBIGUOUS": "Two [[classes]] have this name; rename one first.",
+        "NOT_YOUR_SECTION": "You can set up only the [[sections]] you teach.",
+        "DAYS_INVALID": "Days not understood. Write them like Sat;Mon.",
+        "START_INVALID": "Start time not understood. Write it like 16:00 or 4:00 PM.",
+        "END_INVALID": "End time not understood. Write it like 17:30 or 5:30 PM.",
+        "END_BEFORE_START": "The end must be after the start.",
+        "OVERLAP": "Overlaps another line of this [[section]] on the same day.",
+        "TOO_MANY": "A [[section]] can have at most 30 times a week.",
+        "CLASS_TYPE_INVALID": "class_type must be In person or Online.",
+        "MODE_INVALID": "mode must be Self check-in or Paper register.",
+        "GRACE_INVALID": "grace must be 0 to 60 minutes, or default.",
+        "BRANCH_NOT_FOUND": "No branch with this name.",
+        "BRANCH_NOT_ALLOWED": "Only owners, admins and assistants can change branches.",
+        "SETTINGS_CONFLICT": "Another line of this [[section]] has different settings."
+      }
     }
   }
 }

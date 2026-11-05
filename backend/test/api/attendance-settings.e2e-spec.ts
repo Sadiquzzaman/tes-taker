@@ -1,8 +1,6 @@
 import { AuditService } from '../../src/audit/audit.service';
 import { AuditLogEntity } from '../../src/audit/entities/audit-log.entity';
-import { AcademicSessionEntity } from '../../src/academics/entities/academic-session.entity';
 import { RolesEnum } from '../../src/common/enums/roles.enum';
-import { OrgSettingsEntity } from '../../src/organizations/entities/org-settings.entity';
 import { OrganizationEntity } from '../../src/organizations/entities/organization.entity';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { UserEntity } from '../../src/user/entities/user.entity';
@@ -10,29 +8,24 @@ import { factories } from '../support/factories';
 import { createTestApp, TestApp } from '../support/test-app';
 
 type Settings = {
-  attendance_method: string;
-  selfie_required: boolean;
-  class_attendance_mode: string;
+  late_grace_minutes: number;
   weekly_off_days: number[];
-  student_entry_time: string;
-  teacher_entry_time: string;
   guardian_sms: { late: boolean; absent: boolean; leave: boolean };
   repeat_absence_days: number;
 };
 type Body<T> = { payload: T; code?: string; feature?: string; message?: string };
 
 const DEFAULTS: Settings = {
-  attendance_method: 'OFF',
-  selfie_required: false,
-  class_attendance_mode: 'PER_SESSION',
+  late_grace_minutes: 10,
   weekly_off_days: [5],
-  student_entry_time: '09:00',
-  teacher_entry_time: '08:45',
   guardian_sms: { late: true, absent: true, leave: true },
   repeat_absence_days: 3,
 };
 
-/** Attendance settings (P3-01, ATT-01): defaults, who reads and changes them, the rules, the plan gate, tenancy and audit. */
+/**
+ * Attendance settings (P3-01, ATT-01 as changed on 5 Nov 2026 in P3-02): defaults, who reads and
+ * changes them, the rules, the plan gate, tenancy and audit.
+ */
 describe('attendance settings API', () => {
   let t: TestApp;
   let make: ReturnType<typeof factories>;
@@ -87,7 +80,7 @@ describe('attendance settings API', () => {
 
   it('refuses the settings with FEATURE_NOT_IN_PLAN while the plan has no attendance', async () => {
     const { token } = await school({ enabled: false });
-    for (const response of [await getSettings(token), await patchSettings(token, { class_attendance_mode: 'DAILY' })]) {
+    for (const response of [await getSettings(token), await patchSettings(token, { late_grace_minutes: 5 })]) {
       expect(response.status).toBe(403);
       expect(response.body).toMatchObject({ code: 'FEATURE_NOT_IN_PLAN', feature: 'attendance' });
     }
@@ -101,22 +94,16 @@ describe('attendance settings API', () => {
     const studentToken = await memberOf(organization, OrganizationMemberRoleEnum.STUDENT);
 
     const saved = await patchSettings(token, {
-      attendance_method: 'WEB',
-      class_attendance_mode: 'DAILY',
+      late_grace_minutes: 15,
       weekly_off_days: [6, 5],
-      student_entry_time: '08:30',
-      teacher_entry_time: '08:15',
       guardian_sms: { late: false },
       repeat_absence_days: 5,
     });
     expect(saved.status).toBe(200);
     const expected = {
       ...DEFAULTS,
-      attendance_method: 'WEB',
-      class_attendance_mode: 'DAILY',
+      late_grace_minutes: 15,
       weekly_off_days: [5, 6],
-      student_entry_time: '08:30',
-      teacher_entry_time: '08:15',
       guardian_sms: { late: false, absent: true, leave: true },
       repeat_absence_days: 5,
     };
@@ -130,52 +117,43 @@ describe('attendance settings API', () => {
     expect((await getSettings(studentToken)).status).toBe(403);
   });
 
-  it('keeps one daily presence method, and offers only Off and Web for now', async () => {
-    const { token } = await school();
-    for (const method of ['ZKTECO', 'APP']) {
-      const response = await patchSettings(token, { attendance_method: method });
-      expect(response.status).toBe(400);
-      expect(response.body.code).toBe('ATTENDANCE_METHOD_NOT_AVAILABLE');
-    }
-    expect((await patchSettings(token, { attendance_method: 'BOTH' })).status).toBe(400);
-    expect((await patchSettings(token, { attendance_method: 'WEB' })).body.payload.attendance_method).toBe('WEB');
-  });
-
-  it('asks for confirmation to switch the method while a session is running, and keeps saved records', async () => {
+  it("no longer takes P3-01's presence method, selfie, class mode or entry times, and keeps their stored values", async () => {
     const { organization, token } = await school();
-    // From Off (first setup) there is nothing to confirm.
-    expect((await patchSettings(token, { attendance_method: 'WEB' })).status).toBe(200);
-    const settingsId = (await t.dataSource.getRepository(OrgSettingsEntity).findOneByOrFail({ organization_id: organization.id })).id;
-
-    // The default session (this calendar year) is running.
-    const unconfirmed = await patchSettings(token, { attendance_method: 'OFF' });
-    expect(unconfirmed.status).toBe(409);
-    expect(unconfirmed.body.code).toBe('ATTENDANCE_METHOD_CHANGE_CONFIRM');
-    expect((await getSettings(token)).body.payload.attendance_method).toBe('WEB');
-
-    const confirmed = await patchSettings(token, { attendance_method: 'OFF', confirm_method_change: true });
-    expect(confirmed.status).toBe(200);
-    expect(confirmed.body.payload.attendance_method).toBe('OFF');
-    // The same settings row is updated, never replaced.
-    expect((await t.dataSource.getRepository(OrgSettingsEntity).findOneByOrFail({ organization_id: organization.id })).id).toBe(settingsId);
-
-    // Outside any session no confirmation is needed.
-    expect((await patchSettings(token, { attendance_method: 'WEB' })).status).toBe(200);
-    await t.dataSource
-      .getRepository(AcademicSessionEntity)
-      .update({ organization_id: organization.id }, { start_date: '2020-01-01', end_date: '2020-12-31' });
-    expect((await patchSettings(token, { attendance_method: 'OFF' })).status).toBe(200);
+    const response = await patchSettings(token, {
+      attendance_method: 'WEB',
+      selfie_required: true,
+      class_attendance_mode: 'DAILY',
+      student_entry_time: '08:30',
+      teacher_entry_time: '08:15',
+      confirm_method_change: true,
+      late_grace_minutes: 0,
+    });
+    expect(response.status).toBe(200);
+    expect(response.body.payload).toEqual({ ...DEFAULTS, late_grace_minutes: 0 });
+    // The unused columns stay as they were until a later release drops them (expand → contract).
+    const [row] = await t.dataSource.query(
+      `SELECT attendance_method, selfie_required, class_attendance_mode, student_entry_time, teacher_entry_time, late_grace_minutes
+       FROM org_settings WHERE organization_id = $1`,
+      [organization.id],
+    );
+    expect(row).toEqual({
+      attendance_method: 'OFF',
+      selfie_required: false,
+      class_attendance_mode: 'PER_SESSION',
+      student_entry_time: '09:00:00',
+      teacher_entry_time: '08:45:00',
+      late_grace_minutes: 0,
+    });
   });
 
-  it("keeps a solo teacher's workspace to class attendance", async () => {
+  it("lets a solo teacher set the grace period and off days of their workspace", async () => {
     const teacher = await make.teacher();
     const solo = await make.soloOrganization(teacher);
     await enableAttendance(solo);
     const token = t.tokenFor(teacher);
-    const presence = await patchSettings(token, { attendance_method: 'WEB' });
-    expect(presence.status).toBe(400);
-    expect(presence.body.code).toBe('ATTENDANCE_PRESENCE_NOT_FOR_SOLO');
-    expect((await patchSettings(token, { class_attendance_mode: 'DAILY' })).body.payload.class_attendance_mode).toBe('DAILY');
+    const response = await patchSettings(token, { late_grace_minutes: 20, weekly_off_days: [5, 6] });
+    expect(response.status).toBe(200);
+    expect(response.body.payload).toEqual({ ...DEFAULTS, late_grace_minutes: 20, weekly_off_days: [5, 6] });
   });
 
   it('rejects invalid values', async () => {
@@ -184,18 +162,14 @@ describe('attendance settings API', () => {
       { weekly_off_days: [1, 2, 3, 4, 5, 6, 7] },
       { weekly_off_days: [0] },
       { weekly_off_days: [5, 5] },
-      { student_entry_time: '9am' },
-      { teacher_entry_time: '24:00' },
+      { late_grace_minutes: -1 },
+      { late_grace_minutes: 61 },
+      { late_grace_minutes: 2.5 },
       { repeat_absence_days: 1 },
       { repeat_absence_days: 31 },
-      { class_attendance_mode: 'WEEKLY' },
       { guardian_sms: { late: 'yes' } },
     ];
     for (const body of bad) expect([body, (await patchSettings(token, body)).status]).toEqual([body, 400]);
-
-    const selfie = await patchSettings(token, { attendance_method: 'WEB', selfie_required: true });
-    expect(selfie.status).toBe(400);
-    expect(selfie.body.code).toBe('ATTENDANCE_SELFIE_NEEDS_APP');
     expect((await getSettings(token)).body.payload).toEqual(DEFAULTS);
   });
 
