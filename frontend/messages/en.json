@@ -3313,6 +3313,53 @@
     "applySlotsBefore": "replaces {count, number} times",
     "applyEmpty": "no schedule yet",
     "applyTeachersDropped": "{count, plural, one {# time with a teacher will be replaced.} other {# times with a teacher will be replaced.}}",
-    "applyConfirm": "{count, plural, one {Apply to # [[section]]} other {Apply to # [[sections]]}}"
+    "applyConfirm": "{count, plural, one {Apply to # [[section]]} other {Apply to # [[sections]]}}",
+    "importCsv": "Import CSV",
+    "imported": "{count, plural, one {Schedule imported for # [[section]]} other {Schedules imported for # [[sections]]}}",
+    "import": {
+      "title": "Import schedules from CSV",
+      "intro": "One line per [[section]] and time. Each [[section]] in the file gets exactly the times listed for it; other [[sections]] are not changed.",
+      "columnsHint": "Columns: class, section, days (e.g. Sat;Mon), start, end. Optional: class_type, mode, grace, branch.",
+      "template": "Download template",
+      "file": "CSV file",
+      "fileTypes": "CSV, up to 2 MB",
+      "missingColumns": "The file needs these columns: {columns}.",
+      "noRows": "The file has no rows.",
+      "tooManyRows": "A file can have at most {max, number} rows.",
+      "previewProblems": "{count, plural, one {# row has a problem. Fix the file and choose it again; nothing is imported until every row is right.} other {# rows have problems. Fix the file and choose it again; nothing is imported until every row is right.}}",
+      "previewReady": "{sections, plural, one {Every row is right. # [[section]] in {session} will get the times below.} other {Every row is right. # [[sections]] in {session} will get the times below.}}",
+      "sectionPlan": "{before, number} → {after, number} times",
+      "settingsChanged": "settings change",
+      "ok": "OK",
+      "hasErrors": "Problem",
+      "cancel": "Cancel",
+      "importCount": "{count, plural, one {Import # [[section]]} other {Import # [[sections]]}}",
+      "columns": {
+        "row": "Line",
+        "section": "[[Section]]",
+        "time": "Days and time",
+        "status": "Check"
+      },
+      "issues": {
+        "CLASS_MISSING": "Enter the [[class]].",
+        "CLASS_NOT_FOUND": "No [[class]] with this name in the session.",
+        "SECTION_MISSING": "Enter the [[section]].",
+        "SECTION_NOT_FOUND": "This [[class]] has no [[section]] with this name.",
+        "NAME_AMBIGUOUS": "Two [[classes]] have this name; rename one first.",
+        "NOT_YOUR_SECTION": "You can set up only the [[sections]] you teach.",
+        "DAYS_INVALID": "Days not understood. Write them like Sat;Mon.",
+        "START_INVALID": "Start time not understood. Write it like 16:00 or 4:00 PM.",
+        "END_INVALID": "End time not understood. Write it like 17:30 or 5:30 PM.",
+        "END_BEFORE_START": "The end must be after the start.",
+        "OVERLAP": "Overlaps another line of this [[section]] on the same day.",
+        "TOO_MANY": "A [[section]] can have at most 30 times a week.",
+        "CLASS_TYPE_INVALID": "class_type must be In person or Online.",
+        "MODE_INVALID": "mode must be Self check-in or Paper register.",
+        "GRACE_INVALID": "grace must be 0 to 60 minutes, or default.",
+        "BRANCH_NOT_FOUND": "No branch with this name.",
+        "BRANCH_NOT_ALLOWED": "Only owners, admins and assistants can change branches.",
+        "SETTINGS_CONFLICT": "Another line of this [[section]] has different settings."
+      }
+    }
   }
 }

@@ -3313,6 +3313,53 @@
     "applySlotsBefore": "{count, number}টি সময় বদলাবে",
     "applyEmpty": "এখনো সময়সূচি নেই",
     "applyTeachersDropped": "{count, plural, other {শিক্ষকসহ #টি সময় বদলে যাবে।}}",
-    "applyConfirm": "{count, plural, other {#টি [[section]]-এ দিন}}"
+    "applyConfirm": "{count, plural, other {#টি [[section]]-এ দিন}}",
+    "importCsv": "CSV থেকে আনুন",
+    "imported": "{count, plural, other {#টি [[section]]-এর সময়সূচি আনা হয়েছে}}",
+    "import": {
+      "title": "CSV থেকে সময়সূচি আনুন",
+      "intro": "প্রতিটি [[section]] ও সময়ের জন্য একটি লাইন। ফাইলের প্রতিটি [[section]] ঠিক তার তালিকার সময়গুলো পাবে; অন্য [[sections]] বদলাবে না।",
+      "columnsHint": "কলাম: class, section, days (যেমন Sat;Mon বা শনি;সোম), start, end। ঐচ্ছিক: class_type, mode, grace, branch।",
+      "template": "টেমপ্লেট নামান",
+      "file": "CSV ফাইল",
+      "fileTypes": "CSV, সর্বোচ্চ ২ MB",
+      "missingColumns": "ফাইলে এই কলামগুলো লাগবে: {columns}।",
+      "noRows": "ফাইলে কোনো সারি নেই।",
+      "tooManyRows": "একটি ফাইলে সর্বোচ্চ {max, number}টি সারি থাকতে পারে।",
+      "previewProblems": "{count, plural, other {#টি সারিতে সমস্যা আছে। ফাইল ঠিক করে আবার বেছে নিন; সব সারি ঠিক না হলে কিছুই আনা হবে না।}}",
+      "previewReady": "{sections, plural, other {সব সারি ঠিক আছে। {session} সেশনের #টি [[section]] নিচের সময়গুলো পাবে।}}",
+      "sectionPlan": "{before, number} → {after, number}টি সময়",
+      "settingsChanged": "সেটিংস বদলাবে",
+      "ok": "ঠিক আছে",
+      "hasErrors": "সমস্যা",
+      "cancel": "বাতিল",
+      "importCount": "{count, plural, other {#টি [[section]] আনুন}}",
+      "columns": {
+        "row": "লাইন",
+        "section": "[[Section]]",
+        "time": "দিন ও সময়",
+        "status": "যাচাই"
+      },
+      "issues": {
+        "CLASS_MISSING": "[[Class]]-এর নাম লিখুন।",
+        "CLASS_NOT_FOUND": "এই সেশনে এই নামে কোনো [[class]] নেই।",
+        "SECTION_MISSING": "[[Section]]-এর নাম লিখুন।",
+        "SECTION_NOT_FOUND": "এই [[class]]-এ এই নামে কোনো [[section]] নেই।",
+        "NAME_AMBIGUOUS": "দুটি [[classes]]-এর একই নাম; আগে একটির নাম বদলান।",
+        "NOT_YOUR_SECTION": "আপনি শুধু নিজের পড়ানো [[sections]] সেট করতে পারেন।",
+        "DAYS_INVALID": "দিন বোঝা যায়নি। শনি;সোম বা Sat;Mon এভাবে লিখুন।",
+        "START_INVALID": "শুরুর সময় বোঝা যায়নি। 16:00 বা 4:00 PM এভাবে লিখুন।",
+        "END_INVALID": "শেষের সময় বোঝা যায়নি। 17:30 বা 5:30 PM এভাবে লিখুন।",
+        "END_BEFORE_START": "শেষের সময় শুরুর পরে হতে হবে।",
+        "OVERLAP": "একই দিনে এই [[section]]-এর আরেকটি লাইনের সঙ্গে মিলে যায়।",
+        "TOO_MANY": "একটি [[section]]-এর সপ্তাহে সর্বোচ্চ ৩০টি সময় থাকতে পারে।",
+        "CLASS_TYPE_INVALID": "class_type হতে হবে সরাসরি (In person) বা অনলাইন (Online)।",
+        "MODE_INVALID": "mode হতে হবে নিজে চেক-ইন বা কাগজের খাতা।",
+        "GRACE_INVALID": "grace হতে হবে ০ থেকে ৬০ মিনিট, অথবা default।",
+        "BRANCH_NOT_FOUND": "এই নামে কোনো শাখা নেই।",
+        "BRANCH_NOT_ALLOWED": "শুধু মালিক, অ্যাডমিন ও সহকারী শাখা বদলাতে পারেন।",
+        "SETTINGS_CONFLICT": "এই [[section]]-এর আরেকটি লাইনে ভিন্ন সেটিংস আছে।"
+      }
+    }
   }
 }
