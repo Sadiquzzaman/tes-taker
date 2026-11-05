@@ -1,4 +1,4 @@
-/** Error codes of the attendance API; the web app translates them (messages `attendanceSettings.errors`, `branches.errors`). */
+/** Error codes of the attendance API; the web app translates them (messages `branches.errors`, `classSetup.errors`). */
 export const ATTENDANCE_ERRORS = {
   BRANCH_NAME_REQUIRED: 'ATTENDANCE_BRANCH_NAME_REQUIRED',
   BRANCH_NAME_TAKEN: 'ATTENDANCE_BRANCH_NAME_TAKEN',
@@ -6,4 +6,8 @@ export const ATTENDANCE_ERRORS = {
   BRANCH_DEFAULT_KEPT: 'ATTENDANCE_BRANCH_DEFAULT_KEPT',
   BRANCH_IN_USE: 'ATTENDANCE_BRANCH_IN_USE',
   BRANCHES_NOT_FOR_SOLO: 'ATTENDANCE_BRANCHES_NOT_FOR_SOLO',
+  BRANCH_NOT_FOUND: 'ATTENDANCE_BRANCH_NOT_FOUND',
+  SETUP_SOURCE_INVALID: 'ATTENDANCE_SETUP_SOURCE_INVALID',
+  SETUP_TARGET_INVALID: 'ATTENDANCE_SETUP_TARGET_INVALID',
+  SETUP_TEACHER_INVALID: 'ATTENDANCE_SETUP_TEACHER_INVALID',
 } as const;

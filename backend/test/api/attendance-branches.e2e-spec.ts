@@ -21,7 +21,7 @@ type Branch = {
   is_default: boolean;
   section_count: number;
 };
-type Body<T> = { payload: T; code?: string; feature?: string; message?: string };
+type Body<T> = { payload: T; code?: string; feature?: string; message?: string; details?: Record<string, unknown> };
 
 const FARMGATE = { name: 'Farmgate', address: 'Green Road', geo_lat: 23.7577, geo_lng: 90.3897, checkin_radius_m: 150 };
 
@@ -169,7 +169,7 @@ describe('attendance branches API', () => {
     expect((await mainOf(token)).section_count).toBe(0);
     const inUse = await remove(token, farmgate.id);
     expect(inUse.status).toBe(409);
-    expect(inUse.body.code).toBe('ATTENDANCE_BRANCH_IN_USE');
+    expect(inUse.body).toMatchObject({ code: 'ATTENDANCE_BRANCH_IN_USE', details: { sections: 1 } });
 
     // Once the session is closed, its sections no longer hold the branch; they keep pointing at it.
     await t.dataSource

@@ -58,6 +58,10 @@ export const AUDIT_ACTIONS = {
   BRANCH_UPDATE: 'branch.update',
   BRANCH_REMOVE: 'branch.remove',
 
+  // Section attendance setup and schedules (owner, admins, assistants; teachers for their sections; ATT-16)
+  SECTION_ATTENDANCE_UPDATE: 'section_attendance.update',
+  SCHEDULE_UPDATE: 'schedule.update',
+
   // Notifications (platform admin, design §8.6)
   MESSAGE_TEMPLATE_UPDATE: 'message_template.update',
   SMS_CREDITS_TOP_UP: 'sms_credits.top_up',
