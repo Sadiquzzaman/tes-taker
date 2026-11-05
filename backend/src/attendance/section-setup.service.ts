@@ -55,7 +55,7 @@ export interface SetupView {
   sections: SectionSetupView[];
 }
 
-interface SectionSettings {
+export interface SectionSettings {
   branch_id: string | null;
   class_type: SectionClassTypeEnum;
   mode: SectionAttendanceModeEnum;
@@ -266,7 +266,8 @@ export class SectionSetupService {
     return section;
   }
 
-  private async editableSectionIds(tenant: Tenant, userId: string, sessionId: string): Promise<'all' | Set<string>> {
+  /** Sections of the session the caller may set up: 'all' for owners, admins and assistants. */
+  async editableSectionIds(tenant: Tenant, userId: string, sessionId: string): Promise<'all' | Set<string>> {
     if (isManager(tenant)) return 'all';
     return this.sections.sectionIdsTaughtBy(tenant.organizationId, sessionId, userId);
   }
@@ -294,7 +295,7 @@ export class SectionSetupService {
     return row;
   }
 
-  private async settingsBySection(organizationId: string, sectionIds: string[], manager?: EntityManager) {
+  async settingsBySection(organizationId: string, sectionIds: string[], manager?: EntityManager) {
     if (sectionIds.length === 0) return new Map<string, SectionAttendanceSettingsEntity>();
     const rows = await (manager ?? this.settingsRepo.manager)
       .getRepository(SectionAttendanceSettingsEntity)
@@ -313,7 +314,7 @@ export class SectionSetupService {
   }
 
   /** Creates the section's settings row on the first change; the branch lives on the section itself. */
-  private async saveSettings(manager: EntityManager, section: SectionEntity, settings: SectionSettings, userId: string): Promise<void> {
+  async saveSettings(manager: EntityManager, section: SectionEntity, settings: SectionSettings, userId: string): Promise<void> {
     const repo = manager.getRepository(SectionAttendanceSettingsEntity);
     const fields = { class_type: settings.class_type, mode: settings.mode, grace_minutes: settings.grace_minutes };
     const existing = await repo.findOne({ where: { organization_id: section.organization_id, section_id: section.id } });
@@ -330,7 +331,7 @@ export class SectionSetupService {
       .execute();
   }
 
-  private scheduleAudit(
+  scheduleAudit(
     section: Pick<SectionEntity, 'id' | 'organization_id'>,
     userId: string,
     before: SlotInput[],
@@ -350,7 +351,8 @@ export class SectionSetupService {
   }
 }
 
-const isManager = (tenant: Tenant) => !tenant.viaEnrolment && SETUP_MANAGERS.includes(tenant.memberRole);
+/** Owners, admins and assistants set up every section, move sections between branches and change many at once. */
+export const isManager = (tenant: Tenant) => !tenant.viaEnrolment && SETUP_MANAGERS.includes(tenant.memberRole);
 
 const withoutTeachers = (slots: SlotInput[]): SlotInput[] =>
   slots.map((slot) => ({ day_of_week: slot.day_of_week, start_time: slot.start_time, end_time: slot.end_time, teacher_id: null }));
