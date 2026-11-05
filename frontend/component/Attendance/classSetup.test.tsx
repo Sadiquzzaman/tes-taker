@@ -139,6 +139,10 @@ describe("class setup page (ATT-16)", () => {
 
     fireEvent.click(table().getByRole("button", { name: "Edit the schedule of Class 7 A" }));
     const drawer = within(await screen.findByRole("dialog", { name: "Schedule of Class 7 A" }));
+    // Seven day names fit a narrow drawer only in two or three columns, never seven.
+    const days = drawer.getByRole("checkbox", { name: "Wednesday" }).closest("div.grid") as HTMLElement;
+    expect(days.className).toContain("min-[360px]:grid-cols-3");
+    expect(days.className).not.toMatch(/grid-cols-[47]\b/);
     const first = within(drawer.getByRole("group", { name: "Time 1" }));
     fireEvent.click(first.getByRole("checkbox", { name: "Saturday" }));
     fireEvent.click(first.getByRole("checkbox", { name: "Monday" }));
@@ -354,6 +358,8 @@ describe("schedule CSV import (ATT-16)", () => {
   it("refuses a file without the needed columns before asking the API", async () => {
     serve();
     const drawer = await openImport();
+    // The file box names the type and the size limit once (FileDrop adds the size).
+    expect(within(drawer).getByText("CSV files up to 2 MB")).toBeTruthy();
     chooseFile(drawer, "class,section,days\nClass 6,A,Sat\n");
     expect(await within(drawer).findByText("The file needs these columns: start, end.")).toBeTruthy();
     expect(post).not.toHaveBeenCalled();
