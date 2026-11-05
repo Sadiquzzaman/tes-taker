@@ -66,6 +66,6 @@ import { StudentImportService } from './student-import.service';
     OfferingRosterService,
     AcademicDefaultsSubscriber,
   ],
-  exports: [AcademicSessionsService, EnrolmentsService, GuardiansService, OfferingRosterService],
+  exports: [AcademicSessionsService, EnrolmentsService, GuardiansService, OfferingRosterService, SectionsService],
 })
 export class AcademicsModule {}

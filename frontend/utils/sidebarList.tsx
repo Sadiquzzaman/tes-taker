@@ -288,6 +288,15 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Organization",
+    label: "branches",
+    route: "/attendance-branches",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN"],
+    feature: "attendance",
+    image: <SidebarClassesIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
     label: "holidays",
     route: "/holidays",
     role: ["TEACHER"],

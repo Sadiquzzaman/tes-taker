@@ -40,7 +40,8 @@
     "gradingScale": "Grading scale",
     "messageLog": "Message log",
     "attendanceSettings": "Attendance settings",
-    "holidays": "Holidays"
+    "holidays": "Holidays",
+    "branches": "Branches"
   },
   "shell": {
     "organization": "Organization",
@@ -2731,7 +2732,8 @@
       "guardian": "Guardians",
       "student": "Students",
       "attendance_settings": "Attendance settings",
-      "holiday": "Holidays"
+      "holiday": "Holidays",
+      "branch": "Branches"
     },
     "actions": {
       "plan": {
@@ -2808,6 +2810,11 @@
         "create": "Holiday added",
         "update": "Holiday changed",
         "remove": "Holiday removed"
+      },
+      "branch": {
+        "create": "Branch added",
+        "update": "Branch changed",
+        "remove": "Branch removed"
       }
     },
     "fields": {
@@ -2894,7 +2901,13 @@
       "date_from": "First day",
       "date_to": "Last day",
       "org_settings": "Settings",
-      "holiday": "Holiday"
+      "holiday": "Holiday",
+      "late_grace_minutes": "Late after (minutes)",
+      "address": "Address",
+      "geo_lat": "Latitude",
+      "geo_lng": "Longitude",
+      "checkin_radius_m": "Check-in radius (m)",
+      "branch": "Branch"
     }
   },
   "smsCredits": {
@@ -3020,43 +3033,9 @@
   },
   "attendanceSettings": {
     "title": "Attendance settings",
-    "intro": "Choose how your institution records attendance. Changes apply from now on; attendance already saved is kept.",
+    "intro": "Set up attendance once and it runs on its own. Students check in for each class; changes apply from now on and attendance already saved is kept.",
     "loadFailed": "Couldn't load the attendance settings.",
     "readOnly": "Only the owner and admins can change these settings.",
-    "presenceTitle": "Daily presence",
-    "presenceIntro": "Check-in and check-out at the institution. Only one method can be on at a time.",
-    "presenceLegend": "How do people check in?",
-    "method": {
-      "OFF": "Off",
-      "WEB": "Website check-in",
-      "ZKTECO": "ZKTeco machine",
-      "APP": "Mobile app"
-    },
-    "methodHint": {
-      "OFF": "No check-in. Class attendance decides who was present.",
-      "WEB": "Students and teachers check in and out on the website. The check-in screen comes in the next update.",
-      "ZKTECO": "Punches from fingerprint or face machines, imported every hour.",
-      "APP": "Check-in in the mobile app within a set distance of the campus."
-    },
-    "comingSoon": "Coming soon",
-    "soloPresence": "Your workspace takes class attendance only. Daily check-in is for schools and coaching centres.",
-    "classTitle": "Class attendance",
-    "classIntro": "Teachers mark each student Present, Absent, Late or Leave.",
-    "classLegend": "When do teachers take attendance?",
-    "classMode": {
-      "PER_SESSION": "Every class",
-      "DAILY": "Once a day",
-      "OFF": "Off"
-    },
-    "classModeHint": {
-      "PER_SESSION": "A roll call for each subject class.",
-      "DAILY": "One roll call a day for each [[section]].",
-      "OFF": "Teachers don't take class attendance."
-    },
-    "hoursTitle": "School days and hours",
-    "hoursIntro": "Anyone who checks in after the entry time is marked Late.",
-    "studentEntry": "Students' entry time",
-    "teacherEntry": "Teachers' entry time",
     "offDays": "Weekly off days",
     "offDaysHint": "No attendance and no absence SMS on these days. Add other holidays on the Holidays page.",
     "weekday": {
@@ -3088,15 +3067,19 @@
     "save": "Save settings",
     "undo": "Undo changes",
     "saved": "Attendance settings saved",
-    "switchTitle": "Switch the daily presence method?",
-    "switchDescription": "A session is running. Switching from {from} to {to} changes how check-ins are recorded from now on. Attendance already saved is kept.",
-    "switchConfirm": "Switch method",
-    "errors": {
-      "ATTENDANCE_METHOD_NOT_AVAILABLE": "This method isn't available yet.",
-      "ATTENDANCE_PRESENCE_NOT_FOR_SOLO": "A personal workspace takes class attendance only.",
-      "ATTENDANCE_SELFIE_NEEDS_APP": "A selfie can only be required with mobile app check-in.",
-      "ATTENDANCE_NO_WORKING_DAY": "Leave at least one school day in the week."
-    }
+    "locationTitle": "Check-in location",
+    "locationIntro": "Students and teachers in in-person classes can check in only inside this radius. Online classes can check in from anywhere, so they need no pin.",
+    "moreBranches": "Classes at more than one place?",
+    "addBranches": "Add branches",
+    "branchesSummary": "{count, plural, one {# branch, each with its own pin} other {# branches, each with its own pin}}",
+    "manageBranches": "Manage branches",
+    "daysTitle": "Class days and lateness",
+    "daysIntro": "Class times come from each [[section]]'s schedule.",
+    "grace": "Late after",
+    "graceHint": "Minutes after a class starts before a check-in counts as Late (0 to 60). A [[section]] can set its own.",
+    "minutesUnit": "minutes",
+    "graceError": "Enter a whole number from 0 to 60.",
+    "noWorkingDay": "Leave at least one school day in the week."
   },
   "holidays": {
     "title": "Holidays",
@@ -3147,6 +3130,69 @@
       "HOLIDAY_RANGE_INVALID": "The last day can't be before the first day.",
       "HOLIDAY_RANGE_TOO_LONG": "A holiday can be at most 120 days long.",
       "HOLIDAY_PAST_LOCKED": "Past days can't be changed. Choose today or a later date."
+    }
+  },
+  "branches": {
+    "title": "Branches",
+    "intro": "Places where your classes meet. Each branch has a pin and a radius; in-person check-in works only inside it.",
+    "add": "Add branch",
+    "loadFailed": "Couldn't load the branches.",
+    "mainBranch": "Main branch",
+    "main": "Main",
+    "onlyMain": "You have one location. Add a branch if your classes also meet somewhere else.",
+    "name": "Name",
+    "address": "Address",
+    "addressHint": "Optional, to help people find it.",
+    "pin": "Check-in",
+    "noPin": "No pin yet",
+    "radiusShort": "Within {radius} m",
+    "sections": "[[Sections]]",
+    "actions": "Actions",
+    "edit": "Edit",
+    "remove": "Remove",
+    "editNamed": "Edit {name}",
+    "removeNamed": "Remove {name}",
+    "addTitle": "Add a branch",
+    "editTitle": "Edit {name}",
+    "formHint": "Stand at the branch and use this device's location, or paste a Google Maps link.",
+    "mainNameHint": "Leave empty to call it Main branch.",
+    "cancel": "Cancel",
+    "saveChanges": "Save changes",
+    "added": "Branch added",
+    "updated": "Branch saved",
+    "removed": "Branch removed",
+    "removeTitle": "Remove this branch?",
+    "removeDescription": "{name} will no longer be offered for [[sections]]. Its record and past attendance are kept.",
+    "errors": {
+      "ATTENDANCE_BRANCH_NAME_REQUIRED": "Enter a name for the branch.",
+      "ATTENDANCE_BRANCH_NAME_TAKEN": "Another branch already has this name.",
+      "ATTENDANCE_BRANCH_PIN_INCOMPLETE": "A pin needs both latitude and longitude.",
+      "ATTENDANCE_BRANCH_DEFAULT_KEPT": "The main branch can't be removed.",
+      "ATTENDANCE_BRANCH_IN_USE": "[[Sections]] of this session still meet here. Move them to another branch first.",
+      "ATTENDANCE_BRANCHES_NOT_FOR_SOLO": "Your workspace has one location. Set its pin in the attendance settings."
+    },
+    "location": {
+      "link": "Google Maps link",
+      "linkHint": "Open the place in Google Maps, copy the link from the address bar and paste it here.",
+      "linkFailed": "No location found in this link. Short share links don't work; open the link first and copy the full address.",
+      "useMine": "Use my current location",
+      "useMineHint": "Works best when you are at the branch.",
+      "located": "Location found (accurate to about {accuracy} m).",
+      "locateFailed": "Couldn't get this device's location. Allow location access, or paste a link.",
+      "lat": "Latitude",
+      "lng": "Longitude",
+      "check": "Check the pin on Google Maps",
+      "clear": "Remove pin",
+      "noPin": "No pin yet. In-person check-in needs one.",
+      "radius": "Check-in radius",
+      "radiusHint": "From {min} to {max} metres.",
+      "metres": "metres",
+      "errors": {
+        "pinIncomplete": "Enter both latitude and longitude.",
+        "latInvalid": "Latitude is a number from -90 to 90.",
+        "lngInvalid": "Longitude is a number from -180 to 180.",
+        "radiusInvalid": "Enter a whole number from {min} to {max}."
+      }
     }
   }
 }
