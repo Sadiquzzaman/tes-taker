@@ -26,6 +26,7 @@ export const AUDIT_AREAS = [
   "branch",
   "section_attendance",
   "schedule",
+  "attendance",
 ] as const;
 
 export interface AuditChange {
