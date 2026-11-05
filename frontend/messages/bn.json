@@ -42,7 +42,8 @@
     "attendanceSettings": "উপস্থিতির সেটিংস",
     "holidays": "ছুটির দিন",
     "branches": "শাখা",
-    "classSetup": "ক্লাস সেটআপ"
+    "classSetup": "ক্লাস সেটআপ",
+    "myAttendance": "আমার উপস্থিতি"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -3360,6 +3361,85 @@
         "BRANCH_NOT_ALLOWED": "শুধু মালিক, অ্যাডমিন ও সহকারী শাখা বদলাতে পারেন।",
         "SETTINGS_CONFLICT": "এই [[section]]-এর আরেকটি লাইনে ভিন্ন সেটিংস আছে।"
       }
+    }
+  },
+  "myAttendance": {
+    "title": "আমার উপস্থিতি",
+    "intro": "এখানে আপনার ক্লাসে চেক-ইন করুন এবং মাসের উপস্থিতি দেখুন। সময় সবসময় সার্ভার থেকে নেওয়া হয়।",
+    "todayTitle": "আজ, {date}",
+    "todayTitleShort": "আজ",
+    "loadFailed": "আপনার উপস্থিতি লোড করা যায়নি।",
+    "noClassesToday": "আজ কোনো ক্লাস নেই",
+    "noClassesTodayHint": "যেদিন ক্লাস হয়, সেদিন আপনার ক্লাসগুলো এখানে দেখা যাবে।",
+    "youTeach": "আপনি পড়ান",
+    "checkIn": "চেক-ইন",
+    "checkInTo": "{section}-এ চেক-ইন করুন",
+    "locating": "আপনার অবস্থান খোঁজা হচ্ছে…",
+    "checkingIn": "চেক-ইন হচ্ছে…",
+    "checkedIn": "চেক-ইন হয়েছে। সময়মতো!",
+    "checkedInLate": "চেক-ইন হয়েছে, {minutes} মিনিট দেরিতে।",
+    "opensAt": "চেক-ইন খুলবে {time}-এ",
+    "openUntil": "চেক-ইন খোলা {time} পর্যন্ত",
+    "lateBy": "{minutes} মিনিট দেরি",
+    "monthTitle": "এই মাস",
+    "previousMonth": "আগের মাস",
+    "nextMonth": "পরের মাস",
+    "attendancePct": "উপস্থিতি",
+    "calendarLabel": "{month}-এর উপস্থিতি",
+    "legend": "চিহ্নগুলোর অর্থ",
+    "markLabel": "{section}, {time}: {status}",
+    "classType": {
+      "IN_PERSON": "সরাসরি",
+      "ONLINE": "অনলাইন"
+    },
+    "closed": {
+      "WEEKLY_OFF": "সাপ্তাহিক ছুটি: কোনো ক্লাস নেই।",
+      "HOLIDAY": "ছুটির দিন: কোনো ক্লাস নেই। {name}"
+    },
+    "blocked": {
+      "PAPER_REGISTER": "এই ক্লাসের উপস্থিতি কাগজের খাতায় রাখা হয়।",
+      "NO_PIN": "এই ক্লাসের চেক-ইন লোকেশন এখনো ঠিক করা হয়নি। আপনার অ্যাডমিনকে জানান।"
+    },
+    "flag": {
+      "EDGE_ACCURACY": "সংরক্ষিত হয়েছে, তবে সীমানার কাছে আপনার অবস্থান অস্পষ্ট ছিল; শিক্ষক যাচাই করতে পারেন।",
+      "IMPOSSIBLE_JUMP": "সংরক্ষিত হয়েছে, তবে আগের চেক-ইন থেকে অনেক দূরে ছিল; শিক্ষক যাচাই করতে পারেন।"
+    },
+    "status": {
+      "UPCOMING": "আসন্ন",
+      "OPEN": "চেক-ইন খোলা",
+      "PRESENT": "উপস্থিত",
+      "LATE": "দেরি",
+      "ABSENT": "অনুপস্থিত",
+      "LEAVE": "ছুটিতে",
+      "CLOSED_DAY": "ছুটি বা বন্ধের দিন",
+      "NOT_RECORDED": "এখনো রেকর্ড হয়নি"
+    },
+    "letter": {
+      "UPCOMING": "–",
+      "OPEN": "–",
+      "PRESENT": "উ",
+      "LATE": "দে",
+      "ABSENT": "অ",
+      "LEAVE": "ছু",
+      "CLOSED_DAY": "ব",
+      "NOT_RECORDED": "?"
+    },
+    "location": {
+      "denied": "ব্রাউজারে এই সাইটের জন্য লোকেশন চালু করুন, তারপর আবার চেষ্টা করুন।",
+      "unavailable": "আপনার অবস্থান পাওয়া যায়নি। জানালার কাছে গিয়ে আবার চেষ্টা করুন।"
+    },
+    "errors": {
+      "ATTENDANCE_CHECKIN_NOT_OPEN": "চেক-ইন খুলবে {time}-এ।",
+      "ATTENDANCE_CHECKIN_CLOSED": "এই ক্লাসের চেক-ইন বন্ধ হয়ে গেছে।",
+      "ATTENDANCE_CHECKIN_ALREADY": "আপনি এই ক্লাসে আগেই চেক-ইন করেছেন।",
+      "ATTENDANCE_CHECKIN_NO_PIN": "এই ক্লাসের চেক-ইন লোকেশন এখনো ঠিক করা হয়নি। আপনার অ্যাডমিনকে জানান।",
+      "ATTENDANCE_CHECKIN_LOCATION_REQUIRED": "ব্রাউজারে এই সাইটের জন্য লোকেশন চালু করুন, তারপর আবার চেষ্টা করুন।",
+      "ATTENDANCE_CHECKIN_ACCURACY_POOR": "আপনার অবস্থান যথেষ্ট নির্ভুল নয় ({accuracy} মিটার)। জানালার কাছে গিয়ে আবার চেষ্টা করুন।",
+      "ATTENDANCE_CHECKIN_TOO_FAR": "আপনি {distance} মিটার দূরে আছেন। ক্লাসের {radius} মিটারের মধ্যে চেক-ইন করুন।",
+      "ATTENDANCE_CHECKIN_CLOSED_DAY": "আজ কোনো ক্লাস নেই।",
+      "ATTENDANCE_CHECKIN_PAPER_REGISTER": "এই ক্লাসের উপস্থিতি কাগজের খাতায় রাখা হয়।",
+      "ATTENDANCE_CHECKIN_NO_CLASS_TODAY": "এই ক্লাস আজ হয় না।",
+      "ATTENDANCE_CHECKIN_NOT_YOUR_CLASS": "আপনি শুধু নিজের ক্লাসে চেক-ইন করতে পারেন।"
     }
   }
 }

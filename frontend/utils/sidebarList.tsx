@@ -111,6 +111,14 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Platform",
+    label: "myAttendance",
+    route: "/my-attendance",
+    role: ["STUDENT"],
+    feature: "attendance",
+    image: <SidebarClassesIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
     label: "billing",
     route: "/billing",
     role: ["TEACHER"],
@@ -285,6 +293,15 @@ const sidebarList: SideBarList[] = [
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN"],
     image: <SidebarGradingIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
+    label: "myAttendance",
+    route: "/my-attendance",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    feature: "attendance",
+    image: <SidebarClassesIconSVG width={16} />,
   },
   {
     category: "Organization",
