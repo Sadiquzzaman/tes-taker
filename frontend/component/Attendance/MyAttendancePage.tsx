@@ -89,9 +89,9 @@ const MyAttendancePage = () => {
 
   const explain = (code: CheckInError, details: Record<string, unknown> = {}) =>
     t(`errors.${code}`, {
-      distance: format.number(Number(details.distance_m ?? 0)),
-      radius: format.number(Number(details.radius_m ?? 0)),
-      accuracy: format.number(Number(details.accuracy_m ?? 0)),
+      distance: Number(details.distance_m ?? 0),
+      radius: Number(details.radius_m ?? 0),
+      accuracy: Number(details.accuracy_m ?? 0),
       time: typeof details.opens_at === "string" ? clock(details.opens_at) : "",
     });
 
@@ -116,7 +116,7 @@ const MyAttendancePage = () => {
       const saved = response.data?.payload;
       if (saved) {
         setToday((current) => (current ? { ...current, classes: current.classes.map((c) => (c.slot_id === saved.slot_id ? saved : c)) } : current));
-        triggerToast({ title: t(saved.record?.status === "LATE" ? "checkedInLate" : "checkedIn", { minutes: format.number(saved.record?.late_minutes ?? 0) }), type: "success" });
+        triggerToast({ title: t(saved.record?.status === "LATE" ? "checkedInLate" : "checkedIn", { minutes: saved.record?.late_minutes ?? 0 }), type: "success" });
         void loadCalendar();
       }
     } catch (error) {
@@ -134,7 +134,7 @@ const MyAttendancePage = () => {
 
   const statusText = (item: MyClass) => {
     const status = todayStatus(item);
-    if (status === "LATE") return t("lateBy", { minutes: format.number(item.record?.late_minutes ?? 0) });
+    if (status === "LATE") return t("lateBy", { minutes: item.record?.late_minutes ?? 0 });
     if (status === "UPCOMING") return t("opensAt", { time: clock(item.opens_at) });
     if (status === "OPEN") return t("openUntil", { time: clock(item.ends_at) });
     return t(`status.${status}`);

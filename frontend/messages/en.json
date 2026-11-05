@@ -3377,10 +3377,10 @@
     "locating": "Finding your location…",
     "checkingIn": "Checking in…",
     "checkedIn": "You're checked in. On time!",
-    "checkedInLate": "You're checked in, {minutes} min late.",
+    "checkedInLate": "You're checked in, {minutes, number} min late.",
     "opensAt": "Check-in opens at {time}",
     "openUntil": "Check-in open until {time}",
-    "lateBy": "Late by {minutes} min",
+    "lateBy": "Late by {minutes, number} min",
     "monthTitle": "This month",
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
@@ -3415,14 +3415,14 @@
       "NOT_RECORDED": "Not recorded yet"
     },
     "letter": {
-      "UPCOMING": "–",
-      "OPEN": "–",
+      "UPCOMING": "U",
+      "OPEN": "O",
       "PRESENT": "P",
       "LATE": "L",
       "ABSENT": "A",
       "LEAVE": "LV",
       "CLOSED_DAY": "H",
-      "NOT_RECORDED": "?"
+      "NOT_RECORDED": "N"
     },
     "location": {
       "denied": "Allow location for this site in your browser, then try again.",
@@ -3434,8 +3434,8 @@
       "ATTENDANCE_CHECKIN_ALREADY": "You have already checked in to this class.",
       "ATTENDANCE_CHECKIN_NO_PIN": "The check-in location of this class isn't set yet. Ask your admin.",
       "ATTENDANCE_CHECKIN_LOCATION_REQUIRED": "Allow location for this site in your browser, then try again.",
-      "ATTENDANCE_CHECKIN_ACCURACY_POOR": "Your location isn't accurate enough ({accuracy} m). Move near a window and try again.",
-      "ATTENDANCE_CHECKIN_TOO_FAR": "You are {distance} m away. Check in within {radius} m of your class.",
+      "ATTENDANCE_CHECKIN_ACCURACY_POOR": "Your location isn't accurate enough ({accuracy, number} m). Move near a window and try again.",
+      "ATTENDANCE_CHECKIN_TOO_FAR": "You are {distance, number} m away. Check in within {radius, number} m of your class.",
       "ATTENDANCE_CHECKIN_CLOSED_DAY": "There are no classes today.",
       "ATTENDANCE_CHECKIN_PAPER_REGISTER": "Attendance for this class is kept on paper.",
       "ATTENDANCE_CHECKIN_NO_CLASS_TODAY": "This class doesn't meet today.",
