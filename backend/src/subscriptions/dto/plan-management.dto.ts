@@ -214,6 +214,20 @@ export class SetFeatureOverrideDto {
   reason?: string;
 }
 
+/** Switch a requested feature on for the asking organisation and close the request (FND-08). */
+export class GrantFeatureRequestDto {
+  @ApiPropertyOptional({ description: 'ISO date; the feature switches off again after it' })
+  @IsOptional()
+  @IsString()
+  expires_at?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}
+
 /** "Request this feature" from the More features page (FND-08). */
 export class CreateFeatureRequestDto {
   @ApiProperty({ description: 'Feature key from the catalog' })

@@ -1880,17 +1880,22 @@
     },
     "featureRequests": {
       "title": "Feature requests",
-      "intro": "Features customers asked for on the More features page.",
+      "intro": "Features customers asked for on the More features page. \"Switch on and close\" gives the organisation the feature; \"Close only\" grants nothing.",
       "feature": "Feature",
       "askedBy": "Asked by",
       "statuses": {
         "OPEN": "Open",
         "HANDLED": "Handled"
       },
-      "markHandled": "Mark handled",
       "handledTitle": "Marked handled",
       "handled": "The request is closed.",
-      "empty": "No feature requests."
+      "empty": "No feature requests.",
+      "switchOn": "Switch on and close",
+      "closeOnly": "Close only",
+      "grantedTitle": "Feature switched on",
+      "granted": "{organization} can use {feature} now. The request is closed.",
+      "closeOnlyTitle": "Close without switching on?",
+      "closeOnlyDetail": "{organization} will not get {feature}. Close a request this way only when you have answered the customer another way."
     },
     "smsCredits": {
       "heading": "SMS credits",

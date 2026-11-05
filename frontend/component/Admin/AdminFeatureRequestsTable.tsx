@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import useFeatureNames from "@/component/Subscription/useFeatureNames";
 import { useToast } from "@/component/Toast/ToastContext";
-import { Button, Card, EmptyState, PageHeader, Select, Skeleton, StatusPill, Table, type TableColumn } from "@/design/ui";
+import { Button, Card, ConfirmDialog, EmptyState, PageHeader, Select, Skeleton, StatusPill, Table, type TableColumn } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
@@ -13,8 +13,9 @@ import axiosReq from "@/lib/axios";
 const STATUSES: FeatureRequestStatus[] = ["OPEN", "HANDLED"];
 
 /**
- * "Request this feature" from the More features page (FND-08). Platform admins switch the feature
- * on in Admin → Organisations, or talk to the customer, then mark the request handled.
+ * "Request this feature" from the More features page (FND-08). "Switch on and close" gives the
+ * organisation the feature (a platform-admin override); "Close only" grants nothing and is for
+ * requests answered another way, so it asks first.
  */
 const AdminFeatureRequestsTable = () => {
   const t = useTranslations("admin");
@@ -27,6 +28,7 @@ const AdminFeatureRequestsTable = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<FeatureRequestStatus | "">("OPEN");
   const [acting, setActing] = useState<string | null>(null);
+  const [closing, setClosing] = useState<FeatureRequestItem | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -46,11 +48,30 @@ const AdminFeatureRequestsTable = () => {
     void loadData();
   }, [loadData]);
 
-  const markHandled = async (request: FeatureRequestItem) => {
+  const names = (request: FeatureRequestItem) => ({
+    organization: request.organization?.name || "—",
+    feature: featureName(request.feature_key),
+  });
+
+  const switchOn = async (request: FeatureRequestItem) => {
+    setActing(request.id);
+    try {
+      await axiosReq.patch(`${baseUrl}/subscriptions/admin/feature-requests/${request.id}/grant`, {});
+      triggerToast({ title: t("featureRequests.grantedTitle"), description: t("featureRequests.granted", names(request)), type: "success" });
+      await loadData();
+    } catch (error) {
+      handleError(error as AxiosError<ApiError>);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const closeOnly = async (request: FeatureRequestItem) => {
     setActing(request.id);
     try {
       await axiosReq.patch(`${baseUrl}/subscriptions/admin/feature-requests/${request.id}/handled`, {});
       triggerToast({ title: t("featureRequests.handledTitle"), description: t("featureRequests.handled"), type: "success" });
+      setClosing(null);
       await loadData();
     } catch (error) {
       handleError(error as AxiosError<ApiError>);
@@ -105,9 +126,12 @@ const AdminFeatureRequestsTable = () => {
       align: "right",
       cell: (row) =>
         row.status === "OPEN" ? (
-          <div className="flex justify-end">
-            <Button size="sm" variant="secondary" loading={acting === row.id} disabled={Boolean(acting)} onClick={() => void markHandled(row)}>
-              {t("featureRequests.markHandled")}
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button size="sm" loading={acting === row.id && !closing} disabled={Boolean(acting)} onClick={() => void switchOn(row)}>
+              {t("featureRequests.switchOn")}
+            </Button>
+            <Button size="sm" variant="ghost" disabled={Boolean(acting)} onClick={() => setClosing(row)}>
+              {t("featureRequests.closeOnly")}
             </Button>
           </div>
         ) : (
@@ -145,6 +169,16 @@ const AdminFeatureRequestsTable = () => {
           />
         )}
       </Card>
+
+      <ConfirmDialog
+        open={Boolean(closing)}
+        title={t("featureRequests.closeOnlyTitle")}
+        description={closing ? t("featureRequests.closeOnlyDetail", names(closing)) : null}
+        confirmLabel={t("featureRequests.closeOnly")}
+        loading={Boolean(closing) && acting === closing?.id}
+        onCancel={() => setClosing(null)}
+        onConfirm={() => closing && void closeOnly(closing)}
+      />
     </div>
   );
 };
