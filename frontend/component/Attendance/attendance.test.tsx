@@ -217,8 +217,9 @@ describe("attendance settings page (ATT-01, ATT-15)", () => {
   it("reads in Bangla", async () => {
     serve({ "/attendance/settings": DEFAULTS, "/attendance/branches": [MAIN] });
     renderApp(<AttendanceSettingsPage />, { locale: "bn" });
-    expect(await screen.findByRole("heading", { name: "উপস্থিতির সেটিংস" })).toBeTruthy();
-    expect(screen.getByText("চেক-ইনের জায়গা")).toBeTruthy();
+    // The header shows while the settings load; wait for the loaded cards.
+    expect(await screen.findByText("চেক-ইনের জায়গা")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "উপস্থিতির সেটিংস" })).toBeTruthy();
     expect(screen.getByRole("checkbox", { name: "শুক্রবার" })).toHaveProperty("checked", true);
     expect(screen.getByRole("button", { name: "আমার এখনকার লোকেশন নিন" })).toBeTruthy();
   });
@@ -307,7 +308,8 @@ describe("branches page (ATT-15)", () => {
   it("reads in Bangla", async () => {
     serve({ "/attendance/branches": [MAIN, FARMGATE] });
     renderApp(<BranchesPage />, { locale: "bn" });
-    expect(await screen.findByRole("heading", { name: "শাখা" })).toBeTruthy();
+    await screen.findByRole("table");
+    expect(screen.getByRole("heading", { name: "শাখা" })).toBeTruthy();
     expect(table().getByText("প্রধান শাখা")).toBeTruthy();
     expect(table().getByText("১৫০ মিটারের মধ্যে")).toBeTruthy();
   });
