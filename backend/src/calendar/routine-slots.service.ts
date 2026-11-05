@@ -68,6 +68,13 @@ export class RoutineSlotsService {
     return result;
   }
 
+  /** When each slot was added, by id (a class session exists only from then on; ATT-18). */
+  async createdAt(organizationId: string, ids: string[]): Promise<Map<string, Date>> {
+    if (ids.length === 0) return new Map();
+    const rows = await this.slotRepo.find({ where: { organization_id: organizationId, id: In(ids) }, select: ['id', 'created_at'] });
+    return new Map(rows.map((row) => [row.id, row.created_at]));
+  }
+
   /** An active slot of the organisation with its section id, or null (another organisation's id is never found). */
   async findActive(organizationId: string, id: string): Promise<(SlotView & { section_id: string }) | null> {
     const row = await this.slotRepo.findOne({
