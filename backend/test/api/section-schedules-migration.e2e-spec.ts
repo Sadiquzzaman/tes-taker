@@ -1,4 +1,5 @@
 import { SectionSchedules1756210000000 } from '../../src/migrations/1756210000000-SectionSchedules';
+import { ClassAttendance1756230000000 } from '../../src/migrations/1756230000000-ClassAttendance';
 import { factories } from '../support/factories';
 import { createTestApp, TestApp } from '../support/test-app';
 
@@ -26,10 +27,13 @@ describe('SectionSchedules migration', () => {
     const school = await make.organization(owner);
     await make.classOf(owner, { organization_id: school.id });
     const migration = new SectionSchedules1756210000000();
+    // The later class attendance tables point at routine_slots: down first, up last.
+    const classAttendance = new ClassAttendance1756230000000();
     const runner = t.dataSource.createQueryRunner();
     try {
       const exists = async (table: string) => (await runner.query(`SELECT to_regclass($1) IS NOT NULL AS e`, [`public.${table}`]))[0].e;
       const sectionsBefore = await runner.query(`SELECT id, name, branch_id, shift FROM sections ORDER BY id`);
+      await classAttendance.down(runner);
       await migration.down(runner);
       expect(await exists('section_attendance_settings')).toBe(false);
       expect(await exists('routine_slots')).toBe(false);
@@ -62,9 +66,11 @@ describe('SectionSchedules migration', () => {
       await expect(slot(8, '16:00', '17:30')).rejects.toThrow(/CHK_routine_slots_day/);
       await expect(slot(6, '17:30', '16:00')).rejects.toThrow(/CHK_routine_slots_times/);
 
+      await classAttendance.down(runner);
       await migration.down(runner);
       expect(await exists('routine_slots')).toBe(false);
       await migration.up(runner);
+      await classAttendance.up(runner);
     } finally {
       await runner.release();
     }

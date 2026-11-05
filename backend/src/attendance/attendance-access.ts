@@ -16,3 +16,10 @@ export function requireAttendanceRole(roles: OrganizationMemberRoleEnum[], messa
   if (tenant.viaEnrolment || !roles.includes(tenant.memberRole)) throw new ForbiddenException(message);
   return tenant;
 }
+
+/** The request's tenant for anyone in the workspace: members of every role, and students of a solo teacher's classes. */
+export function requireWorkspace(): Tenant {
+  const tenant = TenantContext.current();
+  if (!tenant) throw new ForbiddenException('Choose a workspace first');
+  return tenant;
+}

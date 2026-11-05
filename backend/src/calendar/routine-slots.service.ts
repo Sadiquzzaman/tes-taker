@@ -56,6 +56,27 @@ export class RoutineSlotsService {
     return result;
   }
 
+  /** Active slots where the teacher is named, by section id (for class check-in, ATT-11). */
+  async activeOfTeacher(organizationId: string, teacherId: string): Promise<Map<string, SlotView[]>> {
+    const rows = await this.slotRepo.find({
+      where: { organization_id: organizationId, teacher_id: teacherId, is_active: ActiveStatusEnum.ACTIVE },
+      relations: ['teacher'],
+      order: { day_of_week: 'ASC', start_time: 'ASC' },
+    });
+    const result = new Map<string, SlotView[]>();
+    for (const row of rows) result.set(row.section_id, [...(result.get(row.section_id) ?? []), view(row)]);
+    return result;
+  }
+
+  /** An active slot of the organisation with its section id, or null (another organisation's id is never found). */
+  async findActive(organizationId: string, id: string): Promise<(SlotView & { section_id: string }) | null> {
+    const row = await this.slotRepo.findOne({
+      where: { id, organization_id: organizationId, is_active: ActiveStatusEnum.ACTIVE },
+      relations: ['teacher'],
+    });
+    return row ? { ...view(row), section_id: row.section_id } : null;
+  }
+
   /**
    * Checks the slots and normalises them (sorted, "HH:MM"); throws 400 with a `code` and the index of
    * the first bad slot. Does not look at other sections; `replace` checks teacher clashes.
