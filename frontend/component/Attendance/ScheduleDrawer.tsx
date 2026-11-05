@@ -176,7 +176,7 @@ const ScheduleDrawer = ({ baseUrl, section, sections, teachers, sectionName, onC
             return (
               <fieldset key={index} className="flex flex-col gap-3 rounded-card border border-border p-3" aria-label={t("slotLabel", { number: index + 1 })}>
                 <legend className="sr-only">{t("slotLabel", { number: index + 1 })}</legend>
-                <div className="grid grid-cols-4 gap-x-3 gap-y-2 sm:grid-cols-7">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 min-[360px]:grid-cols-3">
                   {SCHOOL_WEEK.map((day) => (
                     <Checkbox
                       key={day}
