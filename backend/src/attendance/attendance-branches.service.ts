@@ -105,7 +105,7 @@ export class AttendanceBranchesService {
       throw new ConflictException({
         message: `${inUse} section(s) of an open session meet at this branch; move them to another branch first`,
         code: ATTENDANCE_ERRORS.BRANCH_IN_USE,
-        sections: inUse,
+        details: { sections: inUse },
       });
     }
     await this.branches.remove(branch, userId);

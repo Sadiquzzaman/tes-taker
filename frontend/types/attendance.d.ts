@@ -28,3 +28,48 @@ interface Branch {
   /** Sections of open sessions that meet here. */
   section_count: number;
 }
+
+type SectionClassType = "IN_PERSON" | "ONLINE";
+type SectionAttendanceMode = "SELF_CHECKIN" | "PAPER_REGISTER";
+
+/** A weekly slot of a section (ATT-16): ISO day, "HH:MM" times, an optional teacher. */
+interface ScheduleSlot {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  teacher_id: string | null;
+  teacher: { id: string; full_name: string } | null;
+}
+
+/** One row of `GET /attendance/setup`. */
+interface SectionSetup {
+  id: string;
+  name: string;
+  class: { id: string; name: string };
+  shift: "MORNING" | "DAY" | "EVENING" | null;
+  /** The main branch's id when the section has none of its own. */
+  branch_id: string;
+  class_type: SectionClassType;
+  mode: SectionAttendanceMode;
+  /** null = the organisation's grace period. */
+  grace_minutes: number | null;
+  slots: ScheduleSlot[];
+  can_edit: boolean;
+}
+
+/** `GET /attendance/setup`. */
+interface ClassSetup {
+  session: { id: string; name: string; status: string };
+  late_grace_minutes: number;
+  main_branch_id: string;
+  /** May move sections between branches and apply a schedule to a class or shift. */
+  can_manage: boolean;
+  sections: SectionSetup[];
+}
+
+/** `POST /attendance/setup/apply`. */
+interface ApplyScheduleResult {
+  dry_run: boolean;
+  sections: { id: string; name: string; class_name: string; slots_before: number; teachers_dropped: number }[];
+}

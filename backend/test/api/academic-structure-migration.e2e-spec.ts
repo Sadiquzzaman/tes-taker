@@ -10,6 +10,7 @@ import { Guardians1755600000000 } from '../../src/migrations/1755600000000-Guard
 import { EnrolmentInvitedName1755610000000 } from '../../src/migrations/1755610000000-EnrolmentInvitedName';
 import { AttendanceSettingsHolidays1756100000000 } from '../../src/migrations/1756100000000-AttendanceSettingsHolidays';
 import { AttendanceBranches1756200000000 } from '../../src/migrations/1756200000000-AttendanceBranches';
+import { SectionSchedules1756210000000 } from '../../src/migrations/1756210000000-SectionSchedules';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
 import { factories } from '../support/factories';
@@ -106,7 +107,9 @@ describe('AcademicStructure migration', () => {
     const invitedName = new EnrolmentInvitedName1755610000000();
     const attendanceSettings = new AttendanceSettingsHolidays1756100000000();
     const attendanceBranches = new AttendanceBranches1756200000000();
+    const sectionSchedules = new SectionSchedules1756210000000();
     try {
+      await sectionSchedules.down(runner);
       await attendanceBranches.down(runner);
       await attendanceSettings.down(runner);
       await invitedName.down(runner);
@@ -126,6 +129,7 @@ describe('AcademicStructure migration', () => {
       await invitedName.up(runner);
       await attendanceSettings.up(runner);
       await attendanceBranches.up(runner);
+      await sectionSchedules.up(runner);
     } finally {
       await runner.release();
     }
