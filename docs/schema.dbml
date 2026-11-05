@@ -43,30 +43,37 @@ Table organizations {
 Table branches {
   id uuid [pk]
   organization_id uuid [not null, ref: > organizations.id]
-  name varchar(120) [not null]
+  name varchar(120) [note: 'CHECK name IS NOT NULL OR is_default: the main branch may stay unnamed (the web app says "Main branch")']
   address text
-  geo_lat numeric(9,6) [note: 'centre of app check-in radius']
+  geo_lat numeric(9,6) [note: 'centre of the check-in radius; CHECK geo_lat and geo_lng both set or both null']
   geo_lng numeric(9,6)
-  checkin_radius_m int [default: 100, note: '25..1000']
-  is_default boolean [default: false, note: 'hidden default branch for single-campus orgs']
-  Note: 'NEW (FND-06). PLANNED P3-02 (ATT-15, 5 Nov 2026): built with the class-based attendance; every organisation gets a hidden default branch, whose pin and radius are the organisation\'s'
+  checkin_radius_m int [not null, default: 100, note: 'CHECK 25..1000; a new branch takes the main branch\'s radius']
+  is_default boolean [not null, default: false, note: 'hidden default ("main") branch; holds the organisation\'s own pin; never removed']
+  is_active varchar [note: "'1' in force, '0' removed (soft delete)"]
+  removed_at timestamptz
+  removed_by uuid
+  Indexes {
+    organization_id
+    organization_id [unique, note: 'UQ_branches_default: WHERE is_default (one main branch per organisation)']
+  }
+  Note: 'NEW (FND-06), BUILT P3-02 (ATT-15, organizations module; rules in the attendance module). The migration gave every organisation its main branch; new organisations get it on first use. A branch used by sections of an open session cannot be removed; a SOLO workspace has only the main branch'
 }
 
-Enum attendance_method { OFF WEB ZKTECO APP } // BUILT P3-01; WEB = website check-in (owner decision 2 Nov 2026), ZKTECO and APP not selectable yet
-Enum class_attendance_mode { OFF PER_SESSION DAILY }
+Enum attendance_method { OFF WEB ZKTECO APP } // BUILT P3-01; UNUSED since P3-02, dropped with its column
+Enum class_attendance_mode { OFF PER_SESSION DAILY } // UNUSED since P3-02, dropped with its column
 
 Table org_settings {
   id uuid [pk, note: 'base-entity id (P2-03); organization_id is unique']
   organization_id uuid [unique, not null, ref: - organizations.id]
   class_teacher_enabled boolean [not null, default: true, note: 'BUILT P2-03 (FND-02): sections have a class teacher. Migration/default: true for schools, false for SOLO']
   setup_completed_at timestamptz [note: 'BUILT P2-04 (FND-02): when the academic setup wizard was finished; null = not yet. Migration: set for organisations that already had classes']
-  attendance_method attendance_method [not null, default: 'OFF', note: 'BUILT P3-01 (ATT-01); TO BE REPLACED in P3-02 by the per-section attendance mode (class-based design, 5 Nov 2026)']
-  selfie_required boolean [not null, default: false, note: 'BUILT P3-01: only with APP; TO BE DROPPED in P3-02 (selfie is a later app feature)']
-  class_attendance_mode class_attendance_mode [not null, default: 'PER_SESSION', note: 'BUILT P3-01; TO BE DROPPED in P3-02 (one session per section schedule, no per-period mode)']
+  attendance_method attendance_method [not null, default: 'OFF', note: 'BUILT P3-01; UNUSED since P3-02 (replaced by the per-section mode); column dropped in a later release (expand → contract, owner 5 Nov 2026; TODO)']
+  selfie_required boolean [not null, default: false, note: 'BUILT P3-01; UNUSED since P3-02 (selfie is a later app feature); dropped in a later release']
+  class_attendance_mode class_attendance_mode [not null, default: 'PER_SESSION', note: 'BUILT P3-01; UNUSED since P3-02 (one session per section schedule); dropped in a later release']
   weekly_off_days smallint[] [not null, default: '{5}', note: 'BUILT P3-01: ISO day numbers; 5 = Friday; at least one working day']
-  student_entry_time time [not null, default: '09:00', note: "BUILT P3-01; TO BE REPLACED in P3-02 by section schedules + grace period"]
-  teacher_entry_time time [not null, default: '08:45', note: 'BUILT P3-01; TO BE REPLACED in P3-02 by section schedules + grace period']
-  late_grace_minutes smallint [not null, default: 10, note: 'PLANNED P3-02 (ATT-06): 0..60; a section can override it']
+  student_entry_time time [not null, default: '09:00', note: 'BUILT P3-01; UNUSED since P3-02 (section schedules + grace period); dropped in a later release']
+  teacher_entry_time time [not null, default: '08:45', note: 'BUILT P3-01; UNUSED since P3-02 (section schedules + grace period); dropped in a later release']
+  late_grace_minutes smallint [not null, default: 10, note: 'BUILT P3-02 (ATT-01, ATT-06): CHECK 0..60; a section can override it']
   guardian_sms jsonb [not null, default: '{"late":true,"absent":true,"leave":true}', note: 'BUILT P3-01']
   sms_locale varchar(5) [note: "BUILT P2-05 (FND-10): guardian SMS language, CHECK bn | en; null = the organisation's default_locale"]
   homework_policy jsonb [note: '{"late":"ALLOW","penalty":{"type":"NONE"},"max_resubmissions":1,"max_files":5}']
@@ -331,11 +338,12 @@ Table sections {
   room varchar(40)
   class_teacher_id uuid [ref: > users.id, note: 'one per section, only used when org_settings.class_teacher_enabled; a teacher may be class teacher of several sections; approves student leave']
   entry_time_override time [note: 'DROPPED from the plan (5 Nov 2026): section schedules (routine_slots) give the start time']
-  branch_id uuid [ref: > branches.id, note: 'PLANNED P3-02 (ATT-15): the branch where the batch meets; default branch when null']
+  branch_id uuid [ref: > branches.id, note: 'BUILT P3-02 (ATT-15): the branch where the batch meets; null = the main branch; FK ON DELETE SET NULL']
   Indexes {
     (class_id, session_id, name) [unique]
     (organization_id, session_id)
     class_teacher_id
+    branch_id
   }
   Note: 'NEW (FND-02), BUILT P2-03. A class keeps at least one section per session; a new class gets section "A" in the default session'
 }
