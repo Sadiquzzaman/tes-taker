@@ -28,20 +28,38 @@ const ClassAttendancePage = () => {
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState<{ slot_id: string; date: string; title: string } | null>(null);
 
+  const fetchDay = useCallback(
+    () => axiosReq.get<ApiResponse<ClassSessionsOnDate>>(`${baseUrl}/attendance/sessions`, { params: date ? { date } : {} }),
+    [baseUrl, date],
+  );
+
   const load = useCallback(async () => {
     try {
-      const response = await axiosReq.get<ApiResponse<ClassSessionsOnDate>>(`${baseUrl}/attendance/sessions`, { params: date ? { date } : {} });
-      setData(response.data?.payload ?? null);
+      setData((await fetchDay()).data?.payload ?? null);
       setFailed(false);
     } catch (error) {
       setFailed(true);
       handleError(error as AxiosError<ApiError>);
     }
-  }, [baseUrl, date, handleError]);
+  }, [fetchDay, handleError]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let live = true;
+    fetchDay()
+      .then((response) => {
+        if (!live) return;
+        setData(response.data?.payload ?? null);
+        setFailed(false);
+      })
+      .catch((error: AxiosError<ApiError>) => {
+        if (!live) return;
+        setFailed(true);
+        handleError(error);
+      });
+    return () => {
+      live = false;
+    };
+  }, [fetchDay, handleError]);
 
   const clock = (iso: string) => format.date(iso, { hour: "numeric", minute: "2-digit", timeZone: data?.time_zone });
   const title = (row: ClassSessionSummary) => `${row.section.class_name} ${row.section.name}`;
