@@ -62,6 +62,9 @@ export const AUDIT_ACTIONS = {
   SECTION_ATTENDANCE_UPDATE: 'section_attendance.update',
   SCHEDULE_UPDATE: 'schedule.update',
 
+  // Attendance corrections (owners, admins, assistants; teachers for their classes; ATT-07, ATT-12)
+  ATTENDANCE_CORRECT: 'attendance.correct',
+
   // Notifications (platform admin, design §8.6)
   MESSAGE_TEMPLATE_UPDATE: 'message_template.update',
   SMS_CREDITS_TOP_UP: 'sms_credits.top_up',

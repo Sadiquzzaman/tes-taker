@@ -56,6 +56,18 @@ export class RoutineSlotsService {
     return result;
   }
 
+  /** Every active slot of the organisation, by section id (for owners', admins' and assistants' attendance views). */
+  async activeOfOrganization(organizationId: string): Promise<Map<string, SlotView[]>> {
+    const rows = await this.slotRepo.find({
+      where: { organization_id: organizationId, is_active: ActiveStatusEnum.ACTIVE },
+      relations: ['teacher'],
+      order: { day_of_week: 'ASC', start_time: 'ASC' },
+    });
+    const result = new Map<string, SlotView[]>();
+    for (const row of rows) result.set(row.section_id, [...(result.get(row.section_id) ?? []), view(row)]);
+    return result;
+  }
+
   /** Active slots where the teacher is named, by section id (for class check-in, ATT-11). */
   async activeOfTeacher(organizationId: string, teacherId: string): Promise<Map<string, SlotView[]>> {
     const rows = await this.slotRepo.find({

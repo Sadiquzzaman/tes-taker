@@ -13,6 +13,8 @@ import { CheckInController } from './check-in.controller';
 import { CheckInService } from './check-in.service';
 import { ClassSessionsService } from './class-sessions.service';
 import { MyAttendanceService } from './my-attendance.service';
+import { SectionAttendanceController } from './section-attendance.controller';
+import { SectionAttendanceService } from './section-attendance.service';
 import { AttendanceCorrectionEntity } from './entities/attendance-correction.entity';
 import { AttendanceRecordEntity } from './entities/attendance-record.entity';
 import { ClassSessionEntity } from './entities/class-session.entity';
@@ -24,11 +26,11 @@ import { SectionSetupService } from './section-setup.service';
 /**
  * Attendance (Epic 1, design §4). So far: the settings (ATT-01, in org_settings), branches (ATT-15),
  * section setup with schedules (ATT-16) and class sessions with web self check-in (ATT-04, 06, 11)
- * and "My attendance" (ATT-18).
+ * "My attendance" (ATT-18) and the teachers' class view with corrections (ATT-07, ATT-12).
  */
 @Module({
   imports: [TypeOrmModule.forFeature([SectionAttendanceSettingsEntity, ClassSessionEntity, AttendanceRecordEntity, AttendanceCorrectionEntity]), OrganizationsModule, AcademicsModule, CalendarModule, SubscriptionModule],
-  controllers: [AttendanceSettingsController, AttendanceBranchesController, SectionSetupController, CheckInController],
+  controllers: [AttendanceSettingsController, AttendanceBranchesController, SectionSetupController, CheckInController, SectionAttendanceController],
   providers: [
     AttendanceSettingsService,
     AttendanceBranchesService,
@@ -38,6 +40,7 @@ import { SectionSetupService } from './section-setup.service';
     ClassSessionsService,
     CheckInService,
     MyAttendanceService,
+    SectionAttendanceService,
   ],
   exports: [AttendanceSettingsService],
 })

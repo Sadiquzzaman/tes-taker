@@ -208,6 +208,32 @@ export class SectionsService {
     return rows.map((row) => ({ section_id: row.section_id, since: row.joined_at ?? row.created_at }));
   }
 
+  /**
+   * ACTIVE students of these sections with their name, roll number and the day they joined, by
+   * section id, ordered by roll number then name (the attendance roster, ATT-07).
+   */
+  async activeStudentsOfSections(
+    organizationId: string,
+    sectionIds: string[],
+  ): Promise<Map<string, { student_id: string; full_name: string; roll_no: string | null; since: Date }[]>> {
+    const result = new Map<string, { student_id: string; full_name: string; roll_no: string | null; since: Date }[]>(sectionIds.map((id) => [id, []]));
+    if (sectionIds.length === 0) return result;
+    const rows = await tenantScoped(this.enrolmentRepo)
+      .forOrganization(organizationId)
+      .createQueryBuilder('e')
+      .innerJoinAndSelect('e.student', 'student')
+      .andWhere('e.section_id IN (:...sectionIds)', { sectionIds })
+      .andWhere('e.status = :active', { active: EnrolmentStatusEnum.ACTIVE })
+      .orderBy('e.roll_no', 'ASC', 'NULLS LAST')
+      .addOrderBy('lower(student.full_name)', 'ASC')
+      .getMany();
+    for (const row of rows) {
+      if (!row.student) continue;
+      result.get(row.section_id)?.push({ student_id: row.student.id, full_name: row.student.full_name, roll_no: row.roll_no, since: row.joined_at ?? row.created_at });
+    }
+    return result;
+  }
+
   /** Sections of the organisation with their class and session, by id (unknown ids are left out). */
   async findSectionsWithClasses(organizationId: string, ids: string[]): Promise<SectionEntity[]> {
     if (ids.length === 0) return [];
