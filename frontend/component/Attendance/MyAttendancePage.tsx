@@ -85,7 +85,7 @@ const MyAttendancePage = () => {
     const [h, m] = value.split(":").map(Number);
     return `${format.twoDigits(h)}:${format.twoDigits(m)}`;
   };
-  const clock = (iso: string) => format.date(iso, { hour: "numeric", minute: "2-digit", timeZone: today?.time_zone });
+  const clock = (iso: string) => format.date(iso, { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: today?.time_zone });
 
   const explain = (code: CheckInError, details: Record<string, unknown> = {}) =>
     t(`errors.${code}`, {

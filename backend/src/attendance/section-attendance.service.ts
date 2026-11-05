@@ -277,7 +277,13 @@ export class SectionAttendanceService {
   private async load(tenant: Tenant, refs: SlotRef[], date: string, timeZone: string, today: string): Promise<Loaded[]> {
     const organizationId = tenant.organizationId;
     const contexts = await this.sessions.contexts(organizationId, refs.map((ref) => ref.section_id));
-    const usable = refs.filter((ref) => contexts.get(ref.section_id)?.open);
+    const open = refs.filter((ref) => contexts.get(ref.section_id)?.open);
+    // A class exists only from the day its slot was added (as on "My attendance").
+    const added = await this.slots.createdAt(organizationId, open.map((ref) => ref.slot.id));
+    const usable = open.filter((ref) => {
+      const addedAt = added.get(ref.slot.id);
+      return !addedAt || schoolDateIn(timeZone, addedAt) <= date;
+    });
     if (usable.length === 0) return [];
     const [closedDays, saved, rosters] = await Promise.all([
       this.holidays.closedDays(organizationId, date, date),

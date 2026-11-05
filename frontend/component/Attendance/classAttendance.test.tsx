@@ -163,7 +163,10 @@ describe("class attendance page (ATT-07, ATT-12)", () => {
     serve();
     renderApp(<ClassAttendancePage />, { locale: "bn" });
     expect(await screen.findByRole("heading", { name: "ক্লাসের উপস্থিতি" })).toBeTruthy();
-    expect(within(await screen.findByRole("table")).getByText("দে ১")).toBeTruthy();
+    const table = within(await screen.findByRole("table"));
+    expect(table.getByText("দে ১")).toBeTruthy();
+    // 24-hour Bangla times, no Latin AM/PM (beta walkthrough).
+    expect(table.getByText("১৬:০০–১৭:৩০ · Rina Akter")).toBeTruthy();
   });
 
   it("puts Class attendance in the menu for staff and a solo teacher's own workspace, behind the attendance feature", () => {
