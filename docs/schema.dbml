@@ -585,7 +585,7 @@ Table class_attendance_records {
   status attendance_status [not null]
   checked_in_at timestamptz [note: 'server time of a self check-in']
   late_minutes smallint [note: 'minutes after the start (Late only); CHECK >= 0']
-  source attendance_record_source [not null]
+  source attendance_record_source [not null, note: 'IMPORT = paper register (P3-05); a changed mark adds an attendance_corrections row']
   geo_lat numeric(9,6) [note: 'in-person self check-in only; never returned by the API; used for the impossible-jump flag']
   geo_lng numeric(9,6)
   distance_m int [note: 'metres from the branch pin']
