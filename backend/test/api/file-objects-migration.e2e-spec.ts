@@ -1,5 +1,6 @@
 import { FileObjects1755800000000 } from '../../src/migrations/1755800000000-FileObjects';
 import { Homework1756270000000 } from '../../src/migrations/1756270000000-Homework';
+import { HomeworkSubmissions1756280000000 } from '../../src/migrations/1756280000000-HomeworkSubmissions';
 import { LeaveRequests1756250000000 } from '../../src/migrations/1756250000000-LeaveRequests';
 import { createTestApp, TestApp } from '../support/test-app';
 
@@ -13,6 +14,7 @@ describe('FileObjects migration', () => {
   const migration = new FileObjects1755800000000();
   const leaveRequests = new LeaveRequests1756250000000();
   const homework = new Homework1756270000000();
+  const submissions = new HomeworkSubmissions1756280000000();
 
   beforeAll(async () => {
     t = await createTestApp();
@@ -29,6 +31,7 @@ describe('FileObjects migration', () => {
     const runner = t.dataSource.createQueryRunner();
     try {
       // Homework attachments point at file_objects: down first, back last.
+      await submissions.down(runner);
       await homework.down(runner);
       await leaveRequests.down(runner);
       await migration.down(runner);
@@ -45,6 +48,7 @@ describe('FileObjects migration', () => {
       expect(console.log).toHaveBeenCalledWith('[FileObjects] file_objects rows: 0');
       await leaveRequests.up(runner);
       await homework.up(runner);
+      await submissions.up(runner);
     } finally {
       await runner.release();
     }

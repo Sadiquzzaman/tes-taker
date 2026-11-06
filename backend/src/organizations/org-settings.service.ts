@@ -42,6 +42,22 @@ export interface AttendanceSettings {
   repeat_absence_days: number;
 }
 
+/** Organisation homework settings as stored (Epic 2 settings table). */
+export interface HomeworkSettings {
+  late_allowed: boolean;
+  late_penalty: { type: 'NONE' | 'PER_DAY' | 'FIXED'; percent: number };
+  resubmissions: number;
+  max_files: number;
+}
+
+/** The spec's defaults (Epic 2 settings table), used while an organisation has no row. */
+export const DEFAULT_HOMEWORK_SETTINGS: HomeworkSettings = {
+  late_allowed: true,
+  late_penalty: { type: 'NONE', percent: 0 },
+  resubmissions: 1,
+  max_files: 5,
+};
+
 /** The spec's defaults (Epic 1 settings table), used while an organisation has no row. */
 export const DEFAULT_ATTENDANCE_SETTINGS: AttendanceSettings = {
   late_grace_minutes: 10,
@@ -210,6 +226,38 @@ export class OrgSettingsService {
     return { before, after: attendanceOf(saved) };
   }
 
+  async getHomework(organizationId: string): Promise<HomeworkSettings> {
+    const row = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
+    return row ? homeworkOf(row) : { ...DEFAULT_HOMEWORK_SETTINGS, late_penalty: { ...DEFAULT_HOMEWORK_SETTINGS.late_penalty } };
+  }
+
+  /** Saves homework settings the homework module has already validated; creates the row on the first change. */
+  async saveHomework(organizationId: string, userId: string, changes: Partial<HomeworkSettings>): Promise<{ before: HomeworkSettings; after: HomeworkSettings }> {
+    const existing = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
+    const before = existing ? homeworkOf(existing) : await this.getHomework(organizationId);
+    const row =
+      existing ??
+      this.settingsRepo.create({
+        organization_id: organizationId,
+        ...OrgSettingsService.defaultsFor((await this.organization(organizationId)).kind),
+        created_by: userId,
+        created_at: new Date(),
+      });
+    if (changes.late_allowed !== undefined) row.homework_late_allowed = changes.late_allowed;
+    if (changes.late_penalty) {
+      row.homework_late_penalty_type = changes.late_penalty.type;
+      row.homework_late_penalty_percent = changes.late_penalty.type === 'NONE' ? 0 : changes.late_penalty.percent;
+    }
+    if (changes.resubmissions !== undefined) row.homework_resubmissions = changes.resubmissions;
+    if (changes.max_files !== undefined) row.homework_max_files = changes.max_files;
+    if (existing) {
+      row.updated_by = userId;
+      row.updated_at = new Date();
+    }
+    const saved = await this.settingsRepo.save(row);
+    return { before, after: homeworkOf(saved) };
+  }
+
   /**
    * The level names of the request's workspace (FND-03). Anyone signed in may read them; without
    * a workspace (a student who has not chosen a teacher yet) they are Class / Section.
@@ -248,5 +296,17 @@ function attendanceOf(row: OrgSettingsEntity): AttendanceSettings {
     weekly_off_days: [...(row.weekly_off_days ?? DEFAULT_ATTENDANCE_SETTINGS.weekly_off_days)].map(Number).sort((a, b) => a - b),
     guardian_sms: { ...DEFAULT_GUARDIAN_SMS, ...(row.guardian_sms ?? {}) },
     repeat_absence_days: row.repeat_absence_days ?? DEFAULT_ATTENDANCE_SETTINGS.repeat_absence_days,
+  };
+}
+
+function homeworkOf(row: OrgSettingsEntity): HomeworkSettings {
+  return {
+    late_allowed: row.homework_late_allowed ?? DEFAULT_HOMEWORK_SETTINGS.late_allowed,
+    late_penalty: {
+      type: row.homework_late_penalty_type ?? 'NONE',
+      percent: row.homework_late_penalty_percent ?? 0,
+    },
+    resubmissions: row.homework_resubmissions ?? DEFAULT_HOMEWORK_SETTINGS.resubmissions,
+    max_files: row.homework_max_files ?? DEFAULT_HOMEWORK_SETTINGS.max_files,
   };
 }

@@ -1,12 +1,14 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsObject,
@@ -16,6 +18,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { HomeworkStatusEnum, HomeworkTypeEnum } from '../entities/homework.entity';
 
@@ -102,4 +105,65 @@ export class ListHomeworkQueryDto {
   @IsOptional()
   @IsUUID()
   offering_id?: string;
+}
+
+/** A student's hand-in (HW-03): files (photos, PDF, …) and/or a typed answer, depending on the homework. */
+export class SubmitHomeworkDto {
+  @ApiPropertyOptional({ description: 'The typed answer (required for TEXT homework)' })
+  @IsOptional()
+  @Transform(trimmed)
+  @IsString()
+  @MaxLength(20_000)
+  text_answer?: string;
+
+  @ApiPropertyOptional({ type: [String], description: "The student's uploads (purpose HOMEWORK), in page order" })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_HOMEWORK_ATTACHMENTS)
+  @IsUUID('4', { each: true })
+  file_ids?: string[];
+}
+
+export const LATE_PENALTY_TYPES = ['NONE', 'PER_DAY', 'FIXED'] as const;
+
+class LatePenaltyDto {
+  @ApiProperty({ enum: LATE_PENALTY_TYPES })
+  @IsIn(LATE_PENALTY_TYPES)
+  type: (typeof LATE_PENALTY_TYPES)[number];
+
+  @ApiProperty({ example: 10, description: 'Percent off per day late (PER_DAY) or once (FIXED); ignored for NONE' })
+  @IsNumber({ maxDecimalPlaces: 0 })
+  @Min(0)
+  @Max(100)
+  percent: number;
+}
+
+/** The organisation's homework settings (Epic 2 settings table); owners and admins change them. */
+export class UpdateHomeworkSettingsDto {
+  @ApiPropertyOptional({ description: 'Accept work after the due time (marked late)' })
+  @IsOptional()
+  // Keep the raw value: the global implicit conversion would turn the string "false" into true.
+  @Transform(({ obj, key }) => (obj as Record<string, unknown>)[key])
+  @IsBoolean()
+  late_allowed?: boolean;
+
+  @ApiPropertyOptional({ type: LatePenaltyDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LatePenaltyDto)
+  late_penalty?: LatePenaltyDto;
+
+  @ApiPropertyOptional({ example: 1, description: 'Hand-ins allowed after the first, before it is scored (0–3)' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(3)
+  resubmissions?: number;
+
+  @ApiPropertyOptional({ example: 5, description: 'Most files in one submission (1–10)' })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  max_files?: number;
 }

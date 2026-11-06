@@ -17,6 +17,7 @@ import { ClassSessionCloseCancel1756240000000 } from '../../src/migrations/17562
 import { LeaveRequests1756250000000 } from '../../src/migrations/1756250000000-LeaveRequests';
 import { WeeklyOffDaysHistory1756260000000 } from '../../src/migrations/1756260000000-WeeklyOffDaysHistory';
 import { Homework1756270000000 } from '../../src/migrations/1756270000000-Homework';
+import { HomeworkSubmissions1756280000000 } from '../../src/migrations/1756280000000-HomeworkSubmissions';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
 import { factories } from '../support/factories';
@@ -118,7 +119,10 @@ describe('AcademicStructure migration', () => {
     const classAttendance = new ClassAttendance1756230000000();
     // Homework (P5-01) points at subject classes and sessions: it goes down first and comes back last.
     const homework = new Homework1756270000000();
+    // Homework hand-ins (P5-02) point at homework and add homework settings to org_settings.
+    const submissions = new HomeworkSubmissions1756280000000();
     try {
+      await submissions.down(runner);
       await homework.down(runner);
       await classAttendance.down(runner);
       await dropPresence.down(runner);
@@ -152,6 +156,7 @@ describe('AcademicStructure migration', () => {
       // The weekly off days history on org_settings (recreated above) comes back too.
       await new WeeklyOffDaysHistory1756260000000().up(runner);
       await homework.up(runner);
+      await submissions.up(runner);
     } finally {
       await runner.release();
     }

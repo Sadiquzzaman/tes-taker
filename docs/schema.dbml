@@ -67,6 +67,11 @@ Table org_settings {
   setup_completed_at timestamptz [note: 'BUILT P2-04 (FND-02): when the academic setup wizard was finished; null = not yet. Migration: set for organisations that already had classes']
   weekly_off_days smallint[] [not null, default: '{5}', note: 'BUILT P3-01: ISO day numbers; 5 = Friday; at least one working day']
   weekly_off_days_history jsonb [not null, default: '[]', note: 'BUILT (P3 fix): earlier off days [{days, until}], oldest first; a day opened later stays closed on the dates it covered, so attendance never reaches back']
+  homework_late_allowed boolean [not null, default: true, note: 'BUILT P5-02 (Epic 2 settings): late work accepted and marked late']
+  homework_late_penalty_type varchar(10) [not null, default: 'NONE', note: 'BUILT P5-02: NONE | PER_DAY | FIXED (applied when scoring, P5-03)']
+  homework_late_penalty_percent smallint [not null, default: 0, note: 'BUILT P5-02: 0–100']
+  homework_resubmissions smallint [not null, default: 1, note: 'BUILT P5-02: hand-ins allowed after the first, 0–3']
+  homework_max_files smallint [not null, default: 5, note: 'BUILT P5-02: files per hand-in, 1–10']
   late_grace_minutes smallint [not null, default: 10, note: 'BUILT P3-02 (ATT-01, ATT-06): CHECK 0..60; a section can override it. P3-01\'s attendance_method, selfie_required, class_attendance_mode and entry times were dropped after the P3-02 release (migration DropP301PresenceSettings, 6 Nov 2026)']
   guardian_sms jsonb [not null, default: '{"late":true,"absent":true,"leave":true}', note: 'BUILT P3-01']
   sms_locale varchar(5) [note: "BUILT P2-05 (FND-10): guardian SMS language, CHECK bn | en; null = the organisation's default_locale"]
@@ -715,7 +720,7 @@ Table homework_items {
   Note: 'NEW (QA-02) — for submission_type = QUESTIONS'
 }
 
-Enum submission_status { SUBMITTED RETURNED SCORED }
+Enum submission_status { SUBMITTED RETURNED SCORED } // BUILT P5-02
 
 Table homework_submissions {
   id uuid [pk]
@@ -724,26 +729,27 @@ Table homework_submissions {
   student_id uuid [not null, ref: > users.id]
   version smallint [not null, default: 1]
   text_answer text
-  answers jsonb [note: 'for QUESTIONS type']
-  extracted_text text [note: 'from files, for plagiarism']
+  answers jsonb [note: 'not built yet: for QUESTIONS type (Epic 4)']
+  extracted_text text [note: 'not built yet: from files, for plagiarism (Epic 10)']
   submitted_at timestamptz [not null]
-  is_late boolean
+  is_late boolean [not null, default: false]
   late_minutes int
-  status submission_status
+  status submission_status [not null, default: 'SUBMITTED']
   Indexes {
-    (homework_id, student_id, version) [unique]
+    (homework_id, student_id, version) [unique, name: 'UQ_homework_submissions_version']
+    (organization_id, homework_id)
   }
-  Note: 'NEW (HW-03)'
+  Note: 'BUILT P5-02 (HW-03) — owned by homework; every hand-in is a new version, earlier ones are kept'
 }
 
 Table submission_files {
   submission_id uuid [ref: > homework_submissions.id]
   file_id uuid [ref: > file_objects.id]
-  page_order smallint
+  page_order smallint [not null, default: 0]
   Indexes {
     (submission_id, file_id) [pk]
   }
-  Note: 'NEW'
+  Note: 'BUILT P5-02 — the student\'s uploads (purpose HOMEWORK); photos are combined into one PDF in the browser'
 }
 
 Table homework_scores {

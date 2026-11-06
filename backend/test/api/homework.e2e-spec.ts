@@ -1,4 +1,6 @@
 import { DeepPartial } from 'typeorm';
+import { FileObjectEntity } from '../../src/files/entities/file-object.entity';
+import { FileStatusEnum } from '../../src/files/file-rules';
 import { AuditService } from '../../src/audit/audit.service';
 import { AuditLogEntity } from '../../src/audit/entities/audit-log.entity';
 import { RolesEnum } from '../../src/common/enums/roles.enum';
@@ -279,5 +281,129 @@ describe('homework API', () => {
     expect((await call('GET', `/homework/${id}`, b.ownerToken)).status).toBe(404);
     expect((await call('POST', '/homework', b.ownerToken, draft([a.mathOffering]))).body.code).toBe('HOMEWORK_TARGETS_INVALID');
   });
-});
 
+  describe('handing it in (P5-02, HW-03)', () => {
+    type Mine = { submissions: { version: number; is_late: boolean; late_minutes: number | null; files: { id: string }[]; text_answer: string | null }[]; can_submit: boolean; blocked_by: string | null; submissions_left: number };
+    type Row = { student: { id: string }; versions: number; latest: { version: number; is_late: boolean; file_count: number } | null };
+    const upload = (organizationId: string, ownerId: string, purpose = 'HOMEWORK') =>
+      t.dataSource.getRepository(FileObjectEntity).save({
+        organization_id: organizationId,
+        owner_id: ownerId,
+        purpose,
+        s3_key: `org/${organizationId}/homework/${Math.random()}`,
+        mime: 'image/webp',
+        original_name: 'page.webp',
+        size_bytes: 1000,
+        original_size_bytes: 1000,
+        status: FileStatusEnum.READY,
+      } as DeepPartial<FileObjectEntity>);
+    const published = async (s: Awaited<ReturnType<typeof school>>, extra: Record<string, unknown> = {}) => {
+      const id = (await call<Homework>('POST', '/homework', s.ownerToken, draft([s.mathOffering], extra))).body.payload.id;
+      expect((await call('POST', `/homework/${id}/publish`, s.ownerToken, {})).status).toBe(200);
+      return id;
+    };
+
+    it('takes files from a student, again once by default, keeps every version and shows staff the latest', async () => {
+      const s = await school();
+      const id = await published(s);
+      const first = await upload(s.organization.id, s.picked.id);
+      const second = await upload(s.organization.id, s.picked.id);
+      const before = await call<Mine>('GET', `/homework/${id}/my-submissions`, s.pickedToken);
+      expect(before.body.payload).toMatchObject({ submissions: [], can_submit: true, submissions_left: 2 });
+
+      const handed = await call<Mine>('POST', `/homework/${id}/submissions`, s.pickedToken, { file_ids: [first.id, second.id] });
+      expect(handed.status).toBe(201);
+      expect(handed.body.payload.submissions[0]).toMatchObject({ version: 1, is_late: false, files: [{ id: first.id }, { id: second.id }] });
+      const again = await call<Mine>('POST', `/homework/${id}/submissions`, s.pickedToken, { file_ids: [second.id], text_answer: 'Fixed question 4' });
+      expect(again.body.payload.submissions.map((v) => v.version)).toEqual([2, 1]);
+      expect(again.body.payload).toMatchObject({ can_submit: false, blocked_by: 'HOMEWORK_NO_MORE_SUBMISSIONS', submissions_left: 0 });
+      const third = await call('POST', `/homework/${id}/submissions`, s.pickedToken, { file_ids: [first.id] });
+      expect(third.status).toBe(409);
+      expect(third.body.code).toBe('HOMEWORK_NO_MORE_SUBMISSIONS');
+
+      const rows = (await call<Row[]>('GET', `/homework/${id}/submissions`, s.rinaToken)).body.payload;
+      expect(rows.find((r) => r.student.id === s.picked.id)).toMatchObject({ versions: 2, latest: { version: 2, file_count: 1 } });
+      expect(rows.find((r) => r.student.id === s.other.id)).toMatchObject({ versions: 0, latest: null });
+      // Students see their own latest hand-in in their list; staff do not get one.
+      expect((await call<(Homework & { my_submission: { version: number } | null })[]>('GET', '/homework/mine', s.pickedToken)).body.payload[0].my_submission).toMatchObject({ version: 2 });
+      // Students cannot see the staff list; staff cannot hand in.
+      expect((await call('GET', `/homework/${id}/submissions`, s.pickedToken)).status).toBe(403);
+      expect((await call('POST', `/homework/${id}/submissions`, s.rinaToken, { file_ids: [first.id] })).status).toBe(403);
+    });
+
+    it("checks what is handed in: files of the student's own, an answer for typed homework, nothing for paper", async () => {
+      const s = await school();
+      const fileHomework = await published(s);
+      const others = await upload(s.organization.id, s.other.id);
+      const wrongPurpose = await upload(s.organization.id, s.picked.id, 'LEAVE');
+      expect((await call('POST', `/homework/${fileHomework}/submissions`, s.pickedToken, {})).body.code).toBe('HOMEWORK_SUBMISSION_EMPTY');
+      expect((await call('POST', `/homework/${fileHomework}/submissions`, s.pickedToken, { file_ids: [others.id] })).body.code).toBe('HOMEWORK_FILE_INVALID');
+      expect((await call('POST', `/homework/${fileHomework}/submissions`, s.pickedToken, { file_ids: [wrongPurpose.id] })).body.code).toBe('HOMEWORK_FILE_INVALID');
+
+      const textHomework = await published(s, { submission_type: 'TEXT' });
+      expect((await call('POST', `/homework/${textHomework}/submissions`, s.pickedToken, { text_answer: '   ' })).body.code).toBe('HOMEWORK_SUBMISSION_EMPTY');
+      expect((await call('POST', `/homework/${textHomework}/submissions`, s.pickedToken, { text_answer: 'Photosynthesis makes sugar.' })).status).toBe(201);
+
+      const paper = await published(s, { submission_type: 'PAPER' });
+      expect((await call('POST', `/homework/${paper}/submissions`, s.pickedToken, { text_answer: 'x' })).body.code).toBe('HOMEWORK_PAPER_NO_SUBMISSION');
+      // Homework not set to the student is "not found" to them.
+      const chosen = (await call<Homework>('POST', '/homework', s.ownerToken, draft([s.mathOffering], { student_ids: [s.other.id] }))).body.payload.id;
+      await call('POST', `/homework/${chosen}/publish`, s.ownerToken, {});
+      expect((await call('GET', `/homework/${chosen}/my-submissions`, s.pickedToken)).status).toBe(404);
+    });
+
+    it('marks late work with how late it is, or refuses it when the organisation does not accept late work', async () => {
+      const s = await school();
+      const start = new Date('2026-12-01T03:00:00Z');
+      setNow(start);
+      const id = await published(s, { due_at: new Date(start.getTime() + HOUR).toISOString() });
+      const file = await upload(s.organization.id, s.picked.id);
+
+      setNow(new Date(start.getTime() + 2 * HOUR + 30_000));
+      const late = await call<Mine>('POST', `/homework/${id}/submissions`, s.pickedToken, { file_ids: [file.id] });
+      expect(late.body.payload.submissions[0]).toMatchObject({ is_late: true, late_minutes: 61 });
+
+      expect((await call('PATCH', '/homework/settings', s.ownerToken, { late_allowed: false })).status).toBe(200);
+      const refused = await call('POST', `/homework/${id}/submissions`, s.otherToken, { file_ids: [(await upload(s.organization.id, s.other.id)).id] });
+      expect(refused.status).toBe(409);
+      expect(refused.body.code).toBe('HOMEWORK_LATE_NOT_ALLOWED');
+    });
+
+    it('lets owners and admins change the homework settings; teachers only read them', async () => {
+      const s = await school();
+      expect((await call<{ late_allowed: boolean; resubmissions: number; max_files: number }>('GET', '/homework/settings', s.rinaToken)).body.payload).toEqual({
+        late_allowed: true,
+        late_penalty: { type: 'NONE', percent: 0 },
+        resubmissions: 1,
+        max_files: 5,
+      });
+      expect((await call('PATCH', '/homework/settings', s.rinaToken, { resubmissions: 3 })).status).toBe(403);
+      expect((await call('PATCH', '/homework/settings', s.ownerToken, { resubmissions: 4 })).status).toBe(400);
+      expect((await call('PATCH', '/homework/settings', s.ownerToken, { late_allowed: 'false' })).status).toBe(400);
+      const saved = await call('PATCH', '/homework/settings', s.ownerToken, { late_penalty: { type: 'PER_DAY', percent: 10 }, resubmissions: 0, max_files: 2 });
+      expect(saved.body.payload).toEqual({ late_allowed: true, late_penalty: { type: 'PER_DAY', percent: 10 }, resubmissions: 0, max_files: 2 });
+
+      // The limits apply to hand-ins at once.
+      const id = await published(s);
+      const files = await Promise.all([1, 2, 3].map(() => upload(s.organization.id, s.picked.id)));
+      expect((await call('POST', `/homework/${id}/submissions`, s.pickedToken, { file_ids: files.map((f) => f.id) })).body.code).toBe('HOMEWORK_TOO_MANY_FILES');
+      expect((await call<Mine>('POST', `/homework/${id}/submissions`, s.pickedToken, { file_ids: [files[0].id] })).body.payload.can_submit).toBe(false);
+
+      await t.app.get(AuditService).flush();
+      expect(await t.dataSource.getRepository(AuditLogEntity).countBy({ action: 'homework_settings.update', organization_id: s.organization.id })).toBe(1);
+    });
+
+    it('reminds only the students who have not handed it in', async () => {
+      const s = await school();
+      const start = new Date('2026-12-05T03:00:00Z');
+      setNow(start);
+      const due = new Date(start.getTime() + 3 * 24 * HOUR);
+      const id = await published(s, { due_at: due.toISOString() });
+      await call('POST', `/homework/${id}/submissions`, s.pickedToken, { file_ids: [(await upload(s.organization.id, s.picked.id)).id] });
+      setNow(new Date(due.getTime() - 23 * HOUR));
+      expect((await homework.sweep()).reminded).toBe(1);
+      expect(await outboxFor('homework.due_soon', [s.picked.id])).toBe(0);
+      expect(await outboxFor('homework.due_soon', [s.other.id])).toBe(1);
+    });
+  });
+});
