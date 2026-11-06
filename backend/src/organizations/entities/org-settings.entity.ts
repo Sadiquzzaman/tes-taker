@@ -26,6 +26,9 @@ export interface WeeklyOffDaysChange {
 @Check('CHK_org_settings_repeat_absence_days', `"repeat_absence_days" BETWEEN 2 AND 30`)
 @Check('CHK_org_settings_late_grace_minutes', `"late_grace_minutes" BETWEEN 0 AND 60`)
 @Check('CHK_org_settings_sms_locale', `"sms_locale" IS NULL OR "sms_locale" IN ('bn', 'en')`)
+@Check('CHK_org_settings_homework_resubmissions', `"homework_resubmissions" BETWEEN 0 AND 3`)
+@Check('CHK_org_settings_homework_max_files', `"homework_max_files" BETWEEN 1 AND 10`)
+@Check('CHK_org_settings_homework_late_penalty', `"homework_late_penalty_type" IN ('NONE', 'PER_DAY', 'FIXED') AND "homework_late_penalty_percent" BETWEEN 0 AND 100`)
 export class OrgSettingsEntity extends CustomBaseEntity {
   @ApiProperty()
   @Index({ unique: true })
@@ -69,4 +72,26 @@ export class OrgSettingsEntity extends CustomBaseEntity {
   @ApiProperty({ description: 'Absent this many school days in a row alerts the class teacher (ATT-14)' })
   @Column({ name: 'repeat_absence_days', type: 'smallint', default: 3 })
   repeat_absence_days: number;
+
+  // Homework settings (Epic 2 settings table). The homework module validates them; this module stores them.
+
+  @ApiProperty({ description: 'Submissions after the due time are accepted and marked late (HW-03)' })
+  @Column({ name: 'homework_late_allowed', type: 'boolean', default: true })
+  homework_late_allowed: boolean;
+
+  @ApiProperty({ enum: ['NONE', 'PER_DAY', 'FIXED'], description: 'Late penalty: none, X% off per day late, or a fixed X% (HW-04)' })
+  @Column({ name: 'homework_late_penalty_type', type: 'varchar', length: 10, default: 'NONE' })
+  homework_late_penalty_type: 'NONE' | 'PER_DAY' | 'FIXED';
+
+  @ApiProperty({ example: 10 })
+  @Column({ name: 'homework_late_penalty_percent', type: 'smallint', default: 0 })
+  homework_late_penalty_percent: number;
+
+  @ApiProperty({ example: 1, description: 'How many times a student may hand in again before it is scored (0–3)' })
+  @Column({ name: 'homework_resubmissions', type: 'smallint', default: 1 })
+  homework_resubmissions: number;
+
+  @ApiProperty({ example: 5, description: 'Most files in one submission (1–10)' })
+  @Column({ name: 'homework_max_files', type: 'smallint', default: 5 })
+  homework_max_files: number;
 }

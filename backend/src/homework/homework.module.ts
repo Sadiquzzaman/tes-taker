@@ -6,10 +6,14 @@ import { OrganizationMemberEntity } from 'src/organizations/entities/organizatio
 import { OrganizationsModule } from 'src/organizations/organization.module';
 import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 import { HomeworkAttachmentEntity } from './entities/homework-attachment.entity';
+import { HomeworkSubmissionEntity } from './entities/homework-submission.entity';
+import { SubmissionFileEntity } from './entities/submission-file.entity';
 import { HomeworkTargetEntity } from './entities/homework-target.entity';
 import { HomeworkEntity } from './entities/homework.entity';
 import { HomeworkClock } from './homework-clock';
 import { HomeworkController } from './homework.controller';
+import { HomeworkSettingsService } from './homework-settings.service';
+import { HomeworkSubmissionsService } from './homework-submissions.service';
 import { HomeworkService } from './homework.service';
 
 /**
@@ -19,14 +23,14 @@ import { HomeworkService } from './homework.service';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([HomeworkEntity, HomeworkTargetEntity, HomeworkAttachmentEntity, OrganizationMemberEntity]),
+    TypeOrmModule.forFeature([HomeworkEntity, HomeworkTargetEntity, HomeworkAttachmentEntity, HomeworkSubmissionEntity, SubmissionFileEntity, OrganizationMemberEntity]),
     OrganizationsModule,
     AcademicsModule,
     NotificationsModule,
     SubscriptionModule,
   ],
   controllers: [HomeworkController],
-  providers: [HomeworkService, HomeworkClock],
+  providers: [HomeworkService, HomeworkSubmissionsService, HomeworkSettingsService, HomeworkClock],
   exports: [HomeworkService],
 })
 export class HomeworkModule {}

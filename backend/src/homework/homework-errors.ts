@@ -19,4 +19,18 @@ export const HOMEWORK_ERRORS = {
   PUBLISH_AT_INVALID: 'HOMEWORK_PUBLISH_AT_INVALID',
   /** The change is not possible in this status (e.g. a withdrawn homework, or targets of a published one). */
   WRONG_STATUS: 'HOMEWORK_WRONG_STATUS',
+  /** Homework done on paper is not handed in on the app (HW-05 scores it). */
+  PAPER_NO_SUBMISSION: 'HOMEWORK_PAPER_NO_SUBMISSION',
+  /** The due time has passed and the organisation does not accept late work. */
+  LATE_NOT_ALLOWED: 'HOMEWORK_LATE_NOT_ALLOWED',
+  /** The student has used every submission the organisation allows. */
+  NO_MORE_SUBMISSIONS: 'HOMEWORK_NO_MORE_SUBMISSIONS',
+  /** The teacher has scored it; no more hand-ins unless it is returned for redo. */
+  ALREADY_SCORED: 'HOMEWORK_ALREADY_SCORED',
+  /** Nothing to hand in: no files (photos or files homework) or no answer (typed answer homework). */
+  SUBMISSION_EMPTY: 'HOMEWORK_SUBMISSION_EMPTY',
+  /** More files than the organisation allows in one submission. */
+  TOO_MANY_FILES: 'HOMEWORK_TOO_MANY_FILES',
+  /** Homework settings out of range (penalty 0–100 %, resubmissions 0–3, files 1–10). */
+  SETTINGS_INVALID: 'HOMEWORK_SETTINGS_INVALID',
 } as const;

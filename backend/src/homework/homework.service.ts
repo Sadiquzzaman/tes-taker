@@ -18,6 +18,7 @@ import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { CreateHomeworkDto, ListHomeworkQueryDto, PublishHomeworkDto, UpdateHomeworkDto } from './dto/homework.dto';
 import { HomeworkAttachmentEntity } from './entities/homework-attachment.entity';
+import { HomeworkSubmissionEntity } from './entities/homework-submission.entity';
 import { HomeworkEntity, HomeworkStatusEnum } from './entities/homework.entity';
 import { HomeworkTargetEntity } from './entities/homework-target.entity';
 import { HomeworkClock } from './homework-clock';
@@ -68,6 +69,8 @@ export interface HomeworkView {
   created_at: Date;
   /** Whether the caller may change it (staff only; false for students and closed sessions). */
   can_edit: boolean;
+  /** Students: their latest hand-in, or null; staff: always null. */
+  my_submission: { version: number; submitted_at: Date; is_late: boolean; status: string } | null;
 }
 
 /** A subject class the caller may set homework for (the editor's choices). */
@@ -423,7 +426,13 @@ export class HomeworkService {
 
   /** In-app notices to every student the homework is set to, linked to it. */
   private async notify(manager: EntityManager, homework: HomeworkEntity, eventType: NotificationEvent, createdBy: string | null): Promise<void> {
-    const studentIds = (await this.studentsOf(homework, manager)).map((s) => s.student_id);
+    let studentIds = (await this.studentsOf(homework, manager)).map((s) => s.student_id);
+    if (eventType === NOTIFICATION_EVENTS.HOMEWORK_DUE_SOON) {
+      // The reminder is for students who have not handed it in yet (HW-02).
+      const handedIn = await manager.find(HomeworkSubmissionEntity, { where: { homework_id: homework.id }, select: ['student_id'] });
+      const done = new Set(handedIn.map((s) => s.student_id));
+      studentIds = studentIds.filter((id) => !done.has(id));
+    }
     if (studentIds.length === 0) return;
     const [{ offering }] = await this.sections.offeringsWithTeachers(homework.organization_id, [
       (await manager.findOneOrFail(HomeworkTargetEntity, { where: { homework_id: homework.id } })).offering_id,
@@ -461,7 +470,8 @@ export class HomeworkService {
     return [...result.values()];
   }
 
-  private async isSetTo(homework: HomeworkEntity, userId: string): Promise<boolean> {
+  /** Whether a published homework is set to this student (today's rosters). */
+  async isSetTo(homework: Pick<HomeworkEntity, 'id' | 'organization_id'>, userId: string): Promise<boolean> {
     return (await this.studentsOf(homework)).some((s) => s.student_id === userId);
   }
 
@@ -561,7 +571,7 @@ export class HomeworkService {
   }
 
   /** Managers see every homework; a teacher those whose subject classes they all teach. */
-  private async canSee(tenant: Tenant, userId: string, homework: HomeworkEntity): Promise<boolean> {
+  async canSee(tenant: Tenant, userId: string, homework: HomeworkEntity): Promise<boolean> {
     if (HOMEWORK_MANAGERS.includes(tenant.memberRole)) return true;
     const taught = new Set(await this.sections.offeringIdsTaughtBy(tenant.organizationId, userId));
     const targets = await this.targetsOf(homework.id);
@@ -581,7 +591,7 @@ export class HomeworkService {
     }
   }
 
-  private isStaff(tenant: Tenant): boolean {
+  isStaff(tenant: Tenant): boolean {
     return !tenant.viaEnrolment && [...HOMEWORK_MANAGERS, TEACHER].includes(tenant.memberRole);
   }
 
@@ -618,6 +628,9 @@ export class HomeworkService {
       ).map((u) => [u.id, u]),
     );
     const staff = this.isStaff(tenant);
+    const mine = staff
+      ? []
+      : await this.dataSource.getRepository(HomeworkSubmissionEntity).find({ where: { homework_id: In(ids), student_id: userId }, order: { version: 'DESC' } });
     const result: HomeworkView[] = [];
     for (const row of rows) {
       const own = targets.filter((t) => t.homework_id === row.id);
@@ -662,6 +675,10 @@ export class HomeworkService {
         created_by: creator ? { id: creator.id, full_name: creator.full_name } : null,
         created_at: row.created_at,
         can_edit: staff && row.status !== HomeworkStatusEnum.CANCELLED && (await this.canSee(tenant, userId, row)),
+        my_submission: (() => {
+          const latest = mine.find((s) => s.homework_id === row.id);
+          return latest ? { version: latest.version, submitted_at: latest.submitted_at, is_late: latest.is_late, status: latest.status } : null;
+        })(),
       });
     }
     return result;

@@ -8,7 +8,9 @@ import { OrganizationContextGuard } from 'src/organizations/guards/organization-
 import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.decorator';
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
-import { CreateHomeworkDto, ListHomeworkQueryDto, PublishHomeworkDto, UpdateHomeworkDto } from './dto/homework.dto';
+import { CreateHomeworkDto, ListHomeworkQueryDto, PublishHomeworkDto, SubmitHomeworkDto, UpdateHomeworkDto, UpdateHomeworkSettingsDto } from './dto/homework.dto';
+import { HomeworkSettingsService } from './homework-settings.service';
+import { HomeworkSubmissionsService } from './homework-submissions.service';
 import { HomeworkService } from './homework.service';
 
 const workspace = (): Tenant => {
@@ -28,12 +30,28 @@ const workspace = (): Tenant => {
 @RequiresFeature(FeatureKey.HOMEWORK)
 @Controller({ path: 'homework', version: '1' })
 export class HomeworkController {
-  constructor(private readonly homework: HomeworkService) {}
+  constructor(
+    private readonly homework: HomeworkService,
+    private readonly submissions: HomeworkSubmissionsService,
+    private readonly settings: HomeworkSettingsService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Homework the caller manages (staff), newest first; withdrawn ones with status=CANCELLED' })
   async list(@Query() query: ListHomeworkQueryDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Homework retrieved successfully', payload: await this.homework.list(workspace(), user.id, query) };
+  }
+
+  @Get('settings')
+  @ApiOperation({ summary: "The organisation's homework settings: late work, late penalty, resubmissions, files per hand-in (staff)" })
+  async getSettings() {
+    return { message: 'Homework settings retrieved successfully', payload: await this.settings.get(workspace()) };
+  }
+
+  @Patch('settings')
+  @ApiOperation({ summary: "Change the organisation's homework settings (owners and admins)" })
+  async updateSettings(@Body() dto: UpdateHomeworkSettingsDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Homework settings saved', payload: await this.settings.update(workspace(), user.id, dto) };
   }
 
   @Get('subject-classes')
@@ -71,6 +89,37 @@ export class HomeworkController {
   @ApiOperation({ summary: 'Publish now (students are told in the inbox) or schedule it with publish_at' })
   async publish(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PublishHomeworkDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Homework published', payload: await this.homework.publish(workspace(), user, id, dto) };
+  }
+
+  @Get(':id/my-submissions')
+  @ApiOperation({ summary: "The student's hand-ins of this homework, newest first, and whether they may hand in now (HW-03)" })
+  async mySubmissions(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Submissions retrieved successfully', payload: await this.submissions.mine(workspace(), user.id, id) };
+  }
+
+  @Post(':id/submissions')
+  @ApiOperation({
+    summary: 'Hand the homework in (students)',
+    description: 'Files and/or a typed answer. Late after the due time (or refused when late work is not accepted); again up to the limit until it is scored.',
+  })
+  async submit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SubmitHomeworkDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Homework handed in', payload: await this.submissions.submit(workspace(), user.id, id, dto) };
+  }
+
+  @Get(':id/submissions')
+  @ApiOperation({ summary: 'Every student it is set to, with their latest hand-in (staff)' })
+  async submissionsForStaff(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Submissions retrieved successfully', payload: await this.submissions.forStaff(workspace(), user.id, id) };
+  }
+
+  @Get(':id/submissions/:submissionId')
+  @ApiOperation({ summary: "One hand-in with its answer and files, and the student's other versions (staff)" })
+  async submissionForStaff(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('submissionId', ParseUUIDPipe) submissionId: string,
+    @UserPayload() user: JwtPayloadInterface,
+  ) {
+    return { message: 'Submission retrieved successfully', payload: await this.submissions.oneForStaff(workspace(), user.id, id, submissionId) };
   }
 
   @Post(':id/cancel')
