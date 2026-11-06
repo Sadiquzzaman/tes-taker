@@ -58,7 +58,8 @@
     "classAttendance": "Class attendance",
     "leave": "Leave",
     "attendanceRegister": "Monthly register",
-    "attendanceReports": "Attendance reports"
+    "attendanceReports": "Attendance reports",
+    "homework": "Homework"
   },
   "shell": {
     "organization": "Organization",
@@ -3900,6 +3901,125 @@
       "ATTENDANCE_REPORT_SECTION_NOT_FOUND": "This [[section]] is not one you can see.",
       "ATTENDANCE_REGISTER_SECTION_NOT_FOUND": "This [[section]] is not one you can see.",
       "ATTENDANCE_REGISTER_SESSION_CLOSED": "This academic session is closed."
+    }
+  },
+  "homework": {
+    "title": "Homework",
+    "studentIntro": "Homework set for you, soonest due first.",
+    "staffIntro": "Homework for your subject classes: write it, publish it now or later, and see who it is for.",
+    "new": "New homework",
+    "show": "Show",
+    "loadFailed": "Homework could not be loaded.",
+    "notFound": "This homework is not available.",
+    "back": "All homework",
+    "studentEmpty": "No homework right now",
+    "studentEmptyHint": "New homework from your teachers shows here, and you are told in the bell.",
+    "staffEmpty": "No homework yet",
+    "staffEmptyHint": "Write one with New homework.",
+    "savedTitle": "Saved",
+    "notSavedTitle": "Not saved",
+    "savedDraft": "Saved as a draft. Students see it once you publish it.",
+    "saved": "Your changes are saved.",
+    "published": "Published. Its students were told in the bell.",
+    "scheduled": "Scheduled. It is published at the time you chose.",
+    "withdrawn": "Withdrawn. Students no longer see it.",
+    "columns": {
+      "title": "Homework",
+      "subject": "Subject",
+      "classes": "Classes",
+      "due": "Due",
+      "students": "Students",
+      "status": "Status"
+    },
+    "filters": {
+      "ACTIVE": "Current",
+      "DRAFT": "Drafts",
+      "SCHEDULED": "Scheduled",
+      "PUBLISHED": "Published",
+      "CANCELLED": "Withdrawn"
+    },
+    "statuses": {
+      "DRAFT": "Draft",
+      "SCHEDULED": "Scheduled",
+      "PUBLISHED": "Published",
+      "CANCELLED": "Withdrawn"
+    },
+    "due": {
+      "none": "No due date",
+      "overdue": "Was due {when}",
+      "soon": "Due {when}",
+      "later": "Due {when}"
+    },
+    "detail": {
+      "subject": "Subject",
+      "type": "Hand in",
+      "marks": "Marks",
+      "notScored": "Not scored",
+      "classes": "Classes",
+      "students": "Students",
+      "instructions": "Instructions",
+      "noInstructions": "No instructions.",
+      "attachments": "Files",
+      "file": "File",
+      "edit": "Edit",
+      "schedule": "Schedule",
+      "publishNow": "Publish now",
+      "scheduledFor": "Publishes {when}",
+      "scheduleTitle": "Publish later",
+      "scheduleHint": "Students get it and are told at this time.",
+      "scheduleDate": "Date",
+      "scheduleTime": "Time",
+      "withdraw": "Withdraw",
+      "withdrawTitle": "Withdraw this homework?",
+      "withdrawDetail": "Students will no longer see it. It is kept, with everything about it, for staff."
+    },
+    "editor": {
+      "newTitle": "New homework",
+      "editTitle": "Edit homework",
+      "intro": "Saved as a draft until you publish it.",
+      "publishedHint": "Students already have it: its classes and how it is handed in stay; the rest can change.",
+      "title": "Title",
+      "classes": "Classes",
+      "classesHint": "One subject; tick each section that gets it.",
+      "noClasses": "There are no subject classes you can set homework for.",
+      "someStudents": "Only some students",
+      "someStudentsHint": "Leave this off to give it to everyone in the classes.",
+      "instructions": "Instructions",
+      "instructionsPlaceholder": "What should students do?",
+      "type": "How students hand it in",
+      "types": {
+        "FILE": "Photos or files",
+        "TEXT": "Typed answer",
+        "PAPER": "On paper"
+      },
+      "typeHints": {
+        "FILE": "They upload photos or files.",
+        "TEXT": "They type their answer.",
+        "PAPER": "Done on paper; you enter scores later."
+      },
+      "marks": "Total marks",
+      "marksHint": "Leave empty if it is not scored.",
+      "dueDate": "Due date",
+      "dueHint": "Leave empty for no due date.",
+      "dueTime": "Due time",
+      "attachments": "Files for students",
+      "attachmentsAccept": "Images, PDF, Word or text, up to 20 MB each",
+      "cancel": "Cancel",
+      "saveDraft": "Save draft",
+      "publish": "Publish",
+      "save": "Save"
+    },
+    "errors": {
+      "TITLE_REQUIRED": "Give the homework a title.",
+      "CLASS_REQUIRED": "Choose at least one class.",
+      "UPLOAD_FAILED": "This file could not be uploaded.",
+      "HOMEWORK_TARGETS_INVALID": "Choose classes you can set homework for.",
+      "HOMEWORK_TARGETS_MIXED": "Choose classes of one subject.",
+      "HOMEWORK_STUDENT_NOT_IN_CLASS": "A chosen student is not in these classes.",
+      "HOMEWORK_SESSION_CLOSED": "This session is closed; its homework can no longer change.",
+      "HOMEWORK_FILE_INVALID": "Upload the files again.",
+      "HOMEWORK_DUE_INVALID": "The due time must be in the future.",
+      "HOMEWORK_WRONG_STATUS": "This is not possible for this homework now."
     }
   }
 }

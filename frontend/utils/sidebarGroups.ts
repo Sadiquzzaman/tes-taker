@@ -16,6 +16,7 @@ export const NAV_ITEM_ORDER: SideBarList["label"][] = [
   "sessions",
   "subjects",
   "assignments",
+  "homework",
   "gradingScale",
   "tests",
   "grading",
