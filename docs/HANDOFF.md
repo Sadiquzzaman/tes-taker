@@ -109,4 +109,9 @@ Read spec Epic 1 ("Design") and plan §P3 first; they hold the result. In short:
   - It reads saved class records (cancelled classes left out) in one grouped query. Check access before calling it.
   - Design §8.11 wants `performance.recompute` on attendance changes. No `score.changed` event is emitted yet, so P7 should add it where records are written (check-in, closing job, correction, import, leave approval) or recompute nightly.
 - No summary table was needed (measured; design "Built in P3-07").
-- Part 2 adds the reports page with print views and CSV.
+
+**P3-07 part 2 is built:** the "Attendance reports" page (`/attendance-reports`).
+- Tabs: Daily summary, Monthly register and Teachers (owners and admins only).
+- Each tab can be printed or saved as PDF through the browser (A4 landscape), and the register and the teacher report export CSV for Excel.
+- **P3 is complete:** attendance on the web, from setup to reports.
+- Open items are in `docs/TODO.md`. P4 is next and is not started.

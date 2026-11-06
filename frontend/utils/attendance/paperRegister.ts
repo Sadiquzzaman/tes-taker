@@ -16,21 +16,22 @@ export const MARK_LETTERS: Record<"en" | "bn", Record<AttendanceStatus, string>>
 /** A cell quoted when it holds a comma, a quote or a line break. */
 const csvCell = (value: string) => (/[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
 
+/** Lines of cells as CSV text (`downloadCsv` adds the byte-order mark). */
+export const toCsv = (lines: string[][]) => lines.map((line) => line.map(csvCell).join(",")).join("\n");
+
 /**
  * The register as CSV: roll number, name, one column per class day. The template leaves the marks
  * empty; the export (ATT-13) fills them in with the letters of `language`, so it can be imported again.
  */
 export const registerCsv = (register: PaperRegisterView, language: "en" | "bn", { withMarks }: { withMarks: boolean }) =>
-  [
+  toCsv([
     [...REGISTER_STUDENT_COLUMNS, ...register.classes.map((item) => item.header)],
     ...register.students.map((student) => [
       student.roll_no ?? "",
       student.full_name,
       ...student.marks.map((mark) => (withMarks && mark ? MARK_LETTERS[language][mark] : "")),
     ]),
-  ]
-    .map((line) => line.map(csvCell).join(","))
-    .join("\n");
+  ]);
 
 /** "class-8-a-2026-11-register.csv" (or "-template"). */
 export const registerFileName = (register: PaperRegisterView, kind: "register" | "template") =>

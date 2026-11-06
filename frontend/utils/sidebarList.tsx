@@ -321,6 +321,15 @@ const sidebarList: SideBarList[] = [
     image: <SidebarClassesIconSVG width={16} />,
   },
   {
+    category: "Organization",
+    label: "attendanceReports",
+    route: "/attendance-reports",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    feature: "attendance",
+    image: <SidebarResultsIconSVG width={16} />,
+  },
+  {
     category: "Platform",
     label: "classAttendance",
     route: "/attendance",
@@ -337,6 +346,15 @@ const sidebarList: SideBarList[] = [
     personalWorkspaceOnly: true,
     feature: "attendance",
     image: <SidebarClassesIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
+    label: "attendanceReports",
+    route: "/attendance-reports",
+    role: ["TEACHER"],
+    personalWorkspaceOnly: true,
+    feature: "attendance",
+    image: <SidebarResultsIconSVG width={16} />,
   },
   {
     category: "Platform",
