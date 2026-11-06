@@ -15,6 +15,7 @@ import { DropP301PresenceSettings1756220000000 } from '../../src/migrations/1756
 import { ClassAttendance1756230000000 } from '../../src/migrations/1756230000000-ClassAttendance';
 import { ClassSessionCloseCancel1756240000000 } from '../../src/migrations/1756240000000-ClassSessionCloseCancel';
 import { LeaveRequests1756250000000 } from '../../src/migrations/1756250000000-LeaveRequests';
+import { WeeklyOffDaysHistory1756260000000 } from '../../src/migrations/1756260000000-WeeklyOffDaysHistory';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
 import { factories } from '../support/factories';
@@ -144,6 +145,8 @@ describe('AcademicStructure migration', () => {
       await new ClassSessionCloseCancel1756240000000().up(runner);
       // P3-06's leave link on class_attendance_records comes back too.
       await new LeaveRequests1756250000000().up(runner);
+      // The weekly off days history on org_settings (recreated above) comes back too.
+      await new WeeklyOffDaysHistory1756260000000().up(runner);
     } finally {
       await runner.release();
     }

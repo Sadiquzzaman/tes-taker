@@ -119,6 +119,16 @@ describe("class setup page (ATT-16)", () => {
     await waitFor(() => expect(patch).toHaveBeenLastCalledWith(expect.stringMatching(/s6b$/), { mode: "PAPER_REGISTER" }));
   });
 
+  it("keeps the table's choices wide enough to read their value (found on beta at laptop width)", async () => {
+    serve({ ...SETUP, sections: [S6A, { ...S6B, branch_id: "b-fg" }, S7A] }, [MAIN, FARMGATE]);
+    renderApp(<ClassSetupPage />);
+    await screen.findByRole("table");
+
+    for (const label of ["Class type of Class 6 B", "Attendance mode of Class 6 B", "Late after, Class 6 B", "Branch of Class 6 B"]) {
+      expect(table().getByLabelText(label).className).toMatch(/\bmin-w-(32|36)\b/);
+    }
+  });
+
   it("shows the branch column with several branches and warns when an in-person section's branch has no pin", async () => {
     serve({ ...SETUP, sections: [S6A, { ...S6B, branch_id: "b-fg" }, S7A] }, [MAIN, FARMGATE]);
     patch.mockImplementation((_url: string, body: Partial<SectionSetup>) => ok({ ...S7A, ...body }));

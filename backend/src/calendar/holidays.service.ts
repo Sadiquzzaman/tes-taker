@@ -126,17 +126,26 @@ export class HolidaysService {
    * active holidays. For attendance jobs (P3-04), which pass the organisation explicitly.
    */
   async closedDays(organizationId: string, from: string, to: string): Promise<ClosedDay[]> {
-    const [settings, holidays] = await Promise.all([
+    const [settings, history, timeZone, rows] = await Promise.all([
       this.orgSettings.getAttendance(organizationId),
+      this.orgSettings.weeklyOffDaysHistory(organizationId),
+      this.orgSettings.timeZone(organizationId),
+      // Removed holidays too: one removed on or after its days still closes them (see closedDaysBetween).
       tenantScoped(this.holidayRepo)
         .forOrganization(organizationId)
         .createQueryBuilder('h')
-        .andWhere('h.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
+        .andWhere('(h.is_active = :active OR h.removed_at IS NOT NULL)', { active: ActiveStatusEnum.ACTIVE })
         .andWhere('h.date_to >= :from AND h.date_from <= :to', { from, to })
         .orderBy('h.date_from', 'ASC')
         .getMany(),
     ]);
-    return closedDaysBetween(from, to, settings.weekly_off_days, holidays);
+    const holidays = rows.map((h) => ({
+      date_from: h.date_from,
+      date_to: h.date_to,
+      name: h.name,
+      removed_on: h.is_active === ActiveStatusEnum.ACTIVE || !h.removed_at ? null : schoolDateIn(timeZone, h.removed_at),
+    }));
+    return closedDaysBetween(from, to, settings.weekly_off_days, holidays, history);
   }
 
   private async findActive(id: string): Promise<HolidayEntity> {

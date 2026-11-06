@@ -3,7 +3,9 @@ import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
 import { auditChanges } from 'src/audit/audit-sanitize';
 import { AuditService } from 'src/audit/audit.service';
 import { Tenant } from 'src/common/tenancy/tenant-context';
+import { schoolDateIn } from 'src/common/utils/school-date.util';
 import { AttendanceSettings, OrgSettingsService } from 'src/organizations/org-settings.service';
+import { AttendanceClock } from './attendance-clock';
 import { UpdateAttendanceSettingsDto } from './dto/update-attendance-settings.dto';
 
 /**
@@ -17,6 +19,7 @@ export class AttendanceSettingsService {
   constructor(
     private readonly orgSettings: OrgSettingsService,
     private readonly audit: AuditService,
+    private readonly clock: AttendanceClock,
   ) {}
 
   get(organizationId: string): Promise<AttendanceSettings> {
@@ -34,7 +37,9 @@ export class AttendanceSettingsService {
     if (changes.weekly_off_days) changes.weekly_off_days = [...changes.weekly_off_days].sort((a, b) => a - b);
 
     if (Object.keys(changes).length === 0) return current;
-    const { before, after } = await this.orgSettings.saveAttendance(organizationId, userId, changes);
+    // Opening a weekly off day applies from tomorrow: the date it is changed on keeps its old off days.
+    const today = schoolDateIn(await this.orgSettings.timeZone(organizationId), this.clock.now());
+    const { before, after } = await this.orgSettings.saveAttendance(organizationId, userId, changes, today);
     const diff = auditChanges(before, after);
     if (diff.after) {
       this.audit.record({
