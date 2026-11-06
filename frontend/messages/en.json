@@ -45,7 +45,8 @@
     "classSetup": "Class setup",
     "myAttendance": "My attendance",
     "classAttendance": "Class attendance",
-    "leave": "Leave"
+    "leave": "Leave",
+    "attendanceRegister": "Monthly register"
   },
   "shell": {
     "organization": "Organization",
@@ -2833,7 +2834,8 @@
         "correct": "Attendance corrected",
         "cancel": "Class cancelled",
         "restore": "Class restored",
-        "auto_absent": "Absent saved when check-in closed"
+        "auto_absent": "Absent saved when check-in closed",
+        "import": "Paper register imported"
       }
     },
     "fields": {
@@ -3662,6 +3664,118 @@
       "ATTENDANCE_LEAVE_CANNOT_CANCEL": "Leave that has started can't be withdrawn.",
       "ATTENDANCE_LEAVE_NOT_APPROVER": "You don't approve this leave.",
       "ATTENDANCE_LEAVE_OWN_REQUEST": "You can't answer your own leave."
+    }
+  },
+  "register": {
+    "title": "Monthly register",
+    "intro": "Each [[section]]'s month as a CSV file: roll number, name and one column per class day. [[Sections]] that keep attendance on paper fill in the template and import it here.",
+    "section": "[[Section]]",
+    "mode": {
+      "SELF_CHECKIN": "Self check-in",
+      "PAPER_REGISTER": "Paper register"
+    },
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "loadFailed": "The register could not be loaded.",
+    "noSections": "No [[sections]] to show",
+    "noSectionsHint": "[[Sections]] with a schedule in Class setup appear here: all of them for owners and admins, the ones you teach for teachers.",
+    "noClasses": "No classes this month",
+    "noClassesHint": "This [[section]] has no class days this month (holidays, off days and cancelled classes are left out).",
+    "noStudents": "No students in this [[section]].",
+    "paperHint": "Paper register · {classes, plural, one {# class day} other {# class days}}, {students, plural, one {# student} other {# students}}. Download the template, fill in P, L, A or Leave, and import it. Importing the same file again changes nothing.",
+    "selfHint": "Self check-in · {classes, plural, one {# class day} other {# class days}}, {students, plural, one {# student} other {# students}}. Students check themselves in; you can download the register. To import a paper register, set the [[section]] to Paper register in Class setup.",
+    "template": "Download template",
+    "export": "Export CSV",
+    "import": "Import CSV",
+    "tableCaption": "Students this month",
+    "imported": "Register imported: {new, plural, one {# new mark} other {# new marks}}, {changed, plural, one {# changed} other {# changed}}.",
+    "columns": {
+      "roll": "Roll",
+      "name": "Name",
+      "PRESENT": "Present",
+      "LATE": "Late",
+      "ABSENT": "Absent",
+      "LEAVE": "Leave",
+      "missing": "No mark yet"
+    },
+    "status": {
+      "PRESENT": "Present",
+      "LATE": "Late",
+      "ABSENT": "Absent",
+      "LEAVE": "Leave"
+    },
+    "importer": {
+      "title": "Import the register: {section}, {month}",
+      "intro": "Choose the filled-in CSV. Every column, line and mark is checked first; nothing is saved until everything is right.",
+      "columnsHint": "Columns: roll_no, name, then one column per class day (as in the template). Marks: P, L, A or Leave (or উ, দে, অ, ছু). An empty cell changes nothing.",
+      "file": "CSV file",
+      "fileTypes": "CSV files",
+      "noRows": "The file has no lines after the header.",
+      "tooManyRows": "A file can have at most {max, number} lines.",
+      "tooManyColumns": "A file can have at most {max, number} columns.",
+      "missingColumns": "The file needs a roll_no or a name column. Start from the template.",
+      "previewProblems": "Some lines or columns have problems. Fix the file and choose it again; nothing is imported until everything is right.",
+      "previewReady": "Everything is right. Importing saves the marks below.",
+      "nothingToChange": "Everything is right, and the register already has these marks: nothing to import.",
+      "summary": {
+        "new": "{count, plural, one {# new mark} other {# new marks}}",
+        "changed": "{count, plural, one {# changed mark (kept in the correction trail)} other {# changed marks (kept in the correction trail)}}",
+        "unchanged": "{count, plural, one {# already saved} other {# already saved}}",
+        "kept": "{count, plural, one {# kept as it is} other {# kept as they are}}"
+      },
+      "overwrite": "{count, plural, one {Also replace # self check-in the file disagrees with} other {Also replace # self check-ins the file disagrees with}}",
+      "overwriteHint": "Left unticked, the students' own check-ins stay and only the other marks are imported.",
+      "columnProblems": "Columns",
+      "emptyIgnored": "(empty, ignored)",
+      "closed": {
+        "HOLIDAY": "This day is a holiday.",
+        "WEEKLY_OFF": "This day is a weekly off day."
+      },
+      "cancel": "Cancel",
+      "importCount": "{count, plural, =0 {Nothing to import} one {Import # mark} other {Import # marks}}",
+      "tableCaption": "Lines of the file",
+      "ok": "OK",
+      "hasErrors": "Problem",
+      "ignored": "Ignored",
+      "columns": {
+        "row": "Line",
+        "student": "Student",
+        "changes": "Marks to save",
+        "status": "Check"
+      },
+      "issues": {
+        "COLUMN_UNKNOWN": "This header is not a date. Use the template's headers.",
+        "COLUMN_NOT_IN_MONTH": "This date is not in the register's month.",
+        "NOT_CLASS_DAY": "There is no class this day.",
+        "CLOSED_DAY": "This day is a holiday or off day.",
+        "CANCELLED": "This class was cancelled.",
+        "NOT_STARTED": "This class has not started yet.",
+        "TIME_NEEDED": "There are two classes this day; add the start time (e.g. 2026-11-07 16:00).",
+        "NOT_CLASS_TIME": "No class starts at this time this day.",
+        "DUPLICATE_COLUMN": "Another column is for the same class.",
+        "STUDENT_MISSING": "Enter the roll number or the name.",
+        "STUDENT_NOT_FOUND": "No student of this [[section]] has this roll number or name.",
+        "STUDENT_AMBIGUOUS": "Two students match; use the roll number.",
+        "STUDENT_DUPLICATE": "This student is on another line too.",
+        "STATUS_INVALID": "“{value}” is not a mark. Use P, L, A or Leave.",
+        "NOT_JOINED": "The student joined after this class.",
+        "TOO_OLD": "Teachers change saved marks of the last 7 days only; ask an admin."
+      },
+      "notes": {
+        "NAME_DIFFERS": "The name is written differently from the student list (matched by roll number).",
+        "SELF_CHECKIN": "The student checked in themselves as {old}; the file says {new}.",
+        "LEAVE_KEPT": "On approved leave: Leave is kept.",
+        "ON_LEAVE": "On approved leave: saved as Leave."
+      }
+    },
+    "errors": {
+      "ATTENDANCE_REGISTER_SECTION_NOT_FOUND": "This [[section]] was not found.",
+      "ATTENDANCE_REGISTER_MONTH_INVALID": "Choose a month.",
+      "ATTENDANCE_REGISTER_SELF_CHECKIN": "This [[section]] uses self check-in. Set it to Paper register in Class setup first.",
+      "ATTENDANCE_REGISTER_SESSION_CLOSED": "This academic session is closed.",
+      "ATTENDANCE_REGISTER_COLUMNS_MISSING": "The file needs a roll_no or a name column.",
+      "ATTENDANCE_REGISTER_INVALID": "Some lines have problems; fix the file and check it again.",
+      "ATTENDANCE_REGISTER_CHANGED": "The register changed while it was imported; choose the file again."
     }
   }
 }
