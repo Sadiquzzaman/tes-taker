@@ -2,7 +2,8 @@ import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/com
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { TenantContext } from 'src/common/tenancy/tenant-context';
-import { DEFAULT_GUARDIAN_SMS, GuardianSmsSwitches, OrgSettingsEntity } from './entities/org-settings.entity';
+import { schoolDateIn } from 'src/common/utils/school-date.util';
+import { DEFAULT_GUARDIAN_SMS, GuardianSmsSwitches, OrgSettingsEntity, WeeklyOffDaysChange } from './entities/org-settings.entity';
 import { OrganizationEntity } from './entities/organization.entity';
 import { OrganizationKindEnum } from './enums/organization-kind.enum';
 import { OrganizationMemberRoleEnum } from './enums/organization-member-role.enum';
@@ -12,6 +13,9 @@ import { UpdateLevelLabelsDto } from './dto/update-level-labels.dto';
 import { buildLevelLabels, DEFAULT_LEVEL_LABELS, LevelLabels, resolveLevelLabels } from './level-labels';
 
 export const ORGANIZATION_LOCALES = ['bn', 'en'] as const;
+
+/** Earlier weekly off days kept (a change a week; far more than the closing job's 7-day catch-up needs). */
+const MAX_WEEKLY_OFF_DAYS_HISTORY = 100;
 export type OrganizationLocale = (typeof ORGANIZATION_LOCALES)[number];
 
 export interface OrgSettingsView {
@@ -141,6 +145,12 @@ export class OrgSettingsService {
   }
 
   /** The organisation's time zone (school days are dates in it, design §8.9). */
+  /** Earlier weekly off days, oldest first (see `OrgSettingsEntity.weekly_off_days_history`). */
+  async weeklyOffDaysHistory(organizationId: string): Promise<WeeklyOffDaysChange[]> {
+    const row = await this.settingsRepo.findOne({ where: { organization_id: organizationId }, select: { id: true, weekly_off_days_history: true } });
+    return row?.weekly_off_days_history ?? [];
+  }
+
   async timeZone(organizationId: string): Promise<string> {
     return (await this.organization(organizationId)).timezone || 'Asia/Dhaka';
   }
@@ -170,6 +180,8 @@ export class OrgSettingsService {
     organizationId: string,
     userId: string,
     changes: Partial<AttendanceSettings>,
+    /** The organisation's date now; a change of weekly off days is recorded as of it. */
+    today?: string,
   ): Promise<{ before: AttendanceSettings; after: AttendanceSettings }> {
     const existing = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
     const before = existing ? attendanceOf(existing) : await this.getAttendance(organizationId);
@@ -181,6 +193,14 @@ export class OrgSettingsService {
         created_by: userId,
         created_at: new Date(),
       });
+    if (changes.weekly_off_days && changes.weekly_off_days.join() !== before.weekly_off_days.join()) {
+      // Remember the off days being replaced and the last date they applied to, so a day opened
+      // now stays closed on the dates it already covered (attendance never reaches back).
+      const until = today ?? schoolDateIn(await this.timeZone(organizationId));
+      row.weekly_off_days_history = [...(row.weekly_off_days_history ?? []), { days: before.weekly_off_days, until }].slice(
+        -MAX_WEEKLY_OFF_DAYS_HISTORY,
+      );
+    }
     Object.assign(row, changes);
     if (existing) {
       row.updated_by = userId;

@@ -66,6 +66,7 @@ Table org_settings {
   class_teacher_enabled boolean [not null, default: true, note: 'BUILT P2-03 (FND-02): sections have a class teacher. Migration/default: true for schools, false for SOLO']
   setup_completed_at timestamptz [note: 'BUILT P2-04 (FND-02): when the academic setup wizard was finished; null = not yet. Migration: set for organisations that already had classes']
   weekly_off_days smallint[] [not null, default: '{5}', note: 'BUILT P3-01: ISO day numbers; 5 = Friday; at least one working day']
+  weekly_off_days_history jsonb [not null, default: '[]', note: 'BUILT (P3 fix): earlier off days [{days, until}], oldest first; a day opened later stays closed on the dates it covered, so attendance never reaches back']
   late_grace_minutes smallint [not null, default: 10, note: 'BUILT P3-02 (ATT-01, ATT-06): CHECK 0..60; a section can override it. P3-01\'s attendance_method, selfie_required, class_attendance_mode and entry times were dropped after the P3-02 release (migration DropP301PresenceSettings, 6 Nov 2026)']
   guardian_sms jsonb [not null, default: '{"late":true,"absent":true,"leave":true}', note: 'BUILT P3-01']
   sms_locale varchar(5) [note: "BUILT P2-05 (FND-10): guardian SMS language, CHECK bn | en; null = the organisation's default_locale"]

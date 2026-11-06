@@ -16,6 +16,12 @@ export const DEFAULT_GUARDIAN_SMS: GuardianSmsSwitches = { late: true, absent: t
  * One row per organisation with its settings (design §9.1). Later epics add their columns
  * (weekly off days, guardian SMS switches, ...).
  */
+/** Weekly off days that applied up to and including `until` (YYYY-MM-DD, organisation's time zone). */
+export interface WeeklyOffDaysChange {
+  days: number[];
+  until: string;
+}
+
 @Entity('org_settings')
 @Check('CHK_org_settings_repeat_absence_days', `"repeat_absence_days" BETWEEN 2 AND 30`)
 @Check('CHK_org_settings_late_grace_minutes', `"late_grace_minutes" BETWEEN 0 AND 60`)
@@ -47,6 +53,10 @@ export class OrgSettingsEntity extends CustomBaseEntity {
   @ApiProperty({ type: [Number], description: 'Weekly off days, ISO day numbers (1 = Monday … 7 = Sunday); 5 = Friday' })
   @Column({ name: 'weekly_off_days', type: 'smallint', array: true, default: '{5}' })
   weekly_off_days: number[];
+
+  @ApiProperty({ description: 'Earlier weekly off days, each with the last date it applied to, oldest first. A day opened later stays closed on dates it already covered.' })
+  @Column({ name: 'weekly_off_days_history', type: 'jsonb', default: () => `'[]'` })
+  weekly_off_days_history: WeeklyOffDaysChange[];
 
   @ApiProperty({ description: 'Guardian SMS switches: {"late":true,"absent":true,"leave":true}' })
   @Column({ name: 'guardian_sms', type: 'jsonb', default: () => `'{"late": true, "leave": true, "absent": true}'` })
