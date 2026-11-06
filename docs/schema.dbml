@@ -532,7 +532,7 @@ Table daily_attendance {
     (organization_id, person_id, date) [unique]
     (organization_id, section_id, date)
   }
-  Note: 'NEW (ATT-06, ATT-10, ATT-11) — PARTITION BY RANGE (date), monthly'
+  Note: 'NOT BUILT (P3-04, P3-07): absent-all-day, streaks and reports are worked out from class_attendance_records (P3-07 measured 6,240 records a section-month in under 0.5 s). Kept here in case term-wide reports need it — PARTITION BY RANGE (date), monthly'
 }
 
 Enum section_class_type { IN_PERSON ONLINE }

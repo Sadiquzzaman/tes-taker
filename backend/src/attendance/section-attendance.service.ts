@@ -428,6 +428,38 @@ export class SectionAttendanceService {
     return [...bySection].flatMap(([section_id, slots]) => slots.map((slot) => ({ section_id, slot })));
   }
 
+  /**
+   * Every class of these sections on `date` with each student's status, worked out as on the class
+   * view (the daily summary, ATT-13). No access check; the caller passes the sections it may show.
+   */
+  async dayClasses(
+    tenant: Tenant,
+    sectionIds: string[],
+    date: string,
+  ): Promise<{ summary: SessionSummary; students: { id: string; full_name: string; roll_no: string | null; status: CalendarStatus }[] }[]> {
+    const organizationId = tenant.organizationId;
+    const timeZone = await this.orgSettings.timeZone(organizationId);
+    const today = schoolDateIn(timeZone, this.clock.now());
+    const day = this.validDate(date);
+    const bySection = await this.slots.activeBySection(organizationId, sectionIds);
+    const refs = [...bySection].flatMap(([section_id, slots]) => slots.filter((slot) => slot.day_of_week === isoDayOf(day)).map((slot) => ({ section_id, slot })));
+    const loaded = await this.load(tenant, refs, day, timeZone, today);
+    return loaded
+      .sort((a, b) => a.window.starts_at.getTime() - b.window.starts_at.getTime())
+      .map((item) => {
+        const byPerson = new Map(item.records.map((record) => [record.person_id, record]));
+        return {
+          summary: this.summary(item),
+          students: item.roster.map((row) => ({
+            id: row.student_id,
+            full_name: row.full_name,
+            roll_no: row.roll_no,
+            status: this.statusOf(item, row.student_id, byPerson.get(row.student_id)),
+          })),
+        };
+      });
+  }
+
   private async visibleSlot(tenant: Tenant, userId: string, slotId: string, date: string): Promise<SlotRef> {
     const ref = (await this.visibleSlots(tenant, userId)).find((item) => item.slot.id === slotId);
     if (!ref || ref.slot.day_of_week !== isoDayOf(date)) {

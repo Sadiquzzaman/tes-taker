@@ -46,7 +46,8 @@
     "myAttendance": "My attendance",
     "classAttendance": "Class attendance",
     "leave": "Leave",
-    "attendanceRegister": "Monthly register"
+    "attendanceRegister": "Monthly register",
+    "attendanceReports": "Attendance reports"
   },
   "shell": {
     "organization": "Organization",
@@ -3776,6 +3777,100 @@
       "ATTENDANCE_REGISTER_COLUMNS_MISSING": "The file needs a roll_no or a name column.",
       "ATTENDANCE_REGISTER_INVALID": "Some lines have problems; fix the file and check it again.",
       "ATTENDANCE_REGISTER_CHANGED": "The register changed while it was imported; choose the file again."
+    }
+  },
+  "reports": {
+    "title": "Attendance reports",
+    "intro": "The day's summary per [[section]], the monthly register to print, save as PDF or open in Excel, and, for owners and admins, teachers' attendance.",
+    "tabs": {
+      "daily": "Daily summary",
+      "monthly": "Monthly register",
+      "teachers": "Teachers"
+    },
+    "loadFailed": "The report could not be loaded.",
+    "noSections": "No [[sections]] to show",
+    "noSectionsHint": "[[Sections]] with a schedule in Class setup appear here: all of them for owners and admins, the ones you teach for teachers.",
+    "section": "[[Section]]",
+    "allSections": "All [[sections]]",
+    "date": "Date",
+    "from": "From",
+    "to": "To",
+    "today": "Today",
+    "thisMonth": "This month",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "print": "Print / Save as PDF",
+    "exportCsv": "Export CSV (Excel)",
+    "legend": "Letters",
+    "legendMissed": "A small number: classes missed that day",
+    "cancelled": "cancelled",
+    "day": {
+      "PRESENT": "Present",
+      "LATE": "Late",
+      "ABSENT": "Absent",
+      "LEAVE": "On leave",
+      "WAITING": "Not in yet"
+    },
+    "dayMissed": "{status}, missed {missed, plural, one {# class} other {# classes}}",
+    "missedShort": "missed {missed, number}",
+    "group": {
+      "ABSENT": "Absent all day",
+      "MISSED_SOME": "Missed some classes",
+      "LATE": "Late",
+      "LEAVE": "On leave",
+      "WAITING": "Not in yet",
+      "PRESENT": "Present"
+    },
+    "closed": {
+      "WEEKLY_OFF": "Weekly off day: no classes.",
+      "HOLIDAY": "Holiday: no classes."
+    },
+    "noClassesDay": "No classes on this day",
+    "noClassesDayHint": "Classes come from the weekly schedules in Class setup.",
+    "classesLine": "{count, plural, one {# class} other {# classes}}: {times}",
+    "studentsCount": "{count, plural, one {# student} other {# students}}",
+    "dailyTitle": "Daily attendance summary",
+    "monthTitle": "Monthly attendance register",
+    "monthHint": "{days, plural, one {# class day} other {# class days}}, {classes, plural, one {# class} other {# classes}}, {students, plural, one {# student} other {# students}} · attendance {pct}. Absent on a day means every class that day was missed.",
+    "monthCaption": "Students by class day",
+    "noClasses": "No classes this month",
+    "noClassesHint": "This [[section]] has no class days this month (holidays, off days and cancelled classes are left out).",
+    "noStudents": "No students in this [[section]].",
+    "columns": {
+      "roll": "Roll",
+      "name": "Name",
+      "present": "Present",
+      "late": "Late",
+      "absent": "Absent",
+      "leave": "Leave",
+      "pct": "Attendance %",
+      "teacher": "Teacher",
+      "lateMinutes": "Minutes late",
+      "date": "Date",
+      "time": "Time",
+      "status": "Status"
+    },
+    "short": {
+      "present": "P",
+      "late": "L",
+      "absent": "A",
+      "leave": "LV"
+    },
+    "teachersTitle": "Teachers' attendance",
+    "teachersHint": "Classes with a saved mark; Absent is saved when check-in closes. Up to 31 days.",
+    "teachersCaption": "Teachers",
+    "noTeachers": "No teacher attendance in this period",
+    "noTeachersHint": "Teachers check in to the classes that name them; paper-register classes have no teacher marks.",
+    "notOnTime": "Classes not on time",
+    "allOnTime": "Every class was on time.",
+    "minutesLate": "{minutes, number} min late",
+    "errors": {
+      "ATTENDANCE_REPORT_DATE_INVALID": "Choose a real date.",
+      "ATTENDANCE_REPORT_RANGE_INVALID": "The end date is before the start date.",
+      "ATTENDANCE_REPORT_RANGE_TOO_LONG": "Choose at most 31 days.",
+      "ATTENDANCE_REPORT_SECTION_NOT_FOUND": "This [[section]] is not one you can see.",
+      "ATTENDANCE_REGISTER_SECTION_NOT_FOUND": "This [[section]] is not one you can see.",
+      "ATTENDANCE_REGISTER_SESSION_CLOSED": "This academic session is closed."
     }
   }
 }

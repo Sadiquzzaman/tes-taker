@@ -98,3 +98,20 @@ Read spec Epic 1 ("Design") and plan §P3 first; they hold the result. In short:
 - A check per column, row and cell, then an idempotent import. A changed mark is a correction, approved leave is kept, and self check-ins are kept unless the importer chooses to replace them.
 - After an import, the Absent SMS that were held back go out (at most 3 days back). Paper imports send no Late SMS.
 - Part 2 adds the "Monthly register" page (`/attendance-register`): template, export and import with the check.
+
+**P3-07 part 1 is built:** the reports API (`/attendance/reports`).
+- The daily summary per section: each student as present, late, absent (missed every class) or on leave, with counts and names.
+- The monthly register with each student's counts and attendance %.
+- The teacher report, for owners and admins only. With one day, it is the daily list of late and absent teachers.
+- **For Performance (Epic 3, P7):** call `AttendanceReportsService.studentAttendance(organizationId, studentIds, from, to)`. Import `AttendanceModule`, which exports the service.
+  - It returns a `Map<studentId, { counts: { present, late, absent, leave }, attendance_pct: number | null }>` for school dates `from`–`to` inclusive.
+  - The % is (present + late) ÷ (present + late + absent), whole percent; leave is not held against anyone, and it is null with nothing counted. It is the same `attendancePct` as "My attendance".
+  - It reads saved class records (cancelled classes left out) in one grouped query. Check access before calling it.
+  - Design §8.11 wants `performance.recompute` on attendance changes. No `score.changed` event is emitted yet, so P7 should add it where records are written (check-in, closing job, correction, import, leave approval) or recompute nightly.
+- No summary table was needed (measured; design "Built in P3-07").
+
+**P3-07 part 2 is built:** the "Attendance reports" page (`/attendance-reports`).
+- Tabs: Daily summary, Monthly register and Teachers (owners and admins only).
+- Each tab can be printed or saved as PDF through the browser (A4 landscape), and the register and the teacher report export CSV for Excel.
+- **P3 is complete:** attendance on the web, from setup to reports.
+- Open items are in `docs/TODO.md`. P4 is next and is not started.

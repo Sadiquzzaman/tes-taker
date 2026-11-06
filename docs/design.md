@@ -472,7 +472,7 @@ Departments, programmes, prerequisites, credit-weighted CGPA and registration wi
 - **Records.** `class_attendance_records` holds one row per student or teacher per session: status (PRESENT, LATE, ABSENT, LEAVE), `checked_in_at` (server time), minutes late, source (SELF, IMPORT, CORRECTION), and for in-person check-ins the distance, accuracy and a `flagged` reason. Corrections go to `attendance_corrections` (ATT-12).
 - **Branches.** `branches` (pin, `checkin_radius_m`) is built in P3-02 with a hidden default branch per organisation; `sections.branch_id` (not `classes.branch_id`: a coaching course runs batches at several branches).
 - **Per-section settings** (class type, attendance mode, grace override) live in a table owned by `attendance` keyed by `section_id`, since `sections` belongs to `academic`.
-- **Days.** `daily_attendance` stays as the per-person-per-day summary that drives the end-of-day absence SMS (one SMS only if every class that day was missed) and reports.
+- **Days.** `daily_attendance` was planned as the per-person-per-day summary for the end-of-day absence SMS and reports. Not built: P3-04 works out "absent all day" from the class records, and P3-07 measured the reports fast enough without it (see "Built in P3-07").
 - **Later.** `attendance_devices`, `device_user_maps` and `attendance_punches` wait for ZKTeco gate presence; `class_attendance_photos` waits for ATT-08.
 - **P3-01's settings:** `org_settings.attendance_method`, `selfie_required`, `student_entry_time`, `teacher_entry_time` and `class_attendance_mode` are replaced in P3-02 by the per-section mode, schedules and an organisation grace period (`weekly_off_days`, `guardian_sms`, `repeat_absence_days` and `holidays` stay). No organisation has used them yet (all OFF on beta, 2 Nov). **Expand → contract (owner, 5 Nov):** P3-02 stopped reading and writing them; after the P3-02 release (#166) migration `1756220000000-DropP301PresenceSettings` dropped the five columns and the `attendance_method` / `class_attendance_mode` types (owner approval 6 Nov: production does not use attendance yet; all values on beta were the defaults).
 
@@ -545,6 +545,33 @@ Departments, programmes, prerequisites, credit-weighted CGPA and registration wi
   - a box to also replace the self check-ins the file disagrees with.
 - The import button counts the marks it will save and stays off while anything has a problem. After an import, the page reloads and a toast gives the counts.
 - The register's error codes are explained in their own words (`register.errors`). The activity log names `attendance.import`. All text in English and Bangla.
+
+**Built in P3-07 part 1 (reports API, ATT-13, ATT-11):** `AttendanceReportsService` (attendance); no migration. API (`attendance` feature) under `/attendance/reports`:
+- `GET daily?date=&section_id=` is the daily summary per section (default today). Each section with classes that day lists its classes (time, named teacher, check-in state, cancelled, and the class view's counts) and every student with their mark in each class (the class view's statuses, so Leave shows before a record exists and a paper register not in yet shows as not recorded) and their **day**:
+  - **Absent:** missed every class held that day. This is the rule of the guardians' Absent SMS.
+  - **Late:** late to at least one class. **Present:** otherwise. In both cases `missed` counts the classes they still missed.
+  - **Leave:** on leave and at no class.
+  - **Waiting:** classes still to come, or a paper register not in yet. A student absent so far stays Absent, with `waiting` above 0.
+  - Cancelled classes and closed days never count.
+  - The section's counts: students, present, late, absent, leave, waiting, and `missed_some` (present or late but missed a class). The one rule is `dayMark` in `attendance-report.ts`.
+- `GET sections/:id/month?month=` is the monthly register. It is P3-05's register view (the same grid as the register CSV; cancelled classes and closed days left out), plus:
+  - `days`: the class days, with how many classes each had. The printed register has one column per day.
+  - per student: a day mark per day, their counts and `attendance_pct`;
+  - the section's counts and %.
+- `GET teachers?from=&to=` (owners and admins only, 403 otherwise; at most 31 days, `ATTENDANCE_REPORT_RANGE_*`; default today) lists the teachers with saved records in the period. For each: counts, %, minutes late added up, and the classes that were not on time (late, absent, leave) with the section and time. Cancelled classes are left out. With one day it is the admins' daily summary of late and absent teachers (ATT-11). Absent is counted once the closing job has saved it, when check-in closes.
+- **Attendance %:** one formula, `attendancePct` (present + late) ÷ (present + late + absent), whole percent, null with nothing counted. "My attendance", the reports and the Performance read all use it.
+- **Performance read:** `AttendanceReportsService.studentAttendance(organizationId, studentIds, from, to)` is exported from `AttendanceModule` for Epic 3 (design §8.11, F3). It returns, per student, `{ counts: { present, late, absent, leave }, attendance_pct }` from the saved class records of the period, with cancelled classes left out. It is one grouped query on `(organization_id, person_id, date)`, and has no access check (the caller checks).
+  - It equals "My attendance" for the same period once the closing job has run (≤ 5 minutes after a class).
+  - Students with no records get zero counts and null.
+- **Who:** sections as on the class view and the register. Owners, admins and assistants see every section; a teacher sees the sections they teach or are named on (another section is 404). Students get 403; they see their own attendance on "My attendance". Another organisation's section is 404.
+- **No summary table (decided in P3-07):** reports are worked out from the class records on request. On a realistic month (40 students × 6 classes a day × 26 days = 6,240 records), the e2e test measured the monthly register at 440 ms, the daily summary at 59 ms and the Performance read at 18 ms. `daily_attendance` stays unbuilt (TODO if term-wide reports get slow).
+
+**Built in P3-07 part 2 (screens):** "Attendance reports" (`/attendance-reports`, `attendance` feature) is in the Organization menu for every staff role and in a solo teacher's own workspace. It has three tabs:
+- **Daily summary:** a date (default today) and all sections or one. Each section shows its mode, its classes (cancelled ones marked) and its students in groups, most urgent first: absent all day, missed some classes, late, on leave, not in yet, present. Each group has its count and the names ("Rahim (missed 1)").
+- **Monthly register:** a section and a month. The grid is students × class days, one cell per day in the calendar colours with its letter (P/L/A/LV, or উ/দে/অ/ছু). A small number shows the classes missed on a day the student came to others. Then each student's Present, Late, Absent and Leave counts and attendance %, and the section's % in the card. "Export CSV (Excel)" writes P3-05's register CSV with a byte-order mark, so Excel keeps Bangla and the file can be imported again.
+- **Teachers** (owners and admins of an organisation only; not in a solo workspace): from and to (default today, with "Today" and "This month"). Each teacher's counts, %, minutes late and a table of the classes not on time. CSV with the same columns.
+- **Print / Save as PDF:** each tab has a print sheet rendered under `<body>` and shown only when printing. It has the organisation, the title, the section and month (or date or period) and the letter legend, with A4 landscape, the header row repeated on every page, rows never split, and each section of the daily summary kept together. The browser's print writes the PDF, so Bangla is shaped by the browser's fonts. **No PDF or Excel package:** jsPDF does not shape Bangla conjuncts, and a real .xlsx needs a package (TODO).
+- All text in English and Bangla, with Bangla digits in Bangla.
 
 ### 9.5 Homework
 

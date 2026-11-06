@@ -46,7 +46,8 @@
     "myAttendance": "আমার উপস্থিতি",
     "classAttendance": "ক্লাসের উপস্থিতি",
     "leave": "ছুটি",
-    "attendanceRegister": "মাসিক হাজিরা খাতা"
+    "attendanceRegister": "মাসিক হাজিরা খাতা",
+    "attendanceReports": "হাজিরা রিপোর্ট"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -3776,6 +3777,100 @@
       "ATTENDANCE_REGISTER_COLUMNS_MISSING": "ফাইলে roll_no বা name কলাম লাগবে।",
       "ATTENDANCE_REGISTER_INVALID": "কিছু লাইনে সমস্যা আছে; ফাইল ঠিক করে আবার যাচাই করুন।",
       "ATTENDANCE_REGISTER_CHANGED": "ইমপোর্টের সময় খাতা বদলেছে; ফাইলটি আবার বাছুন।"
+    }
+  },
+  "reports": {
+    "title": "হাজিরা রিপোর্ট",
+    "intro": "প্রতিটি [[section]]-এর দিনের সারাংশ, প্রিন্ট, PDF বা Excel-এর জন্য মাসিক হাজিরা খাতা, এবং মালিক ও অ্যাডমিনের জন্য শিক্ষকদের হাজিরা।",
+    "tabs": {
+      "daily": "দিনের সারাংশ",
+      "monthly": "মাসিক হাজিরা খাতা",
+      "teachers": "শিক্ষক"
+    },
+    "loadFailed": "রিপোর্ট লোড করা যায়নি।",
+    "noSections": "দেখানোর মতো কোনো [[section]] নেই",
+    "noSectionsHint": "ক্লাস সেটআপে রুটিন আছে এমন [[section]] এখানে দেখা যায়: মালিক ও অ্যাডমিনের জন্য সবগুলো, শিক্ষকের জন্য যেগুলোতে তিনি পড়ান।",
+    "section": "[[Section]]",
+    "allSections": "সব [[section]]",
+    "date": "তারিখ",
+    "from": "শুরু",
+    "to": "শেষ",
+    "today": "আজ",
+    "thisMonth": "এই মাস",
+    "previousMonth": "আগের মাস",
+    "nextMonth": "পরের মাস",
+    "print": "প্রিন্ট / PDF হিসেবে সংরক্ষণ",
+    "exportCsv": "CSV এক্সপোর্ট (Excel)",
+    "legend": "অক্ষর",
+    "legendMissed": "ছোট সংখ্যা: সেদিন যত ক্লাস বাদ গেছে",
+    "cancelled": "বাতিল",
+    "day": {
+      "PRESENT": "উপস্থিত",
+      "LATE": "দেরি",
+      "ABSENT": "অনুপস্থিত",
+      "LEAVE": "ছুটিতে",
+      "WAITING": "এখনো আসেনি"
+    },
+    "dayMissed": "{status}, {missed, plural, other {# ক্লাস}} বাদ",
+    "missedShort": "{missed, number} ক্লাস বাদ",
+    "group": {
+      "ABSENT": "সারাদিন অনুপস্থিত",
+      "MISSED_SOME": "কিছু ক্লাস বাদ",
+      "LATE": "দেরি",
+      "LEAVE": "ছুটিতে",
+      "WAITING": "এখনো আসেনি",
+      "PRESENT": "উপস্থিত"
+    },
+    "closed": {
+      "WEEKLY_OFF": "সাপ্তাহিক ছুটির দিন: কোনো ক্লাস নেই।",
+      "HOLIDAY": "ছুটির দিন: কোনো ক্লাস নেই।"
+    },
+    "noClassesDay": "এই দিনে কোনো ক্লাস নেই",
+    "noClassesDayHint": "ক্লাস সেটআপের সাপ্তাহিক রুটিন থেকে ক্লাস আসে।",
+    "classesLine": "{count, plural, other {# ক্লাস}}: {times}",
+    "studentsCount": "{count, plural, other {# জন শিক্ষার্থী}}",
+    "dailyTitle": "দৈনিক হাজিরার সারাংশ",
+    "monthTitle": "মাসিক হাজিরা খাতা",
+    "monthHint": "{days, plural, other {# ক্লাসের দিন}}, {classes, plural, other {# ক্লাস}}, {students, plural, other {# জন শিক্ষার্থী}} · উপস্থিতি {pct}। কোনো দিনে অনুপস্থিত মানে সেদিনের সব ক্লাস বাদ গেছে।",
+    "monthCaption": "ক্লাসের দিন অনুযায়ী শিক্ষার্থী",
+    "noClasses": "এই মাসে কোনো ক্লাস নেই",
+    "noClassesHint": "এই মাসে এই [[section]]-এর কোনো ক্লাসের দিন নেই (ছুটি, বন্ধের দিন ও বাতিল ক্লাস বাদ দেওয়া হয়েছে)।",
+    "noStudents": "এই [[section]]-এ কোনো শিক্ষার্থী নেই।",
+    "columns": {
+      "roll": "রোল",
+      "name": "নাম",
+      "present": "উপস্থিত",
+      "late": "দেরি",
+      "absent": "অনুপস্থিত",
+      "leave": "ছুটি",
+      "pct": "উপস্থিতির হার",
+      "teacher": "শিক্ষক",
+      "lateMinutes": "দেরির মিনিট",
+      "date": "তারিখ",
+      "time": "সময়",
+      "status": "অবস্থা"
+    },
+    "short": {
+      "present": "উ",
+      "late": "দে",
+      "absent": "অ",
+      "leave": "ছু"
+    },
+    "teachersTitle": "শিক্ষকদের হাজিরা",
+    "teachersHint": "যে ক্লাসগুলোর হাজিরা সংরক্ষিত আছে; চেক-ইন বন্ধ হলে অনুপস্থিত সংরক্ষণ হয়। সর্বোচ্চ ৩১ দিন।",
+    "teachersCaption": "শিক্ষক",
+    "noTeachers": "এই সময়ে শিক্ষকদের কোনো হাজিরা নেই",
+    "noTeachersHint": "যে ক্লাসে শিক্ষকের নাম আছে সেখানে তিনি চেক-ইন করেন; কাগজের খাতার ক্লাসে শিক্ষকের হাজিরা থাকে না।",
+    "notOnTime": "সময়মতো হয়নি এমন ক্লাস",
+    "allOnTime": "সব ক্লাস সময়মতো হয়েছে।",
+    "minutesLate": "{minutes, number} মিনিট দেরি",
+    "errors": {
+      "ATTENDANCE_REPORT_DATE_INVALID": "সঠিক একটি তারিখ বেছে নিন।",
+      "ATTENDANCE_REPORT_RANGE_INVALID": "শেষের তারিখ শুরুর তারিখের আগে।",
+      "ATTENDANCE_REPORT_RANGE_TOO_LONG": "সর্বোচ্চ ৩১ দিন বেছে নিন।",
+      "ATTENDANCE_REPORT_SECTION_NOT_FOUND": "এই [[section]] আপনি দেখতে পারেন না।",
+      "ATTENDANCE_REGISTER_SECTION_NOT_FOUND": "এই [[section]] আপনি দেখতে পারেন না।",
+      "ATTENDANCE_REGISTER_SESSION_CLOSED": "এই শিক্ষাবর্ষ বন্ধ হয়ে গেছে।"
     }
   }
 }
