@@ -37,7 +37,7 @@ export function parseMark(cell: string | undefined | null): AttendanceStatusEnum
 
 /** The letter written for a status in a file (English or Bangla); the import reads both. */
 export const MARK_LETTERS: Record<'en' | 'bn', Record<AttendanceStatusEnum, string>> = {
-  en: { PRESENT: 'P', LATE: 'L', ABSENT: 'A', LEAVE: 'Leave' },
+  en: { PRESENT: 'P', LATE: 'L', ABSENT: 'A', LEAVE: 'LV' },
   bn: { PRESENT: 'উ', LATE: 'দে', ABSENT: 'অ', LEAVE: 'ছু' },
 };
 

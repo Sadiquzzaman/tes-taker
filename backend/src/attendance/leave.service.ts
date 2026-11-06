@@ -497,7 +497,7 @@ export class LeaveService {
     let label = '';
     if (request.person_type === AttendancePersonTypeEnum.STUDENT) {
       const ids = sectionIds ?? (await this.sections.activeSectionsOfStudents(request.organization_id, [request.person_id])).get(request.person_id) ?? [];
-      label = [...(await this.sectionLabels(request.organization_id, ids)).values()][0] ?? '';
+      label = sectionsLabel([...(await this.sectionLabels(request.organization_id, ids)).values()]);
     }
     return {
       person_id: request.person_id,
@@ -677,7 +677,7 @@ export class LeaveService {
         id: row.id,
         person: ref(row.person) ?? { id: row.person_id, full_name: '' },
         person_type: row.person_type,
-        class_name: subject.sectionIds.map((id) => labels.get(id)).filter(Boolean)[0] ?? '',
+        class_name: sectionsLabel(subject.sectionIds.map((id) => labels.get(id) ?? '')),
         from_date: row.from_date,
         to_date: row.to_date,
         school_days: schoolDays,
@@ -708,3 +708,13 @@ const cancellable = (request: Pick<LeaveRequestEntity, 'status' | 'from_date'>, 
   request.status === LeaveStatusEnum.PENDING || (request.status === LeaveStatusEnum.APPROVED && request.from_date > today);
 
 const ref = (user: UserEntity | null | undefined): PersonRef | null => (user ? { id: user.id, full_name: user.full_name } : null);
+
+/**
+ * A student's sections for leave lists and messages, the same everywhere: sorted ("Class 9 A" before
+ * "Class 10 A"), two named in full, the rest counted ("Class 9 A, Class 10 A +2").
+ */
+export function sectionsLabel(labels: string[]): string {
+  const sorted = [...new Set(labels.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+  if (sorted.length <= 2) return sorted.join(', ');
+  return `${sorted.slice(0, 2).join(', ')} +${sorted.length - 2}`;
+}

@@ -362,7 +362,8 @@ describe("schedule CSV import (ATT-16)", () => {
     const table = within(within(drawer).getByRole("table"));
     expect(table.getByText("No class with this name in the session.")).toBeTruthy();
     expect(table.getByText("Days not understood. Write them like Sat;Mon.")).toBeTruthy();
-    expect(within(drawer).getByRole("button", { name: /^Import/ })).toHaveProperty("disabled", true);
+    // The button says what to do instead of offering to import "1 section" (found on beta).
+    expect(within(drawer).getByRole("button", { name: "Fix the file to import" })).toHaveProperty("disabled", true);
   });
 
   it("refuses a file without the needed columns before asking the API", async () => {

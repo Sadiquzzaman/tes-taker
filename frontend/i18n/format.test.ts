@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, formatDate, formatDateTime, formatFileSize, formatNumber, formatTwoDigits } from "./format";
+import { formatClock, formatDate, formatDateTime, formatFileSize, formatNumber, formatTimeOfDay, formatTwoDigits } from "./format";
 
 describe("format helpers", () => {
   it("writes numbers with Bangla digits in Bangla", () => {
@@ -20,6 +20,11 @@ describe("format helpers", () => {
     expect(formatFileSize(50 * 1024 ** 3, "en")).toBe("50 GB");
     expect(formatFileSize(12_800, "en")).toBe("13 kB");
     expect(formatFileSize(0, "en")).toBe("0 byte");
+  });
+
+  it("shows a time of day from the API in the language's digits (found on beta: Reports showed 08:00 in Bangla)", () => {
+    expect(formatTimeOfDay("08:00:00", "bn")).toBe("০৮:০০");
+    expect(formatTimeOfDay("16:30", "en")).toBe("16:30");
   });
 
   it("shows a countdown as MM:SS", () => {

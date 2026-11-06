@@ -124,7 +124,7 @@ describe("attendance reports page (ATT-13)", () => {
     // The section list loads first (the select has "Class 8 A" too); wait for the report.
     expect(await screen.findByText("Self check-in · 2 classes: 09:00–10:00, 10:00–11:00 (cancelled) · 4 students")).toBeTruthy();
     const groups = screen.getAllByRole("term").map((term) => `${term.textContent} → ${term.nextElementSibling?.textContent}`);
-    expect(groups).toEqual(["Absent all day · 1 → Jamal", "Missed some classes · 1 → Rahim (missed 1)", "Late · 1 → Karim", "On leave · 1 → Salma"]);
+    expect(groups).toEqual(["Missed every class of this section · 1 → Jamal", "Missed some classes · 1 → Rahim (missed 1)", "Late · 1 → Karim", "On leave · 1 → Salma"]);
     // The print sheet has the same lists under the date.
     const sheet = within(printSheet());
     expect(sheet.getByRole("heading", { name: "Daily attendance summary", hidden: true })).toBeTruthy();
@@ -160,7 +160,7 @@ describe("attendance reports page (ATT-13)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Export CSV (Excel)" }));
     // P3-05's register format: roll, name, one column per class.
     expect(downloads).toEqual([
-      { name: "class-8-a-2026-11-register.csv", text: "roll_no,name,2026-11-07,2026-11-14 09:00,2026-11-14 10:00\n1,রহিম,P,P,A\n2,Karim,A,L,Leave" },
+      { name: "class-8-a-2026-11-register.csv", text: "roll_no,name,2026-11-07,2026-11-14 09:00,2026-11-14 10:00\n1,রহিম,P,P,A\n2,Karim,A,L,LV" },
     ]);
   });
 
