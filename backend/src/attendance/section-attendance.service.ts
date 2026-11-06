@@ -13,6 +13,7 @@ import { isoDayOf, isSchoolDate, schoolDateIn } from 'src/common/utils/school-da
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { OrgSettingsService } from 'src/organizations/org-settings.service';
 import { UserEntity } from 'src/user/entities/user.entity';
+import { ApprovedLeaveService, LeaveCalendar } from './approved-leave.service';
 import { AttendanceClock } from './attendance-clock';
 import { ATTENDANCE_ERRORS } from './attendance-errors';
 import { CheckInState, checkInState, countsFor, SessionWindow } from './class-session-time';
@@ -123,6 +124,8 @@ interface Loaded {
   session: ClassSessionEntity | undefined;
   records: AttendanceRecordEntity[];
   roster: { student_id: string; full_name: string; roll_no: string | null; since: Date }[];
+  /** Approved leave on the date (P3-06): people without a record show as Leave. */
+  leave: LeaveCalendar;
   cancelled: boolean;
   can_correct: boolean;
   can_cancel: boolean;
@@ -152,6 +155,7 @@ export class SectionAttendanceService {
     private readonly orgSettings: OrgSettingsService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly leave: ApprovedLeaveService,
     private readonly clock: AttendanceClock,
     private readonly dataSource: DataSource,
   ) {}
@@ -444,6 +448,7 @@ export class SectionAttendanceService {
       this.sections.activeStudentsOfSections(organizationId, [...new Set(open.map((ref) => ref.section_id))]),
     ]);
     const records = await this.sessions.records(organizationId, [...saved.values()].map((session) => session.id));
+    const leave = await this.leave.between(organizationId, date, date);
     const now = this.clock.now();
     const closed = closedDays[0] ?? null;
     const result: Loaded[] = [];
@@ -469,6 +474,7 @@ export class SectionAttendanceService {
         records: sessionRecords,
         // Students who joined after the class started are not on its list, unless they checked in.
         roster: (rosters.get(ref.section_id) ?? []).filter((row) => recorded.has(row.student_id) || (slotCounts && countsFor(window, null, row.since))),
+        leave,
         cancelled,
         can_correct: !closed && !cancelled && date <= today && now >= window.starts_at && (isManager(tenant) || date >= addDays(today, -TEACHER_CORRECTION_DAYS)),
         can_cancel: !closed && !cancelled && date >= today && date <= addDays(today, CANCEL_AHEAD_DAYS) && now < window.ends_at,
@@ -478,8 +484,8 @@ export class SectionAttendanceService {
     return result;
   }
 
-  private statusOf(item: Loaded, record: AttendanceRecordEntity | undefined): CalendarStatus {
-    return statusOf(record, item.closed, item.context, item.state, item.session);
+  private statusOf(item: Loaded, personId: string, record: AttendanceRecordEntity | undefined): CalendarStatus {
+    return statusOf(record, item.closed, item.context, item.state, item.session, Boolean(item.leave.on(personId, item.date)));
   }
 
   private summary(item: Loaded): SessionSummary {
@@ -487,7 +493,7 @@ export class SectionAttendanceService {
     const byPerson = new Map(item.records.map((record) => [record.person_id, record]));
     for (const student of item.roster) {
       const record = byPerson.get(student.student_id);
-      const status = this.statusOf(item, record);
+      const status = this.statusOf(item, student.student_id, record);
       if (status === 'PRESENT') counts.present++;
       else if (status === 'LATE') counts.late++;
       else if (status === 'ABSENT') counts.absent++;
@@ -532,7 +538,7 @@ export class SectionAttendanceService {
       return {
         person,
         role,
-        status: this.statusOf(item, record),
+        status: this.statusOf(item, person.id, record),
         record: record ? recordView(record) : null,
         corrections: record ? (corrections.get(record.id) ?? []) : [],
         can_correct: canCorrect,

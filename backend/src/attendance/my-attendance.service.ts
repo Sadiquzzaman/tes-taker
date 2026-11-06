@@ -7,6 +7,7 @@ import { ClosedDay } from 'src/calendar/closed-days';
 import { Tenant } from 'src/common/tenancy/tenant-context';
 import { addDays, daysBetween, isoDayOf, schoolDateIn } from 'src/common/utils/school-date.util';
 import { OrgSettingsService } from 'src/organizations/org-settings.service';
+import { ApprovedLeaveService } from './approved-leave.service';
 import { AttendanceClock } from './attendance-clock';
 import { ATTENDANCE_ERRORS } from './attendance-errors';
 import { checkInState, countsFor } from './class-session-time';
@@ -58,7 +59,8 @@ const MONTH = /^(\d{4})-(0[1-9]|1[0-2])$/;
  * "My attendance" (ATT-18): the caller's own classes in a month, in the calendar colours, with
  * counts and the attendance %. Only the caller's own records. A class whose check-in has closed
  * with no record shows as Absent (the closing job saves that Absent, SessionClosingService); a
- * paper-register class without its register shows as not recorded; a cancelled class shows as
+ * paper-register class without its register shows as not recorded; a class on a day of approved
+ * leave shows as Leave (P3-06); a cancelled class shows as
  * cancelled and is not counted. A class counts only when its slot existed and, for students, they
  * had joined the section before it started (`countsFor`, the closing job's rule).
  */
@@ -72,6 +74,7 @@ export class MyAttendanceService {
     private readonly slots: RoutineSlotsService,
     private readonly holidays: HolidaysService,
     private readonly orgSettings: OrgSettingsService,
+    private readonly leave: ApprovedLeaveService,
     private readonly clock: AttendanceClock,
   ) {}
 
@@ -89,10 +92,11 @@ export class MyAttendanceService {
     const to = addDays(nextMonth, -1);
 
     const mine = await this.checkIns.mySlots(tenant, userId);
-    const [closedDays, created, ownRecords] = await Promise.all([
+    const [closedDays, created, ownRecords, leave] = await Promise.all([
       this.holidays.closedDays(organizationId, from, to),
       this.slots.createdAt(organizationId, mine.map((item) => item.slot.id)),
       this.recordRepo.find({ where: { organization_id: organizationId, person_id: userId, date: Between(from, to) }, relations: ['session'] }),
+      this.leave.between(organizationId, from, to, [userId]),
     ]);
     const contexts = await this.sessions.contexts(organizationId, [
       ...mine.map((item) => item.section_id),
@@ -126,7 +130,7 @@ export class MyAttendanceService {
           section: sectionOf(context),
           start_time: item.slot.start_time,
           end_time: item.slot.end_time,
-          status: statusOf(record, closed, context, checkInState(now, window), session),
+          status: statusOf(record, closed, context, checkInState(now, window), session, Boolean(leave.on(userId, date))),
           record: record ? recordView(record) : null,
         });
       }
@@ -168,17 +172,22 @@ export class MyAttendanceService {
   }
 }
 
-/** A person's mark for a class (shared with the class view): a cancellation first, then their record, then the class's state. */
+/**
+ * A person's mark for a class (shared with the class view): a cancellation first, then their
+ * record, then approved leave (P3-06: Leave before the closing job saves it), then the class's state.
+ */
 export function statusOf(
   record: AttendanceRecordEntity | null | undefined,
   closed: ClosedDay | null,
   context: SectionContext,
   state: ReturnType<typeof checkInState>,
   session: Pick<ClassSessionEntity, 'status'> | undefined,
+  onLeave = false,
 ): CalendarStatus {
   if (session?.status === ClassSessionStatusEnum.CANCELLED) return 'CANCELLED';
   if (record) return record.status;
   if (closed) return 'CLOSED_DAY';
+  if (onLeave) return AttendanceStatusEnum.LEAVE;
   if (state === 'UPCOMING') return 'UPCOMING';
   if (context.mode === SectionAttendanceModeEnum.PAPER_REGISTER) return 'NOT_RECORDED';
   return state === 'OPEN' ? 'OPEN' : AttendanceStatusEnum.ABSENT;

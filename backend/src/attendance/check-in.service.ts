@@ -11,6 +11,7 @@ import { OrganizationKindEnum } from 'src/organizations/enums/organization-kind.
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { OrgSettingsService } from 'src/organizations/org-settings.service';
 import { AttendanceAlertsService } from './attendance-alerts.service';
+import { ApprovedLeaveService } from './approved-leave.service';
 import { AttendanceClock } from './attendance-clock';
 import { ATTENDANCE_ERRORS } from './attendance-errors';
 import {
@@ -69,6 +70,8 @@ export interface TodayView {
   time_zone: string;
   /** Today is a weekly off day or a holiday: no class takes check-ins. */
   closed: ClosedDay | null;
+  /** The caller is on approved leave today (P3-06): their classes count as Leave unless they check in. */
+  on_leave: boolean;
   classes: MyClassView[];
 }
 
@@ -107,6 +110,7 @@ export class CheckInService {
     private readonly orgSettings: OrgSettingsService,
     private readonly clock: AttendanceClock,
     private readonly alerts: AttendanceAlertsService,
+    private readonly leave: ApprovedLeaveService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -129,7 +133,8 @@ export class CheckInService {
       return this.classView(item, context, date, timeZone, now, closed, session, record);
     });
     classes.sort((a, b) => a.starts_at.getTime() - b.starts_at.getTime() || a.section.class_name.localeCompare(b.section.class_name));
-    return { date, server_time: now, time_zone: timeZone, closed, classes };
+    const onLeave = Boolean((await this.leave.between(organizationId, date, date, [userId])).on(userId, date));
+    return { date, server_time: now, time_zone: timeZone, closed, on_leave: onLeave, classes };
   }
 
   async checkIn(tenant: Tenant, userId: string, dto: CheckInDto): Promise<MyClassView> {
