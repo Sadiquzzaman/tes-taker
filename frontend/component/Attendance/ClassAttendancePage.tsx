@@ -11,11 +11,21 @@ import axiosReq from "@/lib/axios";
 import ClassAttendanceDrawer from "./ClassAttendanceDrawer";
 
 const STATE_TONE = { UPCOMING: "neutral", OPEN: "primary", CLOSED: "neutral" } as const;
+/** Classes can be cancelled this many days ahead (the API's limit, ATT-19). */
+const CANCEL_AHEAD_DAYS = 60;
+
+/** The school date `days` after `date` ("YYYY-MM-DD"). */
+const addDays = (date: string, days: number) => {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+};
 
 /**
  * Class attendance for staff (ATT-07, ATT-11, ATT-12): the classes of a day with how many students
  * are present, late, absent or not in yet, and flagged check-ins; a class opens in a drawer to
- * see everyone and correct a status with a reason. No roll call: students check themselves in.
+ * see everyone and correct a status with a reason, or to cancel it for the day (ATT-19; up to 60
+ * days ahead, so the date picker reaches into the future). No roll call: students check themselves in.
  */
 const ClassAttendancePage = () => {
   const t = useTranslations("classAttendance");
@@ -82,6 +92,8 @@ const ClassAttendancePage = () => {
       cell: (row) =>
         row.closed ? (
           <Badge>{t("closedDay")}</Badge>
+        ) : row.cancelled ? (
+          <Badge>{t("cancelled")}</Badge>
         ) : row.mode === "PAPER_REGISTER" ? (
           <Badge>{t("paperRegister")}</Badge>
         ) : (
@@ -119,7 +131,7 @@ const ClassAttendancePage = () => {
       <PageHeader title={t("title")} description={t("intro")} />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <DatePicker label={t("date")} value={date || data?.date || ""} max={data?.today} onChange={(value) => setDate(value)} />
+        <DatePicker label={t("date")} value={date || data?.date || ""} max={data ? addDays(data.today, CANCEL_AHEAD_DAYS) : undefined} onChange={(value) => setDate(value)} />
       </div>
 
       <Card
@@ -147,6 +159,21 @@ const ClassAttendancePage = () => {
         onCorrected={(detail, name) => {
           triggerToast({ title: t("corrected", { name }), type: "success" });
           setData((current) => (current ? { ...current, sessions: current.sessions.map((s) => (s.slot_id === detail.slot_id ? { ...s, counts: detail.counts } : s)) } : current));
+        }}
+        onCancelledOrRestored={(detail, cancelled) => {
+          triggerToast({ title: t(cancelled ? "cancelledToast" : "restoredToast", { section: `${detail.section.class_name} ${detail.section.name}` }), type: "success" });
+          setData((current) =>
+            current
+              ? {
+                  ...current,
+                  sessions: current.sessions.map((s) =>
+                    s.slot_id === detail.slot_id
+                      ? { ...s, counts: detail.counts, cancelled: detail.cancelled, can_correct: detail.can_correct, can_cancel: detail.can_cancel, can_restore: detail.can_restore }
+                      : s,
+                  ),
+                }
+              : current,
+          );
         }}
         onError={handleError}
       />

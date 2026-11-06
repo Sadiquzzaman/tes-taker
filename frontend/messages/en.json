@@ -2829,7 +2829,10 @@
         "update": "Schedule changed"
       },
       "attendance": {
-        "correct": "Attendance corrected"
+        "correct": "Attendance corrected",
+        "cancel": "Class cancelled",
+        "restore": "Class restored",
+        "auto_absent": "Absent saved when check-in closed"
       }
     },
     "fields": {
@@ -2992,7 +2995,8 @@
       "exam": "Tests",
       "class": "Class invitations",
       "organization": "Organisation invitations",
-      "sms": "SMS credits"
+      "sms": "SMS credits",
+      "attendance": "Attendance"
     },
     "events": {
       "exam": {
@@ -3013,6 +3017,13 @@
       },
       "feature_request": {
         "created": "Feature request"
+      },
+      "attendance": {
+        "late": "Late (guardian SMS)",
+        "absent": "Absent (guardian SMS)",
+        "class_cancelled": "Class cancelled",
+        "class_restored": "Class restored",
+        "repeat_absence": "Repeated absence"
       }
     }
   },
@@ -3364,7 +3375,7 @@
         "MODE_INVALID": "mode must be Self check-in or Paper register.",
         "GRACE_INVALID": "grace must be 0 to 60 minutes, or default.",
         "BRANCH_NOT_FOUND": "No branch with this name.",
-        "BRANCH_NOT_ALLOWED": "Only owners, admins and assistants can change branches.",
+        "BRANCH_NOT_ALLOWED": "You can't move classes between branches. Ask the organisation's owner or admin.",
         "SETTINGS_CONFLICT": "Another line of this [[section]] has different settings."
       }
     }
@@ -3404,7 +3415,8 @@
     },
     "blocked": {
       "PAPER_REGISTER": "Attendance for this class is kept on paper.",
-      "NO_PIN": "The check-in location of this class isn't set yet. Ask your admin."
+      "NO_PIN": "The check-in location of this class isn't set yet. Ask your admin.",
+      "CANCELLED": "This class is cancelled today."
     },
     "flag": {
       "EDGE_ACCURACY": "Saved, but your location was unclear near the edge; your teacher may check it.",
@@ -3418,7 +3430,8 @@
       "ABSENT": "Absent",
       "LEAVE": "On leave",
       "CLOSED_DAY": "Holiday or off day",
-      "NOT_RECORDED": "Not recorded yet"
+      "NOT_RECORDED": "Not recorded yet",
+      "CANCELLED": "Class cancelled"
     },
     "letter": {
       "UPCOMING": "U",
@@ -3428,7 +3441,8 @@
       "ABSENT": "A",
       "LEAVE": "LV",
       "CLOSED_DAY": "H",
-      "NOT_RECORDED": "N"
+      "NOT_RECORDED": "N",
+      "CANCELLED": "C"
     },
     "location": {
       "denied": "Allow location for this site in your browser, then try again.",
@@ -3445,7 +3459,8 @@
       "ATTENDANCE_CHECKIN_CLOSED_DAY": "There are no classes today.",
       "ATTENDANCE_CHECKIN_PAPER_REGISTER": "Attendance for this class is kept on paper.",
       "ATTENDANCE_CHECKIN_NO_CLASS_TODAY": "This class doesn't meet today.",
-      "ATTENDANCE_CHECKIN_NOT_YOUR_CLASS": "You can check in only to your own classes."
+      "ATTENDANCE_CHECKIN_NOT_YOUR_CLASS": "You can check in only to your own classes.",
+      "ATTENDANCE_CHECKIN_CANCELLED": "This class is cancelled today."
     }
   },
   "classAttendance": {
@@ -3511,8 +3526,33 @@
       "ATTENDANCE_CORRECTION_NOT_STARTED": "This class hasn't started yet.",
       "ATTENDANCE_CORRECTION_CLOSED_DAY": "There was no class that day.",
       "ATTENDANCE_CORRECTION_PERSON_NOT_FOUND": "This person isn't in this class.",
-      "ATTENDANCE_CORRECTION_TEACHER_RECORD": "Only owners, admins and assistants correct a teacher's attendance.",
-      "ATTENDANCE_CORRECTION_NO_CHANGE": "The record already has this status."
-    }
+      "ATTENDANCE_CORRECTION_TEACHER_RECORD": "Teachers correct students' attendance only.",
+      "ATTENDANCE_CORRECTION_NO_CHANGE": "The record already has this status.",
+      "ATTENDANCE_CORRECTION_CANCELLED": "This class was cancelled.",
+      "ATTENDANCE_CORRECTION_TOO_OLD": "Teachers correct classes of the last 7 days. Ask the organisation's owner or admin.",
+      "ATTENDANCE_CANCEL_CLOSED_DAY": "There is no class that day.",
+      "ATTENDANCE_CANCEL_PAST": "A past class cannot be cancelled. Correct its attendance instead.",
+      "ATTENDANCE_CANCEL_TOO_FAR": "Classes can be cancelled up to 60 days ahead.",
+      "ATTENDANCE_CANCEL_ENDED": "This class has already ended.",
+      "ATTENDANCE_CANCEL_ALREADY": "This class is already cancelled.",
+      "ATTENDANCE_CANCEL_NOT_CANCELLED": "This class is not cancelled."
+    },
+    "cancelled": "Cancelled",
+    "cancelClass": "Cancel this class",
+    "cancelClassFor": "Cancel the class of {section} on {date}",
+    "cancelIntro": "Students are not marked absent for a cancelled class, and they are told in the app.",
+    "cancelNote": "Note for students (optional)",
+    "cancelNoteHint": "For example: \"I am unwell; we will make it up on Monday\".",
+    "confirmCancel": "Cancel the class",
+    "keepClass": "Keep the class",
+    "cancelling": "Cancelling…",
+    "restoreClass": "Restore the class",
+    "restoring": "Restoring…",
+    "cancelledBanner": "Cancelled by {who}, {when}.",
+    "cancelledBannerNote": "Note: {note}",
+    "cancelledToast": "The class of {section} is cancelled; students were told.",
+    "restoredToast": "The class of {section} will take place; students were told.",
+    "tooOldHint": "Teachers correct classes of the last 7 days. Ask the organisation's owner or admin for older ones.",
+    "cancelledHint": "This class was cancelled: nobody is marked absent and it is not counted."
   }
 }
