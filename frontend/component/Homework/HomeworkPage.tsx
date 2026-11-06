@@ -6,29 +6,25 @@ import { useState } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
 import { Button, Card, EmptyState, ErrorState, PageHeader, Select, Skeleton, StatusPill, Table, type TableColumn } from "@/design/ui";
 import { cn, focusRing } from "@/design/ui/cn";
-import useWorkspace from "@/hooks/organization/useWorkspace";
-import { useIsClient } from "@/hooks/useBrowserStorage";
 import useFormat from "@/i18n/useFormat";
-import { getStoredUser } from "@/lib/authSession";
 import HomeworkEditor from "./HomeworkEditor";
 import { classesLabel, DUE_TONE, dueState, STATUS_TONE } from "./homeworkFormat";
 import useApiData from "./useApiData";
+import useIsStudent from "./useIsStudent";
 
 /**
  * Homework (Epic 2): students see their to-do list (published homework set to them, soonest due
  * first); staff see the homework they manage and write new ones.
  */
 const HomeworkPage = () => {
-  const isClient = useIsClient();
-  const { memberRole } = useWorkspace();
-  if (!isClient) {
+  const isStudent = useIsStudent();
+  if (isStudent === undefined) {
     return (
       <Card aria-busy="true">
         <Skeleton lines={4} />
       </Card>
     );
   }
-  const isStudent = memberRole === "STUDENT" || (!memberRole && getStoredUser()?.role === "STUDENT");
   return isStudent ? <StudentHomework /> : <StaffHomework />;
 };
 
@@ -64,9 +60,11 @@ const StudentHomework = () => {
                     <span className="truncate text-title-sm font-semibold text-ink">{item.title}</span>
                     <span className="text-body-sm text-ink-muted">{item.subject.name}</span>
                   </span>
-                  <StatusPill tone={DUE_TONE[due]}>
-                    {item.due_at ? t(`due.${due}`, { when: format.dateTime(item.due_at) }) : t("due.none")}
-                  </StatusPill>
+                  {item.my_submission ? (
+                    <StatusPill tone="success">{t("handedIn", { version: item.my_submission.version })}</StatusPill>
+                  ) : (
+                    <StatusPill tone={DUE_TONE[due]}>{item.due_at ? t(`due.${due}`, { when: format.dateTime(item.due_at) }) : t("due.none")}</StatusPill>
+                  )}
                 </NextLink>
               </li>
             );
