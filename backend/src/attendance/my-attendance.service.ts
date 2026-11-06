@@ -10,6 +10,7 @@ import { OrgSettingsService } from 'src/organizations/org-settings.service';
 import { ApprovedLeaveService } from './approved-leave.service';
 import { AttendanceClock } from './attendance-clock';
 import { ATTENDANCE_ERRORS } from './attendance-errors';
+import { attendancePct, countMark, emptyCounts } from './attendance-report';
 import { checkInState, countsFor } from './class-session-time';
 import { ClassSessionsService, recordView, RecordView, SectionContext, sessionKey } from './class-sessions.service';
 import { CheckInService } from './check-in.service';
@@ -153,22 +154,9 @@ export class MyAttendanceService {
       days.push({ date, closed, classes });
     }
 
-    const counts = { present: 0, late: 0, absent: 0, leave: 0 };
-    for (const item of days.flatMap((day) => day.classes)) {
-      if (item.status === 'PRESENT') counts.present++;
-      else if (item.status === 'LATE') counts.late++;
-      else if (item.status === 'ABSENT') counts.absent++;
-      else if (item.status === 'LEAVE') counts.leave++;
-    }
-    const counted = counts.present + counts.late + counts.absent;
-    return {
-      month: wanted,
-      today,
-      time_zone: timeZone,
-      days,
-      counts,
-      attendance_pct: counted === 0 ? null : Math.round(((counts.present + counts.late) / counted) * 100),
-    };
+    const counts = emptyCounts();
+    for (const item of days.flatMap((day) => day.classes)) countMark(counts, item.status);
+    return { month: wanted, today, time_zone: timeZone, days, counts, attendance_pct: attendancePct(counts) };
   }
 }
 
@@ -200,5 +188,5 @@ const sectionOf = (context: SectionContext) => ({
 });
 
 /** "HH:MM" of an instant in the time zone. */
-const clockIn = (instant: Date, timeZone: string) =>
+export const clockIn = (instant: Date, timeZone: string) =>
   new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(instant);

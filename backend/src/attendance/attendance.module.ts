@@ -7,6 +7,8 @@ import { OrganizationsModule } from 'src/organizations/organization.module';
 import { NotificationsModule } from 'src/notifications/notifications.module';
 import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 import { AttendanceBranchesController } from './attendance-branches.controller';
+import { AttendanceReportsController } from './attendance-reports.controller';
+import { AttendanceReportsService } from './attendance-reports.service';
 import { AttendanceAlertsService } from './attendance-alerts.service';
 import { ApprovedLeaveService } from './approved-leave.service';
 import { AttendanceClock } from './attendance-clock';
@@ -39,13 +41,13 @@ import { SessionClosingService } from './session-closing.service';
  * "My attendance" (ATT-18), the teachers' class view with corrections (ATT-07, ATT-12) and class
  * cancellation (ATT-19), the closing job that saves Absent when check-in closes (ATT-10), and the
  * guardians' Late and Absent SMS and the repeated-absence alert (ATT-06, ATT-10, ATT-14), and leave
- * requests with their approvals (ATT-09, ATT-11), and the paper register import and monthly register
- * export (ATT-17, ATT-13).
+ * requests with their approvals (ATT-09, ATT-11), the paper register import and monthly register
+ * export (ATT-17, ATT-13), and the reports with the attendance % that Performance reads (ATT-13).
  */
 @Module({
   imports: [
     TypeOrmModule.forFeature([SectionAttendanceSettingsEntity, ClassSessionEntity, AttendanceRecordEntity, AttendanceCorrectionEntity, LeaveRequestEntity, OrganizationMemberEntity]), OrganizationsModule, AcademicsModule, CalendarModule, SubscriptionModule, NotificationsModule],
-  controllers: [AttendanceSettingsController, AttendanceBranchesController, SectionSetupController, CheckInController, SectionAttendanceController, LeaveController, PaperRegisterController],
+  controllers: [AttendanceSettingsController, AttendanceBranchesController, SectionSetupController, CheckInController, SectionAttendanceController, LeaveController, PaperRegisterController, AttendanceReportsController],
   providers: [
     AttendanceSettingsService,
     AttendanceBranchesService,
@@ -61,7 +63,8 @@ import { SessionClosingService } from './session-closing.service';
     ApprovedLeaveService,
     LeaveService,
     PaperRegisterService,
+    AttendanceReportsService,
   ],
-  exports: [AttendanceSettingsService, SessionClosingService, AttendanceAlertsService],
+  exports: [AttendanceSettingsService, SessionClosingService, AttendanceAlertsService, AttendanceReportsService],
 })
 export class AttendanceModule {}
