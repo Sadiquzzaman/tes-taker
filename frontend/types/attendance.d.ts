@@ -163,6 +163,8 @@ interface MyToday {
   server_time: string;
   time_zone: string;
   closed: ClosedDay | null;
+  /** On approved leave today (P3-06): classes count as Leave unless they check in. */
+  on_leave?: boolean;
   classes: MyClass[];
 }
 
@@ -247,4 +249,48 @@ interface ClassSessionsOnDate {
   time_zone: string;
   closed: ClosedDay | null;
   sessions: ClassSessionSummary[];
+}
+
+/** Leave requests (ATT-09, ATT-11; messages `leave`). */
+type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+
+/** A leave request as `/attendance/leave` returns it. */
+interface LeaveRequest {
+  id: string;
+  person: { id: string; full_name: string };
+  person_type: "STUDENT" | "TEACHER";
+  /** Students: "Class 8 A"; empty for teachers. */
+  class_name: string;
+  from_date: string;
+  to_date: string;
+  /** Days in the range that are not a weekly off day or holiday. */
+  school_days: number;
+  reason: string;
+  file: { id: string; name: string | null; mime: string } | null;
+  status: LeaveStatus;
+  applied_by: { id: string; full_name: string } | null;
+  decided_by: { id: string; full_name: string } | null;
+  decided_at: string | null;
+  decision_note: string | null;
+  cancelled_by: { id: string; full_name: string } | null;
+  cancelled_at: string | null;
+  created_at: string;
+  can_decide: boolean;
+  can_cancel: boolean;
+}
+
+/** `GET /attendance/leave/mine`. */
+interface MyLeave {
+  today: string;
+  can_apply: boolean;
+  person_type: "STUDENT" | "TEACHER" | null;
+  can_apply_for_others: boolean;
+  can_approve: boolean;
+  requests: LeaveRequest[];
+}
+
+/** `GET /attendance/leave/people`: whom the caller may apply for. */
+interface LeavePeople {
+  students: { id: string; full_name: string; class_name: string }[];
+  staff: { id: string; full_name: string; role: OrganizationMemberRole }[];
 }

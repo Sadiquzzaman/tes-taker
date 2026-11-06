@@ -119,6 +119,14 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Platform",
+    label: "leave",
+    route: "/leave",
+    role: ["STUDENT"],
+    feature: "attendance",
+    image: <SidebarClassesIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
     label: "billing",
     route: "/billing",
     role: ["TEACHER"],
@@ -313,9 +321,28 @@ const sidebarList: SideBarList[] = [
     image: <SidebarClassesIconSVG width={16} />,
   },
   {
+    category: "Platform",
+    label: "leave",
+    route: "/leave",
+    role: ["TEACHER"],
+    // A solo teacher approves their students' leave (they have no teacher leave of their own).
+    personalWorkspaceOnly: true,
+    feature: "attendance",
+    image: <SidebarClassesIconSVG width={16} />,
+  },
+  {
     category: "Organization",
     label: "myAttendance",
     route: "/my-attendance",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    feature: "attendance",
+    image: <SidebarClassesIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
+    label: "leave",
+    route: "/leave",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
     feature: "attendance",
