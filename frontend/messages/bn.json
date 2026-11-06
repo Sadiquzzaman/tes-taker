@@ -14,6 +14,17 @@
       "Organization": "প্রতিষ্ঠান",
       "Admin": "অ্যাডমিন"
     },
+    "group": {
+      "people": "সদস্য",
+      "academics": "পড়াশোনা",
+      "tests": "পরীক্ষা",
+      "attendance": "উপস্থিতি",
+      "billing": "বিল ও প্ল্যান",
+      "logs": "লগ",
+      "customers": "গ্রাহক",
+      "plans": "প্ল্যান ও পেমেন্ট",
+      "setup": "সেটআপ"
+    },
     "plans": "প্ল্যান",
     "payments": "পেমেন্ট",
     "teachers": "শিক্ষক",

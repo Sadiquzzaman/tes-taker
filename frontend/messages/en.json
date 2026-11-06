@@ -14,6 +14,17 @@
       "Organization": "Organization",
       "Admin": "Admin"
     },
+    "group": {
+      "people": "People",
+      "academics": "Academics",
+      "tests": "Tests",
+      "attendance": "Attendance",
+      "billing": "Billing & plan",
+      "logs": "Logs",
+      "customers": "Customers",
+      "plans": "Plans & payments",
+      "setup": "Setup"
+    },
     "plans": "Plans",
     "payments": "Payments",
     "teachers": "Teachers",
