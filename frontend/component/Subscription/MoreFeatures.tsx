@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
-import { Badge, Button, buttonClasses, Card, ErrorState, Modal, Skeleton, Textarea } from "@/design/ui";
+import { Badge, Button, buttonClasses, Card, EmptyState, ErrorState, Modal, Skeleton, Textarea } from "@/design/ui";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import { useApiError } from "@/hooks/api/useApiError";
 import useBillingAccess from "@/hooks/organization/useBillingAccess";
@@ -14,15 +14,15 @@ import useFeatureNames from "./useFeatureNames";
 
 /**
  * "More features" (FND-08): every plan feature with a short description, what the current workspace
- * has, and for locked ones "Request this feature" (stored for the platform admin). Owners and admins
- * can also upgrade from here.
+ * has, and for locked ones "Request this feature" (stored for the platform admin). Only the
+ * workspace's owner or an admin (a solo teacher in their own) sees it; they can also upgrade here.
  */
 const MoreFeatures = () => {
   const t = useTranslations("features.page");
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const { triggerToast } = useToast();
   const { handleError } = useApiError();
-  const { canManageBilling } = useBillingAccess();
+  const { role, canManageBilling } = useBillingAccess();
   const { entitlements, loading: entitlementsLoading, error: entitlementsError, refetch } = useEntitlements();
   const { featureName, featureDescription, groupName } = useFeatureNames();
   const [catalog, setCatalog] = useState<FeatureCatalog | null>(null);
@@ -73,6 +73,15 @@ const MoreFeatures = () => {
       setSending(false);
     }
   };
+
+  // Plan features are the owner's and admins' business: everyone else is told who to ask (FND-08).
+  if (role !== undefined && !canManageBilling) {
+    return (
+      <Card>
+        <EmptyState title={t("membersTitle")} description={t("membersDetail")} />
+      </Card>
+    );
+  }
 
   if (catalogFailed || entitlementsError) {
     return (

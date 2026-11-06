@@ -57,6 +57,7 @@ describe("locked-feature message (FND-07)", () => {
     expect(await screen.findByText("This feature is one upgrade away — unlock it today!")).toBeTruthy();
     expect(screen.getByText("Model tests")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Upgrade" }).getAttribute("href")).toBe("/billing");
+    expect(screen.getByRole("link", { name: "See all features and request one" }).getAttribute("href")).toBe("/features");
   });
 
   it("tells everyone else to ask their admin, with no upgrade button", async () => {
@@ -71,6 +72,8 @@ describe("locked-feature message (FND-07)", () => {
     expect(screen.getByText("Plan limit reached")).toBeTruthy();
     expect(screen.getByText("Tests per month")).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Upgrade" })).toBeNull();
+    // Nor a way to the feature list, which only owners and admins see.
+    expect(screen.queryByRole("link", { name: "See all features and request one" })).toBeNull();
   });
 
   it("is shown in Bangla", async () => {
@@ -139,8 +142,7 @@ describe("More features (FND-08)", () => {
     limits: [],
   };
 
-  it("marks included features and sends a request for a locked one", async () => {
-    billingAccess = { role: "TEACHER", canManageBilling: false };
+  it("marks included features and sends a request for a locked one (owner or admin)", async () => {
     get.mockResolvedValue({ data: { payload: catalog } });
     post.mockResolvedValue({ data: { payload: { id: "r1" } } });
     renderApp(
@@ -150,8 +152,6 @@ describe("More features (FND-08)", () => {
     );
     expect(await screen.findByText("Included")).toBeTruthy();
     expect(screen.getByText("Several questions on one reading passage.")).toBeTruthy();
-    // Only owners and admins are offered the upgrade.
-    expect(screen.queryByRole("link", { name: "Upgrade" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Request Passage questions" }));
     fireEvent.change(await screen.findByLabelText("Note (optional)"), { target: { value: "  For reading tests " } });
@@ -161,6 +161,27 @@ describe("More features (FND-08)", () => {
     expect(post.mock.calls[0][1]).toEqual({ feature_key: "allow_passage_questions", note: "For reading tests" });
     expect(await screen.findByText("Requested")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Request Passage questions" })).toBeNull();
+  });
+
+  it("shows students, teachers and assistants who to ask instead of the features (found on beta)", async () => {
+    billingAccess = { role: "TEACHER", canManageBilling: false };
+    get.mockResolvedValue({ data: { payload: catalog } });
+    renderApp(
+      <EntitlementsContext.Provider value={entitlementsState({ allow_model_tests: true })}>
+        <MoreFeatures />
+      </EntitlementsContext.Provider>,
+    );
+    expect(await screen.findByText("Plan features are managed by your owner or admin")).toBeTruthy();
+    expect(screen.queryByText("Model tests")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Request / })).toBeNull();
+    cleanup();
+    billingAccess = { role: "STUDENT", canManageBilling: false };
+    renderApp(
+      <EntitlementsContext.Provider value={entitlementsState({})}>
+        <MoreFeatures />
+      </EntitlementsContext.Provider>,
+    );
+    expect(await screen.findByText("Plan features are managed by your owner or admin")).toBeTruthy();
   });
 
   it("offers owners the upgrade", async () => {

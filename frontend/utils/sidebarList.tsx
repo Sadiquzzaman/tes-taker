@@ -309,7 +309,8 @@ const sidebarList: SideBarList[] = [
     route: "/features",
     group: "billing",
     role: ["TEACHER"],
-    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    // Plan features and requests are for whoever manages the plan (FND-08).
+    memberRoles: ["OWNER", "ADMIN"],
     image: <SidebarTestsIconSVG width={16} />,
   },
   {

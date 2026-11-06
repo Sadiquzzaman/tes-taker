@@ -53,11 +53,13 @@ export const LockedFeatureDialog = ({ info, onClose }: { info: LockedFeatureInfo
       }
     >
       <p className="text-body text-ink">{canManageBilling ? t("ownerMessage") : t("memberMessage")}</p>
-      <p className="mt-3 text-body-sm text-ink-muted">
-        <Link href="/features" className="text-primary underline" onClick={onClose}>
-          {t("moreFeatures")}
-        </Link>
-      </p>
+      {canManageBilling ? (
+        <p className="mt-3 text-body-sm text-ink-muted">
+          <Link href="/features" className="text-primary underline" onClick={onClose}>
+            {t("moreFeatures")}
+          </Link>
+        </p>
+      ) : null}
     </Modal>
   );
 };
