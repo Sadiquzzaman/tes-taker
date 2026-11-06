@@ -2139,7 +2139,9 @@
       "send": "Send request",
       "sentTitle": "Request sent",
       "sent": "We will contact you about {name}.",
-      "loadFailed": "The features did not load."
+      "loadFailed": "The features did not load.",
+      "membersTitle": "Plan features are managed by your owner or admin",
+      "membersDetail": "Your organisation's owner or an admin sees what the plan includes and can ask for more. Ask them if you need a feature."
     },
     "groups": {
       "Question": "Questions",

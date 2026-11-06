@@ -64,6 +64,9 @@ import {
 import { PaymentMethodEnum } from './entities/payment-history.entity';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 
+/** Error code when someone other than the owner or an admin asks for a feature (FND-08). */
+export const FEATURE_REQUEST_NOT_ALLOWED = 'FEATURE_REQUEST_NOT_ALLOWED';
+
 @Injectable()
 export class SubscriptionService implements OnModuleInit {
   private readonly logger = new Logger(SubscriptionService.name);
@@ -918,6 +921,12 @@ export class SubscriptionService implements OnModuleInit {
   /** "Request this feature" for the current workspace; an open request for the same feature is reused. */
   async createFeatureRequest(dto: CreateFeatureRequestDto, jwtPayload: JwtPayloadInterface): Promise<FeatureRequestEntity> {
     const organizationId = TenantContext.requireOrganizationId();
+    // Only those who manage the workspace's plan ask for features: its owner (a solo teacher in their
+    // own workspace) or an admin. Students, teachers and assistants are refused.
+    const tenant = TenantContext.current();
+    if (!tenant || tenant.viaEnrolment || ![OrganizationMemberRoleEnum.OWNER, OrganizationMemberRoleEnum.ADMIN].includes(tenant.memberRole)) {
+      throw new ForbiddenException({ message: "Only the workspace's owner or an admin can request features", code: FEATURE_REQUEST_NOT_ALLOWED });
+    }
     if (!(ALL_FEATURE_KEYS as string[]).includes(dto.feature_key)) {
       throw new BadRequestException(`Unknown feature "${dto.feature_key}"`);
     }

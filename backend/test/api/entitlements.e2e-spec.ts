@@ -213,6 +213,23 @@ describe('entitlements API', () => {
     expect(Object.keys(row?.user ?? {}).sort()).toEqual(['email', 'full_name', 'id', 'phone']);
   });
 
+  it("lets only a workspace's owner or admin request a feature; students, teachers and assistants are refused", async () => {
+    const owner = await make.teacher({ personal_teacher_enabled: false });
+    const school = await make.organization(owner);
+    const body = { feature_key: 'allow_question_import_export' };
+    for (const role of [OrganizationMemberRoleEnum.STUDENT, OrganizationMemberRoleEnum.TEACHER, OrganizationMemberRoleEnum.ASSISTANT]) {
+      const member = role === OrganizationMemberRoleEnum.STUDENT ? await make.student() : await make.teacher();
+      await make.member(school, member, role);
+      const refused = await t.api.post('/me/feature-requests', body, orgSession(member, school, role));
+      expect(refused.status).toBe(403);
+      expect(codeOf(refused.body)).toBe('FEATURE_REQUEST_NOT_ALLOWED');
+    }
+    const admin2 = await make.teacher();
+    await make.member(school, admin2, OrganizationMemberRoleEnum.ADMIN);
+    expect((await t.api.post('/me/feature-requests', body, orgSession(admin2, school, OrganizationMemberRoleEnum.ADMIN))).status).toBe(201);
+    expect((await t.api.post('/me/feature-requests', body, orgSession(owner, school))).status).toBe(201);
+  });
+
   it('"Switch on and close" gives the asking workspace the feature; closing alone does not', async () => {
     const granted = await make.teacher();
     const closedOnly = await make.teacher();

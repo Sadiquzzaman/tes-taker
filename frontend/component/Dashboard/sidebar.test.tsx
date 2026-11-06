@@ -36,10 +36,13 @@ describe("sidebar billing and features (P2-02)", () => {
     expect(links()).toEqual(expect.arrayContaining(["Billing & Plans", "More features"]));
   });
 
-  it("shows a school's teacher More features but not Billing", async () => {
+  it("shows a school's teacher neither Billing nor More features (only owners and admins manage the plan)", async () => {
     await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "TEACHER" });
-    expect(links()).toContain("More features");
+    expect(links()).not.toContain("More features");
     expect(links()).not.toContain("Billing & Plans");
+    cleanup();
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "ASSISTANT" });
+    expect(links()).not.toContain("More features");
   });
 
   it("shows a solo teacher both", async () => {
