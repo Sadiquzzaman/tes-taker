@@ -9,11 +9,11 @@ import { getStoredUser } from "@/lib/authSession";
 import { workspaceFromUser } from "@/lib/workspace";
 
 /**
- * Attendance belongs to a workspace: a school, or a teacher's own classes. A student who has not
+ * Attendance and homework belong to a workspace: a school, or a teacher's own classes. A student who has not
  * chosen one yet (just signed in) sees their workspaces here instead of a load error; choosing one
  * reloads the same page inside it. Everyone else sees the page as it is.
  */
-const AttendanceWorkspaceGate = ({ page, children }: { page: "myAttendance" | "leave"; children: ReactNode }) => {
+const AttendanceWorkspaceGate = ({ page, children }: { page: "myAttendance" | "leave" | "homework"; children: ReactNode }) => {
   const t = useTranslations("attendanceWorkspace");
   const tPage = useTranslations(page);
   // undefined on the server and while hydrating; then the signed-in user as stored.

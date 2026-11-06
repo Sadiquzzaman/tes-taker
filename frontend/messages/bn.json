@@ -58,7 +58,8 @@
     "classAttendance": "ক্লাসের উপস্থিতি",
     "leave": "ছুটি",
     "attendanceRegister": "মাসিক হাজিরা খাতা",
-    "attendanceReports": "উপস্থিতি রিপোর্ট"
+    "attendanceReports": "উপস্থিতি রিপোর্ট",
+    "homework": "হোমওয়ার্ক"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -3900,6 +3901,125 @@
       "ATTENDANCE_REPORT_SECTION_NOT_FOUND": "এই [[section]] আপনি দেখতে পারেন না।",
       "ATTENDANCE_REGISTER_SECTION_NOT_FOUND": "এই [[section]] আপনি দেখতে পারেন না।",
       "ATTENDANCE_REGISTER_SESSION_CLOSED": "এই শিক্ষাবর্ষ বন্ধ হয়ে গেছে।"
+    }
+  },
+  "homework": {
+    "title": "হোমওয়ার্ক",
+    "studentIntro": "আপনার জন্য দেওয়া হোমওয়ার্ক, যেটার জমার সময় আগে সেটা আগে।",
+    "staffIntro": "আপনার বিষয়-ক্লাসের হোমওয়ার্ক: লিখুন, এখন বা পরে প্রকাশ করুন, আর দেখুন কারা পাবে।",
+    "new": "নতুন হোমওয়ার্ক",
+    "show": "দেখান",
+    "loadFailed": "হোমওয়ার্ক লোড করা যায়নি।",
+    "notFound": "এই হোমওয়ার্ক পাওয়া যাচ্ছে না।",
+    "back": "সব হোমওয়ার্ক",
+    "studentEmpty": "এখন কোনো হোমওয়ার্ক নেই",
+    "studentEmptyHint": "শিক্ষকের নতুন হোমওয়ার্ক এখানে দেখাবে, আর বেলে আপনাকে জানানো হবে।",
+    "staffEmpty": "এখনো কোনো হোমওয়ার্ক নেই",
+    "staffEmptyHint": "নতুন হোমওয়ার্ক দিয়ে একটি লিখুন।",
+    "savedTitle": "সংরক্ষিত",
+    "notSavedTitle": "সংরক্ষণ হয়নি",
+    "savedDraft": "খসড়া হিসেবে রাখা হয়েছে। প্রকাশ করলে শিক্ষার্থীরা দেখবে।",
+    "saved": "পরিবর্তন সংরক্ষিত হয়েছে।",
+    "published": "প্রকাশিত। শিক্ষার্থীদের বেলে জানানো হয়েছে।",
+    "scheduled": "নির্ধারিত। আপনার বেছে নেওয়া সময়ে প্রকাশ হবে।",
+    "withdrawn": "প্রত্যাহার করা হয়েছে। শিক্ষার্থীরা আর দেখবে না।",
+    "columns": {
+      "title": "হোমওয়ার্ক",
+      "subject": "বিষয়",
+      "classes": "ক্লাস",
+      "due": "জমার সময়",
+      "students": "শিক্ষার্থী",
+      "status": "অবস্থা"
+    },
+    "filters": {
+      "ACTIVE": "চলতি",
+      "DRAFT": "খসড়া",
+      "SCHEDULED": "নির্ধারিত",
+      "PUBLISHED": "প্রকাশিত",
+      "CANCELLED": "প্রত্যাহার"
+    },
+    "statuses": {
+      "DRAFT": "খসড়া",
+      "SCHEDULED": "নির্ধারিত",
+      "PUBLISHED": "প্রকাশিত",
+      "CANCELLED": "প্রত্যাহার"
+    },
+    "due": {
+      "none": "জমার তারিখ নেই",
+      "overdue": "জমার সময় ছিল {when}",
+      "soon": "জমা {when}",
+      "later": "জমা {when}"
+    },
+    "detail": {
+      "subject": "বিষয়",
+      "type": "জমা দেওয়ার ধরন",
+      "marks": "নম্বর",
+      "notScored": "নম্বর নেই",
+      "classes": "ক্লাস",
+      "students": "শিক্ষার্থী",
+      "instructions": "নির্দেশনা",
+      "noInstructions": "কোনো নির্দেশনা নেই।",
+      "attachments": "ফাইল",
+      "file": "ফাইল",
+      "edit": "সম্পাদনা",
+      "schedule": "সময় ঠিক করুন",
+      "publishNow": "এখনই প্রকাশ",
+      "scheduledFor": "প্রকাশ হবে {when}",
+      "scheduleTitle": "পরে প্রকাশ",
+      "scheduleHint": "এই সময়ে শিক্ষার্থীরা পাবে ও জানবে।",
+      "scheduleDate": "তারিখ",
+      "scheduleTime": "সময়",
+      "withdraw": "প্রত্যাহার",
+      "withdrawTitle": "এই হোমওয়ার্ক প্রত্যাহার করবেন?",
+      "withdrawDetail": "শিক্ষার্থীরা আর দেখবে না। স্টাফদের জন্য সবকিছুসহ এটি থেকে যাবে।"
+    },
+    "editor": {
+      "newTitle": "নতুন হোমওয়ার্ক",
+      "editTitle": "হোমওয়ার্ক সম্পাদনা",
+      "intro": "প্রকাশ না করা পর্যন্ত খসড়া থাকবে।",
+      "publishedHint": "শিক্ষার্থীরা এটি পেয়ে গেছে: ক্লাস ও জমার ধরন বদলাবে না; বাকিটা বদলানো যাবে।",
+      "title": "শিরোনাম",
+      "classes": "ক্লাস",
+      "classesHint": "একটি বিষয়; যে সেকশন পাবে সেগুলোতে টিক দিন।",
+      "noClasses": "আপনি হোমওয়ার্ক দিতে পারেন এমন কোনো বিষয়-ক্লাস নেই।",
+      "someStudents": "শুধু কয়েকজন শিক্ষার্থী",
+      "someStudentsHint": "ক্লাসের সবাইকে দিতে এটি বন্ধ রাখুন।",
+      "instructions": "নির্দেশনা",
+      "instructionsPlaceholder": "শিক্ষার্থীরা কী করবে?",
+      "type": "শিক্ষার্থীরা কীভাবে জমা দেবে",
+      "types": {
+        "FILE": "ছবি বা ফাইল",
+        "TEXT": "লিখে উত্তর",
+        "PAPER": "কাগজে"
+      },
+      "typeHints": {
+        "FILE": "ছবি বা ফাইল আপলোড করবে।",
+        "TEXT": "উত্তর টাইপ করবে।",
+        "PAPER": "কাগজে করবে; নম্বর পরে আপনি দেবেন।"
+      },
+      "marks": "মোট নম্বর",
+      "marksHint": "নম্বর না থাকলে খালি রাখুন।",
+      "dueDate": "জমার তারিখ",
+      "dueHint": "জমার তারিখ না থাকলে খালি রাখুন।",
+      "dueTime": "জমার সময়",
+      "attachments": "শিক্ষার্থীদের জন্য ফাইল",
+      "attachmentsAccept": "ছবি, PDF, Word বা টেক্সট, প্রতিটি ২০ MB পর্যন্ত",
+      "cancel": "বাতিল",
+      "saveDraft": "খসড়া রাখুন",
+      "publish": "প্রকাশ",
+      "save": "সংরক্ষণ"
+    },
+    "errors": {
+      "TITLE_REQUIRED": "হোমওয়ার্কের একটি শিরোনাম দিন।",
+      "CLASS_REQUIRED": "অন্তত একটি ক্লাস বেছে নিন।",
+      "UPLOAD_FAILED": "এই ফাইলটি আপলোড করা যায়নি।",
+      "HOMEWORK_TARGETS_INVALID": "যে ক্লাসে আপনি হোমওয়ার্ক দিতে পারেন সেগুলো বেছে নিন।",
+      "HOMEWORK_TARGETS_MIXED": "একটি বিষয়ের ক্লাস বেছে নিন।",
+      "HOMEWORK_STUDENT_NOT_IN_CLASS": "বেছে নেওয়া একজন শিক্ষার্থী এই ক্লাসে নেই।",
+      "HOMEWORK_SESSION_CLOSED": "এই সেশন বন্ধ; এর হোমওয়ার্ক আর বদলানো যাবে না।",
+      "HOMEWORK_FILE_INVALID": "ফাইলগুলো আবার আপলোড করুন।",
+      "HOMEWORK_DUE_INVALID": "জমার সময় ভবিষ্যতে হতে হবে।",
+      "HOMEWORK_WRONG_STATUS": "এই হোমওয়ার্কে এখন এটি করা যাবে না।"
     }
   }
 }
