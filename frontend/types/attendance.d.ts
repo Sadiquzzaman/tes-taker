@@ -365,3 +365,64 @@ interface PaperRegisterPreview {
   /** `check_ins`: self check-ins the file disagrees with (replaced only when asked). */
   summary: { new: number; changed: number; unchanged: number; kept: number; check_ins: number };
 }
+
+/** Counts of classes per mark (ATT-13, ATT-18). */
+interface AttendanceCounts {
+  present: number;
+  late: number;
+  absent: number;
+  leave: number;
+}
+
+/** A person's day in the reports: Absent = missed every class held; `missed` = classes missed on a day they attended others. */
+type ReportDayStatus = "PRESENT" | "LATE" | "ABSENT" | "LEAVE" | "WAITING";
+interface ReportDayMark {
+  status: ReportDayStatus;
+  missed: number;
+  waiting: number;
+}
+
+/** `GET /attendance/reports/daily` (ATT-13): the daily summary per section. */
+interface DailyAttendanceReport {
+  date: string;
+  today: string;
+  time_zone: string;
+  closed: ClosedDay | null;
+  sections: {
+    section: { id: string; name: string; class_name: string };
+    mode: SectionAttendanceMode;
+    classes: {
+      slot_id: string;
+      start_time: string;
+      end_time: string;
+      teacher: { id: string; full_name: string } | null;
+      state: "UPCOMING" | "OPEN" | "CLOSED";
+      cancelled: boolean;
+      counts: { students: number; present: number; late: number; absent: number; leave: number; waiting: number; flagged: number };
+    }[];
+    counts: { students: number; present: number; late: number; absent: number; leave: number; waiting: number; missed_some: number };
+    students: { id: string; full_name: string; roll_no: string | null; marks: (CalendarStatus | null)[]; day: ReportDayMark | null }[];
+  }[];
+}
+
+/** `GET /attendance/reports/sections/:id/month` (ATT-13): the register with day marks, counts and %. */
+interface MonthlyAttendanceReport extends Omit<PaperRegisterView, "students"> {
+  days: { date: string; classes: number }[];
+  students: (PaperRegisterView["students"][number] & { days: (ReportDayMark | null)[]; counts: AttendanceCounts; attendance_pct: number | null })[];
+  counts: AttendanceCounts;
+  attendance_pct: number | null;
+}
+
+/** `GET /attendance/reports/teachers` (ATT-11, ATT-13): owners and admins. */
+interface TeacherAttendanceReport {
+  from: string;
+  to: string;
+  today: string;
+  teachers: {
+    teacher: { id: string; full_name: string };
+    counts: AttendanceCounts;
+    attendance_pct: number | null;
+    late_minutes: number;
+    classes: { date: string; section: { id: string; name: string; class_name: string }; start_time: string; end_time: string; status: AttendanceStatus; late_minutes: number | null }[];
+  }[];
+}

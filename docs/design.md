@@ -566,6 +566,13 @@ Departments, programmes, prerequisites, credit-weighted CGPA and registration wi
 - **Who:** sections as on the class view and the register. Owners, admins and assistants see every section; a teacher sees the sections they teach or are named on (another section is 404). Students get 403; they see their own attendance on "My attendance". Another organisation's section is 404.
 - **No summary table (decided in P3-07):** reports are worked out from the class records on request. On a realistic month (40 students × 6 classes a day × 26 days = 6,240 records), the e2e test measured the monthly register at 440 ms, the daily summary at 59 ms and the Performance read at 18 ms. `daily_attendance` stays unbuilt (TODO if term-wide reports get slow).
 
+**Built in P3-07 part 2 (screens):** "Attendance reports" (`/attendance-reports`, `attendance` feature) is in the Organization menu for every staff role and in a solo teacher's own workspace. It has three tabs:
+- **Daily summary:** a date (default today) and all sections or one. Each section shows its mode, its classes (cancelled ones marked) and its students in groups, most urgent first: absent all day, missed some classes, late, on leave, not in yet, present. Each group has its count and the names ("Rahim (missed 1)").
+- **Monthly register:** a section and a month. The grid is students × class days, one cell per day in the calendar colours with its letter (P/L/A/LV, or উ/দে/অ/ছু). A small number shows the classes missed on a day the student came to others. Then each student's Present, Late, Absent and Leave counts and attendance %, and the section's % in the card. "Export CSV (Excel)" writes P3-05's register CSV with a byte-order mark, so Excel keeps Bangla and the file can be imported again.
+- **Teachers** (owners and admins of an organisation only; not in a solo workspace): from and to (default today, with "Today" and "This month"). Each teacher's counts, %, minutes late and a table of the classes not on time. CSV with the same columns.
+- **Print / Save as PDF:** each tab has a print sheet rendered under `<body>` and shown only when printing. It has the organisation, the title, the section and month (or date or period) and the letter legend, with A4 landscape, the header row repeated on every page, rows never split, and each section of the daily summary kept together. The browser's print writes the PDF, so Bangla is shaped by the browser's fonts. **No PDF or Excel package:** jsPDF does not shape Bangla conjuncts, and a real .xlsx needs a package (TODO).
+- All text in English and Bangla, with Bangla digits in Bangla.
+
 ### 9.5 Homework
 
 | Table | Status | Purpose and key columns |

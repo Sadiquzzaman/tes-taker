@@ -64,5 +64,7 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Register columns for a slot removed during the month — P3-05's register lists the section's current slots (as the class view does); a removed slot's classes keep their records but are not columns.
 - Students who left a section during the month are not on its register (ACTIVE students only, P3-05) — their records stay; P3-07's reports also list ACTIVE students only; add LEFT students for the months they were in if reports (P3-07) need it.
 - Raise `MAX_SLOTS_PER_SECTION` (30) — a school with 6 classes a day on 6 days needs 36 slots; P3-07's volume test had to add the sixth day by hand. Check the schedule grid and CSV import limits with it.
+- Real .xlsx with formatting needs a package (e.g. exceljs); owner approval — P3-07 exports CSV with a byte-order mark (Excel opens it with Bangla) and prints PDF through the browser (jsPDF does not shape Bangla).
+- A per-day grid for the monthly register's CSV (one column per day, as printed) — P3-07's CSV is P3-05's per-class format so it can be imported again; add a second CSV if schools want the printed layout in Excel.
 - Emit `score.changed` when attendance records change (design §8.11) — Performance (P7) reads `studentAttendance`; nothing emits the event yet.
 - The held-back Absent SMS after a paper register import goes out only for days up to 3 days back (`PAPER_ABSENT_SMS_DAYS`, P3-05's choice so families don't hear about last week); the owner may want another limit.
