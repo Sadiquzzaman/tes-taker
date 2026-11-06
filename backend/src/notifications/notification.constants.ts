@@ -45,6 +45,11 @@ export const NOTIFICATION_EVENTS = {
   ATTENDANCE_LATE: 'attendance.late',
   ATTENDANCE_ABSENT: 'attendance.absent',
   ATTENDANCE_REPEAT_ABSENCE: 'attendance.repeat_absence',
+  ATTENDANCE_LEAVE_APPLIED: 'attendance.leave_applied',
+  ATTENDANCE_LEAVE_REQUESTED: 'attendance.leave_requested',
+  ATTENDANCE_LEAVE_APPROVED: 'attendance.leave_approved',
+  ATTENDANCE_LEAVE_REJECTED: 'attendance.leave_rejected',
+  ATTENDANCE_LEAVE_CANCELLED: 'attendance.leave_cancelled',
 } as const;
 
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFICATION_EVENTS];

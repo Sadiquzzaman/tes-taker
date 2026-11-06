@@ -591,6 +591,7 @@ Table class_attendance_records {
   distance_m int [note: 'metres from the branch pin']
   accuracy_m int [note: 'accuracy the browser reported (100 m or better to be accepted)']
   flag varchar(40) [note: 'EDGE_ACCURACY | IMPOSSIBLE_JUMP: saved, not blocked; shown to teachers and admins']
+  leave_request_id uuid [ref: > leave_requests.id, note: 'BUILT P3-06: the approved request behind a LEAVE record (closing job, or an Absent turned into Leave on approval); FK ON DELETE SET NULL']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz
   updated_by uuid
@@ -609,26 +610,31 @@ Table class_attendance_photos {
 }
 
 Enum leave_status { PENDING APPROVED REJECTED CANCELLED }
+Enum leave_person_type { STUDENT TEACHER }
 
 Table leave_requests {
   id uuid [pk]
   organization_id uuid [not null]
-  person_id uuid [not null, ref: > users.id]
-  person_type person_type [not null]
-  from_date date [not null]
-  to_date date [not null]
-  reason text
-  file_id uuid [ref: > file_objects.id]
-  status leave_status [not null, default: 'PENDING']
-  applied_by uuid [ref: > users.id, note: 'student, teacher or admin on their behalf']
-  approver_id uuid [ref: > users.id]
+  person_id uuid [not null, ref: > users.id, note: 'the student or teacher on leave; FK ON DELETE CASCADE']
+  person_type leave_person_type [not null, note: 'own enum, so ClassAttendance down can still drop attendance_person_type']
+  from_date date [not null, note: "school date in the organisation's time zone; CHECK to_date >= from_date"]
+  to_date date [not null, note: 'at most 60 days; weekly off days and holidays inside are not class days']
+  reason text [not null]
+  file_id uuid [ref: > file_objects.id, note: "optional attachment (file purpose LEAVE: images, PDF), e.g. a doctor's note; FK ON DELETE SET NULL"]
+  status leave_status [not null, default: 'PENDING', note: 'never deleted: withdrawing is CANCELLED (pending at any time, approved before it starts)']
+  applied_by uuid [ref: > users.id, note: 'the person, or staff applying for them; FK ON DELETE SET NULL']
+  approver_id uuid [ref: > users.id, note: 'who approved or rejected it; FK ON DELETE SET NULL']
   decided_at timestamptz
-  decision_note text
+  decision_note text [note: "the approver's comment (required to reject)"]
+  cancelled_at timestamptz
+  cancelled_by uuid [ref: > users.id, note: 'FK ON DELETE SET NULL']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
   Indexes {
-    (organization_id, person_id, from_date)
-    (approver_id, status)
+    (organization_id, person_id, from_date) [name: 'IDX_leave_requests_person_from']
+    (organization_id, status, from_date) [name: 'IDX_leave_requests_org_status', note: 'approvals list']
   }
-  Note: 'NEW (ATT-09, ATT-11)'
+  Note: 'BUILT P3-06 (ATT-09, ATT-11, migration LeaveRequests) — owned by attendance. Approvers: a student, the class teacher (class_teacher_enabled) else the section teachers, plus owners and admins; a teacher, owners and admins'
 }
 
 Table attendance_corrections {

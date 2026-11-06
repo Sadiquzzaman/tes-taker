@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Check, Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ClassSessionEntity } from './class-session.entity';
+import { LeaveRequestEntity } from './leave-request.entity';
 
 /** A person's attendance in one class session (spec Epic 1, "Calendar colours"). */
 export enum AttendanceStatusEnum {
@@ -17,7 +18,10 @@ export enum AttendancePersonTypeEnum {
   TEACHER = 'TEACHER',
 }
 
-/** How a record was made: a self check-in (P3-03), the closing job (P3-04), a paper register (P3-05) or a correction. */
+/**
+ * How a record was made: a self check-in (P3-03), the closing job (P3-04; LEAVE instead of Absent for
+ * someone on approved leave, P3-06), a paper register (P3-05) or a correction.
+ */
 export enum AttendanceRecordSourceEnum {
   SELF = 'SELF',
   AUTO_ABSENT = 'AUTO_ABSENT',
@@ -110,6 +114,14 @@ export class AttendanceRecordEntity {
   @ApiPropertyOptional({ enum: AttendanceFlagEnum })
   @Column({ name: 'flag', type: 'varchar', length: 40, nullable: true })
   flag: AttendanceFlagEnum | null;
+
+  @ApiPropertyOptional({ description: 'The approved leave request behind a LEAVE record (P3-06)' })
+  @Column({ name: 'leave_request_id', type: 'uuid', nullable: true })
+  leave_request_id: string | null;
+
+  @ManyToOne(() => LeaveRequestEntity, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'leave_request_id', foreignKeyConstraintName: 'FK_class_attendance_records_leave_request' })
+  leave_request?: LeaveRequestEntity | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   created_at: Date;

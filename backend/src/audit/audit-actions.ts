@@ -69,6 +69,11 @@ export const AUDIT_ACTIONS = {
   ATTENDANCE_RESTORE: 'attendance.restore',
   // The closing job's Absent records, counted per organisation and run (system, ATT-10)
   ATTENDANCE_AUTO_ABSENT: 'attendance.auto_absent',
+  // Leave requests (students, teachers and approvers; ATT-09, ATT-11)
+  LEAVE_APPLY: 'leave.apply',
+  LEAVE_APPROVE: 'leave.approve',
+  LEAVE_REJECT: 'leave.reject',
+  LEAVE_CANCEL: 'leave.cancel',
 
   // Notifications (platform admin, design §8.6)
   MESSAGE_TEMPLATE_UPDATE: 'message_template.update',

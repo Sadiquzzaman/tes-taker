@@ -1,6 +1,7 @@
 import { SectionSchedules1756210000000 } from '../../src/migrations/1756210000000-SectionSchedules';
 import { ClassAttendance1756230000000 } from '../../src/migrations/1756230000000-ClassAttendance';
 import { ClassSessionCloseCancel1756240000000 } from '../../src/migrations/1756240000000-ClassSessionCloseCancel';
+import { LeaveRequests1756250000000 } from '../../src/migrations/1756250000000-LeaveRequests';
 import { factories } from '../support/factories';
 import { createTestApp, TestApp } from '../support/test-app';
 
@@ -74,6 +75,8 @@ describe('SectionSchedules migration', () => {
       await classAttendance.up(runner);
       // P3-04's columns on class_attendance come back with it.
       await new ClassSessionCloseCancel1756240000000().up(runner);
+      // P3-06's leave link on class_attendance_records comes back too.
+      await new LeaveRequests1756250000000().up(runner);
     } finally {
       await runner.release();
     }
