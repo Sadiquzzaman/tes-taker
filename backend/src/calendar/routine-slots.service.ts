@@ -5,8 +5,8 @@ import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { SCHEDULE_ERRORS } from './calendar-errors';
 import { RoutineSlotEntity } from './entities/routine-slot.entity';
 
-/** Most weekly slots one section can have. */
-export const MAX_SLOTS_PER_SECTION = 30;
+/** Most weekly slots one section can have: 10 a day on all 7 days (a school week of 6 × 6 needs 36). */
+export const MAX_SLOTS_PER_SECTION = 70;
 
 /** A weekly slot as given: ISO day, "HH:MM" times in the organisation's time zone, an optional teacher. */
 export interface SlotInput {

@@ -3319,7 +3319,7 @@
       "SCHEDULE_TIME_INVALID": "শেষের সময় শুরুর পরে হতে হবে।",
       "SCHEDULE_OVERLAP": "একই দিনে এটি আরেকটি সময়ের সঙ্গে মিলে যায়।",
       "SCHEDULE_TEACHER_CLASH": "এই শিক্ষকের এই সময়ে আরেকটি ক্লাস আছে ({section})।",
-      "SCHEDULE_TOO_MANY": "একটি [[section]]-এর সপ্তাহে সর্বোচ্চ ৩০টি সময় থাকতে পারে।",
+      "SCHEDULE_TOO_MANY": "একটি [[section]]-এর সপ্তাহে সর্বোচ্চ ৭০টি সময় থাকতে পারে।",
       "ATTENDANCE_SETUP_TEACHER_INVALID": "এই প্রতিষ্ঠানের একজন শিক্ষক বেছে নিন।",
       "ATTENDANCE_SETUP_SOURCE_INVALID": "একই সেশনের অন্য [[section]] থেকে কপি করুন।"
     },
@@ -3374,7 +3374,7 @@
         "END_INVALID": "শেষের সময় বোঝা যায়নি। 17:30 বা 5:30 PM এভাবে লিখুন।",
         "END_BEFORE_START": "শেষের সময় শুরুর পরে হতে হবে।",
         "OVERLAP": "একই দিনে এই [[section]]-এর আরেকটি লাইনের সঙ্গে মিলে যায়।",
-        "TOO_MANY": "একটি [[section]]-এর সপ্তাহে সর্বোচ্চ ৩০টি সময় থাকতে পারে।",
+        "TOO_MANY": "একটি [[section]]-এর সপ্তাহে সর্বোচ্চ ৭০টি সময় থাকতে পারে।",
         "CLASS_TYPE_INVALID": "class_type হতে হবে সরাসরি (In person) বা অনলাইন (Online)।",
         "MODE_INVALID": "mode হতে হবে নিজে চেক-ইন বা কাগজের খাতা।",
         "GRACE_INVALID": "grace হতে হবে ০ থেকে ৬০ মিনিট, অথবা default।",
