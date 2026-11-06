@@ -1,4 +1,5 @@
 import { ClassAttendance1756230000000 } from '../../src/migrations/1756230000000-ClassAttendance';
+import { ClassSessionCloseCancel1756240000000 } from '../../src/migrations/1756240000000-ClassSessionCloseCancel';
 import { factories } from '../support/factories';
 import { createTestApp, TestApp } from '../support/test-app';
 
@@ -72,6 +73,8 @@ describe('ClassAttendance migration', () => {
       await migration.down(runner);
       expect(await exists('class_attendance')).toBe(false);
       await migration.up(runner);
+      // P3-04's columns on class_attendance come back with it.
+      await new ClassSessionCloseCancel1756240000000().up(runner);
     } finally {
       await runner.release();
     }

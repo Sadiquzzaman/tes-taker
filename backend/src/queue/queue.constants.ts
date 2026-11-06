@@ -23,6 +23,14 @@ export const FILES_PROCESS_JOB = 'files.process';
 export const FILES_SWEEP_JOB = 'files.sweep';
 export const FILES_SWEEP_EVERY_MS = 10 * 60_000;
 
+/**
+ * Attendance (design §7): every 5 minutes the closing job saves Absent for classes whose check-in
+ * has closed (ATT-10), catching up on the last few days after the worker was down.
+ */
+export const ATTENDANCE_QUEUE = 'attendance';
+export const ATTENDANCE_CLOSE_SESSIONS_JOB = 'attendance.close-sessions';
+export const ATTENDANCE_CLOSE_SESSIONS_EVERY_MS = 5 * 60_000;
+
 /** Redis key the worker refreshes so its container health check can see it is alive. */
 export const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
 export const WORKER_HEARTBEAT_EVERY_MS = 30_000;

@@ -145,6 +145,11 @@ export class OrgSettingsService {
     return (await this.organization(organizationId)).timezone || 'Asia/Dhaka';
   }
 
+  /** The organisation's kind (a school or coaching centre, or a solo teacher's workspace). */
+  async kind(organizationId: string): Promise<OrganizationEntity['kind']> {
+    return (await this.organization(organizationId)).kind;
+  }
+
   /** The organisation's attendance settings (no access check; the attendance module checks). */
   async getAttendance(organizationId: string, manager?: EntityManager): Promise<AttendanceSettings> {
     const em = manager ?? this.settingsRepo.manager;

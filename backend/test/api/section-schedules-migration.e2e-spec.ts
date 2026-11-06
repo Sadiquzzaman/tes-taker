@@ -1,5 +1,6 @@
 import { SectionSchedules1756210000000 } from '../../src/migrations/1756210000000-SectionSchedules';
 import { ClassAttendance1756230000000 } from '../../src/migrations/1756230000000-ClassAttendance';
+import { ClassSessionCloseCancel1756240000000 } from '../../src/migrations/1756240000000-ClassSessionCloseCancel';
 import { factories } from '../support/factories';
 import { createTestApp, TestApp } from '../support/test-app';
 
@@ -71,6 +72,8 @@ describe('SectionSchedules migration', () => {
       expect(await exists('routine_slots')).toBe(false);
       await migration.up(runner);
       await classAttendance.up(runner);
+      // P3-04's columns on class_attendance come back with it.
+      await new ClassSessionCloseCancel1756240000000().up(runner);
     } finally {
       await runner.release();
     }

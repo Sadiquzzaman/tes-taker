@@ -64,6 +64,11 @@ export const AUDIT_ACTIONS = {
 
   // Attendance corrections (owners, admins, assistants; teachers for their classes; ATT-07, ATT-12)
   ATTENDANCE_CORRECT: 'attendance.correct',
+  // Cancelling and restoring one class (teachers of the section, owners, admins; ATT-19)
+  ATTENDANCE_CANCEL: 'attendance.cancel',
+  ATTENDANCE_RESTORE: 'attendance.restore',
+  // The closing job's Absent records, counted per organisation and run (system, ATT-10)
+  ATTENDANCE_AUTO_ABSENT: 'attendance.auto_absent',
 
   // Notifications (platform admin, design §8.6)
   MESSAGE_TEMPLATE_UPDATE: 'message_template.update',

@@ -167,6 +167,36 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
   { event_type: NOTIFICATION_EVENTS.SMS_LOW_CREDIT, channel: IN_APP, locale: 'bn', subject: 'SMS ক্রেডিট কমে আসছে', body: 'এই মাসে {{organization_name}}-এর {{credits_left}}টি SMS ক্রেডিট বাকি।' },
   { event_type: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED, channel: IN_APP, locale: 'en', subject: 'Feature request: {{feature}}', body: '{{user_name}} of {{organization_name}} asked for it.' },
   { event_type: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED, channel: IN_APP, locale: 'bn', subject: 'ফিচার অনুরোধ: {{feature}}', body: '{{organization_name}}-এর {{user_name}} এটি চেয়েছেন।' },
+
+  // One class cancelled or restored by its teacher or an admin (ATT-19), to the section's students in-app
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_CANCELLED,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Class cancelled: {{class_name}}',
+    body: 'The {{start_time}} class on {{class_on}} is cancelled. {{note}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_CANCELLED,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'ক্লাস বাতিল: {{class_name}}',
+    body: '{{class_on}} তারিখের {{start_time}}-এর ক্লাস বাতিল। {{note}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_RESTORED,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Class back on: {{class_name}}',
+    body: 'The {{start_time}} class on {{class_on}} will take place after all.',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_RESTORED,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'ক্লাস হবে: {{class_name}}',
+    body: '{{class_on}} তারিখের {{start_time}}-এর ক্লাস হবে।',
+  },
 ];
 
 /** Values shown translated when a variable holds one of these codes (e.g. a member role). */

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
@@ -8,14 +8,15 @@ import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.decorator';
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
 import { requireWorkspace } from './attendance-access';
-import { CorrectRecordDto, SessionsQueryDto } from './dto/correction.dto';
+import { CancelClassDto, CorrectRecordDto, SessionsQueryDto } from './dto/correction.dto';
 import { SectionAttendanceService } from './section-attendance.service';
 
 /**
  * Class attendance for staff (ATT-07, ATT-12, ATT-11): the classes of a date with who checked in,
  * one class's list, and corrections with a reason (kept with their trail and in the audit log).
- * Owners, admins and assistants see every class; a teacher the classes they teach. Errors carry a
- * `code` (ATTENDANCE_SESSION_*, ATTENDANCE_CORRECTION_*). Needs `attendance`.
+ * Owners, admins and assistants see every class; a teacher the classes they teach, and cancels or
+ * restores them for a day (ATT-19). Errors carry a `code` (ATTENDANCE_SESSION_*,
+ * ATTENDANCE_CORRECTION_*, ATTENDANCE_CANCEL_*). Needs `attendance`.
  */
 @ApiTags('Attendance')
 @ApiBearerAuth('jwt')
@@ -51,5 +52,27 @@ export class SectionAttendanceController {
     @UserPayload() user: JwtPayloadInterface,
   ) {
     return { message: 'Attendance corrected', payload: await this.attendance.correct(requireWorkspace(), user.id, slotId, date, personId, dto) };
+  }
+
+  @Post(':slotId/:date/cancel')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Cancel a class for one day (with an optional note); students are told in-app',
+    description: 'Today or up to 60 days ahead, before the class ends, on a school day. Nobody is marked Absent. Returns the class.',
+  })
+  async cancel(
+    @Param('slotId', ParseUUIDPipe) slotId: string,
+    @Param('date') date: string,
+    @Body() dto: CancelClassDto,
+    @UserPayload() user: JwtPayloadInterface,
+  ) {
+    return { message: 'Class cancelled', payload: await this.attendance.cancel(requireWorkspace(), user.id, slotId, date, dto) };
+  }
+
+  @Post(':slotId/:date/restore')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Restore a cancelled class (before it ends); students are told in-app' })
+  async restore(@Param('slotId', ParseUUIDPipe) slotId: string, @Param('date') date: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Class restored', payload: await this.attendance.restore(requireWorkspace(), user.id, slotId, date) };
   }
 }
