@@ -132,7 +132,7 @@ const ScheduleImportDrawer = ({ open, sessionId, onClose, onImported }: Schedule
             {t("cancel")}
           </Button>
           <Button onClick={() => void submit()} disabled={!preview?.valid || preview.sections.length === 0} loading={busy && Boolean(preview)}>
-            {t("importCount", { count: preview?.sections.length ?? 0 })}
+            {problems > 0 ? t("fixFirst") : t("importCount", { count: preview?.sections.length ?? 0 })}
           </Button>
         </>
       }

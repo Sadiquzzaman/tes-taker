@@ -71,7 +71,7 @@ const DailyReport = ({ sections, organization }: { sections: PaperRegisterSectio
   const dateName = shownDate ? format.date(`${shownDate}T00:00:00Z`, { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }) : "";
   const classLine = (section: Section) =>
     section.classes
-      .map((item) => `${item.start_time}–${item.end_time}${item.cancelled ? ` (${t("cancelled")})` : ""}`)
+      .map((item) => `${format.timeOfDay(item.start_time)}–${format.timeOfDay(item.end_time)}${item.cancelled ? ` (${t("cancelled")})` : ""}`)
       .join(", ");
 
   return (

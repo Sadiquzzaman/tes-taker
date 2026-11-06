@@ -3356,6 +3356,7 @@
       "hasErrors": "Problem",
       "cancel": "Cancel",
       "importCount": "{count, plural, one {Import # [[section]]} other {Import # [[sections]]}}",
+      "fixFirst": "Fix the file to import",
       "columns": {
         "row": "Line",
         "section": "[[Section]]",
@@ -3687,7 +3688,7 @@
     "noClasses": "No classes this month",
     "noClassesHint": "This [[section]] has no class days this month (holidays, off days and cancelled classes are left out).",
     "noStudents": "No students in this [[section]].",
-    "paperHint": "Paper register · {classes, plural, one {# class day} other {# class days}}, {students, plural, one {# student} other {# students}}. Download the template, fill in P, L, A or Leave, and import it. Importing the same file again changes nothing.",
+    "paperHint": "Paper register · {classes, plural, one {# class day} other {# class days}}, {students, plural, one {# student} other {# students}}. Download the template, fill in P, L, A or LV, and import it. Importing the same file again changes nothing.",
     "selfHint": "Self check-in · {classes, plural, one {# class day} other {# class days}}, {students, plural, one {# student} other {# students}}. Students check themselves in; you can download the register. To import a paper register, set the [[section]] to Paper register in Class setup.",
     "template": "Download template",
     "export": "Export CSV",
@@ -3712,7 +3713,7 @@
     "importer": {
       "title": "Import the register: {section}, {month}",
       "intro": "Choose the filled-in CSV. Every column, line and mark is checked first; nothing is saved until everything is right.",
-      "columnsHint": "Columns: roll_no, name, then one column per class day (as in the template). Marks: P, L, A or Leave (or উ, দে, অ, ছু). An empty cell changes nothing.",
+      "columnsHint": "Columns: roll_no, name, then one column per class day (as in the template). Marks: P, L, A or LV (or উ, দে, অ, ছু). An empty cell changes nothing.",
       "file": "CSV file",
       "fileTypes": "CSV files",
       "noRows": "The file has no lines after the header.",
@@ -3762,7 +3763,7 @@
         "STUDENT_NOT_FOUND": "No student of this [[section]] has this roll number or name.",
         "STUDENT_AMBIGUOUS": "Two students match; use the roll number.",
         "STUDENT_DUPLICATE": "This student is on another line too.",
-        "STATUS_INVALID": "“{value}” is not a mark. Use P, L, A or Leave.",
+        "STATUS_INVALID": "“{value}” is not a mark. Use P, L, A or LV.",
         "NOT_JOINED": "The student joined after this class.",
         "TOO_OLD": "Teachers change saved marks of the last 7 days only; ask an admin."
       },
@@ -3818,7 +3819,7 @@
     "dayMissed": "{status}, missed {missed, plural, one {# class} other {# classes}}",
     "missedShort": "missed {missed, number}",
     "group": {
-      "ABSENT": "Absent all day",
+      "ABSENT": "Missed every class of this [[section]]",
       "MISSED_SOME": "Missed some classes",
       "LATE": "Late",
       "LEAVE": "On leave",
@@ -3835,7 +3836,7 @@
     "studentsCount": "{count, plural, one {# student} other {# students}}",
     "dailyTitle": "Daily attendance summary",
     "monthTitle": "Monthly attendance register",
-    "monthHint": "{days, plural, one {# class day} other {# class days}}, {classes, plural, one {# class} other {# classes}}, {students, plural, one {# student} other {# students}} · attendance {pct}. Absent on a day means every class that day was missed.",
+    "monthHint": "{days, plural, one {# class day} other {# class days}}, {classes, plural, one {# class} other {# classes}}, {students, plural, one {# student} other {# students}} · attendance {pct}. Absent on a day means every class of this [[section]] that day was missed.",
     "monthCaption": "Students by class day",
     "noClasses": "No classes this month",
     "noClassesHint": "This [[section]] has no class days this month (holidays, off days and cancelled classes are left out).",

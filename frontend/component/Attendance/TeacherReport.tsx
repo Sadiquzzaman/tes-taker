@@ -56,7 +56,7 @@ const TeacherReport = ({ organization }: { organization: string | null }) => {
   const classColumns: TableColumn<ClassRow>[] = [
     { key: "teacher", header: t("columns.teacher"), cell: (row) => row.teacher, sortValue: (row) => row.teacher },
     { key: "date", header: t("columns.date"), cell: (row) => dateName(row.date), sortValue: (row) => `${row.date} ${row.start_time}` },
-    { key: "time", header: t("columns.time"), cell: (row) => `${row.start_time}–${row.end_time}` },
+    { key: "time", header: t("columns.time"), cell: (row) => `${format.timeOfDay(row.start_time)}–${format.timeOfDay(row.end_time)}` },
     { key: "section", header: t("section"), cell: (row) => `${row.section.class_name} ${row.section.name}` },
     {
       key: "status",
@@ -161,7 +161,7 @@ const TeacherReport = ({ organization }: { organization: string | null }) => {
                     <td>{row.teacher}</td>
                     <td>{dateName(row.date)}</td>
                     <td>
-                      {row.start_time}–{row.end_time}
+                      {format.timeOfDay(row.start_time)}–{format.timeOfDay(row.end_time)}
                     </td>
                     <td>
                       {row.section.class_name} {row.section.name}

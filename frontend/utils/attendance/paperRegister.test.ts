@@ -23,7 +23,7 @@ describe("paper register CSV (ATT-17, ATT-13)", () => {
     expect(registerCsv(REGISTER, "en", { withMarks: false })).toBe(
       ["roll_no,name,2026-11-07,2026-11-14 08:00,2026-11-14 16:00", "1,Rahim,,,", ',"Karim, Jr.",,,'].join("\n"),
     );
-    expect(registerCsv(REGISTER, "en", { withMarks: true }).split("\n").slice(1)).toEqual(["1,Rahim,P,L,", ',"Karim, Jr.",A,Leave,P']);
+    expect(registerCsv(REGISTER, "en", { withMarks: true }).split("\n").slice(1)).toEqual(["1,Rahim,P,L,", ',"Karim, Jr.",A,LV,P']);
     expect(registerCsv(REGISTER, "bn", { withMarks: true }).split("\n").slice(1)).toEqual(["1,Rahim,উ,দে,", ',"Karim, Jr.",অ,ছু,উ']);
   });
 
@@ -31,7 +31,7 @@ describe("paper register CSV (ATT-17, ATT-13)", () => {
     const text = `﻿${registerCsv(REGISTER, "en", { withMarks: true })}\r\n\r\n`;
     expect(registerRowsFromCsv(text)).toEqual({
       header: ["roll_no", "name", "2026-11-07", "2026-11-14 08:00", "2026-11-14 16:00"],
-      rows: [{ cells: ["1", "Rahim", "P", "L", ""] }, { cells: ["", "Karim, Jr.", "A", "Leave", "P"] }],
+      rows: [{ cells: ["1", "Rahim", "P", "L", ""] }, { cells: ["", "Karim, Jr.", "A", "LV", "P"] }],
     });
   });
 
