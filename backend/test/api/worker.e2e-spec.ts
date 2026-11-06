@@ -10,6 +10,8 @@ import {
 import {
   ATTENDANCE_CLOSE_SESSIONS_EVERY_MS,
   ATTENDANCE_CLOSE_SESSIONS_JOB,
+  ATTENDANCE_END_OF_DAY_EVERY_MS,
+  ATTENDANCE_END_OF_DAY_JOB,
   ATTENDANCE_QUEUE,
   EXAMS_AUTO_SUBMIT_EVERY_MS,
   EXAMS_AUTO_SUBMIT_JOB,
@@ -194,13 +196,15 @@ describe('worker: exams.auto-submit', () => {
     expect(file).toMatchObject({ status: FileStatusEnum.READY, mime: 'image/webp', width: 2, height: 2 });
   });
 
-  it('closes ended classes every 5 min in the attendance.close-sessions job (P3-04)', async () => {
+  it('closes ended classes and ends the school day every 5 min (attendance.close-sessions, attendance.end-of-day; P3-04)', async () => {
     const attendanceQueue = worker.get<Queue>(getQueueToken(ATTENDANCE_QUEUE));
     expect((await attendanceQueue.getJobScheduler(ATTENDANCE_CLOSE_SESSIONS_JOB))?.every).toBe(ATTENDANCE_CLOSE_SESSIONS_EVERY_MS);
-    const job = await attendanceQueue.add(ATTENDANCE_CLOSE_SESSIONS_JOB, {});
+    expect((await attendanceQueue.getJobScheduler(ATTENDANCE_END_OF_DAY_JOB))?.every).toBe(ATTENDANCE_END_OF_DAY_EVERY_MS);
+    // Listen before adding the job, so its "completed" event cannot be missed.
     const events = new QueueEvents(ATTENDANCE_QUEUE, { connection: redisConnection() });
     try {
       await events.waitUntilReady();
+      const job = await attendanceQueue.add(ATTENDANCE_CLOSE_SESSIONS_JOB, {});
       expect(await job.waitUntilFinished(events, 30_000)).toMatchObject({ sessions_closed: 0, students_absent: 0 });
     } finally {
       await events.close();

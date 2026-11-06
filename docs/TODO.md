@@ -58,3 +58,5 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Correction SMS after an absence SMS (ATT-12: "offers to send a correction SMS"; `attendance_corrections.correction_sms_sent`) — needs a choice in the correction form and a template; not in P3-04's stories (ATT-10, 14, 19).
 - Leave in the closing job (ATT-09, P3-06) — P3-04 saves Absent for everyone without a record; approved leave must write LEAVE records first (or the job must skip people on approved leave) when P3-06 adds leave requests.
 - Rename the organisation role "Assistant" on the members screens (e.g. "Office staff"; messages already say "staff member") — a role name used across the app, owner decision; P3-04 only removed it from the attendance messages.
+- A daily summary row per person (`daily_attendance` in schema.dbml) — P3-04 works out "absent all day" and the absence streak from the class records; add the summary if reports (P3-07) need it for speed.
+- Late SMS for a correction to Late, and for paper-register imports (P3-05) — P3-04 sends the Late SMS only on a late self check-in ("at once"); a correction or an import comes later, when the moment has passed.
