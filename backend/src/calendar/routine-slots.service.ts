@@ -80,6 +80,16 @@ export class RoutineSlotsService {
     return result;
   }
 
+  /** Organisations with at least one active slot (for the attendance jobs, which run outside a request). */
+  async organizationsWithActiveSlots(): Promise<string[]> {
+    const rows: { organization_id: string }[] = await this.slotRepo
+      .createQueryBuilder('slot')
+      .select('DISTINCT slot.organization_id', 'organization_id')
+      .where('slot.is_active = :active', { active: ActiveStatusEnum.ACTIVE })
+      .getRawMany();
+    return rows.map((row) => row.organization_id);
+  }
+
   /** When each slot was added, by id (a class session exists only from then on; ATT-18). */
   async createdAt(organizationId: string, ids: string[]): Promise<Map<string, Date>> {
     if (ids.length === 0) return new Map();

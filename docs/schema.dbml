@@ -561,13 +561,18 @@ Table class_attendance {
   date date [not null, note: "school day in the organisation's time zone"]
   starts_at timestamptz [not null, note: "the slot's start on that date; check-in opens 15 min before; Late after starts_at + grace"]
   ends_at timestamptz [not null, note: 'check-in closes; CHECK ends_at > starts_at']
-  status class_session_status [not null, default: 'SCHEDULED', note: 'P3-04: CLOSED when check-in closes (auto Absent), CANCELLED (ATT-19, adds cancelled_by and a note)']
+  status class_session_status [not null, default: 'SCHEDULED', note: 'BUILT P3-04: CLOSED by the closing job once check-in closes (missing people saved as AUTO_ABSENT); CANCELLED by a teacher of the section or an admin (ATT-19); restoring sets SCHEDULED again']
+  closed_at timestamptz [note: 'BUILT P3-04 (ATT-10): when the closing job closed it']
+  cancelled_at timestamptz [note: 'BUILT P3-04 (ATT-19); cleared on restore (the audit log keeps the history)']
+  cancelled_by uuid [ref: > users.id, note: 'BUILT P3-04; FK ON DELETE SET NULL']
+  cancel_note varchar(300) [note: "BUILT P3-04: the teacher's note to students (optional)"]
   created_at timestamptz [not null, default: `now()`]
   Indexes {
     (routine_slot_id, date) [unique, name: 'UQ_class_attendance_slot_date']
     (organization_id, section_id, date)
+    (organization_id, date, status) [name: 'IDX_class_attendance_org_date_status', note: 'P3-04: closing and end-of-day jobs']
   }
-  Note: 'BUILT P3-03 (ATT-04, ATT-07, attendance module): one row per class session; made on the first check-in or correction of a slot and date (P3-04\'s worker may make the rest). Roll-call columns (offering_id, marked_by, marked_at, locked_at) dropped from the plan: no roll call (5 Nov 2026)'
+  Note: 'BUILT P3-03 (ATT-04, ATT-07, attendance module): one row per class session; made on the first check-in or correction of a slot and date, by the closing job when check-in closes, or by a cancellation (P3-04, migration ClassSessionCloseCancel). Roll-call columns (offering_id, marked_by, marked_at, locked_at) dropped from the plan: no roll call (5 Nov 2026)'
 }
 
 Table class_attendance_records {

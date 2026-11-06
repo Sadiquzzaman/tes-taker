@@ -17,6 +17,13 @@ describe('renderTemplate (design §8.6)', () => {
     expect(bn).toMatch(/২০২৬/);
   });
 
+  it('shows school dates (`*_on`) as the day and month, never shifted by a time zone', () => {
+    expect(renderTemplate('{{absent_on}}', { absent_on: '2026-10-21' }, { locale: 'en', timeZone: 'Asia/Dhaka', html: false })).toBe('21 Oct');
+    expect(renderTemplate('{{absent_on}}', { absent_on: '2026-10-21' }, { locale: 'en', timeZone: 'America/Los_Angeles', html: false })).toBe('21 Oct');
+    expect(renderTemplate('{{absent_on}}', { absent_on: '2026-10-21' }, { locale: 'bn', timeZone: 'Asia/Dhaka', html: false })).toMatch(/^২১ /);
+    expect(renderTemplate('{{note_on}}', { note_on: 'soon' }, { locale: 'en', timeZone: 'Asia/Dhaka', html: false })).toBe('soon');
+  });
+
   it('shows numbers with Bangla digits in Bangla', () => {
     expect(renderTemplate('{{n}}', { n: 1250 }, { locale: 'bn', timeZone: 'Asia/Dhaka', html: false })).toBe('১,২৫০');
     expect(renderTemplate('{{n}}', { n: 1250 }, { locale: 'en', timeZone: 'Asia/Dhaka', html: false })).toBe('1,250');

@@ -1,5 +1,6 @@
 import {
   checkInState,
+  countsFor,
   distanceMetres,
   isEdgeAccuracy,
   isImpossibleJump,
@@ -48,5 +49,13 @@ describe('class session time', () => {
     expect(isImpossibleJump(20_000, 5 * 60_000)).toBe(true);
     expect(isImpossibleJump(20_000, 60 * 60_000)).toBe(false);
     expect(isImpossibleJump(1_500, 1_000)).toBe(false);
+  });
+
+  it('counts a class only when its slot existed and the student had joined before it started', () => {
+    const window = { starts_at: new Date('2026-11-07T10:00:00Z') };
+    expect(countsFor(window)).toBe(true);
+    expect(countsFor(window, new Date('2026-11-01T00:00:00Z'), new Date('2026-11-07T09:59:00Z'))).toBe(true);
+    expect(countsFor(window, new Date('2026-11-07T10:00:00Z'))).toBe(false);
+    expect(countsFor(window, null, new Date('2026-11-07T10:15:00Z'))).toBe(false);
   });
 });

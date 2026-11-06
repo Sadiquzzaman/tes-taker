@@ -116,6 +116,7 @@ export class ClassSessionsService {
     if (slotIds.length === 0) return result;
     const rows = await this.sessionRepo
       .createQueryBuilder('s')
+      .leftJoinAndSelect('s.canceller', 'canceller')
       .where('s.organization_id = :organizationId', { organizationId })
       .andWhere('s.routine_slot_id IN (:...slotIds)', { slotIds: [...new Set(slotIds)] })
       .andWhere('s.date BETWEEN :from AND :to', { from, to })

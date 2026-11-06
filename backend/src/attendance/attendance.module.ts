@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AcademicsModule } from 'src/academics/academics.module';
 import { CalendarModule } from 'src/calendar/calendar.module';
 import { OrganizationsModule } from 'src/organizations/organization.module';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 import { SubscriptionModule } from 'src/subscriptions/subscription.module';
 import { AttendanceBranchesController } from './attendance-branches.controller';
 import { AttendanceClock } from './attendance-clock';
@@ -22,14 +23,16 @@ import { SectionAttendanceSettingsEntity } from './entities/section-attendance-s
 import { ScheduleImportService } from './schedule-import.service';
 import { SectionSetupController } from './section-setup.controller';
 import { SectionSetupService } from './section-setup.service';
+import { SessionClosingService } from './session-closing.service';
 
 /**
  * Attendance (Epic 1, design §4). So far: the settings (ATT-01, in org_settings), branches (ATT-15),
  * section setup with schedules (ATT-16) and class sessions with web self check-in (ATT-04, 06, 11)
- * "My attendance" (ATT-18) and the teachers' class view with corrections (ATT-07, ATT-12).
+ * "My attendance" (ATT-18), the teachers' class view with corrections (ATT-07, ATT-12) and class
+ * cancellation (ATT-19), and the closing job that saves Absent when check-in closes (ATT-10).
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([SectionAttendanceSettingsEntity, ClassSessionEntity, AttendanceRecordEntity, AttendanceCorrectionEntity]), OrganizationsModule, AcademicsModule, CalendarModule, SubscriptionModule],
+  imports: [TypeOrmModule.forFeature([SectionAttendanceSettingsEntity, ClassSessionEntity, AttendanceRecordEntity, AttendanceCorrectionEntity]), OrganizationsModule, AcademicsModule, CalendarModule, SubscriptionModule, NotificationsModule],
   controllers: [AttendanceSettingsController, AttendanceBranchesController, SectionSetupController, CheckInController, SectionAttendanceController],
   providers: [
     AttendanceSettingsService,
@@ -41,7 +44,8 @@ import { SectionSetupService } from './section-setup.service';
     CheckInService,
     MyAttendanceService,
     SectionAttendanceService,
+    SessionClosingService,
   ],
-  exports: [AttendanceSettingsService],
+  exports: [AttendanceSettingsService, SessionClosingService],
 })
 export class AttendanceModule {}

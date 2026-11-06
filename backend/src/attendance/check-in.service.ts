@@ -32,10 +32,11 @@ import {
   AttendanceRecordSourceEnum,
   AttendanceStatusEnum,
 } from './entities/attendance-record.entity';
+import { ClassSessionStatusEnum } from './entities/class-session.entity';
 import { SectionAttendanceModeEnum, SectionClassTypeEnum } from './entities/section-attendance-settings.entity';
 
 /** Why a class takes no self check-in today, or null when it does. */
-export type CheckInBlock = 'CLOSED_DAY' | 'PAPER_REGISTER' | 'NO_PIN' | 'SESSION_CLOSED' | null;
+export type CheckInBlock = 'CLOSED_DAY' | 'CANCELLED' | 'PAPER_REGISTER' | 'NO_PIN' | 'SESSION_CLOSED' | null;
 
 /** One of the caller's classes on a day, with the check-in window and their own record. */
 export interface MyClassView {
@@ -153,6 +154,9 @@ export class CheckInService {
       throw new ConflictException({ message: 'This class keeps attendance on paper', code: ATTENDANCE_ERRORS.CHECKIN_PAPER_REGISTER });
     }
     const saved = (await this.sessions.savedSessions(organizationId, [slot.id], date, date)).get(sessionKey(slot.id, date));
+    if (saved?.status === ClassSessionStatusEnum.CANCELLED) {
+      throw new ConflictException({ message: 'This class is cancelled today', code: ATTENDANCE_ERRORS.CHECKIN_CANCELLED });
+    }
     const window = this.sessions.window(context, slot, date, timeZone, saved);
     const state = checkInState(now, window);
     if (state === 'UPCOMING') {
@@ -244,7 +248,7 @@ export class CheckInService {
     timeZone: string,
     now: Date,
     closed: ClosedDay | null,
-    saved: { starts_at: Date; ends_at: Date } | undefined,
+    saved: { starts_at: Date; ends_at: Date; status?: ClassSessionStatusEnum } | undefined,
     record: AttendanceRecordEntity | null,
   ): MyClassView {
     const window: SessionWindow = this.sessions.window(context, item.slot, date, timeZone, saved);
@@ -252,7 +256,9 @@ export class CheckInService {
     const inPerson = context.class_type === SectionClassTypeEnum.IN_PERSON;
     const blocked: CheckInBlock = closed
       ? 'CLOSED_DAY'
-      : context.mode === SectionAttendanceModeEnum.PAPER_REGISTER
+      : saved?.status === ClassSessionStatusEnum.CANCELLED
+        ? 'CANCELLED'
+        : context.mode === SectionAttendanceModeEnum.PAPER_REGISTER
         ? 'PAPER_REGISTER'
         : inPerson && (context.branch.geo_lat === null || context.branch.geo_lng === null)
           ? 'NO_PIN'

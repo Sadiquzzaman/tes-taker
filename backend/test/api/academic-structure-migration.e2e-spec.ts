@@ -13,6 +13,7 @@ import { AttendanceBranches1756200000000 } from '../../src/migrations/1756200000
 import { SectionSchedules1756210000000 } from '../../src/migrations/1756210000000-SectionSchedules';
 import { DropP301PresenceSettings1756220000000 } from '../../src/migrations/1756220000000-DropP301PresenceSettings';
 import { ClassAttendance1756230000000 } from '../../src/migrations/1756230000000-ClassAttendance';
+import { ClassSessionCloseCancel1756240000000 } from '../../src/migrations/1756240000000-ClassSessionCloseCancel';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
 import { factories } from '../support/factories';
@@ -138,6 +139,8 @@ describe('AcademicStructure migration', () => {
       await sectionSchedules.up(runner);
       await dropPresence.up(runner);
       await classAttendance.up(runner);
+      // P3-04's columns on class_attendance come back with it.
+      await new ClassSessionCloseCancel1756240000000().up(runner);
     } finally {
       await runner.release();
     }
