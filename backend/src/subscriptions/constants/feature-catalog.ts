@@ -5,6 +5,7 @@ export enum FeatureGroup {
   NOTIFICATIONS = 'Notifications',
   PROCTORING = 'Proctoring',
   ATTENDANCE = 'Attendance',
+  HOMEWORK = 'Homework',
 }
 
 export enum LimitKey {
@@ -52,6 +53,8 @@ export enum FeatureKey {
   PROCTORING_AUTO_DISQUALIFICATION = 'proctoring_auto_disqualification',
   /** Epic 1 (design §8.3). The method keys (attendance.zkteco, attendance.app_checkin, …) come with those methods. */
   ATTENDANCE = 'attendance',
+  /** Homework: assign, submit, review and score (Epic 2). */
+  HOMEWORK = 'homework',
 }
 
 export type PlanFeatures = Partial<Record<FeatureKey, boolean>>;
@@ -193,6 +196,12 @@ export const FEATURE_CATALOG: CatalogFeatureDefinition[] = [
     label: 'Attendance',
     description: 'Attendance settings, holidays, check-in and roll call',
   },
+  {
+    key: FeatureKey.HOMEWORK,
+    group: FeatureGroup.HOMEWORK,
+    label: 'Homework',
+    description: 'Assign homework to subject classes, collect submissions and score them',
+  },
 ];
 
 export const LIMIT_CATALOG: CatalogLimitDefinition[] = [
@@ -302,6 +311,7 @@ export const SEED_PLAN_PRESETS = {
     price_yearly: 1000,
     sort_order: 2,
     features: {
+      [FeatureKey.HOMEWORK]: true,
       [FeatureKey.ALLOW_GRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_UNGRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_QUESTION_IMPORT_EXPORT]: true,
@@ -329,6 +339,7 @@ export const SEED_PLAN_PRESETS = {
     price_yearly: 3000,
     sort_order: 3,
     features: {
+      [FeatureKey.HOMEWORK]: true,
       [FeatureKey.ALLOW_GRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_UNGRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_QUESTION_IMPORT_EXPORT]: true,
@@ -364,6 +375,7 @@ export const SEED_PLAN_PRESETS = {
     price_yearly: 5000,
     sort_order: 4,
     features: {
+      [FeatureKey.HOMEWORK]: true,
       [FeatureKey.ALLOW_GRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_UNGRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_PASSAGE_QUESTIONS]: true,

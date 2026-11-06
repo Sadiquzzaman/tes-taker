@@ -658,43 +658,52 @@ Table attendance_corrections {
 // E. Homework (Epic 2)
 //////////////////////////////////////////////////////////////
 
-Enum homework_type { FILE TEXT QUESTIONS PAPER }
-Enum homework_status { DRAFT SCHEDULED PUBLISHED CLOSED }
+Enum homework_type { FILE TEXT PAPER } // BUILT P5-01; QUESTIONS comes with the question bank (Epic 4)
+Enum homework_status { DRAFT SCHEDULED PUBLISHED CANCELLED } // BUILT P5-01; CANCELLED = withdrawn, never deleted
 
 Table homework {
   id uuid [pk]
   organization_id uuid [not null]
-  session_id uuid [ref: > academic_sessions.id]
-  subject_id uuid [ref: > subjects.id]
-  topic_id uuid [ref: > syllabus_topics.id]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  subject_id uuid [not null, ref: > subjects.id]
+  topic_id uuid [ref: > syllabus_topics.id, note: 'not built yet (Epic 6)']
   title varchar(200) [not null]
   instructions jsonb [note: 'rich text (TipTap JSON)']
   submission_type homework_type [not null]
   total_marks numeric(6,2)
   due_at timestamptz
-  publish_at timestamptz
-  status homework_status [not null]
-  policy_override jsonb [note: 'late / penalty / resubmissions, else org_settings']
-  scores_published_at timestamptz
+  publish_at timestamptz [note: 'SCHEDULED: when the homework job publishes it']
+  published_at timestamptz
+  status homework_status [not null, default: 'DRAFT']
+  reminder_sent_at timestamptz [note: 'the 24-hour reminder (HW-02); cleared when due_at changes']
+  cancelled_at timestamptz
+  cancelled_by uuid
+  policy_override jsonb [note: 'not built yet (P5-02): late / penalty / resubmissions, else org_settings']
+  scores_published_at timestamptz [note: 'not built yet (P5-03)']
   created_by uuid [ref: > users.id]
-  Note: 'NEW (HW-01)'
+  Indexes {
+    (organization_id, status, due_at)
+    (organization_id, session_id)
+  }
+  Note: 'BUILT P5-01 (HW-01, HW-02) — owned by homework; base columns (is_active, created/updated by/at) as other tables'
 }
 
 Table homework_attachments {
   homework_id uuid [ref: > homework.id]
   file_id uuid [ref: > file_objects.id]
+  sort_order smallint [not null, default: 0]
   Indexes {
     (homework_id, file_id) [pk]
   }
-  Note: 'NEW'
+  Note: 'BUILT P5-01 — files of purpose HOMEWORK'
 }
 
 Table homework_targets {
   id uuid [pk]
   homework_id uuid [not null, ref: > homework.id]
   offering_id uuid [ref: > course_offerings.id]
-  student_id uuid [ref: > users.id]
-  Note: 'NEW — subject class or individual student'
+  student_id uuid [ref: > users.id, note: 'null = everyone taking the subject class']
+  Note: 'BUILT P5-01 — a subject class, or chosen students of it (one row each)'
 }
 
 Table homework_items {

@@ -69,6 +69,25 @@ describe('plan seeding', () => {
     expect((await plans().findOneByOrFail({ slug: 'pro' })).limits.max_storage_mb).toBe(51_200);
   });
 
+  it('switches a new preset feature (homework, P5-01) on only where a plan has no value for it', async () => {
+    const basic = await plans().findOneByOrFail({ slug: 'basic' });
+    const premium = await plans().findOneByOrFail({ slug: 'premium' });
+    const { homework: _basic, ...basicFeatures } = basic.features as Record<string, boolean>;
+    await plans().save({ ...basic, features: basicFeatures });
+    // An admin switched it off on Premium: that stays.
+    await plans().save({ ...premium, features: { ...premium.features, homework: false } });
+
+    await restart();
+
+    expect((await plans().findOneByOrFail({ slug: 'basic' })).features.homework).toBe(true);
+    expect((await plans().findOneByOrFail({ slug: 'premium' })).features.homework).toBe(false);
+    // Free's preset has no homework: it stays off.
+    expect((await plans().findOneByOrFail({ slug: 'free' })).features.homework).toBeFalsy();
+
+    // Back to the preset for the other test files sharing these plans.
+    await plans().save({ ...premium, features: { ...premium.features, homework: true } });
+  });
+
   it('refuses to delete the Free plan, which organisations without a subscription use', async () => {
     const admin = await make.user(RolesEnum.SUPER_ADMIN);
     const free = await plans().findOneByOrFail({ slug: 'free' });

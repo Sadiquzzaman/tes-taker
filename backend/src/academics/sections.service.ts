@@ -9,7 +9,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { OrganizationAccessService } from 'src/organizations/organization-access.service';
 import { OrgSettingsService } from 'src/organizations/org-settings.service';
 import { AcademicSessionsService } from './academic-sessions.service';
-import { AcademicSessionEntity } from './entities/academic-session.entity';
+import { AcademicSessionEntity, AcademicSessionStatusEnum } from './entities/academic-session.entity';
 import { CourseOfferingEntity, OfferingEnrolmentModeEnum } from './entities/course-offering.entity';
 import { EnrolmentEntity, EnrolmentStatusEnum } from './entities/enrolment.entity';
 import { OfferingEnrolmentEntity, OfferingEnrolmentStatusEnum } from './entities/offering-enrolment.entity';
@@ -473,6 +473,51 @@ export class SectionsService {
     const offering = await tenantScoped(this.offeringRepo).findOne({ where: { id }, relations: ['subject'] });
     if (!offering) throw new NotFoundException('Subject class not found');
     return offering;
+  }
+
+  /**
+   * Subject classes of an organisation by id, with their section (and class), session and subject,
+   * and each one's teachers; for other modules and jobs, which pass the organisation (homework,
+   * HW-01). Unknown ids are left out. No access check: the caller checks.
+   */
+  async offeringsWithTeachers(
+    organizationId: string,
+    ids: string[],
+  ): Promise<{ offering: CourseOfferingEntity; teacherIds: string[] }[]> {
+    if (ids.length === 0) return [];
+    const offerings = await tenantScoped(this.offeringRepo)
+      .forOrganization(organizationId)
+      .find({ where: { id: In([...new Set(ids)]) }, relations: ['subject', 'section', 'section.class', 'session'] });
+    const teachers = offerings.length
+      ? await this.offeringTeacherRepo.find({ where: { organization_id: organizationId, offering_id: In(offerings.map((o) => o.id)) } })
+      : [];
+    return offerings.map((offering) => ({
+      offering,
+      teacherIds: teachers.filter((t) => t.offering_id === offering.id).map((t) => t.teacher_id),
+    }));
+  }
+
+  /** Every subject class of the organisation in sessions that are not closed. */
+  async openOfferingIds(organizationId: string): Promise<string[]> {
+    const rows: { id: string }[] = await this.offeringRepo.manager.query(
+      `SELECT o.id FROM course_offerings o
+         JOIN academic_sessions s ON s.id = o.session_id AND s.status = $2
+        WHERE o.organization_id = $1`,
+      [organizationId, AcademicSessionStatusEnum.ACTIVE],
+    );
+    return rows.map((row) => row.id);
+  }
+
+  /** The subject classes a teacher teaches (offering_teachers), in sessions that are not closed. */
+  async offeringIdsTaughtBy(organizationId: string, teacherId: string): Promise<string[]> {
+    const rows: { id: string }[] = await this.offeringTeacherRepo.manager.query(
+      `SELECT o.id FROM offering_teachers t
+         JOIN course_offerings o ON o.id = t.offering_id
+         JOIN academic_sessions s ON s.id = o.session_id AND s.status = $3
+        WHERE t.organization_id = $1 AND t.teacher_id = $2`,
+      [organizationId, teacherId, AcademicSessionStatusEnum.ACTIVE],
+    );
+    return rows.map((row) => row.id);
   }
 
   async getOffering(id: string): Promise<OfferingView> {

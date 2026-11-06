@@ -50,6 +50,8 @@ export const NOTIFICATION_EVENTS = {
   ATTENDANCE_LEAVE_APPROVED: 'attendance.leave_approved',
   ATTENDANCE_LEAVE_REJECTED: 'attendance.leave_rejected',
   ATTENDANCE_LEAVE_CANCELLED: 'attendance.leave_cancelled',
+  HOMEWORK_ASSIGNED: 'homework.assigned',
+  HOMEWORK_DUE_SOON: 'homework.due_soon',
 } as const;
 
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFICATION_EVENTS];

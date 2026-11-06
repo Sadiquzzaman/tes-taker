@@ -2149,7 +2149,8 @@
       "Analytics": "Analytics",
       "Notifications": "Notifications",
       "Proctoring": "Proctoring",
-      "Attendance": "Attendance"
+      "Attendance": "Attendance",
+      "Homework": "Homework"
     },
     "catalog": {
       "allow_graded_questions": {
@@ -2271,6 +2272,10 @@
       "attendance": {
         "name": "Attendance",
         "description": "Attendance settings, holidays, check-in and roll call."
+      },
+      "homework": {
+        "name": "Homework",
+        "description": "Assign homework to subject classes, collect submissions and score them."
       }
     },
     "limits": {
@@ -2850,6 +2855,12 @@
         "restore": "Class restored",
         "auto_absent": "Absent saved when check-in closed",
         "import": "Paper register imported"
+      },
+      "homework": {
+        "create": "Homework written",
+        "update": "Homework changed",
+        "publish": "Homework published",
+        "cancel": "Homework withdrawn"
       }
     },
     "fields": {
