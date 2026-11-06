@@ -457,15 +457,9 @@ describe('attendance reports API', () => {
       for (let i = 1; i <= 40; i++) students.push(await base.student(`Student ${i}`, [c10.classEntity], String(i)));
       const days = [1, 2, 3, 4, 6, 7]; // Saturday to Thursday; Friday off
       const times = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00'];
-      // The schedule screen takes 30 slots a section (MAX_SLOTS_PER_SECTION): five days through it, Thursday copied in.
       await base.setSlots(
         c10.section.id,
-        days.slice(0, 5).flatMap((day) => times.map((time) => ({ day_of_week: day, start_time: time, end_time: `${String(Number(time.slice(0, 2)) + 1).padStart(2, '0')}:00`, teacher_id: null }))),
-      );
-      await t.dataSource.query(
-        `INSERT INTO routine_slots (organization_id, session_id, section_id, day_of_week, start_time, end_time, created_at)
-         SELECT organization_id, session_id, section_id, $2, start_time, end_time, created_at FROM routine_slots WHERE section_id = $1 AND day_of_week = $3`,
-        [c10.section.id, days[5], days[0]],
+        days.flatMap((day) => times.map((time) => ({ day_of_week: day, start_time: time, end_time: `${String(Number(time.slice(0, 2)) + 1).padStart(2, '0')}:00`, teacher_id: null }))),
       );
       // Every class of November held, with a record per student (a mix of marks), as the closing job leaves them.
       await t.dataSource.query(

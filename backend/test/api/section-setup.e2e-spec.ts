@@ -169,7 +169,6 @@ describe('section setup API', () => {
       [{ day_of_week: SAT, start_time: '4pm', end_time: '17:00' }],
       [{ day_of_week: SAT, start_time: '24:00', end_time: '17:00' }],
       [{ day_of_week: SAT, start_time: '16:00' }],
-      Array.from({ length: 31 }, (_, i) => ({ day_of_week: 1 + (i % 7), start_time: `0${i % 4}:00`.slice(-5), end_time: '23:00' })),
     ];
     for (const slots of bad) expect((await putSlots(token, s6A.id, slots)).status).toBe(400);
 
@@ -187,6 +186,29 @@ describe('section setup API', () => {
     const backToBack = await putSlots(token, s6A.id, [BATCH[2], { day_of_week: SAT, start_time: '17:30', end_time: '18:30' }]);
     expect(backToBack.status).toBe(200);
     expect(backToBack.body.payload.slots).toHaveLength(2);
+  });
+
+  it('takes a full school week (6 classes on 6 days) and up to 70 slots, no more', async () => {
+    const { token, s6A } = await school();
+    // Hourly slots spread over the week, never overlapping: slot i is on day 1 + i % 7 at hour i / 7.
+    const weekly = (count: number) =>
+      Array.from({ length: count }, (_, i) => {
+        const hour = String(Math.floor(i / 7)).padStart(2, '0');
+        return { day_of_week: 1 + (i % 7), start_time: `${hour}:00`, end_time: `${hour}:50` };
+      });
+    const schoolWeek = [1, 2, 3, 4, 6, 7].flatMap((day) =>
+      ['08', '09', '10', '11', '12', '13'].map((hour) => ({ day_of_week: day, start_time: `${hour}:00`, end_time: `${hour}:50` })),
+    );
+
+    const school36 = await putSlots(token, s6A.id, schoolWeek);
+    expect(school36.status).toBe(200);
+    expect(school36.body.payload.slots).toHaveLength(36);
+
+    expect((await putSlots(token, s6A.id, weekly(70))).body.payload.slots).toHaveLength(70);
+    const tooMany = await putSlots(token, s6A.id, weekly(71));
+    // Refused by the request check (the DTO's ArrayMaxSize uses the same limit) before anything is saved.
+    expect(tooMany.status).toBe(400);
+    expect((await rowOf(token, s6A.id)).slots).toHaveLength(70);
   });
 
   it('lets a slot name a teacher, who cannot be in two overlapping slots of the session', async () => {
