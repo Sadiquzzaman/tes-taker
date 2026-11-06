@@ -28,7 +28,7 @@ const roleChange: AuditLogItem = {
 const futureAction: AuditLogItem = {
   id: "1",
   created_at: "2026-10-29T08:00:00.000Z",
-  action: "attendance.correct",
+  action: "attendance.future_action",
   organization: null,
   actor: null,
   entity_type: null,
@@ -53,7 +53,7 @@ describe("audit log table (design §8.10)", () => {
     expect(within(table).getByText("Green School")).toBeTruthy();
     expect(within(table).getByText(/Role: TEACHER → ADMIN/)).toBeTruthy();
     // An action the messages do not know yet shows its key; no actor means the system.
-    expect(within(table).getByText("attendance.correct")).toBeTruthy();
+    expect(within(table).getByText("attendance.future_action")).toBeTruthy();
     expect(within(table).getByText("System")).toBeTruthy();
     expect(within(table).getByText("Reason: Late bus")).toBeTruthy();
   });

@@ -42,7 +42,9 @@
     "attendanceSettings": "Attendance settings",
     "holidays": "Holidays",
     "branches": "Branches",
-    "classSetup": "Class setup"
+    "classSetup": "Class setup",
+    "myAttendance": "My attendance",
+    "classAttendance": "Class attendance"
   },
   "shell": {
     "organization": "Organization",
@@ -2736,7 +2738,8 @@
       "holiday": "Holidays",
       "branch": "Branches",
       "section_attendance": "[[Section]] setup",
-      "schedule": "Schedules"
+      "schedule": "Schedules",
+      "attendance": "Attendance"
     },
     "actions": {
       "plan": {
@@ -2824,6 +2827,9 @@
       },
       "schedule": {
         "update": "Schedule changed"
+      },
+      "attendance": {
+        "correct": "Attendance corrected"
       }
     },
     "fields": {
@@ -2924,7 +2930,8 @@
       "slots": "Schedule",
       "source": "How",
       "from_section_id": "Copied from",
-      "section": "[[Section]]"
+      "section": "[[Section]]",
+      "late_minutes": "Minutes late"
     }
   },
   "smsCredits": {
@@ -3360,6 +3367,152 @@
         "BRANCH_NOT_ALLOWED": "Only owners, admins and assistants can change branches.",
         "SETTINGS_CONFLICT": "Another line of this [[section]] has different settings."
       }
+    }
+  },
+  "myAttendance": {
+    "title": "My attendance",
+    "intro": "Check in to your classes here, and see your attendance for the month. The time always comes from the server.",
+    "todayTitle": "Today, {date}",
+    "todayTitleShort": "Today",
+    "loadFailed": "Couldn't load your attendance.",
+    "noClassesToday": "No classes today",
+    "noClassesTodayHint": "Your classes appear here on the days they meet.",
+    "youTeach": "You teach",
+    "checkIn": "Check in",
+    "checkInTo": "Check in to {section}",
+    "locating": "Finding your location…",
+    "checkingIn": "Checking in…",
+    "checkedIn": "You're checked in. On time!",
+    "checkedInLate": "You're checked in, {minutes, number} min late.",
+    "opensAt": "Check-in opens at {time}",
+    "openUntil": "Check-in open until {time}",
+    "lateBy": "Late by {minutes, number} min",
+    "monthTitle": "This month",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "attendancePct": "Attendance rate",
+    "calendarLabel": "Attendance in {month}",
+    "legend": "What the marks mean",
+    "markLabel": "{section}, {time}: {status}",
+    "classType": {
+      "IN_PERSON": "In person",
+      "ONLINE": "Online"
+    },
+    "closed": {
+      "WEEKLY_OFF": "Weekly off day: no classes.",
+      "HOLIDAY": "Holiday: no classes. {name}"
+    },
+    "blocked": {
+      "PAPER_REGISTER": "Attendance for this class is kept on paper.",
+      "NO_PIN": "The check-in location of this class isn't set yet. Ask your admin."
+    },
+    "flag": {
+      "EDGE_ACCURACY": "Saved, but your location was unclear near the edge; your teacher may check it.",
+      "IMPOSSIBLE_JUMP": "Saved, but it was far from your last check-in; your teacher may check it."
+    },
+    "status": {
+      "UPCOMING": "Upcoming",
+      "OPEN": "Check-in open",
+      "PRESENT": "Present",
+      "LATE": "Late",
+      "ABSENT": "Absent",
+      "LEAVE": "On leave",
+      "CLOSED_DAY": "Holiday or off day",
+      "NOT_RECORDED": "Not recorded yet"
+    },
+    "letter": {
+      "UPCOMING": "U",
+      "OPEN": "O",
+      "PRESENT": "P",
+      "LATE": "L",
+      "ABSENT": "A",
+      "LEAVE": "LV",
+      "CLOSED_DAY": "H",
+      "NOT_RECORDED": "N"
+    },
+    "location": {
+      "denied": "Allow location for this site in your browser, then try again.",
+      "unavailable": "Couldn't find your location. Move near a window and try again."
+    },
+    "errors": {
+      "ATTENDANCE_CHECKIN_NOT_OPEN": "Check-in opens at {time}.",
+      "ATTENDANCE_CHECKIN_CLOSED": "Check-in for this class has closed.",
+      "ATTENDANCE_CHECKIN_ALREADY": "You have already checked in to this class.",
+      "ATTENDANCE_CHECKIN_NO_PIN": "The check-in location of this class isn't set yet. Ask your admin.",
+      "ATTENDANCE_CHECKIN_LOCATION_REQUIRED": "Allow location for this site in your browser, then try again.",
+      "ATTENDANCE_CHECKIN_ACCURACY_POOR": "Your location isn't accurate enough ({accuracy, number} m). Move near a window and try again.",
+      "ATTENDANCE_CHECKIN_TOO_FAR": "You are {distance, number} m away. Check in within {radius, number} m of your class.",
+      "ATTENDANCE_CHECKIN_CLOSED_DAY": "There are no classes today.",
+      "ATTENDANCE_CHECKIN_PAPER_REGISTER": "Attendance for this class is kept on paper.",
+      "ATTENDANCE_CHECKIN_NO_CLASS_TODAY": "This class doesn't meet today.",
+      "ATTENDANCE_CHECKIN_NOT_YOUR_CLASS": "You can check in only to your own classes."
+    }
+  },
+  "classAttendance": {
+    "title": "Class attendance",
+    "intro": "Who checked in to each class. Students check themselves in; you only fix mistakes, with a reason.",
+    "date": "Date",
+    "classesOn": "Classes on {date}",
+    "loadFailed": "Couldn't load the classes.",
+    "empty": "No classes on this day",
+    "emptyHint": "Classes come from the weekly schedules in Class setup.",
+    "class": "Class",
+    "checkIn": "Check-in",
+    "students": "Students",
+    "teachers": "Teachers",
+    "actions": "Actions",
+    "closedDay": "No classes (closed)",
+    "paperRegister": "Paper register",
+    "state": {
+      "UPCOMING": "Not open yet",
+      "OPEN": "Open now",
+      "CLOSED": "Closed"
+    },
+    "countsLabel": "{students, number} students: {present, number} present, {late, number} late, {absent, number} absent, {leave, number} on leave, {waiting, number} not in yet, {flagged, number} flagged",
+    "countPresent": "P {count, number}",
+    "countLate": "L {count, number}",
+    "countAbsent": "A {count, number}",
+    "countLeave": "LV {count, number}",
+    "countWaiting": "Not in yet {count, number}",
+    "countFlagged": "Flagged {count, number}",
+    "view": "View",
+    "viewAndCorrect": "View and correct",
+    "openFor": "Open {section}",
+    "closed": {
+      "WEEKLY_OFF": "Weekly off day: no classes.",
+      "HOLIDAY": "Holiday: no classes. {name}"
+    },
+    "timeRange": "{start}–{end}",
+    "studentsCount": "Students ({count, number})",
+    "noStudents": "No students in this [[section]] yet.",
+    "notStartedHint": "Corrections open when the class starts.",
+    "checkedInAt": "checked in at {time}",
+    "distance": "{distance, number} m away (±{accuracy, number} m)",
+    "flag": {
+      "EDGE_ACCURACY": "Unclear location at the edge",
+      "IMPOSSIBLE_JUMP": "Far from the last check-in"
+    },
+    "correct": "Correct",
+    "correctFor": "Correct {name}",
+    "trailFor": "Corrections of {name}",
+    "trailLine": "{from} → {to} by {who}, {when}",
+    "noRecord": "No check-in",
+    "someone": "Someone",
+    "newStatus": "New status",
+    "lateMinutes": "Minutes late",
+    "reason": "Reason",
+    "reasonHint": "Kept with the record, e.g. \"Phone had no internet; was in class\".",
+    "reasonRequired": "Write why you are correcting this (at least 3 characters).",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "saveCorrection": "Save correction",
+    "corrected": "Attendance of {name} corrected",
+    "errors": {
+      "ATTENDANCE_CORRECTION_NOT_STARTED": "This class hasn't started yet.",
+      "ATTENDANCE_CORRECTION_CLOSED_DAY": "There was no class that day.",
+      "ATTENDANCE_CORRECTION_PERSON_NOT_FOUND": "This person isn't in this class.",
+      "ATTENDANCE_CORRECTION_TEACHER_RECORD": "Only owners, admins and assistants correct a teacher's attendance.",
+      "ATTENDANCE_CORRECTION_NO_CHANGE": "The record already has this status."
     }
   }
 }

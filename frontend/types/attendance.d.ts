@@ -113,3 +113,134 @@ interface ScheduleImportPreview {
   rows: ScheduleImportRowResult[];
   sections: { id: string; name: string; class_name: string; slots_before: number; slots_after: number; settings_changed: boolean }[];
 }
+
+/** A person's attendance in a class session (P3-03). */
+type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT" | "LEAVE";
+
+/** A saved record as the API returns it (never the position). */
+interface AttendanceRecord {
+  id: string;
+  status: AttendanceStatus;
+  checked_in_at: string | null;
+  late_minutes: number | null;
+  source: "SELF" | "AUTO_ABSENT" | "IMPORT" | "CORRECTION";
+  distance_m: number | null;
+  accuracy_m: number | null;
+  flag: "EDGE_ACCURACY" | "IMPOSSIBLE_JUMP" | null;
+}
+
+/** One of the caller's classes today (`GET /attendance/me/today`, ATT-04). Times are ISO instants from the server. */
+interface MyClass {
+  slot_id: string;
+  date: string;
+  role: "STUDENT" | "TEACHER";
+  section: { id: string; name: string; class_name: string };
+  class_type: SectionClassType;
+  mode: SectionAttendanceMode;
+  start_time: string;
+  end_time: string;
+  opens_at: string;
+  starts_at: string;
+  late_after: string;
+  ends_at: string;
+  state: "UPCOMING" | "OPEN" | "CLOSED";
+  needs_location: boolean;
+  blocked: "CLOSED_DAY" | "PAPER_REGISTER" | "NO_PIN" | null;
+  can_check_in: boolean;
+  record: AttendanceRecord | null;
+}
+
+/** A weekly off day or holiday (from the server). */
+interface ClosedDay {
+  date: string;
+  reason: "WEEKLY_OFF" | "HOLIDAY";
+  holiday_name?: string | null;
+}
+
+/** `GET /attendance/me/today`. */
+interface MyToday {
+  date: string;
+  server_time: string;
+  time_zone: string;
+  closed: ClosedDay | null;
+  classes: MyClass[];
+}
+
+/** A class on the calendar, in the colours of spec Epic 1 (messages `myAttendance.status`). */
+type CalendarStatus = "UPCOMING" | "OPEN" | AttendanceStatus | "CLOSED_DAY" | "NOT_RECORDED";
+
+/** `GET /attendance/me/calendar` (ATT-18). */
+interface MyCalendar {
+  month: string;
+  today: string;
+  time_zone: string;
+  days: {
+    date: string;
+    closed: ClosedDay | null;
+    classes: {
+      slot_id: string;
+      role: "STUDENT" | "TEACHER";
+      section: { id: string; name: string; class_name: string };
+      start_time: string;
+      end_time: string;
+      status: CalendarStatus;
+      record: AttendanceRecord | null;
+    }[];
+  }[];
+  counts: { present: number; late: number; absent: number; leave: number };
+  attendance_pct: number | null;
+}
+
+/** A correction in a record's trail (ATT-12). */
+interface AttendanceCorrection {
+  id: string;
+  old_status: AttendanceStatus | null;
+  new_status: AttendanceStatus;
+  reason: string;
+  corrected_by: { id: string; full_name: string } | null;
+  created_at: string;
+}
+
+/** A class on a date for staff (`GET /attendance/sessions`, ATT-07). */
+interface ClassSessionSummary {
+  slot_id: string;
+  date: string;
+  section: { id: string; name: string; class_name: string };
+  start_time: string;
+  end_time: string;
+  class_type: SectionClassType;
+  mode: SectionAttendanceMode;
+  starts_at: string;
+  late_after: string;
+  ends_at: string;
+  state: "UPCOMING" | "OPEN" | "CLOSED";
+  closed: ClosedDay | null;
+  teacher: { id: string; full_name: string } | null;
+  counts: { students: number; present: number; late: number; absent: number; leave: number; waiting: number; flagged: number };
+  can_correct: boolean;
+}
+
+/** One person on a class's list. */
+interface ClassRosterRow {
+  person: { id: string; full_name: string; roll_no: string | null };
+  role: "STUDENT" | "TEACHER";
+  status: CalendarStatus;
+  record: AttendanceRecord | null;
+  corrections: AttendanceCorrection[];
+  can_correct: boolean;
+}
+
+/** `GET /attendance/sessions/:slotId/:date`. */
+interface ClassSessionDetail extends ClassSessionSummary {
+  students: ClassRosterRow[];
+  teachers: ClassRosterRow[];
+}
+
+/** `GET /attendance/sessions`. */
+interface ClassSessionsOnDate {
+  date: string;
+  today: string;
+  time_zone: string;
+  closed: ClosedDay | null;
+  sessions: ClassSessionSummary[];
+}

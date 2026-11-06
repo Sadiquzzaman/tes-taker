@@ -15,7 +15,7 @@ import { EnrolmentEntity, EnrolmentStatusEnum } from './entities/enrolment.entit
 import { OfferingEnrolmentEntity, OfferingEnrolmentStatusEnum } from './entities/offering-enrolment.entity';
 import { OfferingTeacherEntity } from './entities/offering-teacher.entity';
 import { SectionEntity } from './entities/section.entity';
-import { openSessionCondition } from './enrolment-queries';
+import { activeEnrolmentCondition, openSessionCondition } from './enrolment-queries';
 import { OfferingRosterService, RosterStudent } from './offering-roster.service';
 import {
   CreateOfferingDto,
@@ -168,6 +168,78 @@ export class SectionsService {
       )
       .getRawMany();
     return new Set(rows.map((row) => row.id));
+  }
+
+  /**
+   * Sections of open sessions the teacher looks after (see sectionIdsTaughtBy), for class check-in
+   * (ATT-11). No access check; the attendance module checks.
+   */
+  async sectionIdsTaughtInOpenSessions(organizationId: string, teacherId: string): Promise<Set<string>> {
+    const settings = await this.settings.get(organizationId);
+    const rows: { id: string }[] = await tenantScoped(this.sectionRepo)
+      .forOrganization(organizationId)
+      .createQueryBuilder('section')
+      .select('section.id', 'id')
+      .andWhere(openSessionCondition('section'))
+      .andWhere(
+        `(EXISTS (
+          SELECT 1 FROM offering_teachers teaching
+          JOIN course_offerings teaching_offering ON teaching_offering.id = teaching.offering_id
+          WHERE teaching.teacher_id = :teacherId AND teaching_offering.section_id = section.id
+        )${settings.class_teacher_enabled ? ' OR section.class_teacher_id = :teacherId' : ''})`,
+        { teacherId },
+      )
+      .getRawMany();
+    return new Set(rows.map((row) => row.id));
+  }
+
+  /**
+   * The student's ACTIVE enrolments in open sessions of the organisation (the one "in the class"
+   * rule, enrolment-queries), with the day the enrolment started, for class check-in (ATT-04, ATT-18).
+   */
+  async activeSectionsOfStudent(organizationId: string, studentId: string): Promise<{ section_id: string; since: Date }[]> {
+    const active = activeEnrolmentCondition('e');
+    const rows = await tenantScoped(this.enrolmentRepo)
+      .forOrganization(organizationId)
+      .createQueryBuilder('e')
+      .andWhere('e.student_id = :studentId', { studentId })
+      .andWhere(active.sql, active.params)
+      .getMany();
+    return rows.map((row) => ({ section_id: row.section_id, since: row.joined_at ?? row.created_at }));
+  }
+
+  /**
+   * ACTIVE students of these sections with their name, roll number and the day they joined, by
+   * section id, ordered by roll number then name (the attendance roster, ATT-07).
+   */
+  async activeStudentsOfSections(
+    organizationId: string,
+    sectionIds: string[],
+  ): Promise<Map<string, { student_id: string; full_name: string; roll_no: string | null; since: Date }[]>> {
+    const result = new Map<string, { student_id: string; full_name: string; roll_no: string | null; since: Date }[]>(sectionIds.map((id) => [id, []]));
+    if (sectionIds.length === 0) return result;
+    const rows = await tenantScoped(this.enrolmentRepo)
+      .forOrganization(organizationId)
+      .createQueryBuilder('e')
+      .innerJoinAndSelect('e.student', 'student')
+      .andWhere('e.section_id IN (:...sectionIds)', { sectionIds })
+      .andWhere('e.status = :active', { active: EnrolmentStatusEnum.ACTIVE })
+      .orderBy('e.roll_no', 'ASC', 'NULLS LAST')
+      .addOrderBy('lower(student.full_name)', 'ASC')
+      .getMany();
+    for (const row of rows) {
+      if (!row.student) continue;
+      result.get(row.section_id)?.push({ student_id: row.student.id, full_name: row.student.full_name, roll_no: row.roll_no, since: row.joined_at ?? row.created_at });
+    }
+    return result;
+  }
+
+  /** Sections of the organisation with their class and session, by id (unknown ids are left out). */
+  async findSectionsWithClasses(organizationId: string, ids: string[]): Promise<SectionEntity[]> {
+    if (ids.length === 0) return [];
+    return tenantScoped(this.sectionRepo)
+      .forOrganization(organizationId)
+      .find({ where: { id: In(ids) }, relations: ['class', 'session'] });
   }
 
   /** Moves a section to a branch (ATT-15); null = the main branch. The attendance module checks the branch. */
