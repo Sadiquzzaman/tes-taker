@@ -44,4 +44,22 @@ export class OfferingRosterService {
     }
     return query.orderBy('e.roll_no', 'ASC', 'NULLS LAST').addOrderBy('student.full_name', 'ASC').getRawMany<RosterStudent>();
   }
+
+  /**
+   * The subject classes a student takes in open sessions (the same rule as `students`): every
+   * offering of their active sections taken by the whole section, and SELECTED ones they are in.
+   */
+  async offeringIdsOfStudent(organizationId: string, studentId: string): Promise<string[]> {
+    const rows: { id: string }[] = await this.enrolmentRepo.manager.query(
+      `SELECT o.id FROM enrolments e
+         JOIN course_offerings o ON o.section_id = e.section_id
+         JOIN academic_sessions s ON s.id = o.session_id AND s.status = 'ACTIVE'
+        WHERE e.organization_id = $1 AND e.student_id = $2 AND e.status = $3
+          AND (o.enrolment_mode = $4 OR EXISTS (
+            SELECT 1 FROM offering_enrolments oe
+             WHERE oe.offering_id = o.id AND oe.student_id = e.student_id AND oe.status = $5))`,
+      [organizationId, studentId, EnrolmentStatusEnum.ACTIVE, OfferingEnrolmentModeEnum.WHOLE_SECTION, OfferingEnrolmentStatusEnum.ACTIVE],
+    );
+    return [...new Set(rows.map((row) => row.id))];
+  }
 }

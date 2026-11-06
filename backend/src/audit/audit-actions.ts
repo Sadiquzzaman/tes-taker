@@ -77,6 +77,12 @@ export const AUDIT_ACTIONS = {
   LEAVE_REJECT: 'leave.reject',
   LEAVE_CANCEL: 'leave.cancel',
 
+  // Homework (teachers and staff; HW-01)
+  HOMEWORK_CREATE: 'homework.create',
+  HOMEWORK_UPDATE: 'homework.update',
+  HOMEWORK_PUBLISH: 'homework.publish',
+  HOMEWORK_CANCEL: 'homework.cancel',
+
   // Notifications (platform admin, design §8.6)
   MESSAGE_TEMPLATE_UPDATE: 'message_template.update',
   SMS_CREDITS_TOP_UP: 'sms_credits.top_up',

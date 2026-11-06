@@ -46,6 +46,7 @@ import {
   validateLimitsInput,
   mergeFeatures,
   mergeLimits,
+  PlanFeatures,
   PlanLimits,
 } from './constants/feature-catalog';
 import {
@@ -119,6 +120,7 @@ export class SubscriptionService implements OnModuleInit {
       const existing = await this.planRepo.findOne({ where: { slug: preset.slug } });
       if (existing) {
         await this.addMissingPresetLimits(existing, preset.limits);
+        await this.addMissingPresetFeatures(existing, preset.features);
         continue;
       }
 
@@ -156,6 +158,21 @@ export class SubscriptionService implements OnModuleInit {
     await this.planRepo.update(plan.id, { limits: limits as PlanLimits });
     await this.entitlementsService.invalidate();
     this.logger.log(`Plan ${plan.slug}: added limits ${added.map(([key]) => key).join(', ')}`);
+  }
+
+  /**
+   * A feature added to the catalogue after a preset plan was created (e.g. `homework`, P5-01) gets
+   * the preset's switch, only while the plan has no value for it; a switch an admin saved in
+   * Admin → Plans (on or off) is never changed.
+   */
+  private async addMissingPresetFeatures(plan: SubscriptionPlanEntity, presetFeatures: PlanFeatures): Promise<void> {
+    const features = { ...(plan.features ?? {}) } as Record<string, boolean>;
+    const added = Object.entries(presetFeatures).filter(([key, value]) => value === true && !(key in features));
+    if (added.length === 0) return;
+    for (const [key] of added) features[key] = true;
+    await this.planRepo.update(plan.id, { features: features as PlanFeatures });
+    await this.entitlementsService.invalidate();
+    this.logger.log(`Plan ${plan.slug}: added features ${added.map(([key]) => key).join(', ')}`);
   }
 
   async getAllPlans(includeHidden = false): Promise<SubscriptionPlanEntity[]> {

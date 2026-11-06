@@ -316,10 +316,39 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     subject: 'ছুটি প্রত্যাহার: {{person_name}}',
     body: '{{from_on}} থেকে {{to_on}} পর্যন্ত ছুটি {{by_name}} প্রত্যাহার করেছেন।',
   },
+  // Homework (HW-02): in the inbox, linked to the homework (`path`).
+  {
+    event_type: NOTIFICATION_EVENTS.HOMEWORK_ASSIGNED,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'New homework: {{title}}',
+    body: '{{subject_name}} · Due {{due_at}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.HOMEWORK_ASSIGNED,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'নতুন হোমওয়ার্ক: {{title}}',
+    body: '{{subject_name}} · জমা {{due_at}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.HOMEWORK_DUE_SOON,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Homework due soon: {{title}}',
+    body: '{{subject_name}} · Due {{due_at}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.HOMEWORK_DUE_SOON,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'হোমওয়ার্ক জমার সময় আসছে: {{title}}',
+    body: '{{subject_name}} · জমা {{due_at}}',
+  },
 ];
 
 /** Values shown translated when a variable holds one of these codes (e.g. a member role). */
 export const VALUE_LABELS: Record<NotificationLocale, Record<string, string>> = {
-  en: { OWNER: 'owner', ADMIN: 'admin', TEACHER: 'teacher', STUDENT: 'student', ASSISTANT: 'staff member' },
-  bn: { OWNER: 'মালিক', ADMIN: 'অ্যাডমিন', TEACHER: 'শিক্ষক', STUDENT: 'শিক্ষার্থী', ASSISTANT: 'স্টাফ' },
+  en: { OWNER: 'owner', ADMIN: 'admin', TEACHER: 'teacher', STUDENT: 'student', ASSISTANT: 'staff member', NO_DUE_DATE: 'any time' },
+  bn: { OWNER: 'মালিক', ADMIN: 'অ্যাডমিন', TEACHER: 'শিক্ষক', STUDENT: 'শিক্ষার্থী', ASSISTANT: 'স্টাফ', NO_DUE_DATE: 'যেকোনো সময়' },
 };

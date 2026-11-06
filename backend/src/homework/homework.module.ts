@@ -1,0 +1,32 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AcademicsModule } from 'src/academics/academics.module';
+import { NotificationsModule } from 'src/notifications/notifications.module';
+import { OrganizationMemberEntity } from 'src/organizations/entities/organization-member.entity';
+import { OrganizationsModule } from 'src/organizations/organization.module';
+import { SubscriptionModule } from 'src/subscriptions/subscription.module';
+import { HomeworkAttachmentEntity } from './entities/homework-attachment.entity';
+import { HomeworkTargetEntity } from './entities/homework-target.entity';
+import { HomeworkEntity } from './entities/homework.entity';
+import { HomeworkClock } from './homework-clock';
+import { HomeworkController } from './homework.controller';
+import { HomeworkService } from './homework.service';
+
+/**
+ * Homework (Epic 2, design §4): owns homework, homework_targets and homework_attachments. So far:
+ * writing, publishing (now or scheduled) and withdrawing homework for subject classes, the
+ * students' list, and the in-app notices when it is given and 24 hours before it is due (HW-01, HW-02).
+ */
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([HomeworkEntity, HomeworkTargetEntity, HomeworkAttachmentEntity, OrganizationMemberEntity]),
+    OrganizationsModule,
+    AcademicsModule,
+    NotificationsModule,
+    SubscriptionModule,
+  ],
+  controllers: [HomeworkController],
+  providers: [HomeworkService, HomeworkClock],
+  exports: [HomeworkService],
+})
+export class HomeworkModule {}

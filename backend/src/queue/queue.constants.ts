@@ -38,6 +38,14 @@ export const ATTENDANCE_CLOSE_SESSIONS_EVERY_MS = 5 * 60_000;
 export const ATTENDANCE_END_OF_DAY_JOB = 'attendance.end-of-day';
 export const ATTENDANCE_END_OF_DAY_EVERY_MS = 5 * 60_000;
 
+/**
+ * Homework (design §7): every minute it publishes scheduled homework whose time has come and sends
+ * the 24-hour reminders (HW-02). Claims and outbox keys stop repeats.
+ */
+export const HOMEWORK_QUEUE = 'homework';
+export const HOMEWORK_SWEEP_JOB = 'homework.sweep';
+export const HOMEWORK_SWEEP_EVERY_MS = 60_000;
+
 /** Redis key the worker refreshes so its container health check can see it is alive. */
 export const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
 export const WORKER_HEARTBEAT_EVERY_MS = 30_000;
