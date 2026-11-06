@@ -92,3 +92,9 @@ Read spec Epic 1 ("Design") and plan §P3 first; they hold the result. In short:
 - Next: P3-05 (paper register) and P3-06 (leave). P3-06 must write LEAVE records before the closing job, or make it skip people on approved leave.
 
 **P3-06 part 1 is built:** leave requests and approvals for students and teachers (`/attendance/leave`). The closing job saves Leave instead of Absent for anyone on approved leave, and approving leave for days already closed turns their Absent into Leave with a correction each. The guardian gets an SMS when a student's leave is applied for (if switched on). Part 2 adds the Leave page (`/leave`): apply, "My leave" and "To approve".
+
+**P3-05 part 1 is built:** the paper register API (`/attendance/register`).
+- A template and an export per section and month, in the same CSV format.
+- A check per column, row and cell, then an idempotent import. A changed mark is a correction, approved leave is kept, and self check-ins are kept unless the importer chooses to replace them.
+- After an import, the Absent SMS that were held back go out (at most 3 days back). Paper imports send no Late SMS.
+- Part 2 adds the screens.

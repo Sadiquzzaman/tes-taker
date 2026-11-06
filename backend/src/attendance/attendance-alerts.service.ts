@@ -16,7 +16,7 @@ import { EntitlementsService } from 'src/subscriptions/entitlements.service';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { AttendanceClock } from './attendance-clock';
 import { countsFor } from './class-session-time';
-import { ClassSessionsService } from './class-sessions.service';
+import { ClassSessionsService, sessionKey } from './class-sessions.service';
 import { AttendancePersonTypeEnum, AttendanceRecordEntity, AttendanceStatusEnum } from './entities/attendance-record.entity';
 import { ClassSessionStatusEnum } from './entities/class-session.entity';
 import { SectionAttendanceModeEnum } from './entities/section-attendance-settings.entity';
@@ -26,6 +26,11 @@ import { SessionClosingService } from './session-closing.service';
 export const END_OF_DAY_FROM = '23:59';
 /** After a worker outage, a day's SMS and alerts still go out until this time the next morning; later they are dropped. */
 export const END_OF_DAY_CATCH_UP_UNTIL = '08:00';
+/**
+ * A paper register imported after the day ended releases that day's absence SMS only this many days
+ * back (P3-05): the register still counts later, but families are not told about last week.
+ */
+export const PAPER_ABSENT_SMS_DAYS = 3;
 /** How far back a streak of absent days is looked for (the alert threshold is at most 30 school days). */
 const STREAK_LOOKBACK_DAYS = 90;
 
@@ -59,7 +64,9 @@ const clockIn = (instant: Date, timeZone: string) =>
  * - **Late, at once:** on a student's late self check-in, once per student per day.
  * - **Absent, once a day:** from 23:59 in the organisation's time zone, one SMS when the student
  *   missed every class held that day (no SMS when any class was attended, or a paper register is
- *   not in yet). Closed days and cancelled classes have no Absent, so they never count.
+ *   not in yet). Closed days and cancelled classes have no Absent, so they never count. A paper
+ *   register imported later releases the held-back SMS (`releaseHeldAbsences`).
+ * - **No Late SMS for paper registers** (P3-05): it is sent "at once", and an import comes later.
  * - **Repeated absence:** an in-app alert to the section's class teacher (or its teachers) when a
  *   student has missed every class on N school days in a row (`repeat_absence_days`), once per streak.
  */
@@ -152,9 +159,37 @@ export class AttendanceAlertsService {
    */
   async finishDay(organizationId: string, date: string): Promise<EndOfDayResult> {
     await this.closing.closeOrganization(organizationId, date);
-    const result: EndOfDayResult = { organization_id: organizationId, date, absent_students: 0, absent_sms: 0, repeat_alerts: 0 };
-    const absent = await this.absentAllDay(organizationId, date);
-    result.absent_students = absent.size;
+    return this.sendAbsences(organizationId, date, await this.absentAllDay(organizationId, date));
+  }
+
+  /**
+   * After a paper register import (ATT-17): the absence SMS and repeated-absence alerts that were
+   * held back for these students on these days, by the same rules as the end of the day (only when
+   * every class that day was missed and no paper register is still missing; one SMS per student, day
+   * and guardian). Only days whose end has come (from 23:59), and at most
+   * `PAPER_ABSENT_SMS_DAYS` back: a register imported later still counts, but sends no SMS.
+   */
+  async releaseHeldAbsences(organizationId: string, dates: string[], studentIds: string[]): Promise<EndOfDayResult[]> {
+    if (studentIds.length === 0) return [];
+    const now = this.clock.now();
+    const timeZone = await this.orgSettings.timeZone(organizationId);
+    const today = schoolDateIn(timeZone, now);
+    const ended = (date: string) => date < today || (date === today && clockIn(now, timeZone) >= END_OF_DAY_FROM);
+    const results: EndOfDayResult[] = [];
+    for (const date of [...new Set(dates)].sort()) {
+      if (!ended(date) || date < addDays(today, -PAPER_ABSENT_SMS_DAYS)) continue;
+      results.push(await this.sendAbsences(organizationId, date, await this.absentAllDay(organizationId, date, studentIds)));
+    }
+    return results;
+  }
+
+  /** The absence SMS (when switched on) and the repeated-absence alerts for students absent all of `date`. */
+  private async sendAbsences(
+    organizationId: string,
+    date: string,
+    absent: Map<string, { sectionId: string; sectionLabel: string }>,
+  ): Promise<EndOfDayResult> {
+    const result: EndOfDayResult = { organization_id: organizationId, date, absent_students: absent.size, absent_sms: 0, repeat_alerts: 0 };
     if (absent.size === 0) return result;
 
     const [settings, names, organizationName] = await Promise.all([
@@ -190,10 +225,11 @@ export class AttendanceAlertsService {
   /**
    * Students who missed every class held on `date`, with the section of one of those classes:
    * at least one Absent record and no Present, Late or Leave, in classes that were not cancelled.
-   * Students of a paper-register section with a class that day are left out until its register is in.
+   * A student with a paper-register class that day without their mark in it is left out until the
+   * register is in (P3-05 imports it). Only `studentIds` when given.
    */
-  private async absentAllDay(organizationId: string, date: string): Promise<Map<string, { sectionId: string; sectionLabel: string }>> {
-    const days = await this.dayMarks(organizationId, [date]);
+  private async absentAllDay(organizationId: string, date: string, studentIds?: string[]): Promise<Map<string, { sectionId: string; sectionLabel: string }>> {
+    const days = await this.dayMarks(organizationId, [date], studentIds);
     const absent = new Map<string, string>();
     for (const [key, mark] of days) {
       if (mark.allAbsent) absent.set(key.split('|')[0], mark.sectionId);
@@ -243,26 +279,38 @@ export class AttendanceAlertsService {
     return marks;
   }
 
-  /** Students of paper-register sections that had a class on `date` (their register may not be in yet). */
+  /**
+   * Students whose paper register for `date` is not in yet: they have a paper-register class that
+   * day (not cancelled, joined before it started) with no record for them.
+   */
   private async paperRegisterStudents(organizationId: string, date: string): Promise<Set<string>> {
     const [closed] = await this.holidays.closedDays(organizationId, date, date);
     if (closed) return new Set();
     const bySection = await this.slots.activeOfOrganization(organizationId);
     const contexts = await this.sessions.contexts(organizationId, [...bySection.keys()]);
     const timeZone = await this.orgSettings.timeZone(organizationId);
-    const paper = [...bySection].filter(
-      ([sectionId, slots]) =>
-        contexts.get(sectionId)?.mode === SectionAttendanceModeEnum.PAPER_REGISTER && slots.some((slot) => slot.day_of_week === isoDayOf(date)),
-    );
+    const paper = [...bySection]
+      .filter(([sectionId]) => contexts.get(sectionId)?.mode === SectionAttendanceModeEnum.PAPER_REGISTER)
+      .map(([sectionId, slots]) => [sectionId, slots.filter((slot) => slot.day_of_week === isoDayOf(date))] as const)
+      .filter(([, slots]) => slots.length > 0);
     if (paper.length === 0) return new Set();
-    const rosters = await this.sections.activeStudentsOfSections(organizationId, paper.map(([id]) => id));
+    const [rosters, saved] = await Promise.all([
+      this.sections.activeStudentsOfSections(organizationId, paper.map(([id]) => id)),
+      this.sessions.savedSessions(organizationId, paper.flatMap(([, slots]) => slots.map((slot) => slot.id)), date, date),
+    ]);
+    const records = await this.sessions.records(organizationId, [...saved.values()].map((session) => session.id));
     const result = new Set<string>();
     for (const [sectionId, slots] of paper) {
       const context = contexts.get(sectionId);
       if (!context) continue;
-      const windows = slots.filter((slot) => slot.day_of_week === isoDayOf(date)).map((slot) => this.sessions.window(context, slot, date, timeZone));
-      for (const row of rosters.get(sectionId) ?? []) {
-        if (windows.some((window) => countsFor(window, null, row.since))) result.add(row.student_id);
+      for (const slot of slots) {
+        const session = saved.get(sessionKey(slot.id, date));
+        if (session?.status === ClassSessionStatusEnum.CANCELLED) continue;
+        const window = this.sessions.window(context, slot, date, timeZone, session);
+        const marked = new Set((session ? (records.get(session.id) ?? []) : []).map((record) => record.person_id));
+        for (const row of rosters.get(sectionId) ?? []) {
+          if (!marked.has(row.student_id) && countsFor(window, null, row.since)) result.add(row.student_id);
+        }
       }
     }
     return result;

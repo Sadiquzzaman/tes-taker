@@ -108,7 +108,7 @@ export interface SessionsOnDate {
   sessions: SessionSummary[];
 }
 
-interface SlotRef {
+export interface SlotRef {
   section_id: string;
   slot: SlotView;
 }
@@ -406,7 +406,7 @@ export class SectionAttendanceService {
    * Slots the caller may see, in open sessions: every slot for owners, admins and assistants; for a
    * teacher the slots of sections they teach and the slots that name them.
    */
-  private async visibleSlots(tenant: Tenant, userId: string): Promise<SlotRef[]> {
+  async visibleSlots(tenant: Tenant, userId: string): Promise<SlotRef[]> {
     const organizationId = tenant.organizationId;
     if (tenant.viaEnrolment || ![...MANAGERS, TEACHER].includes(tenant.memberRole)) {
       throw new ForbiddenException('Only staff can see class attendance');
@@ -593,4 +593,5 @@ export class SectionAttendanceService {
   }
 }
 
-const isManager = (tenant: Tenant) => !tenant.viaEnrolment && MANAGERS.includes(tenant.memberRole);
+/** Owners, admins and assistants: every class, no correction limit. */
+export const isManager = (tenant: Tenant) => !tenant.viaEnrolment && MANAGERS.includes(tenant.memberRole);

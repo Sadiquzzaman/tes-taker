@@ -26,6 +26,8 @@ import { LeaveRequestEntity } from './entities/leave-request.entity';
 import { SectionAttendanceSettingsEntity } from './entities/section-attendance-settings.entity';
 import { LeaveController } from './leave.controller';
 import { LeaveService } from './leave.service';
+import { PaperRegisterController } from './paper-register.controller';
+import { PaperRegisterService } from './paper-register.service';
 import { ScheduleImportService } from './schedule-import.service';
 import { SectionSetupController } from './section-setup.controller';
 import { SectionSetupService } from './section-setup.service';
@@ -37,12 +39,13 @@ import { SessionClosingService } from './session-closing.service';
  * "My attendance" (ATT-18), the teachers' class view with corrections (ATT-07, ATT-12) and class
  * cancellation (ATT-19), the closing job that saves Absent when check-in closes (ATT-10), and the
  * guardians' Late and Absent SMS and the repeated-absence alert (ATT-06, ATT-10, ATT-14), and leave
- * requests with their approvals (ATT-09, ATT-11).
+ * requests with their approvals (ATT-09, ATT-11), and the paper register import and monthly register
+ * export (ATT-17, ATT-13).
  */
 @Module({
   imports: [
     TypeOrmModule.forFeature([SectionAttendanceSettingsEntity, ClassSessionEntity, AttendanceRecordEntity, AttendanceCorrectionEntity, LeaveRequestEntity, OrganizationMemberEntity]), OrganizationsModule, AcademicsModule, CalendarModule, SubscriptionModule, NotificationsModule],
-  controllers: [AttendanceSettingsController, AttendanceBranchesController, SectionSetupController, CheckInController, SectionAttendanceController, LeaveController],
+  controllers: [AttendanceSettingsController, AttendanceBranchesController, SectionSetupController, CheckInController, SectionAttendanceController, LeaveController, PaperRegisterController],
   providers: [
     AttendanceSettingsService,
     AttendanceBranchesService,
@@ -57,6 +60,7 @@ import { SessionClosingService } from './session-closing.service';
     AttendanceAlertsService,
     ApprovedLeaveService,
     LeaveService,
+    PaperRegisterService,
   ],
   exports: [AttendanceSettingsService, SessionClosingService, AttendanceAlertsService],
 })
