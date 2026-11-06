@@ -234,6 +234,32 @@ export class SectionsService {
     return result;
   }
 
+  /**
+   * Who follows up on a section's students (ATT-14), by section id: its class teacher while the
+   * organisation uses class teachers, otherwise the teachers of its subject classes. Empty when
+   * neither is set. No access check; the attendance module calls it from its jobs.
+   */
+  async followUpTeachers(organizationId: string, sectionIds: string[]): Promise<Map<string, string[]>> {
+    const result = new Map<string, string[]>(sectionIds.map((id) => [id, []]));
+    if (sectionIds.length === 0) return result;
+    const settings = await this.settings.get(organizationId);
+    const sections = await tenantScoped(this.sectionRepo).forOrganization(organizationId).find({ where: { id: In(sectionIds) } });
+    const needTeachers: string[] = [];
+    for (const section of sections) {
+      if (settings.class_teacher_enabled && section.class_teacher_id) result.set(section.id, [section.class_teacher_id]);
+      else needTeachers.push(section.id);
+    }
+    if (needTeachers.length === 0) return result;
+    const rows: { section_id: string; teacher_id: string }[] = await this.offeringTeacherRepo.manager.query(
+      `SELECT DISTINCT o.section_id, t.teacher_id
+         FROM offering_teachers t JOIN course_offerings o ON o.id = t.offering_id
+        WHERE o.organization_id = $1 AND o.section_id = ANY($2)`,
+      [organizationId, needTeachers],
+    );
+    for (const row of rows) result.get(row.section_id)?.push(row.teacher_id);
+    return result;
+  }
+
   /** Sections of the organisation with their class and session, by id (unknown ids are left out). */
   async findSectionsWithClasses(organizationId: string, ids: string[]): Promise<SectionEntity[]> {
     if (ids.length === 0) return [];

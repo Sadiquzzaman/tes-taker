@@ -167,6 +167,82 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
   { event_type: NOTIFICATION_EVENTS.SMS_LOW_CREDIT, channel: IN_APP, locale: 'bn', subject: 'SMS ক্রেডিট কমে আসছে', body: 'এই মাসে {{organization_name}}-এর {{credits_left}}টি SMS ক্রেডিট বাকি।' },
   { event_type: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED, channel: IN_APP, locale: 'en', subject: 'Feature request: {{feature}}', body: '{{user_name}} of {{organization_name}} asked for it.' },
   { event_type: NOTIFICATION_EVENTS.FEATURE_REQUEST_CREATED, channel: IN_APP, locale: 'bn', subject: 'ফিচার অনুরোধ: {{feature}}', body: '{{organization_name}}-এর {{user_name}} এটি চেয়েছেন।' },
+
+  // One class cancelled or restored by its teacher or an admin (ATT-19), to the section's students in-app
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_CANCELLED,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Class cancelled: {{class_name}}',
+    body: 'The {{start_time}} class on {{class_on}} is cancelled. {{note}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_CANCELLED,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'ক্লাস বাতিল: {{class_name}}',
+    body: '{{class_on}} তারিখের {{start_time}}-এর ক্লাস বাতিল। {{note}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_RESTORED,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Class back on: {{class_name}}',
+    body: 'The {{start_time}} class on {{class_on}} will take place after all.',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_RESTORED,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'ক্লাস হবে: {{class_name}}',
+    body: '{{class_on}} তারিখের {{start_time}}-এর ক্লাস হবে।',
+  },
+
+  // Guardian SMS (ATT-06 late at once, ATT-10 absent once a day), short to fit one SMS
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LATE,
+    channel: SMS,
+    locale: 'en',
+    subject: null,
+    body: '{{student_name}} ({{class_name}}) checked in late at {{checked_in_at}}. {{organization_name}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LATE,
+    channel: SMS,
+    locale: 'bn',
+    subject: null,
+    body: '{{student_name}} ({{class_name}}) {{checked_in_at}}-এ দেরিতে এসেছে। {{organization_name}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_ABSENT,
+    channel: SMS,
+    locale: 'en',
+    subject: null,
+    body: '{{student_name}} ({{class_name}}) was absent from class on {{absent_on}}. {{organization_name}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_ABSENT,
+    channel: SMS,
+    locale: 'bn',
+    subject: null,
+    body: '{{student_name}} ({{class_name}}) {{absent_on}} তারিখে ক্লাসে অনুপস্থিত ছিল। {{organization_name}}',
+  },
+
+  // Repeated absence (ATT-14), in-app to the class teacher
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_REPEAT_ABSENCE,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Absent {{days}} days in a row: {{student_name}}',
+    body: '{{student_name}} ({{class_name}}) has missed every class since {{since_on}}. Please follow up.',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_REPEAT_ABSENCE,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'টানা {{days}} দিন অনুপস্থিত: {{student_name}}',
+    body: '{{student_name}} ({{class_name}}) {{since_on}} থেকে সব ক্লাসে অনুপস্থিত। খোঁজ নিন।',
+  },
 ];
 
 /** Values shown translated when a variable holds one of these codes (e.g. a member role). */

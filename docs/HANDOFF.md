@@ -79,3 +79,14 @@ Read spec Epic 1 ("Design") and plan §P3 first; they hold the result. In short:
 - **P3-01's settings** (presence method, entry times, class attendance mode, selfie) are replaced in P3-02; nobody has used them yet. Dropping those columns needs the owner's approval in P3-02's plan.
 
 **P3-02 is built** (#163, #164, #165): branches, section setup, schedules as `routine_slots`, schedule CSV import. P3-01's unused `org_settings` columns are dropped after the release (expand → contract, `docs/TODO.md`). Not decided yet: none. The feature-request "Mark handled" gap (it does not switch the feature on) is parked in `docs/TODO.md`; the owner will look at it later.
+
+**P3-03 is built** (#172–#175): web self check-in, "My attendance", and the class view with corrections.
+
+**P3-04 is built** (#179, #180, #181):
+- The closing job saves Absent when check-in closes. It runs every 5 minutes and catches up on the last 7 days.
+- A class can be cancelled for one day, and restored.
+- Guardians get a Late SMS at once and an Absent SMS once a day, only if every class that day was missed. The day's SMS goes out from 23:59, or until 08:00 the next morning after an outage.
+- The class teacher gets an in-app alert when a student is absent several days in a row.
+- Teachers can correct up to 7 days back.
+- Decisions taken on the owner's behalf are listed in the PRs; open items are in `docs/TODO.md`.
+- Next: P3-05 (paper register) and P3-06 (leave). P3-06 must write LEAVE records before the closing job, or make it skip people on approved leave.

@@ -40,6 +40,11 @@ export const NOTIFICATION_EVENTS = {
   EXAM_SCHEDULED: 'exam.scheduled',
   FEATURE_REQUEST_CREATED: 'feature_request.created',
   SMS_LOW_CREDIT: 'sms.low_credit',
+  ATTENDANCE_CLASS_CANCELLED: 'attendance.class_cancelled',
+  ATTENDANCE_CLASS_RESTORED: 'attendance.class_restored',
+  ATTENDANCE_LATE: 'attendance.late',
+  ATTENDANCE_ABSENT: 'attendance.absent',
+  ATTENDANCE_REPEAT_ABSENCE: 'attendance.repeat_absence',
 } as const;
 
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFICATION_EVENTS];

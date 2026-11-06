@@ -2,6 +2,11 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import {
+  ATTENDANCE_CLOSE_SESSIONS_EVERY_MS,
+  ATTENDANCE_CLOSE_SESSIONS_JOB,
+  ATTENDANCE_END_OF_DAY_EVERY_MS,
+  ATTENDANCE_END_OF_DAY_JOB,
+  ATTENDANCE_QUEUE,
   BILLING_SMS_ALLOWANCE_EVERY_MS,
   BILLING_SMS_ALLOWANCE_JOB,
   EXAMS_AUTO_SUBMIT_EVERY_MS,
@@ -27,6 +32,7 @@ export class WorkerSchedulerService implements OnApplicationBootstrap {
     @InjectQueue(EXAMS_QUEUE) private readonly examsQueue: Queue,
     @InjectQueue(NOTIFICATIONS_QUEUE) private readonly notificationsQueue: Queue,
     @InjectQueue(FILES_QUEUE) private readonly filesQueue: Queue,
+    @InjectQueue(ATTENDANCE_QUEUE) private readonly attendanceQueue: Queue,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -53,5 +59,15 @@ export class WorkerSchedulerService implements OnApplicationBootstrap {
 
     await this.filesQueue.upsertJobScheduler(FILES_SWEEP_JOB, { every: FILES_SWEEP_EVERY_MS }, { name: FILES_SWEEP_JOB });
     this.logger.log(`Scheduled ${FILES_SWEEP_JOB} every ${FILES_SWEEP_EVERY_MS / 60_000} min`);
+
+    await this.attendanceQueue.upsertJobScheduler(
+      ATTENDANCE_CLOSE_SESSIONS_JOB,
+      { every: ATTENDANCE_CLOSE_SESSIONS_EVERY_MS },
+      { name: ATTENDANCE_CLOSE_SESSIONS_JOB },
+    );
+    this.logger.log(`Scheduled ${ATTENDANCE_CLOSE_SESSIONS_JOB} every ${ATTENDANCE_CLOSE_SESSIONS_EVERY_MS / 60_000} min`);
+
+    await this.attendanceQueue.upsertJobScheduler(ATTENDANCE_END_OF_DAY_JOB, { every: ATTENDANCE_END_OF_DAY_EVERY_MS }, { name: ATTENDANCE_END_OF_DAY_JOB });
+    this.logger.log(`Scheduled ${ATTENDANCE_END_OF_DAY_JOB} every ${ATTENDANCE_END_OF_DAY_EVERY_MS / 60_000} min`);
   }
 }

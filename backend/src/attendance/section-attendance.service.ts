@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
+import { addDays } from 'src/common/utils/school-date.util';
 import { SectionsService } from 'src/academics/sections.service';
 import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
 import { AuditService } from 'src/audit/audit.service';
@@ -14,9 +15,9 @@ import { OrgSettingsService } from 'src/organizations/org-settings.service';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { AttendanceClock } from './attendance-clock';
 import { ATTENDANCE_ERRORS } from './attendance-errors';
-import { CheckInState, checkInState, SessionWindow } from './class-session-time';
+import { CheckInState, checkInState, countsFor, SessionWindow } from './class-session-time';
 import { ClassSessionsService, recordView, RecordView, SectionContext, sessionKey } from './class-sessions.service';
-import { CorrectRecordDto } from './dto/correction.dto';
+import { CancelClassDto, CorrectRecordDto } from './dto/correction.dto';
 import { AttendanceCorrectionEntity } from './entities/attendance-correction.entity';
 import {
   AttendancePersonTypeEnum,
@@ -24,14 +25,30 @@ import {
   AttendanceRecordSourceEnum,
   AttendanceStatusEnum,
 } from './entities/attendance-record.entity';
-import { ClassSessionEntity } from './entities/class-session.entity';
+import { ClassSessionEntity, ClassSessionStatusEnum } from './entities/class-session.entity';
 import { SectionAttendanceModeEnum, SectionClassTypeEnum } from './entities/section-attendance-settings.entity';
-import { CalendarStatus } from './my-attendance.service';
+import { CalendarStatus, statusOf } from './my-attendance.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NOTIFICATION_EVENTS } from 'src/notifications/notification.constants';
 
 const { OWNER, ADMIN, ASSISTANT, TEACHER } = OrganizationMemberRoleEnum;
 /** See and correct every class; only they correct teachers' own records. */
 const MANAGERS = [OWNER, ADMIN, ASSISTANT];
+/**
+ * Teachers correct their classes of the last 7 days (owners, admins and assistants have no limit
+ * while the academic session is open): enough for a phone without internet or a forgotten
+ * check-in, short enough that last month's register and its SMS stay as they were.
+ */
+export const TEACHER_CORRECTION_DAYS = 7;
+/** A class can be cancelled from today up to this many days ahead (ATT-19). */
+export const CANCEL_AHEAD_DAYS = 60;
 
+/** Who cancelled a class, when and why (ATT-19). */
+export interface CancellationView {
+  at: Date | null;
+  by: { id: string; full_name: string } | null;
+  note: string | null;
+}
 export interface CorrectionView {
   id: string;
   old_status: AttendanceStatusEnum | null;
@@ -67,8 +84,13 @@ export interface SessionSummary {
   teacher: { id: string; full_name: string } | null;
   /** Students only. `waiting`: upcoming, open or a paper register not in yet. */
   counts: { students: number; present: number; late: number; absent: number; leave: number; waiting: number; flagged: number };
-  /** Corrections are possible once the class has started, on a school day, in an open session. */
+  /** Set when the class was cancelled for that day (ATT-19); nobody is Absent then. */
+  cancelled: CancellationView | null;
+  /** Corrections are possible once the class has started, on a school day, in an open session, unless cancelled (teachers: the last 7 days). */
   can_correct: boolean;
+  /** The class can be cancelled (today or later, before it ends, on a school day) or restored. */
+  can_cancel: boolean;
+  can_restore: boolean;
 }
 
 export interface SessionDetail extends SessionSummary {
@@ -101,7 +123,10 @@ interface Loaded {
   session: ClassSessionEntity | undefined;
   records: AttendanceRecordEntity[];
   roster: { student_id: string; full_name: string; roll_no: string | null; since: Date }[];
+  cancelled: boolean;
   can_correct: boolean;
+  can_cancel: boolean;
+  can_restore: boolean;
 }
 
 /**
@@ -109,8 +134,9 @@ interface Loaded {
  * who checked in, and a correction of any person's status with a reason, kept in
  * `attendance_corrections` and the audit log. Owners, admins and assistants see and correct every
  * class; a teacher the classes of the sections they teach and the slots that name them, and never
- * a teacher's record. A student without a record shows as Absent once check-in has closed (P3-04
- * saves it then). No roll call: teachers only correct.
+ * a teacher's record. A student without a record shows as Absent once check-in has closed (the
+ * closing job saves it then). No roll call: teachers only correct, and cancel a class for a day
+ * (ATT-19), which keeps the session row with who cancelled it and tells the students in-app.
  */
 @Injectable()
 export class SectionAttendanceService {
@@ -125,6 +151,7 @@ export class SectionAttendanceService {
     private readonly holidays: HolidaysService,
     private readonly orgSettings: OrgSettingsService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
     private readonly clock: AttendanceClock,
     private readonly dataSource: DataSource,
   ) {}
@@ -161,6 +188,16 @@ export class SectionAttendanceService {
     if (item.closed) {
       throw new ConflictException({ message: 'There was no class that day', code: ATTENDANCE_ERRORS.CORRECTION_CLOSED_DAY });
     }
+    if (item.cancelled) {
+      throw new ConflictException({ message: 'This class was cancelled', code: ATTENDANCE_ERRORS.CORRECTION_CANCELLED });
+    }
+    if (!isManager(tenant) && date < addDays(today, -TEACHER_CORRECTION_DAYS)) {
+      throw new ConflictException({
+        message: `Teachers correct classes of the last ${TEACHER_CORRECTION_DAYS} days`,
+        code: ATTENDANCE_ERRORS.CORRECTION_TOO_OLD,
+        details: { days: TEACHER_CORRECTION_DAYS },
+      });
+    }
     if (!item.can_correct) {
       throw new ConflictException({ message: 'This class has not started yet', code: ATTENDANCE_ERRORS.CORRECTION_NOT_STARTED });
     }
@@ -172,7 +209,7 @@ export class SectionAttendanceService {
       role = AttendancePersonTypeEnum.STUDENT;
     } else if (teacherRecord || ref.slot.teacher_id === personId) {
       if (!isManager(tenant)) {
-        throw new ForbiddenException({ message: "Only owners, admins and assistants correct a teacher's attendance", code: ATTENDANCE_ERRORS.CORRECTION_TEACHER_RECORD });
+        throw new ForbiddenException({ message: "Teachers correct students' attendance only", code: ATTENDANCE_ERRORS.CORRECTION_TEACHER_RECORD });
       }
       role = AttendancePersonTypeEnum.TEACHER;
     } else {
@@ -218,6 +255,127 @@ export class SectionAttendanceService {
       reason: dto.reason,
     });
     return this.detail(tenant, userId, slotId, date);
+  }
+
+  /**
+   * Cancels a class for one day (ATT-19): today or up to 60 days ahead, before it ends, on a school
+   * day. The session row is kept (status CANCELLED, who, when and the note) and nobody is marked
+   * Absent; the section's students are told in-app. Check-ins already made stay on the record.
+   */
+  async cancel(tenant: Tenant, userId: string, slotId: string, date: string, dto: CancelClassDto): Promise<SessionDetail> {
+    const organizationId = tenant.organizationId;
+    const timeZone = await this.orgSettings.timeZone(organizationId);
+    const now = this.clock.now();
+    const today = schoolDateIn(timeZone, now);
+    const ref = await this.visibleSlot(tenant, userId, slotId, this.validDate(date));
+    const [item] = await this.load(tenant, [ref], date, timeZone, today);
+    if (!item) throw new NotFoundException({ message: 'Class not found', code: ATTENDANCE_ERRORS.SESSION_NOT_FOUND });
+    if (item.closed) throw new ConflictException({ message: 'There is no class that day', code: ATTENDANCE_ERRORS.CANCEL_CLOSED_DAY });
+    if (item.cancelled) throw new ConflictException({ message: 'This class is already cancelled', code: ATTENDANCE_ERRORS.CANCEL_ALREADY });
+    if (date < today) throw new ConflictException({ message: 'A past class cannot be cancelled', code: ATTENDANCE_ERRORS.CANCEL_PAST });
+    if (date > addDays(today, CANCEL_AHEAD_DAYS)) {
+      throw new ConflictException({ message: `Classes can be cancelled up to ${CANCEL_AHEAD_DAYS} days ahead`, code: ATTENDANCE_ERRORS.CANCEL_TOO_FAR, details: { days: CANCEL_AHEAD_DAYS } });
+    }
+    if (now >= item.window.ends_at) throw new ConflictException({ message: 'This class has already ended', code: ATTENDANCE_ERRORS.CANCEL_ENDED });
+
+    const note = dto.note?.trim() || null;
+    const session = await this.dataSource.transaction(async (manager) => {
+      const session = await this.lockedSession(manager, organizationId, item);
+      if (session.status === ClassSessionStatusEnum.CANCELLED) {
+        throw new ConflictException({ message: 'This class is already cancelled', code: ATTENDANCE_ERRORS.CANCEL_ALREADY });
+      }
+      if (session.status === ClassSessionStatusEnum.CLOSED) {
+        throw new ConflictException({ message: 'This class has already ended', code: ATTENDANCE_ERRORS.CANCEL_ENDED });
+      }
+      const changes = { status: ClassSessionStatusEnum.CANCELLED, cancelled_at: new Date(), cancelled_by: userId, cancel_note: note };
+      await manager.getRepository(ClassSessionEntity).update({ id: session.id }, changes);
+      await this.tellStudents(manager, item, session.id, userId, NOTIFICATION_EVENTS.ATTENDANCE_CLASS_CANCELLED, note, changes.cancelled_at);
+      return session;
+    });
+
+    this.audit.record({
+      action: AUDIT_ACTIONS.ATTENDANCE_CANCEL,
+      organizationId,
+      actorId: userId,
+      entityType: 'class_session',
+      entityId: session.id,
+      before: { status: ClassSessionStatusEnum.SCHEDULED },
+      after: { status: ClassSessionStatusEnum.CANCELLED, note, date, slot_id: ref.slot.id, section_id: ref.section_id },
+    });
+    return this.detail(tenant, userId, slotId, date);
+  }
+
+  /** Restores a cancelled class (before it ends): it takes check-ins again and is closed as usual; students are told in-app. */
+  async restore(tenant: Tenant, userId: string, slotId: string, date: string): Promise<SessionDetail> {
+    const organizationId = tenant.organizationId;
+    const timeZone = await this.orgSettings.timeZone(organizationId);
+    const today = schoolDateIn(timeZone, this.clock.now());
+    const ref = await this.visibleSlot(tenant, userId, slotId, this.validDate(date));
+    const [item] = await this.load(tenant, [ref], date, timeZone, today);
+    if (!item) throw new NotFoundException({ message: 'Class not found', code: ATTENDANCE_ERRORS.SESSION_NOT_FOUND });
+    if (!item.cancelled) throw new ConflictException({ message: 'This class is not cancelled', code: ATTENDANCE_ERRORS.CANCEL_NOT_CANCELLED });
+    if (!item.can_restore) throw new ConflictException({ message: 'This class has already ended', code: ATTENDANCE_ERRORS.CANCEL_ENDED });
+
+    const before = { status: ClassSessionStatusEnum.CANCELLED, note: item.session?.cancel_note ?? null, cancelled_by: item.session?.cancelled_by ?? null };
+    const session = await this.dataSource.transaction(async (manager) => {
+      const session = await this.lockedSession(manager, organizationId, item);
+      if (session.status !== ClassSessionStatusEnum.CANCELLED) {
+        throw new ConflictException({ message: 'This class is not cancelled', code: ATTENDANCE_ERRORS.CANCEL_NOT_CANCELLED });
+      }
+      await manager
+        .getRepository(ClassSessionEntity)
+        .update({ id: session.id }, { status: ClassSessionStatusEnum.SCHEDULED, cancelled_at: null, cancelled_by: null, cancel_note: null });
+      await this.tellStudents(manager, item, session.id, userId, NOTIFICATION_EVENTS.ATTENDANCE_CLASS_RESTORED, null, new Date());
+      return session;
+    });
+
+    this.audit.record({
+      action: AUDIT_ACTIONS.ATTENDANCE_RESTORE,
+      organizationId,
+      actorId: userId,
+      entityType: 'class_session',
+      entityId: session.id,
+      before,
+      after: { status: ClassSessionStatusEnum.SCHEDULED, date, slot_id: ref.slot.id, section_id: ref.section_id },
+    });
+    return this.detail(tenant, userId, slotId, date);
+  }
+
+  /** The class's session row under a row lock, made first when it does not exist yet (a future class). */
+  private async lockedSession(manager: EntityManager, organizationId: string, item: Loaded): Promise<ClassSessionEntity> {
+    const created = item.session ?? (await this.sessions.ensureSession(manager, organizationId, item.ref.section_id, item.ref.slot.id, item.date, item.window));
+    return manager.getRepository(ClassSessionEntity).findOneOrFail({ where: { id: created.id }, lock: { mode: 'pessimistic_write' } });
+  }
+
+  /** An in-app notice to the class's students (never the person who made the change), in the same transaction. */
+  private async tellStudents(
+    manager: EntityManager,
+    item: Loaded,
+    sessionId: string,
+    userId: string,
+    eventType: typeof NOTIFICATION_EVENTS.ATTENDANCE_CLASS_CANCELLED | typeof NOTIFICATION_EVENTS.ATTENDANCE_CLASS_RESTORED,
+    note: string | null,
+    at: Date,
+  ): Promise<void> {
+    const section = item.context.section;
+    await this.notifications.notifyUsers(
+      {
+        eventType,
+        organizationId: item.context.section.organization_id,
+        userIds: item.roster.map((row) => row.student_id).filter((id) => id !== userId),
+        variables: {
+          class_name: `${section.class?.class_name ?? ''} ${section.name}`.trim(),
+          class_on: item.date,
+          start_time: item.ref.slot.start_time,
+          note: note ?? '',
+          path: '/my-attendance',
+        },
+        // One notice per change: cancelling, restoring and cancelling again each tell the students.
+        dedupeKey: `${eventType}:${sessionId}:${at.getTime()}`,
+        createdBy: userId,
+      },
+      manager,
+    );
   }
 
   private async saveCorrection(
@@ -278,27 +436,29 @@ export class SectionAttendanceService {
     const organizationId = tenant.organizationId;
     const contexts = await this.sessions.contexts(organizationId, refs.map((ref) => ref.section_id));
     const open = refs.filter((ref) => contexts.get(ref.section_id)?.open);
-    // A class exists only from the day its slot was added (as on "My attendance").
-    const added = await this.slots.createdAt(organizationId, open.map((ref) => ref.slot.id));
-    const usable = open.filter((ref) => {
-      const addedAt = added.get(ref.slot.id);
-      return !addedAt || schoolDateIn(timeZone, addedAt) <= date;
-    });
-    if (usable.length === 0) return [];
-    const [closedDays, saved, rosters] = await Promise.all([
+    if (open.length === 0) return [];
+    const [added, closedDays, saved, rosters] = await Promise.all([
+      this.slots.createdAt(organizationId, open.map((ref) => ref.slot.id)),
       this.holidays.closedDays(organizationId, date, date),
-      this.sessions.savedSessions(organizationId, usable.map((ref) => ref.slot.id), date, date),
-      this.sections.activeStudentsOfSections(organizationId, [...new Set(usable.map((ref) => ref.section_id))]),
+      this.sessions.savedSessions(organizationId, open.map((ref) => ref.slot.id), date, date),
+      this.sections.activeStudentsOfSections(organizationId, [...new Set(open.map((ref) => ref.section_id))]),
     ]);
     const records = await this.sessions.records(organizationId, [...saved.values()].map((session) => session.id));
     const now = this.clock.now();
     const closed = closedDays[0] ?? null;
-    return usable.map((ref) => {
+    const result: Loaded[] = [];
+    for (const ref of open) {
       const context = contexts.get(ref.section_id) as SectionContext;
       const session = saved.get(sessionKey(ref.slot.id, date));
       const window = this.sessions.window(context, ref.slot, date, timeZone, session);
+      // A class exists only once its slot was added before it started (as on "My attendance" and for the closing job).
+      const slotCounts = countsFor(window, added.get(ref.slot.id));
+      if (!slotCounts && !session) continue;
+      const sessionRecords = session ? (records.get(session.id) ?? []) : [];
+      const recorded = new Set(sessionRecords.map((record) => record.person_id));
       const state = checkInState(now, window);
-      return {
+      const cancelled = session?.status === ClassSessionStatusEnum.CANCELLED;
+      result.push({
         ref,
         context,
         date,
@@ -306,19 +466,20 @@ export class SectionAttendanceService {
         state,
         closed,
         session,
-        records: session ? (records.get(session.id) ?? []) : [],
-        roster: (rosters.get(ref.section_id) ?? []).filter((row) => schoolDateIn(timeZone, row.since) <= date),
-        can_correct: !closed && date <= today && now >= window.starts_at,
-      };
-    });
+        records: sessionRecords,
+        // Students who joined after the class started are not on its list, unless they checked in.
+        roster: (rosters.get(ref.section_id) ?? []).filter((row) => recorded.has(row.student_id) || (slotCounts && countsFor(window, null, row.since))),
+        cancelled,
+        can_correct: !closed && !cancelled && date <= today && now >= window.starts_at && (isManager(tenant) || date >= addDays(today, -TEACHER_CORRECTION_DAYS)),
+        can_cancel: !closed && !cancelled && date >= today && date <= addDays(today, CANCEL_AHEAD_DAYS) && now < window.ends_at,
+        can_restore: cancelled && !closed && now < window.ends_at,
+      });
+    }
+    return result;
   }
 
   private statusOf(item: Loaded, record: AttendanceRecordEntity | undefined): CalendarStatus {
-    if (record) return record.status;
-    if (item.closed) return 'CLOSED_DAY';
-    if (item.state === 'UPCOMING') return 'UPCOMING';
-    if (item.context.mode === SectionAttendanceModeEnum.PAPER_REGISTER) return 'NOT_RECORDED';
-    return item.state === 'OPEN' ? 'OPEN' : AttendanceStatusEnum.ABSENT;
+    return statusOf(record, item.closed, item.context, item.state, item.session);
   }
 
   private summary(item: Loaded): SessionSummary {
@@ -331,7 +492,7 @@ export class SectionAttendanceService {
       else if (status === 'LATE') counts.late++;
       else if (status === 'ABSENT') counts.absent++;
       else if (status === 'LEAVE') counts.leave++;
-      else if (status !== 'CLOSED_DAY') counts.waiting++;
+      else if (status !== 'CLOSED_DAY' && status !== 'CANCELLED') counts.waiting++;
       if (record?.flag) counts.flagged++;
     }
     return {
@@ -349,7 +510,16 @@ export class SectionAttendanceService {
       closed: item.closed,
       teacher: item.ref.slot.teacher,
       counts,
+      cancelled: item.cancelled && item.session
+        ? {
+            at: item.session.cancelled_at,
+            by: item.session.canceller ? { id: item.session.canceller.id, full_name: item.session.canceller.full_name } : null,
+            note: item.session.cancel_note,
+          }
+        : null,
       can_correct: item.can_correct,
+      can_cancel: item.can_cancel,
+      can_restore: item.can_restore,
     };
   }
 

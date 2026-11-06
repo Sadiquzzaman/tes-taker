@@ -66,6 +66,16 @@ export function sessionWindow(date: string, startTime: string, endTime: string, 
   };
 }
 
+/**
+ * Whether a class counts for a person (ATT-10, ATT-18): its weekly slot existed, and the student
+ * had joined the section, before the class started. Otherwise a missing check-in is not an Absent
+ * (a slot added during the class, or a student who joined after it began).
+ */
+export function countsFor(window: Pick<SessionWindow, 'starts_at'>, slotAddedAt?: Date | null, since?: Date | null): boolean {
+  if (slotAddedAt && slotAddedAt >= window.starts_at) return false;
+  return !since || since < window.starts_at;
+}
+
 /** Before the window, inside it (opens_at ≤ now < ends_at), or after it. */
 export function checkInState(now: Date, window: Pick<SessionWindow, 'opens_at' | 'ends_at'>): CheckInState {
   if (now < window.opens_at) return 'UPCOMING';

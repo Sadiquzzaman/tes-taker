@@ -17,6 +17,14 @@ const KNOWN_ERRORS = [
   "ATTENDANCE_CORRECTION_PERSON_NOT_FOUND",
   "ATTENDANCE_CORRECTION_TEACHER_RECORD",
   "ATTENDANCE_CORRECTION_NO_CHANGE",
+  "ATTENDANCE_CORRECTION_CANCELLED",
+  "ATTENDANCE_CORRECTION_TOO_OLD",
+  "ATTENDANCE_CANCEL_CLOSED_DAY",
+  "ATTENDANCE_CANCEL_PAST",
+  "ATTENDANCE_CANCEL_TOO_FAR",
+  "ATTENDANCE_CANCEL_ENDED",
+  "ATTENDANCE_CANCEL_ALREADY",
+  "ATTENDANCE_CANCEL_NOT_CANCELLED",
 ] as const;
 type CorrectionError = (typeof KNOWN_ERRORS)[number];
 const isKnownError = (code: unknown): code is CorrectionError => KNOWN_ERRORS.includes(code as CorrectionError);
@@ -29,16 +37,18 @@ interface Props {
   onClose: () => void;
   /** After a correction, with the class as it is now. */
   onCorrected: (detail: ClassSessionDetail, name: string) => void;
+  /** After the class was cancelled or restored (ATT-19), with the class as it is now. */
+  onCancelledOrRestored: (detail: ClassSessionDetail, cancelled: boolean) => void;
   onError: (error: AxiosError<ApiError>) => void;
 }
 
 /**
  * One class's list for staff (ATT-07, ATT-12): every student with their status (colour and
  * letter), check-in time, minutes late, distance and any flag, and the corrections made so far; a
- * correction takes the new status and a reason. Teachers' own rows are corrected by owners, admins
- * and assistants only (the API says which rows can be corrected).
+ * correction takes the new status and a reason (the API says which rows can be corrected). The
+ * class can be cancelled for the day with a note for the students, and restored (ATT-19).
  */
-const ClassAttendanceDrawer = ({ baseUrl, target, timeZone, onClose, onCorrected, onError }: Props) => {
+const ClassAttendanceDrawer = ({ baseUrl, target, timeZone, onClose, onCorrected, onCancelledOrRestored, onError }: Props) => {
   const t = useTranslations("classAttendance");
   const tMine = useTranslations("myAttendance");
   const format = useFormat();
@@ -50,11 +60,18 @@ const ClassAttendanceDrawer = ({ baseUrl, target, timeZone, onClose, onCorrected
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [problem, setProblem] = useState("");
+  const [cancelForm, setCancelForm] = useState(false);
+  const [note, setNote] = useState("");
+  const [cancelBusy, setCancelBusy] = useState(false);
+  const [cancelProblem, setCancelProblem] = useState("");
 
   useEffect(() => {
     setDetail(null);
     setFailed(false);
     setEditing(null);
+    setCancelForm(false);
+    setNote("");
+    setCancelProblem("");
     if (!target) return;
     let live = true;
     axiosReq
@@ -103,6 +120,96 @@ const ClassAttendanceDrawer = ({ baseUrl, target, timeZone, onClose, onCorrected
     } finally {
       setSaving(false);
     }
+  };
+
+  /** Cancels (with the note) or restores the class. */
+  const changeClass = async (action: "cancel" | "restore") => {
+    if (!target) return;
+    setCancelBusy(true);
+    setCancelProblem("");
+    try {
+      const body = action === "cancel" && note.trim() ? { note: note.trim() } : {};
+      const response = await axiosReq.post<ApiResponse<ClassSessionDetail>>(`${baseUrl}/attendance/sessions/${target.slot_id}/${target.date}/${action}`, body);
+      if (response.data?.payload) {
+        setDetail(response.data.payload);
+        setCancelForm(false);
+        setNote("");
+        onCancelledOrRestored(response.data.payload, action === "cancel");
+      }
+    } catch (error) {
+      const data = (error as AxiosError<ApiError>).response?.data;
+      if (data && isKnownError(data.code)) setCancelProblem(t(`errors.${data.code}`));
+      else onError(error as AxiosError<ApiError>);
+    } finally {
+      setCancelBusy(false);
+    }
+  };
+
+  /** Why corrections are not open, when they are not (before the start, or older than a teacher may correct). */
+  const correctionHint = (view: ClassSessionDetail) => {
+    if (view.can_correct || view.closed || view.cancelled) return null;
+    return view.state === "UPCOMING" || new Date() < new Date(view.starts_at) ? t("notStartedHint") : t("tooOldHint");
+  };
+
+  const cancellation = (view: ClassSessionDetail) => {
+    if (view.cancelled) {
+      return (
+        <section aria-label={t("cancelled")} className="flex flex-col gap-2 rounded-input border border-border bg-canvas p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusMark status="CANCELLED" label={tMine("status.CANCELLED")} />
+            <span className="font-medium text-ink">{tMine("status.CANCELLED")}</span>
+          </div>
+          <p className="text-body-sm text-ink-muted">{t("cancelledHint")}</p>
+          {view.cancelled.at ? (
+            <p className="text-body-sm text-ink-muted">
+              {t("cancelledBanner", { who: view.cancelled.by?.full_name ?? t("someone"), when: format.dateTime(view.cancelled.at) })}
+            </p>
+          ) : null}
+          {view.cancelled.note ? <p className="text-body-sm text-ink">{t("cancelledBannerNote", { note: view.cancelled.note })}</p> : null}
+          {cancelProblem ? (
+            <p role="alert" className="text-body-sm text-danger">
+              {cancelProblem}
+            </p>
+          ) : null}
+          {view.can_restore ? (
+            <div>
+              <Button size="sm" variant="secondary" onClick={() => void changeClass("restore")} disabled={cancelBusy}>
+                {cancelBusy ? t("restoring") : t("restoreClass")}
+              </Button>
+            </div>
+          ) : null}
+        </section>
+      );
+    }
+    if (!view.can_cancel) return null;
+    if (!cancelForm) {
+      return (
+        <div>
+          <Button size="sm" variant="secondary" onClick={() => setCancelForm(true)}>
+            {t("cancelClass")}
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <section aria-label={t("cancelClass")} className="flex flex-col gap-3 rounded-input border border-border bg-canvas p-3">
+        <p className="text-body-sm text-ink-muted">{t("cancelIntro")}</p>
+        <Textarea label={t("cancelNote")} hint={t("cancelNoteHint")} value={note} onChange={(event) => setNote(event.target.value)} rows={2} maxLength={300} />
+        {cancelProblem ? (
+          <p role="alert" className="text-body-sm text-danger">
+            {cancelProblem}
+          </p>
+        ) : null}
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="ghost" onClick={() => setCancelForm(false)} disabled={cancelBusy}>
+            {t("keepClass")}
+          </Button>
+          <Button size="sm" variant="danger" onClick={() => void changeClass("cancel")} disabled={cancelBusy}>
+            {cancelBusy ? t("cancelling") : t("confirmCancel")}
+          </Button>
+        </div>
+      </section>
+    );
   };
 
   const personRow = (row: ClassRosterRow) => {
@@ -203,7 +310,8 @@ const ClassAttendanceDrawer = ({ baseUrl, target, timeZone, onClose, onCorrected
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          {!detail.can_correct && !detail.closed ? <p className="text-body-sm text-ink-muted">{t("notStartedHint")}</p> : null}
+          {cancellation(detail)}
+          {correctionHint(detail) ? <p className="text-body-sm text-ink-muted">{correctionHint(detail)}</p> : null}
           <section aria-label={t("students")}>
             <h3 className="text-body font-semibold text-ink">{t("studentsCount", { count: detail.students.length })}</h3>
             {detail.students.length === 0 ? (

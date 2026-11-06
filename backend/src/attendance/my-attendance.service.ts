@@ -9,18 +9,20 @@ import { addDays, daysBetween, isoDayOf, schoolDateIn } from 'src/common/utils/s
 import { OrgSettingsService } from 'src/organizations/org-settings.service';
 import { AttendanceClock } from './attendance-clock';
 import { ATTENDANCE_ERRORS } from './attendance-errors';
-import { checkInState } from './class-session-time';
+import { checkInState, countsFor } from './class-session-time';
 import { ClassSessionsService, recordView, RecordView, SectionContext, sessionKey } from './class-sessions.service';
 import { CheckInService } from './check-in.service';
 import { AttendancePersonTypeEnum, AttendanceRecordEntity, AttendanceStatusEnum } from './entities/attendance-record.entity';
+import { ClassSessionEntity, ClassSessionStatusEnum } from './entities/class-session.entity';
 import { SectionAttendanceModeEnum } from './entities/section-attendance-settings.entity';
 
 /**
  * A class on the calendar (spec Epic 1, "Calendar colours"): UPCOMING (grey), OPEN (check-in open
  * now), PRESENT (green P), LATE (yellow L), ABSENT (red A), LEAVE (blue), CLOSED_DAY (striped:
- * weekly off day or holiday), NOT_RECORDED (a paper-register class whose register is not in yet).
+ * weekly off day or holiday), CANCELLED (striped: the class was cancelled for that day, ATT-19),
+ * NOT_RECORDED (a paper-register class whose register is not in yet).
  */
-export type CalendarStatus = 'UPCOMING' | 'OPEN' | 'PRESENT' | 'LATE' | 'ABSENT' | 'LEAVE' | 'CLOSED_DAY' | 'NOT_RECORDED';
+export type CalendarStatus = 'UPCOMING' | 'OPEN' | 'PRESENT' | 'LATE' | 'ABSENT' | 'LEAVE' | 'CLOSED_DAY' | 'CANCELLED' | 'NOT_RECORDED';
 
 export interface CalendarClass {
   slot_id: string;
@@ -55,9 +57,10 @@ const MONTH = /^(\d{4})-(0[1-9]|1[0-2])$/;
 /**
  * "My attendance" (ATT-18): the caller's own classes in a month, in the calendar colours, with
  * counts and the attendance %. Only the caller's own records. A class whose check-in has closed
- * with no record shows as Absent (P3-04 saves that Absent when check-in closes); a paper-register
- * class without its register shows as not recorded. Classes count only from the day the slot was
- * added and, for students, the day they joined the section.
+ * with no record shows as Absent (the closing job saves that Absent, SessionClosingService); a
+ * paper-register class without its register shows as not recorded; a cancelled class shows as
+ * cancelled and is not counted. A class counts only when its slot existed and, for students, they
+ * had joined the section before it started (`countsFor`, the closing job's rule).
  */
 @Injectable()
 export class MyAttendanceService {
@@ -113,15 +116,17 @@ export class MyAttendanceService {
         if (item.since && date < schoolDateIn(timeZone, item.since)) continue;
         const session = saved.get(sessionKey(item.slot.id, date));
         const record = session ? (recordBySession.get(session.id) ?? null) : null;
-        if (session) shown.add(session.id);
         const window = this.sessions.window(context, item.slot, date, timeZone, session);
+        // Added, or joined, after the class had started: it was never theirs (unless they checked in).
+        if (!record && !countsFor(window, addedOn, item.since)) continue;
+        if (session) shown.add(session.id);
         classes.push({
           slot_id: item.slot.id,
           role: item.role,
           section: sectionOf(context),
           start_time: item.slot.start_time,
           end_time: item.slot.end_time,
-          status: statusOf(record, closed, context, checkInState(now, window)),
+          status: statusOf(record, closed, context, checkInState(now, window), session),
           record: record ? recordView(record) : null,
         });
       }
@@ -136,7 +141,7 @@ export class MyAttendanceService {
           section: sectionOf(context),
           start_time: clockIn(record.session.starts_at, timeZone),
           end_time: clockIn(record.session.ends_at, timeZone),
-          status: record.status,
+          status: record.session.status === ClassSessionStatusEnum.CANCELLED ? 'CANCELLED' : record.status,
           record: recordView(record),
         });
       }
@@ -163,12 +168,15 @@ export class MyAttendanceService {
   }
 }
 
-function statusOf(
-  record: AttendanceRecordEntity | null,
+/** A person's mark for a class (shared with the class view): a cancellation first, then their record, then the class's state. */
+export function statusOf(
+  record: AttendanceRecordEntity | null | undefined,
   closed: ClosedDay | null,
   context: SectionContext,
   state: ReturnType<typeof checkInState>,
+  session: Pick<ClassSessionEntity, 'status'> | undefined,
 ): CalendarStatus {
+  if (session?.status === ClassSessionStatusEnum.CANCELLED) return 'CANCELLED';
   if (record) return record.status;
   if (closed) return 'CLOSED_DAY';
   if (state === 'UPCOMING') return 'UPCOMING';

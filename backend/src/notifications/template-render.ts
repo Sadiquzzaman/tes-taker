@@ -15,9 +15,17 @@ const INTL_LOCALE: Record<NotificationLocale, string> = { bn: 'bn-BD', en: 'en-G
 const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 
-/** One variable as text: dates (`*_at`) and numbers in the recipient's language and zone, codes by label. */
+const SCHOOL_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * One variable as text: instants (`*_at`), school dates (`*_on`, "YYYY-MM-DD", already in the
+ * organisation's zone) and numbers in the recipient's language and zone, codes by label.
+ */
 export function formatVariable(key: string, value: unknown, options: Omit<RenderOptions, 'html'>): string {
   if (value === null || value === undefined) return '';
+  if (key.endsWith('_on') && typeof value === 'string' && SCHOOL_DATE.test(value)) {
+    return new Intl.DateTimeFormat(INTL_LOCALE[options.locale], { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`));
+  }
   if (key.endsWith('_at')) {
     const date = new Date(value as string);
     if (!Number.isNaN(date.getTime())) {

@@ -37,3 +37,13 @@ export class CorrectRecordDto {
   @Max(600)
   late_minutes?: number;
 }
+
+/** Cancelling one class for a day (ATT-19): an optional note for the students. */
+export class CancelClassDto {
+  @ApiPropertyOptional({ example: 'I am unwell; we will make it up on Monday' })
+  @IsOptional()
+  @Transform(trimmed)
+  @IsString()
+  @MaxLength(300)
+  note?: string;
+}

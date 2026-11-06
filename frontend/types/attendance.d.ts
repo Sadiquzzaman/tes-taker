@@ -145,7 +145,7 @@ interface MyClass {
   ends_at: string;
   state: "UPCOMING" | "OPEN" | "CLOSED";
   needs_location: boolean;
-  blocked: "CLOSED_DAY" | "PAPER_REGISTER" | "NO_PIN" | null;
+  blocked: "CLOSED_DAY" | "CANCELLED" | "PAPER_REGISTER" | "NO_PIN" | null;
   can_check_in: boolean;
   record: AttendanceRecord | null;
 }
@@ -167,7 +167,7 @@ interface MyToday {
 }
 
 /** A class on the calendar, in the colours of spec Epic 1 (messages `myAttendance.status`). */
-type CalendarStatus = "UPCOMING" | "OPEN" | AttendanceStatus | "CLOSED_DAY" | "NOT_RECORDED";
+type CalendarStatus = "UPCOMING" | "OPEN" | AttendanceStatus | "CLOSED_DAY" | "CANCELLED" | "NOT_RECORDED";
 
 /** `GET /attendance/me/calendar` (ATT-18). */
 interface MyCalendar {
@@ -217,7 +217,11 @@ interface ClassSessionSummary {
   closed: ClosedDay | null;
   teacher: { id: string; full_name: string } | null;
   counts: { students: number; present: number; late: number; absent: number; leave: number; waiting: number; flagged: number };
+  /** Set when the class was cancelled for that day (ATT-19). */
+  cancelled: { at: string | null; by: { id: string; full_name: string } | null; note: string | null } | null;
   can_correct: boolean;
+  can_cancel: boolean;
+  can_restore: boolean;
 }
 
 /** One person on a class's list. */

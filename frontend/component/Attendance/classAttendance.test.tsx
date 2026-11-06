@@ -6,11 +6,13 @@ import ClassAttendancePage from "./ClassAttendancePage";
 
 const get = vi.fn();
 const put = vi.fn();
+const post = vi.fn();
 vi.mock("@/lib/authSession", () => ({ getStoredUser: () => ({ session_mode: "organization", access_token: "token" }), clearAuthSession: vi.fn() }));
 vi.mock("@/lib/axios", () => ({
   default: {
     get: (...args: unknown[]) => get(...args),
     put: (...args: unknown[]) => put(...args),
+    post: (...args: unknown[]) => post(...args),
   },
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => "/attendance" }));
@@ -33,7 +35,10 @@ const SUMMARY: ClassSessionSummary = {
   closed: null,
   teacher: { id: "t1", full_name: "Rina Akter" },
   counts: { students: 2, present: 0, late: 1, absent: 1, leave: 0, waiting: 0, flagged: 1 },
+  cancelled: null,
   can_correct: true,
+  can_cancel: false,
+  can_restore: false,
 };
 const record = (status: AttendanceStatus, extra: Partial<AttendanceRecord> = {}): AttendanceRecord => ({
   id: `r-${status}`,
@@ -157,6 +162,52 @@ describe("class attendance page (ATT-07, ATT-12)", () => {
     renderApp(<ClassAttendancePage />);
     expect(await screen.findByText("No classes on this day")).toBeTruthy();
     expect(screen.getByText("Weekly off day: no classes.")).toBeTruthy();
+  });
+
+  it("cancels a class for the day with a note, and restores it (ATT-19)", async () => {
+    const upcoming: ClassSessionDetail = { ...DETAIL, state: "UPCOMING", can_correct: false, can_cancel: true, students: [{ ...KARIM, status: "UPCOMING", can_correct: false }], teachers: [] };
+    const cancelled: ClassSessionDetail = {
+      ...upcoming,
+      can_cancel: false,
+      can_restore: true,
+      cancelled: { at: "2026-11-07T08:00:00.000Z", by: { id: "t1", full_name: "Rina Akter" }, note: "I am unwell" },
+      students: [{ ...KARIM, status: "CANCELLED", can_correct: false }],
+    };
+    serve({ ...LIST, sessions: [{ ...SUMMARY, state: "UPCOMING", can_cancel: true }] }, upcoming);
+    post.mockImplementation((url: string) => (url.endsWith("/cancel") ? ok(cancelled) : ok(upcoming)));
+    renderApp(<ClassAttendancePage />);
+    fireEvent.click(within(await screen.findByRole("table")).getByRole("button", { name: "Open Class 8 A" }));
+    const drawer = await screen.findByRole("dialog");
+    fireEvent.click(await within(drawer).findByRole("button", { name: "Cancel this class" }));
+    expect(within(drawer).getByText("Students are not marked absent for a cancelled class, and they are told in the app.")).toBeTruthy();
+    fireEvent.change(within(drawer).getByLabelText(/Note for students/), { target: { value: " I am unwell " } });
+    fireEvent.click(within(drawer).getByRole("button", { name: "Cancel the class" }));
+    await waitFor(() => expect(post).toHaveBeenCalled());
+    expect(post.mock.calls[0][0]).toMatch(/\/attendance\/sessions\/slot-8\/2026-11-07\/cancel$/);
+    expect(post.mock.calls[0][1]).toEqual({ note: "I am unwell" });
+    expect(await within(drawer).findByText(/Cancelled by Rina Akter/)).toBeTruthy();
+    expect(within(drawer).getByText("Note: I am unwell")).toBeTruthy();
+    expect(within(drawer).getAllByRole("img", { name: "Class cancelled" })[0].textContent).toBe("C");
+    expect(within(screen.getByRole("table", { hidden: true })).getByText("Cancelled")).toBeTruthy();
+
+    fireEvent.click(within(drawer).getByRole("button", { name: "Restore the class" }));
+    await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
+    expect(post.mock.calls[1][0]).toMatch(/\/restore$/);
+    expect(await within(drawer).findByRole("button", { name: "Cancel this class" })).toBeTruthy();
+  });
+
+  it("explains a refused cancellation and why an old class cannot be corrected", async () => {
+    // A class that started long ago (a teacher's correction window has passed).
+    serve(LIST, { ...DETAIL, starts_at: "2026-01-03T10:00:00.000Z", can_correct: false, can_cancel: true, students: [{ ...KARIM, can_correct: false }], teachers: [] });
+    post.mockImplementation(() => failWith(409, "ATTENDANCE_CANCEL_ENDED"));
+    renderApp(<ClassAttendancePage />);
+    fireEvent.click(within(await screen.findByRole("table")).getByRole("button", { name: "Open Class 8 A" }));
+    const drawer = await screen.findByRole("dialog");
+    expect(await within(drawer).findByText(/Teachers correct classes of the last 7 days/)).toBeTruthy();
+    fireEvent.click(within(drawer).getByRole("button", { name: "Cancel this class" }));
+    fireEvent.click(within(drawer).getByRole("button", { name: "Cancel the class" }));
+    expect((await within(drawer).findByRole("alert")).textContent).toBe("This class has already ended.");
+    expect(post.mock.calls[0][1]).toEqual({});
   });
 
   it("speaks Bangla", async () => {

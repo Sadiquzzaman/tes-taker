@@ -1,9 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Check, Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { SectionEntity } from 'src/academics/entities/section.entity';
 import { RoutineSlotEntity } from 'src/calendar/entities/routine-slot.entity';
+import { UserEntity } from 'src/user/entities/user.entity';
 
-/** Where a class session stands. P3-03 creates SCHEDULED rows; P3-04 closes and cancels them (ATT-10, ATT-19). */
+/**
+ * Where a class session stands: SCHEDULED until check-in closes, then CLOSED by the closing job
+ * (missing students saved as Absent, ATT-10); CANCELLED when a teacher or admin cancels it (ATT-19).
+ */
 export enum ClassSessionStatusEnum {
   SCHEDULED = 'SCHEDULED',
   CLOSED = 'CLOSED',
@@ -15,11 +19,12 @@ export enum ClassSessionStatusEnum {
  * its weekly routine slots. The row is created on the first check-in or correction for that slot
  * and date (P3-04's worker may create the rest); `starts_at`/`ends_at` are the slot's times on that
  * date in the organisation's time zone, saved as instants, so a later schedule change does not
- * move a past session.
+ * move a past session. A cancelled session keeps its row (and any check-ins) with who cancelled it.
  */
 @Entity('class_attendance')
 @Index('UQ_class_attendance_slot_date', ['routine_slot_id', 'date'], { unique: true })
 @Index('IDX_class_attendance_section_date', ['organization_id', 'section_id', 'date'])
+@Index('IDX_class_attendance_org_date_status', ['organization_id', 'date', 'status'])
 @Check('CHK_class_attendance_times', `"ends_at" > "starts_at"`)
 export class ClassSessionEntity {
   @ApiProperty()
@@ -61,6 +66,26 @@ export class ClassSessionEntity {
   @ApiProperty({ enum: ClassSessionStatusEnum })
   @Column({ name: 'status', type: 'enum', enum: ClassSessionStatusEnum, enumName: 'class_session_status', default: ClassSessionStatusEnum.SCHEDULED })
   status: ClassSessionStatusEnum;
+
+  @ApiPropertyOptional({ description: 'When the closing job saved the Absent records' })
+  @Column({ name: 'closed_at', type: 'timestamptz', nullable: true })
+  closed_at: Date | null;
+
+  @ApiPropertyOptional()
+  @Column({ name: 'cancelled_at', type: 'timestamptz', nullable: true })
+  cancelled_at: Date | null;
+
+  @ApiPropertyOptional()
+  @Column({ name: 'cancelled_by', type: 'uuid', nullable: true })
+  cancelled_by: string | null;
+
+  @ManyToOne(() => UserEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'cancelled_by', foreignKeyConstraintName: 'FK_class_attendance_cancelled_by' })
+  canceller?: UserEntity | null;
+
+  @ApiPropertyOptional({ description: "The teacher's note to students" })
+  @Column({ name: 'cancel_note', type: 'varchar', length: 300, nullable: true })
+  cancel_note: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   created_at: Date;
