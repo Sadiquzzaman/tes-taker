@@ -200,10 +200,11 @@ describe('worker: exams.auto-submit', () => {
     const attendanceQueue = worker.get<Queue>(getQueueToken(ATTENDANCE_QUEUE));
     expect((await attendanceQueue.getJobScheduler(ATTENDANCE_CLOSE_SESSIONS_JOB))?.every).toBe(ATTENDANCE_CLOSE_SESSIONS_EVERY_MS);
     expect((await attendanceQueue.getJobScheduler(ATTENDANCE_END_OF_DAY_JOB))?.every).toBe(ATTENDANCE_END_OF_DAY_EVERY_MS);
-    const job = await attendanceQueue.add(ATTENDANCE_CLOSE_SESSIONS_JOB, {});
+    // Listen before adding the job, so its "completed" event cannot be missed.
     const events = new QueueEvents(ATTENDANCE_QUEUE, { connection: redisConnection() });
     try {
       await events.waitUntilReady();
+      const job = await attendanceQueue.add(ATTENDANCE_CLOSE_SESSIONS_JOB, {});
       expect(await job.waitUntilFinished(events, 30_000)).toMatchObject({ sessions_closed: 0, students_absent: 0 });
     } finally {
       await events.close();
