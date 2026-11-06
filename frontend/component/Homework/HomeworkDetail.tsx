@@ -11,6 +11,9 @@ import useFormat from "@/i18n/useFormat";
 import { fromZonedParts } from "@/i18n/zonedTime";
 import axiosReq from "@/lib/axios";
 import HomeworkEditor, { HOMEWORK_FORM_ERRORS } from "./HomeworkEditor";
+import HomeworkMyWork from "./HomeworkMyWork";
+import HomeworkSubmissions from "./HomeworkSubmissions";
+import useIsStudent from "./useIsStudent";
 import { classesLabel, DUE_TONE, dueState, STATUS_TONE } from "./homeworkFormat";
 import useApiData from "./useApiData";
 
@@ -26,6 +29,7 @@ const HomeworkDetail = ({ id }: { id: string }) => {
   const format = useFormat();
   const { triggerToast } = useToast();
   const { handleError } = useApiError();
+  const isStudent = useIsStudent();
   const { data: homework, failed, reload, setData: setHomework } = useApiData<HomeworkItem>(`/homework/${id}`);
   const [editing, setEditing] = useState(false);
   const [scheduling, setScheduling] = useState(false);
@@ -140,6 +144,9 @@ const HomeworkDetail = ({ id }: { id: string }) => {
           </ul>
         </Card>
       ) : null}
+
+      {isStudent && homework.status === "PUBLISHED" ? <HomeworkMyWork homework={homework} /> : null}
+      {isStudent === false ? <HomeworkSubmissions homework={homework} /> : null}
 
       {homework.can_edit && homework.status !== "CANCELLED" ? (
         <div>

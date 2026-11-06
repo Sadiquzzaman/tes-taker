@@ -59,7 +59,8 @@
     "leave": "ছুটি",
     "attendanceRegister": "মাসিক হাজিরা খাতা",
     "attendanceReports": "উপস্থিতি রিপোর্ট",
-    "homework": "হোমওয়ার্ক"
+    "homework": "হোমওয়ার্ক",
+    "homeworkSettings": "হোমওয়ার্কের সেটিংস"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -2862,6 +2863,9 @@
         "update": "হোমওয়ার্ক বদলানো হয়েছে",
         "publish": "হোমওয়ার্ক প্রকাশিত",
         "cancel": "হোমওয়ার্ক প্রত্যাহার"
+      },
+      "homework_settings": {
+        "update": "হোমওয়ার্কের সেটিংস বদলানো হয়েছে"
       }
     },
     "fields": {
@@ -4019,7 +4023,76 @@
       "HOMEWORK_SESSION_CLOSED": "এই সেশন বন্ধ; এর হোমওয়ার্ক আর বদলানো যাবে না।",
       "HOMEWORK_FILE_INVALID": "ফাইলগুলো আবার আপলোড করুন।",
       "HOMEWORK_DUE_INVALID": "জমার সময় ভবিষ্যতে হতে হবে।",
-      "HOMEWORK_WRONG_STATUS": "এই হোমওয়ার্কে এখন এটি করা যাবে না।"
+      "HOMEWORK_WRONG_STATUS": "এই হোমওয়ার্কে এখন এটি করা যাবে না।",
+      "HOMEWORK_PAPER_NO_SUBMISSION": "এই হোমওয়ার্ক কাগজে করতে হবে; শিক্ষককে জমা দিন।",
+      "HOMEWORK_LATE_NOT_ALLOWED": "জমার সময় পার হয়ে গেছে এবং দেরিতে জমা নেওয়া হয় না।",
+      "HOMEWORK_NO_MORE_SUBMISSIONS": "যতবার অনুমতি আছে ততবার আপনি জমা দিয়েছেন।",
+      "HOMEWORK_ALREADY_SCORED": "শিক্ষক নম্বর দিয়েছেন; আর জমা দেওয়া যাবে না।",
+      "HOMEWORK_SUBMISSION_EMPTY": "জমা দেওয়ার আগে আপনার কাজ যোগ করুন।",
+      "HOMEWORK_TOO_MANY_FILES": "এক জমায় সর্বোচ্চ {max, number}টি ফাইল।"
+    },
+    "handedIn": "জমা দেওয়া হয়েছে (সংস্করণ {version, number})",
+    "myWork": {
+      "title": "আপনার কাজ",
+      "paper": "এই হোমওয়ার্ক কাগজে করতে হবে। শিক্ষককে জমা দিন।",
+      "lateWarning": "জমার সময় পার হয়ে গেছে। এখন জমা দিলে দেরি হিসেবে চিহ্নিত হবে।",
+      "answer": "আপনার উত্তর",
+      "files": "ছবি বা ফাইল",
+      "filesOptional": "ছবি বা ফাইল (ঐচ্ছিক)",
+      "filesAccept": "ছবি, PDF, Word বা টেক্সট, প্রতিটি ২০ MB পর্যন্ত, সর্বোচ্চ {count, number}টি ফাইল",
+      "combine": "আমার ছবিগুলো একটি PDF-এ রাখুন",
+      "combineHint": "শিক্ষক একটি ফাইল পাবেন, প্রতিটি ছবির জন্য এক পাতা।",
+      "submit": "জমা দিন",
+      "submitAgain": "আবার জমা দিন",
+      "left": "{count, plural, =0 {এটাই আপনার শেষ জমা।} other {এরপর আরও #বার জমা দিতে পারবেন।}}",
+      "handedIn": "আপনি যা জমা দিয়েছেন",
+      "version": "সংস্করণ {version, number}",
+      "late": "{minutes, number} মিনিট দেরি",
+      "file": "ফাইল",
+      "statuses": {
+        "SUBMITTED": "জমা হয়েছে",
+        "RETURNED": "আবার করতে ফেরত",
+        "SCORED": "নম্বর দেওয়া হয়েছে"
+      }
+    },
+    "submissions": {
+      "title": "জমা",
+      "summary": "{total, number} জনের মধ্যে {handedIn, number} জন জমা দিয়েছে",
+      "student": "শিক্ষার্থী",
+      "state": "অবস্থা",
+      "when": "জমার সময়",
+      "versions": "সংস্করণ",
+      "actions": "কাজ",
+      "handedIn": "জমা হয়েছে",
+      "missing": "জমা দেয়নি",
+      "open": "খুলুন",
+      "openFor": "{name}-এর কাজ খুলুন",
+      "empty": "এখনো কোনো শিক্ষার্থী নেই",
+      "loadFailed": "জমাগুলো লোড করা যায়নি।"
+    },
+    "settings": {
+      "title": "হোমওয়ার্কের সেটিংস",
+      "intro": "এখানকার সব হোমওয়ার্কে দেরিতে জমা, আবার জমা ও ফাইলের নিয়ম।",
+      "readOnly": "মালিক ও অ্যাডমিন এই সেটিংস বদলান।",
+      "lateAllowed": "দেরিতে জমা নিন",
+      "lateAllowedHint": "জমার সময়ের পর জমা নেওয়া হবে এবং দেরি হিসেবে চিহ্নিত হবে। বন্ধ থাকলে নেওয়া হবে না।",
+      "penalty": "দেরির জরিমানা",
+      "penalties": {
+        "NONE": "নেই",
+        "PER_DAY": "দেরির প্রতিদিন শতাংশ কাটা",
+        "FIXED": "নির্দিষ্ট শতাংশ কাটা"
+      },
+      "percent": "শতাংশ",
+      "percentInvalid": "১ থেকে ১০০-এর মধ্যে।",
+      "resubmissions": "আবার জমা",
+      "resubmissionsHint": "নম্বর দেওয়ার আগে একজন শিক্ষার্থী কতবার আবার জমা দিতে পারবে।",
+      "noResubmission": "অনুমতি নেই",
+      "maxFiles": "প্রতি জমায় ফাইল",
+      "save": "সেটিংস সংরক্ষণ",
+      "undo": "পরিবর্তন বাতিল",
+      "savedTitle": "সংরক্ষিত",
+      "saved": "হোমওয়ার্কের সেটিংস সংরক্ষিত হয়েছে।",
+      "loadFailed": "হোমওয়ার্কের সেটিংস লোড করা যায়নি।"
     }
   }
 }

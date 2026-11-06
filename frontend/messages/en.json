@@ -59,7 +59,8 @@
     "leave": "Leave",
     "attendanceRegister": "Monthly register",
     "attendanceReports": "Attendance reports",
-    "homework": "Homework"
+    "homework": "Homework",
+    "homeworkSettings": "Homework settings"
   },
   "shell": {
     "organization": "Organization",
@@ -2862,6 +2863,9 @@
         "update": "Homework changed",
         "publish": "Homework published",
         "cancel": "Homework withdrawn"
+      },
+      "homework_settings": {
+        "update": "Homework settings changed"
       }
     },
     "fields": {
@@ -4019,7 +4023,76 @@
       "HOMEWORK_SESSION_CLOSED": "This session is closed; its homework can no longer change.",
       "HOMEWORK_FILE_INVALID": "Upload the files again.",
       "HOMEWORK_DUE_INVALID": "The due time must be in the future.",
-      "HOMEWORK_WRONG_STATUS": "This is not possible for this homework now."
+      "HOMEWORK_WRONG_STATUS": "This is not possible for this homework now.",
+      "HOMEWORK_PAPER_NO_SUBMISSION": "This homework is done on paper; hand it to your teacher.",
+      "HOMEWORK_LATE_NOT_ALLOWED": "The due time has passed and late work is not accepted.",
+      "HOMEWORK_NO_MORE_SUBMISSIONS": "You have handed this in as many times as allowed.",
+      "HOMEWORK_ALREADY_SCORED": "Your teacher has scored this; it cannot be handed in again.",
+      "HOMEWORK_SUBMISSION_EMPTY": "Add your work before handing it in.",
+      "HOMEWORK_TOO_MANY_FILES": "At most {max, number} files in one hand-in."
+    },
+    "handedIn": "Handed in (version {version, number})",
+    "myWork": {
+      "title": "Your work",
+      "paper": "This homework is done on paper. Hand it to your teacher.",
+      "lateWarning": "The due time has passed. If you hand it in now, it is marked late.",
+      "answer": "Your answer",
+      "files": "Photos or files",
+      "filesOptional": "Photos or files (optional)",
+      "filesAccept": "Images, PDF, Word or text, up to 20 MB each, at most {count, number} files",
+      "combine": "Put my photos into one PDF",
+      "combineHint": "Your teacher gets one file with a page per photo.",
+      "submit": "Hand in",
+      "submitAgain": "Hand in again",
+      "left": "{count, plural, =0 {This is your last hand-in.} one {You can hand in # more time after this.} other {You can hand in # more times after this.}}",
+      "handedIn": "What you handed in",
+      "version": "Version {version, number}",
+      "late": "Late by {minutes, number} min",
+      "file": "File",
+      "statuses": {
+        "SUBMITTED": "Handed in",
+        "RETURNED": "Returned for redo",
+        "SCORED": "Scored"
+      }
+    },
+    "submissions": {
+      "title": "Submissions",
+      "summary": "{handedIn, number} of {total, number} handed in",
+      "student": "Student",
+      "state": "State",
+      "when": "Handed in at",
+      "versions": "Versions",
+      "actions": "Actions",
+      "handedIn": "Handed in",
+      "missing": "Not handed in",
+      "open": "Open",
+      "openFor": "Open {name}'s work",
+      "empty": "No students yet",
+      "loadFailed": "Submissions could not be loaded."
+    },
+    "settings": {
+      "title": "Homework settings",
+      "intro": "How late work, hand-ins and files work for every homework here.",
+      "readOnly": "Owners and admins change these settings.",
+      "lateAllowed": "Accept late work",
+      "lateAllowedHint": "After the due time, hand-ins are accepted and marked late. Off: they are refused.",
+      "penalty": "Late penalty",
+      "penalties": {
+        "NONE": "None",
+        "PER_DAY": "Percent off per day late",
+        "FIXED": "Fixed percent off"
+      },
+      "percent": "Percent",
+      "percentInvalid": "Between 1 and 100.",
+      "resubmissions": "Hand in again",
+      "resubmissionsHint": "Times a student may hand in again before it is scored.",
+      "noResubmission": "Not allowed",
+      "maxFiles": "Files per hand-in",
+      "save": "Save settings",
+      "undo": "Undo changes",
+      "savedTitle": "Saved",
+      "saved": "Homework settings saved.",
+      "loadFailed": "Homework settings could not be loaded."
     }
   }
 }
