@@ -13,7 +13,7 @@ const PAGE_SIZE = 20;
 const CHANNELS: NotificationChannel[] = ["SMS", "EMAIL"];
 const STATUSES: OutboxStatus[] = ["PENDING", "SENT", "DELIVERED", "FAILED", "NO_CREDIT"];
 /** Message areas the filter offers (event types are `<area>.<event>`). */
-export const MESSAGE_AREAS = ["exam", "class", "organization", "sms"] as const;
+export const MESSAGE_AREAS = ["exam", "class", "organization", "sms", "attendance"] as const;
 
 const STATUS_TONES: Record<OutboxStatus, BadgeTone> = {
   PENDING: "neutral",

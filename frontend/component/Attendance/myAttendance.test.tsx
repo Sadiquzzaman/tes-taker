@@ -192,7 +192,7 @@ describe("my attendance page (ATT-04, ATT-18)", () => {
     expect(within(grid).getByRole("img", { name: "Class 8 A, 16:00: Holiday or off day" }).textContent).toBe("H");
     expect(within(grid).getByRole("img", { name: "Class 8 A, 16:00: Upcoming" }).className).toContain("bg-canvas");
     expect(screen.getByText("50%")).toBeTruthy();
-    expect(within(screen.getByRole("list", { name: "What the marks mean" })).getAllByRole("listitem")).toHaveLength(6);
+    expect(within(screen.getByRole("list", { name: "What the marks mean" })).getAllByRole("listitem")).toHaveLength(7); // with "Class cancelled" (P3-04)
 
     fireEvent.click(screen.getByRole("button", { name: "Next month" }));
     await waitFor(() => expect(get).toHaveBeenCalledWith(expect.stringMatching(/\/attendance\/me\/calendar$/), { params: { month: "2026-12" } }));

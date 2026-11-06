@@ -127,7 +127,7 @@ export class SectionSetupService {
     const section = await this.editableSection(tenant, userId, sectionId);
     const organizationId = tenant.organizationId;
     if (dto.branch_id !== undefined && !isManager(tenant)) {
-      throw new ForbiddenException('Only owners, admins and assistants can move a section to another branch');
+      throw new ForbiddenException("Teachers can't move a section to another branch");
     }
     let branchId = section.branch_id;
     if (dto.branch_id !== undefined) {
@@ -200,7 +200,7 @@ export class SectionSetupService {
    * transaction. `dry_run` only lists the sections that would be replaced.
    */
   async apply(tenant: Tenant, userId: string, dto: ApplyScheduleDto): Promise<ApplyResult> {
-    if (!isManager(tenant)) throw new ForbiddenException('Only owners, admins and assistants can apply a schedule to many sections');
+    if (!isManager(tenant)) throw new ForbiddenException("Teachers can't apply a schedule to many sections");
     if (Boolean(dto.class_id) === Boolean(dto.shift)) {
       throw new BadRequestException({ message: 'Choose a class or a shift', code: ATTENDANCE_ERRORS.SETUP_TARGET_INVALID });
     }

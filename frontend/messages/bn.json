@@ -2829,7 +2829,10 @@
         "update": "সময়সূচি বদলানো হয়েছে"
       },
       "attendance": {
-        "correct": "উপস্থিতি সংশোধন করা হয়েছে"
+        "correct": "উপস্থিতি সংশোধন করা হয়েছে",
+        "cancel": "ক্লাস বাতিল",
+        "restore": "ক্লাস আবার চালু",
+        "auto_absent": "চেক-ইন বন্ধ হলে অনুপস্থিতি সংরক্ষিত"
       }
     },
     "fields": {
@@ -2992,7 +2995,8 @@
       "exam": "টেস্ট",
       "class": "ক্লাসের আমন্ত্রণ",
       "organization": "প্রতিষ্ঠানের আমন্ত্রণ",
-      "sms": "SMS ক্রেডিট"
+      "sms": "SMS ক্রেডিট",
+      "attendance": "উপস্থিতি"
     },
     "events": {
       "exam": {
@@ -3013,6 +3017,13 @@
       },
       "feature_request": {
         "created": "ফিচারের অনুরোধ"
+      },
+      "attendance": {
+        "late": "দেরি (অভিভাবকের SMS)",
+        "absent": "অনুপস্থিত (অভিভাবকের SMS)",
+        "class_cancelled": "ক্লাস বাতিল",
+        "class_restored": "ক্লাস আবার চালু",
+        "repeat_absence": "বারবার অনুপস্থিতি"
       }
     }
   },
@@ -3364,7 +3375,7 @@
         "MODE_INVALID": "mode হতে হবে নিজে চেক-ইন বা কাগজের খাতা।",
         "GRACE_INVALID": "grace হতে হবে ০ থেকে ৬০ মিনিট, অথবা default।",
         "BRANCH_NOT_FOUND": "এই নামে কোনো শাখা নেই।",
-        "BRANCH_NOT_ALLOWED": "শুধু মালিক, অ্যাডমিন ও সহকারী শাখা বদলাতে পারেন।",
+        "BRANCH_NOT_ALLOWED": "আপনি ক্লাস এক শাখা থেকে আরেক শাখায় সরাতে পারবেন না। প্রতিষ্ঠানের মালিক বা অ্যাডমিনকে বলুন।",
         "SETTINGS_CONFLICT": "এই [[section]]-এর আরেকটি লাইনে ভিন্ন সেটিংস আছে।"
       }
     }
@@ -3404,7 +3415,8 @@
     },
     "blocked": {
       "PAPER_REGISTER": "এই ক্লাসের উপস্থিতি কাগজের খাতায় রাখা হয়।",
-      "NO_PIN": "এই ক্লাসের চেক-ইন লোকেশন এখনো ঠিক করা হয়নি। আপনার অ্যাডমিনকে জানান।"
+      "NO_PIN": "এই ক্লাসের চেক-ইন লোকেশন এখনো ঠিক করা হয়নি। আপনার অ্যাডমিনকে জানান।",
+      "CANCELLED": "আজ এই ক্লাস বাতিল।"
     },
     "flag": {
       "EDGE_ACCURACY": "সংরক্ষিত হয়েছে, তবে সীমানার কাছে আপনার অবস্থান অস্পষ্ট ছিল; শিক্ষক যাচাই করতে পারেন।",
@@ -3418,7 +3430,8 @@
       "ABSENT": "অনুপস্থিত",
       "LEAVE": "ছুটিতে",
       "CLOSED_DAY": "ছুটি বা বন্ধের দিন",
-      "NOT_RECORDED": "এখনো রেকর্ড হয়নি"
+      "NOT_RECORDED": "এখনো রেকর্ড হয়নি",
+      "CANCELLED": "ক্লাস বাতিল"
     },
     "letter": {
       "UPCOMING": "আ",
@@ -3428,7 +3441,8 @@
       "ABSENT": "অ",
       "LEAVE": "ছু",
       "CLOSED_DAY": "ব",
-      "NOT_RECORDED": "র"
+      "NOT_RECORDED": "র",
+      "CANCELLED": "বা"
     },
     "location": {
       "denied": "ব্রাউজারে এই সাইটের জন্য লোকেশন চালু করুন, তারপর আবার চেষ্টা করুন।",
@@ -3445,7 +3459,8 @@
       "ATTENDANCE_CHECKIN_CLOSED_DAY": "আজ কোনো ক্লাস নেই।",
       "ATTENDANCE_CHECKIN_PAPER_REGISTER": "এই ক্লাসের উপস্থিতি কাগজের খাতায় রাখা হয়।",
       "ATTENDANCE_CHECKIN_NO_CLASS_TODAY": "এই ক্লাস আজ হয় না।",
-      "ATTENDANCE_CHECKIN_NOT_YOUR_CLASS": "আপনি শুধু নিজের ক্লাসে চেক-ইন করতে পারেন।"
+      "ATTENDANCE_CHECKIN_NOT_YOUR_CLASS": "আপনি শুধু নিজের ক্লাসে চেক-ইন করতে পারেন।",
+      "ATTENDANCE_CHECKIN_CANCELLED": "আজ এই ক্লাস বাতিল।"
     }
   },
   "classAttendance": {
@@ -3511,8 +3526,33 @@
       "ATTENDANCE_CORRECTION_NOT_STARTED": "এই ক্লাস এখনো শুরু হয়নি।",
       "ATTENDANCE_CORRECTION_CLOSED_DAY": "সেদিন কোনো ক্লাস ছিল না।",
       "ATTENDANCE_CORRECTION_PERSON_NOT_FOUND": "এই ব্যক্তি এই ক্লাসে নেই।",
-      "ATTENDANCE_CORRECTION_TEACHER_RECORD": "শিক্ষকের উপস্থিতি শুধু মালিক, অ্যাডমিন ও সহকারী ঠিক করতে পারেন।",
-      "ATTENDANCE_CORRECTION_NO_CHANGE": "রেকর্ডে আগে থেকেই এই অবস্থা আছে।"
-    }
+      "ATTENDANCE_CORRECTION_TEACHER_RECORD": "শিক্ষকেরা শুধু শিক্ষার্থীদের উপস্থিতি ঠিক করতে পারেন।",
+      "ATTENDANCE_CORRECTION_NO_CHANGE": "রেকর্ডে আগে থেকেই এই অবস্থা আছে।",
+      "ATTENDANCE_CORRECTION_CANCELLED": "এই ক্লাস বাতিল হয়েছিল।",
+      "ATTENDANCE_CORRECTION_TOO_OLD": "শিক্ষকেরা গত ৭ দিনের ক্লাস ঠিক করতে পারেন। প্রতিষ্ঠানের মালিক বা অ্যাডমিনকে বলুন।",
+      "ATTENDANCE_CANCEL_CLOSED_DAY": "সেদিন কোনো ক্লাস নেই।",
+      "ATTENDANCE_CANCEL_PAST": "শেষ হয়ে যাওয়া দিনের ক্লাস বাতিল করা যায় না। এর বদলে উপস্থিতি ঠিক করুন।",
+      "ATTENDANCE_CANCEL_TOO_FAR": "৬০ দিন আগে পর্যন্ত ক্লাস বাতিল করা যায়।",
+      "ATTENDANCE_CANCEL_ENDED": "এই ক্লাস শেষ হয়ে গেছে।",
+      "ATTENDANCE_CANCEL_ALREADY": "এই ক্লাস আগেই বাতিল হয়েছে।",
+      "ATTENDANCE_CANCEL_NOT_CANCELLED": "এই ক্লাস বাতিল নয়।"
+    },
+    "cancelled": "বাতিল",
+    "cancelClass": "এই ক্লাস বাতিল করুন",
+    "cancelClassFor": "{date} তারিখে {section}-এর ক্লাস বাতিল করুন",
+    "cancelIntro": "বাতিল ক্লাসে কাউকে অনুপস্থিত ধরা হয় না, আর শিক্ষার্থীদের অ্যাপে জানানো হয়।",
+    "cancelNote": "শিক্ষার্থীদের জন্য নোট (ঐচ্ছিক)",
+    "cancelNoteHint": "যেমন: \"আমি অসুস্থ; সোমবার ক্লাসটি পুষিয়ে দেব\"।",
+    "confirmCancel": "ক্লাস বাতিল করুন",
+    "keepClass": "ক্লাস রাখুন",
+    "cancelling": "বাতিল হচ্ছে…",
+    "restoreClass": "ক্লাস আবার চালু করুন",
+    "restoring": "চালু হচ্ছে…",
+    "cancelledBanner": "{who} বাতিল করেছেন, {when}।",
+    "cancelledBannerNote": "নোট: {note}",
+    "cancelledToast": "{section}-এর ক্লাস বাতিল হয়েছে; শিক্ষার্থীদের জানানো হয়েছে।",
+    "restoredToast": "{section}-এর ক্লাস হবে; শিক্ষার্থীদের জানানো হয়েছে।",
+    "tooOldHint": "শিক্ষকেরা গত ৭ দিনের ক্লাস ঠিক করতে পারেন। পুরোনো ক্লাসের জন্য প্রতিষ্ঠানের মালিক বা অ্যাডমিনকে বলুন।",
+    "cancelledHint": "এই ক্লাস বাতিল হয়েছিল: কাউকে অনুপস্থিত ধরা হয়নি, হিসাবেও আসে না।"
   }
 }
