@@ -145,6 +145,11 @@ export class OrgSettingsService {
     return (await this.organization(organizationId)).timezone || 'Asia/Dhaka';
   }
 
+  /** The organisation's name (shown in guardian SMS so families know who sent it). */
+  async organizationName(organizationId: string): Promise<string> {
+    return (await this.organization(organizationId)).name;
+  }
+
   /** The organisation's kind (a school or coaching centre, or a solo teacher's workspace). */
   async kind(organizationId: string): Promise<OrganizationEntity['kind']> {
     return (await this.organization(organizationId)).kind;

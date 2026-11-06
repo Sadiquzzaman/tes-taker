@@ -197,6 +197,52 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     subject: 'ক্লাস হবে: {{class_name}}',
     body: '{{class_on}} তারিখের {{start_time}}-এর ক্লাস হবে।',
   },
+
+  // Guardian SMS (ATT-06 late at once, ATT-10 absent once a day), short to fit one SMS
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LATE,
+    channel: SMS,
+    locale: 'en',
+    subject: null,
+    body: '{{student_name}} ({{class_name}}) checked in late at {{checked_in_at}}. {{organization_name}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LATE,
+    channel: SMS,
+    locale: 'bn',
+    subject: null,
+    body: '{{student_name}} ({{class_name}}) {{checked_in_at}}-এ দেরিতে এসেছে। {{organization_name}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_ABSENT,
+    channel: SMS,
+    locale: 'en',
+    subject: null,
+    body: '{{student_name}} ({{class_name}}) was absent from class on {{absent_on}}. {{organization_name}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_ABSENT,
+    channel: SMS,
+    locale: 'bn',
+    subject: null,
+    body: '{{student_name}} ({{class_name}}) {{absent_on}} তারিখে ক্লাসে অনুপস্থিত ছিল। {{organization_name}}',
+  },
+
+  // Repeated absence (ATT-14), in-app to the class teacher
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_REPEAT_ABSENCE,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Absent {{days}} days in a row: {{student_name}}',
+    body: '{{student_name}} ({{class_name}}) has missed every class since {{since_on}}. Please follow up.',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_REPEAT_ABSENCE,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'টানা {{days}} দিন অনুপস্থিত: {{student_name}}',
+    body: '{{student_name}} ({{class_name}}) {{since_on}} থেকে সব ক্লাসে অনুপস্থিত। খোঁজ নিন।',
+  },
 ];
 
 /** Values shown translated when a variable holds one of these codes (e.g. a member role). */

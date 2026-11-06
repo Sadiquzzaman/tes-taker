@@ -10,6 +10,7 @@ import { isoDayOf, schoolDateIn } from 'src/common/utils/school-date.util';
 import { OrganizationKindEnum } from 'src/organizations/enums/organization-kind.enum';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { OrgSettingsService } from 'src/organizations/org-settings.service';
+import { AttendanceAlertsService } from './attendance-alerts.service';
 import { AttendanceClock } from './attendance-clock';
 import { ATTENDANCE_ERRORS } from './attendance-errors';
 import {
@@ -105,6 +106,7 @@ export class CheckInService {
     private readonly holidays: HolidaysService,
     private readonly orgSettings: OrgSettingsService,
     private readonly clock: AttendanceClock,
+    private readonly alerts: AttendanceAlertsService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -198,7 +200,21 @@ export class CheckInService {
         .returning('id')
         .execute();
       const record = await records.findOneOrFail({ where: { organization_id: organizationId, class_attendance_id: session.id, person_id: userId } });
-      return { session, record, created: (inserted.raw as unknown[]).length > 0 };
+      const created = (inserted.raw as unknown[]).length > 0;
+      // The guardians' Late SMS goes into the outbox with the check-in (ATT-06: at once).
+      if (created && late.late && mine.role === AttendancePersonTypeEnum.STUDENT) {
+        await this.alerts.lateCheckIn(
+          {
+            organizationId,
+            studentId: userId,
+            date,
+            checkedInAt: now,
+            sectionLabel: `${context.section.class?.class_name ?? ''} ${context.section.name}`.trim(),
+          },
+          manager,
+        );
+      }
+      return { session, record, created };
     });
     if (!created) await this.assertNotCheckedIn(organizationId, session.id, userId);
     return this.classView(mine, context, date, timeZone, now, null, session, record);

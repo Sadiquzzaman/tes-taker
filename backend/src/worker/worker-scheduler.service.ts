@@ -4,6 +4,8 @@ import { Queue } from 'bullmq';
 import {
   ATTENDANCE_CLOSE_SESSIONS_EVERY_MS,
   ATTENDANCE_CLOSE_SESSIONS_JOB,
+  ATTENDANCE_END_OF_DAY_EVERY_MS,
+  ATTENDANCE_END_OF_DAY_JOB,
   ATTENDANCE_QUEUE,
   BILLING_SMS_ALLOWANCE_EVERY_MS,
   BILLING_SMS_ALLOWANCE_JOB,
@@ -64,5 +66,8 @@ export class WorkerSchedulerService implements OnApplicationBootstrap {
       { name: ATTENDANCE_CLOSE_SESSIONS_JOB },
     );
     this.logger.log(`Scheduled ${ATTENDANCE_CLOSE_SESSIONS_JOB} every ${ATTENDANCE_CLOSE_SESSIONS_EVERY_MS / 60_000} min`);
+
+    await this.attendanceQueue.upsertJobScheduler(ATTENDANCE_END_OF_DAY_JOB, { every: ATTENDANCE_END_OF_DAY_EVERY_MS }, { name: ATTENDANCE_END_OF_DAY_JOB });
+    this.logger.log(`Scheduled ${ATTENDANCE_END_OF_DAY_JOB} every ${ATTENDANCE_END_OF_DAY_EVERY_MS / 60_000} min`);
   }
 }

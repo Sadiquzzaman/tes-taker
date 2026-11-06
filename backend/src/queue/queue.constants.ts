@@ -30,6 +30,13 @@ export const FILES_SWEEP_EVERY_MS = 10 * 60_000;
 export const ATTENDANCE_QUEUE = 'attendance';
 export const ATTENDANCE_CLOSE_SESSIONS_JOB = 'attendance.close-sessions';
 export const ATTENDANCE_CLOSE_SESSIONS_EVERY_MS = 5 * 60_000;
+/**
+ * The end of the school day (ATT-10, ATT-14): from 23:59 in each organisation's time zone (and,
+ * after a worker outage, until 08:00 the next morning) it closes the day, sends the guardians'
+ * absence SMS and the repeated-absence alerts. Every 5 minutes; outbox keys stop repeats.
+ */
+export const ATTENDANCE_END_OF_DAY_JOB = 'attendance.end-of-day';
+export const ATTENDANCE_END_OF_DAY_EVERY_MS = 5 * 60_000;
 
 /** Redis key the worker refreshes so its container health check can see it is alive. */
 export const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
