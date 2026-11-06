@@ -535,6 +535,17 @@ Departments, programmes, prerequisites, credit-weighted CGPA and registration wi
 - **Guardian SMS:** the end-of-day job holds back a student's Absent SMS only while one of their paper-register classes that day has no mark for them. After an import, `AttendanceAlertsService.releaseHeldAbsences` sends the held-back Absent SMS, and the repeated-absence alert, for the section's students on the days written. The P3-04 rules apply: every class that day missed, the same dedupe keys, the `guardian_sms.absent` switch. It covers only days whose end has come (from 23:59) and at most 3 days back (`PAPER_ABSENT_SMS_DAYS`); an older register still counts but sends nothing. There is no Late SMS for an import, because that SMS is sent "at once".
 - **Who:** as for the class view. Owners, admins and assistants can use every section; a teacher the sections they teach and the sections whose slots name them.
 
+**Built in P3-05 part 2 (screens):** "Monthly register" (`/attendance-register`, `attendance` feature) is in the Organization menu for every staff role and in a solo teacher's own workspace.
+- **The page:** pick a section (paper-register sections first; the list says each one's mode) and a month (previous and next). The table shows each student's Present, Late, Absent and Leave counts for the month, and the classes held so far with no mark ("No mark yet").
+- **Downloads:** "Download template" writes the CSV with empty marks; "Export CSV" writes it with the marks in the user's language (P/L/A/Leave or উ/দে/অ/ছু). Both use the browser's own CSV writer, with a byte-order mark so Excel shows Bangla.
+- **"Import CSV"** (paper-register sections only) opens a drawer. Choose the file, and the browser reads it (the same CSV reader as the other imports) and sends it for the check. The drawer then shows:
+  - what the import does: new marks, changed marks (kept in the correction trail), already saved, kept;
+  - each column's problem (holiday or off day, no class, cancelled…, with "empty, ignored" for columns without marks);
+  - each line with its own and its cells' problems and notes ("checked in themselves as Late; the file says Present", "On approved leave: saved as Leave");
+  - a box to also replace the self check-ins the file disagrees with.
+- The import button counts the marks it will save and stays off while anything has a problem. After an import, the page reloads and a toast gives the counts.
+- The register's error codes are explained in their own words (`register.errors`). The activity log names `attendance.import`. All text in English and Bangla.
+
 ### 9.5 Homework
 
 | Table | Status | Purpose and key columns |

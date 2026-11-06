@@ -294,3 +294,74 @@ interface LeavePeople {
   students: { id: string; full_name: string; class_name: string }[];
   staff: { id: string; full_name: string; role: OrganizationMemberRole }[];
 }
+
+/** `GET /attendance/register/sections` (ATT-17): sections whose register the caller may download. */
+interface PaperRegisterSection {
+  id: string;
+  name: string;
+  class_name: string;
+  mode: SectionAttendanceMode;
+}
+
+/** `GET /attendance/register/sections/:id?month=`: the template and the export (ATT-13, same format). */
+interface PaperRegisterView {
+  section: { id: string; name: string; class_name: string };
+  month: string;
+  today: string;
+  mode: SectionAttendanceMode;
+  can_import: boolean;
+  /** The class-day columns: `header` is the date, plus the start time when the day has two classes. */
+  classes: { header: string; date: string; start_time: string; end_time: string; slot_id: string }[];
+  /** Marks in `classes` order; null = nothing recorded. */
+  students: { id: string; full_name: string; roll_no: string | null; marks: (AttendanceStatus | null)[] }[];
+}
+
+type PaperRegisterIssue =
+  | "COLUMN_UNKNOWN"
+  | "COLUMN_NOT_IN_MONTH"
+  | "NOT_CLASS_DAY"
+  | "CLOSED_DAY"
+  | "CANCELLED"
+  | "NOT_STARTED"
+  | "TIME_NEEDED"
+  | "NOT_CLASS_TIME"
+  | "DUPLICATE_COLUMN"
+  | "STUDENT_MISSING"
+  | "STUDENT_NOT_FOUND"
+  | "STUDENT_AMBIGUOUS"
+  | "STUDENT_DUPLICATE"
+  | "STATUS_INVALID"
+  | "NOT_JOINED"
+  | "TOO_OLD";
+type PaperRegisterNote = "NAME_DIFFERS" | "SELF_CHECKIN" | "LEAVE_KEPT" | "ON_LEAVE";
+
+interface PaperRegisterCell {
+  column: number;
+  value: string;
+  status: AttendanceStatus | null;
+  old_status: AttendanceStatus | null;
+  change: "NEW" | "CHANGE" | "SAME" | "KEEP" | null;
+  issues: PaperRegisterIssue[];
+  notes: PaperRegisterNote[];
+}
+
+/** `POST /attendance/register/sections/:id/preview` and `/import`: the file checked column by column, row by row, cell by cell. */
+interface PaperRegisterPreview {
+  section: { id: string; name: string; class_name: string };
+  month: string;
+  /** Nothing with marks has a problem: the file can be imported. */
+  valid: boolean;
+  columns: { column: number; header: string; date: string | null; start_time: string | null; closed: ClosedDay["reason"] | null; marks: number; issues: PaperRegisterIssue[] }[];
+  rows: {
+    row: number;
+    roll_no: string | null;
+    name: string | null;
+    student: { id: string; full_name: string; roll_no: string | null } | null;
+    marks: number;
+    issues: PaperRegisterIssue[];
+    notes: PaperRegisterNote[];
+    cells: PaperRegisterCell[];
+  }[];
+  /** `check_ins`: self check-ins the file disagrees with (replaced only when asked). */
+  summary: { new: number; changed: number; unchanged: number; kept: number; check_ins: number };
+}

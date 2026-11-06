@@ -97,4 +97,4 @@ Read spec Epic 1 ("Design") and plan §P3 first; they hold the result. In short:
 - A template and an export per section and month, in the same CSV format.
 - A check per column, row and cell, then an idempotent import. A changed mark is a correction, approved leave is kept, and self check-ins are kept unless the importer chooses to replace them.
 - After an import, the Absent SMS that were held back go out (at most 3 days back). Paper imports send no Late SMS.
-- Part 2 adds the screens.
+- Part 2 adds the "Monthly register" page (`/attendance-register`): template, export and import with the check.
