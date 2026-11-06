@@ -69,6 +69,8 @@ export const AUDIT_ACTIONS = {
   ATTENDANCE_RESTORE: 'attendance.restore',
   // The closing job's Absent records, counted per organisation and run (system, ATT-10)
   ATTENDANCE_AUTO_ABSENT: 'attendance.auto_absent',
+  // A paper register imported for a section and month (its teachers, owners, admins; ATT-17)
+  ATTENDANCE_IMPORT: 'attendance.import',
   // Leave requests (students, teachers and approvers; ATT-09, ATT-11)
   LEAVE_APPLY: 'leave.apply',
   LEAVE_APPROVE: 'leave.approve',
