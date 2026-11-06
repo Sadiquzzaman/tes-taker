@@ -3587,7 +3587,7 @@
       "answer": "উত্তর",
       "actions": "কাজ"
     },
-    "range": "{from} – {to}",
+    "range": "{from} থেকে {to}",
     "days": "{count, plural, one {# ক্লাসের দিন} other {# ক্লাসের দিন}}",
     "status": {
       "PENDING": "অপেক্ষায়",
@@ -3600,8 +3600,8 @@
       "TEACHER": "শিক্ষক"
     },
     "appliedBy": "আবেদন করেছেন {name}",
-    "decidedBy": "{name}: {note}",
-    "decidedByNoNote": "{name}",
+    "decidedBy": "{name}-এর মন্তব্য: {note}",
+    "decidedByNoNote": "সিদ্ধান্ত: {name}",
     "withdrawnBy": "প্রত্যাহার করেছেন {name}",
     "attachment": "সংযুক্তি",
     "openAttachment": "{name} খুলুন",
@@ -3616,7 +3616,7 @@
     "withdrawn": "ছুটি প্রত্যাহার হয়েছে",
     "approveTitle": "{name}-এর ছুটি মঞ্জুর করবেন?",
     "rejectTitle": "{name}-এর ছুটি মঞ্জুর করবেন না?",
-    "decisionHint": "{dates}, {days}। {reason}",
+    "decisionHint": "{dates}, {days}। কারণ: {reason}",
     "noteLabel": "{name}-এর জন্য মন্তব্য",
     "noteOptional": "ঐচ্ছিক",
     "noteRequired": "কারণ লিখুন, যাতে তারা বুঝতে পারে কী করতে হবে।",
