@@ -44,7 +44,8 @@
     "branches": "Branches",
     "classSetup": "Class setup",
     "myAttendance": "My attendance",
-    "classAttendance": "Class attendance"
+    "classAttendance": "Class attendance",
+    "leave": "Leave"
   },
   "shell": {
     "organization": "Organization",
@@ -3461,7 +3462,9 @@
       "ATTENDANCE_CHECKIN_NO_CLASS_TODAY": "This class doesn't meet today.",
       "ATTENDANCE_CHECKIN_NOT_YOUR_CLASS": "You can check in only to your own classes.",
       "ATTENDANCE_CHECKIN_CANCELLED": "This class is cancelled today."
-    }
+    },
+    "onLeaveToday": "You're on approved leave today. Your classes count as Leave unless you check in.",
+    "leaveLink": "Leave"
   },
   "classAttendance": {
     "title": "Class attendance",
@@ -3554,5 +3557,111 @@
     "restoredToast": "The class of {section} will take place; students were told.",
     "tooOldHint": "Teachers correct classes of the last 7 days. Ask the organisation's owner or admin for older ones.",
     "cancelledHint": "This class was cancelled: nobody is marked absent and it is not counted."
+  },
+  "leave": {
+    "title": "Leave",
+    "intro": "Apply for leave with dates and a reason. Approved days show as Leave (blue) and never count as absent.",
+    "apply": "Apply for leave",
+    "tabs": {
+      "mine": "My leave",
+      "approvals": "To approve"
+    },
+    "loadFailed": "Couldn't load leave.",
+    "emptyMine": "No leave yet",
+    "emptyMineHint": "Your leave requests and their answers appear here.",
+    "emptyApprovals": "Nothing waiting",
+    "emptyApprovalsHint": "New leave requests from your students or staff appear here.",
+    "emptyDecided": "No decided requests yet",
+    "filter": "Show",
+    "filters": {
+      "PENDING": "Waiting",
+      "DECIDED": "Decided",
+      "ALL": "All"
+    },
+    "columns": {
+      "dates": "Dates",
+      "days": "School days",
+      "person": "Who",
+      "status": "Status",
+      "reason": "Reason",
+      "answer": "Answer",
+      "actions": "Actions"
+    },
+    "range": "{from} – {to}",
+    "days": "{count, plural, one {# school day} other {# school days}}",
+    "status": {
+      "PENDING": "Waiting",
+      "APPROVED": "Approved",
+      "REJECTED": "Not approved",
+      "CANCELLED": "Withdrawn"
+    },
+    "personType": {
+      "STUDENT": "Student",
+      "TEACHER": "Teacher"
+    },
+    "appliedBy": "Applied by {name}",
+    "decidedBy": "{name}: {note}",
+    "decidedByNoNote": "By {name}",
+    "withdrawnBy": "Withdrawn by {name}",
+    "attachment": "Attachment",
+    "openAttachment": "Open {name}",
+    "approve": "Approve",
+    "reject": "Don't approve",
+    "approveNamed": "Approve leave for {name}",
+    "rejectNamed": "Don't approve leave for {name}",
+    "withdraw": "Withdraw",
+    "withdrawNamed": "Withdraw leave {dates}",
+    "withdrawTitle": "Withdraw this leave?",
+    "withdrawDescription": "The request for {dates} is kept as withdrawn. You can apply again.",
+    "withdrawn": "Leave withdrawn",
+    "approveTitle": "Approve leave for {name}?",
+    "rejectTitle": "Don't approve leave for {name}?",
+    "decisionHint": "{dates}, {days}. {reason}",
+    "noteLabel": "Comment for {name}",
+    "noteOptional": "Optional",
+    "noteRequired": "Say why, so they know what to do.",
+    "approved": "Leave approved",
+    "rejected": "Leave not approved",
+    "cancel": "Cancel",
+    "form": {
+      "title": "Apply for leave",
+      "hint": "Whole days. Weekly off days and holidays inside the dates don't count.",
+      "who": "Who is on leave",
+      "myself": "Myself",
+      "someoneElse": "A student or teacher",
+      "search": "Search by name",
+      "searchHint": "Type at least 2 letters.",
+      "person": "Person",
+      "noPeople": "No one found",
+      "from": "First day",
+      "to": "Last day",
+      "toHint": "Leave empty for one day.",
+      "reason": "Reason",
+      "reasonHint": "For example: fever, a family wedding.",
+      "file": "Attachment (optional)",
+      "fileTypes": "images or PDF",
+      "uploading": "Uploading…",
+      "submit": "Apply",
+      "applied": "Leave applied for. You'll be told when it's answered.",
+      "approvedAtOnce": "Leave saved and approved."
+    },
+    "errors": {
+      "PERSON_REQUIRED": "Choose who is on leave.",
+      "REASON_REQUIRED": "Write a reason (at least 3 letters).",
+      "UPLOAD_FAILED": "Couldn't upload the attachment. Try again or apply without it.",
+      "ATTENDANCE_LEAVE_DATES_INVALID": "Choose a first and a last day, in order.",
+      "ATTENDANCE_LEAVE_TOO_LONG": "Leave can be at most {days, number} days at a time.",
+      "ATTENDANCE_LEAVE_TOO_OLD": "Leave can start at most {days, number} days back.",
+      "ATTENDANCE_LEAVE_TOO_FAR": "Leave can be applied for up to {days, number} days ahead.",
+      "ATTENDANCE_LEAVE_NO_SCHOOL_DAYS": "Every day you chose is a weekly off day or a holiday.",
+      "ATTENDANCE_LEAVE_OVERLAP": "This overlaps another leave request ({from} – {to}).",
+      "ATTENDANCE_LEAVE_NOT_ALLOWED": "You can't apply for this person's leave.",
+      "ATTENDANCE_LEAVE_PERSON_NOT_FOUND": "This person isn't a student or teacher here.",
+      "ATTENDANCE_LEAVE_FILE_INVALID": "Upload the attachment again.",
+      "ATTENDANCE_LEAVE_NOT_PENDING": "This request was already answered or withdrawn.",
+      "ATTENDANCE_LEAVE_CANNOT_CANCEL": "Leave that has started can't be withdrawn.",
+      "ATTENDANCE_LEAVE_NOT_APPROVER": "You don't approve this leave.",
+      "ATTENDANCE_LEAVE_OWN_REQUEST": "You can't answer your own leave."
+    }
   }
 }
