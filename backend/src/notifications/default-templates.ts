@@ -243,6 +243,79 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     subject: 'টানা {{days}} দিন অনুপস্থিত: {{student_name}}',
     body: '{{student_name}} ({{class_name}}) {{since_on}} থেকে সব ক্লাসে অনুপস্থিত। খোঁজ নিন।',
   },
+
+  // Leave (ATT-09, ATT-11): the guardian's SMS as soon as a student's leave is applied for
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LEAVE_APPLIED,
+    channel: SMS,
+    locale: 'en',
+    subject: null,
+    body: 'Leave applied for {{student_name}} ({{class_name}}) from {{from_on}} to {{to_on}}. {{organization_name}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LEAVE_APPLIED,
+    channel: SMS,
+    locale: 'bn',
+    subject: null,
+    body: '{{student_name}} ({{class_name}})-এর জন্য {{from_on}} থেকে {{to_on}} পর্যন্ত ছুটির আবেদন করা হয়েছে। {{organization_name}}',
+  },
+  // In-app: a new request to its approvers, the decision to the person (and whoever applied for them)
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LEAVE_REQUESTED,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Leave request: {{person_name}}',
+    body: '{{person_name}} {{class_name}} asks for leave from {{from_on}} to {{to_on}}.',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LEAVE_REQUESTED,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'ছুটির আবেদন: {{person_name}}',
+    body: '{{person_name}} {{class_name}} {{from_on}} থেকে {{to_on}} পর্যন্ত ছুটি চেয়েছে।',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LEAVE_APPROVED,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Leave approved: {{person_name}}',
+    body: 'Leave from {{from_on}} to {{to_on}} is approved. {{note}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LEAVE_APPROVED,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'ছুটি মঞ্জুর: {{person_name}}',
+    body: '{{from_on}} থেকে {{to_on}} পর্যন্ত ছুটি মঞ্জুর হয়েছে। {{note}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LEAVE_REJECTED,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Leave not approved: {{person_name}}',
+    body: 'Leave from {{from_on}} to {{to_on}} was not approved. {{note}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LEAVE_REJECTED,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'ছুটি মঞ্জুর হয়নি: {{person_name}}',
+    body: '{{from_on}} থেকে {{to_on}} পর্যন্ত ছুটি মঞ্জুর হয়নি। {{note}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LEAVE_CANCELLED,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Leave withdrawn: {{person_name}}',
+    body: 'The leave from {{from_on}} to {{to_on}} was withdrawn by {{by_name}}.',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_LEAVE_CANCELLED,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'ছুটি প্রত্যাহার: {{person_name}}',
+    body: '{{from_on}} থেকে {{to_on}} পর্যন্ত ছুটি {{by_name}} প্রত্যাহার করেছেন।',
+  },
 ];
 
 /** Values shown translated when a variable holds one of these codes (e.g. a member role). */

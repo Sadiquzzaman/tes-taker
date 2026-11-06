@@ -90,3 +90,5 @@ Read spec Epic 1 ("Design") and plan §P3 first; they hold the result. In short:
 - Teachers can correct up to 7 days back.
 - Decisions taken on the owner's behalf are listed in the PRs; open items are in `docs/TODO.md`.
 - Next: P3-05 (paper register) and P3-06 (leave). P3-06 must write LEAVE records before the closing job, or make it skip people on approved leave.
+
+**P3-06 part 1 is built:** leave requests and approvals for students and teachers (`/attendance/leave`). The closing job saves Leave instead of Absent for anyone on approved leave, and approving leave for days already closed turns their Absent into Leave with a correction each. The guardian gets an SMS when a student's leave is applied for (if switched on). Part 2 adds the Leave page (`/leave`): apply, "My leave" and "To approve".

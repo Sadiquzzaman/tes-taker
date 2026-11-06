@@ -209,6 +209,59 @@ export class SectionsService {
   }
 
   /**
+   * The sections of these students' ACTIVE enrolments in open sessions, by student id (leave
+   * requests, P3-06: who approves and which class to name). No access check.
+   */
+  async activeSectionsOfStudents(organizationId: string, studentIds: string[]): Promise<Map<string, string[]>> {
+    const result = new Map<string, string[]>(studentIds.map((id) => [id, []]));
+    if (studentIds.length === 0) return result;
+    const active = activeEnrolmentCondition('e');
+    const rows = await tenantScoped(this.enrolmentRepo)
+      .forOrganization(organizationId)
+      .createQueryBuilder('e')
+      .andWhere('e.student_id IN (:...studentIds)', { studentIds })
+      .andWhere(active.sql, active.params)
+      .getMany();
+    for (const row of rows) if (row.student_id) result.get(row.student_id)?.push(row.section_id);
+    return result;
+  }
+
+  /**
+   * ACTIVE students in open sessions whose name matches `search`, with one of their sections, in
+   * `sectionIds` (or every section when null), at most `limit` (leave for a student, P3-06). No access check.
+   */
+  async searchActiveStudents(
+    organizationId: string,
+    sectionIds: string[] | null,
+    search: string,
+    limit: number,
+  ): Promise<{ student_id: string; full_name: string; section_id: string }[]> {
+    if (sectionIds && sectionIds.length === 0) return [];
+    const active = activeEnrolmentCondition('e');
+    const query = tenantScoped(this.enrolmentRepo)
+      .forOrganization(organizationId)
+      .createQueryBuilder('e')
+      .innerJoinAndSelect('e.student', 'student')
+      .andWhere(active.sql, active.params)
+      .orderBy('lower(student.full_name)', 'ASC')
+      .addOrderBy('e.id', 'ASC')
+      // limit, not take: take pages by entity and cannot order by an expression. Many-to-one joins only.
+      .limit(limit * 3);
+    if (sectionIds) query.andWhere('e.section_id IN (:...sectionIds)', { sectionIds });
+    const term = search.trim().toLowerCase();
+    if (term) query.andWhere('lower(student.full_name) LIKE :term', { term: `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%` });
+    const result: { student_id: string; full_name: string; section_id: string }[] = [];
+    const seen = new Set<string>();
+    for (const row of await query.getMany()) {
+      if (!row.student || seen.has(row.student.id)) continue;
+      seen.add(row.student.id);
+      result.push({ student_id: row.student.id, full_name: row.student.full_name, section_id: row.section_id });
+      if (result.length >= limit) break;
+    }
+    return result;
+  }
+
+  /**
    * ACTIVE students of these sections with their name, roll number and the day they joined, by
    * section id, ordered by roll number then name (the attendance roster, ATT-07).
    */

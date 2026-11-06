@@ -1,13 +1,16 @@
 import { FileObjects1755800000000 } from '../../src/migrations/1755800000000-FileObjects';
+import { LeaveRequests1756250000000 } from '../../src/migrations/1756250000000-LeaveRequests';
 import { createTestApp, TestApp } from '../support/test-app';
 
 /**
  * Migration FileObjects (P2-07): a new table only. It can be reverted, and running it twice
- * leaves one table with its indexes and foreign keys (no later migration touches file_objects).
+ * leaves one table with its indexes and foreign keys. P3-06's leave_requests points at file_objects,
+ * so LeaveRequests goes down first and comes back last.
  */
 describe('FileObjects migration', () => {
   let t: TestApp;
   const migration = new FileObjects1755800000000();
+  const leaveRequests = new LeaveRequests1756250000000();
 
   beforeAll(async () => {
     t = await createTestApp();
@@ -23,6 +26,7 @@ describe('FileObjects migration', () => {
   it('reverts, then runs twice without errors or duplicates', async () => {
     const runner = t.dataSource.createQueryRunner();
     try {
+      await leaveRequests.down(runner);
       await migration.down(runner);
       expect(await runner.hasTable('file_objects')).toBe(false);
 
@@ -35,6 +39,7 @@ describe('FileObjects migration', () => {
         await count(`SELECT COUNT(*) AS n FROM pg_constraint WHERE conrelid = 'file_objects'::regclass AND contype = 'f'`),
       ).toBe(3);
       expect(console.log).toHaveBeenCalledWith('[FileObjects] file_objects rows: 0');
+      await leaveRequests.up(runner);
     } finally {
       await runner.release();
     }

@@ -4,7 +4,7 @@ import { AxiosError } from "axios";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/component/Toast/ToastContext";
-import { Badge, Button, Card, ChevronLeftIcon, ChevronRightIcon, EmptyState, ErrorState, IconButton, PageHeader, Skeleton, StatTile, StatusPill } from "@/design/ui";
+import { Badge, Button, Card, ChevronLeftIcon, ChevronRightIcon, EmptyState, ErrorState, IconButton, Link, PageHeader, Skeleton, StatTile, StatusPill } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
@@ -35,7 +35,8 @@ const REFRESH_MS = 60_000;
 /**
  * "My attendance" (ATT-18, ATT-04, ATT-11): today's classes with a "Check in" button while a class
  * is open (in-person classes send the browser's position; the server decides everything), then a
- * month calendar of the person's own classes with counts and the attendance %.
+ * month calendar of the person's own classes with counts and the attendance %. On a day of approved
+ * leave (P3-06) the card says so; the page links to Leave.
  */
 const MyAttendancePage = () => {
   const t = useTranslations("myAttendance");
@@ -145,11 +146,17 @@ const MyAttendancePage = () => {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
-      <PageHeader title={t("title")} description={t("intro")} />
+      <PageHeader title={t("title")} description={t("intro")} actions={<Link href="/leave">{t("leaveLink")}</Link>} />
 
       <Card
         title={today ? t("todayTitle", { date: format.date(`${today.date}T00:00:00Z`, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }) }) : t("todayTitleShort")}
-        description={today?.closed ? t(`closed.${today.closed.reason}`, { name: today.closed.holiday_name ?? "" }) : undefined}
+        description={
+          today?.closed
+            ? t(`closed.${today.closed.reason}`, { name: today.closed.holiday_name ?? "" })
+            : today?.on_leave
+              ? t("onLeaveToday")
+              : undefined
+        }
       >
         {todayFailed && !today ? (
           <ErrorState title={t("loadFailed")} onRetry={() => void loadToday()} />

@@ -10,6 +10,7 @@ import { OrganizationKindEnum } from 'src/organizations/enums/organization-kind.
 import { OrgSettingsService } from 'src/organizations/org-settings.service';
 import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { EntitlementsService } from 'src/subscriptions/entitlements.service';
+import { ApprovedLeaveService, LeaveCalendar } from './approved-leave.service';
 import { AttendanceClock } from './attendance-clock';
 import { countsFor, SessionWindow } from './class-session-time';
 import { ClassSessionsService, SectionContext, sessionKey } from './class-sessions.service';
@@ -29,6 +30,8 @@ export interface ClosingResult {
   sessions_closed: number;
   students_absent: number;
   teachers_absent: number;
+  /** Students and teachers saved as LEAVE because they were on approved leave (P3-06). */
+  on_leave: number;
 }
 
 /** One class whose check-in has closed and that is still open. */
@@ -46,6 +49,7 @@ interface Ended {
  * Closes class sessions once check-in has closed (ATT-10, design §7 `attendance.close-sessions`):
  * every ACTIVE student of the section without a record is saved as Absent (source AUTO_ABSENT),
  * and so is the slot's named teacher in an organisation (ATT-11); the session becomes CLOSED.
+ * Someone on approved leave that day (ATT-09, ATT-11) is saved as LEAVE instead, linked to the request.
  * Skipped: weekly off days and holidays, cancelled classes (ATT-19), paper-register sections (their
  * register is imported, P3-05), closed academic sessions, slots added after the class started and
  * students who joined after it started. Safe to run twice and at the same time as itself: each
@@ -64,6 +68,7 @@ export class SessionClosingService {
     private readonly holidays: HolidaysService,
     private readonly orgSettings: OrgSettingsService,
     private readonly entitlements: EntitlementsService,
+    private readonly leave: ApprovedLeaveService,
     private readonly audit: AuditService,
     private readonly clock: AttendanceClock,
     private readonly dataSource: DataSource,
@@ -71,7 +76,7 @@ export class SessionClosingService {
 
   /** The repeatable job: every organisation with schedules and the `attendance` feature. */
   async closeEnded(): Promise<ClosingResult & { organizations: number }> {
-    const total = { organizations: 0, sessions_closed: 0, students_absent: 0, teachers_absent: 0 };
+    const total = { organizations: 0, sessions_closed: 0, students_absent: 0, teachers_absent: 0, on_leave: 0 };
     for (const organizationId of await this.slots.organizationsWithActiveSlots()) {
       try {
         if (!(await this.entitlements.hasFeature(organizationId, FeatureKey.ATTENDANCE))) continue;
@@ -80,6 +85,7 @@ export class SessionClosingService {
         total.sessions_closed += result.sessions_closed;
         total.students_absent += result.students_absent;
         total.teachers_absent += result.teachers_absent;
+        total.on_leave += result.on_leave;
       } catch (error) {
         // One organisation's problem must not stop the others; the next run tries again.
         this.logger.error(`Closing classes of organisation ${organizationId} failed: ${(error as Error).message}`);
@@ -98,13 +104,14 @@ export class SessionClosingService {
     const today = schoolDateIn(timeZone, now);
     const from = onlyDate ?? addDays(today, -CLOSE_CATCH_UP_DAYS);
     const to = onlyDate ?? today;
-    const result: ClosingResult = { sessions_closed: 0, students_absent: 0, teachers_absent: 0 };
+    const result: ClosingResult = { sessions_closed: 0, students_absent: 0, teachers_absent: 0, on_leave: 0 };
 
     const ended = await this.endedClasses(organizationId, from, to, timeZone, now);
     if (ended.length === 0) return result;
-    const [rosters, kind] = await Promise.all([
+    const [rosters, kind, leave] = await Promise.all([
       this.sections.activeStudentsOfSections(organizationId, [...new Set(ended.map((item) => item.section_id))]),
       this.orgSettings.kind(organizationId),
+      this.leave.between(organizationId, from, to),
     ]);
 
     for (const item of ended) {
@@ -113,11 +120,12 @@ export class SessionClosingService {
         : [];
       // A solo teacher's own workspace has no teacher check-in (P3-03).
       const teacherId = item.counts && kind !== OrganizationKindEnum.SOLO ? item.slot.teacher_id : null;
-      const closed = await this.closeSession(organizationId, item, students, teacherId);
+      const closed = await this.closeSession(organizationId, item, students, teacherId, leave);
       if (!closed) continue;
       result.sessions_closed++;
       result.students_absent += closed.students;
       result.teachers_absent += closed.teachers;
+      result.on_leave += closed.on_leave;
     }
 
     if (result.sessions_closed > 0) {
@@ -168,33 +176,42 @@ export class SessionClosingService {
     return result;
   }
 
-  /** Saves the missing Absent records and closes the session; null when another run or a cancellation got there first. */
+  /**
+   * Saves the missing records (Absent, or LEAVE for someone on approved leave) and closes the
+   * session; null when another run or a cancellation got there first.
+   */
   private async closeSession(
     organizationId: string,
     item: Ended,
     studentIds: string[],
     teacherId: string | null,
-  ): Promise<{ students: number; teachers: number } | null> {
+    leave: LeaveCalendar,
+  ): Promise<{ students: number; teachers: number; on_leave: number } | null> {
     return this.dataSource.transaction(async (manager) => {
       const created = item.saved ?? (await this.sessions.ensureSession(manager, organizationId, item.section_id, item.slot.id, item.date, item.window));
       const session = await manager.getRepository(ClassSessionEntity).findOne({ where: { id: created.id }, lock: { mode: 'pessimistic_write' } });
       if (!session || session.status !== ClassSessionStatusEnum.SCHEDULED) return null;
 
-      const absent = (personId: string, personType: AttendancePersonTypeEnum) => ({
-        organization_id: organizationId,
-        class_attendance_id: session.id,
-        date: item.date,
-        person_id: personId,
-        person_type: personType,
-        status: AttendanceStatusEnum.ABSENT,
-        source: AttendanceRecordSourceEnum.AUTO_ABSENT,
-      });
+      const absent = (personId: string, personType: AttendancePersonTypeEnum) => {
+        const onLeave = leave.on(personId, item.date);
+        return {
+          organization_id: organizationId,
+          class_attendance_id: session.id,
+          date: item.date,
+          person_id: personId,
+          person_type: personType,
+          status: onLeave ? AttendanceStatusEnum.LEAVE : AttendanceStatusEnum.ABSENT,
+          source: AttendanceRecordSourceEnum.AUTO_ABSENT,
+          leave_request_id: onLeave?.id ?? null,
+        };
+      };
       const rows = [
         ...studentIds.map((id) => absent(id, AttendancePersonTypeEnum.STUDENT)),
         ...(teacherId && !studentIds.includes(teacherId) ? [absent(teacherId, AttendancePersonTypeEnum.TEACHER)] : []),
       ];
       let students = 0;
       let teachers = 0;
+      let onLeave = 0;
       if (rows.length > 0) {
         // Anyone who checked in (or was corrected) keeps their record: (session, person) is unique.
         const inserted = await manager
@@ -203,15 +220,16 @@ export class SessionClosingService {
           .into(AttendanceRecordEntity)
           .values(rows)
           .orIgnore()
-          .returning(['person_type'])
+          .returning(['person_type', 'status'])
           .execute();
-        for (const row of inserted.raw as { person_type: AttendancePersonTypeEnum }[]) {
-          if (row.person_type === AttendancePersonTypeEnum.TEACHER) teachers++;
+        for (const row of inserted.raw as { person_type: AttendancePersonTypeEnum; status: AttendanceStatusEnum }[]) {
+          if (row.status === AttendanceStatusEnum.LEAVE) onLeave++;
+          else if (row.person_type === AttendancePersonTypeEnum.TEACHER) teachers++;
           else students++;
         }
       }
       await manager.getRepository(ClassSessionEntity).update({ id: session.id }, { status: ClassSessionStatusEnum.CLOSED, closed_at: new Date() });
-      return { students, teachers };
+      return { students, teachers, on_leave: onLeave };
     });
   }
 }

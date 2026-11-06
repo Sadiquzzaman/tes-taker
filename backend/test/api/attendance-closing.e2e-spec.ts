@@ -162,10 +162,10 @@ describe('attendance closing job and class cancellation', () => {
 
       // Still open: nothing is saved yet.
       setNow(`${DATE}T11:29:00Z`);
-      expect(await closing.closeOrganization(s.organization.id)).toEqual({ sessions_closed: 0, students_absent: 0, teachers_absent: 0 });
+      expect(await closing.closeOrganization(s.organization.id)).toEqual({ sessions_closed: 0, students_absent: 0, teachers_absent: 0, on_leave: 0 });
 
       setNow(AFTER);
-      expect(await closing.closeOrganization(s.organization.id)).toEqual({ sessions_closed: 2, students_absent: 2, teachers_absent: 1 });
+      expect(await closing.closeOrganization(s.organization.id)).toEqual({ sessions_closed: 2, students_absent: 2, teachers_absent: 1, on_leave: 0 });
       const saved = await records(s.organization.id);
       const byPerson = new Map(saved.map((r) => [r.person_id, r]));
       expect(byPerson.get(s.rahim.user.id)).toMatchObject({ status: 'PRESENT', source: 'SELF' });
@@ -198,7 +198,7 @@ describe('attendance closing job and class cancellation', () => {
       expect(first.sessions_closed + second.sessions_closed).toBe(2);
       const before = await records(s.organization.id);
       expect(before).toHaveLength(4);
-      expect(await closing.closeOrganization(s.organization.id)).toEqual({ sessions_closed: 0, students_absent: 0, teachers_absent: 0 });
+      expect(await closing.closeOrganization(s.organization.id)).toEqual({ sessions_closed: 0, students_absent: 0, teachers_absent: 0, on_leave: 0 });
       expect(await records(s.organization.id)).toEqual(before);
 
       // A correction after closing is kept by later runs.
@@ -235,7 +235,7 @@ describe('attendance closing job and class cancellation', () => {
       setNow('2026-11-21T12:00:00Z');
       expect((await closing.closeOrganization(s.organization.id)).sessions_closed).toBe(0);
       expect((await call('PATCH', '/attendance/settings', s.ownerToken, { weekly_off_days: [5] })).status).toBe(200);
-      expect(await closing.closeOrganization(s.organization.id)).toEqual({ sessions_closed: 1, students_absent: 2, teachers_absent: 1 });
+      expect(await closing.closeOrganization(s.organization.id)).toEqual({ sessions_closed: 1, students_absent: 2, teachers_absent: 1, on_leave: 0 });
     });
 
     it('marks nobody Absent for a slot added after the class started, nor students who joined after it started', async () => {
@@ -245,7 +245,7 @@ describe('attendance closing job and class cancellation', () => {
       // routine_slots.created_at has no time zone: pass a Date so it is stored like the API stores it.
       await t.dataSource.query(`UPDATE routine_slots SET created_at = $2 WHERE id = $1`, [s.slot9, new Date(`${DATE}T10:15:00Z`)]);
       setNow(AFTER);
-      expect(await closing.closeOrganization(s.organization.id)).toEqual({ sessions_closed: 1, students_absent: 1, teachers_absent: 1 });
+      expect(await closing.closeOrganization(s.organization.id)).toEqual({ sessions_closed: 1, students_absent: 1, teachers_absent: 1, on_leave: 0 });
       expect((await records(s.organization.id)).map((r) => r.person_id).sort()).toEqual([s.rahim.user.id, s.teacher.id].sort());
 
       // The views agree: Karim is not on the class list, Nila has no class that day.

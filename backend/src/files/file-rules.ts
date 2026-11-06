@@ -11,6 +11,8 @@ export enum FilePurposeEnum {
   HOMEWORK = 'HOMEWORK',
   RESOURCE = 'RESOURCE',
   VIDEO = 'VIDEO',
+  /** A leave request's attachment, e.g. a doctor's note (ATT-09). */
+  LEAVE = 'LEAVE',
 }
 
 export enum FileStatusEnum {
@@ -37,6 +39,7 @@ export const UPLOAD_RULES: Partial<Record<FilePurposeEnum, readonly string[]>> =
   [FilePurposeEnum.EXAM]: IMAGE_MIMES,
   [FilePurposeEnum.IMAGE]: IMAGE_MIMES,
   [FilePurposeEnum.DISCUSSION]: [...IMAGE_MIMES, ...DOCUMENT_MIMES],
+  [FilePurposeEnum.LEAVE]: [...IMAGE_MIMES, 'application/pdf'],
 };
 
 export const isImageMime = (mime: string): boolean => (IMAGE_MIMES as readonly string[]).includes(mime);

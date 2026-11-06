@@ -186,6 +186,10 @@ describe('files', () => {
       expect((await presign(token, { purpose: 'EXAM', mime: 'image/heic', size: 1000 })).status).toBe(400);
       expect((await presign(token, { purpose: 'EXAM', mime: 'image/png', size: 20 * MB + 1 })).status).toBe(400);
       expect((await presign(token, { purpose: 'VIDEO', mime: 'image/png', size: 1000 })).status).toBe(400);
+      // A leave attachment (P3-06): a photo or a PDF of a note, nothing else.
+      expect((await presign(token, { purpose: 'LEAVE', mime: 'application/pdf', size: 1000 })).status).toBe(201);
+      expect((await presign(token, { purpose: 'LEAVE', mime: 'image/jpeg', size: 1000 })).status).toBe(201);
+      expect((await presign(token, { purpose: 'LEAVE', mime: 'text/plain', size: 1000 })).status).toBe(400);
 
       const signed = await presign(token, { purpose: 'EXAM', mime: 'image/png', size: 1000 });
       const forged = { ...signed.body.payload.upload, url: signed.body.payload.upload.url.replace(/signature=[0-9a-f]+/, 'signature=00') };

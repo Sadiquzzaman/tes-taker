@@ -227,7 +227,7 @@ Re-planned on 5 Nov 2026 for the class-based design (spec Epic 1, "Design"): stu
 | P3-03 | Web self check-in (window, radius and accuracy, online, flags) for students and teachers; "My attendance" calendar; teacher section view with corrections and their trail | ATT-04, 06, 07, 11, 12, 18 | 4 |
 | P3-04 | **done** (#179 closing job and cancellation, #180 guardian SMS and the repeated-absence alert, #181 screens). Automatic Absent when check-in closes, class cancellation by the teacher, guardian SMS (Late at once, Absent once a day), repeated-absence alert | ATT-10, 14, 19 | 3 |
 | P3-05 | Paper register: CSV template per section and month, preview, apply (idempotent), export | ATT-17, 13 (export) | 2.5 |
-| P3-06 | Leave requests and approvals (students and teachers) | ATT-09, 11 | 2 |
+| P3-06 | **done** (#184 leave API, approved leave saved as Leave; part 2 the Leave page). Leave requests and approvals (students and teachers) | ATT-09, 11 | 2 |
 | P3-07 | Reports: daily summary per section, monthly register (PDF/Excel), attendance % for Performance, teacher report | ATT-13 | 3 |
 
 Order: P3-02 → P3-03 → P3-04; P3-05 and P3-06 after P3-03; P3-07 last. **Later:** ZKTeco gate presence (ATT-02, 03), class photos (ATT-08), selfie (ATT-05).

@@ -44,7 +44,8 @@
     "branches": "শাখা",
     "classSetup": "ক্লাস সেটআপ",
     "myAttendance": "আমার উপস্থিতি",
-    "classAttendance": "ক্লাসের উপস্থিতি"
+    "classAttendance": "ক্লাসের উপস্থিতি",
+    "leave": "ছুটি"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -3461,7 +3462,9 @@
       "ATTENDANCE_CHECKIN_NO_CLASS_TODAY": "এই ক্লাস আজ হয় না।",
       "ATTENDANCE_CHECKIN_NOT_YOUR_CLASS": "আপনি শুধু নিজের ক্লাসে চেক-ইন করতে পারেন।",
       "ATTENDANCE_CHECKIN_CANCELLED": "আজ এই ক্লাস বাতিল।"
-    }
+    },
+    "onLeaveToday": "আজ আপনার মঞ্জুর করা ছুটি। চেক ইন না করলে আপনার ক্লাসগুলো ছুটি হিসেবে গণ্য হবে।",
+    "leaveLink": "ছুটি"
   },
   "classAttendance": {
     "title": "ক্লাসের উপস্থিতি",
@@ -3554,5 +3557,111 @@
     "restoredToast": "{section}-এর ক্লাস হবে; শিক্ষার্থীদের জানানো হয়েছে।",
     "tooOldHint": "শিক্ষকেরা গত ৭ দিনের ক্লাস ঠিক করতে পারেন। পুরোনো ক্লাসের জন্য প্রতিষ্ঠানের মালিক বা অ্যাডমিনকে বলুন।",
     "cancelledHint": "এই ক্লাস বাতিল হয়েছিল: কাউকে অনুপস্থিত ধরা হয়নি, হিসাবেও আসে না।"
+  },
+  "leave": {
+    "title": "ছুটি",
+    "intro": "তারিখ ও কারণ দিয়ে ছুটির আবেদন করুন। মঞ্জুর হওয়া দিনগুলো ছুটি (নীল) হিসেবে দেখায়, কখনো অনুপস্থিত গণ্য হয় না।",
+    "apply": "ছুটির আবেদন",
+    "tabs": {
+      "mine": "আমার ছুটি",
+      "approvals": "মঞ্জুরির জন্য"
+    },
+    "loadFailed": "ছুটির তথ্য আনা যায়নি।",
+    "emptyMine": "এখনো কোনো ছুটি নেই",
+    "emptyMineHint": "আপনার ছুটির আবেদন ও তার উত্তর এখানে দেখাবে।",
+    "emptyApprovals": "অপেক্ষায় কিছু নেই",
+    "emptyApprovalsHint": "আপনার শিক্ষার্থী বা স্টাফদের নতুন ছুটির আবেদন এখানে দেখাবে।",
+    "emptyDecided": "এখনো কোনো আবেদনের সিদ্ধান্ত হয়নি",
+    "filter": "দেখান",
+    "filters": {
+      "PENDING": "অপেক্ষায়",
+      "DECIDED": "সিদ্ধান্ত হয়েছে",
+      "ALL": "সব"
+    },
+    "columns": {
+      "dates": "তারিখ",
+      "days": "ক্লাসের দিন",
+      "person": "কে",
+      "status": "অবস্থা",
+      "reason": "কারণ",
+      "answer": "উত্তর",
+      "actions": "কাজ"
+    },
+    "range": "{from} থেকে {to}",
+    "days": "{count, plural, one {# ক্লাসের দিন} other {# ক্লাসের দিন}}",
+    "status": {
+      "PENDING": "অপেক্ষায়",
+      "APPROVED": "মঞ্জুর",
+      "REJECTED": "মঞ্জুর হয়নি",
+      "CANCELLED": "প্রত্যাহার"
+    },
+    "personType": {
+      "STUDENT": "শিক্ষার্থী",
+      "TEACHER": "শিক্ষক"
+    },
+    "appliedBy": "আবেদন করেছেন {name}",
+    "decidedBy": "{name}-এর মন্তব্য: {note}",
+    "decidedByNoNote": "সিদ্ধান্ত: {name}",
+    "withdrawnBy": "প্রত্যাহার করেছেন {name}",
+    "attachment": "সংযুক্তি",
+    "openAttachment": "{name} খুলুন",
+    "approve": "মঞ্জুর করুন",
+    "reject": "মঞ্জুর করবেন না",
+    "approveNamed": "{name}-এর ছুটি মঞ্জুর করুন",
+    "rejectNamed": "{name}-এর ছুটি মঞ্জুর করবেন না",
+    "withdraw": "প্রত্যাহার",
+    "withdrawNamed": "{dates}-এর ছুটি প্রত্যাহার",
+    "withdrawTitle": "এই ছুটি প্রত্যাহার করবেন?",
+    "withdrawDescription": "{dates}-এর আবেদনটি প্রত্যাহার হিসেবে রাখা হবে। আপনি আবার আবেদন করতে পারবেন।",
+    "withdrawn": "ছুটি প্রত্যাহার হয়েছে",
+    "approveTitle": "{name}-এর ছুটি মঞ্জুর করবেন?",
+    "rejectTitle": "{name}-এর ছুটি মঞ্জুর করবেন না?",
+    "decisionHint": "{dates}, {days}। কারণ: {reason}",
+    "noteLabel": "{name}-এর জন্য মন্তব্য",
+    "noteOptional": "ঐচ্ছিক",
+    "noteRequired": "কারণ লিখুন, যাতে তারা বুঝতে পারে কী করতে হবে।",
+    "approved": "ছুটি মঞ্জুর হয়েছে",
+    "rejected": "ছুটি মঞ্জুর হয়নি",
+    "cancel": "বাতিল",
+    "form": {
+      "title": "ছুটির আবেদন",
+      "hint": "পুরো দিনের ছুটি। এর মধ্যে সাপ্তাহিক ছুটি ও অন্যান্য ছুটির দিন গোনা হয় না।",
+      "who": "কে ছুটিতে থাকবে",
+      "myself": "আমি নিজে",
+      "someoneElse": "একজন শিক্ষার্থী বা শিক্ষক",
+      "search": "নাম দিয়ে খুঁজুন",
+      "searchHint": "অন্তত ২টি অক্ষর লিখুন।",
+      "person": "ব্যক্তি",
+      "noPeople": "কাউকে পাওয়া যায়নি",
+      "from": "প্রথম দিন",
+      "to": "শেষ দিন",
+      "toHint": "এক দিনের জন্য খালি রাখুন।",
+      "reason": "কারণ",
+      "reasonHint": "যেমন: জ্বর, পারিবারিক বিয়ে।",
+      "file": "সংযুক্তি (ঐচ্ছিক)",
+      "fileTypes": "ছবি বা PDF",
+      "uploading": "আপলোড হচ্ছে…",
+      "submit": "আবেদন করুন",
+      "applied": "ছুটির আবেদন হয়েছে। উত্তর এলে আপনাকে জানানো হবে।",
+      "approvedAtOnce": "ছুটি সংরক্ষিত ও মঞ্জুর হয়েছে।"
+    },
+    "errors": {
+      "PERSON_REQUIRED": "কে ছুটিতে থাকবে বেছে নিন।",
+      "REASON_REQUIRED": "কারণ লিখুন (অন্তত ৩টি অক্ষর)।",
+      "UPLOAD_FAILED": "সংযুক্তি আপলোড করা যায়নি। আবার চেষ্টা করুন বা এটি ছাড়া আবেদন করুন।",
+      "ATTENDANCE_LEAVE_DATES_INVALID": "প্রথম ও শেষ দিন ক্রমানুসারে বেছে নিন।",
+      "ATTENDANCE_LEAVE_TOO_LONG": "একবারে সর্বোচ্চ {days, number} দিনের ছুটি নেওয়া যায়।",
+      "ATTENDANCE_LEAVE_TOO_OLD": "ছুটি সর্বোচ্চ {days, number} দিন আগে থেকে শুরু হতে পারে।",
+      "ATTENDANCE_LEAVE_TOO_FAR": "সর্বোচ্চ {days, number} দিন আগে থেকে ছুটির আবেদন করা যায়।",
+      "ATTENDANCE_LEAVE_NO_SCHOOL_DAYS": "আপনার বেছে নেওয়া সব দিনই সাপ্তাহিক ছুটি বা ছুটির দিন।",
+      "ATTENDANCE_LEAVE_OVERLAP": "এটি আরেকটি ছুটির আবেদনের ({from} – {to}) সঙ্গে মিলে যায়।",
+      "ATTENDANCE_LEAVE_NOT_ALLOWED": "আপনি এই ব্যক্তির ছুটির আবেদন করতে পারবেন না।",
+      "ATTENDANCE_LEAVE_PERSON_NOT_FOUND": "এই ব্যক্তি এখানে শিক্ষার্থী বা শিক্ষক নন।",
+      "ATTENDANCE_LEAVE_FILE_INVALID": "সংযুক্তিটি আবার আপলোড করুন।",
+      "ATTENDANCE_LEAVE_NOT_PENDING": "এই আবেদনের উত্তর আগেই দেওয়া হয়েছে বা এটি প্রত্যাহার হয়েছে।",
+      "ATTENDANCE_LEAVE_CANNOT_CANCEL": "শুরু হয়ে যাওয়া ছুটি প্রত্যাহার করা যায় না।",
+      "ATTENDANCE_LEAVE_NOT_APPROVER": "এই ছুটি মঞ্জুর করার দায়িত্ব আপনার নয়।",
+      "ATTENDANCE_LEAVE_OWN_REQUEST": "নিজের ছুটির উত্তর আপনি দিতে পারবেন না।"
+    }
   }
 }
