@@ -3319,7 +3319,7 @@
       "SCHEDULE_TIME_INVALID": "The end must be after the start.",
       "SCHEDULE_OVERLAP": "This overlaps another time on the same day.",
       "SCHEDULE_TEACHER_CLASH": "This teacher already has a class at this time ({section}).",
-      "SCHEDULE_TOO_MANY": "A [[section]] can have at most 30 times a week.",
+      "SCHEDULE_TOO_MANY": "A [[section]] can have at most 70 times a week.",
       "ATTENDANCE_SETUP_TEACHER_INVALID": "Choose a teacher of this organisation.",
       "ATTENDANCE_SETUP_SOURCE_INVALID": "Copy from another [[section]] of the same session."
     },
@@ -3374,7 +3374,7 @@
         "END_INVALID": "End time not understood. Write it like 17:30 or 5:30 PM.",
         "END_BEFORE_START": "The end must be after the start.",
         "OVERLAP": "Overlaps another line of this [[section]] on the same day.",
-        "TOO_MANY": "A [[section]] can have at most 30 times a week.",
+        "TOO_MANY": "A [[section]] can have at most 70 times a week.",
         "CLASS_TYPE_INVALID": "class_type must be In person or Online.",
         "MODE_INVALID": "mode must be Self check-in or Paper register.",
         "GRACE_INVALID": "grace must be 0 to 60 minutes, or default.",
