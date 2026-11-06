@@ -3076,7 +3076,7 @@
     "loadFailed": "Couldn't load the attendance settings.",
     "readOnly": "Only the owner and admins can change these settings.",
     "offDays": "Weekly off days",
-    "offDaysHint": "No attendance and no absence SMS on these days. Add other holidays on the Holidays page.",
+    "offDaysHint": "No attendance and no absence SMS on these days. A day you make a school day counts from tomorrow. Add other holidays on the Holidays page.",
     "weekday": {
       "1": "Monday",
       "2": "Tuesday",
@@ -3468,6 +3468,10 @@
     },
     "onLeaveToday": "You're on approved leave today. Your classes count as Leave unless you check in.",
     "leaveLink": "Leave"
+  },
+  "attendanceWorkspace": {
+    "title": "Choose where you study",
+    "intro": "Attendance is kept by your school, coaching centre or teacher. Choose one below to check in and see your attendance there."
   },
   "classAttendance": {
     "title": "Class attendance",
