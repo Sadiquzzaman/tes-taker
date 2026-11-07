@@ -2772,7 +2772,8 @@
       "attendance": "Attendance",
       "homework": "Homework",
       "routine": "Routine",
-      "event": "Events"
+      "event": "Events",
+      "reminders": "Reminders"
     },
     "actions": {
       "plan": {
@@ -2891,6 +2892,9 @@
         "create": "Event added",
         "update": "Event changed",
         "cancel": "Event cancelled"
+      },
+      "reminders": {
+        "defaults_update": "Default reminders changed"
       }
     },
     "fields": {
@@ -3087,7 +3091,8 @@
       "calendar": {
         "event_added": "Event added",
         "event_changed": "Event changed",
-        "event_cancelled": "Event cancelled"
+        "event_cancelled": "Event cancelled",
+        "reminder": "Reminder"
       }
     }
   },
@@ -4381,6 +4386,45 @@
       "turnOff": "Turn off",
       "turnOffTitle": "Turn off your calendar link?",
       "turnOffDetail": "Calendars that use it stop updating."
+    },
+    "reminders": {
+      "title": "My reminders",
+      "intro": "When we remind you before your classes, exams and events.",
+      "defaultsTitle": "Reminders for everyone",
+      "defaultsIntro": "The reminders people get unless they set their own. SMS reminders use your SMS credits.",
+      "targets": {
+        "CLASS": "Classes",
+        "EXAM": "Exams",
+        "EVENT": "Events"
+      },
+      "channels": {
+        "IN_APP": "in the app",
+        "SMS": "by SMS"
+      },
+      "item": "{before} before, {channel}",
+      "minutes": "{count, plural, one {# minute} other {# minutes}}",
+      "hours": "{count, plural, one {# hour} other {# hours}}",
+      "days": "{count, plural, one {# day} other {# days}}",
+      "off": "Off",
+      "usingDefault": "As set for everyone",
+      "useDefault": "Use the default",
+      "change": "Change",
+      "changeFor": "Change reminders for {kind}",
+      "changeDefaultFor": "Change everyone's reminders for {kind}",
+      "editMine": "My reminders: {kind}",
+      "editDefaults": "Reminders for everyone: {kind}",
+      "editorHint": "Up to {max, number} reminders.",
+      "noneSet": "No reminders: they are off.",
+      "when": "When",
+      "channel": "How",
+      "remove": "Remove reminder {number}",
+      "add": "Add a reminder",
+      "turnOff": "Turn all off",
+      "duplicate": "Each time can be used once.",
+      "smsHint": "SMS reminders go to the phone number on the account and use the organisation's SMS credits.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Reminders saved"
     }
   }
 }

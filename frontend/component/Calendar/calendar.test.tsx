@@ -65,6 +65,8 @@ const serve = (event: CalendarEventItem = EVENT, link = { active: false, created
   get.mockImplementation((url: string, config?: { params?: { from?: string; to?: string } }) => {
     if (url.endsWith("/calendar/feed")) return ok({ from: config?.params?.from, to: config?.params?.to, time_zone: "Asia/Dhaka", items: ITEMS });
     if (url.endsWith("/calendar/ical-link")) return ok(link);
+    if (url.endsWith("/reminders"))
+      return ok({ defaults: { CLASS: [], EXAM: [], EVENT: [] }, mine: { CLASS: { offsets: [], own: false }, EXAM: { offsets: [], own: false }, EVENT: { offsets: [], own: false } }, can_manage: false });
     if (url.endsWith("/events/e1")) return ok(event);
     if (url.endsWith("/routine")) return ok({ sections: [{ id: "sa", name: "A", class_name: "Class 6" }] });
     if (url.endsWith("/organizations/org1/assignable-teachers")) return ok([{ id: "m1", role: "TEACHER", user: { id: "t1", full_name: "Rina", email: null, phone: null } }]);

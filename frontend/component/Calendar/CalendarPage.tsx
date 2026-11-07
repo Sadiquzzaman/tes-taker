@@ -11,6 +11,7 @@ import { todayInSchool } from "@/utils/schoolDate";
 import { type CalendarView, rangeOf, shift } from "./calendarDates";
 import { DayView, MonthView, WeekView } from "./CalendarViews";
 import EventDrawer from "./EventDrawer";
+import RemindersCard from "./RemindersCard";
 import SubscribeCard from "./SubscribeCard";
 
 const VIEWS: CalendarView[] = ["month", "week", "day"];
@@ -19,7 +20,7 @@ const KINDS: CalendarFeedItem["kind"][] = ["CLASS", "EVENT", "EXAM", "HOLIDAY"];
 /**
  * The person's calendar (CAL-07): their classes (with a day's changes), events, exams and closed
  * days by month, week or day, filtered by kind. Events open in a drawer; staff add events. Below,
- * a private link adds the calendar to Google or Apple Calendar.
+ * the person's reminders (CAL-05) and a private link that adds the calendar to Google or Apple Calendar.
  */
 const CalendarPage = () => {
   const t = useTranslations("calendar");
@@ -125,6 +126,7 @@ const CalendarPage = () => {
           )}
         </div>
       </Card>
+      <RemindersCard />
       <SubscribeCard />
       {open ? (
         <EventDrawer
