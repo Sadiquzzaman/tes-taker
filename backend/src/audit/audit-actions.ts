@@ -87,6 +87,9 @@ export const AUDIT_ACTIONS = {
   HOMEWORK_RETURN: 'homework.return',
   HOMEWORK_PUBLISH_SCORES: 'homework.publish_scores',
   HOMEWORK_REMIND: 'homework.remind',
+  ROUTINE_ADD: 'routine.add',
+  ROUTINE_CHANGE: 'routine.change',
+  ROUTINE_REMOVE: 'routine.remove',
 
   // Notifications (platform admin, design §8.6)
   MESSAGE_TEMPLATE_UPDATE: 'message_template.update',

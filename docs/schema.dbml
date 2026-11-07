@@ -1310,7 +1310,7 @@ Table routine_slots {
     (section_id, day_of_week, start_time)
     (organization_id, session_id)
   }
-  Note: 'NEW (CAL-01), BUILT P3-02 as section schedules (ATT-16, calendar module, RoutineSlotsService): no overlap within a section, teacher clash check (CAL-02); saving replaces a section\'s schedule, keeping unchanged rows and soft-removing the rest. P5 builds the routine on the same rows'
+  Note: 'NEW (CAL-01), BUILT P3-02 as section schedules (ATT-16, calendar module, RoutineSlotsService): no overlap within a section, teacher clash check (CAL-02); saving replaces a section\'s schedule, keeping unchanged rows and soft-removing the rest. P5-04 builds the routine on the same rows: subject (offering_id), teacher and room per slot; teacher and room clashes are warnings the admin can confirm (CAL-02)'
 }
 
 Enum exception_type { CANCEL MOVE SUBSTITUTE }
