@@ -2772,7 +2772,8 @@
       "attendance": "উপস্থিতি",
       "homework": "হোমওয়ার্ক",
       "routine": "রুটিন",
-      "event": "ইভেন্ট"
+      "event": "ইভেন্ট",
+      "reminders": "রিমাইন্ডার"
     },
     "actions": {
       "plan": {
@@ -2891,6 +2892,9 @@
         "create": "ইভেন্ট যোগ",
         "update": "ইভেন্ট পরিবর্তন",
         "cancel": "ইভেন্ট বাতিল"
+      },
+      "reminders": {
+        "defaults_update": "ডিফল্ট রিমাইন্ডার পরিবর্তন"
       }
     },
     "fields": {
@@ -3087,7 +3091,8 @@
       "calendar": {
         "event_added": "ইভেন্ট যোগ",
         "event_changed": "ইভেন্ট পরিবর্তন",
-        "event_cancelled": "ইভেন্ট বাতিল"
+        "event_cancelled": "ইভেন্ট বাতিল",
+        "reminder": "রিমাইন্ডার"
       }
     }
   },
@@ -4381,6 +4386,45 @@
       "turnOff": "বন্ধ করুন",
       "turnOffTitle": "ক্যালেন্ডার লিংক বন্ধ করবেন?",
       "turnOffDetail": "যেসব ক্যালেন্ডার এটি ব্যবহার করে সেগুলো আর হালনাগাদ হবে না।"
+    },
+    "reminders": {
+      "title": "আমার রিমাইন্ডার",
+      "intro": "আপনার ক্লাস, পরীক্ষা ও ইভেন্টের আগে কখন মনে করিয়ে দেওয়া হবে।",
+      "defaultsTitle": "সবার জন্য রিমাইন্ডার",
+      "defaultsIntro": "নিজে না বদলালে সবাই এই রিমাইন্ডার পাবে। SMS রিমাইন্ডারে আপনার SMS ক্রেডিট খরচ হয়।",
+      "targets": {
+        "CLASS": "ক্লাস",
+        "EXAM": "পরীক্ষা",
+        "EVENT": "ইভেন্ট"
+      },
+      "channels": {
+        "IN_APP": "অ্যাপে",
+        "SMS": "SMS-এ"
+      },
+      "item": "{before} আগে, {channel}",
+      "minutes": "{count, plural, other {# মিনিট}}",
+      "hours": "{count, plural, other {# ঘণ্টা}}",
+      "days": "{count, plural, other {# দিন}}",
+      "off": "বন্ধ",
+      "usingDefault": "সবার জন্য যেমন ঠিক করা",
+      "useDefault": "ডিফল্ট ব্যবহার করুন",
+      "change": "বদলান",
+      "changeFor": "{kind}-এর রিমাইন্ডার বদলান",
+      "changeDefaultFor": "সবার {kind}-এর রিমাইন্ডার বদলান",
+      "editMine": "আমার রিমাইন্ডার: {kind}",
+      "editDefaults": "সবার জন্য রিমাইন্ডার: {kind}",
+      "editorHint": "সর্বোচ্চ {max, number}টি রিমাইন্ডার।",
+      "noneSet": "কোনো রিমাইন্ডার নেই: বন্ধ।",
+      "when": "কখন",
+      "channel": "কীভাবে",
+      "remove": "{number} নম্বর রিমাইন্ডার সরান",
+      "add": "রিমাইন্ডার যোগ করুন",
+      "turnOff": "সব বন্ধ করুন",
+      "duplicate": "একই সময় একবারই ব্যবহার করা যায়।",
+      "smsHint": "SMS রিমাইন্ডার অ্যাকাউন্টের ফোন নম্বরে যায় এবং প্রতিষ্ঠানের SMS ক্রেডিট খরচ হয়।",
+      "save": "সংরক্ষণ করুন",
+      "cancel": "বাতিল",
+      "saved": "রিমাইন্ডার সংরক্ষিত"
     }
   }
 }

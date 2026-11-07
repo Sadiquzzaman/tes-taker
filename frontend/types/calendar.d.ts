@@ -57,3 +57,18 @@ interface CalendarEventInput {
   section_ids: string[];
   user_ids: string[];
 }
+
+/** Reminders (P5-05, CAL-05): `GET /reminders`. */
+type ReminderTarget = "CLASS" | "EXAM" | "EVENT";
+
+interface ReminderOffset {
+  /** Minutes before the start, 5 to 1440. */
+  minutes: number;
+  channel: "IN_APP" | "SMS";
+}
+
+interface ReminderSettings {
+  defaults: Record<ReminderTarget, ReminderOffset[]>;
+  mine: Record<ReminderTarget, { offsets: ReminderOffset[]; own: boolean }>;
+  can_manage: boolean;
+}
