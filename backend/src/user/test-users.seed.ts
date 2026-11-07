@@ -11,6 +11,7 @@ import { OrganizationEntity } from 'src/organizations/entities/organization.enti
 import { OrganizationMemberEntity } from 'src/organizations/entities/organization-member.entity';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { OrganizationStatusEnum } from 'src/organizations/enums/organization-status.enum';
+import { FeatureOverrideEntity } from 'src/subscriptions/entities/feature-override.entity';
 import { UserEntity } from './entities/user.entity';
 
 const TEST_PASSWORD = '12345678';
@@ -53,6 +54,31 @@ const STUDENTS: Array<{ phone: string; fullName: string; email: string }> = [
   { phone: '01111111123', fullName: 'Student Nine', email: 'student9@yopmail.com' },
 ];
 
+/**
+ * A fresh school with one account per role, for walking through the app as each kind of user.
+ * Placeholder phone numbers, same password as the other seeded accounts. Students start without
+ * a class: the owner adds them in the app. A solo teacher has their own workspace.
+ */
+const DEMO_SCHOOL = 'Demo School';
+const DEMO_STAFF: Array<{ phone: string; fullName: string; email: string; role: OrganizationMemberRoleEnum }> = [
+  { phone: '01111111141', fullName: 'Demo Owner', email: 'demo.owner@yopmail.com', role: OrganizationMemberRoleEnum.OWNER },
+  { phone: '01111111142', fullName: 'Demo Admin', email: 'demo.admin@yopmail.com', role: OrganizationMemberRoleEnum.ADMIN },
+  { phone: '01111111143', fullName: 'Demo Staff', email: 'demo.staff@yopmail.com', role: OrganizationMemberRoleEnum.ASSISTANT },
+  { phone: '01111111144', fullName: 'Rina Akter', email: 'demo.teacher1@yopmail.com', role: OrganizationMemberRoleEnum.TEACHER },
+  { phone: '01111111145', fullName: 'Karim Uddin', email: 'demo.teacher2@yopmail.com', role: OrganizationMemberRoleEnum.TEACHER },
+];
+const DEMO_STUDENTS: Array<{ phone: string; fullName: string; email: string }> = [
+  { phone: '01111111151', fullName: 'Mitu Das', email: 'demo.student1@yopmail.com' },
+  { phone: '01111111152', fullName: 'Rafi Ahmed', email: 'demo.student2@yopmail.com' },
+  { phone: '01111111153', fullName: 'Sumi Begum', email: 'demo.student3@yopmail.com' },
+  { phone: '01111111154', fullName: 'Tanvir Hossain', email: 'demo.student4@yopmail.com' },
+  { phone: '01111111155', fullName: 'Nusrat Jahan', email: 'demo.student5@yopmail.com' },
+  { phone: '01111111156', fullName: 'Arif Khan', email: 'demo.student6@yopmail.com' },
+];
+const DEMO_SOLO_TEACHER = { phone: '01111111146', fullName: 'Solo Teacher', email: 'demo.solo@yopmail.com' };
+/** Features the demo school has on, whatever its plan. */
+const DEMO_FEATURES = ['attendance', 'homework', 'calendar'];
+
 @Injectable()
 export class TestUsersSeedService {
   private readonly logger = new Logger(TestUsersSeedService.name);
@@ -64,6 +90,8 @@ export class TestUsersSeedService {
     private readonly organizationRepository: Repository<OrganizationEntity>,
     @InjectRepository(OrganizationMemberEntity)
     private readonly memberRepository: Repository<OrganizationMemberEntity>,
+    @InjectRepository(FeatureOverrideEntity)
+    private readonly overrideRepository: Repository<FeatureOverrideEntity>,
     private readonly configService: ConfigService,
     private readonly crypto: CryptoUtil,
     private readonly refreshTokenUtil: RefreshTokenUtil,
@@ -182,9 +210,85 @@ export class TestUsersSeedService {
       createdStudents += 1;
     }
 
+    const demo = await this.seedDemoSchool(hashedPassword);
+
+    this.logger.log(
+      `Demo school: created ${demo.users} users, ${demo.members} memberships, ${demo.features} feature switches.`,
+    );
     this.logger.log(
       `Test seed complete: created ${createdOwners} owners, ${createdOrgs} orgs, ${createdStudents} students; skipped ${skipped} already present. Password for seeded accounts: ${TEST_PASSWORD}`,
     );
+  }
+
+  /** The demo school, its people and features; only what is missing is added. */
+  private async seedDemoSchool(hashedPassword: string): Promise<{ users: number; members: number; features: number }> {
+    const counts = { users: 0, members: 0, features: 0 };
+    const userOf = async (person: { phone: string; fullName: string; email: string }, role: RolesEnum, personal = false): Promise<UserEntity> => {
+      const existing = await this.userRepository.findOne({ where: [{ phone: person.phone }, { email: person.email }] });
+      if (existing) return existing;
+      counts.users += 1;
+      return this.userRepository.save(
+        this.userRepository.create({
+          full_name: person.fullName,
+          email: person.email,
+          phone: person.phone,
+          password: hashedPassword,
+          role,
+          personal_teacher_enabled: personal,
+          is_otp_verified: true,
+          is_verified: true,
+          is_active: ActiveStatusEnum.ACTIVE,
+          refresh_token: this.refreshTokenUtil.generate().hash,
+          teacher_public_id: role === RolesEnum.TEACHER ? await this.publicIdService.nextTeacherPublicId() : null,
+          student_public_id: role === RolesEnum.STUDENT ? await this.publicIdService.nextStudentPublicId() : null,
+          public_id: null,
+          created_at: new Date(),
+        }),
+      );
+    };
+
+    const staff: ((typeof DEMO_STAFF)[number] & { user: UserEntity })[] = [];
+    for (const person of DEMO_STAFF) staff.push({ ...person, user: await userOf(person, RolesEnum.TEACHER) });
+    for (const student of DEMO_STUDENTS) await userOf(student, RolesEnum.STUDENT);
+    await userOf(DEMO_SOLO_TEACHER, RolesEnum.TEACHER, true);
+
+    const owner = staff[0].user;
+    let organization = await this.organizationRepository.findOne({ where: { name: DEMO_SCHOOL } });
+    if (!organization) {
+      const organizationNumber = await this.publicIdService.nextOrganizationPublicId();
+      organization = await this.organizationRepository.save(
+        this.organizationRepository.create({
+          name: DEMO_SCHOOL,
+          public_id: organizationNumber,
+          organization_number: organizationNumber,
+          status: OrganizationStatusEnum.APPROVED,
+          created_by: owner.id,
+          created_user_name: owner.full_name,
+          created_at: new Date(),
+        }),
+      );
+    }
+    for (const person of staff) {
+      const member = await this.memberRepository.findOne({ where: { organization_id: organization.id, user_id: person.user.id } });
+      if (member) continue;
+      await this.memberRepository.save(
+        this.memberRepository.create({
+          organization_id: organization.id,
+          user_id: person.user.id,
+          role: person.role,
+          created_by: owner.id,
+          created_user_name: owner.full_name,
+          created_at: new Date(),
+        }),
+      );
+      counts.members += 1;
+    }
+    for (const key of DEMO_FEATURES) {
+      if (await this.overrideRepository.findOne({ where: { organization_id: organization.id, key } })) continue;
+      await this.overrideRepository.save(this.overrideRepository.create({ organization_id: organization.id, key, value: true, reason: 'Demo school (test seed)' }));
+      counts.features += 1;
+    }
+    return counts;
   }
 
   /** True when phone or email already belongs to a user in the DB. */

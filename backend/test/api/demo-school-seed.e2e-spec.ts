@@ -1,0 +1,45 @@
+import { OrganizationMemberEntity } from '../../src/organizations/entities/organization-member.entity';
+import { OrganizationEntity } from '../../src/organizations/entities/organization.entity';
+import { FeatureOverrideEntity } from '../../src/subscriptions/entities/feature-override.entity';
+import { TestUsersSeedService } from '../../src/user/test-users.seed';
+import { UserEntity } from '../../src/user/entities/user.entity';
+import { createTestApp, TestApp } from '../support/test-app';
+
+/** The test seed's demo school: one account per role and the features on, added once. */
+describe('demo school seed', () => {
+  let t: TestApp;
+
+  beforeAll(async () => {
+    t = await createTestApp();
+  });
+
+  afterAll(async () => {
+    delete process.env.SEED_TEST_USERS;
+    await t.close();
+  });
+
+  it('adds the demo school with an owner, admin, staff member, two teachers, students and a solo teacher, once', async () => {
+    process.env.SEED_TEST_USERS = 'true';
+    const seed = t.app.get(TestUsersSeedService);
+    await seed.seedIfEnabled();
+    await seed.seedIfEnabled();
+
+    const school = await t.dataSource.getRepository(OrganizationEntity).findOneByOrFail({ name: 'Demo School' });
+    const members = await t.dataSource.getRepository(OrganizationMemberEntity).find({ where: { organization_id: school.id }, relations: ['user'] });
+    expect(members.map((m) => [m.user.email, m.role]).sort()).toEqual(
+      [
+        ['demo.admin@yopmail.com', 'ADMIN'],
+        ['demo.owner@yopmail.com', 'OWNER'],
+        ['demo.staff@yopmail.com', 'ASSISTANT'],
+        ['demo.teacher1@yopmail.com', 'TEACHER'],
+        ['demo.teacher2@yopmail.com', 'TEACHER'],
+      ].sort(),
+    );
+    const overrides = await t.dataSource.getRepository(FeatureOverrideEntity).find({ where: { organization_id: school.id } });
+    expect(overrides.map((o) => [o.key, o.value]).sort()).toEqual([['attendance', true], ['calendar', true], ['homework', true]]);
+    const users = t.dataSource.getRepository(UserEntity);
+    expect(await users.count({ where: { email: 'demo.student1@yopmail.com' } })).toBe(1);
+    expect((await users.findOneByOrFail({ email: 'demo.solo@yopmail.com' })).personal_teacher_enabled).toBe(true);
+    expect(await t.dataSource.getRepository(OrganizationEntity).countBy({ name: 'Demo School' })).toBe(1);
+  });
+});
