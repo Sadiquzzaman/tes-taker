@@ -65,6 +65,6 @@ import { SessionClosingService } from './session-closing.service';
     PaperRegisterService,
     AttendanceReportsService,
   ],
-  exports: [AttendanceSettingsService, SessionClosingService, AttendanceAlertsService, AttendanceReportsService],
+  exports: [AttendanceSettingsService, SessionClosingService, AttendanceAlertsService, AttendanceReportsService, MyAttendanceService],
 })
 export class AttendanceModule {}

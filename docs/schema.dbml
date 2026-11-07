@@ -1369,6 +1369,20 @@ Table event_attendees {
   Note: 'BUILT P5-05 part 1: CHECK exactly one of section_id, user_id. whole_org moved to events'
 }
 
+Table calendar_feed_tokens {
+  id uuid [pk]
+  organization_id uuid [not null]
+  user_id uuid [not null, ref: > users.id, note: 'FK ON DELETE CASCADE']
+  token_hash varchar(64) [not null, unique, note: 'SHA-256 of the link token; the token is shown once']
+  created_at timestamptz [not null]
+  revoked_at timestamptz [note: 'a new link or turning it off revokes the old one; rows are kept']
+  last_used_at timestamptz
+  Indexes {
+    (organization_id, user_id)
+  }
+  Note: 'BUILT P5-05 part 2 (CAL-07, calendar-feed module, migration CalendarFeedTokens): private iCal subscription links'
+}
+
 Table holidays {
   id uuid [pk]
   organization_id uuid [not null, ref: > organizations.id]

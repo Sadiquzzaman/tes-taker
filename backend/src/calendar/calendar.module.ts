@@ -26,6 +26,6 @@ import { RoutineService } from './routine.service';
   imports: [TypeOrmModule.forFeature([HolidayEntity, RoutineSlotEntity, EventEntity, EventAttendeeEntity, OrganizationMemberEntity]), OrganizationsModule, SubscriptionModule, AcademicsModule, NotificationsModule],
   controllers: [HolidaysController, RoutineController, EventsController],
   providers: [HolidaysService, RoutineSlotsService, RoutineService, EventsService],
-  exports: [HolidaysService, RoutineSlotsService],
+  exports: [HolidaysService, RoutineSlotsService, RoutineService, EventsService],
 })
 export class CalendarModule {}
