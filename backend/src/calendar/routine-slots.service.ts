@@ -16,7 +16,7 @@ export interface SlotInput {
   teacher_id: string | null;
 }
 
-/** A weekly slot as the API returns it. */
+/** A weekly slot as the API returns it (subject and room are set in the routine, CAL-01). */
 export interface SlotView extends SlotInput {
   id: string;
   teacher: { id: string; full_name: string } | null;
@@ -150,7 +150,6 @@ export class RoutineSlotsService {
   ): Promise<{ before: SlotInput[]; after: SlotInput[]; changed: boolean }> {
     const wanted = this.normalise(slots);
     const repo = manager.getRepository(RoutineSlotEntity);
-    await this.assertNoTeacherClash(manager, section, wanted);
     const current = await repo.find({
       where: { organization_id: section.organization_id, section_id: section.id, is_active: ActiveStatusEnum.ACTIVE },
       order: { day_of_week: 'ASC', start_time: 'ASC' },
@@ -163,6 +162,8 @@ export class RoutineSlotsService {
       if (keep !== -1) unused.splice(keep, 1);
       else added.push(slot);
     }
+    // Only new slots are checked: a clash the admin confirmed in the routine (CAL-02) stays saved.
+    await this.assertNoTeacherClash(manager, section, wanted, new Set(added));
     const now = new Date();
     if (unused.length > 0) {
       await repo.update(
@@ -191,8 +192,8 @@ export class RoutineSlotsService {
   }
 
   /** A teacher can't be in two overlapping slots of the same session (other sections' active slots). */
-  private async assertNoTeacherClash(manager: EntityManager, section: SlotSection, slots: SlotInput[]): Promise<void> {
-    const teacherIds = [...new Set(slots.map((slot) => slot.teacher_id).filter((id): id is string => Boolean(id)))];
+  private async assertNoTeacherClash(manager: EntityManager, section: SlotSection, slots: SlotInput[], checked: Set<SlotInput>): Promise<void> {
+    const teacherIds = [...new Set(slots.filter((slot) => checked.has(slot)).map((slot) => slot.teacher_id).filter((id): id is string => Boolean(id)))];
     if (teacherIds.length === 0) return;
     const others = await manager.getRepository(RoutineSlotEntity).find({
       where: {
@@ -205,6 +206,7 @@ export class RoutineSlotsService {
       relations: ['section', 'section.class'],
     });
     slots.forEach((slot, index) => {
+      if (!checked.has(slot)) return;
       const clash = others.find((other) => other.teacher_id === slot.teacher_id && overlaps(slot, input(other)));
       if (clash) {
         throw new ConflictException({
