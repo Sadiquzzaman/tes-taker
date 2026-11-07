@@ -7,6 +7,7 @@ import { Badge, Button, Drawer, ErrorState, Input, Select, Skeleton, Textarea } 
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
 import { StatusMark } from "./AttendanceCalendar";
+import ClassChangeSection from "./ClassChangeSection";
 
 const CORRECTABLE: AttendanceStatus[] = ["PRESENT", "LATE", "ABSENT"];
 
@@ -39,6 +40,8 @@ interface Props {
   onCorrected: (detail: ClassSessionDetail, name: string) => void;
   /** After the class was cancelled or restored (ATT-19), with the class as it is now. */
   onCancelledOrRestored: (detail: ClassSessionDetail, cancelled: boolean) => void;
+  /** After the class's times or teacher were changed for the day (P5-04). */
+  onChanged: (detail: ClassSessionDetail) => void;
   onError: (error: AxiosError<ApiError>) => void;
 }
 
@@ -46,9 +49,10 @@ interface Props {
  * One class's list for staff (ATT-07, ATT-12): every student with their status (colour and
  * letter), check-in time, minutes late, distance and any flag, and the corrections made so far; a
  * correction takes the new status and a reason (the API says which rows can be corrected). The
- * class can be cancelled for the day with a note for the students, and restored (ATT-19).
+ * class can be cancelled for the day with a note for the students, and restored (ATT-19), or given
+ * other times or a substitute teacher for the day (P5-04).
  */
-const ClassAttendanceDrawer = ({ baseUrl, target, timeZone, onClose, onCorrected, onCancelledOrRestored, onError }: Props) => {
+const ClassAttendanceDrawer = ({ baseUrl, target, timeZone, onClose, onCorrected, onCancelledOrRestored, onChanged, onError }: Props) => {
   const t = useTranslations("classAttendance");
   const tMine = useTranslations("myAttendance");
   const format = useFormat();
@@ -310,6 +314,16 @@ const ClassAttendanceDrawer = ({ baseUrl, target, timeZone, onClose, onCorrected
         </div>
       ) : (
         <div className="flex flex-col gap-6">
+          <ClassChangeSection
+            baseUrl={baseUrl}
+            detail={detail}
+            clock={clock}
+            onChanged={(next) => {
+              setDetail(next);
+              onChanged(next);
+            }}
+            onError={onError}
+          />
           {cancellation(detail)}
           {correctionHint(detail) ? <p className="text-body-sm text-ink-muted">{correctionHint(detail)}</p> : null}
           <section aria-label={t("students")}>
