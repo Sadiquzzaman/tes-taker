@@ -76,6 +76,8 @@ interface MySubmissions {
   submissions_left: number;
   late_now: boolean;
   max_files: number;
+  /** The student's score, once the teacher has published scores (P5-03). */
+  score: HomeworkScore | null;
 }
 
 /** `GET /homework/:id/submissions` (staff): one row per student. */
@@ -94,4 +96,51 @@ interface HomeworkSettings {
   late_penalty: { type: "NONE" | "PER_DAY" | "FIXED"; percent: number };
   resubmissions: number;
   max_files: number;
+}
+
+/** 1–5 ratings a teacher may add to a score (P5-03, HW-05). */
+interface HomeworkRatings {
+  neatness?: number;
+  effort?: number;
+  on_time?: number;
+}
+
+/** A student's score on a homework (P5-03, HW-04, HW-05). */
+interface HomeworkScore {
+  raw_score: number | null;
+  /** Taken off for handing in late. */
+  penalty: number;
+  final_score: number | null;
+  total_marks: number | null;
+  /** 0–100; null without a score or total. */
+  percent: number | null;
+  grade: { grade: string; gpa: number | null } | null;
+  feedback: string | null;
+  ratings: HomeworkRatings | null;
+  /** Never handed in (paper homework). */
+  is_missing: boolean;
+  scored_at: string | null;
+}
+
+/** `GET /homework/:id/grid` (staff): everyone it is set to, their latest hand-in and score. */
+interface HomeworkGrid {
+  homework: { id: string; total_marks: number | null; submission_type: HomeworkType; due_at: string | null; scores_published_at: string | null };
+  counts: { students: number; handed_in: number; late: number; missing: number; scored: number };
+  rows: HomeworkGridRow[];
+}
+
+interface HomeworkGridRow {
+  student: { id: string; full_name: string; roll_no: string | null };
+  latest: { id: string; version: number; submitted_at: string; is_late: boolean; late_minutes: number | null; status: SubmissionStatus } | null;
+  versions: number;
+  score: HomeworkScore | null;
+}
+
+/** One row of `PUT /homework/:id/scores`. */
+interface HomeworkScoreInput {
+  student_id: string;
+  raw_score?: number | null;
+  feedback?: string | null;
+  is_missing?: boolean;
+  ratings?: HomeworkRatings | null;
 }
