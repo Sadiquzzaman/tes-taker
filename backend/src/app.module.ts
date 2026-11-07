@@ -39,6 +39,7 @@ import { FilesModule } from './files/files.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { HomeworkModule } from './homework/homework.module';
 import { CalendarModule } from './calendar/calendar.module';
+import { CalendarFeedModule } from './calendar-feed/calendar-feed.module';
 
 @Module({
   imports: [
@@ -110,6 +111,7 @@ import { CalendarModule } from './calendar/calendar.module';
     NotificationsModule,
     FilesModule,
     CalendarModule,
+    CalendarFeedModule,
     AttendanceModule,
     HomeworkModule,
   ],

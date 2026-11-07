@@ -135,6 +135,16 @@ export class RoutineService {
     return rows.map((row) => viewOf(row, []));
   }
 
+  /** Subject, teacher and room of these slots (removed ones too), by slot id, for the calendar (CAL-07). */
+  async detailsOf(organizationId: string, slotIds: string[]): Promise<Map<string, Pick<RoutineSlotView, 'subject' | 'teacher' | 'room'>>> {
+    if (slotIds.length === 0) return new Map();
+    const rows = await this.slotRepo.find({
+      where: { organization_id: organizationId, id: In([...new Set(slotIds)]) },
+      relations: ['offering', 'offering.subject', 'teacher'],
+    });
+    return new Map(rows.map((row) => [row.id, { subject: viewOf(row, []).subject, teacher: viewOf(row, []).teacher, room: row.room }]));
+  }
+
   /** Adds a slot; teacher or room clashes need `confirm_clashes`. */
   async add(tenant: Tenant, userId: string, dto: RoutineSlotInputDto): Promise<RoutineSlotView> {
     assertManager(tenant);

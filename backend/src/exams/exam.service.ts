@@ -1063,6 +1063,35 @@ export class ExamService {
     return { queued: ids.length };
   }
 
+  /**
+   * Exams of the organisation that overlap `from`–`to`, for a staff member's calendar (CAL-07):
+   * every exam for owners, admins and assistants (`all`), else the ones the teacher made. Students'
+   * exams come from StudentExamService.getUpcomingExams.
+   */
+  async calendarExams(
+    organizationId: string,
+    userId: string,
+    all: boolean,
+    from: Date,
+    to: Date,
+  ): Promise<{ id: string; test_name: string | null; exam_start_time: Date; exam_end_time: Date; class_name: string | null }[]> {
+    const query = this.examRepo
+      .createQueryBuilder('exam')
+      .leftJoinAndSelect('exam.class', 'class')
+      .where('exam.organization_id = :organizationId', { organizationId })
+      .andWhere('exam.exam_start_time < :to AND exam.exam_end_time > :from', { from, to })
+      .orderBy('exam.exam_start_time', 'ASC');
+    if (!all) query.andWhere('exam.created_by = :userId', { userId });
+    const exams = await query.getMany();
+    return exams.map((exam) => ({
+      id: exam.id,
+      test_name: exam.test_name,
+      exam_start_time: exam.exam_start_time,
+      exam_end_time: exam.exam_end_time,
+      class_name: exam.class?.class_name ?? null,
+    }));
+  }
+
   async findAll(
     jwtPayload: JwtPayloadInterface,
     orgContext?: OrgContext | null,
