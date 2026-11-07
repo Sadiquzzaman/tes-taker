@@ -316,6 +316,27 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     subject: 'ছুটি প্রত্যাহার: {{person_name}}',
     body: '{{from_on}} থেকে {{to_on}} পর্যন্ত ছুটি {{by_name}} প্রত্যাহার করেছেন।',
   },
+  // Homework review (HW-04, HW-06): in the inbox; the guardians' SMS for missing work uses credits.
+  { event_type: NOTIFICATION_EVENTS.HOMEWORK_RETURNED, channel: IN_APP, locale: 'en', subject: 'Homework returned for redo: {{title}}', body: 'Hand it in again. {{note}}' },
+  { event_type: NOTIFICATION_EVENTS.HOMEWORK_RETURNED, channel: IN_APP, locale: 'bn', subject: 'হোমওয়ার্ক আবার করতে ফেরত: {{title}}', body: 'আবার জমা দিন। {{note}}' },
+  { event_type: NOTIFICATION_EVENTS.HOMEWORK_SCORES_PUBLISHED, channel: IN_APP, locale: 'en', subject: 'Homework scored: {{title}}', body: 'Your score and feedback are ready.' },
+  { event_type: NOTIFICATION_EVENTS.HOMEWORK_SCORES_PUBLISHED, channel: IN_APP, locale: 'bn', subject: 'হোমওয়ার্কে নম্বর দেওয়া হয়েছে: {{title}}', body: 'আপনার নম্বর ও মন্তব্য দেখুন।' },
+  { event_type: NOTIFICATION_EVENTS.HOMEWORK_REMINDER, channel: IN_APP, locale: 'en', subject: 'Hand in your homework: {{title}}', body: 'Due {{due_at}}' },
+  { event_type: NOTIFICATION_EVENTS.HOMEWORK_REMINDER, channel: IN_APP, locale: 'bn', subject: 'হোমওয়ার্ক জমা দিন: {{title}}', body: 'জমা {{due_at}}' },
+  {
+    event_type: NOTIFICATION_EVENTS.HOMEWORK_MISSING,
+    channel: SMS,
+    locale: 'en',
+    subject: null,
+    body: '{{student_name}} has not handed in the homework "{{title}}". - {{organization_name}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.HOMEWORK_MISSING,
+    channel: SMS,
+    locale: 'bn',
+    subject: null,
+    body: '{{student_name}} "{{title}}" হোমওয়ার্ক জমা দেয়নি। - {{organization_name}}',
+  },
   // Homework (HW-02): in the inbox, linked to the homework (`path`).
   {
     event_type: NOTIFICATION_EVENTS.HOMEWORK_ASSIGNED,

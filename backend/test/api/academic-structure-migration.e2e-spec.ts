@@ -18,6 +18,7 @@ import { LeaveRequests1756250000000 } from '../../src/migrations/1756250000000-L
 import { WeeklyOffDaysHistory1756260000000 } from '../../src/migrations/1756260000000-WeeklyOffDaysHistory';
 import { Homework1756270000000 } from '../../src/migrations/1756270000000-Homework';
 import { HomeworkSubmissions1756280000000 } from '../../src/migrations/1756280000000-HomeworkSubmissions';
+import { HomeworkScores1756290000000 } from '../../src/migrations/1756290000000-HomeworkScores';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
 import { factories } from '../support/factories';
@@ -121,7 +122,9 @@ describe('AcademicStructure migration', () => {
     const homework = new Homework1756270000000();
     // Homework hand-ins (P5-02) point at homework and add homework settings to org_settings.
     const submissions = new HomeworkSubmissions1756280000000();
+    const scores = new HomeworkScores1756290000000();
     try {
+      await scores.down(runner);
       await submissions.down(runner);
       await homework.down(runner);
       await classAttendance.down(runner);
@@ -157,6 +160,7 @@ describe('AcademicStructure migration', () => {
       await new WeeklyOffDaysHistory1756260000000().up(runner);
       await homework.up(runner);
       await submissions.up(runner);
+      await scores.up(runner);
     } finally {
       await runner.release();
     }

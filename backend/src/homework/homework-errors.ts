@@ -33,4 +33,10 @@ export const HOMEWORK_ERRORS = {
   TOO_MANY_FILES: 'HOMEWORK_TOO_MANY_FILES',
   /** Homework settings out of range (penalty 0–100 %, resubmissions 0–3, files 1–10). */
   SETTINGS_INVALID: 'HOMEWORK_SETTINGS_INVALID',
+  /** A score above the total marks, or a score on homework with no total. */
+  SCORE_INVALID: 'HOMEWORK_SCORE_INVALID',
+  /** A score for someone the homework is not set to (and who never handed it in). */
+  STUDENT_NOT_SET: 'HOMEWORK_STUDENT_NOT_SET',
+  /** Only the latest hand-in of a student can be returned for redo. */
+  NOT_LATEST: 'HOMEWORK_NOT_LATEST',
 } as const;

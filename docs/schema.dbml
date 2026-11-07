@@ -684,7 +684,7 @@ Table homework {
   cancelled_at timestamptz
   cancelled_by uuid
   policy_override jsonb [note: 'not built yet (P5-02): late / penalty / resubmissions, else org_settings']
-  scores_published_at timestamptz [note: 'not built yet (P5-03)']
+  scores_published_at timestamptz [note: 'BUILT P5-03: students see their scores from then on (HW-04)']
   created_by uuid [ref: > users.id]
   Indexes {
     (organization_id, status, due_at)
@@ -757,20 +757,21 @@ Table homework_scores {
   organization_id uuid [not null]
   homework_id uuid [not null, ref: > homework.id]
   student_id uuid [not null, ref: > users.id]
-  submission_id uuid [ref: > homework_submissions.id, note: 'null for PAPER homework']
+  submission_id uuid [ref: > homework_submissions.id, note: 'null for PAPER homework or work never handed in; set null if the hand-in row goes']
   raw_score numeric(6,2)
-  penalty numeric(6,2) [default: 0]
+  penalty numeric(6,2) [not null, default: 0, note: 'marks taken off for lateness (org setting × how late)']
   final_score numeric(6,2)
   feedback text
-  annotations_file_id uuid [ref: > file_objects.id]
-  ratings jsonb [note: 'neatness / effort / on-time 1..5 (HW-05)']
-  is_missing boolean [default: false]
+  annotations_file_id uuid [ref: > file_objects.id, note: 'not built yet (HW-04 Should: drawing on the work)']
+  ratings jsonb [note: 'neatness / effort / on_time 1..5 (HW-05)']
+  is_missing boolean [not null, default: false, note: 'never handed in: final 0']
   scored_by uuid [ref: > users.id]
   scored_at timestamptz
   Indexes {
-    (homework_id, student_id) [unique]
+    (homework_id, student_id) [unique, name: 'UQ_homework_scores_student']
+    (organization_id, homework_id)
   }
-  Note: 'NEW (HW-04, HW-05)'
+  Note: 'BUILT P5-03 (HW-04, HW-05, HW-06) — owned by homework'
 }
 
 //////////////////////////////////////////////////////////////
