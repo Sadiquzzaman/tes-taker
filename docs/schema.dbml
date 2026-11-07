@@ -1335,28 +1335,38 @@ Table routine_exceptions {
 }
 
 Enum event_type { EXAM MEETING PARENT_MEETING ACTIVITY OTHER }
+Enum event_status { SCHEDULED CANCELLED }
 
 Table events {
   id uuid [pk]
   organization_id uuid [not null]
-  type event_type
-  title varchar(200)
-  starts_at timestamptz
-  ends_at timestamptz
+  type event_type [not null]
+  title varchar(200) [not null]
+  description text
+  starts_at timestamptz [not null]
+  ends_at timestamptz [not null, note: 'CHECK ends_at > starts_at; at most 14 days long (service)']
   place varchar(120)
-  source_type varchar(20) [note: 'EXAM | OFFLINE_EXAM | null']
-  source_id uuid
+  whole_org boolean [not null, default: false, note: 'everyone in the organisation (owners, admins, assistants only)']
+  status event_status [not null, default: 'SCHEDULED']
+  cancelled_at timestamptz
+  cancelled_by uuid
+  is_active varchar [note: 'base entity']
   created_by uuid
-  Note: 'NEW (CAL-03)'
+  created_at timestamp
+  updated_by uuid
+  updated_at timestamp
+  Indexes {
+    (organization_id, starts_at)
+  }
+  Note: 'BUILT P5-05 part 1 (CAL-03, CAL-06, calendar module, migration Events): cancelling keeps the row. source_type/source_id dropped from the plan: online and offline exams show on the calendar from their own tables'
 }
 
 Table event_attendees {
   id uuid [pk]
-  event_id uuid [not null, ref: > events.id]
-  section_id uuid [ref: > sections.id]
-  user_id uuid [ref: > users.id]
-  whole_org boolean [default: false]
-  Note: 'NEW'
+  event_id uuid [not null, ref: > events.id, note: 'FK ON DELETE CASCADE']
+  section_id uuid [ref: > sections.id, note: 'the section\'s active students; FK ON DELETE CASCADE']
+  user_id uuid [ref: > users.id, note: 'one person; FK ON DELETE CASCADE']
+  Note: 'BUILT P5-05 part 1: CHECK exactly one of section_id, user_id. whole_org moved to events'
 }
 
 Table holidays {

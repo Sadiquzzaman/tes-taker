@@ -19,6 +19,7 @@ import { LeaveRequests1756250000000 } from '../../src/migrations/1756250000000-L
 import { WeeklyOffDaysHistory1756260000000 } from '../../src/migrations/1756260000000-WeeklyOffDaysHistory';
 import { Homework1756270000000 } from '../../src/migrations/1756270000000-Homework';
 import { HomeworkSubmissions1756280000000 } from '../../src/migrations/1756280000000-HomeworkSubmissions';
+import { Events1756310000000 } from '../../src/migrations/1756310000000-Events';
 import { HomeworkScores1756290000000 } from '../../src/migrations/1756290000000-HomeworkScores';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
@@ -124,7 +125,10 @@ describe('AcademicStructure migration', () => {
     // Homework hand-ins (P5-02) point at homework and add homework settings to org_settings.
     const submissions = new HomeworkSubmissions1756280000000();
     const scores = new HomeworkScores1756290000000();
+    // Calendar events (P5-05) point at sections: down first, back last.
+    const events = new Events1756310000000();
     try {
+      await events.down(runner);
       await scores.down(runner);
       await submissions.down(runner);
       await homework.down(runner);
@@ -164,6 +168,7 @@ describe('AcademicStructure migration', () => {
       await scores.up(runner);
       // P5-04's one-day change columns on class_attendance (recreated above) come back too.
       await new ClassSessionChanges1756300000000().up(runner);
+      await events.up(runner);
     } finally {
       await runner.release();
     }

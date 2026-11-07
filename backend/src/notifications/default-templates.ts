@@ -337,6 +337,13 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
   { event_type: NOTIFICATION_EVENTS.HOMEWORK_SCORES_PUBLISHED, channel: IN_APP, locale: 'bn', subject: 'হোমওয়ার্কে নম্বর দেওয়া হয়েছে: {{title}}', body: 'আপনার নম্বর ও মন্তব্য দেখুন।' },
   { event_type: NOTIFICATION_EVENTS.HOMEWORK_REMINDER, channel: IN_APP, locale: 'en', subject: 'Hand in your homework: {{title}}', body: 'Due {{due_at}}' },
   { event_type: NOTIFICATION_EVENTS.HOMEWORK_REMINDER, channel: IN_APP, locale: 'bn', subject: 'হোমওয়ার্ক জমা দিন: {{title}}', body: 'জমা {{due_at}}' },
+  // Calendar events (P5-05, CAL-03, CAL-06)
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_ADDED, channel: IN_APP, locale: 'en', subject: 'New event: {{title}}', body: '{{starts_at}} {{place}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_ADDED, channel: IN_APP, locale: 'bn', subject: 'নতুন ইভেন্ট: {{title}}', body: '{{starts_at}} {{place}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_CHANGED, channel: IN_APP, locale: 'en', subject: 'Event changed: {{title}}', body: 'Now {{starts_at}} {{place}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_CHANGED, channel: IN_APP, locale: 'bn', subject: 'ইভেন্টে পরিবর্তন: {{title}}', body: 'এখন {{starts_at}} {{place}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_CANCELLED, channel: IN_APP, locale: 'en', subject: 'Event cancelled: {{title}}', body: 'It was on {{starts_at}}. {{note}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_CANCELLED, channel: IN_APP, locale: 'bn', subject: 'ইভেন্ট বাতিল: {{title}}', body: '{{starts_at}}-এ হওয়ার কথা ছিল। {{note}}' },
   {
     event_type: NOTIFICATION_EVENTS.HOMEWORK_MISSING,
     channel: SMS,
