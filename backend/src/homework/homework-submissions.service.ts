@@ -13,6 +13,7 @@ import { HomeworkEntity, HomeworkStatusEnum, HomeworkTypeEnum } from './entities
 import { SubmissionFileEntity } from './entities/submission-file.entity';
 import { HomeworkClock } from './homework-clock';
 import { HOMEWORK_ERRORS } from './homework-errors';
+import { HomeworkScoresService, ScoreView } from './homework-scores.service';
 import { HomeworkService } from './homework.service';
 
 export interface SubmissionFileView {
@@ -45,6 +46,8 @@ export interface MySubmissions {
   /** The due time has passed: a hand-in now is late (or refused when late work is not accepted). */
   late_now: boolean;
   max_files: number;
+  /** Their score and feedback once the teacher published the scores (HW-04); null before. */
+  score: ScoreView | null;
 }
 
 /** One student in the staff list: their latest hand-in, if any. */
@@ -69,6 +72,7 @@ export class HomeworkSubmissionsService {
     private readonly dataSource: DataSource,
     private readonly homework: HomeworkService,
     private readonly orgSettings: OrgSettingsService,
+    private readonly scores: HomeworkScoresService,
     private readonly clock: HomeworkClock,
   ) {}
 
@@ -88,6 +92,7 @@ export class HomeworkSubmissionsService {
       submissions_left: Math.max(0, allowedCount(rows, settings) - rows.length),
       late_now: Boolean(homework.due_at && this.clock.now().getTime() > homework.due_at.getTime()),
       max_files: settings.max_files,
+      score: await this.scores.mine(tenant.organizationId, homework, userId),
     };
   }
 

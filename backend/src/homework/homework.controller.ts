@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
@@ -8,7 +8,18 @@ import { OrganizationContextGuard } from 'src/organizations/guards/organization-
 import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.decorator';
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
-import { CreateHomeworkDto, ListHomeworkQueryDto, PublishHomeworkDto, SubmitHomeworkDto, UpdateHomeworkDto, UpdateHomeworkSettingsDto } from './dto/homework.dto';
+import {
+  CreateHomeworkDto,
+  ListHomeworkQueryDto,
+  PublishHomeworkDto,
+  RemindMissingDto,
+  ReturnSubmissionDto,
+  SaveHomeworkScoresDto,
+  SubmitHomeworkDto,
+  UpdateHomeworkDto,
+  UpdateHomeworkSettingsDto,
+} from './dto/homework.dto';
+import { HomeworkScoresService } from './homework-scores.service';
 import { HomeworkSettingsService } from './homework-settings.service';
 import { HomeworkSubmissionsService } from './homework-submissions.service';
 import { HomeworkService } from './homework.service';
@@ -34,6 +45,7 @@ export class HomeworkController {
     private readonly homework: HomeworkService,
     private readonly submissions: HomeworkSubmissionsService,
     private readonly settings: HomeworkSettingsService,
+    private readonly scores: HomeworkScoresService,
   ) {}
 
   @Get()
@@ -120,6 +132,47 @@ export class HomeworkController {
     @UserPayload() user: JwtPayloadInterface,
   ) {
     return { message: 'Submission retrieved successfully', payload: await this.submissions.oneForStaff(workspace(), user.id, id, submissionId) };
+  }
+
+  @Get(':id/grid')
+  @ApiOperation({ summary: 'Review, paper grid and overview: every student with their latest hand-in and score, and the counts (staff; HW-04–06)' })
+  async grid(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Homework scores retrieved successfully', payload: await this.scores.grid(workspace(), user.id, id) };
+  }
+
+  @Put(':id/scores')
+  @ApiOperation({
+    summary: 'Save scores for one or many students (staff; HW-04, HW-05)',
+    description: 'Out of the total marks; the late penalty is taken off automatically. is_missing = never handed in (final 0). Optional 1–5 ratings.',
+  })
+  async saveScores(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SaveHomeworkScoresDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Scores saved', payload: await this.scores.save(workspace(), user, id, dto.rows) };
+  }
+
+  @Post(':id/submissions/:submissionId/return')
+  @HttpCode(200)
+  @ApiOperation({ summary: "Return a student's latest hand-in for redo: one more hand-in is allowed; the student is told (staff)" })
+  async returnForRedo(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('submissionId', ParseUUIDPipe) submissionId: string,
+    @Body() dto: ReturnSubmissionDto,
+    @UserPayload() user: JwtPayloadInterface,
+  ) {
+    return { message: 'Returned for redo', payload: await this.scores.returnForRedo(workspace(), user, id, submissionId, dto) };
+  }
+
+  @Post(':id/publish-scores')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Publish the scores: students see their score and feedback and are told (staff)' })
+  async publishScores(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Scores published', payload: await this.scores.publishScores(workspace(), user, id) };
+  }
+
+  @Post(':id/remind-missing')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Remind students who have not handed it in (in-app), and optionally SMS their guardians (staff; HW-06)' })
+  async remindMissing(@Param('id', ParseUUIDPipe) id: string, @Body() dto: RemindMissingDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Reminders sent', payload: await this.scores.remindMissing(workspace(), user, id, dto) };
   }
 
   @Post(':id/cancel')

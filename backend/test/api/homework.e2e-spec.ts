@@ -1,4 +1,5 @@
 import { DeepPartial } from 'typeorm';
+import { GuardianEntity, GuardianRelationEnum } from '../../src/academics/entities/guardian.entity';
 import { FileObjectEntity } from '../../src/files/entities/file-object.entity';
 import { FileStatusEnum } from '../../src/files/file-rules';
 import { AuditService } from '../../src/audit/audit.service';
@@ -406,4 +407,128 @@ describe('homework API', () => {
       expect(await outboxFor('homework.due_soon', [s.other.id])).toBe(1);
     });
   });
+
+  describe('reviewing and scoring (P5-03, HW-04 to HW-06)', () => {
+    type Score = { raw_score: number | null; penalty: number; final_score: number | null; percent: number | null; grade: { grade: string } | null; feedback: string | null; is_missing: boolean; ratings: Record<string, number> | null };
+    type Grid = {
+      counts: { students: number; handed_in: number; late: number; missing: number; scored: number };
+      rows: { student: { id: string }; latest: { id: string; version: number; status: string } | null; score: Score | null }[];
+      homework: { scores_published_at: string | null };
+    };
+    type Mine = { can_submit: boolean; blocked_by: string | null; score: Score | null };
+    const fileOf = (organizationId: string, ownerId: string) =>
+      t.dataSource.getRepository(FileObjectEntity).save({
+        organization_id: organizationId,
+        owner_id: ownerId,
+        purpose: 'HOMEWORK',
+        s3_key: `org/${organizationId}/homework/${Math.random()}`,
+        mime: 'application/pdf',
+        original_name: 'work.pdf',
+        size_bytes: 1000,
+        original_size_bytes: 1000,
+        status: FileStatusEnum.READY,
+      } as DeepPartial<FileObjectEntity>);
+    const row = (grid: Grid, studentId: string) => grid.rows.find((r) => r.student.id === studentId)!;
+
+    it('takes the late penalty off, keeps scores hidden until published, then stops further hand-ins', async () => {
+      const s = await school();
+      await call('PATCH', '/homework/settings', s.ownerToken, { late_penalty: { type: 'PER_DAY', percent: 10 } });
+      const start = new Date('2026-12-01T03:00:00Z');
+      setNow(start);
+      const id = (await call<Homework>('POST', '/homework', s.rinaToken, draft([s.mathOffering], { due_at: new Date(start.getTime() + HOUR).toISOString() }))).body.payload.id;
+      await call('POST', `/homework/${id}/publish`, s.rinaToken, {});
+      setNow(new Date(start.getTime() + 2 * HOUR));
+      await call('POST', `/homework/${id}/submissions`, s.pickedToken, { file_ids: [(await fileOf(s.organization.id, s.picked.id)).id] });
+
+      const saved = await call<Grid>('PUT', `/homework/${id}/scores`, s.rinaToken, { rows: [{ student_id: s.picked.id, raw_score: 8, feedback: 'Show the steps in Q4.' }] });
+      expect(saved.status).toBe(200);
+      expect(row(saved.body.payload, s.picked.id).score).toMatchObject({ raw_score: 8, penalty: 0.8, final_score: 7.2, percent: 72, feedback: 'Show the steps in Q4.' });
+      expect(row(saved.body.payload, s.picked.id).score?.grade).not.toBeNull();
+      expect(saved.body.payload.counts).toMatchObject({ students: 2, handed_in: 1, late: 1, missing: 1, scored: 1 });
+
+      // Hidden from the student until the teacher publishes; then shown, with a notice.
+      expect((await call<Mine>('GET', `/homework/${id}/my-submissions`, s.pickedToken)).body.payload.score).toBeNull();
+      expect((await call<Grid>('POST', `/homework/${id}/publish-scores`, s.rinaToken)).body.payload.homework.scores_published_at).not.toBeNull();
+      const mine = (await call<Mine>('GET', `/homework/${id}/my-submissions`, s.pickedToken)).body.payload;
+      expect(mine.score).toMatchObject({ final_score: 7.2, penalty: 0.8 });
+      expect(await outboxFor('homework.scores_published', [s.picked.id])).toBe(1);
+      // A scored hand-in is final unless returned for redo.
+      expect(mine).toMatchObject({ can_submit: false, blocked_by: 'HOMEWORK_ALREADY_SCORED' });
+    });
+
+    it('refuses scores above the total, for students it is not set to, and from other teachers', async () => {
+      const s = await school();
+      const id = (await call<Homework>('POST', '/homework', s.rinaToken, draft([s.mathOffering]))).body.payload.id;
+      // Not published yet: nothing to score.
+      expect((await call('PUT', `/homework/${id}/scores`, s.rinaToken, { rows: [{ student_id: s.picked.id, raw_score: 5 }] })).body.code).toBe('HOMEWORK_WRONG_STATUS');
+      await call('POST', `/homework/${id}/publish`, s.rinaToken, {});
+      expect((await call('PUT', `/homework/${id}/scores`, s.rinaToken, { rows: [{ student_id: s.picked.id, raw_score: 11 }] })).body.code).toBe('HOMEWORK_SCORE_INVALID');
+      const stranger = await make.student();
+      expect((await call('PUT', `/homework/${id}/scores`, s.rinaToken, { rows: [{ student_id: stranger.id, raw_score: 5 }] })).body.code).toBe('HOMEWORK_STUDENT_NOT_SET');
+      expect((await call('PUT', `/homework/${id}/scores`, s.karimToken, { rows: [{ student_id: s.picked.id, raw_score: 5 }] })).status).toBe(404);
+      expect((await call('GET', `/homework/${id}/grid`, s.pickedToken)).status).toBe(403);
+    });
+
+    it('scores paper homework for a whole class at once, with ratings and "not handed in"', async () => {
+      const s = await school();
+      const id = (await call<Homework>('POST', '/homework', s.ownerToken, draft([s.mathOffering], { submission_type: 'PAPER' }))).body.payload.id;
+      await call('POST', `/homework/${id}/publish`, s.ownerToken, {});
+      const grid = await call<Grid>('PUT', `/homework/${id}/scores`, s.ownerToken, {
+        rows: [
+          { student_id: s.picked.id, raw_score: 9, feedback: 'Neat', ratings: { neatness: 5, effort: 4, on_time: 5 } },
+          { student_id: s.other.id, is_missing: true },
+        ],
+      });
+      expect(row(grid.body.payload, s.picked.id).score).toMatchObject({ final_score: 9, ratings: { neatness: 5, effort: 4, on_time: 5 } });
+      expect(row(grid.body.payload, s.other.id).score).toMatchObject({ is_missing: true, final_score: 0, raw_score: null });
+      expect(grid.body.payload.counts).toMatchObject({ students: 2, handed_in: 0, scored: 2, missing: 1 });
+      // Ratings are 1–5.
+      expect((await call('PUT', `/homework/${id}/scores`, s.ownerToken, { rows: [{ student_id: s.picked.id, ratings: { effort: 6 } }] })).status).toBe(400);
+    });
+
+    it('returns work for redo: the student may hand in once more and is told', async () => {
+      const s = await school();
+      await call('PATCH', '/homework/settings', s.ownerToken, { resubmissions: 0 });
+      const id = (await call<Homework>('POST', '/homework', s.ownerToken, draft([s.mathOffering]))).body.payload.id;
+      await call('POST', `/homework/${id}/publish`, s.ownerToken, {});
+      await call('POST', `/homework/${id}/submissions`, s.pickedToken, { file_ids: [(await fileOf(s.organization.id, s.picked.id)).id] });
+      expect((await call<Mine>('GET', `/homework/${id}/my-submissions`, s.pickedToken)).body.payload.blocked_by).toBe('HOMEWORK_NO_MORE_SUBMISSIONS');
+
+      const first = row((await call<Grid>('GET', `/homework/${id}/grid`, s.ownerToken)).body.payload, s.picked.id).latest!;
+      const returned = await call<Grid>('POST', `/homework/${id}/submissions/${first.id}/return`, s.ownerToken, { note: 'Redo Q3' });
+      expect(row(returned.body.payload, s.picked.id).latest).toMatchObject({ status: 'RETURNED' });
+      expect(await outboxFor('homework.returned', [s.picked.id])).toBe(1);
+      expect((await call<Mine>('GET', `/homework/${id}/my-submissions`, s.pickedToken)).body.payload.can_submit).toBe(true);
+      expect((await call('POST', `/homework/${id}/submissions`, s.pickedToken, { file_ids: [(await fileOf(s.organization.id, s.picked.id)).id] })).status).toBe(201);
+      // Only the latest hand-in can be returned.
+      expect((await call('POST', `/homework/${id}/submissions/${first.id}/return`, s.ownerToken, {})).body.code).toBe('HOMEWORK_NOT_LATEST');
+    });
+
+    it("reminds the students who have not handed it in, and with SMS on, texts their guardians once a day", async () => {
+      const s = await school();
+      const id = (await call<Homework>('POST', '/homework', s.ownerToken, draft([s.mathOffering]))).body.payload.id;
+      await call('POST', `/homework/${id}/publish`, s.ownerToken, {});
+      await call('POST', `/homework/${id}/submissions`, s.pickedToken, { file_ids: [(await fileOf(s.organization.id, s.picked.id)).id] });
+      await t.dataSource.getRepository(GuardianEntity).save({
+        organization_id: s.organization.id,
+        student_id: s.other.id,
+        name: 'Other Parent',
+        relation: GuardianRelationEnum.MOTHER,
+        phone: '01700000000',
+        is_primary: true,
+      } as DeepPartial<GuardianEntity>);
+
+      const reminded = await call<{ students: number; guardian_sms: number }>('POST', `/homework/${id}/remind-missing`, s.ownerToken, { sms_guardians: true });
+      expect(reminded.body.payload).toEqual({ students: 1, guardian_sms: 1 });
+      expect(await outboxFor('homework.reminder', [s.other.id])).toBe(1);
+      expect(await outboxFor('homework.reminder', [s.picked.id])).toBe(0);
+      // Again the same day: nothing new.
+      expect((await call<{ guardian_sms: number }>('POST', `/homework/${id}/remind-missing`, s.ownerToken, { sms_guardians: true })).body.payload.guardian_sms).toBe(0);
+
+      await t.app.get(AuditService).flush();
+      const actions = (await t.dataSource.getRepository(AuditLogEntity).findBy({ organization_id: s.organization.id })).map((a) => a.action);
+      expect(actions.filter((a) => a === 'homework.remind')).toHaveLength(2);
+    });
+  });
 });
+

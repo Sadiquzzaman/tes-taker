@@ -85,6 +85,10 @@ export class HomeworkEntity extends CustomBaseEntity {
   @Column({ name: 'status', type: 'enum', enum: HomeworkStatusEnum, enumName: 'homework_status', default: HomeworkStatusEnum.DRAFT })
   status: HomeworkStatusEnum;
 
+  @ApiPropertyOptional({ description: 'When the teacher published the scores; students see them from then on (HW-04)' })
+  @Column({ name: 'scores_published_at', type: 'timestamptz', nullable: true })
+  scores_published_at: Date | null;
+
   @ApiPropertyOptional({ description: 'When the 24-hour reminder went out (HW-02)' })
   @Column({ name: 'reminder_sent_at', type: 'timestamptz', nullable: true })
   reminder_sent_at: Date | null;

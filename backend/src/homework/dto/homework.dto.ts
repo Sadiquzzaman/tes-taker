@@ -167,3 +167,89 @@ export class UpdateHomeworkSettingsDto {
   @Max(10)
   max_files?: number;
 }
+
+class HomeworkRatingsDto {
+  @ApiPropertyOptional({ minimum: 1, maximum: 5 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  neatness?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 5 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  effort?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 5 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  on_time?: number;
+}
+
+/** One student's score (HW-04) or grid row (HW-05). */
+export class HomeworkScoreRowDto {
+  @ApiProperty()
+  @IsUUID()
+  student_id: string;
+
+  @ApiPropertyOptional({ example: 8, description: 'Out of the total marks; null clears the score' })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(1000)
+  raw_score?: number | null;
+
+  @ApiPropertyOptional({ example: 'Good work; show the steps in Q4.' })
+  @IsOptional()
+  @Transform(trimmed)
+  @IsString()
+  @MaxLength(2000)
+  feedback?: string | null;
+
+  @ApiPropertyOptional({ description: 'Never handed in: final score 0' })
+  @IsOptional()
+  @Transform(({ obj, key }) => (obj as Record<string, unknown>)[key])
+  @IsBoolean()
+  is_missing?: boolean;
+
+  @ApiPropertyOptional({ type: HomeworkRatingsDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HomeworkRatingsDto)
+  ratings?: HomeworkRatingsDto | null;
+}
+
+/** Scores for one or many students at once (the review screen saves one, the paper grid many). */
+export class SaveHomeworkScoresDto {
+  @ApiProperty({ type: [HomeworkScoreRowDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(MAX_HOMEWORK_STUDENTS)
+  @ValidateNested({ each: true })
+  @Type(() => HomeworkScoreRowDto)
+  rows: HomeworkScoreRowDto[];
+}
+
+/** Returning work for redo (HW-04): one more hand-in is allowed. */
+export class ReturnSubmissionDto {
+  @ApiPropertyOptional({ example: 'Please redo Q3 and Q4.' })
+  @IsOptional()
+  @Transform(trimmed)
+  @IsString()
+  @MaxLength(500)
+  note?: string;
+}
+
+/** "Remind missing students" (HW-06): in-app, and optionally an SMS to their guardians. */
+export class RemindMissingDto {
+  @ApiPropertyOptional({ description: "Also SMS the guardians of students who have not handed it in (uses the organisation's SMS credits)" })
+  @IsOptional()
+  @Transform(({ obj, key }) => (obj as Record<string, unknown>)[key])
+  @IsBoolean()
+  sms_guardians?: boolean;
+}
