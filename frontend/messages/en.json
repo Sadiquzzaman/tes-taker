@@ -61,7 +61,8 @@
     "attendanceReports": "Attendance reports",
     "homework": "Homework",
     "homeworkSettings": "Homework settings",
-    "routine": "Routine"
+    "routine": "Routine",
+    "calendar": "Calendar"
   },
   "shell": {
     "organization": "Organization",
@@ -2770,7 +2771,8 @@
       "schedule": "Schedules",
       "attendance": "Attendance",
       "homework": "Homework",
-      "routine": "Routine"
+      "routine": "Routine",
+      "event": "Events"
     },
     "actions": {
       "plan": {
@@ -2884,6 +2886,11 @@
         "add": "Routine class added",
         "change": "Routine class changed",
         "remove": "Routine class removed"
+      },
+      "event": {
+        "create": "Event added",
+        "update": "Event changed",
+        "cancel": "Event cancelled"
       }
     },
     "fields": {
@@ -3076,6 +3083,11 @@
         "class_restored": "Class restored",
         "repeat_absence": "Repeated absence",
         "class_changed": "Class changed for a day"
+      },
+      "calendar": {
+        "event_added": "Event added",
+        "event_changed": "Event changed",
+        "event_cancelled": "Event cancelled"
       }
     }
   },
@@ -4270,6 +4282,105 @@
       "ROUTINE_SUBJECT_INVALID": "Choose one of this section's subjects.",
       "ROUTINE_TEACHER_INVALID": "Choose a teacher of your organisation.",
       "ROUTINE_NOT_FOUND": "This class was removed meanwhile. Close and reload."
+    }
+  },
+  "calendar": {
+    "title": "Calendar",
+    "intro": "Your classes, events, exams and holidays.",
+    "addEvent": "Add event",
+    "previous": "Previous",
+    "next": "Next",
+    "today": "Today",
+    "viewLabel": "View",
+    "views": {
+      "month": "Month",
+      "week": "Week",
+      "day": "Day"
+    },
+    "filterLabel": "Show",
+    "filters": {
+      "CLASS": "Classes",
+      "EVENT": "Events",
+      "EXAM": "Exams",
+      "HOLIDAY": "Holidays"
+    },
+    "kinds": {
+      "CLASS": "Class",
+      "EVENT": "Event",
+      "EXAM": "Exam",
+      "HOLIDAY": "Holiday"
+    },
+    "openItem": "{kind}: {title} at {time}",
+    "openDay": "Open {date}",
+    "monthLabel": "Month",
+    "more": "+{count, number} more",
+    "nothing": "Nothing",
+    "nothingThisDay": "Nothing on this day.",
+    "cancelled": "Cancelled",
+    "loadFailed": "The calendar could not be loaded.",
+    "saved": "Calendar saved",
+    "closed": {
+      "WEEKLY_OFF": "Weekly off",
+      "HOLIDAY": "Holiday"
+    },
+    "types": {
+      "EXAM": "Exam",
+      "MEETING": "Meeting",
+      "PARENT_MEETING": "Parent meeting",
+      "ACTIVITY": "Activity",
+      "OTHER": "Other"
+    },
+    "event": {
+      "title": "Event",
+      "addTitle": "Add an event",
+      "type": "Type",
+      "titleLabel": "Title",
+      "date": "Date",
+      "start": "Start",
+      "endDate": "End date",
+      "end": "End",
+      "place": "Place",
+      "description": "Details (optional)",
+      "attendees": "Who attends",
+      "wholeOrg": "Everyone in the organisation",
+      "sectionsHint": "Sections (their students):",
+      "teachersHint": "Teachers:",
+      "save": "Save",
+      "close": "Close",
+      "edit": "Change",
+      "cancel": "Cancel event",
+      "cancelTitle": "Cancel this event?",
+      "cancelDetail": "It stays on the calendar as cancelled. If it is within 48 hours, everyone attending is told.",
+      "placeIs": "Place: {place}",
+      "forEveryone": "For everyone in the organisation",
+      "forList": "For: {list}",
+      "madeBy": "Added by {name}"
+    },
+    "errors": {
+      "TITLE_REQUIRED": "Give the event a title.",
+      "EVENT_TIME_INVALID": "The end must be after the start, within 14 days, and not over yet.",
+      "EVENT_NO_ATTENDEES": "Choose who attends.",
+      "EVENT_ATTENDEE_INVALID": "Choose sections you teach and people of your organisation.",
+      "EVENT_WHOLE_ORG_FORBIDDEN": "Only owners, admins and staff invite everyone.",
+      "EVENT_CANCELLED": "This event is cancelled.",
+      "EVENT_NOT_FOUND": "This event is no longer available."
+    },
+    "subscribe": {
+      "title": "Add to Google or Apple Calendar",
+      "intro": "A private link shows your calendar in Google or Apple Calendar and keeps it up to date. Anyone with the link can see your schedule, so keep it to yourself.",
+      "make": "Make my link",
+      "newLink": "Make a new link",
+      "copy": "Copy link",
+      "copied": "Link copied",
+      "link": "Your private link",
+      "linkHint": "Shown only now. Making a new link stops this one.",
+      "stepGoogle": "Google Calendar: Other calendars → + → From URL, and paste the link.",
+      "stepApple": "Apple Calendar: File → New Calendar Subscription, and paste the link.",
+      "activeSince": "Your link is on (made {when}). To see it again, make a new one.",
+      "none": "You have no link yet.",
+      "turnOff": "Turn off",
+      "turnOffTitle": "Turn off your calendar link?",
+      "turnOffDetail": "Calendars that use it stop updating."
     }
   }
 }

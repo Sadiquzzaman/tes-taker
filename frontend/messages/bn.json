@@ -61,7 +61,8 @@
     "attendanceReports": "উপস্থিতি রিপোর্ট",
     "homework": "হোমওয়ার্ক",
     "homeworkSettings": "হোমওয়ার্কের সেটিংস",
-    "routine": "রুটিন"
+    "routine": "রুটিন",
+    "calendar": "ক্যালেন্ডার"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -2770,7 +2771,8 @@
       "schedule": "সময়সূচি",
       "attendance": "উপস্থিতি",
       "homework": "হোমওয়ার্ক",
-      "routine": "রুটিন"
+      "routine": "রুটিন",
+      "event": "ইভেন্ট"
     },
     "actions": {
       "plan": {
@@ -2884,6 +2886,11 @@
         "add": "রুটিনে ক্লাস যোগ",
         "change": "রুটিনের ক্লাস বদল",
         "remove": "রুটিন থেকে ক্লাস সরানো"
+      },
+      "event": {
+        "create": "ইভেন্ট যোগ",
+        "update": "ইভেন্ট পরিবর্তন",
+        "cancel": "ইভেন্ট বাতিল"
       }
     },
     "fields": {
@@ -3076,6 +3083,11 @@
         "class_restored": "ক্লাস আবার চালু",
         "repeat_absence": "বারবার অনুপস্থিতি",
         "class_changed": "এক দিনের জন্য ক্লাস পরিবর্তন"
+      },
+      "calendar": {
+        "event_added": "ইভেন্ট যোগ",
+        "event_changed": "ইভেন্ট পরিবর্তন",
+        "event_cancelled": "ইভেন্ট বাতিল"
       }
     }
   },
@@ -4270,6 +4282,105 @@
       "ROUTINE_SUBJECT_INVALID": "এই সেকশনের একটি বিষয় বেছে নিন।",
       "ROUTINE_TEACHER_INVALID": "আপনার প্রতিষ্ঠানের একজন শিক্ষক বেছে নিন।",
       "ROUTINE_NOT_FOUND": "এর মধ্যে ক্লাসটি সরানো হয়েছে। বন্ধ করে আবার লোড করুন।"
+    }
+  },
+  "calendar": {
+    "title": "ক্যালেন্ডার",
+    "intro": "আপনার ক্লাস, ইভেন্ট, পরীক্ষা ও ছুটি।",
+    "addEvent": "ইভেন্ট যোগ করুন",
+    "previous": "আগের",
+    "next": "পরের",
+    "today": "আজ",
+    "viewLabel": "দেখার ধরন",
+    "views": {
+      "month": "মাস",
+      "week": "সপ্তাহ",
+      "day": "দিন"
+    },
+    "filterLabel": "দেখান",
+    "filters": {
+      "CLASS": "ক্লাস",
+      "EVENT": "ইভেন্ট",
+      "EXAM": "পরীক্ষা",
+      "HOLIDAY": "ছুটি"
+    },
+    "kinds": {
+      "CLASS": "ক্লাস",
+      "EVENT": "ইভেন্ট",
+      "EXAM": "পরীক্ষা",
+      "HOLIDAY": "ছুটি"
+    },
+    "openItem": "{kind}: {title}, সময় {time}",
+    "openDay": "{date} খুলুন",
+    "monthLabel": "মাস",
+    "more": "আরও {count, number}টি",
+    "nothing": "কিছু নেই",
+    "nothingThisDay": "এই দিনে কিছু নেই।",
+    "cancelled": "বাতিল",
+    "loadFailed": "ক্যালেন্ডার লোড করা যায়নি।",
+    "saved": "ক্যালেন্ডার সংরক্ষিত",
+    "closed": {
+      "WEEKLY_OFF": "সাপ্তাহিক ছুটি",
+      "HOLIDAY": "ছুটি"
+    },
+    "types": {
+      "EXAM": "পরীক্ষা",
+      "MEETING": "মিটিং",
+      "PARENT_MEETING": "অভিভাবক সভা",
+      "ACTIVITY": "কার্যক্রম",
+      "OTHER": "অন্যান্য"
+    },
+    "event": {
+      "title": "ইভেন্ট",
+      "addTitle": "একটি ইভেন্ট যোগ করুন",
+      "type": "ধরন",
+      "titleLabel": "শিরোনাম",
+      "date": "তারিখ",
+      "start": "শুরু",
+      "endDate": "শেষের তারিখ",
+      "end": "শেষ",
+      "place": "স্থান",
+      "description": "বিস্তারিত (ঐচ্ছিক)",
+      "attendees": "কারা অংশ নেবে",
+      "wholeOrg": "প্রতিষ্ঠানের সবাই",
+      "sectionsHint": "সেকশন (তাদের শিক্ষার্থীরা):",
+      "teachersHint": "শিক্ষক:",
+      "save": "সংরক্ষণ করুন",
+      "close": "বন্ধ করুন",
+      "edit": "বদলান",
+      "cancel": "ইভেন্ট বাতিল করুন",
+      "cancelTitle": "এই ইভেন্ট বাতিল করবেন?",
+      "cancelDetail": "এটি ক্যালেন্ডারে বাতিল হিসেবে থাকবে। ৪৮ ঘণ্টার মধ্যে হলে অংশগ্রহণকারী সবাইকে জানানো হবে।",
+      "placeIs": "স্থান: {place}",
+      "forEveryone": "প্রতিষ্ঠানের সবার জন্য",
+      "forList": "যাদের জন্য: {list}",
+      "madeBy": "যোগ করেছেন {name}"
+    },
+    "errors": {
+      "TITLE_REQUIRED": "ইভেন্টের একটি শিরোনাম দিন।",
+      "EVENT_TIME_INVALID": "শেষ সময় শুরুর পরে, ১৪ দিনের মধ্যে, এবং এখনো পার হয়নি এমন হতে হবে।",
+      "EVENT_NO_ATTENDEES": "কারা অংশ নেবে বেছে নিন।",
+      "EVENT_ATTENDEE_INVALID": "আপনি পড়ান এমন সেকশন ও আপনার প্রতিষ্ঠানের মানুষ বেছে নিন।",
+      "EVENT_WHOLE_ORG_FORBIDDEN": "শুধু মালিক, অ্যাডমিন ও স্টাফ সবাইকে আমন্ত্রণ জানাতে পারেন।",
+      "EVENT_CANCELLED": "এই ইভেন্ট বাতিল হয়েছে।",
+      "EVENT_NOT_FOUND": "এই ইভেন্ট আর পাওয়া যাচ্ছে না।"
+    },
+    "subscribe": {
+      "title": "Google বা Apple Calendar-এ যোগ করুন",
+      "intro": "একটি ব্যক্তিগত লিংক আপনার ক্যালেন্ডার Google বা Apple Calendar-এ দেখায় এবং হালনাগাদ রাখে। লিংক যার কাছে থাকবে সে আপনার সময়সূচি দেখতে পারবে, তাই নিজের কাছে রাখুন।",
+      "make": "আমার লিংক তৈরি করুন",
+      "newLink": "নতুন লিংক তৈরি করুন",
+      "copy": "লিংক কপি করুন",
+      "copied": "লিংক কপি হয়েছে",
+      "link": "আপনার ব্যক্তিগত লিংক",
+      "linkHint": "শুধু এখন দেখানো হচ্ছে। নতুন লিংক তৈরি করলে এটি বন্ধ হয়ে যাবে।",
+      "stepGoogle": "Google Calendar: Other calendars → + → From URL, তারপর লিংক পেস্ট করুন।",
+      "stepApple": "Apple Calendar: File → New Calendar Subscription, তারপর লিংক পেস্ট করুন।",
+      "activeSince": "আপনার লিংক চালু আছে ({when} তৈরি)। আবার দেখতে নতুন লিংক তৈরি করুন।",
+      "none": "আপনার এখনো কোনো লিংক নেই।",
+      "turnOff": "বন্ধ করুন",
+      "turnOffTitle": "ক্যালেন্ডার লিংক বন্ধ করবেন?",
+      "turnOffDetail": "যেসব ক্যালেন্ডার এটি ব্যবহার করে সেগুলো আর হালনাগাদ হবে না।"
     }
   }
 }
