@@ -221,9 +221,23 @@ interface ClassSessionSummary {
   counts: { students: number; present: number; late: number; absent: number; leave: number; waiting: number; flagged: number };
   /** Set when the class was cancelled for that day (ATT-19). */
   cancelled: { at: string | null; by: { id: string; full_name: string } | null; note: string | null } | null;
+  /** Set when the time or teacher was changed for that day (P5-04); `teacher` is then who teaches it. */
+  change: ClassChange | null;
   can_correct: boolean;
   can_cancel: boolean;
   can_restore: boolean;
+  /** Times or teacher can be changed for that day: before check-in opens, nobody checked in (P5-04). */
+  can_change: boolean;
+}
+
+/** A one-day change of a class (P5-04): the routine's times, the substitute, who changed it, when and the note. */
+interface ClassChange {
+  routine_start_time: string;
+  routine_end_time: string;
+  substitute: { id: string; full_name: string } | null;
+  at: string | null;
+  by: { id: string; full_name: string } | null;
+  note: string | null;
 }
 
 /** One person on a class's list. */

@@ -8,6 +8,8 @@ const get = vi.fn();
 const put = vi.fn();
 const post = vi.fn();
 vi.mock("@/lib/authSession", () => ({ getStoredUser: () => ({ session_mode: "organization", access_token: "token" }), clearAuthSession: vi.fn() }));
+// The app always renders inside the workspace provider; the one-day change form (P5-04) reads it.
+vi.mock("@/hooks/organization/useWorkspace", () => ({ default: () => ({ memberRole: "OWNER", isIndividual: false, organizationId: "org1" }) }));
 vi.mock("@/lib/axios", () => ({
   default: {
     get: (...args: unknown[]) => get(...args),
@@ -39,6 +41,8 @@ const SUMMARY: ClassSessionSummary = {
   can_correct: true,
   can_cancel: false,
   can_restore: false,
+  change: null,
+  can_change: false,
 };
 const record = (status: AttendanceStatus, extra: Partial<AttendanceRecord> = {}): AttendanceRecord => ({
   id: `r-${status}`,

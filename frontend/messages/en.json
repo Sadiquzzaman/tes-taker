@@ -2864,7 +2864,8 @@
         "cancel": "Class cancelled",
         "restore": "Class restored",
         "auto_absent": "Absent saved when check-in closed",
-        "import": "Paper register imported"
+        "import": "Paper register imported",
+        "change": "Class changed for a day"
       },
       "homework": {
         "create": "Homework written",
@@ -3073,7 +3074,8 @@
         "absent": "Absent (guardian SMS)",
         "class_cancelled": "Class cancelled",
         "class_restored": "Class restored",
-        "repeat_absence": "Repeated absence"
+        "repeat_absence": "Repeated absence",
+        "class_changed": "Class changed for a day"
       }
     }
   },
@@ -3592,7 +3594,12 @@
       "ATTENDANCE_CANCEL_TOO_FAR": "Classes can be cancelled up to 60 days ahead.",
       "ATTENDANCE_CANCEL_ENDED": "This class has already ended.",
       "ATTENDANCE_CANCEL_ALREADY": "This class is already cancelled.",
-      "ATTENDANCE_CANCEL_NOT_CANCELLED": "This class is not cancelled."
+      "ATTENDANCE_CANCEL_NOT_CANCELLED": "This class is not cancelled.",
+      "ATTENDANCE_CHANGE_STARTED": "Change a class before its check-in opens, while nobody has checked in.",
+      "ATTENDANCE_CHANGE_TIME_INVALID": "Choose a start and a later end that have not passed yet.",
+      "ATTENDANCE_CHANGE_OVERLAP": "The section has another class at that time ({start}–{end}).",
+      "ATTENDANCE_CHANGE_TEACHER_INVALID": "Choose a teacher of your organisation.",
+      "ATTENDANCE_CHANGE_NONE": "Nothing changed."
     },
     "cancelled": "Cancelled",
     "cancelClass": "Cancel this class",
@@ -3610,7 +3617,32 @@
     "cancelledToast": "The class of {section} is cancelled; students were told.",
     "restoredToast": "The class of {section} will take place; students were told.",
     "tooOldHint": "Teachers correct classes of the last 7 days. Ask the organisation's owner or admin for older ones.",
-    "cancelledHint": "This class was cancelled: nobody is marked absent and it is not counted."
+    "cancelledHint": "This class was cancelled: nobody is marked absent and it is not counted.",
+    "changed": "Changed today",
+    "changedToast": "{section}: changed for this day",
+    "change": {
+      "title": "Change for this day",
+      "changedTitle": "Changed for this day only",
+      "routineTimes": "Routine {start}–{end}",
+      "dayTimes": "this day {start}–{end}",
+      "substituteIs": "Substitute teacher: {name}",
+      "changedBy": "Changed by {who}, {when}",
+      "noteIs": "Note: {note}",
+      "someone": "someone",
+      "intro": "Other times or another teacher for this day only. The weekly routine stays the same. Students and the teachers are told.",
+      "start": "Start",
+      "end": "End",
+      "substitute": "Teacher this day",
+      "routineTeacher": "As in the routine ({name})",
+      "noSubstitute": "As in the routine",
+      "note": "Note for students (optional)",
+      "noteHint": "E.g. why it moved",
+      "close": "Keep as is",
+      "save": "Save change",
+      "undo": "Undo change",
+      "editChange": "Edit change",
+      "open": "Change time or teacher"
+    }
   },
   "leave": {
     "title": "Leave",
