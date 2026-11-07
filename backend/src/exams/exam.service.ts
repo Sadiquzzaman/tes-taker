@@ -1063,6 +1063,73 @@ export class ExamService {
     return { queued: ids.length };
   }
 
+  /**
+   * Exams of the organisation that start after `from` and by `to`, with their students, for
+   * calendar reminders (CAL-05): a class exam's active students (not excluded), or the chosen
+   * students. Exams open to anyone with the link have no students to remind.
+   */
+  async reminderExams(organizationId: string, from: Date, to: Date): Promise<{ id: string; title: string; starts_at: Date; student_ids: string[] }[]> {
+    const exams = await this.examRepo
+      .createQueryBuilder('exam')
+      .leftJoinAndSelect('exam.excluded_students', 'excluded')
+      .leftJoinAndSelect('exam.target_students', 'target')
+      .where('exam.organization_id = :organizationId', { organizationId })
+      .andWhere('exam.exam_start_time > :from AND exam.exam_start_time <= :to', { from, to })
+      .andWhere('(exam.test_audience IS NULL OR exam.test_audience <> :anyone)', { anyone: TestAudienceEnum.ANYONE })
+      .getMany();
+    const result: { id: string; title: string; starts_at: Date; student_ids: string[] }[] = [];
+    for (const exam of exams) {
+      let studentIds: string[];
+      if (exam.test_audience === TestAudienceEnum.SPECIFIC_STUDENTS) {
+        studentIds = (exam.target_students ?? []).map((student) => student.id);
+      } else if (exam.class_id) {
+        const active = activeEnrolmentCondition('enrolment');
+        const rows: { student_id: string }[] = await this.examRepo.manager
+          .getRepository(EnrolmentEntity)
+          .createQueryBuilder('enrolment')
+          .select('enrolment.student_id', 'student_id')
+          .where('enrolment.class_id = :classId', { classId: exam.class_id })
+          .andWhere(active.sql, active.params)
+          .getRawMany();
+        const excluded = new Set((exam.excluded_students ?? []).map((student) => student.id));
+        studentIds = rows.map((row) => row.student_id).filter((id) => !excluded.has(id));
+      } else {
+        studentIds = [];
+      }
+      result.push({ id: exam.id, title: exam.test_name ?? '', starts_at: exam.exam_start_time, student_ids: [...new Set(studentIds)] });
+    }
+    return result;
+  }
+
+  /**
+   * Exams of the organisation that overlap `from`–`to`, for a staff member's calendar (CAL-07):
+   * every exam for owners, admins and assistants (`all`), else the ones the teacher made. Students'
+   * exams come from StudentExamService.getUpcomingExams.
+   */
+  async calendarExams(
+    organizationId: string,
+    userId: string,
+    all: boolean,
+    from: Date,
+    to: Date,
+  ): Promise<{ id: string; test_name: string | null; exam_start_time: Date; exam_end_time: Date; class_name: string | null }[]> {
+    const query = this.examRepo
+      .createQueryBuilder('exam')
+      .leftJoinAndSelect('exam.class', 'class')
+      .where('exam.organization_id = :organizationId', { organizationId })
+      .andWhere('exam.exam_start_time < :to AND exam.exam_end_time > :from', { from, to })
+      .orderBy('exam.exam_start_time', 'ASC');
+    if (!all) query.andWhere('exam.created_by = :userId', { userId });
+    const exams = await query.getMany();
+    return exams.map((exam) => ({
+      id: exam.id,
+      test_name: exam.test_name,
+      exam_start_time: exam.exam_start_time,
+      exam_end_time: exam.exam_end_time,
+      class_name: exam.class?.class_name ?? null,
+    }));
+  }
+
   async findAll(
     jwtPayload: JwtPayloadInterface,
     orgContext?: OrgContext | null,

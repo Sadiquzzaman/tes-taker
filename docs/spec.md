@@ -364,7 +364,7 @@ A day with more than one class (e.g. two batches) shows one dot per class; month
 
 **Goal:** teachers assign homework, students submit files or typed answers, and teachers score and comment, including for work done on paper.
 
-**Built today:** nothing. The exam builder (Epic 4) is reused to write homework questions.
+**Built today:** writing homework for subject classes or chosen students, with files, publishing now or at a set time, withdrawing it, and the in-app notices when it is given and 24 hours before it is due (P5-01, HW-01, 02); students hand homework in as files (photos combined into one PDF) or a typed answer, with late handing-in, a late penalty and resubmissions set in homework settings (P5-02, HW-03); teachers review and score it with feedback and 1–5 ratings, return it for redo, enter paper homework in a grid, remind students who have not handed in (and their guardians by SMS), and publish scores to students (P5-03, HW-04, 05, 06). Question-type homework waits for the question bank (Epic 4).
 
 ### Settings (per org)
 
@@ -778,7 +778,7 @@ The syllabus is the topic list that question tags (QA-01), homework (HW-01) and 
 
 **Goal:** one academic calendar holding the weekly class routine, exams, meetings and holidays, and reminding teachers and students before each event.
 
-**Built today:** a calendar widget on the teacher dashboard showing exam dates. There is no routine, no events and no reminders.
+**Built today:** the weekly routine built slot by slot with subject, teacher and room, viewed by section, teacher or room, with teacher and room clashes confirmed and marked (P5-04, CAL-01, 02); one-day changes of a class's times or teacher (a substitute) next to the one-day cancel (P5-04, CAL-01); events with attendees and in-app notices of changes within 48 hours (P5-05, CAL-03, 06); the calendar by month, week or day with classes, events, exams and holidays, and a private link for Google or Apple Calendar (P5-05, CAL-07); reminders before classes, exams and events, set by the organisation and by each person, in the app or by SMS (P5-05, CAL-05). Holidays were built in P3-01 (CAL-04). Still to come: routine import by Excel with subjects and rooms, moving a class to another date, email reminders, and SMS for event changes (docs/TODO.md).
 
 **Example from the brief:** Rabbi Sir teaches Bangla to Admission Batch 1 at 2:00 PM. He has reminders at 12:00 PM, 1:00 PM and 1:30 PM. He gets push notifications at 12:00 and 1:00 and an SMS at 1:30, and the students get a push at 1:30.
 

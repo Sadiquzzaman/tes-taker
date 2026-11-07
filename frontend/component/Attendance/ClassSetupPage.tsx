@@ -180,6 +180,7 @@ const ClassSetupPage = () => {
                 <Select
                   label={t("branchFor", { section: sectionName(row) })}
                   hideLabel
+                  className="min-w-36"
                   placeholder={false}
                   value={row.branch_id}
                   disabled={savingId === row.id}
@@ -200,6 +201,7 @@ const ClassSetupPage = () => {
           <Select
             label={t("classTypeFor", { section: sectionName(row) })}
             hideLabel
+            className="min-w-32"
             placeholder={false}
             value={row.class_type}
             disabled={!row.can_edit || savingId === row.id}
@@ -217,6 +219,7 @@ const ClassSetupPage = () => {
         <Select
           label={t("modeFor", { section: sectionName(row) })}
           hideLabel
+          className="min-w-36"
           placeholder={false}
           value={row.mode}
           disabled={!row.can_edit || savingId === row.id}
@@ -232,6 +235,7 @@ const ClassSetupPage = () => {
         <Select
           label={t("graceFor", { section: sectionName(row) })}
           hideLabel
+          className="min-w-36"
           placeholder={false}
           value={row.grace_minutes === null ? "" : String(row.grace_minutes)}
           disabled={!row.can_edit || savingId === row.id}

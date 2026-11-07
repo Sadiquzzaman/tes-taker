@@ -119,6 +119,16 @@ describe("class setup page (ATT-16)", () => {
     await waitFor(() => expect(patch).toHaveBeenLastCalledWith(expect.stringMatching(/s6b$/), { mode: "PAPER_REGISTER" }));
   });
 
+  it("keeps the table's choices wide enough to read their value (found on beta at laptop width)", async () => {
+    serve({ ...SETUP, sections: [S6A, { ...S6B, branch_id: "b-fg" }, S7A] }, [MAIN, FARMGATE]);
+    renderApp(<ClassSetupPage />);
+    await screen.findByRole("table");
+
+    for (const label of ["Class type of Class 6 B", "Attendance mode of Class 6 B", "Late after, Class 6 B", "Branch of Class 6 B"]) {
+      expect(table().getByLabelText(label).className).toMatch(/\bmin-w-(32|36)\b/);
+    }
+  });
+
   it("shows the branch column with several branches and warns when an in-person section's branch has no pin", async () => {
     serve({ ...SETUP, sections: [S6A, { ...S6B, branch_id: "b-fg" }, S7A] }, [MAIN, FARMGATE]);
     patch.mockImplementation((_url: string, body: Partial<SectionSetup>) => ok({ ...S7A, ...body }));
@@ -352,7 +362,8 @@ describe("schedule CSV import (ATT-16)", () => {
     const table = within(within(drawer).getByRole("table"));
     expect(table.getByText("No class with this name in the session.")).toBeTruthy();
     expect(table.getByText("Days not understood. Write them like Sat;Mon.")).toBeTruthy();
-    expect(within(drawer).getByRole("button", { name: /^Import/ })).toHaveProperty("disabled", true);
+    // The button says what to do instead of offering to import "1 section" (found on beta).
+    expect(within(drawer).getByRole("button", { name: "Fix the file to import" })).toHaveProperty("disabled", true);
   });
 
   it("refuses a file without the needed columns before asking the API", async () => {

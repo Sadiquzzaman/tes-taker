@@ -66,6 +66,12 @@ Table org_settings {
   class_teacher_enabled boolean [not null, default: true, note: 'BUILT P2-03 (FND-02): sections have a class teacher. Migration/default: true for schools, false for SOLO']
   setup_completed_at timestamptz [note: 'BUILT P2-04 (FND-02): when the academic setup wizard was finished; null = not yet. Migration: set for organisations that already had classes']
   weekly_off_days smallint[] [not null, default: '{5}', note: 'BUILT P3-01: ISO day numbers; 5 = Friday; at least one working day']
+  weekly_off_days_history jsonb [not null, default: '[]', note: 'BUILT (P3 fix): earlier off days [{days, until}], oldest first; a day opened later stays closed on the dates it covered, so attendance never reaches back']
+  homework_late_allowed boolean [not null, default: true, note: 'BUILT P5-02 (Epic 2 settings): late work accepted and marked late']
+  homework_late_penalty_type varchar(10) [not null, default: 'NONE', note: 'BUILT P5-02: NONE | PER_DAY | FIXED (applied when scoring, P5-03)']
+  homework_late_penalty_percent smallint [not null, default: 0, note: 'BUILT P5-02: 0–100']
+  homework_resubmissions smallint [not null, default: 1, note: 'BUILT P5-02: hand-ins allowed after the first, 0–3']
+  homework_max_files smallint [not null, default: 5, note: 'BUILT P5-02: files per hand-in, 1–10']
   late_grace_minutes smallint [not null, default: 10, note: 'BUILT P3-02 (ATT-01, ATT-06): CHECK 0..60; a section can override it. P3-01\'s attendance_method, selfie_required, class_attendance_mode and entry times were dropped after the P3-02 release (migration DropP301PresenceSettings, 6 Nov 2026)']
   guardian_sms jsonb [not null, default: '{"late":true,"absent":true,"leave":true}', note: 'BUILT P3-01']
   sms_locale varchar(5) [note: "BUILT P2-05 (FND-10): guardian SMS language, CHECK bn | en; null = the organisation's default_locale"]
@@ -566,6 +572,10 @@ Table class_attendance {
   cancelled_at timestamptz [note: 'BUILT P3-04 (ATT-19); cleared on restore (the audit log keeps the history)']
   cancelled_by uuid [ref: > users.id, note: 'BUILT P3-04; FK ON DELETE SET NULL']
   cancel_note varchar(300) [note: "BUILT P3-04: the teacher's note to students (optional)"]
+  substitute_teacher_id uuid [ref: > users.id, note: 'BUILT P5-04: teaches this one class instead of the routine teacher; FK ON DELETE SET NULL; partial index (substitute_teacher_id, date)']
+  changed_at timestamptz [note: 'BUILT P5-04: one-day change of times and/or teacher (CAL-01); null = as the routine']
+  changed_by uuid [ref: > users.id]
+  change_note varchar(300) [note: 'BUILT P5-04: note to students about the change']
   created_at timestamptz [not null, default: `now()`]
   Indexes {
     (routine_slot_id, date) [unique, name: 'UQ_class_attendance_slot_date']
@@ -657,43 +667,52 @@ Table attendance_corrections {
 // E. Homework (Epic 2)
 //////////////////////////////////////////////////////////////
 
-Enum homework_type { FILE TEXT QUESTIONS PAPER }
-Enum homework_status { DRAFT SCHEDULED PUBLISHED CLOSED }
+Enum homework_type { FILE TEXT PAPER } // BUILT P5-01; QUESTIONS comes with the question bank (Epic 4)
+Enum homework_status { DRAFT SCHEDULED PUBLISHED CANCELLED } // BUILT P5-01; CANCELLED = withdrawn, never deleted
 
 Table homework {
   id uuid [pk]
   organization_id uuid [not null]
-  session_id uuid [ref: > academic_sessions.id]
-  subject_id uuid [ref: > subjects.id]
-  topic_id uuid [ref: > syllabus_topics.id]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  subject_id uuid [not null, ref: > subjects.id]
+  topic_id uuid [ref: > syllabus_topics.id, note: 'not built yet (Epic 6)']
   title varchar(200) [not null]
   instructions jsonb [note: 'rich text (TipTap JSON)']
   submission_type homework_type [not null]
   total_marks numeric(6,2)
   due_at timestamptz
-  publish_at timestamptz
-  status homework_status [not null]
-  policy_override jsonb [note: 'late / penalty / resubmissions, else org_settings']
-  scores_published_at timestamptz
+  publish_at timestamptz [note: 'SCHEDULED: when the homework job publishes it']
+  published_at timestamptz
+  status homework_status [not null, default: 'DRAFT']
+  reminder_sent_at timestamptz [note: 'the 24-hour reminder (HW-02); cleared when due_at changes']
+  cancelled_at timestamptz
+  cancelled_by uuid
+  policy_override jsonb [note: 'not built yet (P5-02): late / penalty / resubmissions, else org_settings']
+  scores_published_at timestamptz [note: 'BUILT P5-03: students see their scores from then on (HW-04)']
   created_by uuid [ref: > users.id]
-  Note: 'NEW (HW-01)'
+  Indexes {
+    (organization_id, status, due_at)
+    (organization_id, session_id)
+  }
+  Note: 'BUILT P5-01 (HW-01, HW-02) — owned by homework; base columns (is_active, created/updated by/at) as other tables'
 }
 
 Table homework_attachments {
   homework_id uuid [ref: > homework.id]
   file_id uuid [ref: > file_objects.id]
+  sort_order smallint [not null, default: 0]
   Indexes {
     (homework_id, file_id) [pk]
   }
-  Note: 'NEW'
+  Note: 'BUILT P5-01 — files of purpose HOMEWORK'
 }
 
 Table homework_targets {
   id uuid [pk]
   homework_id uuid [not null, ref: > homework.id]
   offering_id uuid [ref: > course_offerings.id]
-  student_id uuid [ref: > users.id]
-  Note: 'NEW — subject class or individual student'
+  student_id uuid [ref: > users.id, note: 'null = everyone taking the subject class']
+  Note: 'BUILT P5-01 — a subject class, or chosen students of it (one row each)'
 }
 
 Table homework_items {
@@ -705,7 +724,7 @@ Table homework_items {
   Note: 'NEW (QA-02) — for submission_type = QUESTIONS'
 }
 
-Enum submission_status { SUBMITTED RETURNED SCORED }
+Enum submission_status { SUBMITTED RETURNED SCORED } // BUILT P5-02
 
 Table homework_submissions {
   id uuid [pk]
@@ -714,26 +733,27 @@ Table homework_submissions {
   student_id uuid [not null, ref: > users.id]
   version smallint [not null, default: 1]
   text_answer text
-  answers jsonb [note: 'for QUESTIONS type']
-  extracted_text text [note: 'from files, for plagiarism']
+  answers jsonb [note: 'not built yet: for QUESTIONS type (Epic 4)']
+  extracted_text text [note: 'not built yet: from files, for plagiarism (Epic 10)']
   submitted_at timestamptz [not null]
-  is_late boolean
+  is_late boolean [not null, default: false]
   late_minutes int
-  status submission_status
+  status submission_status [not null, default: 'SUBMITTED']
   Indexes {
-    (homework_id, student_id, version) [unique]
+    (homework_id, student_id, version) [unique, name: 'UQ_homework_submissions_version']
+    (organization_id, homework_id)
   }
-  Note: 'NEW (HW-03)'
+  Note: 'BUILT P5-02 (HW-03) — owned by homework; every hand-in is a new version, earlier ones are kept'
 }
 
 Table submission_files {
   submission_id uuid [ref: > homework_submissions.id]
   file_id uuid [ref: > file_objects.id]
-  page_order smallint
+  page_order smallint [not null, default: 0]
   Indexes {
     (submission_id, file_id) [pk]
   }
-  Note: 'NEW'
+  Note: 'BUILT P5-02 — the student\'s uploads (purpose HOMEWORK); photos are combined into one PDF in the browser'
 }
 
 Table homework_scores {
@@ -741,20 +761,21 @@ Table homework_scores {
   organization_id uuid [not null]
   homework_id uuid [not null, ref: > homework.id]
   student_id uuid [not null, ref: > users.id]
-  submission_id uuid [ref: > homework_submissions.id, note: 'null for PAPER homework']
+  submission_id uuid [ref: > homework_submissions.id, note: 'null for PAPER homework or work never handed in; set null if the hand-in row goes']
   raw_score numeric(6,2)
-  penalty numeric(6,2) [default: 0]
+  penalty numeric(6,2) [not null, default: 0, note: 'marks taken off for lateness (org setting × how late)']
   final_score numeric(6,2)
   feedback text
-  annotations_file_id uuid [ref: > file_objects.id]
-  ratings jsonb [note: 'neatness / effort / on-time 1..5 (HW-05)']
-  is_missing boolean [default: false]
+  annotations_file_id uuid [ref: > file_objects.id, note: 'not built yet (HW-04 Should: drawing on the work)']
+  ratings jsonb [note: 'neatness / effort / on_time 1..5 (HW-05)']
+  is_missing boolean [not null, default: false, note: 'never handed in: final 0']
   scored_by uuid [ref: > users.id]
   scored_at timestamptz
   Indexes {
-    (homework_id, student_id) [unique]
+    (homework_id, student_id) [unique, name: 'UQ_homework_scores_student']
+    (organization_id, homework_id)
   }
-  Note: 'NEW (HW-04, HW-05)'
+  Note: 'BUILT P5-03 (HW-04, HW-05, HW-06) — owned by homework'
 }
 
 //////////////////////////////////////////////////////////////
@@ -1293,7 +1314,7 @@ Table routine_slots {
     (section_id, day_of_week, start_time)
     (organization_id, session_id)
   }
-  Note: 'NEW (CAL-01), BUILT P3-02 as section schedules (ATT-16, calendar module, RoutineSlotsService): no overlap within a section, teacher clash check (CAL-02); saving replaces a section\'s schedule, keeping unchanged rows and soft-removing the rest. P5 builds the routine on the same rows'
+  Note: 'NEW (CAL-01), BUILT P3-02 as section schedules (ATT-16, calendar module, RoutineSlotsService): no overlap within a section, teacher clash check (CAL-02); saving replaces a section\'s schedule, keeping unchanged rows and soft-removing the rest. P5-04 builds the routine on the same rows: subject (offering_id), teacher and room per slot; teacher and room clashes are warnings the admin can confirm (CAL-02)'
 }
 
 Enum exception_type { CANCEL MOVE SUBSTITUTE }
@@ -1310,32 +1331,56 @@ Table routine_exceptions {
   Indexes {
     (slot_id, date) [unique]
   }
-  Note: 'NEW'
+  Note: 'NOT BUILT (P5-04 decision): one-day changes live on the class session instead — cancel (class_attendance.status, P3-04) and other times or a substitute (class_attendance.starts_at/ends_at, substitute_teacher_id, P5-04), which check-in, the closing job and reports already follow'
 }
 
 Enum event_type { EXAM MEETING PARENT_MEETING ACTIVITY OTHER }
+Enum event_status { SCHEDULED CANCELLED }
 
 Table events {
   id uuid [pk]
   organization_id uuid [not null]
-  type event_type
-  title varchar(200)
-  starts_at timestamptz
-  ends_at timestamptz
+  type event_type [not null]
+  title varchar(200) [not null]
+  description text
+  starts_at timestamptz [not null]
+  ends_at timestamptz [not null, note: 'CHECK ends_at > starts_at; at most 14 days long (service)']
   place varchar(120)
-  source_type varchar(20) [note: 'EXAM | OFFLINE_EXAM | null']
-  source_id uuid
+  whole_org boolean [not null, default: false, note: 'everyone in the organisation (owners, admins, assistants only)']
+  status event_status [not null, default: 'SCHEDULED']
+  cancelled_at timestamptz
+  cancelled_by uuid
+  is_active varchar [note: 'base entity']
   created_by uuid
-  Note: 'NEW (CAL-03)'
+  created_at timestamp
+  updated_by uuid
+  updated_at timestamp
+  Indexes {
+    (organization_id, starts_at)
+  }
+  Note: 'BUILT P5-05 part 1 (CAL-03, CAL-06, calendar module, migration Events): cancelling keeps the row. source_type/source_id dropped from the plan: online and offline exams show on the calendar from their own tables'
 }
 
 Table event_attendees {
   id uuid [pk]
-  event_id uuid [not null, ref: > events.id]
-  section_id uuid [ref: > sections.id]
-  user_id uuid [ref: > users.id]
-  whole_org boolean [default: false]
-  Note: 'NEW'
+  event_id uuid [not null, ref: > events.id, note: 'FK ON DELETE CASCADE']
+  section_id uuid [ref: > sections.id, note: 'the section\'s active students; FK ON DELETE CASCADE']
+  user_id uuid [ref: > users.id, note: 'one person; FK ON DELETE CASCADE']
+  Note: 'BUILT P5-05 part 1: CHECK exactly one of section_id, user_id. whole_org moved to events'
+}
+
+Table calendar_feed_tokens {
+  id uuid [pk]
+  organization_id uuid [not null]
+  user_id uuid [not null, ref: > users.id, note: 'FK ON DELETE CASCADE']
+  token_hash varchar(64) [not null, unique, note: 'SHA-256 of the link token; the token is shown once']
+  created_at timestamptz [not null]
+  revoked_at timestamptz [note: 'a new link or turning it off revokes the old one; rows are kept']
+  last_used_at timestamptz
+  Indexes {
+    (organization_id, user_id)
+  }
+  Note: 'BUILT P5-05 part 2 (CAL-07, calendar-feed module, migration CalendarFeedTokens): private iCal subscription links'
 }
 
 Table holidays {
@@ -1356,10 +1401,17 @@ Table holidays {
 Table reminder_rules {
   id uuid [pk]
   organization_id uuid [not null]
-  user_id uuid [ref: > users.id, note: 'null = org default']
-  target varchar(20) [note: 'CLASS | EXAM | MEETING | HOMEWORK']
-  offsets jsonb [note: '[{"minutes":120,"channel":"PUSH"},{"minutes":30,"channel":"SMS"}] max 5']
-  Note: 'NEW (CAL-05)'
+  user_id uuid [ref: > users.id, note: 'null = the organisation default; FK ON DELETE CASCADE']
+  target varchar(10) [not null, note: "CHECK IN ('CLASS', 'EXAM', 'EVENT')"]
+  offsets jsonb [not null, note: '[{"minutes":30,"channel":"IN_APP"},{"minutes":120,"channel":"SMS"}], at most 5, 5 to 1440 minutes, each time once; [] = off for that person']
+  updated_by uuid
+  created_at timestamptz
+  updated_at timestamptz
+  Indexes {
+    (organization_id, target) [unique, note: 'WHERE user_id IS NULL']
+    (organization_id, user_id, target) [unique, note: 'WHERE user_id IS NOT NULL']
+  }
+  Note: 'BUILT P5-05 part 4 (CAL-05, calendar-feed module, migration ReminderRules). Without an organisation rule: class 30 min, exam and event 60 min, in the app. HOMEWORK target dropped (homework has its own 24-hour reminder, HW-02); EMAIL and PUSH channels later'
 }
 
 //////////////////////////////////////////////////////////////

@@ -198,7 +198,7 @@ interface Planned {
 /**
  * The paper register (ATT-17) and the monthly register export (ATT-13): a CSV per section and
  * month with one row per student (roll number and name) and one column per class day, filled in
- * with P, L, A or Leave (English or Bangla). The template and the export are the same format (the
+ * with P, L, A or LV (English or Bangla; "Leave" is read too). The template and the export are the same format (the
  * export has the marks filled in). An upload is checked column by column, row by row and cell by
  * cell before anything is saved; applying it is idempotent (the same file twice changes nothing):
  * a new mark saves a record (source IMPORT), a different mark corrects the record with a trail in

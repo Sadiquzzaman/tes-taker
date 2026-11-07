@@ -197,6 +197,20 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     subject: 'ক্লাস হবে: {{class_name}}',
     body: '{{class_on}} তারিখের {{start_time}}-এর ক্লাস হবে।',
   },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_CHANGED,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Class changed: {{class_name}}',
+    body: 'On {{class_on}} the class is at {{start_time}}–{{end_time}}. Teacher: {{teacher_name}}. {{note}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_CHANGED,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'ক্লাসে পরিবর্তন: {{class_name}}',
+    body: '{{class_on}} তারিখে ক্লাস {{start_time}}–{{end_time}}। শিক্ষক: {{teacher_name}}। {{note}}',
+  },
 
   // Guardian SMS (ATT-06 late at once, ATT-10 absent once a day), short to fit one SMS
   {
@@ -316,10 +330,71 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     subject: 'ছুটি প্রত্যাহার: {{person_name}}',
     body: '{{from_on}} থেকে {{to_on}} পর্যন্ত ছুটি {{by_name}} প্রত্যাহার করেছেন।',
   },
+  // Homework review (HW-04, HW-06): in the inbox; the guardians' SMS for missing work uses credits.
+  { event_type: NOTIFICATION_EVENTS.HOMEWORK_RETURNED, channel: IN_APP, locale: 'en', subject: 'Homework returned for redo: {{title}}', body: 'Hand it in again. {{note}}' },
+  { event_type: NOTIFICATION_EVENTS.HOMEWORK_RETURNED, channel: IN_APP, locale: 'bn', subject: 'হোমওয়ার্ক আবার করতে ফেরত: {{title}}', body: 'আবার জমা দিন। {{note}}' },
+  { event_type: NOTIFICATION_EVENTS.HOMEWORK_SCORES_PUBLISHED, channel: IN_APP, locale: 'en', subject: 'Homework scored: {{title}}', body: 'Your score and feedback are ready.' },
+  { event_type: NOTIFICATION_EVENTS.HOMEWORK_SCORES_PUBLISHED, channel: IN_APP, locale: 'bn', subject: 'হোমওয়ার্কে নম্বর দেওয়া হয়েছে: {{title}}', body: 'আপনার নম্বর ও মন্তব্য দেখুন।' },
+  { event_type: NOTIFICATION_EVENTS.HOMEWORK_REMINDER, channel: IN_APP, locale: 'en', subject: 'Hand in your homework: {{title}}', body: 'Due {{due_at}}' },
+  { event_type: NOTIFICATION_EVENTS.HOMEWORK_REMINDER, channel: IN_APP, locale: 'bn', subject: 'হোমওয়ার্ক জমা দিন: {{title}}', body: 'জমা {{due_at}}' },
+  // Calendar events (P5-05, CAL-03, CAL-06)
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_ADDED, channel: IN_APP, locale: 'en', subject: 'New event: {{title}}', body: '{{starts_at}} {{place}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_ADDED, channel: IN_APP, locale: 'bn', subject: 'নতুন ইভেন্ট: {{title}}', body: '{{starts_at}} {{place}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_CHANGED, channel: IN_APP, locale: 'en', subject: 'Event changed: {{title}}', body: 'Now {{starts_at}} {{place}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_CHANGED, channel: IN_APP, locale: 'bn', subject: 'ইভেন্টে পরিবর্তন: {{title}}', body: 'এখন {{starts_at}} {{place}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_CANCELLED, channel: IN_APP, locale: 'en', subject: 'Event cancelled: {{title}}', body: 'It was on {{starts_at}}. {{note}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_CANCELLED, channel: IN_APP, locale: 'bn', subject: 'ইভেন্ট বাতিল: {{title}}', body: '{{starts_at}}-এ হওয়ার কথা ছিল। {{note}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: IN_APP, locale: 'en', subject: 'Reminder: {{title}}', body: 'Starts {{starts_at}} {{place}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: IN_APP, locale: 'bn', subject: 'মনে করিয়ে দেওয়া: {{title}}', body: 'শুরু {{starts_at}} {{place}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: SMS, locale: 'en', subject: null, body: 'Reminder: {{title}} starts {{starts_at}}. {{place}} - {{organization_name}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: SMS, locale: 'bn', subject: null, body: 'মনে করিয়ে দেওয়া: {{title}} শুরু {{starts_at}}। {{place}} - {{organization_name}}' },
+  {
+    event_type: NOTIFICATION_EVENTS.HOMEWORK_MISSING,
+    channel: SMS,
+    locale: 'en',
+    subject: null,
+    body: '{{student_name}} has not handed in the homework "{{title}}". - {{organization_name}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.HOMEWORK_MISSING,
+    channel: SMS,
+    locale: 'bn',
+    subject: null,
+    body: '{{student_name}} "{{title}}" হোমওয়ার্ক জমা দেয়নি। - {{organization_name}}',
+  },
+  // Homework (HW-02): in the inbox, linked to the homework (`path`).
+  {
+    event_type: NOTIFICATION_EVENTS.HOMEWORK_ASSIGNED,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'New homework: {{title}}',
+    body: '{{subject_name}} · Due {{due_at}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.HOMEWORK_ASSIGNED,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'নতুন হোমওয়ার্ক: {{title}}',
+    body: '{{subject_name}} · জমা {{due_at}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.HOMEWORK_DUE_SOON,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Homework due soon: {{title}}',
+    body: '{{subject_name}} · Due {{due_at}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.HOMEWORK_DUE_SOON,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'হোমওয়ার্ক জমার সময় আসছে: {{title}}',
+    body: '{{subject_name}} · জমা {{due_at}}',
+  },
 ];
 
 /** Values shown translated when a variable holds one of these codes (e.g. a member role). */
 export const VALUE_LABELS: Record<NotificationLocale, Record<string, string>> = {
-  en: { OWNER: 'owner', ADMIN: 'admin', TEACHER: 'teacher', STUDENT: 'student', ASSISTANT: 'staff member' },
-  bn: { OWNER: 'মালিক', ADMIN: 'অ্যাডমিন', TEACHER: 'শিক্ষক', STUDENT: 'শিক্ষার্থী', ASSISTANT: 'স্টাফ' },
+  en: { OWNER: 'owner', ADMIN: 'admin', TEACHER: 'teacher', STUDENT: 'student', ASSISTANT: 'staff member', NO_DUE_DATE: 'any time', NO_TEACHER: 'as usual' },
+  bn: { OWNER: 'মালিক', ADMIN: 'অ্যাডমিন', TEACHER: 'শিক্ষক', STUDENT: 'শিক্ষার্থী', ASSISTANT: 'স্টাফ', NO_DUE_DATE: 'যেকোনো সময়', NO_TEACHER: 'যথারীতি' },
 };

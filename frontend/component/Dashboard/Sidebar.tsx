@@ -1,9 +1,7 @@
 import sidebarList from "@/utils/sidebarList";
 import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
-import Link from "next/link";
-import FeatureNavGate from "@/component/Subscription/FeatureNavGate";
-import { cn, focusRing } from "@/design/ui/cn";
+import SidebarNav from "@/component/Dashboard/SidebarNav";
 
 const orgMemberRoles: OrganizationMemberRole[] = [
   "OWNER",
@@ -16,7 +14,7 @@ const orgMemberRoles: OrganizationMemberRole[] = [
 const isOrgMemberRole = (value: string | undefined): value is OrganizationMemberRole =>
   Boolean(value && orgMemberRoles.includes(value as OrganizationMemberRole));
 
-/** The sidebar links for the signed-in role (shown by AppShell in the sidebar and the phone menu). */
+/** The sidebar links for the signed-in role, folded into groups (shown by AppShell in the sidebar and the phone menu). */
 const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
   const cookieStore = await cookies();
   const t = await getTranslations();
@@ -60,34 +58,7 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
             <p className="px-3 pb-1 pt-4 text-caption font-medium uppercase tracking-wide text-ink-muted">
               {t(`nav.category.${category}`)}
             </p>
-            <ul className="flex flex-col gap-0.5">
-              {items.map((element) => {
-                const isActive = activeRoute === element.route;
-                const item = (
-                  <li key={element.route}>
-                    <Link
-                      href={element.route}
-                      aria-current={isActive ? "page" : undefined}
-                      className={cn(
-                        "flex items-center gap-2.5 rounded-input px-3 py-2 text-body-sm font-medium transition-colors duration-(--motion-fast)",
-                        isActive ? "bg-primary text-ink-inverse" : "text-ink hover:bg-primary-soft hover:text-primary",
-                        focusRing,
-                      )}
-                    >
-                      {element.image}
-                      {t(`nav.${element.label}`)}
-                    </Link>
-                  </li>
-                );
-                return element.feature ? (
-                  <FeatureNavGate key={element.route} feature={element.feature}>
-                    {item}
-                  </FeatureNavGate>
-                ) : (
-                  item
-                );
-              })}
-            </ul>
+            <SidebarNav items={items} activeRoute={activeRoute} />
           </div>
         );
       })}

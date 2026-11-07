@@ -8,7 +8,7 @@ import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.decorator';
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
 import { requireWorkspace } from './attendance-access';
-import { CancelClassDto, CorrectRecordDto, SessionsQueryDto } from './dto/correction.dto';
+import { CancelClassDto, ChangeClassDto, CorrectRecordDto, SessionsQueryDto } from './dto/correction.dto';
 import { SectionAttendanceService } from './section-attendance.service';
 
 /**
@@ -74,5 +74,21 @@ export class SectionAttendanceController {
   @ApiOperation({ summary: 'Restore a cancelled class (before it ends); students are told in-app' })
   async restore(@Param('slotId', ParseUUIDPipe) slotId: string, @Param('date') date: string, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Class restored', payload: await this.attendance.restore(requireWorkspace(), user.id, slotId, date) };
+  }
+
+  @Post(':slotId/:date/change')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Change a class for one day: other times and/or a substitute teacher (P5-04); students and teachers are told in-app',
+    description:
+      "Today or up to 60 days ahead, before check-in opens, while nobody has checked in. The routine's own times and no substitute undo the change. Returns the class.",
+  })
+  async change(
+    @Param('slotId', ParseUUIDPipe) slotId: string,
+    @Param('date') date: string,
+    @Body() dto: ChangeClassDto,
+    @UserPayload() user: JwtPayloadInterface,
+  ) {
+    return { message: 'Class changed', payload: await this.attendance.change(requireWorkspace(), user.id, slotId, date, dto) };
   }
 }

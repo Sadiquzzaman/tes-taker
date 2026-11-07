@@ -40,3 +40,31 @@ export function isSchoolDate(value: unknown): value is string {
   const d = new Date(`${value}T00:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
 }
+
+/** Offset of `timeZone` from UTC at `instant`, in milliseconds (Dhaka: +6 h). */
+function zoneOffsetMs(instant: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(instant);
+  const value = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  const asUtc = Date.UTC(value('year'), value('month') - 1, value('day'), value('hour'), value('minute'), value('second'));
+  return asUtc - Math.floor(instant.getTime() / 1000) * 1000;
+}
+
+/** The instant of wall-clock `time` ("HH:MM") on school `date` ("YYYY-MM-DD") in `timeZone`. */
+export function zonedInstant(date: string, time: string, timeZone: string): Date {
+  const [year, month, day] = date.split('-').map(Number);
+  const [hour, minute] = time.split(':').map(Number);
+  const wall = Date.UTC(year, month - 1, day, hour, minute);
+  let instant = wall - zoneOffsetMs(new Date(wall), timeZone);
+  // A second pass settles days when the offset changes (daylight saving zones).
+  instant = wall - zoneOffsetMs(new Date(instant), timeZone);
+  return new Date(instant);
+}

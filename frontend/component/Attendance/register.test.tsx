@@ -193,7 +193,7 @@ describe("monthly register page (ATT-17, ATT-13)", () => {
     expect(within(drawer).getByText("2026-11-09: This day is a holiday.")).toBeTruthy();
     expect(within(drawer).getByText("notes: This header is not a date. Use the template's headers. (empty, ignored)")).toBeTruthy();
     expect(within(drawer).getAllByText("No student of this section has this roll number or name.").length).toBeGreaterThan(0);
-    expect(within(drawer).getAllByText("2026-11-14: “X” is not a mark. Use P, L, A or Leave.").length).toBeGreaterThan(0);
+    expect(within(drawer).getAllByText("2026-11-14: “X” is not a mark. Use P, L, A or LV.").length).toBeGreaterThan(0);
     expect((within(drawer).getByRole("button", { name: "Nothing to import" }) as HTMLButtonElement).disabled).toBe(true);
     expect(post).toHaveBeenCalledTimes(1);
   });

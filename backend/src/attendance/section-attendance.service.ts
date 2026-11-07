@@ -11,14 +11,15 @@ import { RoutineSlotsService, SlotView } from 'src/calendar/routine-slots.servic
 import { Tenant } from 'src/common/tenancy/tenant-context';
 import { isoDayOf, isSchoolDate, schoolDateIn } from 'src/common/utils/school-date.util';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
+import { OrganizationAccessService } from 'src/organizations/organization-access.service';
 import { OrgSettingsService } from 'src/organizations/org-settings.service';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { ApprovedLeaveService, LeaveCalendar } from './approved-leave.service';
 import { AttendanceClock } from './attendance-clock';
 import { ATTENDANCE_ERRORS } from './attendance-errors';
-import { CheckInState, checkInState, countsFor, SessionWindow } from './class-session-time';
-import { ClassSessionsService, recordView, RecordView, SectionContext, sessionKey } from './class-sessions.service';
-import { CancelClassDto, CorrectRecordDto } from './dto/correction.dto';
+import { CheckInState, checkInState, countsFor, CHECKIN_OPENS_BEFORE_MINUTES, SessionWindow, zonedInstant } from './class-session-time';
+import { ClassSessionsService, recordView, RecordView, SectionContext, sessionKey, teacherOf } from './class-sessions.service';
+import { CancelClassDto, ChangeClassDto, CorrectRecordDto } from './dto/correction.dto';
 import { AttendanceCorrectionEntity } from './entities/attendance-correction.entity';
 import {
   AttendancePersonTypeEnum,
@@ -28,7 +29,7 @@ import {
 } from './entities/attendance-record.entity';
 import { ClassSessionEntity, ClassSessionStatusEnum } from './entities/class-session.entity';
 import { SectionAttendanceModeEnum, SectionClassTypeEnum } from './entities/section-attendance-settings.entity';
-import { CalendarStatus, statusOf } from './my-attendance.service';
+import { CalendarStatus, clockIn, statusOf } from './my-attendance.service';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { NOTIFICATION_EVENTS } from 'src/notifications/notification.constants';
 
@@ -46,6 +47,16 @@ export const CANCEL_AHEAD_DAYS = 60;
 
 /** Who cancelled a class, when and why (ATT-19). */
 export interface CancellationView {
+  at: Date | null;
+  by: { id: string; full_name: string } | null;
+  note: string | null;
+}
+/** A one-day change of a class (P5-04): its own times and/or a substitute, who changed it and why. */
+export interface ClassChangeView {
+  /** The routine's times; the summary's start_time/end_time are the times that day. */
+  routine_start_time: string;
+  routine_end_time: string;
+  substitute: { id: string; full_name: string } | null;
   at: Date | null;
   by: { id: string; full_name: string } | null;
   note: string | null;
@@ -82,7 +93,10 @@ export interface SessionSummary {
   ends_at: Date;
   state: CheckInState;
   closed: ClosedDay | null;
+  /** Who teaches it that day: the substitute (P5-04), else the routine's teacher. */
   teacher: { id: string; full_name: string } | null;
+  /** Set when the time or teacher was changed for that day (P5-04). */
+  change: ClassChangeView | null;
   /** Students only. `waiting`: upcoming, open or a paper register not in yet. */
   counts: { students: number; present: number; late: number; absent: number; leave: number; waiting: number; flagged: number };
   /** Set when the class was cancelled for that day (ATT-19); nobody is Absent then. */
@@ -92,6 +106,8 @@ export interface SessionSummary {
   /** The class can be cancelled (today or later, before it ends, on a school day) or restored. */
   can_cancel: boolean;
   can_restore: boolean;
+  /** The time or teacher can be changed for that day: before check-in opens, nobody checked in, not cancelled (P5-04). */
+  can_change: boolean;
 }
 
 export interface SessionDetail extends SessionSummary {
@@ -118,6 +134,7 @@ interface Loaded {
   ref: SlotRef;
   context: SectionContext;
   date: string;
+  timeZone: string;
   window: SessionWindow;
   state: CheckInState;
   closed: ClosedDay | null;
@@ -130,6 +147,7 @@ interface Loaded {
   can_correct: boolean;
   can_cancel: boolean;
   can_restore: boolean;
+  can_change: boolean;
 }
 
 /**
@@ -157,6 +175,7 @@ export class SectionAttendanceService {
     private readonly notifications: NotificationsService,
     private readonly leave: ApprovedLeaveService,
     private readonly clock: AttendanceClock,
+    private readonly access: OrganizationAccessService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -165,7 +184,7 @@ export class SectionAttendanceService {
     const timeZone = await this.orgSettings.timeZone(organizationId);
     const today = schoolDateIn(timeZone, this.clock.now());
     const day = this.validDate(date ?? today);
-    const refs = (await this.visibleSlots(tenant, userId)).filter((ref) => ref.slot.day_of_week === isoDayOf(day));
+    const refs = (await this.visibleSlots(tenant, userId, day)).filter((ref) => ref.slot.day_of_week === isoDayOf(day));
     const loaded = await this.load(tenant, refs, day, timeZone, today);
     const sessions = loaded.map((item) => this.summary(item));
     sessions.sort((a, b) => a.starts_at.getTime() - b.starts_at.getTime() || `${a.section.class_name} ${a.section.name}`.localeCompare(`${b.section.class_name} ${b.section.name}`));
@@ -211,7 +230,7 @@ export class SectionAttendanceService {
     let role: AttendancePersonTypeEnum;
     if (student) {
       role = AttendancePersonTypeEnum.STUDENT;
-    } else if (teacherRecord || ref.slot.teacher_id === personId) {
+    } else if (teacherRecord || teacherOf(ref.slot, item.session) === personId) {
       if (!isManager(tenant)) {
         throw new ForbiddenException({ message: "Teachers correct students' attendance only", code: ATTENDANCE_ERRORS.CORRECTION_TEACHER_RECORD });
       }
@@ -345,6 +364,139 @@ export class SectionAttendanceService {
     return this.detail(tenant, userId, slotId, date);
   }
 
+  /**
+   * Changes one class for one day (P5-04, CAL-01): other times that day (same date, no overlap with
+   * the section's other classes, still in the future) and/or a substitute teacher (a teaching
+   * member), with a note. Possible from today up to 60 days ahead, before check-in opens, while
+   * nobody has checked in. The rest of the routine is untouched. Sending the routine's own times and
+   * no substitute undoes the change. Students, the routine's teacher and the substitute are told in-app.
+   */
+  async change(tenant: Tenant, userId: string, slotId: string, date: string, dto: ChangeClassDto): Promise<SessionDetail> {
+    const organizationId = tenant.organizationId;
+    const timeZone = await this.orgSettings.timeZone(organizationId);
+    const now = this.clock.now();
+    const today = schoolDateIn(timeZone, now);
+    const ref = await this.visibleSlot(tenant, userId, slotId, this.validDate(date));
+    const [item] = await this.load(tenant, [ref], date, timeZone, today);
+    if (!item) throw new NotFoundException({ message: 'Class not found', code: ATTENDANCE_ERRORS.SESSION_NOT_FOUND });
+    if (item.closed) throw new ConflictException({ message: 'There is no class that day', code: ATTENDANCE_ERRORS.CANCEL_CLOSED_DAY });
+    if (item.cancelled) throw new ConflictException({ message: 'This class is cancelled that day', code: ATTENDANCE_ERRORS.CANCEL_ALREADY });
+    if (date < today) throw new ConflictException({ message: 'A past class cannot be changed', code: ATTENDANCE_ERRORS.CANCEL_PAST });
+    if (date > addDays(today, CANCEL_AHEAD_DAYS)) {
+      throw new ConflictException({ message: `Classes can be changed up to ${CANCEL_AHEAD_DAYS} days ahead`, code: ATTENDANCE_ERRORS.CANCEL_TOO_FAR, details: { days: CANCEL_AHEAD_DAYS } });
+    }
+    if (!item.can_change) {
+      throw new ConflictException({ message: 'Change a class before its check-in opens, while nobody has checked in', code: ATTENDANCE_ERRORS.CHANGE_STARTED });
+    }
+
+    // The times that day: the new ones (both or neither), else the current ones.
+    if ((dto.start_time === undefined) !== (dto.end_time === undefined)) {
+      throw new BadRequestException({ message: 'Give both a start and an end time', code: ATTENDANCE_ERRORS.CHANGE_TIME_INVALID });
+    }
+    const start = dto.start_time ? hhmmOf(dto.start_time) : clockIn(item.window.starts_at, timeZone);
+    const end = dto.end_time ? hhmmOf(dto.end_time) : clockIn(item.window.ends_at, timeZone);
+    if (end <= start) throw new BadRequestException({ message: 'The end must be after the start', code: ATTENDANCE_ERRORS.CHANGE_TIME_INVALID });
+    const startsAt = zonedInstant(date, start, timeZone);
+    const endsAt = zonedInstant(date, end, timeZone);
+    if (startsAt.getTime() - CHECKIN_OPENS_BEFORE_MINUTES * 60_000 <= now.getTime()) {
+      throw new BadRequestException({ message: 'Choose a time that has not started yet', code: ATTENDANCE_ERRORS.CHANGE_TIME_INVALID });
+    }
+    await this.assertNoSectionOverlap(organizationId, ref, date, timeZone, startsAt, endsAt);
+
+    // The teacher that day: a substitute (not the routine's own teacher), else the routine's.
+    let substituteId = dto.substitute_teacher_id !== undefined ? dto.substitute_teacher_id : (item.session?.substitute_teacher_id ?? null);
+    if (substituteId === ref.slot.teacher_id) substituteId = null;
+    if (substituteId) {
+      const membership = await this.access.getMembership(organizationId, substituteId);
+      if (!this.access.isAssignableTeachingRole(membership?.role)) {
+        throw new BadRequestException({ message: 'The substitute must be a teaching member of this organisation', code: ATTENDANCE_ERRORS.CHANGE_TEACHER_INVALID });
+      }
+    }
+
+    const isRoutine = start === ref.slot.start_time && end === ref.slot.end_time && !substituteId;
+    const before = {
+      start_time: clockIn(item.window.starts_at, timeZone),
+      end_time: clockIn(item.window.ends_at, timeZone),
+      substitute_teacher_id: item.session?.substitute_teacher_id ?? null,
+      note: item.session?.change_note ?? null,
+    };
+    const note = dto.note?.trim() || null;
+    if (before.start_time === start && before.end_time === end && before.substitute_teacher_id === substituteId && (isRoutine || before.note === note)) {
+      throw new BadRequestException({ message: 'The class already has these times and this teacher', code: ATTENDANCE_ERRORS.CHANGE_NONE });
+    }
+
+    const at = new Date();
+    const session = await this.dataSource.transaction(async (manager) => {
+      const session = await this.lockedSession(manager, organizationId, item);
+      const records = await manager.getRepository(AttendanceRecordEntity).count({ where: { organization_id: organizationId, class_attendance_id: session.id } });
+      if (session.status !== ClassSessionStatusEnum.SCHEDULED || records > 0) {
+        throw new ConflictException({ message: 'Change a class before its check-in opens, while nobody has checked in', code: ATTENDANCE_ERRORS.CHANGE_STARTED });
+      }
+      await manager.getRepository(ClassSessionEntity).update(
+        { id: session.id },
+        isRoutine
+          ? { starts_at: startsAt, ends_at: endsAt, substitute_teacher_id: null, changed_at: null, changed_by: null, change_note: null }
+          : { starts_at: startsAt, ends_at: endsAt, substitute_teacher_id: substituteId, changed_at: at, changed_by: userId, change_note: note },
+      );
+      const teacherIds = [ref.slot.teacher_id, before.substitute_teacher_id, substituteId].filter((id): id is string => Boolean(id));
+      const names = await this.namesOf([...new Set(teacherIds)]);
+      const section = item.context.section;
+      await this.notifications.notifyUsers(
+        {
+          eventType: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_CHANGED,
+          organizationId,
+          userIds: [...new Set([...item.roster.map((row) => row.student_id), ...teacherIds])].filter((id) => id !== userId),
+          variables: {
+            class_name: `${section.class?.class_name ?? ''} ${section.name}`.trim(),
+            class_on: date,
+            start_time: start,
+            end_time: end,
+            teacher_name: (substituteId ? names.get(substituteId) : ref.slot.teacher_id ? names.get(ref.slot.teacher_id) : null) ?? 'NO_TEACHER',
+            note: note ?? '',
+            path: '/my-attendance',
+          },
+          dedupeKey: `${NOTIFICATION_EVENTS.ATTENDANCE_CLASS_CHANGED}:${session.id}:${at.getTime()}`,
+          createdBy: userId,
+        },
+        manager,
+      );
+      return session;
+    });
+
+    this.audit.record({
+      action: AUDIT_ACTIONS.ATTENDANCE_CHANGE,
+      organizationId,
+      actorId: userId,
+      entityType: 'class_session',
+      entityId: session.id,
+      before,
+      after: { start_time: start, end_time: end, substitute_teacher_id: substituteId, note: isRoutine ? null : note, undone: isRoutine, date, slot_id: ref.slot.id, section_id: ref.section_id },
+    });
+    return this.detail(tenant, userId, slotId, date);
+  }
+
+  /** The new times must not overlap the section's other classes that day (their own times that day). */
+  private async assertNoSectionOverlap(organizationId: string, ref: SlotRef, date: string, timeZone: string, startsAt: Date, endsAt: Date): Promise<void> {
+    const others = ((await this.slots.activeBySection(organizationId, [ref.section_id])).get(ref.section_id) ?? []).filter(
+      (slot) => slot.id !== ref.slot.id && slot.day_of_week === isoDayOf(date),
+    );
+    if (others.length === 0) return;
+    const [context] = [...(await this.sessions.contexts(organizationId, [ref.section_id])).values()];
+    const saved = await this.sessions.savedSessions(organizationId, others.map((slot) => slot.id), date, date);
+    for (const slot of others) {
+      const session = saved.get(sessionKey(slot.id, date));
+      if (session?.status === ClassSessionStatusEnum.CANCELLED) continue;
+      const window = this.sessions.window(context, slot, date, timeZone, session);
+      if (startsAt < window.ends_at && window.starts_at < endsAt) {
+        throw new ConflictException({
+          message: 'The section has another class at that time',
+          code: ATTENDANCE_ERRORS.CHANGE_OVERLAP,
+          details: { slot_id: slot.id, start_time: clockIn(window.starts_at, timeZone), end_time: clockIn(window.ends_at, timeZone) },
+        });
+      }
+    }
+  }
+
   /** The class's session row under a row lock, made first when it does not exist yet (a future class). */
   private async lockedSession(manager: EntityManager, organizationId: string, item: Loaded): Promise<ClassSessionEntity> {
     const created = item.session ?? (await this.sessions.ensureSession(manager, organizationId, item.ref.section_id, item.ref.slot.id, item.date, item.window));
@@ -404,9 +556,10 @@ export class SectionAttendanceService {
 
   /**
    * Slots the caller may see, in open sessions: every slot for owners, admins and assistants; for a
-   * teacher the slots of sections they teach and the slots that name them.
+   * teacher the slots of sections they teach and the slots that name them, and on `date` the
+   * classes they take as a substitute (P5-04).
    */
-  async visibleSlots(tenant: Tenant, userId: string): Promise<SlotRef[]> {
+  async visibleSlots(tenant: Tenant, userId: string, date?: string): Promise<SlotRef[]> {
     const organizationId = tenant.organizationId;
     if (tenant.viaEnrolment || ![...MANAGERS, TEACHER].includes(tenant.memberRole)) {
       throw new ForbiddenException('Only staff can see class attendance');
@@ -422,6 +575,13 @@ export class SectionAttendanceService {
           for (const [sectionId, slots] of named) {
             const have = result.get(sectionId) ?? [];
             result.set(sectionId, [...have, ...slots.filter((slot) => !have.some((h) => h.id === slot.id))]);
+          }
+          if (date) {
+            for (const session of await this.sessions.substitutedFor(organizationId, userId, date, date)) {
+              const slot = await this.slots.findActive(organizationId, session.routine_slot_id);
+              const have = result.get(session.section_id) ?? [];
+              if (slot && !have.some((h) => h.id === slot.id)) result.set(session.section_id, [...have, slot]);
+            }
           }
           return result;
         })();
@@ -461,7 +621,7 @@ export class SectionAttendanceService {
   }
 
   private async visibleSlot(tenant: Tenant, userId: string, slotId: string, date: string): Promise<SlotRef> {
-    const ref = (await this.visibleSlots(tenant, userId)).find((item) => item.slot.id === slotId);
+    const ref = (await this.visibleSlots(tenant, userId, date)).find((item) => item.slot.id === slotId);
     if (!ref || ref.slot.day_of_week !== isoDayOf(date)) {
       throw new NotFoundException({ message: 'Class not found', code: ATTENDANCE_ERRORS.SESSION_NOT_FOUND });
     }
@@ -499,6 +659,7 @@ export class SectionAttendanceService {
         ref,
         context,
         date,
+        timeZone,
         window,
         state,
         closed,
@@ -511,6 +672,8 @@ export class SectionAttendanceService {
         can_correct: !closed && !cancelled && date <= today && now >= window.starts_at && (isManager(tenant) || date >= addDays(today, -TEACHER_CORRECTION_DAYS)),
         can_cancel: !closed && !cancelled && date >= today && date <= addDays(today, CANCEL_AHEAD_DAYS) && now < window.ends_at,
         can_restore: cancelled && !closed && now < window.ends_at,
+        can_change:
+          !closed && !cancelled && session?.status !== ClassSessionStatusEnum.CLOSED && sessionRecords.length === 0 && date >= today && date <= addDays(today, CANCEL_AHEAD_DAYS) && now < window.opens_at,
       });
     }
     return result;
@@ -537,8 +700,8 @@ export class SectionAttendanceService {
       slot_id: item.ref.slot.id,
       date: item.date,
       section: { id: item.context.section.id, name: item.context.section.name, class_name: item.context.section.class?.class_name ?? '' },
-      start_time: item.ref.slot.start_time,
-      end_time: item.ref.slot.end_time,
+      start_time: clockIn(item.window.starts_at, item.timeZone),
+      end_time: clockIn(item.window.ends_at, item.timeZone),
       class_type: item.context.class_type,
       mode: item.context.mode,
       starts_at: item.window.starts_at,
@@ -546,7 +709,19 @@ export class SectionAttendanceService {
       ends_at: item.window.ends_at,
       state: item.state,
       closed: item.closed,
-      teacher: item.ref.slot.teacher,
+      teacher: item.session?.substitute
+        ? { id: item.session.substitute.id, full_name: item.session.substitute.full_name }
+        : item.ref.slot.teacher,
+      change: item.session?.changed_at
+        ? {
+            routine_start_time: item.ref.slot.start_time,
+            routine_end_time: item.ref.slot.end_time,
+            substitute: item.session.substitute ? { id: item.session.substitute.id, full_name: item.session.substitute.full_name } : null,
+            at: item.session.changed_at,
+            by: item.session.changer ? { id: item.session.changer.id, full_name: item.session.changer.full_name } : null,
+            note: item.session.change_note,
+          }
+        : null,
       counts,
       cancelled: item.cancelled && item.session
         ? {
@@ -558,6 +733,7 @@ export class SectionAttendanceService {
       can_correct: item.can_correct,
       can_cancel: item.can_cancel,
       can_restore: item.can_restore,
+      can_change: item.can_change,
     };
   }
 
@@ -579,9 +755,10 @@ export class SectionAttendanceService {
     const students = item.roster.map((student) =>
       row({ id: student.student_id, full_name: student.full_name, roll_no: student.roll_no }, AttendancePersonTypeEnum.STUDENT, item.can_correct),
     );
-    // Teachers: the slot's named teacher, and anyone who checked in to it as a teacher.
+    // Teachers: who teaches it that day (the substitute, else the slot's teacher), and anyone who checked in as a teacher.
     const teacherIds = new Set(item.records.filter((record) => record.person_type === AttendancePersonTypeEnum.TEACHER).map((record) => record.person_id));
-    if (item.ref.slot.teacher_id) teacherIds.add(item.ref.slot.teacher_id);
+    const teaching = teacherOf(item.ref.slot, item.session);
+    if (teaching) teacherIds.add(teaching);
     const names = await this.namesOf([...teacherIds]);
     const teachers = [...teacherIds].map((id) =>
       row({ id, full_name: names.get(id) ?? '', roll_no: null }, AttendancePersonTypeEnum.TEACHER, item.can_correct && manager),
@@ -624,6 +801,12 @@ export class SectionAttendanceService {
     return date;
   }
 }
+
+/** "9:05" or "09:05:00" → "09:05" (the DTO has checked the shape). */
+const hhmmOf = (value: string) => {
+  const [h, m] = value.split(':');
+  return `${h.padStart(2, '0')}:${m}`;
+};
 
 /** Owners, admins and assistants: every class, no correction limit. */
 export const isManager = (tenant: Tenant) => !tenant.viaEnrolment && MANAGERS.includes(tenant.memberRole);

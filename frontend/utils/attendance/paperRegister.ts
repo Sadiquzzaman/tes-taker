@@ -9,7 +9,7 @@ export const MAX_REGISTER_COLUMNS = 250;
 
 /** The letters written in a file, in the user's language; the import reads both languages. */
 export const MARK_LETTERS: Record<"en" | "bn", Record<AttendanceStatus, string>> = {
-  en: { PRESENT: "P", LATE: "L", ABSENT: "A", LEAVE: "Leave" },
+  en: { PRESENT: "P", LATE: "L", ABSENT: "A", LEAVE: "LV" },
   bn: { PRESENT: "উ", LATE: "দে", ABSENT: "অ", LEAVE: "ছু" },
 };
 

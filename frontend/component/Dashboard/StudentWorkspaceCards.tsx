@@ -9,8 +9,11 @@ import useWorkspace from "@/hooks/organization/useWorkspace";
 const isStudentContext = (context: UserContextItem) =>
   context.type === "individual_teacher" || (context.type === "organization" && context.member_role === "STUDENT");
 
-/** The student home: the organisations and teachers they study with. Opening one switches workspace. */
-const StudentWorkspaceCards = () => {
+/**
+ * The student home: the organisations and teachers they study with. Opening one switches workspace
+ * and goes to its home, or with `stayOnPage` reloads the current page inside it (attendance pages).
+ */
+const StudentWorkspaceCards = ({ stayOnPage = false }: { stayOnPage?: boolean }) => {
   const t = useTranslations("dashboard.student");
   const router = useRouter();
   const { contexts, selectContext, loading, workspace } = useWorkspace({ loadOrganizations: true });
@@ -44,6 +47,10 @@ const StudentWorkspaceCards = () => {
     setSelectingKey(context.key);
     try {
       const result = await selectContext(context);
+      if (stayOnPage) {
+        window.location.reload();
+        return;
+      }
       if (result.href !== window.location.pathname) {
         router.push(result.href);
       }

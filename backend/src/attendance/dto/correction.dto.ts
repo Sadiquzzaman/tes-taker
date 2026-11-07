@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength, ValidateIf } from 'class-validator';
 import { AttendanceStatusEnum } from '../entities/attendance-record.entity';
 
 const trimmed = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
@@ -41,6 +41,35 @@ export class CorrectRecordDto {
 /** Cancelling one class for a day (ATT-19): an optional note for the students. */
 export class CancelClassDto {
   @ApiPropertyOptional({ example: 'I am unwell; we will make it up on Monday' })
+  @IsOptional()
+  @Transform(trimmed)
+  @IsString()
+  @MaxLength(300)
+  note?: string;
+}
+
+/**
+ * Changing one class for a day (P5-04, CAL-01): other times that day and/or a substitute teacher.
+ * Sending the routine's own times and no substitute undoes the change.
+ */
+export class ChangeClassDto {
+  @ApiPropertyOptional({ example: '11:00', description: "New start that day, HH:MM in the organisation's time zone (with end_time)" })
+  @IsOptional()
+  @Matches(/^([01]?\d|2[0-3]):[0-5]\d$/, { message: 'start_time must be HH:MM' })
+  start_time?: string;
+
+  @ApiPropertyOptional({ example: '11:45' })
+  @IsOptional()
+  @Matches(/^([01]?\d|2[0-3]):[0-5]\d$/, { message: 'end_time must be HH:MM' })
+  end_time?: string;
+
+  @ApiPropertyOptional({ description: 'Teaches this class that day; null = the routine\'s teacher' })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID()
+  substitute_teacher_id?: string | null;
+
+  @ApiPropertyOptional({ example: 'Moved to after lunch this Monday' })
   @IsOptional()
   @Transform(trimmed)
   @IsString()

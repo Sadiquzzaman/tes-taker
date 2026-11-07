@@ -3,6 +3,7 @@
  * organisation's time zone; a session on a date becomes real instants here. No package needed:
  * the zone offset comes from Intl.
  */
+import { zonedInstant } from 'src/common/utils/school-date.util';
 
 /** Check-in opens this many minutes before the scheduled start (ATT-04). */
 export const CHECKIN_OPENS_BEFORE_MINUTES = 15;
@@ -27,33 +28,8 @@ export interface SessionWindow {
 
 export type CheckInState = 'UPCOMING' | 'OPEN' | 'CLOSED';
 
-/** Offset of `timeZone` from UTC at `instant`, in milliseconds (Dhaka: +6 h). */
-function zoneOffsetMs(instant: Date, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).formatToParts(instant);
-  const value = (type: string) => Number(parts.find((part) => part.type === type)?.value);
-  const asUtc = Date.UTC(value('year'), value('month') - 1, value('day'), value('hour'), value('minute'), value('second'));
-  return asUtc - Math.floor(instant.getTime() / 1000) * 1000;
-}
-
-/** The instant of wall-clock `time` ("HH:MM") on school `date` ("YYYY-MM-DD") in `timeZone`. */
-export function zonedInstant(date: string, time: string, timeZone: string): Date {
-  const [year, month, day] = date.split('-').map(Number);
-  const [hour, minute] = time.split(':').map(Number);
-  const wall = Date.UTC(year, month - 1, day, hour, minute);
-  let instant = wall - zoneOffsetMs(new Date(wall), timeZone);
-  // A second pass settles days when the offset changes (daylight saving zones).
-  instant = wall - zoneOffsetMs(new Date(instant), timeZone);
-  return new Date(instant);
-}
+/** The instant of wall-clock time on a school date in a time zone (shared; kept exported here for attendance). */
+export { zonedInstant };
 
 /** The check-in window of a slot on a date; Late after start + `graceMinutes`. */
 export function sessionWindow(date: string, startTime: string, endTime: string, timeZone: string, graceMinutes: number): SessionWindow {
@@ -111,3 +87,7 @@ export function isImpossibleJump(metres: number, ms: number): boolean {
   const hours = Math.max(ms, 60_000) / 3_600_000;
   return metres / 1000 / hours > MAX_TRAVEL_KMH;
 }
+
+/** "HH:MM" of an instant in the time zone. */
+export const clockIn = (instant: Date, timeZone: string) =>
+  new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(instant);

@@ -81,7 +81,10 @@ const ClassAttendancePage = () => {
       sortValue: title,
       cell: (row) => (
         <div className="flex flex-col gap-1">
-          <span className="font-medium text-ink">{title(row)}</span>
+          <span className="flex flex-wrap items-center gap-2 font-medium text-ink">
+            {title(row)}
+            {row.change ? <Badge tone="warning">{t("changed")}</Badge> : null}
+          </span>
           <span className="text-caption text-ink-muted">{`${clock(row.starts_at)}–${clock(row.ends_at)}${row.teacher ? ` · ${row.teacher.full_name}` : ""}`}</span>
         </div>
       ),
@@ -171,6 +174,18 @@ const ClassAttendancePage = () => {
                       ? { ...s, counts: detail.counts, cancelled: detail.cancelled, can_correct: detail.can_correct, can_cancel: detail.can_cancel, can_restore: detail.can_restore }
                       : s,
                   ),
+                }
+              : current,
+          );
+        }}
+        onChanged={(detail) => {
+          triggerToast({ title: t("changedToast", { section: `${detail.section.class_name} ${detail.section.name}` }), type: "success" });
+          setData((current) =>
+            current
+              ? {
+                  ...current,
+                  // The class as it is now: its times, teacher and change (the detail is a summary too).
+                  sessions: current.sessions.map((s) => (s.slot_id === detail.slot_id ? detail : s)),
                 }
               : current,
           );

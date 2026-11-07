@@ -46,6 +46,7 @@ import {
   validateLimitsInput,
   mergeFeatures,
   mergeLimits,
+  PlanFeatures,
   PlanLimits,
 } from './constants/feature-catalog';
 import {
@@ -63,6 +64,9 @@ import {
 } from './dto/plan-management.dto';
 import { PaymentMethodEnum } from './entities/payment-history.entity';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
+
+/** Error code when someone other than the owner or an admin asks for a feature (FND-08). */
+export const FEATURE_REQUEST_NOT_ALLOWED = 'FEATURE_REQUEST_NOT_ALLOWED';
 
 @Injectable()
 export class SubscriptionService implements OnModuleInit {
@@ -116,6 +120,7 @@ export class SubscriptionService implements OnModuleInit {
       const existing = await this.planRepo.findOne({ where: { slug: preset.slug } });
       if (existing) {
         await this.addMissingPresetLimits(existing, preset.limits);
+        await this.addMissingPresetFeatures(existing, preset.features);
         continue;
       }
 
@@ -153,6 +158,21 @@ export class SubscriptionService implements OnModuleInit {
     await this.planRepo.update(plan.id, { limits: limits as PlanLimits });
     await this.entitlementsService.invalidate();
     this.logger.log(`Plan ${plan.slug}: added limits ${added.map(([key]) => key).join(', ')}`);
+  }
+
+  /**
+   * A feature added to the catalogue after a preset plan was created (e.g. `homework`, P5-01) gets
+   * the preset's switch, only while the plan has no value for it; a switch an admin saved in
+   * Admin → Plans (on or off) is never changed.
+   */
+  private async addMissingPresetFeatures(plan: SubscriptionPlanEntity, presetFeatures: PlanFeatures): Promise<void> {
+    const features = { ...(plan.features ?? {}) } as Record<string, boolean>;
+    const added = Object.entries(presetFeatures).filter(([key, value]) => value === true && !(key in features));
+    if (added.length === 0) return;
+    for (const [key] of added) features[key] = true;
+    await this.planRepo.update(plan.id, { features: features as PlanFeatures });
+    await this.entitlementsService.invalidate();
+    this.logger.log(`Plan ${plan.slug}: added features ${added.map(([key]) => key).join(', ')}`);
   }
 
   async getAllPlans(includeHidden = false): Promise<SubscriptionPlanEntity[]> {
@@ -918,6 +938,12 @@ export class SubscriptionService implements OnModuleInit {
   /** "Request this feature" for the current workspace; an open request for the same feature is reused. */
   async createFeatureRequest(dto: CreateFeatureRequestDto, jwtPayload: JwtPayloadInterface): Promise<FeatureRequestEntity> {
     const organizationId = TenantContext.requireOrganizationId();
+    // Only those who manage the workspace's plan ask for features: its owner (a solo teacher in their
+    // own workspace) or an admin. Students, teachers and assistants are refused.
+    const tenant = TenantContext.current();
+    if (!tenant || tenant.viaEnrolment || ![OrganizationMemberRoleEnum.OWNER, OrganizationMemberRoleEnum.ADMIN].includes(tenant.memberRole)) {
+      throw new ForbiddenException({ message: "Only the workspace's owner or an admin can request features", code: FEATURE_REQUEST_NOT_ALLOWED });
+    }
     if (!(ALL_FEATURE_KEYS as string[]).includes(dto.feature_key)) {
       throw new BadRequestException(`Unknown feature "${dto.feature_key}"`);
     }

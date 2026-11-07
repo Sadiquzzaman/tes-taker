@@ -234,8 +234,28 @@ describe('attendance closing job and class cancellation', () => {
       expect((await call('PATCH', '/attendance/settings', s.ownerToken, { weekly_off_days: [5, 6] })).status).toBe(200);
       setNow('2026-11-21T12:00:00Z');
       expect((await closing.closeOrganization(s.organization.id)).sessions_closed).toBe(0);
+      // Opening Saturday again after the 21 Nov class never reaches back: 21 Nov stays an off day
+      // (found on beta: opening Friday on a Friday evening marked that morning's class Absent).
       expect((await call('PATCH', '/attendance/settings', s.ownerToken, { weekly_off_days: [5] })).status).toBe(200);
+      expect((await closing.closeOrganization(s.organization.id)).sessions_closed).toBe(0);
+      expect(await records(s.organization.id)).toEqual([]);
+      // From the next Saturday on, the class counts as usual.
+      setNow('2026-11-28T12:00:00Z');
       expect(await closing.closeOrganization(s.organization.id)).toEqual({ sessions_closed: 1, students_absent: 2, teachers_absent: 1, on_leave: 0 });
+      expect((await sessionsOf(s.organization.id)).map((x) => x.date)).toEqual(['2026-11-14', '2026-11-28']);
+    });
+
+    it('opening a weekly off day on that very day never marks its earlier classes Absent', async () => {
+      const s = await school();
+      // Saturday 7 Nov: Saturday becomes an off day before the class, and a school day again after it.
+      setNow(`${DATE}T06:00:00Z`);
+      expect((await call('PATCH', '/attendance/settings', s.ownerToken, { weekly_off_days: [5, 6] })).status).toBe(200);
+      setNow(AFTER);
+      expect((await call('PATCH', '/attendance/settings', s.ownerToken, { weekly_off_days: [5] })).status).toBe(200);
+      expect((await closing.closeOrganization(s.organization.id)).sessions_closed).toBe(0);
+      expect(await records(s.organization.id)).toEqual([]);
+      // The class view agrees: the day is closed, not missed.
+      expect((await detail(s.ownerToken, s.slot8)).body.payload).toMatchObject({ closed: { reason: 'WEEKLY_OFF' } });
     });
 
     it('marks nobody Absent for a slot added after the class started, nor students who joined after it started', async () => {

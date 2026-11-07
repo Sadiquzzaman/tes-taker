@@ -14,6 +14,17 @@
       "Organization": "Organization",
       "Admin": "Admin"
     },
+    "group": {
+      "people": "People",
+      "academics": "Academics",
+      "tests": "Tests",
+      "attendance": "Attendance",
+      "billing": "Billing & plan",
+      "logs": "Logs",
+      "customers": "Customers",
+      "plans": "Plans & payments",
+      "setup": "Setup"
+    },
     "plans": "Plans",
     "payments": "Payments",
     "teachers": "Teachers",
@@ -47,7 +58,11 @@
     "classAttendance": "Class attendance",
     "leave": "Leave",
     "attendanceRegister": "Monthly register",
-    "attendanceReports": "Attendance reports"
+    "attendanceReports": "Attendance reports",
+    "homework": "Homework",
+    "homeworkSettings": "Homework settings",
+    "routine": "Routine",
+    "calendar": "Calendar"
   },
   "shell": {
     "organization": "Organization",
@@ -2128,7 +2143,9 @@
       "send": "Send request",
       "sentTitle": "Request sent",
       "sent": "We will contact you about {name}.",
-      "loadFailed": "The features did not load."
+      "loadFailed": "The features did not load.",
+      "membersTitle": "Plan features are managed by your owner or admin",
+      "membersDetail": "Your organisation's owner or an admin sees what the plan includes and can ask for more. Ask them if you need a feature."
     },
     "groups": {
       "Question": "Questions",
@@ -2136,7 +2153,9 @@
       "Analytics": "Analytics",
       "Notifications": "Notifications",
       "Proctoring": "Proctoring",
-      "Attendance": "Attendance"
+      "Attendance": "Attendance",
+      "Homework": "Homework",
+      "Calendar": "Calendar"
     },
     "catalog": {
       "allow_graded_questions": {
@@ -2258,6 +2277,14 @@
       "attendance": {
         "name": "Attendance",
         "description": "Attendance settings, holidays, check-in and roll call."
+      },
+      "homework": {
+        "name": "Homework",
+        "description": "Assign homework to subject classes, collect submissions and score them."
+      },
+      "calendar": {
+        "name": "Calendar",
+        "description": "Weekly class routine with clash warnings; events and reminders next."
       }
     },
     "limits": {
@@ -2742,7 +2769,11 @@
       "branch": "Branches",
       "section_attendance": "[[Section]] setup",
       "schedule": "Schedules",
-      "attendance": "Attendance"
+      "attendance": "Attendance",
+      "homework": "Homework",
+      "routine": "Routine",
+      "event": "Events",
+      "reminders": "Reminders"
     },
     "actions": {
       "plan": {
@@ -2836,7 +2867,34 @@
         "cancel": "Class cancelled",
         "restore": "Class restored",
         "auto_absent": "Absent saved when check-in closed",
-        "import": "Paper register imported"
+        "import": "Paper register imported",
+        "change": "Class changed for a day"
+      },
+      "homework": {
+        "create": "Homework written",
+        "update": "Homework changed",
+        "publish": "Homework published",
+        "cancel": "Homework withdrawn",
+        "score": "Homework scored",
+        "return": "Homework returned for redo",
+        "publish_scores": "Homework scores published",
+        "remind": "Homework reminder sent"
+      },
+      "homework_settings": {
+        "update": "Homework settings changed"
+      },
+      "routine": {
+        "add": "Routine class added",
+        "change": "Routine class changed",
+        "remove": "Routine class removed"
+      },
+      "event": {
+        "create": "Event added",
+        "update": "Event changed",
+        "cancel": "Event cancelled"
+      },
+      "reminders": {
+        "defaults_update": "Default reminders changed"
       }
     },
     "fields": {
@@ -3027,7 +3085,14 @@
         "absent": "Absent (guardian SMS)",
         "class_cancelled": "Class cancelled",
         "class_restored": "Class restored",
-        "repeat_absence": "Repeated absence"
+        "repeat_absence": "Repeated absence",
+        "class_changed": "Class changed for a day"
+      },
+      "calendar": {
+        "event_added": "Event added",
+        "event_changed": "Event changed",
+        "event_cancelled": "Event cancelled",
+        "reminder": "Reminder"
       }
     }
   },
@@ -3076,7 +3141,7 @@
     "loadFailed": "Couldn't load the attendance settings.",
     "readOnly": "Only the owner and admins can change these settings.",
     "offDays": "Weekly off days",
-    "offDaysHint": "No attendance and no absence SMS on these days. Add other holidays on the Holidays page.",
+    "offDaysHint": "No attendance and no absence SMS on these days. A day you make a school day counts from tomorrow. Add other holidays on the Holidays page.",
     "weekday": {
       "1": "Monday",
       "2": "Tuesday",
@@ -3356,6 +3421,7 @@
       "hasErrors": "Problem",
       "cancel": "Cancel",
       "importCount": "{count, plural, one {Import # [[section]]} other {Import # [[sections]]}}",
+      "fixFirst": "Fix the file to import",
       "columns": {
         "row": "Line",
         "section": "[[Section]]",
@@ -3469,6 +3535,10 @@
     "onLeaveToday": "You're on approved leave today. Your classes count as Leave unless you check in.",
     "leaveLink": "Leave"
   },
+  "attendanceWorkspace": {
+    "title": "Choose where you study",
+    "intro": "Attendance is kept by your school, coaching centre or teacher. Choose one below to check in and see your attendance there."
+  },
   "classAttendance": {
     "title": "Class attendance",
     "intro": "Who checked in to each class. Students check themselves in; you only fix mistakes, with a reason.",
@@ -3541,7 +3611,12 @@
       "ATTENDANCE_CANCEL_TOO_FAR": "Classes can be cancelled up to 60 days ahead.",
       "ATTENDANCE_CANCEL_ENDED": "This class has already ended.",
       "ATTENDANCE_CANCEL_ALREADY": "This class is already cancelled.",
-      "ATTENDANCE_CANCEL_NOT_CANCELLED": "This class is not cancelled."
+      "ATTENDANCE_CANCEL_NOT_CANCELLED": "This class is not cancelled.",
+      "ATTENDANCE_CHANGE_STARTED": "Change a class before its check-in opens, while nobody has checked in.",
+      "ATTENDANCE_CHANGE_TIME_INVALID": "Choose a start and a later end that have not passed yet.",
+      "ATTENDANCE_CHANGE_OVERLAP": "The section has another class at that time ({start}–{end}).",
+      "ATTENDANCE_CHANGE_TEACHER_INVALID": "Choose a teacher of your organisation.",
+      "ATTENDANCE_CHANGE_NONE": "Nothing changed."
     },
     "cancelled": "Cancelled",
     "cancelClass": "Cancel this class",
@@ -3559,7 +3634,32 @@
     "cancelledToast": "The class of {section} is cancelled; students were told.",
     "restoredToast": "The class of {section} will take place; students were told.",
     "tooOldHint": "Teachers correct classes of the last 7 days. Ask the organisation's owner or admin for older ones.",
-    "cancelledHint": "This class was cancelled: nobody is marked absent and it is not counted."
+    "cancelledHint": "This class was cancelled: nobody is marked absent and it is not counted.",
+    "changed": "Changed today",
+    "changedToast": "{section}: changed for this day",
+    "change": {
+      "title": "Change for this day",
+      "changedTitle": "Changed for this day only",
+      "routineTimes": "Routine {start}–{end}",
+      "dayTimes": "this day {start}–{end}",
+      "substituteIs": "Substitute teacher: {name}",
+      "changedBy": "Changed by {who}, {when}",
+      "noteIs": "Note: {note}",
+      "someone": "someone",
+      "intro": "Other times or another teacher for this day only. The weekly routine stays the same. Students and the teachers are told.",
+      "start": "Start",
+      "end": "End",
+      "substitute": "Teacher this day",
+      "routineTeacher": "As in the routine ({name})",
+      "noSubstitute": "As in the routine",
+      "note": "Note for students (optional)",
+      "noteHint": "E.g. why it moved",
+      "close": "Keep as is",
+      "save": "Save change",
+      "undo": "Undo change",
+      "editChange": "Edit change",
+      "open": "Change time or teacher"
+    }
   },
   "leave": {
     "title": "Leave",
@@ -3683,7 +3783,7 @@
     "noClasses": "No classes this month",
     "noClassesHint": "This [[section]] has no class days this month (holidays, off days and cancelled classes are left out).",
     "noStudents": "No students in this [[section]].",
-    "paperHint": "Paper register · {classes, plural, one {# class day} other {# class days}}, {students, plural, one {# student} other {# students}}. Download the template, fill in P, L, A or Leave, and import it. Importing the same file again changes nothing.",
+    "paperHint": "Paper register · {classes, plural, one {# class day} other {# class days}}, {students, plural, one {# student} other {# students}}. Download the template, fill in P, L, A or LV, and import it. Importing the same file again changes nothing.",
     "selfHint": "Self check-in · {classes, plural, one {# class day} other {# class days}}, {students, plural, one {# student} other {# students}}. Students check themselves in; you can download the register. To import a paper register, set the [[section]] to Paper register in Class setup.",
     "template": "Download template",
     "export": "Export CSV",
@@ -3708,7 +3808,7 @@
     "importer": {
       "title": "Import the register: {section}, {month}",
       "intro": "Choose the filled-in CSV. Every column, line and mark is checked first; nothing is saved until everything is right.",
-      "columnsHint": "Columns: roll_no, name, then one column per class day (as in the template). Marks: P, L, A or Leave (or উ, দে, অ, ছু). An empty cell changes nothing.",
+      "columnsHint": "Columns: roll_no, name, then one column per class day (as in the template). Marks: P, L, A or LV (or উ, দে, অ, ছু). An empty cell changes nothing.",
       "file": "CSV file",
       "fileTypes": "CSV files",
       "noRows": "The file has no lines after the header.",
@@ -3758,7 +3858,7 @@
         "STUDENT_NOT_FOUND": "No student of this [[section]] has this roll number or name.",
         "STUDENT_AMBIGUOUS": "Two students match; use the roll number.",
         "STUDENT_DUPLICATE": "This student is on another line too.",
-        "STATUS_INVALID": "“{value}” is not a mark. Use P, L, A or Leave.",
+        "STATUS_INVALID": "“{value}” is not a mark. Use P, L, A or LV.",
         "NOT_JOINED": "The student joined after this class.",
         "TOO_OLD": "Teachers change saved marks of the last 7 days only; ask an admin."
       },
@@ -3814,7 +3914,7 @@
     "dayMissed": "{status}, missed {missed, plural, one {# class} other {# classes}}",
     "missedShort": "missed {missed, number}",
     "group": {
-      "ABSENT": "Absent all day",
+      "ABSENT": "Missed every class of this [[section]]",
       "MISSED_SOME": "Missed some classes",
       "LATE": "Late",
       "LEAVE": "On leave",
@@ -3831,7 +3931,7 @@
     "studentsCount": "{count, plural, one {# student} other {# students}}",
     "dailyTitle": "Daily attendance summary",
     "monthTitle": "Monthly attendance register",
-    "monthHint": "{days, plural, one {# class day} other {# class days}}, {classes, plural, one {# class} other {# classes}}, {students, plural, one {# student} other {# students}} · attendance {pct}. Absent on a day means every class that day was missed.",
+    "monthHint": "{days, plural, one {# class day} other {# class days}}, {classes, plural, one {# class} other {# classes}}, {students, plural, one {# student} other {# students}} · attendance {pct}. Absent on a day means every class of this [[section]] that day was missed.",
     "monthCaption": "Students by class day",
     "noClasses": "No classes this month",
     "noClassesHint": "This [[section]] has no class days this month (holidays, off days and cancelled classes are left out).",
@@ -3871,6 +3971,460 @@
       "ATTENDANCE_REPORT_SECTION_NOT_FOUND": "This [[section]] is not one you can see.",
       "ATTENDANCE_REGISTER_SECTION_NOT_FOUND": "This [[section]] is not one you can see.",
       "ATTENDANCE_REGISTER_SESSION_CLOSED": "This academic session is closed."
+    }
+  },
+  "homework": {
+    "title": "Homework",
+    "studentIntro": "Homework set for you, soonest due first.",
+    "staffIntro": "Homework for your subject classes: write it, publish it now or later, and see who it is for.",
+    "new": "New homework",
+    "show": "Show",
+    "loadFailed": "Homework could not be loaded.",
+    "notFound": "This homework is not available.",
+    "back": "All homework",
+    "studentEmpty": "No homework right now",
+    "studentEmptyHint": "New homework from your teachers shows here, and you are told in the bell.",
+    "staffEmpty": "No homework yet",
+    "staffEmptyHint": "Write one with New homework.",
+    "savedTitle": "Saved",
+    "notSavedTitle": "Not saved",
+    "savedDraft": "Saved as a draft. Students see it once you publish it.",
+    "saved": "Your changes are saved.",
+    "published": "Published. Its students were told in the bell.",
+    "scheduled": "Scheduled. It is published at the time you chose.",
+    "withdrawn": "Withdrawn. Students no longer see it.",
+    "columns": {
+      "title": "Homework",
+      "subject": "Subject",
+      "classes": "Classes",
+      "due": "Due",
+      "students": "Students",
+      "status": "Status"
+    },
+    "filters": {
+      "ACTIVE": "Current",
+      "DRAFT": "Drafts",
+      "SCHEDULED": "Scheduled",
+      "PUBLISHED": "Published",
+      "CANCELLED": "Withdrawn"
+    },
+    "statuses": {
+      "DRAFT": "Draft",
+      "SCHEDULED": "Scheduled",
+      "PUBLISHED": "Published",
+      "CANCELLED": "Withdrawn"
+    },
+    "due": {
+      "none": "No due date",
+      "overdue": "Was due {when}",
+      "soon": "Due {when}",
+      "later": "Due {when}"
+    },
+    "detail": {
+      "subject": "Subject",
+      "type": "Hand in",
+      "marks": "Marks",
+      "notScored": "Not scored",
+      "classes": "Classes",
+      "students": "Students",
+      "instructions": "Instructions",
+      "noInstructions": "No instructions.",
+      "attachments": "Files",
+      "file": "File",
+      "edit": "Edit",
+      "schedule": "Schedule",
+      "publishNow": "Publish now",
+      "scheduledFor": "Publishes {when}",
+      "scheduleTitle": "Publish later",
+      "scheduleHint": "Students get it and are told at this time.",
+      "scheduleDate": "Date",
+      "scheduleTime": "Time",
+      "withdraw": "Withdraw",
+      "withdrawTitle": "Withdraw this homework?",
+      "withdrawDetail": "Students will no longer see it. It is kept, with everything about it, for staff."
+    },
+    "editor": {
+      "newTitle": "New homework",
+      "editTitle": "Edit homework",
+      "intro": "Saved as a draft until you publish it.",
+      "publishedHint": "Students already have it: its classes and how it is handed in stay; the rest can change.",
+      "title": "Title",
+      "classes": "Classes",
+      "classesHint": "One subject; tick each section that gets it.",
+      "noClasses": "There are no subject classes you can set homework for.",
+      "someStudents": "Only some students",
+      "someStudentsHint": "Leave this off to give it to everyone in the classes.",
+      "instructions": "Instructions",
+      "instructionsPlaceholder": "What should students do?",
+      "type": "How students hand it in",
+      "types": {
+        "FILE": "Photos or files",
+        "TEXT": "Typed answer",
+        "PAPER": "On paper"
+      },
+      "typeHints": {
+        "FILE": "They upload photos or files.",
+        "TEXT": "They type their answer.",
+        "PAPER": "Done on paper; you enter scores later."
+      },
+      "marks": "Total marks",
+      "marksHint": "Leave empty if it is not scored.",
+      "dueDate": "Due date",
+      "dueHint": "Leave empty for no due date.",
+      "dueTime": "Due time",
+      "attachments": "Files for students",
+      "attachmentsAccept": "Images, PDF, Word or text, up to 20 MB each",
+      "cancel": "Cancel",
+      "saveDraft": "Save draft",
+      "publish": "Publish",
+      "save": "Save"
+    },
+    "errors": {
+      "TITLE_REQUIRED": "Give the homework a title.",
+      "CLASS_REQUIRED": "Choose at least one class.",
+      "UPLOAD_FAILED": "This file could not be uploaded.",
+      "HOMEWORK_TARGETS_INVALID": "Choose classes you can set homework for.",
+      "HOMEWORK_TARGETS_MIXED": "Choose classes of one subject.",
+      "HOMEWORK_STUDENT_NOT_IN_CLASS": "A chosen student is not in these classes.",
+      "HOMEWORK_SESSION_CLOSED": "This session is closed; its homework can no longer change.",
+      "HOMEWORK_FILE_INVALID": "Upload the files again.",
+      "HOMEWORK_DUE_INVALID": "The due time must be in the future.",
+      "HOMEWORK_WRONG_STATUS": "This is not possible for this homework now.",
+      "HOMEWORK_PAPER_NO_SUBMISSION": "This homework is done on paper; hand it to your teacher.",
+      "HOMEWORK_LATE_NOT_ALLOWED": "The due time has passed and late work is not accepted.",
+      "HOMEWORK_NO_MORE_SUBMISSIONS": "You have handed this in as many times as allowed.",
+      "HOMEWORK_ALREADY_SCORED": "Your teacher has scored this; it cannot be handed in again.",
+      "HOMEWORK_SUBMISSION_EMPTY": "Add your work before handing it in.",
+      "HOMEWORK_TOO_MANY_FILES": "At most {max, number} files in one hand-in.",
+      "HOMEWORK_SCORE_INVALID": "A score can be at most {max, number}.",
+      "HOMEWORK_STUDENT_NOT_SET": "This homework is not set to one of these students.",
+      "HOMEWORK_NOT_LATEST": "Only the latest hand-in can be returned."
+    },
+    "handedIn": "Handed in (version {version, number})",
+    "myWork": {
+      "title": "Your work",
+      "paper": "This homework is done on paper. Hand it to your teacher.",
+      "lateWarning": "The due time has passed. If you hand it in now, it is marked late.",
+      "answer": "Your answer",
+      "files": "Photos or files",
+      "filesOptional": "Photos or files (optional)",
+      "filesAccept": "Images, PDF, Word or text, up to 20 MB each, at most {count, number} files",
+      "combine": "Put my photos into one PDF",
+      "combineHint": "Your teacher gets one file with a page per photo.",
+      "submit": "Hand in",
+      "submitAgain": "Hand in again",
+      "left": "{count, plural, =0 {This is your last hand-in.} one {You can hand in # more time after this.} other {You can hand in # more times after this.}}",
+      "handedIn": "What you handed in",
+      "version": "Version {version, number}",
+      "late": "Late by {minutes, number} min",
+      "file": "File",
+      "statuses": {
+        "SUBMITTED": "Handed in",
+        "RETURNED": "Returned for redo",
+        "SCORED": "Scored"
+      },
+      "score": "Your score",
+      "notHandedIn": "Not handed in",
+      "penalty": "Scored {raw, number}; {penalty, number} taken off for handing in late.",
+      "rating": "{rating}: {value, number}/5"
+    },
+    "submissions": {
+      "title": "Review",
+      "summary": "{handedIn, number} of {total, number} handed in",
+      "student": "Student",
+      "state": "State",
+      "when": "Handed in at",
+      "versions": "Versions",
+      "actions": "Actions",
+      "handedIn": "Handed in",
+      "missing": "Not handed in",
+      "open": "Open",
+      "openFor": "Open {name}'s work",
+      "empty": "No students yet",
+      "loadFailed": "The review could not be loaded.",
+      "score": "Score",
+      "scoreFor": "Score for {name}",
+      "remark": "Remark",
+      "remarkFor": "Remark for {name}",
+      "feedback": "Feedback",
+      "ratingFor": "{rating} for {name}",
+      "ratings": {
+        "neatness": "Neatness",
+        "effort": "Effort",
+        "on_time": "On time"
+      },
+      "counts": {
+        "students": "Students",
+        "handedIn": "Handed in",
+        "late": "Late",
+        "missing": "Missing",
+        "scored": "Scored"
+      },
+      "remind": "Remind missing",
+      "remindTitle": "Remind students who have not handed in?",
+      "remindDetail": "{count, plural, one {# student gets} other {# students get}} a notice in the app.",
+      "smsGuardians": "Also send an SMS to their guardians",
+      "smsGuardiansHint": "Uses your SMS credits. Guardians get at most one reminder a day per homework.",
+      "remindSend": "Send reminder",
+      "reminded": "Reminded {students, number} students; {sms, number} SMS queued.",
+      "publish": "Publish scores",
+      "publishTitle": "Publish the scores?",
+      "publishDetail": "{scored, number} of {total, number} students are scored. Students see their score and feedback, and are told. Scores you change later are shown to them straight away.",
+      "publishedDetail": "Students can see their scores.",
+      "publishedOn": "Scores published {when}. Changes are shown to students straight away.",
+      "notPublished": "Scores are not published yet; students do not see them.",
+      "saveScore": "Save score",
+      "saveAll": "Save all",
+      "unsaved": "{count, plural, one {# change not saved} other {# changes not saved}}",
+      "saved": "Saved",
+      "savedDetail": "{count, plural, one {# score saved.} other {# scores saved.}}",
+      "notSaved": "Not saved",
+      "scoreInvalid": "Enter a number from 0 to {max, number}, with at most two decimals.",
+      "lateHint": "This was handed in late; the late penalty in homework settings is taken off.",
+      "penaltyTaken": "{penalty, number} marks were taken off for handing in late.",
+      "return": "Return for redo",
+      "returnTitle": "Return this work for redo?",
+      "returnDetail": "The student is told and can hand it in once more.",
+      "returnNote": "Note for the student (optional)",
+      "returned": "Returned; the student was told.",
+      "notHandedIn": "Not handed in",
+      "paperHint": "Type each student's score from their paper. Tick “Not handed in” for students who did not hand it in.",
+      "cancel": "Cancel"
+    },
+    "settings": {
+      "title": "Homework settings",
+      "intro": "How late work, hand-ins and files work for every homework here.",
+      "readOnly": "Owners and admins change these settings.",
+      "lateAllowed": "Accept late work",
+      "lateAllowedHint": "After the due time, hand-ins are accepted and marked late. Off: they are refused.",
+      "penalty": "Late penalty",
+      "penalties": {
+        "NONE": "None",
+        "PER_DAY": "Percent off per day late",
+        "FIXED": "Fixed percent off"
+      },
+      "percent": "Percent",
+      "percentInvalid": "Between 1 and 100.",
+      "resubmissions": "Hand in again",
+      "resubmissionsHint": "Times a student may hand in again before it is scored.",
+      "noResubmission": "Not allowed",
+      "maxFiles": "Files per hand-in",
+      "save": "Save settings",
+      "undo": "Undo changes",
+      "savedTitle": "Saved",
+      "saved": "Homework settings saved.",
+      "loadFailed": "Homework settings could not be loaded."
+    }
+  },
+  "routine": {
+    "title": "Routine",
+    "studentIntro": "Your classes each week.",
+    "staffIntro": "The weekly class routine: who teaches what, where and when.",
+    "tabs": {
+      "whole": "Whole routine",
+      "mine": "My routine"
+    },
+    "mineTitle": "My week",
+    "mineEmpty": "No classes in your routine yet",
+    "mineEmptyHint": "Classes appear here once the school adds them to the routine.",
+    "loadFailed": "The routine could not be loaded.",
+    "session": "Session",
+    "viewBy": "Show by",
+    "by": {
+      "section": "Section",
+      "teacher": "Teacher",
+      "room": "Room"
+    },
+    "nothingToChoose": "Nothing yet",
+    "noSections": "This session has no sections yet",
+    "add": "Add class",
+    "addTitle": "Add a class",
+    "editTitle": "Change this class",
+    "section": "Section",
+    "day": "Day",
+    "start": "Start",
+    "end": "End",
+    "subject": "Subject",
+    "noSubject": "No subject",
+    "teacher": "Teacher",
+    "noTeacher": "No teacher",
+    "room": "Room",
+    "roomHint": "Optional, e.g. Room 201 or Lab",
+    "roomShort": "Room: {room}",
+    "noClasses": "No classes",
+    "save": "Save",
+    "saveAnyway": "Save anyway",
+    "cancel": "Cancel",
+    "saved": "Routine saved",
+    "remove": "Remove",
+    "removeTitle": "Remove this class from the routine?",
+    "removeDetail": "It no longer repeats each week. Attendance already taken for it is kept.",
+    "clash": {
+      "TEACHER": "Teacher booked twice",
+      "ROOM": "Room booked twice"
+    },
+    "clashTitle": "This clashes with another class:",
+    "clashWith": {
+      "TEACHER": "Same teacher: {section}, {day} {start}–{end}",
+      "ROOM": "Same room: {section}, {day} {start}–{end}"
+    },
+    "clashHint": "You can still save it; the clash is then marked in the routine.",
+    "clashesInRoutine": "{count, plural, one {# class clashes} other {# classes clash}} with another class (same teacher or room). They are marked below.",
+    "days": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday",
+      "7": "Sunday"
+    },
+    "errors": {
+      "TIMES_REQUIRED": "Choose a start and an end time.",
+      "SCHEDULE_TIME_INVALID": "The end time must be after the start time.",
+      "SCHEDULE_OVERLAP": "This section already has a class at that time.",
+      "SCHEDULE_TOO_MANY": "A section can have at most {max, number} classes a week.",
+      "ROUTINE_SUBJECT_INVALID": "Choose one of this section's subjects.",
+      "ROUTINE_TEACHER_INVALID": "Choose a teacher of your organisation.",
+      "ROUTINE_NOT_FOUND": "This class was removed meanwhile. Close and reload."
+    }
+  },
+  "calendar": {
+    "title": "Calendar",
+    "intro": "Your classes, events, exams and holidays.",
+    "addEvent": "Add event",
+    "previous": "Previous",
+    "next": "Next",
+    "today": "Today",
+    "viewLabel": "View",
+    "views": {
+      "month": "Month",
+      "week": "Week",
+      "day": "Day"
+    },
+    "filterLabel": "Show",
+    "filters": {
+      "CLASS": "Classes",
+      "EVENT": "Events",
+      "EXAM": "Exams",
+      "HOLIDAY": "Holidays"
+    },
+    "kinds": {
+      "CLASS": "Class",
+      "EVENT": "Event",
+      "EXAM": "Exam",
+      "HOLIDAY": "Holiday"
+    },
+    "openItem": "{kind}: {title} at {time}",
+    "openDay": "Open {date}",
+    "monthLabel": "Month",
+    "more": "+{count, number} more",
+    "nothing": "Nothing",
+    "nothingThisDay": "Nothing on this day.",
+    "cancelled": "Cancelled",
+    "loadFailed": "The calendar could not be loaded.",
+    "saved": "Calendar saved",
+    "closed": {
+      "WEEKLY_OFF": "Weekly off",
+      "HOLIDAY": "Holiday"
+    },
+    "types": {
+      "EXAM": "Exam",
+      "MEETING": "Meeting",
+      "PARENT_MEETING": "Parent meeting",
+      "ACTIVITY": "Activity",
+      "OTHER": "Other"
+    },
+    "event": {
+      "title": "Event",
+      "addTitle": "Add an event",
+      "type": "Type",
+      "titleLabel": "Title",
+      "date": "Date",
+      "start": "Start",
+      "endDate": "End date",
+      "end": "End",
+      "place": "Place",
+      "description": "Details (optional)",
+      "attendees": "Who attends",
+      "wholeOrg": "Everyone in the organisation",
+      "sectionsHint": "Sections (their students):",
+      "teachersHint": "Teachers:",
+      "save": "Save",
+      "close": "Close",
+      "edit": "Change",
+      "cancel": "Cancel event",
+      "cancelTitle": "Cancel this event?",
+      "cancelDetail": "It stays on the calendar as cancelled. If it is within 48 hours, everyone attending is told.",
+      "placeIs": "Place: {place}",
+      "forEveryone": "For everyone in the organisation",
+      "forList": "For: {list}",
+      "madeBy": "Added by {name}"
+    },
+    "errors": {
+      "TITLE_REQUIRED": "Give the event a title.",
+      "EVENT_TIME_INVALID": "The end must be after the start, within 14 days, and not over yet.",
+      "EVENT_NO_ATTENDEES": "Choose who attends.",
+      "EVENT_ATTENDEE_INVALID": "Choose sections you teach and people of your organisation.",
+      "EVENT_WHOLE_ORG_FORBIDDEN": "Only owners, admins and staff invite everyone.",
+      "EVENT_CANCELLED": "This event is cancelled.",
+      "EVENT_NOT_FOUND": "This event is no longer available."
+    },
+    "subscribe": {
+      "title": "Add to Google or Apple Calendar",
+      "intro": "A private link shows your calendar in Google or Apple Calendar and keeps it up to date. Anyone with the link can see your schedule, so keep it to yourself.",
+      "make": "Make my link",
+      "newLink": "Make a new link",
+      "copy": "Copy link",
+      "copied": "Link copied",
+      "link": "Your private link",
+      "linkHint": "Shown only now. Making a new link stops this one.",
+      "stepGoogle": "Google Calendar: Other calendars → + → From URL, and paste the link.",
+      "stepApple": "Apple Calendar: File → New Calendar Subscription, and paste the link.",
+      "activeSince": "Your link is on (made {when}). To see it again, make a new one.",
+      "none": "You have no link yet.",
+      "turnOff": "Turn off",
+      "turnOffTitle": "Turn off your calendar link?",
+      "turnOffDetail": "Calendars that use it stop updating."
+    },
+    "reminders": {
+      "title": "My reminders",
+      "intro": "When we remind you before your classes, exams and events.",
+      "defaultsTitle": "Reminders for everyone",
+      "defaultsIntro": "The reminders people get unless they set their own. SMS reminders use your SMS credits.",
+      "targets": {
+        "CLASS": "Classes",
+        "EXAM": "Exams",
+        "EVENT": "Events"
+      },
+      "channels": {
+        "IN_APP": "in the app",
+        "SMS": "by SMS"
+      },
+      "item": "{before} before, {channel}",
+      "minutes": "{count, plural, one {# minute} other {# minutes}}",
+      "hours": "{count, plural, one {# hour} other {# hours}}",
+      "days": "{count, plural, one {# day} other {# days}}",
+      "off": "Off",
+      "usingDefault": "As set for everyone",
+      "useDefault": "Use the default",
+      "change": "Change",
+      "changeFor": "Change reminders for {kind}",
+      "changeDefaultFor": "Change everyone's reminders for {kind}",
+      "editMine": "My reminders: {kind}",
+      "editDefaults": "Reminders for everyone: {kind}",
+      "editorHint": "Up to {max, number} reminders.",
+      "noneSet": "No reminders: they are off.",
+      "when": "When",
+      "channel": "How",
+      "remove": "Remove reminder {number}",
+      "add": "Add a reminder",
+      "turnOff": "Turn all off",
+      "duplicate": "Each time can be used once.",
+      "smsHint": "SMS reminders go to the phone number on the account and use the organisation's SMS credits.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Reminders saved"
     }
   }
 }

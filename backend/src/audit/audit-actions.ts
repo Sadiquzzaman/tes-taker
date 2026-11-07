@@ -67,6 +67,7 @@ export const AUDIT_ACTIONS = {
   // Cancelling and restoring one class (teachers of the section, owners, admins; ATT-19)
   ATTENDANCE_CANCEL: 'attendance.cancel',
   ATTENDANCE_RESTORE: 'attendance.restore',
+  ATTENDANCE_CHANGE: 'attendance.change',
   // The closing job's Absent records, counted per organisation and run (system, ATT-10)
   ATTENDANCE_AUTO_ABSENT: 'attendance.auto_absent',
   // A paper register imported for a section and month (its teachers, owners, admins; ATT-17)
@@ -76,6 +77,24 @@ export const AUDIT_ACTIONS = {
   LEAVE_APPROVE: 'leave.approve',
   LEAVE_REJECT: 'leave.reject',
   LEAVE_CANCEL: 'leave.cancel',
+
+  // Homework (teachers and staff; HW-01)
+  HOMEWORK_CREATE: 'homework.create',
+  HOMEWORK_UPDATE: 'homework.update',
+  HOMEWORK_PUBLISH: 'homework.publish',
+  HOMEWORK_CANCEL: 'homework.cancel',
+  HOMEWORK_SETTINGS_UPDATE: 'homework_settings.update',
+  HOMEWORK_SCORE: 'homework.score',
+  HOMEWORK_RETURN: 'homework.return',
+  HOMEWORK_PUBLISH_SCORES: 'homework.publish_scores',
+  HOMEWORK_REMIND: 'homework.remind',
+  ROUTINE_ADD: 'routine.add',
+  ROUTINE_CHANGE: 'routine.change',
+  ROUTINE_REMOVE: 'routine.remove',
+  EVENT_CREATE: 'event.create',
+  EVENT_UPDATE: 'event.update',
+  EVENT_CANCEL: 'event.cancel',
+  REMINDERS_DEFAULTS_UPDATE: 'reminders.defaults_update',
 
   // Notifications (platform admin, design §8.6)
   MESSAGE_TEMPLATE_UPDATE: 'message_template.update',

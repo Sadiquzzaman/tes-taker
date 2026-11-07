@@ -15,6 +15,12 @@ import {
   FILES_QUEUE,
   FILES_SWEEP_EVERY_MS,
   FILES_SWEEP_JOB,
+  HOMEWORK_QUEUE,
+  CALENDAR_QUEUE,
+  CALENDAR_REMINDERS_JOB,
+  CALENDAR_REMINDERS_EVERY_MS,
+  HOMEWORK_SWEEP_EVERY_MS,
+  HOMEWORK_SWEEP_JOB,
   NOTIFICATIONS_QUEUE,
   NOTIFICATIONS_SWEEP_EVERY_MS,
   NOTIFICATIONS_SWEEP_JOB,
@@ -33,6 +39,8 @@ export class WorkerSchedulerService implements OnApplicationBootstrap {
     @InjectQueue(NOTIFICATIONS_QUEUE) private readonly notificationsQueue: Queue,
     @InjectQueue(FILES_QUEUE) private readonly filesQueue: Queue,
     @InjectQueue(ATTENDANCE_QUEUE) private readonly attendanceQueue: Queue,
+    @InjectQueue(HOMEWORK_QUEUE) private readonly homeworkQueue: Queue,
+    @InjectQueue(CALENDAR_QUEUE) private readonly calendarQueue: Queue,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -69,5 +77,11 @@ export class WorkerSchedulerService implements OnApplicationBootstrap {
 
     await this.attendanceQueue.upsertJobScheduler(ATTENDANCE_END_OF_DAY_JOB, { every: ATTENDANCE_END_OF_DAY_EVERY_MS }, { name: ATTENDANCE_END_OF_DAY_JOB });
     this.logger.log(`Scheduled ${ATTENDANCE_END_OF_DAY_JOB} every ${ATTENDANCE_END_OF_DAY_EVERY_MS / 60_000} min`);
+
+    await this.homeworkQueue.upsertJobScheduler(HOMEWORK_SWEEP_JOB, { every: HOMEWORK_SWEEP_EVERY_MS }, { name: HOMEWORK_SWEEP_JOB });
+    this.logger.log(`Scheduled ${HOMEWORK_SWEEP_JOB} every ${HOMEWORK_SWEEP_EVERY_MS / 1000}s`);
+
+    await this.calendarQueue.upsertJobScheduler(CALENDAR_REMINDERS_JOB, { every: CALENDAR_REMINDERS_EVERY_MS }, { name: CALENDAR_REMINDERS_JOB });
+    this.logger.log(`Scheduled ${CALENDAR_REMINDERS_JOB} every ${CALENDAR_REMINDERS_EVERY_MS / 1000}s`);
   }
 }

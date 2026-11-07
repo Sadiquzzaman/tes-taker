@@ -1,4 +1,5 @@
 import { DeepPartial } from 'typeorm';
+import { ClassSessionChanges1756300000000 } from '../../src/migrations/1756300000000-ClassSessionChanges';
 import { currentYearIn } from '../../src/academics/academic-sessions.service';
 import { ClassSubjectEntity } from '../../src/classes/entities/class-subject.entity';
 import { ClassKindEnum } from '../../src/classes/enums/class-kind.enum';
@@ -15,6 +16,11 @@ import { DropP301PresenceSettings1756220000000 } from '../../src/migrations/1756
 import { ClassAttendance1756230000000 } from '../../src/migrations/1756230000000-ClassAttendance';
 import { ClassSessionCloseCancel1756240000000 } from '../../src/migrations/1756240000000-ClassSessionCloseCancel';
 import { LeaveRequests1756250000000 } from '../../src/migrations/1756250000000-LeaveRequests';
+import { WeeklyOffDaysHistory1756260000000 } from '../../src/migrations/1756260000000-WeeklyOffDaysHistory';
+import { Homework1756270000000 } from '../../src/migrations/1756270000000-Homework';
+import { HomeworkSubmissions1756280000000 } from '../../src/migrations/1756280000000-HomeworkSubmissions';
+import { Events1756310000000 } from '../../src/migrations/1756310000000-Events';
+import { HomeworkScores1756290000000 } from '../../src/migrations/1756290000000-HomeworkScores';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
 import { factories } from '../support/factories';
@@ -114,7 +120,18 @@ describe('AcademicStructure migration', () => {
     const sectionSchedules = new SectionSchedules1756210000000();
     const dropPresence = new DropP301PresenceSettings1756220000000();
     const classAttendance = new ClassAttendance1756230000000();
+    // Homework (P5-01) points at subject classes and sessions: it goes down first and comes back last.
+    const homework = new Homework1756270000000();
+    // Homework hand-ins (P5-02) point at homework and add homework settings to org_settings.
+    const submissions = new HomeworkSubmissions1756280000000();
+    const scores = new HomeworkScores1756290000000();
+    // Calendar events (P5-05) point at sections: down first, back last.
+    const events = new Events1756310000000();
     try {
+      await events.down(runner);
+      await scores.down(runner);
+      await submissions.down(runner);
+      await homework.down(runner);
       await classAttendance.down(runner);
       await dropPresence.down(runner);
       await sectionSchedules.down(runner);
@@ -144,6 +161,14 @@ describe('AcademicStructure migration', () => {
       await new ClassSessionCloseCancel1756240000000().up(runner);
       // P3-06's leave link on class_attendance_records comes back too.
       await new LeaveRequests1756250000000().up(runner);
+      // The weekly off days history on org_settings (recreated above) comes back too.
+      await new WeeklyOffDaysHistory1756260000000().up(runner);
+      await homework.up(runner);
+      await submissions.up(runner);
+      await scores.up(runner);
+      // P5-04's one-day change columns on class_attendance (recreated above) come back too.
+      await new ClassSessionChanges1756300000000().up(runner);
+      await events.up(runner);
     } finally {
       await runner.release();
     }

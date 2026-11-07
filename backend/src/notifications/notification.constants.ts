@@ -42,6 +42,8 @@ export const NOTIFICATION_EVENTS = {
   SMS_LOW_CREDIT: 'sms.low_credit',
   ATTENDANCE_CLASS_CANCELLED: 'attendance.class_cancelled',
   ATTENDANCE_CLASS_RESTORED: 'attendance.class_restored',
+  /** A class's time or teacher changed for one day (P5-04); students and the teachers involved. */
+  ATTENDANCE_CLASS_CHANGED: 'attendance.class_changed',
   ATTENDANCE_LATE: 'attendance.late',
   ATTENDANCE_ABSENT: 'attendance.absent',
   ATTENDANCE_REPEAT_ABSENCE: 'attendance.repeat_absence',
@@ -50,6 +52,18 @@ export const NOTIFICATION_EVENTS = {
   ATTENDANCE_LEAVE_APPROVED: 'attendance.leave_approved',
   ATTENDANCE_LEAVE_REJECTED: 'attendance.leave_rejected',
   ATTENDANCE_LEAVE_CANCELLED: 'attendance.leave_cancelled',
+  HOMEWORK_ASSIGNED: 'homework.assigned',
+  HOMEWORK_DUE_SOON: 'homework.due_soon',
+  HOMEWORK_RETURNED: 'homework.returned',
+  HOMEWORK_SCORES_PUBLISHED: 'homework.scores_published',
+  HOMEWORK_REMINDER: 'homework.reminder',
+  HOMEWORK_MISSING: 'homework.missing',
+  /** Calendar events (P5-05, CAL-03, CAL-06): added, changed or cancelled; in-app to the attendees. */
+  CALENDAR_EVENT_ADDED: 'calendar.event_added',
+  CALENDAR_EVENT_CHANGED: 'calendar.event_changed',
+  CALENDAR_EVENT_CANCELLED: 'calendar.event_cancelled',
+  /** A reminder before a class, exam or event (P5-05, CAL-05): in-app, or SMS to the person on org credits. */
+  CALENDAR_REMINDER: 'calendar.reminder',
 } as const;
 
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFICATION_EVENTS];

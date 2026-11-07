@@ -11,6 +11,12 @@ export const formatNumber = (value: number, locale: Locale, options?: Intl.Numbe
 export const formatTwoDigits = (value: number, locale: Locale) =>
   formatNumber(value, locale, { minimumIntegerDigits: 2, useGrouping: false });
 
+/** A time of day from the API ("16:00" or "16:00:00") as HH:MM in the language's digits: "16:00" / "১৬:০০". */
+export const formatTimeOfDay = (value: string, locale: Locale) => {
+  const [h, m] = value.split(":").map(Number);
+  return `${formatTwoDigits(h, locale)}:${formatTwoDigits(m, locale)}`;
+};
+
 /** Seconds as MM:SS, e.g. 65 -> "01:05" / "০১:০৫". */
 export const formatClock = (totalSeconds: number, locale: Locale) => {
   const seconds = Math.max(0, Math.floor(totalSeconds));
