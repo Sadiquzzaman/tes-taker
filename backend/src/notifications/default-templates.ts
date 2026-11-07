@@ -344,6 +344,10 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
   { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_CHANGED, channel: IN_APP, locale: 'bn', subject: 'ইভেন্টে পরিবর্তন: {{title}}', body: 'এখন {{starts_at}} {{place}}' },
   { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_CANCELLED, channel: IN_APP, locale: 'en', subject: 'Event cancelled: {{title}}', body: 'It was on {{starts_at}}. {{note}}' },
   { event_type: NOTIFICATION_EVENTS.CALENDAR_EVENT_CANCELLED, channel: IN_APP, locale: 'bn', subject: 'ইভেন্ট বাতিল: {{title}}', body: '{{starts_at}}-এ হওয়ার কথা ছিল। {{note}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: IN_APP, locale: 'en', subject: 'Reminder: {{title}}', body: 'Starts {{starts_at}} {{place}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: IN_APP, locale: 'bn', subject: 'মনে করিয়ে দেওয়া: {{title}}', body: 'শুরু {{starts_at}} {{place}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: SMS, locale: 'en', subject: null, body: 'Reminder: {{title}} starts {{starts_at}}. {{place}} - {{organization_name}}' },
+  { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: SMS, locale: 'bn', subject: null, body: 'মনে করিয়ে দেওয়া: {{title}} শুরু {{starts_at}}। {{place}} - {{organization_name}}' },
   {
     event_type: NOTIFICATION_EVENTS.HOMEWORK_MISSING,
     channel: SMS,
