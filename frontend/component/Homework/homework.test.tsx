@@ -255,7 +255,7 @@ describe("handing homework in (P5-02, HW-03)", () => {
     post.mockResolvedValue({ data: { payload: mine({ submissions: [version()], submissions_left: 1 }) } });
     renderApp(<HomeworkDetail id="h1" />);
     const card = within((await screen.findByRole("heading", { name: "Your work" })).closest("section") as HTMLElement);
-    const input = card.getByLabelText(/Photos or files/, { selector: "input" }) as HTMLInputElement;
+    const input = (await card.findByLabelText(/Photos or files/, { selector: "input" })) as HTMLInputElement;
     fireEvent.change(input, { target: { files: [photo("p1.jpg"), photo("p2.jpg")] } });
     expect(await card.findByLabelText("Put my photos into one PDF")).toBeTruthy();
     fireEvent.click(card.getByRole("button", { name: "Hand in" }));
