@@ -58,6 +58,10 @@ export const NOTIFICATION_EVENTS = {
   HOMEWORK_SCORES_PUBLISHED: 'homework.scores_published',
   HOMEWORK_REMINDER: 'homework.reminder',
   HOMEWORK_MISSING: 'homework.missing',
+  /** Calendar events (P5-05, CAL-03, CAL-06): added, changed or cancelled; in-app to the attendees. */
+  CALENDAR_EVENT_ADDED: 'calendar.event_added',
+  CALENDAR_EVENT_CHANGED: 'calendar.event_changed',
+  CALENDAR_EVENT_CANCELLED: 'calendar.event_cancelled',
 } as const;
 
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFICATION_EVENTS];

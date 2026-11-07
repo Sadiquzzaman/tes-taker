@@ -25,3 +25,21 @@ export const ROUTINE_ERRORS = {
   /** A teacher or room booked twice at overlapping times; `details.clashes` lists them. Send `confirm_clashes` to save anyway. */
   CLASH: 'ROUTINE_CLASH',
 } as const;
+
+/** Error codes of calendar events (CAL-03); the web app translates them (messages `events.errors`). */
+export const EVENT_ERRORS = {
+  NOT_FOUND: 'EVENT_NOT_FOUND',
+  /** End before start, longer than 14 days, or already over. */
+  TIME_INVALID: 'EVENT_TIME_INVALID',
+  /** No attendees: choose sections, people or the whole organisation. */
+  NO_ATTENDEES: 'EVENT_NO_ATTENDEES',
+  /** A section or person not in the organisation, or a section a teacher does not teach. */
+  ATTENDEE_INVALID: 'EVENT_ATTENDEE_INVALID',
+  /** Only owners, admins and assistants invite the whole organisation. */
+  WHOLE_ORG_FORBIDDEN: 'EVENT_WHOLE_ORG_FORBIDDEN',
+  /** A cancelled event can't change. */
+  CANCELLED: 'EVENT_CANCELLED',
+} as const;
+
+/** Longest event, in days. */
+export const MAX_EVENT_DAYS = 14;

@@ -72,3 +72,4 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Open the holidays page to the `calendar` feature as well as `attendance` (design §8.3 note) — needs a guard that accepts either key; P5-04 added the `calendar` key for the routine only.
 - Move a class to another date (CAL-01 "move") — P5-04 changes a class's times or teacher on its own date only; another date needs a one-off extra class (no routine slot), which class sessions don't support yet. Today: cancel it with a note.
 - The teacher report (P3-07) counts a substitute's class for the substitute through their records only; a teacher-centred "classes covered" count would need the change columns.
+- SMS for event changes within 48 hours (CAL-06: "SMS is optional per org") — P5-05 tells attendees in-app only; an organisation setting and guardian/attendee SMS through the outbox would cost credits each time.
