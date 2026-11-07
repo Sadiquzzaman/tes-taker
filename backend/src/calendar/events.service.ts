@@ -196,6 +196,32 @@ export class EventsService {
     return this.get(tenant, actor.id, id);
   }
 
+  /** Scheduled events that start after `from` and by `to`, with everyone attending (for reminders, CAL-05). */
+  async startingBetween(organizationId: string, from: Date, to: Date): Promise<{ id: string; title: string; starts_at: Date; place: string | null; user_ids: string[] }[]> {
+    const events = await this.eventRepo
+      .createQueryBuilder('event')
+      .where('event.organization_id = :organizationId', { organizationId })
+      .andWhere('event.status = :scheduled', { scheduled: EventStatusEnum.SCHEDULED })
+      .andWhere('event.starts_at > :from AND event.starts_at <= :to', { from, to })
+      .getMany();
+    const result: { id: string; title: string; starts_at: Date; place: string | null; user_ids: string[] }[] = [];
+    for (const event of events) {
+      const attendees = await this.snapshot(event);
+      result.push({ id: event.id, title: event.title, starts_at: event.starts_at, place: event.place, user_ids: await this.recipients(this.dataSource.manager, event, attendees) });
+    }
+    return result;
+  }
+
+  /** Organisations with events starting by `to` (for the reminders job). */
+  async organizationsWithEvents(from: Date, to: Date): Promise<string[]> {
+    const rows: { organization_id: string }[] = await this.eventRepo
+      .createQueryBuilder('event')
+      .select('DISTINCT event.organization_id', 'organization_id')
+      .where('event.status = :scheduled AND event.starts_at > :from AND event.starts_at <= :to', { scheduled: EventStatusEnum.SCHEDULED, from, to })
+      .getRawMany();
+    return rows.map((row) => row.organization_id);
+  }
+
   /** Real times, the end after the start, at most 14 days long; a new or moved event can't be over already. */
   private times(startsAt: string, endsAt: string, checkPast: boolean): { starts_at: Date; ends_at: Date } {
     const starts_at = new Date(startsAt);

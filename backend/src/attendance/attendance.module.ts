@@ -18,6 +18,7 @@ import { AttendanceSettingsService } from './attendance-settings.service';
 import { CheckInController } from './check-in.controller';
 import { CheckInService } from './check-in.service';
 import { ClassSessionsService } from './class-sessions.service';
+import { ClassOccurrencesService } from './class-occurrences.service';
 import { MyAttendanceService } from './my-attendance.service';
 import { SectionAttendanceController } from './section-attendance.controller';
 import { SectionAttendanceService } from './section-attendance.service';
@@ -57,6 +58,7 @@ import { SessionClosingService } from './session-closing.service';
     ClassSessionsService,
     CheckInService,
     MyAttendanceService,
+    ClassOccurrencesService,
     SectionAttendanceService,
     SessionClosingService,
     AttendanceAlertsService,
@@ -65,6 +67,6 @@ import { SessionClosingService } from './session-closing.service';
     PaperRegisterService,
     AttendanceReportsService,
   ],
-  exports: [AttendanceSettingsService, SessionClosingService, AttendanceAlertsService, AttendanceReportsService, MyAttendanceService],
+  exports: [AttendanceSettingsService, SessionClosingService, AttendanceAlertsService, AttendanceReportsService, MyAttendanceService, ClassOccurrencesService],
 })
 export class AttendanceModule {}

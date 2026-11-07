@@ -1401,10 +1401,17 @@ Table holidays {
 Table reminder_rules {
   id uuid [pk]
   organization_id uuid [not null]
-  user_id uuid [ref: > users.id, note: 'null = org default']
-  target varchar(20) [note: 'CLASS | EXAM | MEETING | HOMEWORK']
-  offsets jsonb [note: '[{"minutes":120,"channel":"PUSH"},{"minutes":30,"channel":"SMS"}] max 5']
-  Note: 'NEW (CAL-05)'
+  user_id uuid [ref: > users.id, note: 'null = the organisation default; FK ON DELETE CASCADE']
+  target varchar(10) [not null, note: "CHECK IN ('CLASS', 'EXAM', 'EVENT')"]
+  offsets jsonb [not null, note: '[{"minutes":30,"channel":"IN_APP"},{"minutes":120,"channel":"SMS"}], at most 5, 5 to 1440 minutes, each time once; [] = off for that person']
+  updated_by uuid
+  created_at timestamptz
+  updated_at timestamptz
+  Indexes {
+    (organization_id, target) [unique, note: 'WHERE user_id IS NULL']
+    (organization_id, user_id, target) [unique, note: 'WHERE user_id IS NOT NULL']
+  }
+  Note: 'BUILT P5-05 part 4 (CAL-05, calendar-feed module, migration ReminderRules). Without an organisation rule: class 30 min, exam and event 60 min, in the app. HOMEWORK target dropped (homework has its own 24-hour reminder, HW-02); EMAIL and PUSH channels later'
 }
 
 //////////////////////////////////////////////////////////////

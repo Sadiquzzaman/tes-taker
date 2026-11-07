@@ -16,6 +16,9 @@ import {
   FILES_SWEEP_EVERY_MS,
   FILES_SWEEP_JOB,
   HOMEWORK_QUEUE,
+  CALENDAR_QUEUE,
+  CALENDAR_REMINDERS_JOB,
+  CALENDAR_REMINDERS_EVERY_MS,
   HOMEWORK_SWEEP_EVERY_MS,
   HOMEWORK_SWEEP_JOB,
   NOTIFICATIONS_QUEUE,
@@ -37,6 +40,7 @@ export class WorkerSchedulerService implements OnApplicationBootstrap {
     @InjectQueue(FILES_QUEUE) private readonly filesQueue: Queue,
     @InjectQueue(ATTENDANCE_QUEUE) private readonly attendanceQueue: Queue,
     @InjectQueue(HOMEWORK_QUEUE) private readonly homeworkQueue: Queue,
+    @InjectQueue(CALENDAR_QUEUE) private readonly calendarQueue: Queue,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -76,5 +80,8 @@ export class WorkerSchedulerService implements OnApplicationBootstrap {
 
     await this.homeworkQueue.upsertJobScheduler(HOMEWORK_SWEEP_JOB, { every: HOMEWORK_SWEEP_EVERY_MS }, { name: HOMEWORK_SWEEP_JOB });
     this.logger.log(`Scheduled ${HOMEWORK_SWEEP_JOB} every ${HOMEWORK_SWEEP_EVERY_MS / 1000}s`);
+
+    await this.calendarQueue.upsertJobScheduler(CALENDAR_REMINDERS_JOB, { every: CALENDAR_REMINDERS_EVERY_MS }, { name: CALENDAR_REMINDERS_JOB });
+    this.logger.log(`Scheduled ${CALENDAR_REMINDERS_JOB} every ${CALENDAR_REMINDERS_EVERY_MS / 1000}s`);
   }
 }

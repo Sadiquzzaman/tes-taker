@@ -50,3 +50,6 @@ export const HOMEWORK_SWEEP_EVERY_MS = 60_000;
 export const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
 export const WORKER_HEARTBEAT_EVERY_MS = 30_000;
 export const WORKER_HEARTBEAT_TTL_SECONDS = 90;
+export const CALENDAR_QUEUE = 'calendar';
+export const CALENDAR_REMINDERS_JOB = 'calendar.reminders';
+export const CALENDAR_REMINDERS_EVERY_MS = 60_000;

@@ -62,6 +62,8 @@ export const NOTIFICATION_EVENTS = {
   CALENDAR_EVENT_ADDED: 'calendar.event_added',
   CALENDAR_EVENT_CHANGED: 'calendar.event_changed',
   CALENDAR_EVENT_CANCELLED: 'calendar.event_cancelled',
+  /** A reminder before a class, exam or event (P5-05, CAL-05): in-app, or SMS to the person on org credits. */
+  CALENDAR_REMINDER: 'calendar.reminder',
 } as const;
 
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFICATION_EVENTS];

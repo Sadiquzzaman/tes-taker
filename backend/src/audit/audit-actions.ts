@@ -94,6 +94,7 @@ export const AUDIT_ACTIONS = {
   EVENT_CREATE: 'event.create',
   EVENT_UPDATE: 'event.update',
   EVENT_CANCEL: 'event.cancel',
+  REMINDERS_DEFAULTS_UPDATE: 'reminders.defaults_update',
 
   // Notifications (platform admin, design §8.6)
   MESSAGE_TEMPLATE_UPDATE: 'message_template.update',
