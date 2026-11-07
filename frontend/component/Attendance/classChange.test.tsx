@@ -106,7 +106,7 @@ describe("changing a class for one day (P5-04, CAL-01)", () => {
   it("undoes a change, and explains a refused one", async () => {
     serve(CHANGED, CHANGED);
     post
-      .mockReturnValueOnce(Promise.reject({ response: { status: 409, data: { code: "ATTENDANCE_CHANGE_OVERLAP", details: { start_time: "18:00", end_time: "19:00" } } } }))
+      .mockImplementationOnce(() => Promise.reject({ response: { status: 409, data: { code: "ATTENDANCE_CHANGE_OVERLAP", details: { start_time: "18:00", end_time: "19:00" } } } }))
       .mockReturnValueOnce(ok(DETAIL));
     renderApp(<ClassAttendancePage />);
     const drawer = await openClass();
