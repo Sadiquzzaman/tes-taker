@@ -60,7 +60,8 @@
     "attendanceRegister": "Monthly register",
     "attendanceReports": "Attendance reports",
     "homework": "Homework",
-    "homeworkSettings": "Homework settings"
+    "homeworkSettings": "Homework settings",
+    "routine": "Routine"
   },
   "shell": {
     "organization": "Organization",
@@ -2152,7 +2153,8 @@
       "Notifications": "Notifications",
       "Proctoring": "Proctoring",
       "Attendance": "Attendance",
-      "Homework": "Homework"
+      "Homework": "Homework",
+      "Calendar": "Calendar"
     },
     "catalog": {
       "allow_graded_questions": {
@@ -2278,6 +2280,10 @@
       "homework": {
         "name": "Homework",
         "description": "Assign homework to subject classes, collect submissions and score them."
+      },
+      "calendar": {
+        "name": "Calendar",
+        "description": "Weekly class routine with clash warnings; events and reminders next."
       }
     },
     "limits": {
@@ -2762,7 +2768,9 @@
       "branch": "Branches",
       "section_attendance": "[[Section]] setup",
       "schedule": "Schedules",
-      "attendance": "Attendance"
+      "attendance": "Attendance",
+      "homework": "Homework",
+      "routine": "Routine"
     },
     "actions": {
       "plan": {
@@ -2870,6 +2878,11 @@
       },
       "homework_settings": {
         "update": "Homework settings changed"
+      },
+      "routine": {
+        "add": "Routine class added",
+        "change": "Routine class changed",
+        "remove": "Routine class removed"
       }
     },
     "fields": {
@@ -4152,6 +4165,79 @@
       "savedTitle": "Saved",
       "saved": "Homework settings saved.",
       "loadFailed": "Homework settings could not be loaded."
+    }
+  },
+  "routine": {
+    "title": "Routine",
+    "studentIntro": "Your classes each week.",
+    "staffIntro": "The weekly class routine: who teaches what, where and when.",
+    "tabs": {
+      "whole": "Whole routine",
+      "mine": "My routine"
+    },
+    "mineTitle": "My week",
+    "mineEmpty": "No classes in your routine yet",
+    "mineEmptyHint": "Classes appear here once the school adds them to the routine.",
+    "loadFailed": "The routine could not be loaded.",
+    "session": "Session",
+    "viewBy": "Show by",
+    "by": {
+      "section": "Section",
+      "teacher": "Teacher",
+      "room": "Room"
+    },
+    "nothingToChoose": "Nothing yet",
+    "noSections": "This session has no sections yet",
+    "add": "Add class",
+    "addTitle": "Add a class",
+    "editTitle": "Change this class",
+    "section": "Section",
+    "day": "Day",
+    "start": "Start",
+    "end": "End",
+    "subject": "Subject",
+    "noSubject": "No subject",
+    "teacher": "Teacher",
+    "noTeacher": "No teacher",
+    "room": "Room",
+    "roomHint": "Optional, e.g. Room 201 or Lab",
+    "roomShort": "Room: {room}",
+    "noClasses": "No classes",
+    "save": "Save",
+    "saveAnyway": "Save anyway",
+    "cancel": "Cancel",
+    "saved": "Routine saved",
+    "remove": "Remove",
+    "removeTitle": "Remove this class from the routine?",
+    "removeDetail": "It no longer repeats each week. Attendance already taken for it is kept.",
+    "clash": {
+      "TEACHER": "Teacher booked twice",
+      "ROOM": "Room booked twice"
+    },
+    "clashTitle": "This clashes with another class:",
+    "clashWith": {
+      "TEACHER": "Same teacher: {section}, {day} {start}–{end}",
+      "ROOM": "Same room: {section}, {day} {start}–{end}"
+    },
+    "clashHint": "You can still save it; the clash is then marked in the routine.",
+    "clashesInRoutine": "{count, plural, one {# class clashes} other {# classes clash}} with another class (same teacher or room). They are marked below.",
+    "days": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday",
+      "7": "Sunday"
+    },
+    "errors": {
+      "TIMES_REQUIRED": "Choose a start and an end time.",
+      "SCHEDULE_TIME_INVALID": "The end time must be after the start time.",
+      "SCHEDULE_OVERLAP": "This section already has a class at that time.",
+      "SCHEDULE_TOO_MANY": "A section can have at most {max, number} classes a week.",
+      "ROUTINE_SUBJECT_INVALID": "Choose one of this section's subjects.",
+      "ROUTINE_TEACHER_INVALID": "Choose a teacher of your organisation.",
+      "ROUTINE_NOT_FOUND": "This class was removed meanwhile. Close and reload."
     }
   }
 }
