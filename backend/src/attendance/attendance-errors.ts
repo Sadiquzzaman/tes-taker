@@ -43,6 +43,16 @@ export const ATTENDANCE_ERRORS = {
   CANCEL_ENDED: 'ATTENDANCE_CANCEL_ENDED',
   CANCEL_ALREADY: 'ATTENDANCE_CANCEL_ALREADY',
   CANCEL_NOT_CANCELLED: 'ATTENDANCE_CANCEL_NOT_CANCELLED',
+  /** A one-day change (P5-04) is possible only before check-in opens, with nobody checked in yet. */
+  CHANGE_STARTED: 'ATTENDANCE_CHANGE_STARTED',
+  /** The new times are not a real start before the end, or are already past. */
+  CHANGE_TIME_INVALID: 'ATTENDANCE_CHANGE_TIME_INVALID',
+  /** The new times overlap another class of the section that day; `details` names it. */
+  CHANGE_OVERLAP: 'ATTENDANCE_CHANGE_OVERLAP',
+  /** The substitute must be a teaching member of the organisation. */
+  CHANGE_TEACHER_INVALID: 'ATTENDANCE_CHANGE_TEACHER_INVALID',
+  /** Nothing to change: the class already has these times and this teacher. */
+  CHANGE_NONE: 'ATTENDANCE_CHANGE_NONE',
   // Paper register import and the monthly register (ATT-17, ATT-13)
   REGISTER_SECTION_NOT_FOUND: 'ATTENDANCE_REGISTER_SECTION_NOT_FOUND',
   REGISTER_MONTH_INVALID: 'ATTENDANCE_REGISTER_MONTH_INVALID',

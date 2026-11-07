@@ -13,7 +13,7 @@ import { EntitlementsService } from 'src/subscriptions/entitlements.service';
 import { ApprovedLeaveService, LeaveCalendar } from './approved-leave.service';
 import { AttendanceClock } from './attendance-clock';
 import { countsFor, SessionWindow } from './class-session-time';
-import { ClassSessionsService, SectionContext, sessionKey } from './class-sessions.service';
+import { ClassSessionsService, SectionContext, sessionKey, teacherOf } from './class-sessions.service';
 import {
   AttendancePersonTypeEnum,
   AttendanceRecordEntity,
@@ -118,8 +118,8 @@ export class SessionClosingService {
       const students = item.counts
         ? (rosters.get(item.section_id) ?? []).filter((row) => countsFor(item.window, null, row.since)).map((row) => row.student_id)
         : [];
-      // A solo teacher's own workspace has no teacher check-in (P3-03).
-      const teacherId = item.counts && kind !== OrganizationKindEnum.SOLO ? item.slot.teacher_id : null;
+      // A solo teacher's own workspace has no teacher check-in (P3-03). A substitute takes the routine teacher's place (P5-04).
+      const teacherId = item.counts && kind !== OrganizationKindEnum.SOLO ? teacherOf(item.slot, item.saved) : null;
       const closed = await this.closeSession(organizationId, item, students, teacherId, leave);
       if (!closed) continue;
       result.sessions_closed++;

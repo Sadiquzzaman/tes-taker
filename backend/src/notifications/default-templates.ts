@@ -197,6 +197,20 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
     subject: 'ক্লাস হবে: {{class_name}}',
     body: '{{class_on}} তারিখের {{start_time}}-এর ক্লাস হবে।',
   },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_CHANGED,
+    channel: IN_APP,
+    locale: 'en',
+    subject: 'Class changed: {{class_name}}',
+    body: 'On {{class_on}} the class is at {{start_time}}–{{end_time}}. Teacher: {{teacher_name}}. {{note}}',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.ATTENDANCE_CLASS_CHANGED,
+    channel: IN_APP,
+    locale: 'bn',
+    subject: 'ক্লাসে পরিবর্তন: {{class_name}}',
+    body: '{{class_on}} তারিখে ক্লাস {{start_time}}–{{end_time}}। শিক্ষক: {{teacher_name}}। {{note}}',
+  },
 
   // Guardian SMS (ATT-06 late at once, ATT-10 absent once a day), short to fit one SMS
   {
@@ -370,6 +384,6 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
 
 /** Values shown translated when a variable holds one of these codes (e.g. a member role). */
 export const VALUE_LABELS: Record<NotificationLocale, Record<string, string>> = {
-  en: { OWNER: 'owner', ADMIN: 'admin', TEACHER: 'teacher', STUDENT: 'student', ASSISTANT: 'staff member', NO_DUE_DATE: 'any time' },
-  bn: { OWNER: 'মালিক', ADMIN: 'অ্যাডমিন', TEACHER: 'শিক্ষক', STUDENT: 'শিক্ষার্থী', ASSISTANT: 'স্টাফ', NO_DUE_DATE: 'যেকোনো সময়' },
+  en: { OWNER: 'owner', ADMIN: 'admin', TEACHER: 'teacher', STUDENT: 'student', ASSISTANT: 'staff member', NO_DUE_DATE: 'any time', NO_TEACHER: 'as usual' },
+  bn: { OWNER: 'মালিক', ADMIN: 'অ্যাডমিন', TEACHER: 'শিক্ষক', STUDENT: 'শিক্ষার্থী', ASSISTANT: 'স্টাফ', NO_DUE_DATE: 'যেকোনো সময়', NO_TEACHER: 'যথারীতি' },
 };

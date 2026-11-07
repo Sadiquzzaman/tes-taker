@@ -1,4 +1,5 @@
 import { DeepPartial } from 'typeorm';
+import { ClassSessionChanges1756300000000 } from '../../src/migrations/1756300000000-ClassSessionChanges';
 import { currentYearIn } from '../../src/academics/academic-sessions.service';
 import { ClassSubjectEntity } from '../../src/classes/entities/class-subject.entity';
 import { ClassKindEnum } from '../../src/classes/enums/class-kind.enum';
@@ -161,6 +162,8 @@ describe('AcademicStructure migration', () => {
       await homework.up(runner);
       await submissions.up(runner);
       await scores.up(runner);
+      // P5-04's one-day change columns on class_attendance (recreated above) come back too.
+      await new ClassSessionChanges1756300000000().up(runner);
     } finally {
       await runner.release();
     }

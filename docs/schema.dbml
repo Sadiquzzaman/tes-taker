@@ -572,6 +572,10 @@ Table class_attendance {
   cancelled_at timestamptz [note: 'BUILT P3-04 (ATT-19); cleared on restore (the audit log keeps the history)']
   cancelled_by uuid [ref: > users.id, note: 'BUILT P3-04; FK ON DELETE SET NULL']
   cancel_note varchar(300) [note: "BUILT P3-04: the teacher's note to students (optional)"]
+  substitute_teacher_id uuid [ref: > users.id, note: 'BUILT P5-04: teaches this one class instead of the routine teacher; FK ON DELETE SET NULL; partial index (substitute_teacher_id, date)']
+  changed_at timestamptz [note: 'BUILT P5-04: one-day change of times and/or teacher (CAL-01); null = as the routine']
+  changed_by uuid [ref: > users.id]
+  change_note varchar(300) [note: 'BUILT P5-04: note to students about the change']
   created_at timestamptz [not null, default: `now()`]
   Indexes {
     (routine_slot_id, date) [unique, name: 'UQ_class_attendance_slot_date']
@@ -1327,7 +1331,7 @@ Table routine_exceptions {
   Indexes {
     (slot_id, date) [unique]
   }
-  Note: 'NEW'
+  Note: 'NOT BUILT (P5-04 decision): one-day changes live on the class session instead — cancel (class_attendance.status, P3-04) and other times or a substitute (class_attendance.starts_at/ends_at, substitute_teacher_id, P5-04), which check-in, the closing job and reports already follow'
 }
 
 Enum event_type { EXAM MEETING PARENT_MEETING ACTIVITY OTHER }

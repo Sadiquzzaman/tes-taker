@@ -67,6 +67,7 @@ export const AUDIT_ACTIONS = {
   // Cancelling and restoring one class (teachers of the section, owners, admins; ATT-19)
   ATTENDANCE_CANCEL: 'attendance.cancel',
   ATTENDANCE_RESTORE: 'attendance.restore',
+  ATTENDANCE_CHANGE: 'attendance.change',
   // The closing job's Absent records, counted per organisation and run (system, ATT-10)
   ATTENDANCE_AUTO_ABSENT: 'attendance.auto_absent',
   // A paper register imported for a section and month (its teachers, owners, admins; ATT-17)

@@ -20,11 +20,14 @@ export enum ClassSessionStatusEnum {
  * and date (P3-04's worker may create the rest); `starts_at`/`ends_at` are the slot's times on that
  * date in the organisation's time zone, saved as instants, so a later schedule change does not
  * move a past session. A cancelled session keeps its row (and any check-ins) with who cancelled it.
+ * A one-day change (P5-04, CAL-01) saves the session ahead with other times and/or a substitute
+ * teacher, with who changed it, when and a note.
  */
 @Entity('class_attendance')
 @Index('UQ_class_attendance_slot_date', ['routine_slot_id', 'date'], { unique: true })
 @Index('IDX_class_attendance_section_date', ['organization_id', 'section_id', 'date'])
 @Index('IDX_class_attendance_org_date_status', ['organization_id', 'date', 'status'])
+@Index('IDX_class_attendance_substitute', ['substitute_teacher_id', 'date'], { where: '"substitute_teacher_id" IS NOT NULL' })
 @Check('CHK_class_attendance_times', `"ends_at" > "starts_at"`)
 export class ClassSessionEntity {
   @ApiProperty()
@@ -86,6 +89,30 @@ export class ClassSessionEntity {
   @ApiPropertyOptional({ description: "The teacher's note to students" })
   @Column({ name: 'cancel_note', type: 'varchar', length: 300, nullable: true })
   cancel_note: string | null;
+
+  @ApiPropertyOptional({ description: 'Teaches this one class instead of the routine\'s teacher (P5-04)' })
+  @Column({ name: 'substitute_teacher_id', type: 'uuid', nullable: true })
+  substitute_teacher_id: string | null;
+
+  @ManyToOne(() => UserEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'substitute_teacher_id', foreignKeyConstraintName: 'FK_class_attendance_substitute' })
+  substitute?: UserEntity | null;
+
+  @ApiPropertyOptional({ description: 'When the time or teacher was changed for this day' })
+  @Column({ name: 'changed_at', type: 'timestamptz', nullable: true })
+  changed_at: Date | null;
+
+  @ApiPropertyOptional()
+  @Column({ name: 'changed_by', type: 'uuid', nullable: true })
+  changed_by: string | null;
+
+  @ManyToOne(() => UserEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'changed_by', foreignKeyConstraintName: 'FK_class_attendance_changed_by' })
+  changer?: UserEntity | null;
+
+  @ApiPropertyOptional({ description: "The note to students about the change" })
+  @Column({ name: 'change_note', type: 'varchar', length: 300, nullable: true })
+  change_note: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   created_at: Date;
