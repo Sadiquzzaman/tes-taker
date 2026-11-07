@@ -9,6 +9,7 @@ import HomeworkSettingsPage from "./HomeworkSettingsPage";
 const get = vi.fn();
 const post = vi.fn();
 const patch = vi.fn();
+const put = vi.fn();
 let memberRole: string | undefined = "TEACHER";
 vi.mock("@/lib/authSession", () => ({ getStoredUser: () => ({ id: "me", role: memberRole === "STUDENT" ? "STUDENT" : "TEACHER", access_token: "token" }), clearAuthSession: vi.fn() }));
 vi.mock("@/hooks/organization/useWorkspace", () => ({ default: () => ({ memberRole }) }));
@@ -17,6 +18,7 @@ vi.mock("@/lib/axios", () => ({
     get: (...args: unknown[]) => get(...args),
     post: (...args: unknown[]) => post(...args),
     patch: (...args: unknown[]) => patch(...args),
+    put: (...args: unknown[]) => put(...args),
   },
 }));
 // The real editor (TipTap) is covered by its own tests; a textarea stands in here.
@@ -82,6 +84,7 @@ beforeEach(() => {
   get.mockReset();
   post.mockReset();
   patch.mockReset();
+  put.mockReset();
 });
 afterEach(() => cleanup());
 
@@ -221,7 +224,7 @@ describe("menu", () => {
 });
 
 describe("handing homework in (P5-02, HW-03)", () => {
-  const mine = (extra: Partial<MySubmissions> = {}): MySubmissions => ({ submissions: [], can_submit: true, blocked_by: null, submissions_left: 2, late_now: false, max_files: 5, ...extra });
+  const mine = (extra: Partial<MySubmissions> = {}): MySubmissions => ({ submissions: [], can_submit: true, blocked_by: null, submissions_left: 2, late_now: false, max_files: 5, score: null, ...extra });
   const version = (extra: Partial<SubmissionItem> = {}): SubmissionItem => ({
     id: "s1",
     version: 1,
@@ -231,6 +234,15 @@ describe("handing homework in (P5-02, HW-03)", () => {
     late_minutes: null,
     status: "SUBMITTED",
     files: [{ id: "f9", name: "homework.pdf", mime: "application/pdf", size_bytes: 9000, url: "/files/f9/content" }],
+    ...extra,
+  });
+  const grid = (extra: Partial<HomeworkGrid> = {}): HomeworkGrid => ({
+    homework: { id: "h1", total_marks: 10, submission_type: "FILE", due_at: null, scores_published_at: null },
+    counts: { students: 2, handed_in: 1, late: 1, missing: 0, scored: 0 },
+    rows: [
+      { student: { id: "u1", full_name: "Picked", roll_no: "1" }, versions: 2, latest: { id: "s2", version: 2, submitted_at: "2026-11-08T10:00:00.000Z", is_late: true, late_minutes: 15, status: "SUBMITTED" }, score: null },
+      { student: { id: "u2", full_name: "Other", roll_no: "2" }, versions: 0, latest: null, score: null },
+    ],
     ...extra,
   });
   const photo = (name: string) => new File(["x"], name, { type: "image/jpeg" });
@@ -283,13 +295,9 @@ describe("handing homework in (P5-02, HW-03)", () => {
   });
 
   it("shows staff who handed it in and opens a student's versions", async () => {
-    const rows: StudentSubmissionRow[] = [
-      { student: { id: "u1", full_name: "Picked", roll_no: "1" }, versions: 2, latest: { id: "s2", version: 2, submitted_at: "2026-11-08T10:00:00.000Z", is_late: true, late_minutes: 15, status: "SUBMITTED", file_count: 1 } },
-      { student: { id: "u2", full_name: "Other", roll_no: "2" }, versions: 0, latest: null },
-    ];
     serve({
       "/homework/h1": item({ status: "PUBLISHED" }),
-      "/homework/h1/submissions": rows,
+      "/homework/h1/grid": grid(),
       "/homework/h1/submissions/s2": { ...version({ id: "s2", version: 2 }), student: { id: "u1", full_name: "Picked" }, versions: [version({ id: "s2", version: 2 }), version()] },
     });
     renderApp(<HomeworkDetail id="h1" />);
@@ -308,6 +316,153 @@ describe("handing homework in (P5-02, HW-03)", () => {
     serve({ "/homework/mine": [item({ status: "PUBLISHED", can_edit: false, my_submission: { version: 1, submitted_at: "2026-11-08T10:00:00.000Z", is_late: false, status: "SUBMITTED" } })] });
     renderApp(<HomeworkPage />);
     expect(await screen.findByText("Handed in (version 1)")).toBeTruthy();
+  });
+});
+
+describe("reviewing and scoring homework (P5-03, HW-04, HW-05, HW-06)", () => {
+  const score = (extra: Partial<HomeworkScore> = {}): HomeworkScore => ({
+    raw_score: 9,
+    penalty: 1,
+    final_score: 8,
+    total_marks: 10,
+    percent: 80,
+    grade: { grade: "A+", gpa: 5 },
+    feedback: "Good work",
+    ratings: { neatness: 4 },
+    is_missing: false,
+    scored_at: "2026-11-09T10:00:00.000Z",
+    ...extra,
+  });
+  const latest = { id: "s2", version: 2, submitted_at: "2026-11-08T10:00:00.000Z", is_late: true, late_minutes: 15, status: "SUBMITTED" as const };
+  const sub = { id: "s2", version: 2, text_answer: "My answer", submitted_at: "2026-11-08T10:00:00.000Z", is_late: true, late_minutes: 15, status: "SUBMITTED" as const, files: [] };
+  const grid = (extra: Partial<HomeworkGrid> = {}): HomeworkGrid => ({
+    homework: { id: "h1", total_marks: 10, submission_type: "FILE", due_at: null, scores_published_at: null },
+    counts: { students: 2, handed_in: 1, late: 1, missing: 1, scored: 0 },
+    rows: [
+      { student: { id: "u1", full_name: "Picked", roll_no: "1" }, versions: 1, latest, score: null },
+      { student: { id: "u2", full_name: "Other", roll_no: "2" }, versions: 0, latest: null, score: null },
+    ],
+    ...extra,
+  });
+
+  it("shows the counts, scores a student's work with feedback and a rating, and publishes the scores", async () => {
+    serve({ "/homework/h1": item({ status: "PUBLISHED" }), "/homework/h1/grid": grid(), "/homework/h1/submissions/s2": { ...sub, student: { id: "u1", full_name: "Picked" }, versions: [sub] } });
+    const scoredGrid = grid({ counts: { students: 2, handed_in: 1, late: 1, missing: 1, scored: 1 }, rows: [{ ...grid().rows[0], score: score() }, grid().rows[1]] });
+    put.mockReturnValue(ok(scoredGrid));
+    post.mockReturnValue(ok({ ...scoredGrid, homework: { ...scoredGrid.homework, scores_published_at: "2026-11-09T11:00:00.000Z" } }));
+    renderApp(<HomeworkDetail id="h1" />);
+    expect(await screen.findByText("Scores are not published yet; students do not see them.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Publish scores" })).toBeNull();
+    fireEvent.click(within(screen.getByRole("table")).getByRole("button", { name: "Open Picked's work" }));
+    const drawer = within(await screen.findByRole("dialog"));
+    expect(await drawer.findByText("My answer")).toBeTruthy();
+    expect(drawer.getByText("This was handed in late; the late penalty in homework settings is taken off.")).toBeTruthy();
+    fireEvent.change(drawer.getByLabelText("Score"), { target: { value: "11" } });
+    expect(drawer.getByText("Enter a number from 0 to 10, with at most two decimals.")).toBeTruthy();
+    expect((drawer.getByRole("button", { name: "Save score" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(drawer.getByLabelText("Score"), { target: { value: "9" } });
+    fireEvent.change(drawer.getByLabelText("Feedback"), { target: { value: "Good work" } });
+    fireEvent.change(drawer.getByLabelText("Neatness"), { target: { value: "4" } });
+    fireEvent.click(drawer.getByRole("button", { name: "Save score" }));
+    await waitFor(() => expect(put).toHaveBeenCalledTimes(1));
+    expect(put.mock.calls[0][0]).toMatch(/\/homework\/h1\/scores$/);
+    expect(put.mock.calls[0][1]).toEqual({ rows: [{ student_id: "u1", raw_score: 9, feedback: "Good work", is_missing: false, ratings: { neatness: 4 } }] });
+    expect((await screen.findAllByText("8/10 · 80% (A+)")).length).toBeGreaterThan(0);
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Publish scores" }));
+    const confirm = within(await screen.findByRole("dialog"));
+    expect(confirm.getByText(/1 of 2 students are scored/)).toBeTruthy();
+    fireEvent.click(confirm.getByRole("button", { name: "Publish scores" }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/homework\/h1\/publish-scores$/), {}));
+    expect(await screen.findByText(/Scores published/)).toBeTruthy();
+  });
+
+  it("returns the latest work for redo with a note", async () => {
+    serve({ "/homework/h1": item({ status: "PUBLISHED" }), "/homework/h1/grid": grid(), "/homework/h1/submissions/s2": { ...sub, student: { id: "u1", full_name: "Picked" }, versions: [sub] } });
+    post.mockReturnValue(ok(grid({ rows: [{ ...grid().rows[0], latest: { ...latest, status: "RETURNED" } }, grid().rows[1]] })));
+    renderApp(<HomeworkDetail id="h1" />);
+    fireEvent.click(within(await screen.findByRole("table")).getByRole("button", { name: "Open Picked's work" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Return for redo" }));
+    fireEvent.change(await screen.findByLabelText("Note for the student (optional)"), { target: { value: "Show your steps" } });
+    const dialogs = await screen.findAllByRole("dialog");
+    fireEvent.click(within(dialogs[dialogs.length - 1]).getByRole("button", { name: "Return for redo" }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/submissions\/s2\/return$/), { note: "Show your steps" }));
+    expect(await screen.findByText("Returned; the student was told.")).toBeTruthy();
+  });
+
+  it("reminds students who have not handed in, with an SMS to guardians when chosen", async () => {
+    serve({ "/homework/h1": item({ status: "PUBLISHED" }), "/homework/h1/grid": grid() });
+    post.mockReturnValue(ok({ students: 1, guardian_sms: 2 }));
+    renderApp(<HomeworkDetail id="h1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remind missing" }));
+    const modal = within(await screen.findByRole("dialog"));
+    expect(modal.getByText("1 student gets a notice in the app.")).toBeTruthy();
+    fireEvent.click(modal.getByLabelText("Also send an SMS to their guardians"));
+    fireEvent.click(modal.getByRole("button", { name: "Send reminder" }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/homework\/h1\/remind-missing$/), { sms_guardians: true }));
+    expect(await screen.findByText("Reminded 1 students; 2 SMS queued.")).toBeTruthy();
+  });
+
+  it("enters paper homework scores in a grid and saves only the changed rows", async () => {
+    const paper = grid({
+      homework: { id: "h1", total_marks: 10, submission_type: "PAPER", due_at: null, scores_published_at: null },
+      rows: grid().rows.map((row) => ({ ...row, latest: null, versions: 0 })),
+    });
+    serve({ "/homework/h1": item({ status: "PUBLISHED", submission_type: "PAPER" }), "/homework/h1/grid": paper });
+    put.mockReturnValue(ok(paper));
+    renderApp(<HomeworkDetail id="h1" />);
+    expect(screen.queryByRole("button", { name: "Remind missing" })).toBeNull();
+    const save = (await screen.findByRole("button", { name: "Save all" })) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Score for Picked"), { target: { value: "7.5" } });
+    fireEvent.change(screen.getByLabelText("Remark for Picked"), { target: { value: "Neat" } });
+    fireEvent.change(screen.getByLabelText("Effort for Picked"), { target: { value: "5" } });
+    const other = screen.getAllByLabelText("Not handed in")[1];
+    fireEvent.click(other);
+    expect(screen.getByText("2 changes not saved")).toBeTruthy();
+    fireEvent.click(save);
+    await waitFor(() => expect(put).toHaveBeenCalledTimes(1));
+    expect(put.mock.calls[0][1]).toEqual({
+      rows: [
+        { student_id: "u1", raw_score: 7.5, feedback: "Neat", is_missing: false, ratings: { effort: 5 } },
+        { student_id: "u2", raw_score: null, feedback: null, is_missing: true, ratings: null },
+      ],
+    });
+  });
+
+  it("explains the API's refusal of a score", async () => {
+    const paper = grid({ homework: { id: "h1", total_marks: 10, submission_type: "PAPER", due_at: null, scores_published_at: null } });
+    serve({ "/homework/h1": item({ status: "PUBLISHED", submission_type: "PAPER" }), "/homework/h1/grid": paper });
+    put.mockRejectedValue({ response: { status: 400, data: { code: "HOMEWORK_SCORE_INVALID", details: { total: 10 } } } });
+    renderApp(<HomeworkDetail id="h1" />);
+    fireEvent.change(await screen.findByLabelText("Score for Picked"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save all" }));
+    expect(await screen.findByText("A score can be at most 10.")).toBeTruthy();
+  });
+
+  it("shows a student their published score, the late penalty, feedback and ratings, in Bangla too", async () => {
+    memberRole = "STUDENT";
+    const mine: MySubmissions = { submissions: [sub], can_submit: false, blocked_by: "HOMEWORK_ALREADY_SCORED", submissions_left: 0, late_now: false, max_files: 5, score: score() };
+    serve({ "/homework/h1": item({ status: "PUBLISHED", can_edit: false }), "/homework/h1/my-submissions": mine });
+    renderApp(<HomeworkDetail id="h1" />);
+    expect(await screen.findByText("8/10 · 80% (A+)")).toBeTruthy();
+    expect(screen.getByText("Scored 9; 1 taken off for handing in late.")).toBeTruthy();
+    expect(screen.getByText("Good work")).toBeTruthy();
+    expect(screen.getByText("Neatness: 4/5")).toBeTruthy();
+    cleanup();
+    renderApp(<HomeworkDetail id="h1" />, { locale: "bn" });
+    expect(await screen.findByText("৮/১০ · ৮০% (A+)")).toBeTruthy();
+  });
+
+  it("shows the score of paper homework to the student", async () => {
+    memberRole = "STUDENT";
+    serve({
+      "/homework/h1": item({ status: "PUBLISHED", can_edit: false, submission_type: "PAPER" }),
+      "/homework/h1/my-submissions": { submissions: [], can_submit: false, blocked_by: "HOMEWORK_PAPER_NO_SUBMISSION", submissions_left: 0, late_now: false, max_files: 5, score: score({ penalty: 0, raw_score: 8 }) },
+    });
+    renderApp(<HomeworkDetail id="h1" />);
+    expect(await screen.findByText("8/10 · 80% (A+)")).toBeTruthy();
   });
 });
 

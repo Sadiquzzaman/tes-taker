@@ -9,6 +9,7 @@ import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
 import { isPhoto, photosToPdf } from "@/utils/homework/photosToPdf";
 import { uploadMedia } from "@/utils/media/uploadMedia";
+import { RATING_KEYS, scoreLabel } from "./homeworkFormat";
 import useApiData from "./useApiData";
 
 /** Hand-in refusals the card explains itself (messages `homework.errors`). */
@@ -46,7 +47,10 @@ const HomeworkMyWork = ({ homework }: { homework: HomeworkItem }) => {
   if (homework.submission_type === "PAPER") {
     return (
       <Card title={t("title")}>
-        <p className="text-body text-ink">{t("paper")}</p>
+        <div className="flex flex-col gap-4">
+          <p className="text-body text-ink">{t("paper")}</p>
+          {mine?.score ? <MyScore score={mine.score} /> : null}
+        </div>
       </Card>
     );
   }
@@ -102,6 +106,7 @@ const HomeworkMyWork = ({ homework }: { homework: HomeworkItem }) => {
   return (
     <Card title={t("title")}>
       <div className="flex flex-col gap-5">
+        {mine.score ? <MyScore score={mine.score} /> : null}
         {mine.can_submit ? (
           <div className="flex flex-col gap-4">
             {mine.late_now ? (
@@ -172,6 +177,35 @@ const HomeworkMyWork = ({ homework }: { homework: HomeworkItem }) => {
         ) : null}
       </div>
     </Card>
+  );
+};
+
+/** The student's published score (HW-04): "8/10 · 80% (A+)", the late penalty, feedback and ratings. */
+const MyScore = ({ score }: { score: HomeworkScore }) => {
+  const t = useTranslations("homework.myWork");
+  const tReview = useTranslations("homework.submissions");
+  const format = useFormat();
+  const label = scoreLabel(score, format.number);
+  const ratings = RATING_KEYS.filter((key) => score.ratings?.[key]);
+  return (
+    <section className="flex flex-col gap-2 rounded-input border border-border bg-canvas p-3" aria-label={t("score")}>
+      <h3 className="text-title-sm font-semibold text-ink">{t("score")}</h3>
+      {score.is_missing ? <StatusPill tone="danger">{t("notHandedIn")}</StatusPill> : null}
+      {label ? <p className="text-title font-semibold text-ink">{label}</p> : null}
+      {score.penalty > 0 && score.raw_score !== null ? (
+        <p className="text-body-sm text-ink-muted">{t("penalty", { raw: score.raw_score, penalty: score.penalty })}</p>
+      ) : null}
+      {score.feedback ? <p className="whitespace-pre-wrap text-body text-ink">{score.feedback}</p> : null}
+      {ratings.length ? (
+        <p className="flex flex-wrap gap-2">
+          {ratings.map((key) => (
+            <StatusPill key={key} tone="neutral">
+              {t("rating", { rating: tReview(`ratings.${key}`), value: score.ratings?.[key] ?? 0 })}
+            </StatusPill>
+          ))}
+        </p>
+      ) : null}
+    </section>
   );
 };
 

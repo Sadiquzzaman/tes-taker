@@ -2862,7 +2862,11 @@
         "create": "Homework written",
         "update": "Homework changed",
         "publish": "Homework published",
-        "cancel": "Homework withdrawn"
+        "cancel": "Homework withdrawn",
+        "score": "Homework scored",
+        "return": "Homework returned for redo",
+        "publish_scores": "Homework scores published",
+        "remind": "Homework reminder sent"
       },
       "homework_settings": {
         "update": "Homework settings changed"
@@ -4029,7 +4033,10 @@
       "HOMEWORK_NO_MORE_SUBMISSIONS": "You have handed this in as many times as allowed.",
       "HOMEWORK_ALREADY_SCORED": "Your teacher has scored this; it cannot be handed in again.",
       "HOMEWORK_SUBMISSION_EMPTY": "Add your work before handing it in.",
-      "HOMEWORK_TOO_MANY_FILES": "At most {max, number} files in one hand-in."
+      "HOMEWORK_TOO_MANY_FILES": "At most {max, number} files in one hand-in.",
+      "HOMEWORK_SCORE_INVALID": "A score can be at most {max, number}.",
+      "HOMEWORK_STUDENT_NOT_SET": "This homework is not set to one of these students.",
+      "HOMEWORK_NOT_LATEST": "Only the latest hand-in can be returned."
     },
     "handedIn": "Handed in (version {version, number})",
     "myWork": {
@@ -4053,10 +4060,14 @@
         "SUBMITTED": "Handed in",
         "RETURNED": "Returned for redo",
         "SCORED": "Scored"
-      }
+      },
+      "score": "Your score",
+      "notHandedIn": "Not handed in",
+      "penalty": "Scored {raw, number}; {penalty, number} taken off for handing in late.",
+      "rating": "{rating}: {value, number}/5"
     },
     "submissions": {
-      "title": "Submissions",
+      "title": "Review",
       "summary": "{handedIn, number} of {total, number} handed in",
       "student": "Student",
       "state": "State",
@@ -4068,7 +4079,55 @@
       "open": "Open",
       "openFor": "Open {name}'s work",
       "empty": "No students yet",
-      "loadFailed": "Submissions could not be loaded."
+      "loadFailed": "The review could not be loaded.",
+      "score": "Score",
+      "scoreFor": "Score for {name}",
+      "remark": "Remark",
+      "remarkFor": "Remark for {name}",
+      "feedback": "Feedback",
+      "ratingFor": "{rating} for {name}",
+      "ratings": {
+        "neatness": "Neatness",
+        "effort": "Effort",
+        "on_time": "On time"
+      },
+      "counts": {
+        "students": "Students",
+        "handedIn": "Handed in",
+        "late": "Late",
+        "missing": "Missing",
+        "scored": "Scored"
+      },
+      "remind": "Remind missing",
+      "remindTitle": "Remind students who have not handed in?",
+      "remindDetail": "{count, plural, one {# student gets} other {# students get}} a notice in the app.",
+      "smsGuardians": "Also send an SMS to their guardians",
+      "smsGuardiansHint": "Uses your SMS credits. Guardians get at most one reminder a day per homework.",
+      "remindSend": "Send reminder",
+      "reminded": "Reminded {students, number} students; {sms, number} SMS queued.",
+      "publish": "Publish scores",
+      "publishTitle": "Publish the scores?",
+      "publishDetail": "{scored, number} of {total, number} students are scored. Students see their score and feedback, and are told. Scores you change later are shown to them straight away.",
+      "publishedDetail": "Students can see their scores.",
+      "publishedOn": "Scores published {when}. Changes are shown to students straight away.",
+      "notPublished": "Scores are not published yet; students do not see them.",
+      "saveScore": "Save score",
+      "saveAll": "Save all",
+      "unsaved": "{count, plural, one {# change not saved} other {# changes not saved}}",
+      "saved": "Saved",
+      "savedDetail": "{count, plural, one {# score saved.} other {# scores saved.}}",
+      "notSaved": "Not saved",
+      "scoreInvalid": "Enter a number from 0 to {max, number}, with at most two decimals.",
+      "lateHint": "This was handed in late; the late penalty in homework settings is taken off.",
+      "penaltyTaken": "{penalty, number} marks were taken off for handing in late.",
+      "return": "Return for redo",
+      "returnTitle": "Return this work for redo?",
+      "returnDetail": "The student is told and can hand it in once more.",
+      "returnNote": "Note for the student (optional)",
+      "returned": "Returned; the student was told.",
+      "notHandedIn": "Not handed in",
+      "paperHint": "Type each student's score from their paper. Tick “Not handed in” for students who did not hand it in.",
+      "cancel": "Cancel"
     },
     "settings": {
       "title": "Homework settings",
