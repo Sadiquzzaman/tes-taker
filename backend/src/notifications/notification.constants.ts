@@ -42,6 +42,8 @@ export const NOTIFICATION_EVENTS = {
   SMS_LOW_CREDIT: 'sms.low_credit',
   ATTENDANCE_CLASS_CANCELLED: 'attendance.class_cancelled',
   ATTENDANCE_CLASS_RESTORED: 'attendance.class_restored',
+  /** A class's time or teacher changed for one day (P5-04); students and the teachers involved. */
+  ATTENDANCE_CLASS_CHANGED: 'attendance.class_changed',
   ATTENDANCE_LATE: 'attendance.late',
   ATTENDANCE_ABSENT: 'attendance.absent',
   ATTENDANCE_REPEAT_ABSENCE: 'attendance.repeat_absence',

@@ -1,4 +1,5 @@
 import { ClassAttendance1756230000000 } from '../../src/migrations/1756230000000-ClassAttendance';
+import { ClassSessionChanges1756300000000 } from '../../src/migrations/1756300000000-ClassSessionChanges';
 import { ClassSessionCloseCancel1756240000000 } from '../../src/migrations/1756240000000-ClassSessionCloseCancel';
 import { LeaveRequests1756250000000 } from '../../src/migrations/1756250000000-LeaveRequests';
 import { factories } from '../support/factories';
@@ -78,6 +79,8 @@ describe('ClassAttendance migration', () => {
       await new ClassSessionCloseCancel1756240000000().up(runner);
       // P3-06's leave link on class_attendance_records comes back too.
       await new LeaveRequests1756250000000().up(runner);
+      // P5-04's one-day change columns on class_attendance come back too.
+      await new ClassSessionChanges1756300000000().up(runner);
     } finally {
       await runner.release();
     }

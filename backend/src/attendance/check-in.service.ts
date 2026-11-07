@@ -17,6 +17,7 @@ import { ATTENDANCE_ERRORS } from './attendance-errors';
 import {
   CheckInState,
   checkInState,
+  clockIn,
   distanceMetres,
   isEdgeAccuracy,
   isImpossibleJump,
@@ -25,7 +26,7 @@ import {
   MAX_ACCURACY_M,
   SessionWindow,
 } from './class-session-time';
-import { ClassSessionsService, recordView, RecordView, SectionContext, sessionKey } from './class-sessions.service';
+import { ClassSessionsService, coveredByOther, recordView, RecordView, SectionContext, sessionKey } from './class-sessions.service';
 import { CheckInDto } from './dto/check-in.dto';
 import {
   AttendanceFlagEnum,
@@ -120,10 +121,16 @@ export class CheckInService {
     const timeZone = await this.orgSettings.timeZone(organizationId);
     const date = schoolDateIn(timeZone, now);
     const [closed = null] = await this.holidays.closedDays(organizationId, date, date);
-    const mine = (await this.mySlots(tenant, userId)).filter((item) => item.slot.day_of_week === isoDayOf(date));
+    const mine = [
+      ...(await this.mySlots(tenant, userId)).filter((item) => item.slot.day_of_week === isoDayOf(date)),
+      ...(await this.substituteSlots(tenant, userId, date)),
+    ].filter((item, index, all) => all.findIndex((other) => other.slot.id === item.slot.id) === index);
     const contexts = await this.sessions.contexts(organizationId, mine.map((item) => item.section_id));
-    const usable = mine.filter((item) => contexts.get(item.section_id)?.open);
-    const saved = await this.sessions.savedSessions(organizationId, usable.map((item) => item.slot.id), date, date);
+    const saved = await this.sessions.savedSessions(organizationId, mine.map((item) => item.slot.id), date, date);
+    // A teacher's class that another teacher takes as a substitute that day is not theirs (P5-04).
+    const usable = mine.filter(
+      (item) => contexts.get(item.section_id)?.open && !(item.role === AttendancePersonTypeEnum.TEACHER && coveredByOther(saved.get(sessionKey(item.slot.id, date)), userId)),
+    );
     const records = await this.sessions.records(organizationId, [...saved.values()].map((s) => s.id), userId);
 
     const classes = usable.map((item) => {
@@ -141,15 +148,18 @@ export class CheckInService {
     const organizationId = tenant.organizationId;
     const slot = await this.slots.findActive(organizationId, dto.slot_id);
     if (!slot) throw new NotFoundException({ message: 'Class not found', code: ATTENDANCE_ERRORS.CHECKIN_CLASS_NOT_FOUND });
-    const mine = (await this.mySlots(tenant, userId)).find((item) => item.slot.id === slot.id);
-    const context = (await this.sessions.contexts(organizationId, [slot.section_id])).get(slot.section_id);
-    if (!mine || !context?.open) {
-      throw new ForbiddenException({ message: 'You can check in only to your own classes', code: ATTENDANCE_ERRORS.CHECKIN_NOT_YOUR_CLASS });
-    }
-
     const now = this.clock.now();
     const timeZone = await this.orgSettings.timeZone(organizationId);
     const date = schoolDateIn(timeZone, now);
+    const mine =
+      (await this.mySlots(tenant, userId)).find((item) => item.slot.id === slot.id) ??
+      (await this.substituteSlots(tenant, userId, date)).find((item) => item.slot.id === slot.id);
+    const context = (await this.sessions.contexts(organizationId, [slot.section_id])).get(slot.section_id);
+    const today = (await this.sessions.savedSessions(organizationId, [slot.id], date, date)).get(sessionKey(slot.id, date));
+    if (!mine || !context?.open || (mine.role === AttendancePersonTypeEnum.TEACHER && coveredByOther(today, userId))) {
+      throw new ForbiddenException({ message: 'You can check in only to your own classes', code: ATTENDANCE_ERRORS.CHECKIN_NOT_YOUR_CLASS });
+    }
+
     if (slot.day_of_week !== isoDayOf(date)) {
       throw new ConflictException({ message: 'This class does not meet today', code: ATTENDANCE_ERRORS.CHECKIN_NO_CLASS_TODAY });
     }
@@ -262,6 +272,17 @@ export class CheckInService {
     return result;
   }
 
+  /** Classes the teacher takes as a substitute on `date` (P5-04), as their own slots that day. */
+  private async substituteSlots(tenant: Tenant, userId: string, date: string): Promise<MySlot[]> {
+    if (tenant.viaEnrolment || tenant.kind === OrganizationKindEnum.SOLO || !STAFF_ROLES.includes(tenant.memberRole)) return [];
+    const result: MySlot[] = [];
+    for (const session of await this.sessions.substitutedFor(tenant.organizationId, userId, date, date)) {
+      const slot = await this.slots.findActive(tenant.organizationId, session.routine_slot_id);
+      if (slot) result.push({ role: AttendancePersonTypeEnum.TEACHER, section_id: slot.section_id, slot });
+    }
+    return result;
+  }
+
   classView(
     item: MySlot,
     context: SectionContext,
@@ -291,8 +312,8 @@ export class CheckInService {
       section: { id: context.section.id, name: context.section.name, class_name: context.section.class?.class_name ?? '' },
       class_type: context.class_type,
       mode: context.mode,
-      start_time: item.slot.start_time,
-      end_time: item.slot.end_time,
+      start_time: clockIn(window.starts_at, timeZone),
+      end_time: clockIn(window.ends_at, timeZone),
       ...window,
       state,
       needs_location: inPerson,

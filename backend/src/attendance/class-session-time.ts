@@ -111,3 +111,7 @@ export function isImpossibleJump(metres: number, ms: number): boolean {
   const hours = Math.max(ms, 60_000) / 3_600_000;
   return metres / 1000 / hours > MAX_TRAVEL_KMH;
 }
+
+/** "HH:MM" of an instant in the time zone. */
+export const clockIn = (instant: Date, timeZone: string) =>
+  new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(instant);

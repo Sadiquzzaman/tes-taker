@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
 import { HolidaysService } from 'src/calendar/holidays.service';
-import { RoutineSlotsService } from 'src/calendar/routine-slots.service';
+import { RoutineSlotsService, SlotView } from 'src/calendar/routine-slots.service';
 import { ClosedDay } from 'src/calendar/closed-days';
 import { Tenant } from 'src/common/tenancy/tenant-context';
 import { addDays, daysBetween, isoDayOf, schoolDateIn } from 'src/common/utils/school-date.util';
@@ -11,9 +11,9 @@ import { ApprovedLeaveService } from './approved-leave.service';
 import { AttendanceClock } from './attendance-clock';
 import { ATTENDANCE_ERRORS } from './attendance-errors';
 import { attendancePct, countMark, emptyCounts } from './attendance-report';
-import { checkInState, countsFor } from './class-session-time';
-import { ClassSessionsService, recordView, RecordView, SectionContext, sessionKey } from './class-sessions.service';
-import { CheckInService } from './check-in.service';
+import { checkInState, clockIn, countsFor } from './class-session-time';
+import { ClassSessionsService, coveredByOther, recordView, RecordView, SectionContext, sessionKey } from './class-sessions.service';
+import { CheckInService, MySlot } from './check-in.service';
 import { AttendancePersonTypeEnum, AttendanceRecordEntity, AttendanceStatusEnum } from './entities/attendance-record.entity';
 import { ClassSessionEntity, ClassSessionStatusEnum } from './entities/class-session.entity';
 import { SectionAttendanceModeEnum } from './entities/section-attendance-settings.entity';
@@ -92,7 +92,20 @@ export class MyAttendanceService {
     const nextMonth = monthNo === 12 ? `${year + 1}-01-01` : `${year}-${String(monthNo + 1).padStart(2, '0')}-01`;
     const to = addDays(nextMonth, -1);
 
-    const mine = await this.checkIns.mySlots(tenant, userId);
+    const own = await this.checkIns.mySlots(tenant, userId);
+    // Classes they take as a substitute (P5-04) count on those dates only.
+    const covering = await this.sessions.substitutedFor(organizationId, userId, from, to);
+    const coverSlots = new Map<string, { section_id: string; slot: SlotView }>();
+    for (const session of covering) {
+      if (own.some((item) => item.slot.id === session.routine_slot_id) || coverSlots.has(session.routine_slot_id)) continue;
+      const slot = await this.slots.findActive(organizationId, session.routine_slot_id);
+      if (slot) coverSlots.set(slot.id, { section_id: slot.section_id, slot });
+    }
+    const coverDates = new Set(covering.map((session) => sessionKey(session.routine_slot_id, session.date)));
+    const mine: (MySlot & { coverOnly?: boolean })[] = [
+      ...own,
+      ...[...coverSlots.values()].map((item) => ({ role: AttendancePersonTypeEnum.TEACHER, section_id: item.section_id, slot: item.slot, coverOnly: true })),
+    ];
     const [closedDays, created, ownRecords, leave] = await Promise.all([
       this.holidays.closedDays(organizationId, from, to),
       this.slots.createdAt(organizationId, mine.map((item) => item.slot.id)),
@@ -120,6 +133,9 @@ export class MyAttendanceService {
         if (addedOn && date < schoolDateIn(timeZone, addedOn)) continue;
         if (item.since && date < schoolDateIn(timeZone, item.since)) continue;
         const session = saved.get(sessionKey(item.slot.id, date));
+        if (item.coverOnly && !coverDates.has(sessionKey(item.slot.id, date))) continue;
+        // Another teacher takes this class as a substitute that day (P5-04).
+        if (item.role === AttendancePersonTypeEnum.TEACHER && !coverDates.has(sessionKey(item.slot.id, date)) && coveredByOther(session, userId)) continue;
         const record = session ? (recordBySession.get(session.id) ?? null) : null;
         const window = this.sessions.window(context, item.slot, date, timeZone, session);
         // Added, or joined, after the class had started: it was never theirs (unless they checked in).
@@ -129,8 +145,8 @@ export class MyAttendanceService {
           slot_id: item.slot.id,
           role: item.role,
           section: sectionOf(context),
-          start_time: item.slot.start_time,
-          end_time: item.slot.end_time,
+          start_time: clockIn(window.starts_at, timeZone),
+          end_time: clockIn(window.ends_at, timeZone),
           status: statusOf(record, closed, context, checkInState(now, window), session, Boolean(leave.on(userId, date))),
           record: record ? recordView(record) : null,
         });
@@ -187,6 +203,5 @@ const sectionOf = (context: SectionContext) => ({
   class_name: context.section.class?.class_name ?? '',
 });
 
-/** "HH:MM" of an instant in the time zone. */
-export const clockIn = (instant: Date, timeZone: string) =>
-  new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(instant);
+/** "HH:MM" of an instant in the time zone (kept here for the modules that import it from this file). */
+export { clockIn };

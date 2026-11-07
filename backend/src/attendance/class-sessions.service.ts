@@ -10,7 +10,7 @@ import { BranchesService } from 'src/organizations/branches.service';
 import { OrgSettingsService } from 'src/organizations/org-settings.service';
 import { CHECKIN_OPENS_BEFORE_MINUTES, SessionWindow, sessionWindow } from './class-session-time';
 import { AttendanceRecordEntity } from './entities/attendance-record.entity';
-import { ClassSessionEntity } from './entities/class-session.entity';
+import { ClassSessionEntity, ClassSessionStatusEnum } from './entities/class-session.entity';
 import {
   SectionAttendanceModeEnum,
   SectionAttendanceSettingsEntity,
@@ -117,6 +117,8 @@ export class ClassSessionsService {
     const rows = await this.sessionRepo
       .createQueryBuilder('s')
       .leftJoinAndSelect('s.canceller', 'canceller')
+      .leftJoinAndSelect('s.substitute', 'substitute')
+      .leftJoinAndSelect('s.changer', 'changer')
       .where('s.organization_id = :organizationId', { organizationId })
       .andWhere('s.routine_slot_id IN (:...slotIds)', { slotIds: [...new Set(slotIds)] })
       .andWhere('s.date BETWEEN :from AND :to', { from, to })
@@ -155,7 +157,29 @@ export class ClassSessionsService {
       .execute();
     return repo.findOneOrFail({ where: { organization_id: organizationId, routine_slot_id: slotId, date } });
   }
+
+  /** Classes from `from` to `to` that the teacher takes as a substitute (P5-04), not cancelled. */
+  async substitutedFor(organizationId: string, teacherId: string, from: string, to: string): Promise<ClassSessionEntity[]> {
+    return this.sessionRepo
+      .createQueryBuilder('s')
+      .where('s.organization_id = :organizationId', { organizationId })
+      .andWhere('s.substitute_teacher_id = :teacherId', { teacherId })
+      .andWhere('s.date BETWEEN :from AND :to', { from, to })
+      .andWhere('s.status <> :cancelled', { cancelled: ClassSessionStatusEnum.CANCELLED })
+      .getMany();
+  }
 }
+
+/** Who teaches a class on its date: the substitute for that day, else the routine's teacher (P5-04). */
+export const teacherOf = (slot: Pick<SlotView, 'teacher_id'>, session?: Pick<ClassSessionEntity, 'substitute_teacher_id'> | null): string | null =>
+  session?.substitute_teacher_id ?? slot.teacher_id;
+
+/**
+ * Whether a teacher's slot is someone else's on this date: another teacher substitutes for it
+ * (P5-04). The substitute gets the class instead.
+ */
+export const coveredByOther = (session: Pick<ClassSessionEntity, 'substitute_teacher_id'> | null | undefined, teacherId: string): boolean =>
+  Boolean(session?.substitute_teacher_id && session.substitute_teacher_id !== teacherId);
 
 export function recordView(record: AttendanceRecordEntity): RecordView {
   return {
