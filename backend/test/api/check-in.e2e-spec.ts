@@ -97,6 +97,9 @@ describe('class check-in API', () => {
         slots: slots.map((slot) => ({ ...slot, teacher_id: teacher.id })),
       });
       expect(saved.status).toBe(200);
+      // Set up well before the dates the tests look at (a class counts only once its period existed and the student had joined).
+      await t.dataSource.query(`UPDATE routine_slots SET created_at = '2026-10-01 00:00:00' WHERE section_id = $1`, [section.id]);
+      await t.dataSource.query(`UPDATE enrolments SET joined_at = '2026-10-01T00:00:00Z' WHERE class_id = $1`, [classEntity.id]);
     }
     const slotId = enabled ? ((await t.dataSource.query(`SELECT id FROM routine_slots WHERE section_id = $1 AND is_active = '1' ORDER BY start_time`, [section.id])) as { id: string }[])[0]?.id : '';
     return {
@@ -161,6 +164,17 @@ describe('class check-in API', () => {
     // Sunday: the class does not meet.
     setNow(new Date('2026-11-08T10:00:00Z'));
     expect((await today(studentToken)).body.payload.classes).toEqual([]);
+  });
+
+  it('leaves out a class whose period was added after it started, so nobody sees it as Absent', async () => {
+    const { studentToken, section } = await school();
+    // The Saturday 16:00–17:30 (Dhaka) period is only added that evening, after the class started.
+    await t.dataSource.query(`UPDATE routine_slots SET created_at = '2026-11-07 16:30:00' WHERE section_id = $1`, [section.id]);
+    setNow(at('17:00:00'));
+    expect((await today(studentToken)).body.payload.classes).toEqual([]);
+    // The next Saturday it counts as usual.
+    setNow(new Date('2026-11-14T09:30:00Z'));
+    expect((await today(studentToken)).body.payload.classes).toHaveLength(1);
   });
 
   it('refuses before the window opens and after it closes, and opens 15 minutes before the start', async () => {
@@ -359,6 +373,7 @@ describe('class check-in API', () => {
     expect(
       (await call('PUT', `/attendance/setup/sections/${section.id}/slots`, ownerToken, { slots: [{ day_of_week: SAT, start_time: '16:00', end_time: '17:30' }] })).status,
     ).toBe(200);
+    await t.dataSource.query(`UPDATE routine_slots SET created_at = '2026-10-01 00:00:00' WHERE section_id = $1`, [section.id]);
     const unnamed = (await today(classTeacherToken)).body.payload.classes;
     expect(unnamed).toMatchObject([{ role: 'TEACHER' }]);
     expect((await checkIn(classTeacherToken, { slot_id: unnamed[0].slot_id, ...north(10), accuracy_m: 20 })).status).toBe(200);
@@ -405,6 +420,8 @@ describe('class check-in API', () => {
     ).toBe(200);
     const student = await make.student();
     await make.enrol({ id: created.body.payload.id }, student);
+    await t.dataSource.query(`UPDATE routine_slots SET created_at = '2026-10-01 00:00:00' WHERE section_id = $1`, [section.id]);
+    await t.dataSource.query(`UPDATE enrolments SET joined_at = '2026-10-01T00:00:00Z' WHERE class_id = $1`, [created.body.payload.id]);
     const studentToken = t.tokenFor(student, { context_type: 'individual_teacher', teacher_id: teacher.id });
 
     setNow(at('10:00:00'));

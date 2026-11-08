@@ -84,6 +84,8 @@ export interface SessionSummary {
   slot_id: string;
   date: string;
   section: { id: string; name: string; class_name: string };
+  /** The subject of the period (from the routine), or null for a whole-section class. */
+  subject: { id: string; name: string } | null;
   start_time: string;
   end_time: string;
   class_type: SectionClassTypeEnum;
@@ -700,6 +702,7 @@ export class SectionAttendanceService {
       slot_id: item.ref.slot.id,
       date: item.date,
       section: { id: item.context.section.id, name: item.context.section.name, class_name: item.context.section.class?.class_name ?? '' },
+      subject: item.ref.slot.subject,
       start_time: clockIn(item.window.starts_at, item.timeZone),
       end_time: clockIn(item.window.ends_at, item.timeZone),
       class_type: item.context.class_type,

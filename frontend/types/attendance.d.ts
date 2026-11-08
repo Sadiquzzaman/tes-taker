@@ -135,6 +135,8 @@ interface MyClass {
   date: string;
   role: "STUDENT" | "TEACHER";
   section: { id: string; name: string; class_name: string };
+  /** The period's subject from the routine; null (or missing) for a whole-section class. */
+  subject?: { id: string; name: string } | null;
   class_type: SectionClassType;
   mode: SectionAttendanceMode;
   start_time: string;
@@ -183,6 +185,8 @@ interface MyCalendar {
       slot_id: string;
       role: "STUDENT" | "TEACHER";
       section: { id: string; name: string; class_name: string };
+      /** The period's subject from the routine; null (or missing) for a whole-section class. */
+      subject?: { id: string; name: string } | null;
       start_time: string;
       end_time: string;
       status: CalendarStatus;
@@ -208,6 +212,8 @@ interface ClassSessionSummary {
   slot_id: string;
   date: string;
   section: { id: string; name: string; class_name: string };
+  /** The period's subject from the routine; null (or missing) for a whole-section class. */
+  subject?: { id: string; name: string } | null;
   start_time: string;
   end_time: string;
   class_type: SectionClassType;

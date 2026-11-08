@@ -9,6 +9,7 @@ import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
 import ClassAttendanceDrawer from "./ClassAttendanceDrawer";
+import { classLabel } from "@/utils/attendance/classLabel";
 
 const STATE_TONE = { UPCOMING: "neutral", OPEN: "primary", CLOSED: "neutral" } as const;
 /** Classes can be cancelled this many days ahead (the API's limit, ATT-19). */
@@ -72,7 +73,7 @@ const ClassAttendancePage = () => {
   }, [fetchDay, handleError]);
 
   const clock = (iso: string) => format.date(iso, { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: data?.time_zone });
-  const title = (row: ClassSessionSummary) => `${row.section.class_name} ${row.section.name}`;
+  const title = (row: ClassSessionSummary) => classLabel(row);
 
   const columns: TableColumn<ClassSessionSummary>[] = [
     {
@@ -164,7 +165,7 @@ const ClassAttendancePage = () => {
           setData((current) => (current ? { ...current, sessions: current.sessions.map((s) => (s.slot_id === detail.slot_id ? { ...s, counts: detail.counts } : s)) } : current));
         }}
         onCancelledOrRestored={(detail, cancelled) => {
-          triggerToast({ title: t(cancelled ? "cancelledToast" : "restoredToast", { section: `${detail.section.class_name} ${detail.section.name}` }), type: "success" });
+          triggerToast({ title: t(cancelled ? "cancelledToast" : "restoredToast", { section: classLabel(detail) }), type: "success" });
           setData((current) =>
             current
               ? {
@@ -179,7 +180,7 @@ const ClassAttendancePage = () => {
           );
         }}
         onChanged={(detail) => {
-          triggerToast({ title: t("changedToast", { section: `${detail.section.class_name} ${detail.section.name}` }), type: "success" });
+          triggerToast({ title: t("changedToast", { section: classLabel(detail) }), type: "success" });
           setData((current) =>
             current
               ? {
