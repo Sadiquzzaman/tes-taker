@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderApp } from "@/i18n/test-utils";
 import sidebarList from "@/utils/sidebarList";
 import ClassSetupPage from "./ClassSetupPage";
+import ScheduleImportDrawer from "./ScheduleImportDrawer";
 
 const get = vi.fn();
 const patch = vi.fn();
@@ -22,8 +23,6 @@ vi.mock("@/hooks/organization/useWorkspace", () => ({ default: () => workspace()
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => "/attendance-setup" }));
 
 const ok = <T,>(payload: T) => Promise.resolve({ data: { payload } });
-const failWith = (status: number, code: string, details?: unknown) =>
-  Promise.reject({ response: { status, data: { code, message: code, details } } });
 
 const MAIN: Branch = { id: "b-main", name: null, address: null, geo_lat: 23.75, geo_lng: 90.38, checkin_radius_m: 100, is_default: true, section_count: 3 };
 const FARMGATE: Branch = { id: "b-fg", name: "Farmgate", address: null, geo_lat: null, geo_lng: null, checkin_radius_m: 100, is_default: false, section_count: 0 };
@@ -141,123 +140,58 @@ describe("class setup page (ATT-16)", () => {
     await waitFor(() => expect(patch).toHaveBeenCalledWith(expect.stringMatching(/s7a$/), { branch_id: "b-fg" }));
   });
 
-  it("edits a schedule one line per time and saves it as weekly slots", async () => {
-    serve();
-    put.mockImplementation((_url: string, body: { slots: unknown[] }) => ok({ ...S7A, slots: [] , body }));
+  it("shows each section's timetable read-only, with its subjects, and sends changes to the Routine", async () => {
+    serve({ ...SETUP, sections: [{ ...S6A, slots: S6A.slots.map((x) => ({ ...x, subject: { id: "math", name: "Mathematics" } })) }, S6B, S7A] });
     renderApp(<ClassSetupPage />);
     await screen.findByRole("table");
-
-    fireEvent.click(table().getByRole("button", { name: "Edit the schedule of Class 7 A" }));
-    const drawer = within(await screen.findByRole("dialog", { name: "Schedule of Class 7 A" }));
-    // Seven day names fit a narrow drawer only in two or three columns, never seven.
-    const days = drawer.getByRole("checkbox", { name: "Wednesday" }).closest("div.grid") as HTMLElement;
-    expect(days.className).toContain("min-[360px]:grid-cols-3");
-    expect(days.className).not.toMatch(/grid-cols-[47]\b/);
-    const first = within(drawer.getByRole("group", { name: "Time 1" }));
-    fireEvent.click(first.getByRole("checkbox", { name: "Saturday" }));
-    fireEvent.click(first.getByRole("checkbox", { name: "Monday" }));
-    fireEvent.change(first.getByLabelText("Starts"), { target: { value: "16:00" } });
-    fireEvent.change(first.getByLabelText("Ends"), { target: { value: "17:30" } });
-    fireEvent.click(drawer.getByRole("button", { name: "Add another time" }));
-    const second = within(drawer.getByRole("group", { name: "Time 2" }));
-    fireEvent.click(second.getByRole("checkbox", { name: "Wednesday" }));
-    fireEvent.change(second.getByLabelText("Starts"), { target: { value: "18:00" } });
-    fireEvent.change(second.getByLabelText("Ends"), { target: { value: "19:00" } });
-    fireEvent.change(second.getByLabelText(/Teacher/), { target: { value: "t1" } });
-    fireEvent.click(drawer.getByRole("button", { name: "Save schedule" }));
-
-    await waitFor(() =>
-      expect(put).toHaveBeenCalledWith(expect.stringMatching(/\/attendance\/setup\/sections\/s7a\/slots$/), {
-        slots: [
-          { day_of_week: 6, start_time: "16:00", end_time: "17:30", teacher_id: null },
-          { day_of_week: 1, start_time: "16:00", end_time: "17:30", teacher_id: null },
-          { day_of_week: 3, start_time: "18:00", end_time: "19:00", teacher_id: "t1" },
-        ],
-      }),
-    );
-    expect(await screen.findByText("Schedule of Class 7 A saved")).toBeTruthy();
+    const sixA = within(rowFor("Class 6 A"));
+    expect(sixA.getByText("16:00–17:30 · Mathematics")).toBeTruthy();
+    expect(sixA.getByText("18:00–19:00 · Mathematics · Rina Akter")).toBeTruthy();
+    expect(sixA.getByRole("link", { name: "Edit the routine of Class 6 A" }).getAttribute("href")).toBe("/routine?section=s6a");
+    expect(within(rowFor("Class 6 B")).getByRole("link", { name: "Add periods in the Routine" }).getAttribute("href")).toBe("/routine?section=s6b");
+    // The timetable is no longer edited or imported here.
+    expect(table().queryByRole("button", { name: /Edit the schedule/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Import CSV" })).toBeNull();
+    expect(get).not.toHaveBeenCalledWith(expect.stringMatching(/assignable-teachers$/));
   });
 
-  it("checks the lines before saving and points at the line the API refuses", async () => {
-    serve();
-    put.mockImplementation(() => failWith(409, "SCHEDULE_TEACHER_CLASH", { slot: 2, section: { name: "B", class_name: "Class 6" } }));
-    renderApp(<ClassSetupPage />);
-    await screen.findByRole("table");
-
-    fireEvent.click(table().getByRole("button", { name: "Edit the schedule of Class 6 A" }));
-    const drawer = within(await screen.findByRole("dialog", { name: "Schedule of Class 6 A" }));
-    // Lines from the saved slots: Sat+Mon 16:00–17:30, Wed 18:00–19:00 with Rina.
-    const second = within(drawer.getByRole("group", { name: "Time 2" }));
-    expect(second.getByRole("checkbox", { name: "Wednesday" })).toHaveProperty("checked", true);
-    expect((second.getByLabelText(/Teacher/) as HTMLSelectElement).value).toBe("t1");
-
-    fireEvent.change(second.getByLabelText("Ends"), { target: { value: "17:00" } });
-    fireEvent.click(drawer.getByRole("button", { name: "Save schedule" }));
-    expect(await second.findByText("The end must be after the start.")).toBeTruthy();
-    expect(put).not.toHaveBeenCalled();
-
-    fireEvent.change(second.getByLabelText("Ends"), { target: { value: "19:00" } });
-    fireEvent.click(drawer.getByRole("button", { name: "Save schedule" }));
-    // Slot 2 of the request (Wednesday) belongs to the second line.
-    expect(await second.findByText("This teacher already has a class at this time (Class 6 B).")).toBeTruthy();
-  });
-
-  it("copies another section's schedule from the drawer", async () => {
-    serve();
-    post.mockReturnValue(ok({ ...S7A, slots: S6A.slots.map((s) => ({ ...s, teacher: null, teacher_id: null })) }));
-    renderApp(<ClassSetupPage />);
-    await screen.findByRole("table");
-
-    fireEvent.click(table().getByRole("button", { name: "Edit the schedule of Class 7 A" }));
-    const drawer = within(await screen.findByRole("dialog", { name: "Schedule of Class 7 A" }));
-    const source = drawer.getByLabelText("Copy from another section") as HTMLSelectElement;
-    // Only sections that have a schedule can be copied.
-    expect([...source.options].map((o) => o.text)).toEqual(["Choose a section", "Class 6 A"]);
-    fireEvent.change(source, { target: { value: "s6a" } });
-    fireEvent.click(drawer.getByRole("button", { name: "Copy" }));
-    await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/sections\/s7a\/copy$/), { from_section_id: "s6a" }));
-    expect(await screen.findByText("Schedule copied to Class 7 A")).toBeTruthy();
-  });
-
-  it("applies a schedule to the rest of a class or shift after a preview", async () => {
+  it("applies a section's settings to the rest of its class or shift after a preview, never its periods", async () => {
     serve();
     post.mockImplementation((_url: string, body: { dry_run: boolean; shift?: string }) =>
       ok({
         dry_run: body.dry_run,
         sections: body.shift
           ? [{ id: "s7a", name: "A", class_name: "Class 7", slots_before: 0, teachers_dropped: 0 }]
-          : [{ id: "s6b", name: "B", class_name: "Class 6", slots_before: 2, teachers_dropped: 1 }],
+          : [{ id: "s6b", name: "B", class_name: "Class 6", slots_before: 0, teachers_dropped: 0 }],
       }),
     );
     renderApp(<ClassSetupPage />);
     await screen.findByRole("table");
 
-    fireEvent.click(table().getByRole("button", { name: "Apply the schedule of Class 6 A to other sections" }));
-    const dialog = within(await screen.findByRole("dialog", { name: "Apply this schedule" }));
-    expect(await dialog.findByText("1 section will get this schedule:")).toBeTruthy();
+    fireEvent.click(table().getByRole("button", { name: "Apply the settings of Class 6 A to other sections" }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Apply these settings to other sections" }));
+    expect(await dialog.findByText("This section gets the settings:")).toBeTruthy();
     expect(dialog.getByText("Class 6 B")).toBeTruthy();
-    expect(dialog.getByText("replaces 2 times")).toBeTruthy();
-    expect(dialog.getByText("1 time with a teacher will be replaced.")).toBeTruthy();
     expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/attendance\/setup\/apply$/), {
       from_section_id: "s6a",
       class_id: "c-Class 6",
-      include_settings: false,
+      include_schedule: false,
+      include_settings: true,
       dry_run: true,
     });
 
     fireEvent.click(dialog.getByRole("radio", { name: "Every other section of the Morning shift" }));
     expect(await dialog.findByText("Class 7 A")).toBeTruthy();
-    fireEvent.click(dialog.getByRole("checkbox", { name: /Also copy in person/ }));
     fireEvent.click(dialog.getByRole("button", { name: "Apply to 1 section" }));
     await waitFor(() =>
       expect(post).toHaveBeenLastCalledWith(expect.stringMatching(/\/apply$/), {
         from_section_id: "s6a",
         shift: "MORNING",
+        include_schedule: false,
         include_settings: true,
         dry_run: false,
       }),
     );
-    expect(await screen.findByText("Schedule applied to 1 section")).toBeTruthy();
   });
 
   it("lets a teacher change only the sections they teach, without applying to others", async () => {
@@ -274,7 +208,7 @@ describe("class setup page (ATT-16)", () => {
     expect(table().getByLabelText("Class type of Class 6 A")).toHaveProperty("disabled", false);
     expect(table().getByLabelText("Class type of Class 6 B")).toHaveProperty("disabled", true);
     expect(table().queryByRole("button", { name: "Edit the schedule of Class 6 B" })).toBeNull();
-    expect(table().queryByRole("button", { name: /^Apply the schedule/ })).toBeNull();
+    expect(table().queryByRole("button", { name: /^Apply the settings/ })).toBeNull();
     // Teachers are not offered for slots (they keep the ones already set).
     expect(get).not.toHaveBeenCalledWith(expect.stringMatching(/assignable-teachers$/));
   });
@@ -300,11 +234,11 @@ const chooseFile = (drawer: HTMLElement, text: string) => {
 const CSV = "class,section,days,start,end\nClass 6,A,Sat;Mon,16:00,17:30\nClass 6,B,Sun,9:00 AM,10:00 AM\n";
 
 describe("schedule CSV import (ATT-16)", () => {
-  const openImport = async () => {
-    renderApp(<ClassSetupPage />);
-    await screen.findByRole("table");
-    fireEvent.click(screen.getByRole("button", { name: "Import CSV" }));
-    return await screen.findByRole("dialog", { name: "Import schedules from CSV" });
+  // The import opens from the Routine page; the drawer is tested on its own here.
+  const onImported = vi.fn();
+  const openImport = async (locale: "en" | "bn" = "en") => {
+    renderApp(<ScheduleImportDrawer open sessionId="ses-1" onClose={vi.fn()} onImported={onImported} />, { locale });
+    return await screen.findByRole("dialog", { name: locale === "en" ? "Import schedules from CSV" : "CSV থেকে সময়সূচি আনুন" });
   };
 
   it("checks the file, shows what each section gets, then imports and reloads", async () => {
@@ -338,8 +272,7 @@ describe("schedule CSV import (ATT-16)", () => {
 
     fireEvent.click(within(drawer).getByRole("button", { name: "Import 2 sections" }));
     await waitFor(() => expect(post).toHaveBeenLastCalledWith(expect.stringMatching(/\/attendance\/setup\/import$/), expect.objectContaining({ session_id: "ses-1" })));
-    expect(await screen.findByText("Schedules imported for 2 sections")).toBeTruthy();
-    expect(get.mock.calls.filter(([url]) => String(url).endsWith("/attendance/setup")).length).toBe(2);
+    await waitFor(() => expect(onImported).toHaveBeenCalledWith(2));
   });
 
   it("shows each row's problems and does not offer to import", async () => {
@@ -378,10 +311,7 @@ describe("schedule CSV import (ATT-16)", () => {
 
   it("reads in Bangla", async () => {
     serve();
-    renderApp(<ClassSetupPage />, { locale: "bn" });
-    await screen.findByRole("table");
-    fireEvent.click(screen.getByRole("button", { name: "CSV থেকে আনুন" }));
-    expect(await screen.findByRole("dialog", { name: "CSV থেকে সময়সূচি আনুন" })).toBeTruthy();
+    expect(await openImport("bn")).toBeTruthy();
   });
 });
 

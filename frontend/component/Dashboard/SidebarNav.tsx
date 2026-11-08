@@ -37,7 +37,8 @@ const SidebarNav = ({ items, activeRoute }: { items: SideBarList[]; activeRoute:
   // Toggles made on this page; they win over what was stored, which wins over the default.
   const [toggled, setToggled] = useState<Partial<Record<NavGroup, boolean>>>({});
 
-  const visible = items.filter((item) => !item.feature || (!loading && (!entitlements || entitlements.features?.[item.feature])));
+  const featureOn = (feature: string | string[]) => (Array.isArray(feature) ? feature : [feature]).some((key) => entitlements?.features?.[key]);
+  const visible = items.filter((item) => !item.feature || (!loading && (!entitlements || featureOn(item.feature))));
   const entries = navEntries(visible);
   const remembered = readOpenGroups(stored);
 

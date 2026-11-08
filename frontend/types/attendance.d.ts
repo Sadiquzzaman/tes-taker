@@ -40,6 +40,8 @@ interface ScheduleSlot {
   end_time: string;
   teacher_id: string | null;
   teacher: { id: string; full_name: string } | null;
+  /** The subject set in the routine (P5-04). */
+  subject?: { id: string; name: string } | null;
 }
 
 /** One row of `GET /attendance/setup`. */

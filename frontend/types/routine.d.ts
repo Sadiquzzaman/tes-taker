@@ -34,7 +34,10 @@ interface RoutineSlot {
 
 interface RoutineView {
   session: { id: string; name: string; status: string };
+  /** The caller may change at least one section. */
   can_manage: boolean;
+  /** Sections the caller may change: all for owners, admins and staff; the ones a teacher teaches. */
+  editable_section_ids: string[];
   sections: RoutineSection[];
   subject_classes: { offering_id: string; section_id: string; subject: { id: string; name: string }; teacher_ids: string[] }[];
   rooms: string[];
