@@ -189,7 +189,7 @@ export class SectionAttendanceService {
     const refs = (await this.visibleSlots(tenant, userId, day)).filter((ref) => ref.slot.day_of_week === isoDayOf(day));
     const loaded = await this.load(tenant, refs, day, timeZone, today);
     const sessions = loaded.map((item) => this.summary(item));
-    sessions.sort((a, b) => a.starts_at.getTime() - b.starts_at.getTime() || `${a.section.class_name} ${a.section.name}`.localeCompare(`${b.section.class_name} ${b.section.name}`));
+    sessions.sort((a, b) => a.starts_at.getTime() - b.starts_at.getTime() || `${a.section.class_name} ${a.section.name}`.localeCompare(`${b.section.class_name} ${b.section.name}`, 'en', { numeric: true }));
     const [closed = null] = await this.holidays.closedDays(organizationId, day, day);
     return { date: day, today, time_zone: timeZone, closed, sessions };
   }

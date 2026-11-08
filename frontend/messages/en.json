@@ -1608,7 +1608,14 @@
         "invalid": "Invalid number",
         "invitation_sent": "Invitation sent",
         "duplicate": "Duplicate in this list"
-      }
+      },
+      "sectionLabel": "[[Section]] (optional)",
+      "sectionHint": "Puts the student straight into this [[section]] of the current session.",
+      "sectionLater": "Choose later",
+      "addToSection": "Add to {section}",
+      "addedToSection": "Added to {section}",
+      "invitedToSection": "They join {section} after they sign up or log in.",
+      "pendingInSection": "They join once their account is verified."
     },
     "subjects": {
       "title": "Subjects",
@@ -1665,7 +1672,6 @@
       "cancelEdit": "Cancel change",
       "edit": "Change",
       "unassigned": "No teacher yet",
-      "assignInStep2": "Choose a teacher in step 2",
       "allClasses": "All [[classes]]",
       "allSubjects": "All subjects",
       "allTeachers": "All teachers",
@@ -1693,7 +1699,9 @@
       "allSections": "All [[sections]] of the [[class]]",
       "session": "Session",
       "sessionClosed": "This session is closed, so its teachers cannot be changed.",
-      "actions": "Actions"
+      "actions": "Actions",
+      "assignTeacherFor": "Teacher for {subject} in {section}",
+      "chooseTeacher": "Choose a teacher"
     }
   },
   "admin": {
@@ -2547,7 +2555,16 @@
         "needsSection": "Needs a [[section]]",
         "needsClass": "Add at least one [[class]] before finishing.",
         "needsSectionDetail": "Add a [[section]] to: {names}.",
-        "noSubjectsDetail": "No subjects yet in: {names}. You can finish now and add them later."
+        "noSubjectsDetail": "No subjects yet in: {names}. You can finish now and add them later.",
+        "students": "Students",
+        "needsTeacher": "Needs teachers",
+        "noStudents": "No students",
+        "needsTeacherDetail": "Subjects without a teacher (you can finish now and assign them later):",
+        "assignTeachers": "Assign subject teachers",
+        "noStudentsDetail": "No students yet in: {names}.",
+        "addStudents": "Add students",
+        "pinMissing": "Students and teachers can't check in on site until the school's location is set.",
+        "setPin": "Set the school's location"
       },
       "banner": {
         "title": "Finish setting up",

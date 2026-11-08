@@ -1,3 +1,6 @@
+import { DeepPartial } from 'typeorm';
+import { RolesEnum } from '../../src/common/enums/roles.enum';
+import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
 import { OrgSettingsEntity } from '../../src/organizations/entities/org-settings.entity';
 import { OrganizationEntity } from '../../src/organizations/entities/organization.entity';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
@@ -10,7 +13,8 @@ type Payload<T> = { payload: T };
 type Summary = {
   setup_completed_at: string | null;
   session: { id: string; name: string };
-  classes: Array<{ id: string; name: string; subject_count: number; section_count: number }>;
+  classes: Array<{ id: string; name: string; subject_count: number; section_count: number; student_count: number; subjects_without_teacher: string[] }>;
+  checkin_pin_missing: boolean;
 };
 
 /** The academic setup wizard (P2-04, FND-02): progress, finishing it, and the migration for existing schools. */
@@ -68,7 +72,7 @@ describe('academic setup API', () => {
     await call('POST', `/classes/${classId}/sections`, asAdmin(), { name: 'B' });
     const summary = (await call<Payload<Summary>>('GET', '/setup', asAdmin())).body.payload;
     // Section A comes with every new class.
-    expect(summary.classes).toEqual([{ id: classId, name: 'Class 6', subject_count: 0, section_count: 2 }]);
+    expect(summary.classes).toEqual([{ id: classId, name: 'Class 6', subject_count: 0, section_count: 2, student_count: 0, subjects_without_teacher: [] }]);
 
     const done = await call<Payload<Summary>>('POST', '/setup/complete', asAdmin());
     expect(done.status).toBe(200);
@@ -79,6 +83,35 @@ describe('academic setup API', () => {
     expect((await call<Payload<Summary>>('POST', '/setup/complete', asOwner())).body.payload.setup_completed_at).toBe(finishedAt);
     const settings = await call<Payload<{ setup_completed_at: string | null }>>('GET', `/organizations/${school.id}/settings`, asOwner());
     expect(settings.body.payload.setup_completed_at).toBe(finishedAt);
+  });
+
+  it('lists classes in natural order and warns about subjects without teachers, classes without students and a missing pin', async () => {
+    const { school, asOwner } = await newSchool();
+    const admin = await make.user(RolesEnum.SUPER_ADMIN);
+    const override = (key: string, value: boolean) =>
+      t.api.request('PUT', `/subscriptions/admin/organizations/${school.id}/overrides/${key}`, { body: { value, reason: 'setup warnings test' }, token: t.tokenFor(admin) });
+    const class10 = (await call<Payload<{ id: string }>>('POST', '/classes', asOwner(), { class_name: 'Class 10' })).body.payload.id;
+    const class6 = (await call<Payload<{ id: string }>>('POST', '/classes', asOwner(), { class_name: 'Class 6' })).body.payload.id;
+    const math = await t.dataSource.getRepository(SubjectEntity).save({ name: 'Math', code: 'MTH', organization_id: school.id } as DeepPartial<SubjectEntity>);
+    expect((await call('POST', `/classes/${class6}/subjects`, asOwner(), { subject_id: math.id })).status).toBe(201);
+    const [section10] = (await call<Payload<{ id: string }[]>>('GET', `/classes/${class10}/sections`, asOwner())).body.payload;
+    const mitu = await make.student({ full_name: 'Mitu' });
+    expect((await call('POST', `/sections/${section10.id}/enrolments`, asOwner(), { student_id: mitu.id })).status).toBe(201);
+
+    expect((await override('attendance', false)).status).toBe(200);
+    let summary = (await call<Payload<Summary>>('GET', '/setup', asOwner())).body.payload;
+    expect(summary.classes.map((c) => [c.name, c.student_count, c.subjects_without_teacher])).toEqual([
+      ['Class 6', 0, ['Math']],
+      ['Class 10', 1, []],
+    ]);
+    // Without attendance there is no check-in to set up.
+    expect(summary.checkin_pin_missing).toBe(false);
+
+    expect((await override('attendance', true)).status).toBe(200);
+    expect((await call<Payload<Summary>>('GET', '/setup', asOwner())).body.payload.checkin_pin_missing).toBe(true);
+    await t.dataSource.query(`UPDATE branches SET geo_lat = 23.75, geo_lng = 90.38 WHERE organization_id = $1 AND is_default`, [school.id]);
+    summary = (await call<Payload<Summary>>('GET', '/setup', asOwner())).body.payload;
+    expect(summary.checkin_pin_missing).toBe(false);
   });
 
   it('needs a section for every class in the default session', async () => {

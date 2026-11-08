@@ -27,9 +27,10 @@ const isFilled = (name: LevelName) =>
 
 /**
  * The owner names the workspace's two levels (FND-03): Class / Section, Course / Batch or their own
- * words in English and Bangla. Saving re-renders the app with the new names.
+ * words in English and Bangla. Saving re-renders the app with the new names; `onSaved` follows a
+ * successful save (the setup wizard moves on).
  */
-const LevelLabelsCard = () => {
+const LevelLabelsCard = ({ onSaved }: { onSaved?: () => void } = {}) => {
   const t = useTranslations("levelLabels");
   const router = useRouter();
   const { baseUrl, run } = useAcademicsRequest();
@@ -87,6 +88,7 @@ const LevelLabelsCard = () => {
     show(labels);
     setShowErrors(false);
     if (writeLevelLabelsCookie(labels)) startTransition(() => router.refresh());
+    onSaved?.();
   };
 
   if (failed) {
