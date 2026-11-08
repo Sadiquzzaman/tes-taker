@@ -42,3 +42,66 @@ export const datesBetween = (from: string, to: string): string[] => {
 /** The school date an item falls on (its start, in the organisation's time zone). */
 export const dateOf = (item: CalendarFeedItem, timeZone: string): string =>
   item.kind === "HOLIDAY" || item.kind === "CLASS" ? item.date : toZonedParts(item.starts_at, timeZone).date;
+
+/** Minutes since midnight of an instant on the organisation's clock. */
+export const minutesOf = (iso: string, timeZone: string): number => {
+  const [h, m] = toZonedParts(iso, timeZone).time.split(":").map(Number);
+  return h * 60 + m;
+};
+
+/** A timed item placed on a day's hour grid: minutes from midnight, and its column among overlapping items. */
+export interface Placed<T> {
+  item: T;
+  start: number;
+  end: number;
+  column: number;
+  columns: number;
+}
+
+/**
+ * Lays out one day's timed items as Google Calendar does: items that overlap share the width in
+ * columns. Short items (homework due at a time) take at least `min` minutes; an item that runs
+ * past midnight ends at midnight.
+ */
+export const layoutDay = <T extends { starts_at: string; ends_at: string }>(items: T[], timeZone: string, min = 30): Placed<T>[] => {
+  const sorted = items
+    .map((item) => {
+      const start = minutesOf(item.starts_at, timeZone);
+      const sameDay = toZonedParts(item.ends_at, timeZone).date === toZonedParts(item.starts_at, timeZone).date;
+      const end = sameDay ? minutesOf(item.ends_at, timeZone) : 24 * 60;
+      return { item, start, end: Math.min(24 * 60, Math.max(end, start + min)) };
+    })
+    .sort((a, b) => a.start - b.start || b.end - a.end);
+  const placed: Placed<T>[] = [];
+  let group: Placed<T>[] = [];
+  let columnEnds: number[] = [];
+  let groupEnd = -1;
+  const closeGroup = () => {
+    for (const entry of group) entry.columns = columnEnds.length;
+    group = [];
+    columnEnds = [];
+  };
+  for (const entry of sorted) {
+    if (entry.start >= groupEnd) {
+      closeGroup();
+      groupEnd = -1;
+    }
+    let column = columnEnds.findIndex((end) => end <= entry.start);
+    if (column === -1) {
+      column = columnEnds.length;
+      columnEnds.push(entry.end);
+    } else columnEnds[column] = entry.end;
+    const next = { ...entry, column, columns: 1 };
+    group.push(next);
+    placed.push(next);
+    groupEnd = Math.max(groupEnd, entry.end);
+  }
+  closeGroup();
+  return placed;
+};
+
+/** The hours an hour grid shows: 7:00 to 18:00, widened to fit every item. */
+export const hourRange = (placed: { start: number; end: number }[]): { first: number; last: number } => ({
+  first: Math.min(7, ...placed.map((entry) => Math.floor(entry.start / 60))),
+  last: Math.max(18, ...placed.map((entry) => Math.ceil(entry.end / 60))),
+});

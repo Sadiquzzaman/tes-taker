@@ -81,9 +81,17 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Platform",
+    label: "today",
+    route: "/today",
+    role: ["STUDENT", "TEACHER"],
+    image: <SidebarDashboardIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
     label: "dashboard",
     route: "/dashboard",
-    role: ["STUDENT", "TEACHER"],
+    // Students start on Today and switch workspace in the header; their dashboard was only a picker.
+    role: ["TEACHER"],
     image: <SidebarDashboardIconSVG width={16} />,
   },
   {
@@ -155,7 +163,7 @@ const sidebarList: SideBarList[] = [
     route: "/routine",
     group: "academics",
     role: ["STUDENT"],
-    feature: "calendar",
+    feature: ["calendar", "attendance"],
     image: <SidebarClassesIconSVG width={16} />,
   },
   {
@@ -165,7 +173,7 @@ const sidebarList: SideBarList[] = [
     group: "academics",
     role: ["TEACHER"],
     personalWorkspaceOnly: true,
-    feature: "calendar",
+    feature: ["calendar", "attendance"],
     image: <SidebarClassesIconSVG width={16} />,
   },
   {
@@ -175,7 +183,7 @@ const sidebarList: SideBarList[] = [
     group: "academics",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
-    feature: "calendar",
+    feature: ["calendar", "attendance"],
     image: <SidebarClassesIconSVG width={16} />,
   },
   {
@@ -321,6 +329,14 @@ const sidebarList: SideBarList[] = [
     role: ["TEACHER"],
     personalWorkspaceOnly: true,
     feature: "attendance",
+    image: <SidebarDashboardIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
+    label: "today",
+    route: "/today",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
     image: <SidebarDashboardIconSVG width={16} />,
   },
   {
@@ -526,7 +542,8 @@ const sidebarList: SideBarList[] = [
     route: "/my-attendance",
     group: "attendance",
     role: ["TEACHER"],
-    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    // Staff (assistants) teach no classes, so they have nothing to check in to.
+    memberRoles: ["OWNER", "ADMIN", "TEACHER"],
     feature: "attendance",
     image: <SidebarClassesIconSVG width={16} />,
   },

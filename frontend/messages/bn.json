@@ -38,9 +38,9 @@
     "grading": "মূল্যায়ন",
     "billing": "বিল ও প্ল্যান",
     "overview": "সারসংক্ষেপ",
-    "assistants": "সহকারী",
+    "assistants": "স্টাফ",
     "students": "শিক্ষার্থী",
-    "assignments": "দায়িত্ব বণ্টন",
+    "assignments": "বিষয় শিক্ষক",
     "account": "অ্যাকাউন্ট",
     "help": "সাহায্য",
     "features": "আরও ফিচার",
@@ -62,7 +62,8 @@
     "homework": "হোমওয়ার্ক",
     "homeworkSettings": "হোমওয়ার্কের সেটিংস",
     "routine": "রুটিন",
-    "calendar": "ক্যালেন্ডার"
+    "calendar": "ক্যালেন্ডার",
+    "today": "আজ"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -739,7 +740,8 @@
       "noDescription": "এই ক্লাসের কোনো বিবরণ নেই।",
       "signUp": "সাইন আপ",
       "logIn": "লগ ইন"
-    }
+    },
+    "introStudent": "আপনি যেসব [[class]]-এ পড়েন, সেগুলোর পরীক্ষা সহ।"
   },
   "discussions": {
     "scoped": "আলোচনা বিষয় অনুযায়ী আলাদা থাকে।",
@@ -1479,7 +1481,7 @@
     "roles": {
       "OWNER": "মালিক",
       "ADMIN": "অ্যাডমিন",
-      "ASSISTANT": "সহকারী",
+      "ASSISTANT": "স্টাফ",
       "TEACHER": "শিক্ষক",
       "STUDENT": "শিক্ষার্থী"
     },
@@ -1529,11 +1531,11 @@
     },
     "members": {
       "teachers": "শিক্ষক",
-      "assistants": "সহকারী",
+      "assistants": "স্টাফ",
       "students": "শিক্ষার্থী",
       "add": {
         "TEACHER": "শিক্ষক যোগ করুন",
-        "ASSISTANT": "সহকারী যোগ করুন",
+        "ASSISTANT": "স্টাফ যোগ করুন",
         "STUDENT": "শিক্ষার্থী যোগ করুন"
       },
       "idColumn": {
@@ -1578,7 +1580,7 @@
       "phoneListTitle": "একসঙ্গে কয়েকটি ফোন নম্বর যোগ করুন",
       "phoneListHint": {
         "TEACHER": "প্রতি লাইনে একটি বাংলাদেশি মোবাইল নম্বর। প্রতিটি সঠিক নম্বর শিক্ষক হিসেবে যুক্ত হবে। অ্যাকাউন্ট না থাকলে জানানো হবে, আমন্ত্রণ যাবে না।",
-        "ASSISTANT": "প্রতি লাইনে একটি বাংলাদেশি মোবাইল নম্বর। প্রতিটি সঠিক নম্বর সহকারী হিসেবে যুক্ত হবে। অ্যাকাউন্ট না থাকলে জানানো হবে, আমন্ত্রণ যাবে না।",
+        "ASSISTANT": "প্রতি লাইনে একটি বাংলাদেশি মোবাইল নম্বর। প্রতিটি সঠিক নম্বর স্টাফ হিসেবে যুক্ত হবে। অ্যাকাউন্ট না থাকলে জানানো হবে, আমন্ত্রণ যাবে না।",
         "STUDENT": "প্রতি লাইনে একটি বাংলাদেশি মোবাইল নম্বর। প্রতিটি সঠিক নম্বর শিক্ষার্থী হিসেবে যুক্ত হবে। অ্যাকাউন্ট না থাকলে জানানো হবে, আমন্ত্রণ যাবে না।"
       },
       "phoneListLabel": "ফোন নম্বর",
@@ -1607,7 +1609,14 @@
         "invalid": "ভুল নম্বর",
         "invitation_sent": "আমন্ত্রণ পাঠানো হয়েছে",
         "duplicate": "তালিকায় ডুপ্লিকেট"
-      }
+      },
+      "sectionLabel": "[[Section]] (ঐচ্ছিক)",
+      "sectionHint": "শিক্ষার্থীকে সরাসরি বর্তমান সেশনের এই [[section]]-এ যোগ করে।",
+      "sectionLater": "পরে বেছে নিন",
+      "addToSection": "{section}-এ যোগ করুন",
+      "addedToSection": "{section}-এ যোগ হয়েছে",
+      "invitedToSection": "সাইন আপ বা লগ ইন করলে তারা {section}-এ যোগ হবে।",
+      "pendingInSection": "অ্যাকাউন্ট যাচাই হলে তারা যোগ হবে।"
     },
     "subjects": {
       "title": "বিষয়",
@@ -1636,7 +1645,7 @@
       "deleted": "এটি বিষয়ের তালিকা থেকে সরানো হয়েছে।"
     },
     "assignments": {
-      "title": "শিক্ষক নিয়োগ",
+      "title": "বিষয় শিক্ষক",
       "intro": "[[class]]ে বিষয় যোগ করুন, তারপর প্রতিটি [[section]]ে কে কোন বিষয় পড়াবেন তা বাছাই করুন।",
       "step1": "১. [[class]]ে বিষয় যোগ করুন",
       "step2": "২. শিক্ষক বেছে নিন",
@@ -1664,7 +1673,6 @@
       "cancelEdit": "পরিবর্তন বাতিল",
       "edit": "বদলান",
       "unassigned": "এখনো শিক্ষক নেই",
-      "assignInStep2": "ধাপ ২-এ শিক্ষক বেছে নিন",
       "allClasses": "সব [[class]]",
       "allSubjects": "সব বিষয়",
       "allTeachers": "সব শিক্ষক",
@@ -1692,7 +1700,9 @@
       "allSections": "[[class]]ের সব [[section]]",
       "session": "সেশন",
       "sessionClosed": "এই সেশন বন্ধ, তাই এর শিক্ষক বদলানো যাবে না।",
-      "actions": "কাজ"
+      "actions": "কাজ",
+      "assignTeacherFor": "{section}-এ {subject}-এর শিক্ষক",
+      "chooseTeacher": "শিক্ষক বেছে নিন"
     }
   },
   "admin": {
@@ -2083,8 +2093,8 @@
     "schools": {
       "eyebrow": "স্কুল ও কোচিং সেন্টারের জন্য",
       "title": "পুরো প্রতিষ্ঠান চালান একটি অ্যাকাউন্ট থেকে",
-      "detail": "আপনার প্রতিষ্ঠান নিবন্ধন করুন, শিক্ষক, সহকারী ও শিক্ষার্থী যোগ করুন, আর কোন ক্লাসে কে কোন বিষয় পড়াবেন তা ঠিক করুন।",
-      "members": "শিক্ষক, সহকারী ও শিক্ষার্থী — একে একে, ফোন নম্বরের তালিকা বা CSV দিয়ে",
+      "detail": "আপনার প্রতিষ্ঠান নিবন্ধন করুন, শিক্ষক, স্টাফ ও শিক্ষার্থী যোগ করুন, আর কোন ক্লাসে কে কোন বিষয় পড়াবেন তা ঠিক করুন।",
+      "members": "শিক্ষক, স্টাফ ও শিক্ষার্থী — একে একে, ফোন নম্বরের তালিকা বা CSV দিয়ে",
       "subjects": "কোডসহ আপনার নিজস্ব বিষয়-তালিকা",
       "assignments": "প্রতিটি ক্লাসের প্রতিটি বিষয়ে শিক্ষক নিয়োগ",
       "cta": "প্রতিষ্ঠান নিবন্ধন করুন"
@@ -2546,7 +2556,16 @@
         "needsSection": "[[section]] দরকার",
         "needsClass": "শেষ করার আগে অন্তত একটি [[class]] যোগ করুন।",
         "needsSectionDetail": "এগুলোতে একটি [[section]] যোগ করুন: {names}।",
-        "noSubjectsDetail": "এগুলোতে এখনো বিষয় নেই: {names}। এখন শেষ করে পরে যোগ করতে পারেন।"
+        "noSubjectsDetail": "এগুলোতে এখনো বিষয় নেই: {names}। এখন শেষ করে পরে যোগ করতে পারেন।",
+        "students": "শিক্ষার্থী",
+        "needsTeacher": "শিক্ষক দরকার",
+        "noStudents": "শিক্ষার্থী নেই",
+        "needsTeacherDetail": "যেসব বিষয়ে শিক্ষক নেই (এখন শেষ করে পরে দিতে পারেন):",
+        "assignTeachers": "বিষয় শিক্ষক দিন",
+        "noStudentsDetail": "এখনো শিক্ষার্থী নেই: {names}।",
+        "addStudents": "শিক্ষার্থী যোগ করুন",
+        "pinMissing": "প্রতিষ্ঠানের অবস্থান না দেওয়া পর্যন্ত শিক্ষার্থী ও শিক্ষকরা সেখানে গিয়ে চেক-ইন করতে পারবেন না।",
+        "setPin": "প্রতিষ্ঠানের অবস্থান দিন"
       },
       "banner": {
         "title": "সেটআপ শেষ করুন",
@@ -2886,7 +2905,8 @@
       "routine": {
         "add": "রুটিনে ক্লাস যোগ",
         "change": "রুটিনের ক্লাস বদল",
-        "remove": "রুটিন থেকে ক্লাস সরানো"
+        "remove": "রুটিন থেকে ক্লাস সরানো",
+        "copy": "রুটিনের সপ্তাহ কপি"
       },
       "event": {
         "create": "ইভেন্ট যোগ",
@@ -3302,7 +3322,7 @@
   },
   "classSetup": {
     "title": "ক্লাস সেটআপ",
-    "intro": "প্রতিটি [[section]] কখন বসে এবং কীভাবে উপস্থিতি নেওয়া হয়। এই সময় থেকে চেক-ইন নিজে নিজে খোলে ও বন্ধ হয়।",
+    "intro": "প্রতিটি [[section]]ের হাজিরা কীভাবে নেওয়া হবে: সরাসরি বা অনলাইন, চেক-ইন বা কাগজের খাতা, এবং কখন থেকে দেরি। রুটিন তৈরি হয় রুটিন পেজে।",
     "loadFailed": "ক্লাস সেটআপ লোড করা যায়নি।",
     "sectionsIn": "{session} সেশনের [[sections]]",
     "session": "সেশন",
@@ -3318,7 +3338,7 @@
     "section": "[[Section]]",
     "schedule": "সাপ্তাহিক সময়সূচি",
     "branch": "শাখা",
-    "classType": "ক্লাস",
+    "classType": "ধরন",
     "mode": "উপস্থিতি",
     "grace": "দেরি ধরা হবে",
     "actions": "কাজ",
@@ -3348,38 +3368,15 @@
     "classTypeFor": "{section}-এর ক্লাসের ধরন",
     "modeFor": "{section}-এর উপস্থিতির পদ্ধতি",
     "graceFor": "{section}: দেরি ধরা হবে",
-    "editSchedule": "সময়সূচি",
-    "editScheduleFor": "{section}-এর সময়সূচি সম্পাদনা করুন",
-    "apply": "অন্যগুলোতে দিন…",
-    "applyFor": "{section}-এর সময়সূচি অন্য [[sections]]-এ দিন",
+    "apply": "সেটিংস অন্য সেকশনে দিন…",
+    "applyFor": "{section}-এর সেটিংস অন্য [[section]]ে দিন",
     "saved": "{section} সংরক্ষিত হয়েছে",
-    "scheduleSaved": "{section}-এর সময়সূচি সংরক্ষিত হয়েছে",
-    "copied": "{section}-এ সময়সূচি কপি হয়েছে",
     "applied": "{count, plural, other {#টি [[section]]-এ সময়সূচি দেওয়া হয়েছে}}",
     "empty": "এই সেশনে কোনো [[section]] নেই",
     "emptyHint": "আগে [[classes]] ও [[sections]] যোগ করুন; তারপর কখন বসে তা ঠিক করুন।",
     "goToClasses": "[[classes]]-এ যান",
-    "scheduleTitle": "{section}-এর সময়সূচি",
-    "scheduleHint": "প্রতিটি সময়ের জন্য একটি লাইন। একই শুরু ও শেষের দিনগুলোতে টিক দিন।",
-    "copyFrom": "অন্য [[section]] থেকে কপি করুন",
-    "copyPlaceholder": "একটি [[section]] বেছে নিন",
-    "copy": "কপি করুন",
-    "slotLabel": "সময় {number}",
     "start": "শুরু",
-    "end": "শেষ",
-    "teacher": "শিক্ষক",
-    "teacherHint": "ঐচ্ছিক। একজন শিক্ষক একই সময়ে দুটি ক্লাসে থাকতে পারেন না।",
-    "noTeacher": "কোনো শিক্ষক নয়",
-    "removeSlot": "এই সময় সরান",
-    "addSlot": "আরেকটি সময় যোগ করুন",
     "cancel": "বাতিল",
-    "saveSchedule": "সময়সূচি সংরক্ষণ করুন",
-    "rowErrors": {
-      "noDays": "অন্তত একটি দিনে টিক দিন।",
-      "noTimes": "শুরু ও শেষের সময় লিখুন।",
-      "endBeforeStart": "শেষের সময় শুরুর পরে হতে হবে।",
-      "overlap": "একই দিনে এটি আরেকটি সময়ের সঙ্গে মিলে যায়।"
-    },
     "errors": {
       "SCHEDULE_TIME_INVALID": "শেষের সময় শুরুর পরে হতে হবে।",
       "SCHEDULE_OVERLAP": "একই দিনে এটি আরেকটি সময়ের সঙ্গে মিলে যায়।",
@@ -3388,21 +3385,10 @@
       "ATTENDANCE_SETUP_TEACHER_INVALID": "এই প্রতিষ্ঠানের একজন শিক্ষক বেছে নিন।",
       "ATTENDANCE_SETUP_SOURCE_INVALID": "একই সেশনের অন্য [[section]] থেকে কপি করুন।"
     },
-    "applyTitle": "এই সময়সূচি অন্যগুলোতে দিন",
-    "applyIntro": "{section}-এর সময়সূচি অন্য [[sections]]-এ ব্যবহার করুন। তাদের নিজেদের সময়সূচি বদলে যাবে; শিক্ষক কপি হবে না।",
     "applyTo": "কোথায় দেবেন",
     "applyToClass": "{class}-এর বাকি সব [[sections]]",
     "applyToShift": "{shift} শিফটের বাকি সব [[sections]]",
-    "includeSettings": "সরাসরি / অনলাইন, উপস্থিতির পদ্ধতি ও দেরির সময়ও কপি করুন",
-    "includeSettingsHint": "শাখা কখনো কপি হয় না।",
     "applyNone": "বদলানোর মতো অন্য কোনো [[section]] নেই।",
-    "applyWillReplace": "{count, plural, other {#টি [[section]] এই সময়সূচি পাবে:}}",
-    "applySlotsBefore": "{count, number}টি সময় বদলাবে",
-    "applyEmpty": "এখনো সময়সূচি নেই",
-    "applyTeachersDropped": "{count, plural, other {শিক্ষকসহ #টি সময় বদলে যাবে।}}",
-    "applyConfirm": "{count, plural, other {#টি [[section]]-এ দিন}}",
-    "importCsv": "CSV থেকে আনুন",
-    "imported": "{count, plural, other {#টি [[section]]-এর সময়সূচি আনা হয়েছে}}",
     "import": {
       "title": "CSV থেকে সময়সূচি আনুন",
       "intro": "প্রতিটি [[section]] ও সময়ের জন্য একটি লাইন। ফাইলের প্রতিটি [[section]] ঠিক তার তালিকার সময়গুলো পাবে; অন্য [[sections]] বদলাবে না।",
@@ -3448,7 +3434,15 @@
         "BRANCH_NOT_ALLOWED": "আপনি ক্লাস এক শাখা থেকে আরেক শাখায় সরাতে পারবেন না। প্রতিষ্ঠানের মালিক বা অ্যাডমিনকে বলুন।",
         "SETTINGS_CONFLICT": "এই [[section]]-এর আরেকটি লাইনে ভিন্ন সেটিংস আছে।"
       }
-    }
+    },
+    "addInRoutine": "রুটিনে পিরিয়ড যোগ করুন",
+    "editInRoutine": "রুটিনে বদলান",
+    "viewInRoutine": "রুটিনে দেখুন",
+    "editInRoutineFor": "{section}-এর রুটিন বদলান",
+    "applySettingsTitle": "এই সেটিংস অন্য [[section]]ে দিন",
+    "applySettingsIntro": "{section}-এর সরাসরি বা অনলাইন, হাজিরার পদ্ধতি ও “দেরি শুরু” নিচের [[section]]গুলোতে যাবে। শাখা ও পিরিয়ড যেমন আছে থাকবে।",
+    "applySettingsConfirm": "{count, plural, other {#টি [[section]]ে দিন}}",
+    "applySettingsWill": "{count, plural, other {এই #টি [[section]] সেটিংস পাবে:}}"
   },
   "myAttendance": {
     "title": "আমার উপস্থিতি",
@@ -4073,7 +4067,7 @@
       "dueHint": "জমার তারিখ না থাকলে খালি রাখুন।",
       "dueTime": "জমার সময়",
       "attachments": "শিক্ষার্থীদের জন্য ফাইল",
-      "attachmentsAccept": "ছবি, PDF, Word বা টেক্সট, প্রতিটি ২০ MB পর্যন্ত",
+      "attachmentsAccept": "ছবি, PDF, Word বা টেক্সট",
       "cancel": "বাতিল",
       "saveDraft": "খসড়া রাখুন",
       "publish": "প্রকাশ",
@@ -4108,7 +4102,7 @@
       "answer": "আপনার উত্তর",
       "files": "ছবি বা ফাইল",
       "filesOptional": "ছবি বা ফাইল (ঐচ্ছিক)",
-      "filesAccept": "ছবি, PDF, Word বা টেক্সট, প্রতিটি ২০ MB পর্যন্ত, সর্বোচ্চ {count, number}টি ফাইল",
+      "filesAccept": "ছবি, PDF, Word বা টেক্সট, সর্বোচ্চ {count, number}টি ফাইল",
       "combine": "আমার ছবিগুলো একটি PDF-এ রাখুন",
       "combineHint": "শিক্ষক একটি ফাইল পাবেন, প্রতিটি ছবির জন্য এক পাতা।",
       "submit": "জমা দিন",
@@ -4126,7 +4120,8 @@
       "score": "আপনার নম্বর",
       "notHandedIn": "জমা দেননি",
       "penalty": "পেয়েছেন {raw, number}; দেরিতে জমার জন্য {penalty, number} কাটা হয়েছে।",
-      "rating": "{rating}: {value, number}/৫"
+      "rating": "{rating}: {value, number}/৫",
+      "leftFirst": "{count, plural, =0 {একবারই জমা দিতে পারবেন।} other {জমা দেওয়ার পরও আরও #বার বদলাতে পারবেন।}}"
     },
     "submissions": {
       "title": "যাচাই",
@@ -4218,29 +4213,22 @@
   },
   "routine": {
     "title": "রুটিন",
-    "studentIntro": "প্রতি সপ্তাহে আপনার ক্লাস।",
-    "staffIntro": "সাপ্তাহিক ক্লাস রুটিন: কে কী পড়ান, কোথায় ও কখন।",
-    "tabs": {
-      "whole": "পুরো রুটিন",
-      "mine": "আমার রুটিন"
-    },
-    "mineTitle": "আমার সপ্তাহ",
-    "mineEmpty": "আপনার রুটিনে এখনো কোনো ক্লাস নেই",
-    "mineEmptyHint": "প্রতিষ্ঠান রুটিনে ক্লাস যোগ করলে এখানে দেখা যাবে।",
+    "studentIntro": "প্রতি সপ্তাহে আপনার [[section]]ের ক্লাস।",
+    "staffIntro": "প্রতিটি [[section]]ের সাপ্তাহিক রুটিন: কে কী পড়ান, কোথায় ও কখন।",
     "loadFailed": "রুটিন লোড করা যায়নি।",
     "session": "সেশন",
     "viewBy": "দেখুন",
     "by": {
-      "section": "সেকশন",
+      "section": "[[section]]",
       "teacher": "শিক্ষক",
       "room": "কক্ষ"
     },
     "nothingToChoose": "এখনো কিছু নেই",
-    "noSections": "এই সেশনে এখনো কোনো সেকশন নেই",
-    "add": "ক্লাস যোগ করুন",
-    "addTitle": "একটি ক্লাস যোগ করুন",
-    "editTitle": "এই ক্লাস বদলান",
-    "section": "সেকশন",
+    "noSections": "এই সেশনে এখনো কোনো [[section]] নেই",
+    "add": "পিরিয়ড যোগ করুন",
+    "addTitle": "একটি পিরিয়ড যোগ করুন",
+    "editTitle": "এই পিরিয়ড বদলান",
+    "section": "[[section]]",
     "day": "দিন",
     "start": "শুরু",
     "end": "শেষ",
@@ -4250,14 +4238,13 @@
     "noTeacher": "শিক্ষক নেই",
     "room": "কক্ষ",
     "roomHint": "ঐচ্ছিক, যেমন কক্ষ ২০১ বা ল্যাব",
-    "roomShort": "কক্ষ: {room}",
     "noClasses": "ক্লাস নেই",
     "save": "সংরক্ষণ করুন",
     "saveAnyway": "তবুও সংরক্ষণ করুন",
     "cancel": "বাতিল",
     "saved": "রুটিন সংরক্ষিত",
     "remove": "সরান",
-    "removeTitle": "এই ক্লাসটি রুটিন থেকে সরাবেন?",
+    "removeTitle": "এই পিরিয়ড রুটিন থেকে সরাবেন?",
     "removeDetail": "এটি আর প্রতি সপ্তাহে হবে না। আগে নেওয়া হাজিরা থেকে যাবে।",
     "clash": {
       "TEACHER": "শিক্ষকের সময় মিলে গেছে",
@@ -4282,16 +4269,34 @@
     "errors": {
       "TIMES_REQUIRED": "শুরু ও শেষের সময় বেছে নিন।",
       "SCHEDULE_TIME_INVALID": "শেষের সময় শুরুর পরে হতে হবে।",
-      "SCHEDULE_OVERLAP": "এই সেকশনের ওই সময়ে আগে থেকেই ক্লাস আছে।",
-      "SCHEDULE_TOO_MANY": "একটি সেকশনে সপ্তাহে সর্বোচ্চ {max, number}টি ক্লাস থাকতে পারে।",
-      "ROUTINE_SUBJECT_INVALID": "এই সেকশনের একটি বিষয় বেছে নিন।",
+      "SCHEDULE_OVERLAP": "এই [[section]]ের ওই সময়ে আগে থেকেই ক্লাস আছে।",
+      "SCHEDULE_TOO_MANY": "একটি [[section]]ে সপ্তাহে সর্বোচ্চ {max, number}টি ক্লাস থাকতে পারে।",
+      "ROUTINE_SUBJECT_INVALID": "এই [[section]]ের একটি বিষয় বেছে নিন।",
       "ROUTINE_TEACHER_INVALID": "আপনার প্রতিষ্ঠানের একজন শিক্ষক বেছে নিন।",
-      "ROUTINE_NOT_FOUND": "এর মধ্যে ক্লাসটি সরানো হয়েছে। বন্ধ করে আবার লোড করুন।"
-    }
+      "ROUTINE_NOT_FOUND": "এর মধ্যে ক্লাসটি সরানো হয়েছে। বন্ধ করে আবার লোড করুন।",
+      "DAYS_REQUIRED": "অন্তত একটি দিন বেছে নিন।",
+      "ROUTINE_NOT_ALLOWED": "আপনি যে [[section]]গুলোতে পড়ান শুধু সেগুলোর রুটিন বদলাতে পারেন।"
+    },
+    "editorIntro": "প্রতিটি [[section]]ের সাপ্তাহিক রুটিন। পিরিয়ড যোগ করুন, অন্য [[section]] থেকে সপ্তাহ কপি করুন, বা CSV ইমপোর্ট করুন।",
+    "copyFrom": "অন্য [[section]] থেকে কপি",
+    "copyTitle": "{section}-এ একটি সপ্তাহ কপি করুন",
+    "copyIntro": "অন্য [[section]]ের পিরিয়ডগুলো এই [[section]]ের পিরিয়ডের জায়গা নেবে। বিষয় মিলিয়ে নেওয়া হবে; বিষয়ের শিক্ষক থাকলে বসানো হবে; কক্ষ কপি হবে না।",
+    "copyFromLabel": "যেখান থেকে কপি",
+    "chooseSection": "একটি [[section]] বেছে নিন",
+    "copy": "সপ্তাহ কপি করুন",
+    "copyConfirmTitle": "এই [[section]]ের সপ্তাহ বদলে দেবেন?",
+    "copyConfirmDetail": "{count, plural, =0 {[[section]]ে এখনো কোনো পিরিয়ড নেই।} other {এর #টি পিরিয়ড বদলে যাবে।}} আগে নেওয়া হাজিরা থেকে যাবে।",
+    "copied": "{count, plural, other {#টি পিরিয়ড কপি হয়েছে}}",
+    "copiedWithoutTeacher": "{count, plural, other {#টি পিরিয়ডে এখনো শিক্ষক নেই।}}",
+    "importCsv": "CSV ইমপোর্ট",
+    "imported": "{count, plural, other {#টি [[section]]ের রুটিন ইমপোর্ট হয়েছে}}",
+    "noSectionsStudent": "আপনি এখনো কোনো [[section]]ে নেই",
+    "teachesSubject": "{name} (এই বিষয় পড়ান)",
+    "days_label": "দিন"
   },
   "calendar": {
     "title": "ক্যালেন্ডার",
-    "intro": "আপনার ক্লাস, ইভেন্ট, পরীক্ষা ও ছুটি।",
+    "intro": "আপনার নিজের ক্লাস, ইভেন্ট, পরীক্ষা, হোমওয়ার্ক ও ছুটি — আপনি যে সব প্রতিষ্ঠান ও ক্লাসে আছেন, সবগুলোর।",
     "addEvent": "ইভেন্ট যোগ করুন",
     "previous": "আগের",
     "next": "পরের",
@@ -4307,12 +4312,14 @@
       "CLASS": "ক্লাস",
       "EVENT": "ইভেন্ট",
       "EXAM": "পরীক্ষা",
+      "HOMEWORK": "হোমওয়ার্ক",
       "HOLIDAY": "ছুটি"
     },
     "kinds": {
       "CLASS": "ক্লাস",
       "EVENT": "ইভেন্ট",
       "EXAM": "পরীক্ষা",
+      "HOMEWORK": "হোমওয়ার্ক",
       "HOLIDAY": "ছুটি"
     },
     "openItem": "{kind}: {title}, সময় {time}",
@@ -4349,7 +4356,7 @@
       "attendees": "কারা অংশ নেবে",
       "wholeOrg": "প্রতিষ্ঠানের সবাই",
       "sectionsHint": "সেকশন (তাদের শিক্ষার্থীরা):",
-      "teachersHint": "শিক্ষক:",
+      "teachersHint": "মানুষজন:",
       "save": "সংরক্ষণ করুন",
       "close": "বন্ধ করুন",
       "edit": "বদলান",
@@ -4425,6 +4432,51 @@
       "save": "সংরক্ষণ করুন",
       "cancel": "বাতিল",
       "saved": "রিমাইন্ডার সংরক্ষিত"
-    }
+    },
+    "due": "জমার শেষ সময়: {title}",
+    "dueAt": "{time}-এর মধ্যে জমা",
+    "handedIn": "জমা দেওয়া হয়েছে",
+    "notHandedIn": "এখনো জমা দেওয়া হয়নি",
+    "classCount": "{count, number}টি ক্লাস",
+    "allDay": "সারাদিন",
+    "openDayView": "দিনের ভিউ",
+    "workspace": "ওয়ার্কস্পেস",
+    "allWorkspaces": "সব ওয়ার্কস্পেস",
+    "settings": {
+      "open": "রিমাইন্ডার ও লিংক",
+      "title": "ক্যালেন্ডার সেটিংস",
+      "intro": "আপনার রিমাইন্ডার এবং গুগল বা অ্যাপল ক্যালেন্ডারের লিংক — আপনি এখন যে ওয়ার্কস্পেসে আছেন, তার জন্য।"
+    },
+    "details": {
+      "when": "কখন",
+      "section": "ক্লাস",
+      "teacher": "শিক্ষক",
+      "room": "রুম",
+      "place": "স্থান",
+      "class": "ক্লাস",
+      "subject": "বিষয়",
+      "sections": "যাদের জন্য",
+      "workspace": "ওয়ার্কস্পেস"
+    },
+    "openHomework": "হোমওয়ার্ক খুলুন",
+    "openRoutine": "রুটিনে দেখুন",
+    "otherWorkspace": "এটি {workspace}-এর। খুলতে সেই ওয়ার্কস্পেসে যান।"
+  },
+  "today": {
+    "title": "আজ",
+    "loadFailed": "আজকের সময়সূচি লোড করা যায়নি।",
+    "schedule": "আপনার দিন",
+    "checkInOpen": "চেক-ইন চালু আছে: {classes}",
+    "checkIn": "চেক-ইন করুন",
+    "dueTitle": "এই সপ্তাহে জমা",
+    "nothingDue": "এই সপ্তাহে কিছু জমা দিতে হবে না।",
+    "comingUpTitle": "সামনে যা আছে",
+    "nothingComingUp": "আগামী ৭ দিনে কোনো ইভেন্ট বা পরীক্ষা নেই।",
+    "openCalendar": "ক্যালেন্ডার খুলুন",
+    "noCalendar": "ক্যালেন্ডার চালু হলে আপনার সময়সূচি এখানে দেখাবে",
+    "noCalendarHint": "আপনার প্রতিষ্ঠানের প্ল্যানে ক্যালেন্ডার আছে? মালিক বা অ্যাডমিনকে চালু করতে বলুন।",
+    "schoolTitle": "আপনার প্রতিষ্ঠান",
+    "schoolIntro": "সেটআপ, মানুষজন ও হিসাব ওভারভিউতে আছে।",
+    "openOverview": "ওভারভিউ খুলুন"
   }
 }

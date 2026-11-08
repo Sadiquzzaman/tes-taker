@@ -357,6 +357,33 @@ export class HomeworkService {
     return this.views(tenant, userId, rows);
   }
 
+  /**
+   * Homework due from `start` (inclusive) to `end` (exclusive), for the person's calendar: a
+   * student's published homework set to them; a staff member's homework they set or that is for a
+   * subject class they teach (published or scheduled). Withdrawn homework and drafts are left out;
+   * none without the `homework` feature.
+   */
+  async dueBetween(tenant: Tenant, userId: string, start: Date, end: Date): Promise<HomeworkView[]> {
+    if (!(await this.hasFeature(tenant.organizationId))) return [];
+    if (!this.isStaff(tenant)) {
+      return (await this.mine(tenant, userId)).filter((homework) => homework.due_at && homework.due_at >= start && homework.due_at < end);
+    }
+    const organizationId = tenant.organizationId;
+    const taught = await this.sections.offeringIdsTaughtBy(organizationId, userId);
+    const rows = await this.homeworkRepo
+      .createQueryBuilder('h')
+      .where('h.organization_id = :organizationId AND h.status IN (:...statuses)', { organizationId, statuses: [HomeworkStatusEnum.PUBLISHED, HomeworkStatusEnum.SCHEDULED] })
+      .andWhere('h.due_at >= :start AND h.due_at < :end', { start, end })
+      .andWhere(
+        `(h.created_by = :userId OR EXISTS (SELECT 1 FROM homework_targets t WHERE t.homework_id = h.id AND t.offering_id = ANY(:taught)))`,
+        { userId, taught },
+      )
+      .orderBy('h.due_at', 'ASC')
+      .take(200)
+      .getMany();
+    return this.views(tenant, userId, rows);
+  }
+
   // ------------------------------------------------------------------ the homework job
 
   /**

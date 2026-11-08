@@ -18,6 +18,7 @@ import {
   CheckInState,
   checkInState,
   clockIn,
+  countsFor,
   distanceMetres,
   isEdgeAccuracy,
   isImpossibleJump,
@@ -48,6 +49,8 @@ export interface MyClassView {
   /** Whether the caller attends it as a student or teaches it (ATT-11). */
   role: AttendancePersonTypeEnum;
   section: { id: string; name: string; class_name: string };
+  /** The subject of the period (from the routine), or null for a whole-section class. */
+  subject: { id: string; name: string } | null;
   class_type: SectionClassTypeEnum;
   mode: SectionAttendanceModeEnum;
   start_time: string;
@@ -132,14 +135,24 @@ export class CheckInService {
       (item) => contexts.get(item.section_id)?.open && !(item.role === AttendancePersonTypeEnum.TEACHER && coveredByOther(saved.get(sessionKey(item.slot.id, date)), userId)),
     );
     const records = await this.sessions.records(organizationId, [...saved.values()].map((s) => s.id), userId);
+    const added = await this.slots.createdAt(organizationId, usable.map((item) => item.slot.id));
 
-    const classes = usable.map((item) => {
+    // Only classes that count for this person (their period existed, and they had joined, before the
+    // class started), unless they checked in — as on "My attendance" and for the closing job.
+    const counted = usable.filter((item) => {
+      const session = saved.get(sessionKey(item.slot.id, date));
+      if (session && records.get(session.id)?.length) return true;
+      const window = this.sessions.window(contexts.get(item.section_id) as SectionContext, item.slot, date, timeZone, session);
+      return countsFor(window, added.get(item.slot.id), item.since);
+    });
+
+    const classes = counted.map((item) => {
       const context = contexts.get(item.section_id) as SectionContext;
       const session = saved.get(sessionKey(item.slot.id, date));
       const record = session ? (records.get(session.id)?.[0] ?? null) : null;
       return this.classView(item, context, date, timeZone, now, closed, session, record);
     });
-    classes.sort((a, b) => a.starts_at.getTime() - b.starts_at.getTime() || a.section.class_name.localeCompare(b.section.class_name));
+    classes.sort((a, b) => a.starts_at.getTime() - b.starts_at.getTime() || a.section.class_name.localeCompare(b.section.class_name, 'en', { numeric: true }));
     const onLeave = Boolean((await this.leave.between(organizationId, date, date, [userId])).on(userId, date));
     return { date, server_time: now, time_zone: timeZone, closed, on_leave: onLeave, classes };
   }
@@ -310,6 +323,7 @@ export class CheckInService {
       date,
       role: item.role,
       section: { id: context.section.id, name: context.section.name, class_name: context.section.class?.class_name ?? '' },
+      subject: item.slot.subject,
       class_type: context.class_type,
       mode: context.mode,
       start_time: clockIn(window.starts_at, timeZone),

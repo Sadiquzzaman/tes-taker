@@ -38,7 +38,7 @@ describe("reminders (CAL-05)", () => {
     put.mockReturnValue(ok(settings({ mine: { ...settings().mine, CLASS: { offsets: [{ minutes: 120, channel: "IN_APP" }, { minutes: 15, channel: "SMS" }], own: true } } })));
     renderApp(<RemindersCard />);
     const mine = within((await screen.findByRole("heading", { name: "My reminders" })).closest("section") as HTMLElement);
-    expect(mine.getAllByText("30 minutes before, in the app").length).toBe(1);
+    expect((await mine.findAllByText("30 minutes before, in the app")).length).toBe(1);
     expect(mine.getByText("Off")).toBeTruthy();
     expect(mine.getAllByText("As set for everyone")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "Reminders for everyone" })).toBeTruthy();
@@ -82,7 +82,7 @@ describe("reminders (CAL-05)", () => {
     get.mockReturnValue(ok(settings({ can_manage: false })));
     renderApp(<RemindersCard />, { locale: "bn" });
     expect(await screen.findByRole("heading", { name: "আমার রিমাইন্ডার" })).toBeTruthy();
-    expect(screen.getAllByText("৩০ মিনিট আগে, অ্যাপে").length).toBe(1);
+    expect((await screen.findAllByText("৩০ মিনিট আগে, অ্যাপে")).length).toBe(1);
     expect(screen.queryByRole("heading", { name: "সবার জন্য রিমাইন্ডার" })).toBeNull();
   });
 });

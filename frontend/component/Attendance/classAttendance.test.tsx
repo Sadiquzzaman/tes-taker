@@ -79,6 +79,14 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
 describe("class attendance page (ATT-07, ATT-12)", () => {
+  it("names each class by its subject when the routine sets one", async () => {
+    serve({ ...LIST, sessions: [{ ...SUMMARY, subject: { id: "math", name: "Mathematics" } }] });
+    renderApp(<ClassAttendancePage />);
+    const table = within(await screen.findByRole("table"));
+    expect(table.getByText("Mathematics · Class 8 A")).toBeTruthy();
+    expect(table.getByRole("button", { name: "Open Mathematics · Class 8 A" })).toBeTruthy();
+  });
+
   it("lists the day's classes with counts, and opens a class with every student's status, flag and the teacher", async () => {
     serve();
     renderApp(<ClassAttendancePage />);

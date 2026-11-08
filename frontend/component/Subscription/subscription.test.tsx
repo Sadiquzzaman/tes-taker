@@ -119,12 +119,17 @@ describe("menu items behind a feature", () => {
       </EntitlementsContext.Provider>,
     );
 
-  it("are hidden while the plan has the feature off, and while loading", () => {
+  it("are hidden while the plan has the feature off, and while loading with nothing remembered", () => {
     renderGate(entitlementsState({ advanced_analytics: false }));
     expect(screen.queryByRole("link", { name: "Analytics" })).toBeNull();
     cleanup();
-    renderGate(entitlementsState({ advanced_analytics: true }, true));
+    renderGate({ ...entitlementsState({}, true), entitlements: null });
     expect(screen.queryByRole("link", { name: "Analytics" })).toBeNull();
+  });
+
+  it("show at once from the last remembered answer while loading, so the menu does not jump", () => {
+    renderGate(entitlementsState({ advanced_analytics: true }, true));
+    expect(screen.getByRole("link", { name: "Analytics" })).toBeTruthy();
   });
 
   it("are shown when the plan has it", () => {

@@ -10,6 +10,7 @@ import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
 import { currentPosition, shiftMonth, STATUS_TONE, todayStatus } from "@/utils/attendance/status";
 import AttendanceCalendar from "./AttendanceCalendar";
+import { classLabel } from "@/utils/attendance/classLabel";
 
 /** Check-in problems the page explains itself (messages `myAttendance.errors`). */
 const KNOWN_ERRORS = [
@@ -171,7 +172,7 @@ const MyAttendancePage = () => {
                 <li key={item.slot_id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-ink">{`${item.section.class_name} ${item.section.name}`}</span>
+                      <span className="font-medium text-ink">{classLabel(item)}</span>
                       {item.role === "TEACHER" ? <Badge tone="primary">{t("youTeach")}</Badge> : null}
                     </div>
                     <span className="text-body-sm text-ink-muted">
@@ -190,7 +191,7 @@ const MyAttendancePage = () => {
                       <span className="font-semibold">{t(`letter.${status}`)}</span> {statusText(item)}
                     </StatusPill>
                     {item.can_check_in ? (
-                      <Button size="md" onClick={() => void checkIn(item)} disabled={busySlot !== null} aria-label={t("checkInTo", { section: `${item.section.class_name} ${item.section.name}` })}>
+                      <Button size="md" onClick={() => void checkIn(item)} disabled={busySlot !== null} aria-label={t("checkInTo", { section: classLabel(item) })}>
                         {busySlot === item.slot_id ? t(item.needs_location ? "locating" : "checkingIn") : t("checkIn")}
                       </Button>
                     ) : null}

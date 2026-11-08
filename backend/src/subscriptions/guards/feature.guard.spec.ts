@@ -17,6 +17,9 @@ describe('FeatureGuard', () => {
     gated() {}
 
     open() {}
+
+    @RequiresFeature(FeatureKey.CALENDAR, FeatureKey.ATTENDANCE)
+    either() {}
   }
 
   const contextFor = (handler: keyof Routes) =>
@@ -28,11 +31,13 @@ describe('FeatureGuard', () => {
       return work();
     });
 
-  const guardWith = (hasFeature: boolean) => {
+  const guardWith = (hasFeature: boolean | FeatureKey[]) => {
+    const has = (key: string) => (Array.isArray(hasFeature) ? hasFeature.includes(key as FeatureKey) : hasFeature);
     const entitlements = {
       assertFeature: jest.fn(async (_org: string, key: string) => {
-        if (!hasFeature) throw new FeatureNotInPlanException(key);
+        if (!has(key)) throw new FeatureNotInPlanException(key);
       }),
+      hasFeature: jest.fn(async (_org: string, key: string) => has(key)),
     };
     return { guard: new FeatureGuard(new Reflector(), entitlements as never), entitlements };
   };
@@ -57,6 +62,16 @@ describe('FeatureGuard', () => {
       code: FEATURE_NOT_IN_PLAN,
       feature: FeatureKey.ALLOW_QUESTION_IMPORT_EXPORT,
     });
+  });
+
+  it('lets a route that names several features through with any one of them, else names the first', async () => {
+    let { guard } = guardWith([FeatureKey.ATTENDANCE]);
+    await expect(inWorkspace(() => guard.canActivate(contextFor('either')))).resolves.toBe(true);
+    ({ guard } = guardWith([FeatureKey.CALENDAR]));
+    await expect(inWorkspace(() => guard.canActivate(contextFor('either')))).resolves.toBe(true);
+    ({ guard } = guardWith([]));
+    const error = await inWorkspace(() => guard.canActivate(contextFor('either'))).catch((e: unknown) => e);
+    expect((error as ForbiddenException).getResponse()).toMatchObject({ code: FEATURE_NOT_IN_PLAN, feature: FeatureKey.CALENDAR });
   });
 
   it('refuses when no workspace is chosen', async () => {

@@ -1,7 +1,16 @@
-/** The person's calendar (P5-05, CAL-07): `GET /calendar/feed`. Times are ISO instants. */
+/**
+ * The person's calendar (P5-05, CAL-07): `GET /calendar/me` across all their workspaces (each item
+ * marked with its workspace), or `GET /calendar/feed` for one. Times are ISO instants.
+ */
 type CalendarEventType = "EXAM" | "MEETING" | "PARENT_MEETING" | "ACTIVITY" | "OTHER";
 
-type CalendarFeedItem =
+/** The workspace an item comes from: `personal_teacher`, `org:<id>` or `teacher:<id>`, and its name. */
+interface CalendarWorkspace {
+  key: string;
+  label: string;
+}
+
+type CalendarFeedItem = (
   | {
       kind: "CLASS";
       id: string;
@@ -18,13 +27,18 @@ type CalendarFeedItem =
     }
   | { kind: "EVENT"; id: string; starts_at: string; ends_at: string; title: string; event_type: CalendarEventType; place: string | null; cancelled: boolean }
   | { kind: "EXAM"; id: string; starts_at: string; ends_at: string; title: string; class_name: string | null }
-  | { kind: "HOLIDAY"; id: string; date: string; title: string | null; reason: "WEEKLY_OFF" | "HOLIDAY" };
+  /** Homework due: `starts_at` = `ends_at` = the due time. `handed_in` is null for staff. */
+  | { kind: "HOMEWORK"; id: string; starts_at: string; ends_at: string; title: string; subject: string; sections: string[]; handed_in: boolean | null }
+  | { kind: "HOLIDAY"; id: string; date: string; title: string | null; reason: "WEEKLY_OFF" | "HOLIDAY" }
+) & { workspace?: CalendarWorkspace };
 
 interface CalendarFeed {
   from: string;
   to: string;
   time_zone: string;
   items: CalendarFeedItem[];
+  /** `GET /calendar/me` only: the workspaces included. */
+  workspaces?: CalendarWorkspace[];
 }
 
 /** An event (CAL-03): `GET /events/:id`. */

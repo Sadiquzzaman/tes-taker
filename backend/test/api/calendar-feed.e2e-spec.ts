@@ -8,8 +8,22 @@ import { factories } from '../support/factories';
 import { createTestApp, TestApp } from '../support/test-app';
 
 type Body<T> = { payload: T; code?: string; message?: string };
-type Item = { kind: string; id: string; date?: string; starts_at?: string; title: string | null; subject?: string | null; room?: string | null; teacher?: string | null; role?: string; reason?: string };
-type Feed = { from: string; to: string; time_zone: string; items: Item[] };
+type Item = {
+  kind: string;
+  id: string;
+  date?: string;
+  starts_at?: string;
+  title: string | null;
+  subject?: string | null;
+  room?: string | null;
+  teacher?: string | null;
+  role?: string;
+  reason?: string;
+  sections?: string[];
+  handed_in?: boolean | null;
+  workspace?: { key: string; label: string };
+};
+type Feed = { from: string; to: string; time_zone: string; items: Item[]; workspaces?: { key: string; label: string }[] };
 
 // Saturday 5 December 2026 to Friday 11 December (Dhaka, UTC+6).
 const FROM = '2026-12-05';
@@ -70,6 +84,8 @@ describe('calendar feed API', () => {
       mitu,
       mituToken: token(mitu, OrganizationMemberRoleEnum.STUDENT),
       classId,
+      sectionId: section.id as string,
+      offering,
       slotId: slot.body.payload.id,
     };
   };
@@ -126,7 +142,7 @@ describe('calendar feed API', () => {
     const order = items.filter((item) => item.kind !== 'HOLIDAY').map((item) => item.kind);
     expect(order).toEqual(['CLASS', 'EVENT', 'EXAM']);
 
-    // Rina teaches the class; she did not make the exam. The owner sees every exam.
+    // Rina teaches the class; she did not make the exam. The owner made it.
     const teacher = (await feed(s.rinaToken)).body.payload.items;
     expect(teacher.find((item) => item.kind === 'CLASS')).toMatchObject({ role: 'TEACHER', subject: 'Math' });
     expect(teacher.some((item) => item.kind === 'EXAM')).toBe(false);
@@ -134,6 +150,79 @@ describe('calendar feed API', () => {
 
     const tooLong = await feed(s.mituToken, '2026-12-01', '2027-02-15');
     expect([tooLong.status, tooLong.body.code]).toEqual([400, 'CALENDAR_RANGE_INVALID']);
+  });
+
+  it("gives each person one calendar across all their workspaces, with homework due, and only their own", async () => {
+    const s = await school();
+    expect((await override(s.organization.id, 'homework', true)).status).toBe(200);
+    const homework = await call<{ id: string }>('POST', '/homework', s.rinaToken, {
+      title: 'Chapter 3',
+      instructions: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Do 1 to 10.' }] }] },
+      submission_type: 'FILE',
+      total_marks: 10,
+      due_at: '2026-12-09T12:00:00.000Z',
+      offering_ids: [s.offering],
+    });
+    expect(homework.status).toBe(201);
+    expect((await call('POST', `/homework/${homework.body.payload.id}/publish`, s.rinaToken, {})).status).toBe(200);
+    // Rina's event for her section: hers, not the owner's.
+    const lesson = await call<{ id: string }>('POST', '/events', s.rinaToken, {
+      type: 'ACTIVITY',
+      title: 'Science fair practice',
+      starts_at: '2026-12-07T08:00:00.000Z',
+      ends_at: '2026-12-07T09:00:00.000Z',
+      section_ids: [s.sectionId],
+    });
+    expect(lesson.status).toBe(201);
+
+    // Rina also teaches at a second school with the calendar, and a third without it.
+    const secondOwner = await make.teacher({ personal_teacher_enabled: false });
+    const second = await make.organization(secondOwner, { name: 'Second School' });
+    expect((await override(second.id, 'calendar', true)).status).toBe(200);
+    await make.member(second, s.rina, OrganizationMemberRoleEnum.TEACHER);
+    const secondToken = t.tokenFor(secondOwner, { session_mode: 'organization', context_type: 'organization', organization_id: second.id, member_role: OrganizationMemberRoleEnum.OWNER });
+    const meeting = await call<{ id: string }>('POST', '/events', secondToken, {
+      type: 'MEETING',
+      title: 'Staff meeting',
+      starts_at: '2026-12-10T10:00:00.000Z',
+      ends_at: '2026-12-10T11:00:00.000Z',
+      whole_org: true,
+    });
+    expect(meeting.status).toBe(201);
+    const third = await make.organization(await make.teacher({ personal_teacher_enabled: false }), { name: 'Third School' });
+    expect((await override(third.id, 'calendar', false)).status).toBe(200);
+    await make.member(third, s.rina, OrganizationMemberRoleEnum.TEACHER);
+
+    // No workspace needs to be chosen.
+    const mine = (who: UserEntity) => call<Feed>('GET', `/calendar/me?from=${FROM}&to=${TO}`, t.tokenFor(who));
+    const rina = await mine(s.rina);
+    expect(rina.status).toBe(200);
+    expect(rina.body.payload.workspaces?.map((w) => w.label).sort()).toEqual([s.organization.name, 'Second School'].sort());
+    const items = rina.body.payload.items;
+    expect(items.find((item) => item.kind === 'CLASS')).toMatchObject({ subject: 'Math', workspace: { label: s.organization.name } });
+    expect(items.find((item) => item.kind === 'EVENT' && item.id === meeting.body.payload.id)).toMatchObject({ title: 'Staff meeting', workspace: { label: 'Second School' } });
+    expect(items.find((item) => item.kind === 'HOMEWORK')).toMatchObject({
+      id: homework.body.payload.id,
+      title: 'Chapter 3',
+      subject: 'Math',
+      sections: ['Class 6 A'],
+      handed_in: null,
+      starts_at: '2026-12-09T12:00:00.000Z',
+    });
+    // Sorted by time across workspaces: the meeting (Thursday) is last.
+    expect(items.filter((item) => item.kind !== 'HOLIDAY').map((item) => item.title)).toEqual(['Class 6 A', 'Science fair practice', 'Chapter 3', 'Staff meeting']);
+
+    // The student sees the homework as not handed in yet.
+    expect((await mine(s.mitu)).body.payload.items.find((item) => item.kind === 'HOMEWORK')).toMatchObject({ handed_in: false });
+    // The owner doesn't teach the subject or attend Rina's event: neither is on their own calendar,
+    // though the events list still shows them every event.
+    const owner = (await mine(s.owner)).body.payload.items;
+    expect(owner.some((item) => item.kind === 'HOMEWORK' || item.id === lesson.body.payload.id)).toBe(false);
+    const events = await call<{ id: string }[]>('GET', `/events?from=${FROM}&to=${TO}`, s.ownerToken);
+    expect(events.body.payload.some((event) => event.id === lesson.body.payload.id)).toBe(true);
+
+    const tooLong = await call('GET', '/calendar/me?from=2026-12-01&to=2027-02-15', t.tokenFor(s.rina));
+    expect(tooLong.status).toBe(400);
   });
 
   it('gives a private subscription link that Google or Apple Calendar can read, and turns it off', async () => {

@@ -20,7 +20,18 @@ export const useClock = () => {
  * A week of routine slots, Saturday first, one column per day (stacked on phones). Each slot shows
  * its time, subject, section, teacher and room; a clash is marked. `onOpen` makes slots buttons.
  */
-const RoutineWeek = ({ slots, show, onOpen }: { slots: RoutineSlot[]; show: { section?: boolean; teacher?: boolean }; onOpen?: (slot: RoutineSlot) => void }) => {
+const RoutineWeek = ({
+  slots,
+  show,
+  onOpen,
+  canOpen = () => true,
+}: {
+  slots: RoutineSlot[];
+  show: { section?: boolean; teacher?: boolean };
+  onOpen?: (slot: RoutineSlot) => void;
+  /** Whether a period opens for editing (the caller may change its section). */
+  canOpen?: (slot: RoutineSlot) => boolean;
+}) => {
   const t = useTranslations("routine");
   const clock = useClock();
   const days = SCHOOL_WEEK;
@@ -42,13 +53,18 @@ const RoutineWeek = ({ slots, show, onOpen }: { slots: RoutineSlot[]; show: { se
                   <span className="font-medium text-ink">{slot.subject?.name ?? t("noSubject")}</span>
                   {show.section ? <span className="text-body-sm text-ink">{sectionLabel(slot.section)}</span> : null}
                   {show.teacher !== false && slot.teacher ? <span className="text-body-sm text-ink-muted">{slot.teacher.full_name}</span> : null}
-                  {slot.room ? <span className="text-body-sm text-ink-muted">{t("roomShort", { room: slot.room })}</span> : null}
+                  {slot.room ? (
+                    <span className="text-body-sm text-ink-muted">
+                      <span className="sr-only">{t("room")}: </span>
+                      {slot.room}
+                    </span>
+                  ) : null}
                   {slot.clashes.length ? (
                     <StatusPill tone="warning">{slot.clashes.some((c) => c.kind === "TEACHER") ? t("clash.TEACHER") : t("clash.ROOM")}</StatusPill>
                   ) : null}
                 </>
               );
-              return onOpen ? (
+              return onOpen && canOpen(slot) ? (
                 <button
                   key={slot.id}
                   type="button"

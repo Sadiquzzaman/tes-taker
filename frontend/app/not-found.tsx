@@ -15,7 +15,7 @@ export default async function NotFound() {
             <h1 className="text-display font-semibold text-ink">{t("heading")}</h1>
             <p className="text-body text-ink-muted">{t("detail")}</p>
           </div>
-          <NextLink href="/dashboard" className={buttonClasses()}>
+          <NextLink href="/today" className={buttonClasses()}>
             {t("home")}
           </NextLink>
         </div>

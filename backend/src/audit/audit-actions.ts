@@ -91,6 +91,7 @@ export const AUDIT_ACTIONS = {
   ROUTINE_ADD: 'routine.add',
   ROUTINE_CHANGE: 'routine.change',
   ROUTINE_REMOVE: 'routine.remove',
+  ROUTINE_COPY: 'routine.copy',
   EVENT_CREATE: 'event.create',
   EVENT_UPDATE: 'event.update',
   EVENT_CANCEL: 'event.cancel',

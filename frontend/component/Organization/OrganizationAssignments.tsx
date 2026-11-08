@@ -156,7 +156,7 @@ const OrganizationAssignmentsContent = () => {
 
   // Step 2: section(s) of the class, then a subject taught there, then a teacher.
   const classSections = useMemo(
-    () => sections.filter((s) => s.class_id === selectedClassId).sort((a, b) => a.name.localeCompare(b.name)),
+    () => sections.filter((s) => s.class_id === selectedClassId).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
     [sections, selectedClassId],
   );
   const targetSectionIds = useMemo(
@@ -313,6 +313,21 @@ const OrganizationAssignmentsContent = () => {
     }
   };
 
+  /** The table's own picker on an unassigned row: that subject class gets the teacher. */
+  const handleQuickAssign = async (row: AssignmentRow, teacherId: string) => {
+    if (!teacherId) return;
+    setSaving(true);
+    try {
+      await setTeachersOf(row.offering, { add: teacherId });
+      triggerToast({ title: t("assignedTitle"), description: t("assigned"), type: "success" });
+      await reload();
+    } catch (error) {
+      handleError(error as AxiosError<ApiError>);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleUnassign = async (row: AssignmentRow) => {
     setSaving(true);
     try {
@@ -388,7 +403,16 @@ const OrganizationAssignmentsContent = () => {
             align: "right" as const,
             cell: (row: AssignmentRow) =>
               row.unassigned ? (
-                <span className="text-body-sm text-ink-muted">{t("assignInStep2")}</span>
+                <Select
+                  label={t("assignTeacherFor", { subject: row.subject, section: `${row.className} ${row.sectionName}` })}
+                  hideLabel
+                  fieldClassName="ml-auto w-48"
+                  placeholder={t("chooseTeacher")}
+                  value=""
+                  disabled={saving}
+                  options={teachers.map((member) => ({ value: member.user.id, label: teacherLabel(member, teacherFallback) }))}
+                  onChange={(event) => void handleQuickAssign(row, event.target.value)}
+                />
               ) : (
                 <div className="flex justify-end gap-1">
                   <Button size="sm" variant="ghost" disabled={saving} onClick={() => handleEditAssignment(row)}>

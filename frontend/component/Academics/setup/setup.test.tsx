@@ -45,12 +45,14 @@ const routes = (table: Record<string, unknown>) => {
 
 const thisYear: AcademicSession = { id: "s1", name: "2026", start_date: "2026-01-01", end_date: "2026-12-31", status: "ACTIVE", is_default: true };
 const nextYear: AcademicSession = { id: "s2", name: "2027", start_date: "2027-01-01", end_date: "2027-12-31", status: "ACTIVE", is_default: false };
-const summary = (classes: AcademicSetupSummary["classes"], done = false): AcademicSetupSummary => ({
+const summary = (classes: AcademicSetupSummary["classes"], done = false, pinMissing = false): AcademicSetupSummary => ({
   setup_completed_at: done ? "2026-10-30T10:00:00Z" : null,
   session: { id: "s1", name: "2026", start_date: "2026-01-01", end_date: "2026-12-31" },
   classes,
+  checkin_pin_missing: pinMissing,
 });
-const class6 = { id: "c6", name: "Class 6", subject_count: 1, section_count: 1 };
+const class6 = { id: "c6", name: "Class 6", subject_count: 1, section_count: 1, student_count: 30, subjects_without_teacher: [] as string[] };
+const LABELS = { preset: "CLASS_SECTION", class: { en: { one: "Class", other: "Classes" }, bn: "ক্লাস" }, section: { en: { one: "Section", other: "Sections" }, bn: "সেকশন" } };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -103,6 +105,41 @@ describe("academic setup wizard (FND-02)", () => {
     for (let i = 0; i < 4; i += 1) next();
     expect(await screen.findByText("Add a section to: Class 6.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Finish setup" }).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("moves on to the session once the owner saves the names", async () => {
+    routes({ "/workspace/level-labels": LABELS, "/organizations/org-1/settings": { organization_id: "org-1", class_teacher_enabled: true, default_locale: "bn", setup_completed_at: null }, "/sessions": [thisYear] });
+    patch.mockResolvedValue({ data: { payload: { ...LABELS, preset: "COURSE_BATCH" } } });
+    renderApp(<SetupWizard />);
+    fireEvent.click(await screen.findByRole("button", { name: "Save names" }));
+    await waitFor(() => expect(patch).toHaveBeenCalledWith(expect.stringMatching(/\/workspace\/level-labels$/), { preset: "CLASS_SECTION" }));
+    expect(await screen.findByText("2026")).toBeTruthy();
+  });
+
+  it("warns about subjects without teachers, classes without students and the missing check-in location", async () => {
+    routes({
+      "/setup": summary(
+        [
+          { ...class6, subjects_without_teacher: ["English", "Math"] },
+          { id: "c7", name: "Class 7", subject_count: 1, section_count: 1, student_count: 0, subjects_without_teacher: [] },
+          { id: "c10", name: "Class 10", subject_count: 1, section_count: 1, student_count: 12, subjects_without_teacher: [] },
+        ],
+        false,
+        true,
+      ),
+    });
+    renderApp(<SetupWizard />);
+    for (let i = 0; i < 4; i += 1) next();
+    expect(await screen.findByText("Class 6: English, Math")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Assign subject teachers" }).getAttribute("href")).toBe("/organization/assignments");
+    expect(screen.getByText("No students yet in: Class 7.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Add students" }).getAttribute("href")).toBe("/organization/students");
+    expect(screen.getByRole("link", { name: "Set the school's location" }).getAttribute("href")).toBe("/attendance-branches");
+    // Warnings only: finishing is still allowed. Classes in natural order.
+    expect(screen.getByRole("button", { name: "Finish setup" }).hasAttribute("disabled")).toBe(false);
+    const rows = within(screen.getByRole("table")).getAllByRole("row").slice(1);
+    expect(rows.map((row) => row.querySelector("th, td")?.textContent)).toEqual(["Class 6", "Class 7", "Class 10"]);
+    expect(rows.map((row) => within(row).queryByText(/Needs teachers|No students|Ready/)?.textContent)).toEqual(["Needs teachers", "No students", "Ready"]);
   });
 
   it("shows admins the names without letting them change them", async () => {

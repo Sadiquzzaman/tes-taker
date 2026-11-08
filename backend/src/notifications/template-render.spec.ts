@@ -15,6 +15,11 @@ describe('renderTemplate (design §8.6)', () => {
     expect(en).toContain('10:30');
     expect(bn).toContain('১০:৩০');
     expect(bn).toMatch(/২০২৬/);
+    // A 24-hour clock in both languages: 20:00, never "৮:০০ PM".
+    const evening = { exam_start_at: '2026-11-02T14:00:00.000Z' };
+    expect(renderTemplate('{{exam_start_at}}', evening, { locale: 'bn', timeZone: 'Asia/Dhaka', html: false })).toContain('২০:০০');
+    expect(renderTemplate('{{exam_start_at}}', evening, { locale: 'bn', timeZone: 'Asia/Dhaka', html: false })).not.toMatch(/PM|AM/);
+    expect(renderTemplate('{{exam_start_at}}', evening, { locale: 'en', timeZone: 'Asia/Dhaka', html: false })).toContain('20:00');
   });
 
   it('shows school dates (`*_on`) as the day and month, never shifted by a time zone', () => {

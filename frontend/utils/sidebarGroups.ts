@@ -4,6 +4,7 @@
  * the daily pages first, then its setup pages).
  */
 export const NAV_ITEM_ORDER: SideBarList["label"][] = [
+  "today",
   "overview",
   "dashboard",
   "organizations",

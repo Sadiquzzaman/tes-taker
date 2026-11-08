@@ -84,6 +84,8 @@ export interface SessionSummary {
   slot_id: string;
   date: string;
   section: { id: string; name: string; class_name: string };
+  /** The subject of the period (from the routine), or null for a whole-section class. */
+  subject: { id: string; name: string } | null;
   start_time: string;
   end_time: string;
   class_type: SectionClassTypeEnum;
@@ -187,7 +189,7 @@ export class SectionAttendanceService {
     const refs = (await this.visibleSlots(tenant, userId, day)).filter((ref) => ref.slot.day_of_week === isoDayOf(day));
     const loaded = await this.load(tenant, refs, day, timeZone, today);
     const sessions = loaded.map((item) => this.summary(item));
-    sessions.sort((a, b) => a.starts_at.getTime() - b.starts_at.getTime() || `${a.section.class_name} ${a.section.name}`.localeCompare(`${b.section.class_name} ${b.section.name}`));
+    sessions.sort((a, b) => a.starts_at.getTime() - b.starts_at.getTime() || `${a.section.class_name} ${a.section.name}`.localeCompare(`${b.section.class_name} ${b.section.name}`, 'en', { numeric: true }));
     const [closed = null] = await this.holidays.closedDays(organizationId, day, day);
     return { date: day, today, time_zone: timeZone, closed, sessions };
   }
@@ -700,6 +702,7 @@ export class SectionAttendanceService {
       slot_id: item.ref.slot.id,
       date: item.date,
       section: { id: item.context.section.id, name: item.context.section.name, class_name: item.context.section.class?.class_name ?? '' },
+      subject: item.ref.slot.subject,
       start_time: clockIn(item.window.starts_at, item.timeZone),
       end_time: clockIn(item.window.ends_at, item.timeZone),
       class_type: item.context.class_type,

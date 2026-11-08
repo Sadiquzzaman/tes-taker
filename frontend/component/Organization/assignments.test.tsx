@@ -97,6 +97,15 @@ describe("assignments by section (P2-03 part 3b)", () => {
     expect(get).toHaveBeenCalledWith(expect.stringMatching(/\/offerings\?session_id=s1$/));
   });
 
+  it("assigns a teacher right in the table to a subject that has none", async () => {
+    renderApp(<OrganizationAssignments />);
+    const table = await screen.findByRole("table", { name: "3. Current assignments" });
+    const picker = within(table).getByLabelText("Teacher for Math — MTH in Class 6 B") as HTMLSelectElement;
+    expect([...picker.options].map((option) => option.text)).toEqual(["Choose a teacher", "Rina Akter", "Karim Uddin"]);
+    fireEvent.change(picker, { target: { value: "t2" } });
+    await waitFor(() => expect(put).toHaveBeenCalledWith(expect.stringMatching(/\/offerings\/o-b\/teachers$/), { teacher_ids: ["t2"] }));
+  });
+
   it("assigns a teacher to a subject in every section of the class at once", async () => {
     renderApp(<OrganizationAssignments />);
     await screen.findByRole("table", { name: "3. Current assignments" });

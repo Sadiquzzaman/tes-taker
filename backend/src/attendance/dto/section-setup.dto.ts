@@ -81,7 +81,7 @@ export class CopyScheduleDto {
   from_section_id: string;
 }
 
-/** Apply one section's schedule (and optionally its type, mode and grace) to a class or a shift. */
+/** Apply one section's schedule and/or its type, mode and grace to a class or a shift. */
 export class ApplyScheduleDto {
   @ApiProperty()
   @IsUUID()
@@ -96,6 +96,12 @@ export class ApplyScheduleDto {
   @IsOptional()
   @IsEnum(SectionShiftEnum)
   shift?: SectionShiftEnum;
+
+  @ApiPropertyOptional({ description: 'Copy the weekly schedule (default true); false copies only the settings (the routine copies schedules now)' })
+  @IsOptional()
+  @raw()
+  @IsBoolean()
+  include_schedule?: boolean;
 
   @ApiPropertyOptional({ description: 'Also copy in person / online, the mode and the grace period (never the branch)' })
   @IsOptional()

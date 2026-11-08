@@ -4,7 +4,8 @@ import { readLocaleCookie } from "@/i18n/localeCookie";
 import { persistAuthSession } from "./authSession";
 
 const post = vi.fn();
-vi.mock("axios", () => ({ default: { post: (...args: unknown[]) => post(...args) } }));
+const patch = vi.fn();
+vi.mock("axios", () => ({ default: { post: (...args: unknown[]) => post(...args), patch: (...args: unknown[]) => patch(...args) } }));
 
 const session = (locale: "bn" | "en" | null, defaultLocale: "bn" | "en" | null) =>
   ({
@@ -21,6 +22,7 @@ const session = (locale: "bn" | "en" | null, defaultLocale: "bn" | "en" | null) 
 describe("language after sign-in", () => {
   beforeEach(() => {
     post.mockResolvedValue({ status: 200 });
+    patch.mockReset().mockResolvedValue({ status: 200 });
     document.cookie = `${LOCALE_COOKIE}=bn; path=/`;
   });
 
@@ -39,8 +41,16 @@ describe("language after sign-in", () => {
     expect(readLocaleCookie()).toBe("bn");
   });
 
-  it("keeps this device's language when neither is set", async () => {
+  it("keeps this device's language when neither is set, and saves it on the account for notifications", async () => {
     await expect(persistAuthSession(session(null, null))).resolves.toBe(false);
     expect(readLocaleCookie()).toBe("bn");
+    await vi.waitFor(() => expect(patch).toHaveBeenCalledWith(expect.stringMatching(/\/user\/me\/locale$/), { locale: "bn" }, { headers: { Authorization: "Bearer token" } }));
+    expect(JSON.parse(localStorage.getItem("user") ?? "{}").locale).toBe("bn");
+  });
+
+  it("does not save a language the account or the organisation already sets", async () => {
+    await persistAuthSession(session("bn", "en"));
+    await persistAuthSession(session(null, "en"));
+    expect(patch).not.toHaveBeenCalled();
   });
 });

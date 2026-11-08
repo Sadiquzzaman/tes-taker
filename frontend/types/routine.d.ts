@@ -1,4 +1,4 @@
-/** The weekly class routine (P5-04, CAL-01, CAL-02): as the API returns it (`GET /routine`, `/routine/mine`). */
+/** The weekly class routine (P5-04, CAL-01, CAL-02): as the API returns it (`GET /routine`). */
 type RoutineClashKind = "TEACHER" | "ROOM";
 
 interface RoutineSection {
@@ -34,7 +34,10 @@ interface RoutineSlot {
 
 interface RoutineView {
   session: { id: string; name: string; status: string };
+  /** The caller may change at least one section. */
   can_manage: boolean;
+  /** Sections the caller may change: all for owners, admins and staff; the ones a teacher teaches. */
+  editable_section_ids: string[];
   sections: RoutineSection[];
   subject_classes: { offering_id: string; section_id: string; subject: { id: string; name: string }; teacher_ids: string[] }[];
   rooms: string[];

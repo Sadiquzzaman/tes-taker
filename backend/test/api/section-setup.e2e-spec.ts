@@ -330,6 +330,14 @@ describe('section setup API', () => {
     expect(sevenA.branch_id).not.toBe(branch.id);
     expect(times(sevenA.slots)).toHaveLength(3);
 
+    // Settings only (Class setup's "Apply settings"): the target keeps its own periods.
+    await putSlots(token, s6B.id, [{ day_of_week: 2, start_time: '09:00', end_time: '10:00' }]);
+    const settingsOnly = await apply(token, { from_section_id: s6A.id, class_id: class6, include_schedule: false, include_settings: true });
+    expect(settingsOnly.body.payload.sections).toEqual([{ id: s6B.id, name: 'B', class_name: 'Class 6', slots_before: 0, teachers_dropped: 0 }]);
+    const settingsB = await rowOf(token, s6B.id);
+    expect(times(settingsB.slots)).toHaveLength(1);
+    expect(settingsB).toMatchObject({ class_type: 'ONLINE', grace_minutes: 15 });
+
     for (const body of [{ from_section_id: s6A.id }, { from_section_id: s6A.id, class_id: class6, shift: 'DAY' }]) {
       const refused = await apply(token, body);
       expect(refused.status).toBe(400);

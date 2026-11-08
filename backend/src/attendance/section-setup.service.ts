@@ -219,8 +219,9 @@ export class SectionSetupService {
         id: target.id,
         name: target.name,
         class_name: target.class.class_name,
-        slots_before: slots.get(target.id)?.length ?? 0,
-        teachers_dropped: (slots.get(target.id) ?? []).filter((slot) => slot.teacher_id).length,
+        // Settings only: no periods are replaced.
+        slots_before: dto.include_schedule === false ? 0 : (slots.get(target.id)?.length ?? 0),
+        teachers_dropped: dto.include_schedule === false ? 0 : (slots.get(target.id) ?? []).filter((slot) => slot.teacher_id).length,
       })),
     };
     if (dto.dry_run || targets.length === 0) return result;
@@ -230,8 +231,10 @@ export class SectionSetupService {
     await this.dataSource.transaction(async (manager) => {
       await this.slots.lockOrganization(manager, organizationId);
       for (const target of targets) {
-        const changed = await this.slots.replace(manager, target, sourceSlots, userId);
-        if (changed.changed) entries.push(this.scheduleAudit(target, userId, changed.before, changed.after, 'apply', source.id));
+        if (dto.include_schedule !== false) {
+          const changed = await this.slots.replace(manager, target, sourceSlots, userId);
+          if (changed.changed) entries.push(this.scheduleAudit(target, userId, changed.before, changed.after, 'apply', source.id));
+        }
         if (dto.include_settings) {
           const before = await this.currentSettings(target, manager);
           const after = { ...before, class_type: sourceSettings.class_type, mode: sourceSettings.mode, grace_minutes: sourceSettings.grace_minutes };

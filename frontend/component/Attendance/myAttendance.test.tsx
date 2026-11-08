@@ -207,11 +207,11 @@ describe("my attendance page (ATT-04, ATT-18)", () => {
     expect(screen.getByText("৫০%")).toBeTruthy();
   });
 
-  it("puts My attendance in the student menu and for every staff role, behind the attendance feature", () => {
+  it("puts My attendance in the student menu and for everyone who teaches (not staff, who have no classes), behind the attendance feature", () => {
     const items = sidebarList.filter((item) => item.route === "/my-attendance");
     expect(items).toEqual([
       expect.objectContaining({ category: "Platform", role: ["STUDENT"], feature: "attendance" }),
-      expect.objectContaining({ category: "Organization", memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"], feature: "attendance" }),
+      expect.objectContaining({ category: "Organization", memberRoles: ["OWNER", "ADMIN", "TEACHER"], feature: "attendance" }),
     ]);
   });
 

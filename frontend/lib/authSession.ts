@@ -1,6 +1,7 @@
 import axios from "axios";
 import { DEFAULT_LEVEL_LABELS, writeLevelLabelsCookie } from "@/i18n/levelLabels";
-import { applyAccountLocale } from "@/i18n/localeCookie";
+import { DEFAULT_LOCALE, isLocale } from "@/i18n/config";
+import { applyAccountLocale, readLocaleCookie } from "@/i18n/localeCookie";
 import { clearStoredWorkspace } from "./workspace";
 
 const SESSION_SET_TOKEN_PATH = "/session/set-token";
@@ -62,7 +63,23 @@ const persistAuthSession = async (payload: LoginResponsePayload): Promise<boolea
 
   localStorage.setItem("user", JSON.stringify(payload));
   // The user's own language wins; without one, an organisation session uses the organisation's (FND-18).
-  return applyAccountLocale(payload.locale ?? payload.organization?.default_locale);
+  const changed = applyAccountLocale(payload.locale ?? payload.organization?.default_locale);
+  // Neither set: the person reads this device's language, so the account keeps it too and their
+  // notifications (which fall back to the school's language) come in the language they use.
+  if (!isLocale(payload.locale) && !isLocale(payload.organization?.default_locale)) {
+    void saveAccountLocale(payload, readLocaleCookie() ?? DEFAULT_LOCALE);
+  }
+  return changed;
+};
+
+/** Saves the language on the account (best effort: the device's choice still applies if it fails). */
+const saveAccountLocale = async (payload: LoginResponsePayload, locale: string) => {
+  try {
+    await axios.patch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/me/locale`, { locale }, { headers: { Authorization: `Bearer ${payload.access_token}` } });
+    localStorage.setItem("user", JSON.stringify({ ...payload, locale }));
+  } catch {
+    // Saved the next time they switch language.
+  }
 };
 
 let refreshPromise: Promise<LoginResponsePayload | null> | null = null;

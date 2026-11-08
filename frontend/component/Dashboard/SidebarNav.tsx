@@ -37,7 +37,10 @@ const SidebarNav = ({ items, activeRoute }: { items: SideBarList[]; activeRoute:
   // Toggles made on this page; they win over what was stored, which wins over the default.
   const [toggled, setToggled] = useState<Partial<Record<NavGroup, boolean>>>({});
 
-  const visible = items.filter((item) => !item.feature || (!loading && (!entitlements || entitlements.features?.[item.feature])));
+  const featureOn = (feature: string | string[]) => (Array.isArray(feature) ? feature : [feature]).some((key) => entitlements?.features?.[key]);
+  // Known entitlements (this load's, or the last ones remembered while loading) decide; unknown ones
+  // hide gated items while loading and show them if loading failed (the server still refuses).
+  const visible = items.filter((item) => !item.feature || (entitlements ? featureOn(item.feature) : !loading));
   const entries = navEntries(visible);
   const remembered = readOpenGroups(stored);
 

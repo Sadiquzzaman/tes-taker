@@ -46,13 +46,13 @@ describe('routine API', () => {
   const slots = () => t.dataSource.getRepository(RoutineSlotEntity);
 
   /** Class 6 with sections A and B, each with Math (Rina teaches A's), a student in A, and the calendar feature. */
-  const school = async ({ calendarOn = true } = {}) => {
+  const school = async ({ calendarOn = true, attendanceOn = true } = {}) => {
     const owner = await make.teacher({ personal_teacher_enabled: false });
     const organization = await make.organization(owner);
     const token = (user: UserEntity, role: OrganizationMemberRoleEnum) =>
       t.tokenFor(user, { session_mode: 'organization', context_type: 'organization', organization_id: organization.id, member_role: role });
     const ownerToken = token(owner, OrganizationMemberRoleEnum.OWNER);
-    const features = calendarOn ? ['calendar', 'attendance'] : ['attendance'];
+    const features = [...(calendarOn ? ['calendar'] : []), ...(attendanceOn ? ['attendance'] : [])];
     for (const feature of features) {
       const enabled = await t.api.request('PUT', `/subscriptions/admin/organizations/${organization.id}/overrides/${feature}`, {
         body: { value: true, reason: 'P5-04 test' },
@@ -140,13 +140,17 @@ describe('routine API', () => {
     expect(asTeacher.status).toBe(200);
     expect(asTeacher.body.payload.can_manage).toBe(false);
     expect((await call('POST', '/routine/slots', s.rinaToken, { section_id: s.b, day_of_week: 1, start_time: '09:00', end_time: '09:45' })).status).toBe(403);
-    expect((await call('GET', '/routine', s.studentToken)).status).toBe(403);
+    // Students read the routine of their own section only, and change nothing.
+    const asStudent = (await call<Routine & { editable_section_ids: string[] }>('GET', '/routine', s.studentToken)).body.payload;
+    expect(asStudent.sections.map((x) => x.id)).toEqual([s.a]);
+    expect(asStudent.slots.map((x) => x.id)).toEqual([added.body.payload.id]);
+    expect([asStudent.can_manage, asStudent.editable_section_ids]).toEqual([false, []]);
 
-    const studentOwn = await call<Slot[]>('GET', '/routine/mine', s.studentToken);
-    expect(studentOwn.body.payload.map((x) => x.id)).toEqual([added.body.payload.id]);
-    const rinaOwn = await call<Slot[]>('GET', '/routine/mine', s.rinaToken);
-    expect(rinaOwn.body.payload.map((x) => x.id)).toEqual([added.body.payload.id]);
-    expect((await call<Slot[]>('GET', '/routine/mine', s.karimToken)).body.payload).toEqual([]);
+    // The subject shows wherever the class does: Class attendance and the student's month.
+    const day = await call<{ sessions: { slot_id: string; subject: { name: string } | null }[] }>('GET', '/attendance/sessions?date=2026-12-05', s.ownerToken);
+    expect(day.body.payload.sessions.find((x) => x.slot_id === added.body.payload.id)?.subject).toMatchObject({ name: 'Math' });
+    const month = await call<{ days: { date: string; classes: { slot_id: string; subject: { name: string } | null }[] }[] }>('GET', '/attendance/me/calendar?month=2026-12', s.studentToken);
+    expect(month.body.payload.days.find((d) => d.date === '2026-12-05')?.classes[0]?.subject).toMatchObject({ name: 'Math' });
   });
 
   it('refuses two classes of one section at once, and asks to confirm a teacher or room booked twice, then marks it', async () => {
@@ -241,7 +245,74 @@ describe('routine API', () => {
     expect((await call('DELETE', `/routine/slots/${theirs.id}`, s.ownerToken)).status).toBe(404);
     expect((await call('POST', '/routine/slots', s.ownerToken, { section_id: other.a, day_of_week: 4, start_time: '09:00', end_time: '09:45' })).status).toBe(404);
 
-    const off = await school({ calendarOn: false });
+    // The routine works with either the calendar or attendance, and needs one of them.
+    const attendanceOnly = await school({ calendarOn: false });
+    expect((await call('GET', '/routine', attendanceOnly.ownerToken)).status).toBe(200);
+    const off = await school({ calendarOn: false, attendanceOn: false });
     expect((await call('GET', '/routine', off.ownerToken)).status).toBe(403);
+  });
+
+  it('lets a teacher change the routine of the sections they teach only', async () => {
+    const s = await school();
+    const asRina = (await call<Routine & { editable_section_ids: string[] }>('GET', '/routine', s.rinaToken)).body.payload;
+    expect([asRina.can_manage, asRina.editable_section_ids]).toEqual([true, [s.a]]);
+    const mine = await call<Slot>('POST', '/routine/slots', s.rinaToken, { section_id: s.a, offering_id: s.mathA, day_of_week: 1, start_time: '09:00', end_time: '09:45' });
+    expect(mine.status).toBe(201);
+    expect((await call('PATCH', `/routine/slots/${mine.body.payload.id}`, s.rinaToken, { room: 'Lab' })).status).toBe(200);
+    const other = await call('POST', '/routine/slots', s.rinaToken, { section_id: s.b, day_of_week: 1, start_time: '09:00', end_time: '09:45' });
+    expect([other.status, other.body.code]).toEqual([403, 'ROUTINE_NOT_ALLOWED']);
+    // Karim teaches no section here: he reads the routine and changes nothing.
+    const asKarim = (await call<Routine & { editable_section_ids: string[] }>('GET', '/routine', s.karimToken)).body.payload;
+    expect([asKarim.can_manage, asKarim.editable_section_ids]).toEqual([false, []]);
+    expect((await call('DELETE', `/routine/slots/${mine.body.payload.id}`, s.karimToken)).status).toBe(403);
+  });
+
+  it('adds a period on several days at once, all or none, listing every day\'s clashes', async () => {
+    const s = await school();
+    const many = await call<Slot[]>('POST', '/routine/slots/many', s.ownerToken, {
+      section_id: s.a,
+      offering_id: s.mathA,
+      teacher_id: s.rina.id,
+      room: 'Room 201',
+      days: [6, 1, 3],
+      start_time: '10:00',
+      end_time: '10:45',
+    });
+    expect(many.status).toBe(201);
+    expect(many.body.payload.map((x) => x.day_of_week).sort()).toEqual([1, 3, 6]);
+    expect(many.body.payload.every((x) => x.subject?.name === 'Math' && x.teacher?.id === s.rina.id)).toBe(true);
+
+    // Section B at the same times with Rina: one 409 naming every clashing day; nothing is saved.
+    const refused = await call<null>('POST', '/routine/slots/many', s.ownerToken, { section_id: s.b, teacher_id: s.rina.id, days: [6, 1, 2], start_time: '10:15', end_time: '11:00' });
+    expect([refused.status, refused.body.code]).toEqual([409, 'ROUTINE_CLASH']);
+    expect((refused.body.details as { clashes: Clash[] }).clashes.map((c) => c.kind)).toEqual(['TEACHER', 'TEACHER']);
+    expect(await slots().countBy({ section_id: s.b })).toBe(0);
+    // Overlapping its own section on one day stops it all.
+    const overlap = await call('POST', '/routine/slots/many', s.ownerToken, { section_id: s.a, days: [2, 3], start_time: '10:30', end_time: '11:00' });
+    expect([overlap.status, overlap.body.code]).toEqual([400, 'SCHEDULE_OVERLAP']);
+    expect(await slots().countBy({ section_id: s.a, day_of_week: 2 })).toBe(0);
+  });
+
+  it("copies another section's week: subjects matched, the subject's only teacher when free, no rooms", async () => {
+    const s = await school();
+    await call('PUT', `/offerings/${s.mathB}/teachers`, s.ownerToken, { teacher_ids: [s.karim.id] });
+    await call('POST', '/routine/slots/many', s.ownerToken, { section_id: s.a, offering_id: s.mathA, teacher_id: s.rina.id, room: 'Room 201', days: [6, 1], start_time: '10:00', end_time: '10:45' });
+    await call('POST', '/routine/slots', s.ownerToken, { section_id: s.a, day_of_week: 3, start_time: '12:00', end_time: '12:45' });
+    // B already has a period: copying replaces it (the row is kept, removed).
+    const old = (await call<Slot>('POST', '/routine/slots', s.ownerToken, { section_id: s.b, day_of_week: 4, start_time: '08:00', end_time: '08:45' })).body.payload;
+
+    const copied = await call<{ slots: number; without_teacher: number }>('POST', `/routine/sections/${s.b}/copy`, s.ownerToken, { from_section_id: s.a });
+    expect(copied.status).toBe(200);
+    expect(copied.body.payload).toEqual({ slots: 3, without_teacher: 1 });
+    const b = (await call<Routine>('GET', '/routine', s.ownerToken)).body.payload.slots.filter((x) => x.section.id === s.b);
+    expect(b.map((x) => [x.day_of_week, x.start_time, x.subject?.offering_id ?? null, x.teacher?.id ?? null, x.room])).toEqual([
+      [1, '10:00', s.mathB, s.karim.id, null],
+      [3, '12:00', null, null, null],
+      [6, '10:00', s.mathB, s.karim.id, null],
+    ]);
+    expect(Number((await slots().findOneByOrFail({ id: old.id })).is_active)).toBe(0);
+    const same = await call('POST', `/routine/sections/${s.a}/copy`, s.ownerToken, { from_section_id: s.a });
+    expect([same.status, same.body.code]).toEqual([400, 'ROUTINE_COPY_INVALID']);
+    expect((await call('POST', `/routine/sections/${s.b}/copy`, s.rinaToken, { from_section_id: s.a })).status).toBe(403);
   });
 });

@@ -8,27 +8,36 @@ import { EventStatusEnum, EventTypeEnum } from 'src/calendar/entities/event.enti
 import { EventsService } from 'src/calendar/events.service';
 import { RoutineService } from 'src/calendar/routine.service';
 import { Tenant, TenantContext } from 'src/common/tenancy/tenant-context';
-import { addDays, daysBetween, schoolDateIn, zonedInstant } from 'src/common/utils/school-date.util';
+import { addDays, daysBetween, DEFAULT_TIME_ZONE, schoolDateIn, zonedInstant } from 'src/common/utils/school-date.util';
 import { ExamService } from 'src/exams/exam.service';
+import { HomeworkService } from 'src/homework/homework.service';
 import { StudentExamService } from 'src/exams/student-exam.service';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { OrganizationAccessService } from 'src/organizations/organization-access.service';
 import { OrgSettingsService } from 'src/organizations/org-settings.service';
+import { UserContextService } from 'src/organizations/user-context.service';
 import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { EntitlementsService } from 'src/subscriptions/entitlements.service';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { CalendarFeedTokenEntity } from './entities/calendar-feed-token.entity';
 import { icalCalendar, IcalEvent } from './ical';
 
-const { OWNER, ADMIN, ASSISTANT, STUDENT } = OrganizationMemberRoleEnum;
+const { STUDENT } = OrganizationMemberRoleEnum;
 /** Longest range `GET /calendar/feed` returns, in days. */
 export const MAX_FEED_DAYS = 62;
 /** The subscription link covers this many days back and ahead. */
 export const ICAL_DAYS_BACK = 30;
 export const ICAL_DAYS_AHEAD = 90;
 
+/** The workspace an item of the personal calendar comes from ("My Teaching", a school's name). */
+export interface FeedWorkspace {
+  key: string;
+  label: string;
+}
+
 /** One thing on the calendar (CAL-07). Times are instants; a class also has its school date. */
-export type FeedItem =
+export type FeedItem = (
+
   | {
       kind: 'CLASS';
       id: string;
@@ -46,7 +55,10 @@ export type FeedItem =
     }
   | { kind: 'EVENT'; id: string; starts_at: Date; ends_at: Date; title: string; event_type: EventTypeEnum; place: string | null; cancelled: boolean }
   | { kind: 'EXAM'; id: string; starts_at: Date; ends_at: Date; title: string; class_name: string | null }
-  | { kind: 'HOLIDAY'; id: string; date: string; title: string | null; reason: 'WEEKLY_OFF' | 'HOLIDAY' };
+  | { kind: 'HOLIDAY'; id: string; date: string; title: string | null; reason: 'WEEKLY_OFF' | 'HOLIDAY' }
+  /** Homework due: `starts_at` and `ends_at` are both the due time. `handed_in` is for students (null for staff). */
+  | { kind: 'HOMEWORK'; id: string; starts_at: Date; ends_at: Date; title: string; subject: string; sections: string[]; handed_in: boolean | null }
+) & { workspace?: FeedWorkspace };
 
 export interface CalendarFeed {
   from: string;
@@ -74,6 +86,8 @@ export class CalendarFeedService {
     private readonly orgSettings: OrgSettingsService,
     private readonly access: OrganizationAccessService,
     private readonly entitlements: EntitlementsService,
+    private readonly homework: HomeworkService,
+    private readonly contexts: UserContextService,
   ) {}
 
   /** `GET /calendar/feed?from=&to=` (school dates, at most 62 days). */
@@ -82,6 +96,35 @@ export class CalendarFeedService {
       throw new BadRequestException({ message: `Choose at most ${MAX_FEED_DAYS} days`, code: 'CALENDAR_RANGE_INVALID' });
     }
     return this.between(tenant, userId, from, to);
+  }
+
+  /**
+   * `GET /calendar/me?from=&to=`: the person's own calendar across every workspace they belong to
+   * (their teaching workspace, schools, solo teachers' classes) that has the calendar, each item
+   * marked with its workspace. Times are instants; `time_zone` is the first workspace's.
+   */
+  async personal(userId: string, from: string, to: string): Promise<CalendarFeed & { workspaces: FeedWorkspace[] }> {
+    if (to < from || daysBetween(from, to) > MAX_FEED_DAYS) {
+      throw new BadRequestException({ message: `Choose at most ${MAX_FEED_DAYS} days`, code: 'CALENDAR_RANGE_INVALID' });
+    }
+    const items: FeedItem[] = [];
+    const workspaces: FeedWorkspace[] = [];
+    let timeZone: string | null = null;
+    for (const { key, label, tenant } of await this.contexts.workspaces(userId)) {
+      if (!(await this.entitlements.hasFeature(tenant.organizationId, FeatureKey.CALENDAR))) continue;
+      // The feed's services read the request's workspace, so each workspace runs in its own.
+      const feed = await TenantContext.run(() => {
+        TenantContext.set(tenant);
+        return this.between(tenant, userId, from, to);
+      });
+      const workspace = { key, label };
+      workspaces.push(workspace);
+      timeZone ??= feed.time_zone;
+      for (const item of feed.items) items.push({ ...item, id: item.kind === 'HOLIDAY' ? `${key}:${item.id}` : item.id, workspace });
+    }
+    const zone = timeZone ?? DEFAULT_TIME_ZONE;
+    items.sort((a, b) => sortKey(a, zone).localeCompare(sortKey(b, zone)));
+    return { from, to, time_zone: zone, items, workspaces };
   }
 
   /** Whether the caller has a subscription link, and since when (the link itself is shown only once). */
@@ -165,7 +208,7 @@ export class CalendarFeedService {
     // Events, in ranges the events list allows.
     for (let start = from; start <= to; start = addDays(start, MAX_FEED_DAYS)) {
       const end = [addDays(start, MAX_FEED_DAYS - 1), to].sort()[0];
-      for (const event of await this.events.list(tenant, userId, start, end)) {
+      for (const event of await this.events.list(tenant, userId, start, end, true)) {
         if (items.some((item) => item.kind === 'EVENT' && item.id === event.id)) continue;
         items.push({
           kind: 'EVENT',
@@ -180,7 +223,7 @@ export class CalendarFeedService {
       }
     }
 
-    // Exams: a student's exams; staff the ones they made (owners, admins and assistants: all).
+    // Exams: a student's exams; staff the ones they made.
     const start = zonedInstant(from, '00:00', timeZone);
     const end = zonedInstant(addDays(to, 1), '00:00', timeZone);
     if (tenant.viaEnrolment || tenant.memberRole === STUDENT) {
@@ -193,10 +236,24 @@ export class CalendarFeedService {
         }
       }
     } else {
-      const all = [OWNER, ADMIN, ASSISTANT].includes(tenant.memberRole);
-      for (const exam of await this.exams.calendarExams(organizationId, userId, all, start, end)) {
+      for (const exam of await this.exams.calendarExams(organizationId, userId, false, start, end)) {
         items.push({ kind: 'EXAM', id: exam.id, starts_at: exam.exam_start_time, ends_at: exam.exam_end_time, title: exam.test_name ?? '', class_name: exam.class_name });
       }
+    }
+
+    // Homework due in the range: a student's own; staff the homework they set or teach.
+    for (const homework of await this.homework.dueBetween(tenant, userId, start, end)) {
+      if (!homework.due_at) continue;
+      items.push({
+        kind: 'HOMEWORK',
+        id: homework.id,
+        starts_at: homework.due_at,
+        ends_at: homework.due_at,
+        title: homework.title,
+        subject: homework.subject.name,
+        sections: [...new Set(homework.targets.map((target) => target.section_label))],
+        handed_in: homework.my_submission ? true : this.homework.isStaff(tenant) ? null : false,
+      });
     }
 
     items.sort((a, b) => sortKey(a, timeZone).localeCompare(sortKey(b, timeZone)));
@@ -241,6 +298,8 @@ function icalEventOf(item: FeedItem, timeZone: string): IcalEvent[] {
       return [{ uid: `event-${item.id}@instructor`, start: item.starts_at, end: item.ends_at, summary: item.title, location: item.place, cancelled: item.cancelled }];
     case 'EXAM':
       return [{ uid: `exam-${item.id}@instructor`, start: item.starts_at, end: item.ends_at, summary: item.title, description: item.class_name }];
+    case 'HOMEWORK':
+      return [{ uid: `homework-${item.id}@instructor`, start: item.starts_at, end: item.ends_at, summary: `Due: ${item.title}`, description: item.subject }];
     case 'HOLIDAY':
       if (item.reason !== 'HOLIDAY') return [];
       return [

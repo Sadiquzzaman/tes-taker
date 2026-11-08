@@ -57,8 +57,9 @@ const SetupWizardContent = () => {
 
       {current === "basics" && organizationId ? (
         <div className="flex flex-col gap-6">
-          {ownsWorkspace ? <LevelLabelsCard /> : <Card title={t("basics.namesTitle")}>{t("basics.ownerOnly")}</Card>}
           <OrganizationSettingsCard organizationId={organizationId} />
+          {/* Last on the step, so saving the names moves on to the session. */}
+          {ownsWorkspace ? <LevelLabelsCard onSaved={() => goTo(step + 1)} /> : <Card title={t("basics.namesTitle")}>{t("basics.ownerOnly")}</Card>}
         </div>
       ) : null}
       {current === "session" ? <SetupSessionStep /> : null}

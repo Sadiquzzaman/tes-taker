@@ -1,3 +1,4 @@
+import { FeatureOverrideEntity } from 'src/subscriptions/entities/feature-override.entity';
 import { Module } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
@@ -13,7 +14,7 @@ import { TestUsersSeedService } from './test-users.seed';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity, OrganizationEntity, OrganizationMemberEntity]),
+    TypeOrmModule.forFeature([UserEntity, OrganizationEntity, OrganizationMemberEntity, FeatureOverrideEntity]),
   ],
   controllers: [UserController],
   providers: [

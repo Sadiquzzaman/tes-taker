@@ -20,6 +20,8 @@ export interface SlotInput {
 export interface SlotView extends SlotInput {
   id: string;
   teacher: { id: string; full_name: string } | null;
+  /** The subject set in the routine (P5-04); null for a whole-section class. */
+  subject: { id: string; name: string } | null;
 }
 
 /** The section a schedule belongs to. */
@@ -49,7 +51,7 @@ export class RoutineSlotsService {
     if (sectionIds.length === 0) return result;
     const rows = await (manager ?? this.slotRepo.manager).getRepository(RoutineSlotEntity).find({
       where: { organization_id: organizationId, section_id: In(sectionIds), is_active: ActiveStatusEnum.ACTIVE },
-      relations: ['teacher'],
+      relations: ['teacher', 'offering', 'offering.subject'],
       order: { day_of_week: 'ASC', start_time: 'ASC' },
     });
     for (const row of rows) result.get(row.section_id)?.push(view(row));
@@ -60,7 +62,7 @@ export class RoutineSlotsService {
   async activeOfOrganization(organizationId: string): Promise<Map<string, SlotView[]>> {
     const rows = await this.slotRepo.find({
       where: { organization_id: organizationId, is_active: ActiveStatusEnum.ACTIVE },
-      relations: ['teacher'],
+      relations: ['teacher', 'offering', 'offering.subject'],
       order: { day_of_week: 'ASC', start_time: 'ASC' },
     });
     const result = new Map<string, SlotView[]>();
@@ -72,7 +74,7 @@ export class RoutineSlotsService {
   async activeOfTeacher(organizationId: string, teacherId: string): Promise<Map<string, SlotView[]>> {
     const rows = await this.slotRepo.find({
       where: { organization_id: organizationId, teacher_id: teacherId, is_active: ActiveStatusEnum.ACTIVE },
-      relations: ['teacher'],
+      relations: ['teacher', 'offering', 'offering.subject'],
       order: { day_of_week: 'ASC', start_time: 'ASC' },
     });
     const result = new Map<string, SlotView[]>();
@@ -101,7 +103,7 @@ export class RoutineSlotsService {
   async findActive(organizationId: string, id: string): Promise<(SlotView & { section_id: string }) | null> {
     const row = await this.slotRepo.findOne({
       where: { id, organization_id: organizationId, is_active: ActiveStatusEnum.ACTIVE },
-      relations: ['teacher'],
+      relations: ['teacher', 'offering', 'offering.subject'],
     });
     return row ? { ...view(row), section_id: row.section_id } : null;
   }
@@ -246,5 +248,6 @@ function view(row: RoutineSlotEntity): SlotView {
     id: row.id,
     ...input(row),
     teacher: row.teacher ? { id: row.teacher.id, full_name: row.teacher.full_name } : null,
+    subject: row.offering?.subject ? { id: row.offering.subject.id, name: row.offering.subject.name } : null,
   };
 }

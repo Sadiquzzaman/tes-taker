@@ -134,9 +134,13 @@ export class SectionsService {
       .createQueryBuilder('section')
       .innerJoinAndSelect('section.class', 'class')
       .andWhere('section.session_id = :sessionId', { sessionId: session.id })
-      .orderBy('lower(class.class_name)', 'ASC')
-      .addOrderBy('lower(section.name)', 'ASC')
       .getMany();
+    // Natural order: Class 6 before Class 10.
+    sections.sort(
+      (a, b) =>
+        (a.class?.class_name ?? '').localeCompare(b.class?.class_name ?? '', 'en', { numeric: true, sensitivity: 'base' }) ||
+        a.name.localeCompare(b.name, 'en', { numeric: true, sensitivity: 'base' }),
+    );
     return { session, sections };
   }
 
