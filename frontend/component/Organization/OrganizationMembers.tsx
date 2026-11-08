@@ -14,6 +14,7 @@ import {
   FilterBar,
   Input,
   PageHeader,
+  Select,
   Skeleton,
   Table,
   Textarea,
@@ -136,6 +137,9 @@ const OrganizationMembersTable = ({
   const [importSummary, setImportSummary] = useState<ImportResultPayload | null>(null);
   const [phoneList, setPhoneList] = useState("");
   const [addingPhones, setAddingPhones] = useState(false);
+  /** Students: the [[section]] (current session) to put them in as they are added; "" = choose later. */
+  const [sectionId, setSectionId] = useState("");
+  const [sectionOptions, setSectionOptions] = useState<{ value: string; label: string }[]>([]);
 
   const canManage = canManageMembers(activeOrganization?.role);
 
@@ -166,7 +170,26 @@ const OrganizationMembersTable = ({
     return members.filter((member) => roles.includes(member.role)).filter((member) => !q || matches(member, q));
   }, [members, roles, search]);
 
+  // The sections a new student can go into (the default session), in natural order.
+  useEffect(() => {
+    if (addRole !== "STUDENT" || !drawerOpen || sectionOptions.length > 0) return;
+    let live = true;
+    Promise.all([axiosReq.get<ApiResponse<ClassSection[]>>(`${baseUrl}/sections`), axiosReq.get<ApiResponse<Class[]>>(`${baseUrl}/classes`)])
+      .then(([sections, classes]) => {
+        const names = new Map((classes.data?.payload ?? []).map((item) => [item.id, item.class_name]));
+        const options = (sections.data?.payload ?? [])
+          .map((section) => ({ value: section.id, label: `${names.get(section.class_id) ?? ""} ${section.name}`.trim() }))
+          .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+        if (live) setSectionOptions(options);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [addRole, baseUrl, drawerOpen, sectionOptions.length]);
+
   const openDrawer = () => {
+    setSectionId("");
     setQuery("");
     setLookup(null);
     setImportSummary(null);
@@ -197,12 +220,31 @@ const OrganizationMembersTable = ({
     }
   };
 
+  /** With a [[section]] chosen, a student is enrolled there (which also adds them to the organisation). */
+  const enrolInSection = async (trimmed: string) => {
+    const who = lookup?.found ? { student_id: lookup.user.id } : trimmed.includes("@") ? { email: trimmed } : { phone: trimmed };
+    const res = await axiosReq.post<ApiResponse<{ outcome: "ENROLLED" | "PENDING" | "INVITED" }>>(`${baseUrl}/sections/${sectionId}/enrolments`, who);
+    const section = sectionOptions.find((option) => option.value === sectionId)?.label ?? "";
+    const outcome = res.data?.payload?.outcome;
+    triggerToast({
+      title: outcome === "INVITED" ? t("invitedTitle") : t("addedToSection", { section }),
+      description: outcome === "INVITED" ? t("invitedToSection", { section }) : outcome === "PENDING" ? t("pendingInSection") : undefined,
+      type: "success",
+    });
+  };
+
   const handleAddOrInvite = async () => {
     if (!organizationId) return;
     const trimmed = query.trim();
     if (!trimmed) return;
     setSubmitting(true);
     try {
+      if (addRole === "STUDENT" && sectionId) {
+        await enrolInSection(trimmed);
+        setDrawerOpen(false);
+        await load();
+        return;
+      }
       const res = await axiosReq.post<ApiResponse<AddMemberPayload>>(`${baseUrl}/organizations/${organizationId}/members`, {
         query: trimmed,
         role: addRole,
@@ -287,6 +329,7 @@ const OrganizationMembersTable = ({
   const importStatusLabel = (status: string) =>
     (IMPORT_STATUSES as readonly string[]).includes(status) ? t(`importStatus.${status as (typeof IMPORT_STATUSES)[number]}`) : status;
   const alreadyActiveMember = Boolean(lookup?.found && lookup.membership && Number(lookup.membership.is_active) === 1);
+  const chosenSection = addRole === "STUDENT" && sectionId ? (sectionOptions.find((option) => option.value === sectionId)?.label ?? "") : null;
 
   const columns: TableColumn<OrganizationMemberItem>[] = [
     { key: "name", header: t("name"), cell: (row) => row.user.full_name || "—", sortValue: (row) => row.user.full_name },
@@ -362,6 +405,16 @@ const OrganizationMembersTable = ({
                 {t("find")}
               </Button>
             </div>
+            {addRole === "STUDENT" ? (
+              <Select
+                label={t("sectionLabel")}
+                hint={t("sectionHint")}
+                placeholder={t("sectionLater")}
+                value={sectionId}
+                options={sectionOptions}
+                onChange={(event) => setSectionId(event.target.value)}
+              />
+            ) : null}
 
             {lookup && !lookup.found ? (
               <div className="flex flex-col items-start gap-2 rounded-input bg-canvas p-4 text-body-sm">
@@ -388,11 +441,15 @@ const OrganizationMembersTable = ({
                     {t("phone")}: {lookup.user.phone || "—"}
                   </p>
                 </div>
-                {alreadyActiveMember ? (
+                {alreadyActiveMember && chosenSection !== null ? (
+                  <Button size="sm" loading={submitting} onClick={() => void handleAddOrInvite()}>
+                    {t("addToSection", { section: chosenSection })}
+                  </Button>
+                ) : alreadyActiveMember ? (
                   <p className="text-danger">{t("alreadyMember")}</p>
                 ) : (
                   <Button size="sm" loading={submitting} disabled={!lookup.user.is_otp_verified} onClick={() => void handleAddOrInvite()}>
-                    {lookup.membership ? t("restore") : t("addToOrg")}
+                    {chosenSection !== null ? t("addToSection", { section: chosenSection }) : lookup.membership ? t("restore") : t("addToOrg")}
                   </Button>
                 )}
                 {!lookup.user.is_otp_verified ? <p className="text-danger">{t("notVerified")}</p> : null}

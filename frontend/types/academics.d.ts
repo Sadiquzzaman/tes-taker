@@ -108,7 +108,9 @@ interface StudentGuardians {
 interface AcademicSetupSummary {
   setup_completed_at: string | null;
   session: { id: string; name: string; start_date: string; end_date: string };
-  classes: Array<{ id: string; name: string; subject_count: number; section_count: number }>;
+  classes: Array<{ id: string; name: string; subject_count: number; section_count: number; student_count: number; subjects_without_teacher: string[] }>;
+  /** With attendance on: the school's location (pin) for in-person check-in is not set yet. */
+  checkin_pin_missing: boolean;
 }
 
 /** POST /sections/:id/promotions (FND-05). */

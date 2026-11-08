@@ -1608,7 +1608,14 @@
         "invalid": "ভুল নম্বর",
         "invitation_sent": "আমন্ত্রণ পাঠানো হয়েছে",
         "duplicate": "তালিকায় ডুপ্লিকেট"
-      }
+      },
+      "sectionLabel": "[[Section]] (ঐচ্ছিক)",
+      "sectionHint": "শিক্ষার্থীকে সরাসরি বর্তমান সেশনের এই [[section]]-এ যোগ করে।",
+      "sectionLater": "পরে বেছে নিন",
+      "addToSection": "{section}-এ যোগ করুন",
+      "addedToSection": "{section}-এ যোগ হয়েছে",
+      "invitedToSection": "সাইন আপ বা লগ ইন করলে তারা {section}-এ যোগ হবে।",
+      "pendingInSection": "অ্যাকাউন্ট যাচাই হলে তারা যোগ হবে।"
     },
     "subjects": {
       "title": "বিষয়",
@@ -1665,7 +1672,6 @@
       "cancelEdit": "পরিবর্তন বাতিল",
       "edit": "বদলান",
       "unassigned": "এখনো শিক্ষক নেই",
-      "assignInStep2": "ধাপ ২-এ শিক্ষক বেছে নিন",
       "allClasses": "সব [[class]]",
       "allSubjects": "সব বিষয়",
       "allTeachers": "সব শিক্ষক",
@@ -1693,7 +1699,9 @@
       "allSections": "[[class]]ের সব [[section]]",
       "session": "সেশন",
       "sessionClosed": "এই সেশন বন্ধ, তাই এর শিক্ষক বদলানো যাবে না।",
-      "actions": "কাজ"
+      "actions": "কাজ",
+      "assignTeacherFor": "{section}-এ {subject}-এর শিক্ষক",
+      "chooseTeacher": "শিক্ষক বেছে নিন"
     }
   },
   "admin": {
@@ -2547,7 +2555,16 @@
         "needsSection": "[[section]] দরকার",
         "needsClass": "শেষ করার আগে অন্তত একটি [[class]] যোগ করুন।",
         "needsSectionDetail": "এগুলোতে একটি [[section]] যোগ করুন: {names}।",
-        "noSubjectsDetail": "এগুলোতে এখনো বিষয় নেই: {names}। এখন শেষ করে পরে যোগ করতে পারেন।"
+        "noSubjectsDetail": "এগুলোতে এখনো বিষয় নেই: {names}। এখন শেষ করে পরে যোগ করতে পারেন।",
+        "students": "শিক্ষার্থী",
+        "needsTeacher": "শিক্ষক দরকার",
+        "noStudents": "শিক্ষার্থী নেই",
+        "needsTeacherDetail": "যেসব বিষয়ে শিক্ষক নেই (এখন শেষ করে পরে দিতে পারেন):",
+        "assignTeachers": "বিষয় শিক্ষক দিন",
+        "noStudentsDetail": "এখনো শিক্ষার্থী নেই: {names}।",
+        "addStudents": "শিক্ষার্থী যোগ করুন",
+        "pinMissing": "প্রতিষ্ঠানের অবস্থান না দেওয়া পর্যন্ত শিক্ষার্থী ও শিক্ষকরা সেখানে গিয়ে চেক-ইন করতে পারবেন না।",
+        "setPin": "প্রতিষ্ঠানের অবস্থান দিন"
       },
       "banner": {
         "title": "সেটআপ শেষ করুন",

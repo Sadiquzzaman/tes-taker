@@ -71,7 +71,7 @@ const RoutinePage = () => {
     if (viewBy === "teacher") {
       const seen = new Map<string, string>();
       for (const slot of routine.slots) if (slot.teacher) seen.set(slot.teacher.id, slot.teacher.full_name);
-      return [...seen].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
+      return [...seen].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
     }
     return routine.rooms.map((room) => ({ value: room, label: room }));
   }, [routine, viewBy]);

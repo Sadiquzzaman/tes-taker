@@ -171,7 +171,7 @@ export class MyAttendanceService {
           record: recordView(record),
         });
       }
-      classes.sort((a, b) => a.start_time.localeCompare(b.start_time) || a.section.class_name.localeCompare(b.section.class_name));
+      classes.sort((a, b) => a.start_time.localeCompare(b.start_time) || a.section.class_name.localeCompare(b.section.class_name, 'en', { numeric: true }));
       days.push({ date, closed, classes });
     }
 

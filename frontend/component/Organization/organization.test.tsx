@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderApp } from "@/i18n/test-utils";
-import { OrganizationTeachers, parsePhoneList } from "./OrganizationMembers";
+import { OrganizationStudents, OrganizationTeachers, parsePhoneList } from "./OrganizationMembers";
 import OrganizationSubjects from "./OrganizationSubjects";
 import OrganizationWorkspaceGate from "./OrganizationWorkspaceGate";
 
@@ -79,6 +79,33 @@ describe("members", () => {
     expect(del).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByRole("button", { name: "Remove" }));
     await waitFor(() => expect(del).toHaveBeenCalledWith(expect.stringMatching(/\/organizations\/org-1\/members\/m2$/)));
+  });
+
+  it("puts a new student straight into the chosen section", async () => {
+    get.mockImplementation((url: string) => {
+      const path = url.split("?")[0];
+      if (path.endsWith("/members")) return Promise.resolve({ data: { payload: members } });
+      if (path.endsWith("/members/lookup"))
+        return Promise.resolve({ data: { payload: { found: true, query: "01700000009", query_type: "phone", user: { id: "u9", full_name: "Mitu", email: null, phone: "01700000009", teacher_public_id: null, student_public_id: "S9", is_otp_verified: true }, membership: null } } });
+      if (path.endsWith("/sections"))
+        return Promise.resolve({ data: { payload: [{ id: "s10", class_id: "c10", name: "A" }, { id: "s6", class_id: "c6", name: "A" }] } });
+      if (path.endsWith("/classes")) return Promise.resolve({ data: { payload: [{ id: "c6", class_name: "Class 6" }, { id: "c10", class_name: "Class 10" }] } });
+      return Promise.reject(new Error(`unexpected GET ${path}`));
+    });
+    post.mockResolvedValue({ data: { payload: { outcome: "ENROLLED" } } });
+    renderApp(<OrganizationStudents />);
+    await screen.findByRole("table");
+    fireEvent.click(screen.getByRole("button", { name: "Add student" }));
+    const drawer = within(await screen.findByRole("dialog", { name: "Add student" }));
+    const section = drawer.getByLabelText("Section (optional)") as HTMLSelectElement;
+    await waitFor(() => expect(section.options.length).toBe(3));
+    expect([...section.options].map((option) => option.text)).toEqual(["Choose later", "Class 6 A", "Class 10 A"]);
+    fireEvent.change(section, { target: { value: "s6" } });
+    fireEvent.change(drawer.getByLabelText("Student ID, phone or email"), { target: { value: "01700000009" } });
+    fireEvent.click(drawer.getByRole("button", { name: "Search" }));
+    fireEvent.click(await drawer.findByRole("button", { name: "Add to Class 6 A" }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/sections\/s6\/enrolments$/), { student_id: "u9" }));
+    expect(await screen.findByText("Added to Class 6 A")).toBeTruthy();
   });
 
   it("lets admins add teachers", async () => {

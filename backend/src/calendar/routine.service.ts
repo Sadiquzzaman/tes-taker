@@ -443,7 +443,7 @@ export class RoutineService {
       .andWhere('slot.room IS NOT NULL')
       .andWhere('session.status = :open', { open: AcademicSessionStatusEnum.ACTIVE })
       .getRawMany();
-    return rows.map((row) => row.room).sort((a, b) => a.localeCompare(b));
+    return rows.map((row) => row.room).sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
   }
 
   private async activeRows(organizationId: string, where: Record<string, unknown>, manager?: EntityManager): Promise<RoutineSlotEntity[]> {

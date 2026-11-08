@@ -152,7 +152,7 @@ export class CheckInService {
       const record = session ? (records.get(session.id)?.[0] ?? null) : null;
       return this.classView(item, context, date, timeZone, now, closed, session, record);
     });
-    classes.sort((a, b) => a.starts_at.getTime() - b.starts_at.getTime() || a.section.class_name.localeCompare(b.section.class_name));
+    classes.sort((a, b) => a.starts_at.getTime() - b.starts_at.getTime() || a.section.class_name.localeCompare(b.section.class_name, 'en', { numeric: true }));
     const onLeave = Boolean((await this.leave.between(organizationId, date, date, [userId])).on(userId, date));
     return { date, server_time: now, time_zone: timeZone, closed, on_leave: onLeave, classes };
   }
