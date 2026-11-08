@@ -8,7 +8,7 @@ import { OrganizationContextGuard } from 'src/organizations/guards/organization-
 import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.decorator';
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
-import { RoutineQueryDto, RoutineSlotInputDto, UpdateRoutineSlotDto } from './dto/routine.dto';
+import { CopyRoutineDto, RoutineQueryDto, RoutineSlotInputDto, RoutineSlotsInputDto, UpdateRoutineSlotDto } from './dto/routine.dto';
 import { RoutineService } from './routine.service';
 
 const workspace = (): Tenant => {
@@ -18,23 +18,24 @@ const workspace = (): Tenant => {
 };
 
 /**
- * The weekly class routine (CAL-01, CAL-02): staff read a session's routine; owners, admins and
- * assistants add, change and remove slots, confirming teacher or room clashes; everyone sees their
- * own routine. Errors carry a `code` (ROUTINE_*, SCHEDULE_*). Needs `calendar`.
+ * The weekly class routine (CAL-01, CAL-02), the one place the timetable is edited: staff read
+ * every section, students their own; owners, admins and staff change every section and teachers the
+ * sections they teach — one period on one or several days, a copied week — confirming teacher or
+ * room clashes. Errors carry a `code` (ROUTINE_*, SCHEDULE_*). Needs `calendar` or `attendance`.
  */
 @ApiTags('Routine')
 @ApiBearerAuth('jwt')
 @ApiHeader({ name: 'X-Organization-Id', required: false, description: 'Organisation workspace; empty = your own workspace' })
 @UseGuards(AuthGuard('jwt'), OrganizationContextGuard, FeatureGuard)
-@RequiresFeature(FeatureKey.CALENDAR)
+@RequiresFeature(FeatureKey.CALENDAR, FeatureKey.ATTENDANCE)
 @Controller({ path: 'routine', version: '1' })
 export class RoutineController {
   constructor(private readonly routine: RoutineService) {}
 
   @Get()
-  @ApiOperation({ summary: "A session's weekly routine with its sections, subject classes, rooms and clashes (staff)" })
-  async get(@Query() query: RoutineQueryDto) {
-    return { message: 'Routine retrieved successfully', payload: await this.routine.routine(workspace(), query.session_id) };
+  @ApiOperation({ summary: "A session's weekly routine: every section for staff, their own for students; which sections the caller may edit" })
+  async get(@Query() query: RoutineQueryDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Routine retrieved successfully', payload: await this.routine.routine(workspace(), user.id, query.session_id) };
   }
 
   @Get('mine')
@@ -47,6 +48,19 @@ export class RoutineController {
   @ApiOperation({ summary: 'Add a weekly slot (owners, admins, assistants); 409 ROUTINE_CLASH unless confirm_clashes' })
   async add(@Body() dto: RoutineSlotInputDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Slot added', payload: await this.routine.add(workspace(), user.id, dto) };
+  }
+
+  @Post('slots/many')
+  @ApiOperation({ summary: 'Add the same period on several days; 409 ROUTINE_CLASH (every day\'s clashes) unless confirm_clashes' })
+  async addMany(@Body() dto: RoutineSlotsInputDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Slots added', payload: await this.routine.addMany(workspace(), user.id, dto) };
+  }
+
+  @Post('sections/:id/copy')
+  @HttpCode(200)
+  @ApiOperation({ summary: "Replace this section's week with another section's (subjects matched, teachers when clear, no rooms)" })
+  async copy(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CopyRoutineDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Routine copied', payload: await this.routine.copyWeek(workspace(), user.id, id, dto.from_section_id) };
   }
 
   @Patch('slots/:id')

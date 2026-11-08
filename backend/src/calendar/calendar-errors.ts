@@ -20,6 +20,10 @@ export const SCHEDULE_ERRORS = {
 /** Error codes of the weekly routine (CAL-01, CAL-02); the web app translates them (messages `routine.errors`). */
 export const ROUTINE_ERRORS = {
   NOT_FOUND: 'ROUTINE_NOT_FOUND',
+  /** Only owners, admins, staff and the section's teachers change its routine. */
+  NOT_ALLOWED: 'ROUTINE_NOT_ALLOWED',
+  /** Copy from another section of the same session. */
+  COPY_INVALID: 'ROUTINE_COPY_INVALID',
   SUBJECT_INVALID: 'ROUTINE_SUBJECT_INVALID',
   TEACHER_INVALID: 'ROUTINE_TEACHER_INVALID',
   /** A teacher or room booked twice at overlapping times; `details.clashes` lists them. Send `confirm_clashes` to save anyway. */
