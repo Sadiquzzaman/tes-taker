@@ -18,6 +18,15 @@ import { OrganizationKindEnum } from './enums/organization-kind.enum';
 import { OrganizationStatusEnum } from './enums/organization-status.enum';
 import { SelectableContextTypeEnum } from './dto/select-context.dto';
 import { UserContextItem } from './interfaces/user-context.interface';
+import { SoloOrganizationService } from './solo-organization.service';
+import { Tenant } from 'src/common/tenancy/tenant-context';
+
+/** One of a person's workspaces with the tenant a request in it would have (the personal calendar). */
+export interface WorkspaceTenant {
+  key: string;
+  label: string;
+  tenant: Tenant;
+}
 
 @Injectable()
 export class UserContextService {
@@ -29,6 +38,7 @@ export class UserContextService {
     @InjectRepository(EnrolmentEntity)
     private readonly enrolmentRepo: Repository<EnrolmentEntity>,
     private readonly userService: UserService,
+    private readonly soloOrganizations: SoloOrganizationService,
   ) {}
 
   private roleLabelForOrgMember(role: OrganizationMemberRoleEnum): string {
@@ -150,6 +160,32 @@ export class UserContextService {
     }
 
     return contexts;
+  }
+
+  /**
+   * Every workspace the person can open, with the tenant OrganizationContextGuard would set in it:
+   * their own teaching workspace, the approved organisations they belong to, and the solo teachers'
+   * classes they are enrolled in. Pending organisations and workspaces without data are left out.
+   */
+  async workspaces(userId: string): Promise<WorkspaceTenant[]> {
+    const result: WorkspaceTenant[] = [];
+    for (const context of await this.listContexts(userId)) {
+      if (context.type === 'personal_teacher') {
+        const organizationId = await this.soloOrganizations.findIdForOwner(userId);
+        if (organizationId) result.push({ key: context.key, label: context.label, tenant: { organizationId, kind: OrganizationKindEnum.SOLO, memberRole: OrganizationMemberRoleEnum.OWNER } });
+      } else if (context.type === 'organization') {
+        if (context.organization_status !== OrganizationStatusEnum.APPROVED || !context.organization_id) continue;
+        const membership = await this.memberRepo.findOne({ where: { organization_id: context.organization_id, user_id: userId }, relations: ['organization'] });
+        if (!membership?.organization) continue;
+        result.push({ key: context.key, label: context.label, tenant: { organizationId: context.organization_id, kind: membership.organization.kind, memberRole: membership.role } });
+      } else if (context.teacher_id) {
+        const organizationId = await this.soloOrganizations.findIdForOwner(context.teacher_id);
+        if (organizationId) {
+          result.push({ key: context.key, label: context.label, tenant: { organizationId, kind: OrganizationKindEnum.SOLO, memberRole: OrganizationMemberRoleEnum.STUDENT, viaEnrolment: true } });
+        }
+      }
+    }
+    return result;
   }
 
   /**

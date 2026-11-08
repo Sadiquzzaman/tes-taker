@@ -56,6 +56,24 @@ export class CalendarFeedController {
 }
 
 /**
+ * The person's own calendar across all their workspaces (schools, their teaching workspace, solo
+ * teachers' classes): no workspace needs to be chosen. Each workspace without the calendar is left out.
+ */
+@ApiTags('Calendar')
+@ApiBearerAuth('jwt')
+@UseGuards(AuthGuard('jwt'))
+@Controller({ path: 'calendar/me', version: '1' })
+export class CalendarPersonalController {
+  constructor(private readonly feed: CalendarFeedService) {}
+
+  @Get()
+  @ApiOperation({ summary: "The caller's classes, events, exams, homework and closed days in every workspace, from `from` to `to` (at most 62 days)" })
+  async get(@Query() query: CalendarFeedQueryDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Calendar retrieved successfully', payload: await this.feed.personal(user.id, query.from, query.to) };
+  }
+}
+
+/**
  * The private subscription link itself (CAL-07): Google or Apple Calendar reads it without
  * signing in; the token in the path is the key. Text/calendar.
  */

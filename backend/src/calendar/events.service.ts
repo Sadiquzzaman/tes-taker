@@ -68,8 +68,11 @@ export class EventsService {
     private readonly dataSource: DataSource,
   ) {}
 
-  /** Events the caller may see from `from` to `to` (school dates in the organisation's time zone), by start. */
-  async list(tenant: Tenant, userId: string, from: string, to: string): Promise<EventView[]> {
+  /**
+   * Events the caller may see from `from` to `to` (school dates in the organisation's time zone), by
+   * start. With `own`, managers too get only the events they attend or made (the personal calendar).
+   */
+  async list(tenant: Tenant, userId: string, from: string, to: string, own = false): Promise<EventView[]> {
     if (to < from || daysBetween(from, to) > MAX_RANGE_DAYS) {
       throw new BadRequestException({ message: `Choose at most ${MAX_RANGE_DAYS} days`, code: EVENT_ERRORS.TIME_INVALID });
     }
@@ -81,7 +84,7 @@ export class EventsService {
       .where('event.organization_id = :organizationId', { organizationId: tenant.organizationId })
       .andWhere('event.starts_at < :end AND event.ends_at > :start', { start, end })
       .orderBy('event.starts_at', 'ASC');
-    await this.whereVisible(query, tenant, userId);
+    await this.whereVisible(query, tenant, userId, own);
     return this.views(tenant, userId, await query.getMany());
   }
 
@@ -316,8 +319,8 @@ export class EventsService {
   }
 
   /** Limits `query` to events the caller may see: all for managers; else whole-organisation, made by them, or attended. */
-  private async whereVisible(query: ReturnType<Repository<EventEntity>['createQueryBuilder']>, tenant: Tenant, userId: string): Promise<void> {
-    if (isManager(tenant)) return;
+  private async whereVisible(query: ReturnType<Repository<EventEntity>['createQueryBuilder']>, tenant: Tenant, userId: string, own = false): Promise<void> {
+    if (isManager(tenant) && !own) return;
     const sectionIds = await this.mySectionIds(tenant, userId);
     query.andWhere(
       new Brackets((where) => {
