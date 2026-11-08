@@ -4276,7 +4276,7 @@
   },
   "calendar": {
     "title": "Calendar",
-    "intro": "Your classes, events, exams and holidays.",
+    "intro": "Your own classes, events, exams, homework and holidays, from every school and class you belong to.",
     "addEvent": "Add event",
     "previous": "Previous",
     "next": "Next",
@@ -4292,12 +4292,14 @@
       "CLASS": "Classes",
       "EVENT": "Events",
       "EXAM": "Exams",
+      "HOMEWORK": "Homework",
       "HOLIDAY": "Holidays"
     },
     "kinds": {
       "CLASS": "Class",
       "EVENT": "Event",
       "EXAM": "Exam",
+      "HOMEWORK": "Homework",
       "HOLIDAY": "Holiday"
     },
     "openItem": "{kind}: {title} at {time}",
@@ -4410,6 +4412,34 @@
       "save": "Save",
       "cancel": "Cancel",
       "saved": "Reminders saved"
-    }
+    },
+    "due": "Due: {title}",
+    "dueAt": "due at {time}",
+    "handedIn": "Handed in",
+    "notHandedIn": "Not handed in yet",
+    "classCount": "{count, plural, one {# class} other {# classes}}",
+    "allDay": "All day",
+    "openDayView": "Day view",
+    "workspace": "Workspace",
+    "allWorkspaces": "All workspaces",
+    "settings": {
+      "open": "Reminders and link",
+      "title": "Calendar settings",
+      "intro": "Your reminders and the Google or Apple Calendar link, for the workspace you are in now."
+    },
+    "details": {
+      "when": "When",
+      "section": "Class",
+      "teacher": "Teacher",
+      "room": "Room",
+      "place": "Place",
+      "class": "Class",
+      "subject": "Subject",
+      "sections": "For",
+      "workspace": "Workspace"
+    },
+    "openHomework": "Open the homework",
+    "openRoutine": "See it in the Routine",
+    "otherWorkspace": "This is in {workspace}. Switch to that workspace to open it."
   }
 }
