@@ -1,4 +1,4 @@
-/** The weekly class routine (P5-04, CAL-01, CAL-02): as the API returns it (`GET /routine`, `/routine/mine`). */
+/** The weekly class routine (P5-04, CAL-01, CAL-02): as the API returns it (`GET /routine`). */
 type RoutineClashKind = "TEACHER" | "ROOM";
 
 interface RoutineSection {

@@ -151,12 +151,6 @@ describe('routine API', () => {
     expect(day.body.payload.sessions.find((x) => x.slot_id === added.body.payload.id)?.subject).toMatchObject({ name: 'Math' });
     const month = await call<{ days: { date: string; classes: { slot_id: string; subject: { name: string } | null }[] }[] }>('GET', '/attendance/me/calendar?month=2026-12', s.studentToken);
     expect(month.body.payload.days.find((d) => d.date === '2026-12-05')?.classes[0]?.subject).toMatchObject({ name: 'Math' });
-
-    const studentOwn = await call<Slot[]>('GET', '/routine/mine', s.studentToken);
-    expect(studentOwn.body.payload.map((x) => x.id)).toEqual([added.body.payload.id]);
-    const rinaOwn = await call<Slot[]>('GET', '/routine/mine', s.rinaToken);
-    expect(rinaOwn.body.payload.map((x) => x.id)).toEqual([added.body.payload.id]);
-    expect((await call<Slot[]>('GET', '/routine/mine', s.karimToken)).body.payload).toEqual([]);
   });
 
   it('refuses two classes of one section at once, and asks to confirm a teacher or room booked twice, then marks it', async () => {
