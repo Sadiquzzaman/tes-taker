@@ -3,7 +3,7 @@
  * `YYYY-MM-DD` strings so no Date ever shifts a day through the server's own time zone.
  */
 
-const DEFAULT_TIME_ZONE = 'Asia/Dhaka';
+export const DEFAULT_TIME_ZONE = 'Asia/Dhaka';
 
 /** Today's school date (`YYYY-MM-DD`) in a time zone; an unknown zone falls back to Asia/Dhaka. */
 export function schoolDateIn(timeZone: string | null | undefined, now = new Date()): string {
