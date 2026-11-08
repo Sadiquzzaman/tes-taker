@@ -90,7 +90,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "dashboard",
     route: "/dashboard",
-    role: ["STUDENT", "TEACHER"],
+    // Students start on Today and switch workspace in the header; their dashboard was only a picker.
+    role: ["TEACHER"],
     image: <SidebarDashboardIconSVG width={16} />,
   },
   {

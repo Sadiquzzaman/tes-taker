@@ -77,6 +77,22 @@ describe("sidebar sessions (P2-03)", () => {
   });
 });
 
+describe("student menu", () => {
+  it("starts with Today and has no Dashboard (it was only a workspace picker)", async () => {
+    await renderSidebar({ role: "STUDENT", session_mode: "organization", member_role: "STUDENT" }, "/today");
+    expect(links()[0]).toBe("Today");
+    expect(links()).not.toContain("Dashboard");
+  });
+
+  it("puts Today first for a school owner and a solo teacher too", async () => {
+    await renderSidebar(OWNER, "/today");
+    expect(links()[0]).toBe("Today");
+    cleanup();
+    await renderSidebar({ role: "TEACHER", session_mode: "individual", personal_teacher: "1" }, "/today");
+    expect(links().slice(0, 2)).toEqual(["Today", "Dashboard"]);
+  });
+});
+
 describe("grouped menu", () => {
   it("folds a school owner's pages into groups, with Overview and Tests as links of their own", async () => {
     await renderSidebar(OWNER, "/organization");
