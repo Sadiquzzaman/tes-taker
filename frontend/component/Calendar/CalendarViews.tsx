@@ -69,7 +69,7 @@ interface OpenProps {
 }
 
 /** One item in a day's list: its times, title, details and state. */
-const AgendaItem = ({ item, timeZone, onOpen, showWorkspace }: OpenProps & { item: TimedItem }) => {
+export const AgendaItem = ({ item, timeZone, onOpen, showWorkspace }: OpenProps & { item: TimedItem }) => {
   const t = useTranslations("calendar");
   const clock = useClock(timeZone);
   const label = useLabel();

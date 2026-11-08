@@ -3,27 +3,9 @@ const LAST_WORKSPACE_PREFIX = "last_workspace:";
 
 const isBrowser = () => typeof window !== "undefined";
 
-export const homeForContext = (context: UserContextItem, globalRole?: string) => {
-  if (context.type === "organization") {
-    if (context.organization_status === "pending") {
-      return "/organization/pending";
-    }
-    if (context.member_role === "STUDENT" || globalRole === "STUDENT") {
-      return "/classes";
-    }
-    if (context.member_role === "TEACHER" || context.member_role === "ASSISTANT") {
-      return "/organization/classes";
-    }
-    return "/organization";
-  }
-  if (context.type === "individual_teacher") {
-    return "/classes";
-  }
-  if (globalRole === "STUDENT") {
-    return "/dashboard";
-  }
-  return "/dashboard";
-};
+/** Where a workspace opens: Today for everyone (an organisation still waiting for approval: its pending page). */
+export const homeForContext = (context: UserContextItem) =>
+  context.type === "organization" && context.organization_status === "pending" ? "/organization/pending" : "/today";
 
 export const workspaceFromUser = (user: LoginResponsePayload | null): WorkspaceSelection => {
   if (user?.session_mode === "organization" && user.organization?.id) {

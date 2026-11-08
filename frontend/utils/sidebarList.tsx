@@ -81,6 +81,13 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Platform",
+    label: "today",
+    route: "/today",
+    role: ["STUDENT", "TEACHER"],
+    image: <SidebarDashboardIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
     label: "dashboard",
     route: "/dashboard",
     role: ["STUDENT", "TEACHER"],
@@ -321,6 +328,14 @@ const sidebarList: SideBarList[] = [
     role: ["TEACHER"],
     personalWorkspaceOnly: true,
     feature: "attendance",
+    image: <SidebarDashboardIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
+    label: "today",
+    route: "/today",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
     image: <SidebarDashboardIconSVG width={16} />,
   },
   {
