@@ -5,6 +5,7 @@ import { cn } from "@/design/ui";
 import useFormat from "@/i18n/useFormat";
 import { LEGEND, STATUS_MARK } from "@/utils/attendance/status";
 import { SCHOOL_WEEK, type IsoDay } from "@/utils/schoolDate";
+import { classLabel as nameOfClass } from "@/utils/attendance/classLabel";
 
 type CalendarDay = MyCalendar["days"][number];
 
@@ -44,7 +45,7 @@ const AttendanceCalendar = ({ calendar }: { calendar: MyCalendar }) => {
   };
   const classLabel = (item: CalendarDay["classes"][number]) =>
     t("markLabel", {
-      section: `${item.section.class_name} ${item.section.name}`,
+      section: nameOfClass(item),
       time: time(item.start_time),
       status: t(`status.${item.status}`),
     });

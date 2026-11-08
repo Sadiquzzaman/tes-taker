@@ -30,6 +30,8 @@ export interface CalendarClass {
   slot_id: string;
   role: AttendancePersonTypeEnum;
   section: { id: string; name: string; class_name: string };
+  /** The subject of the period (from the routine), or null for a whole-section class. */
+  subject: { id: string; name: string } | null;
   start_time: string;
   end_time: string;
   status: CalendarStatus;
@@ -145,6 +147,7 @@ export class MyAttendanceService {
           slot_id: item.slot.id,
           role: item.role,
           section: sectionOf(context),
+          subject: item.slot.subject,
           start_time: clockIn(window.starts_at, timeZone),
           end_time: clockIn(window.ends_at, timeZone),
           status: statusOf(record, closed, context, checkInState(now, window), session, Boolean(leave.on(userId, date))),
@@ -160,6 +163,8 @@ export class MyAttendanceService {
           slot_id: record.session.routine_slot_id,
           role: record.person_type,
           section: sectionOf(context),
+          // A removed period: its subject is no longer on the routine.
+          subject: null,
           start_time: clockIn(record.session.starts_at, timeZone),
           end_time: clockIn(record.session.ends_at, timeZone),
           status: record.session.status === ClassSessionStatusEnum.CANCELLED ? 'CANCELLED' : record.status,

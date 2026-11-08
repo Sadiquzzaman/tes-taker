@@ -142,6 +142,12 @@ describe('routine API', () => {
     expect((await call('POST', '/routine/slots', s.rinaToken, { section_id: s.b, day_of_week: 1, start_time: '09:00', end_time: '09:45' })).status).toBe(403);
     expect((await call('GET', '/routine', s.studentToken)).status).toBe(403);
 
+    // The subject shows wherever the class does: Class attendance and the student's month.
+    const day = await call<{ sessions: { slot_id: string; subject: { name: string } | null }[] }>('GET', '/attendance/sessions?date=2026-12-05', s.ownerToken);
+    expect(day.body.payload.sessions.find((x) => x.slot_id === added.body.payload.id)?.subject).toMatchObject({ name: 'Math' });
+    const month = await call<{ days: { date: string; classes: { slot_id: string; subject: { name: string } | null }[] }[] }>('GET', '/attendance/me/calendar?month=2026-12', s.studentToken);
+    expect(month.body.payload.days.find((d) => d.date === '2026-12-05')?.classes[0]?.subject).toMatchObject({ name: 'Math' });
+
     const studentOwn = await call<Slot[]>('GET', '/routine/mine', s.studentToken);
     expect(studentOwn.body.payload.map((x) => x.id)).toEqual([added.body.payload.id]);
     const rinaOwn = await call<Slot[]>('GET', '/routine/mine', s.rinaToken);
