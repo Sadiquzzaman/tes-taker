@@ -49,7 +49,8 @@ export const useLabel = () => {
 const detailOf = (item: CalendarFeedItem, showWorkspace: boolean) => {
   const parts =
     item.kind === "CLASS"
-      ? [item.teacher, item.room]
+      ? // A teacher's own classes don't repeat their name.
+        [item.role === "TEACHER" ? null : item.teacher, item.room]
       : item.kind === "EVENT"
         ? [item.place]
         : item.kind === "HOMEWORK"

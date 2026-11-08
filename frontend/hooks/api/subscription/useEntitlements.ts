@@ -13,6 +13,18 @@ export type EntitlementsState = {
 /** Filled by EntitlementsProvider so every component on a page shares one request. */
 export const EntitlementsContext = createContext<EntitlementsState | null>(null);
 
+/** Where this browser remembers a workspace's last entitlements, so the menu shows at once next time. */
+const cacheKey = (reloadKey: string | undefined) => `entitlements:${reloadKey ?? "default"}`;
+
+const readCached = (reloadKey: string | undefined): EntitlementsPayload | null => {
+  try {
+    const stored = localStorage.getItem(cacheKey(reloadKey));
+    return stored ? (JSON.parse(stored) as EntitlementsPayload) : null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Loads the current workspace's entitlements (GET /me/entitlements, design §8.3). With
  * `enabled` false nothing is fetched (signed out, students, platform admins); null means "not known
@@ -32,22 +44,31 @@ export const useEntitlementsState = (enabled: boolean | null = true, reloadKey?:
     }
     setLoading(true);
     setError(null);
+    // While loading, the last answer for this workspace (menus then don't jump); the server's wins.
+    const cached = readCached(reloadKey);
+    if (cached) setEntitlements(cached);
 
     try {
       const response = await axiosReq.get<{ payload: EntitlementsPayload }>(`${baseUrl}/me/entitlements`);
-      setEntitlements(response.data?.payload ?? null);
+      const payload = response.data?.payload ?? null;
+      setEntitlements(payload);
+      try {
+        if (payload) localStorage.setItem(cacheKey(reloadKey), JSON.stringify(payload));
+      } catch {
+        // Private windows may refuse storage; the menu then waits for the server as before.
+      }
     } catch {
       setError("Failed to load entitlements");
       setEntitlements(null);
     } finally {
       setLoading(false);
     }
-  }, [baseUrl, enabled]);
+  }, [baseUrl, enabled, reloadKey]);
 
   // A new workspace (reloadKey) means new entitlements.
   useEffect(() => {
     void fetchEntitlements();
-  }, [fetchEntitlements, reloadKey]);
+  }, [fetchEntitlements]);
 
   const hasFeature = useCallback(
     (key: string) => Boolean(entitlements?.features?.[key as keyof typeof entitlements.features]),

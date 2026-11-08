@@ -32,6 +32,8 @@ export function formatVariable(key: string, value: unknown, options: Omit<Render
       return new Intl.DateTimeFormat(INTL_LOCALE[options.locale], {
         dateStyle: 'medium',
         timeStyle: 'short',
+        // A 24-hour clock in both languages, as in the app (Bangla otherwise says "৮:০০ PM").
+        hourCycle: 'h23',
         timeZone: options.timeZone,
       }).format(date);
     }

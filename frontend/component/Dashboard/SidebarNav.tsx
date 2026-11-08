@@ -38,7 +38,9 @@ const SidebarNav = ({ items, activeRoute }: { items: SideBarList[]; activeRoute:
   const [toggled, setToggled] = useState<Partial<Record<NavGroup, boolean>>>({});
 
   const featureOn = (feature: string | string[]) => (Array.isArray(feature) ? feature : [feature]).some((key) => entitlements?.features?.[key]);
-  const visible = items.filter((item) => !item.feature || (!loading && (!entitlements || featureOn(item.feature))));
+  // Known entitlements (this load's, or the last ones remembered while loading) decide; unknown ones
+  // hide gated items while loading and show them if loading failed (the server still refuses).
+  const visible = items.filter((item) => !item.feature || (entitlements ? featureOn(item.feature) : !loading));
   const entries = navEntries(visible);
   const remembered = readOpenGroups(stored);
 

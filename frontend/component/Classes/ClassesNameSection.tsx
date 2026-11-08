@@ -22,7 +22,7 @@ const ClassesNameSection = ({ role }: ClassesNameSectionProps) => {
     <div className="mb-6 flex flex-col gap-4">
       <PageHeader
         title={t("title")}
-        description={t("intro")}
+        description={t(isTeacher ? "intro" : "introStudent")}
         actions={
           isTeacher ? (
             <NextLink href="/classes/create" className={buttonClasses()}>

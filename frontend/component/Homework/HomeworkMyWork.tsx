@@ -137,7 +137,7 @@ const HomeworkMyWork = ({ homework }: { homework: HomeworkItem }) => {
               <Button loading={sending} disabled={sending} onClick={() => void submit()}>
                 {mine.submissions.length ? t("submitAgain") : t("submit")}
               </Button>
-              <span className="text-body-sm text-ink-muted">{t("left", { count: mine.submissions_left })}</span>
+              <span className="text-body-sm text-ink-muted">{t(mine.submissions.length ? "left" : "leftFirst", { count: mine.submissions_left })}</span>
             </div>
           </div>
         ) : mine.blocked_by && isSubmitError(mine.blocked_by) ? (
