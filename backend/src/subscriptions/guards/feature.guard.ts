@@ -13,13 +13,19 @@ export class FeatureGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const feature = this.reflector.getAllAndOverride<string | undefined>(REQUIRED_FEATURE, [
+    const required = this.reflector.getAllAndOverride<string | string[] | undefined>(REQUIRED_FEATURE, [
       context.getHandler(),
       context.getClass(),
     ]);
-    if (!feature) return true;
+    const features = (Array.isArray(required) ? required : required ? [required] : []).filter(Boolean);
+    if (features.length === 0) return true;
 
-    await this.entitlements.assertFeature(TenantContext.requireOrganizationId(), feature);
+    // Any one of the features is enough; when none is on, the first one's check gives the 403.
+    const organizationId = TenantContext.requireOrganizationId();
+    for (const feature of features.slice(1)) {
+      if (await this.entitlements.hasFeature(organizationId, feature)) return true;
+    }
+    await this.entitlements.assertFeature(organizationId, features[0]);
     return true;
   }
 }

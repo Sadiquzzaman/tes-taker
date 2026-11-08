@@ -3,12 +3,12 @@
 import { AxiosError } from "axios";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { Button, Checkbox, Modal, RadioGroup, Skeleton } from "@/design/ui";
+import { Button, Modal, RadioGroup, Skeleton } from "@/design/ui";
 import axiosReq from "@/lib/axios";
 
 type Target = "class" | "shift";
 
-interface ApplyScheduleDialogProps {
+interface ApplySettingsDialogProps {
   baseUrl: string | undefined;
   source: SectionSetup | null;
   sectionName: (section: SectionSetup) => string;
@@ -18,20 +18,18 @@ interface ApplyScheduleDialogProps {
 }
 
 /**
- * Applies one section's schedule to every other section of its class or its shift (ATT-16), after a
- * preview of the sections that will be replaced. Teachers are not copied; the type, mode and grace
- * period only when asked; the branch never.
+ * Applies one section's settings — in person or online, the attendance method and "Late after" —
+ * to every other section of its class or its shift, after a preview. Never the branch, and never
+ * the periods: the timetable is copied in the Routine.
  */
-const ApplyScheduleDialog = ({ baseUrl, source, sectionName, onClose, onApplied, onError }: ApplyScheduleDialogProps) => {
+const ApplySettingsDialog = ({ baseUrl, source, sectionName, onClose, onApplied, onError }: ApplySettingsDialogProps) => {
   const t = useTranslations("classSetup");
   const [target, setTarget] = useState<Target>("class");
-  const [includeSettings, setIncludeSettings] = useState(false);
   const [preview, setPreview] = useState<ApplyScheduleResult | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setTarget("class");
-    setIncludeSettings(false);
   }, [source]);
 
   const body = (dryRun: boolean) =>
@@ -39,7 +37,8 @@ const ApplyScheduleDialog = ({ baseUrl, source, sectionName, onClose, onApplied,
       ? {
           from_section_id: source.id,
           ...(target === "class" ? { class_id: source.class.id } : { shift: source.shift }),
-          include_settings: includeSettings,
+          include_schedule: false,
+          include_settings: true,
           dry_run: dryRun,
         }
       : null;
@@ -76,21 +75,20 @@ const ApplyScheduleDialog = ({ baseUrl, source, sectionName, onClose, onApplied,
   };
 
   const count = preview?.sections.length ?? 0;
-  const teachersDropped = preview?.sections.reduce((sum, s) => sum + s.teachers_dropped, 0) ?? 0;
 
   return (
     <Modal
       open={source !== null}
       onClose={onClose}
-      title={t("applyTitle")}
-      description={source ? t("applyIntro", { section: sectionName(source) }) : undefined}
+      title={t("applySettingsTitle")}
+      description={source ? t("applySettingsIntro", { section: sectionName(source) }) : undefined}
       footer={
         <div className="flex justify-end gap-3">
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             {t("cancel")}
           </Button>
           <Button onClick={() => void apply()} loading={saving} disabled={!preview || count === 0}>
-            {t("applyConfirm", { count })}
+            {t("applySettingsConfirm", { count })}
           </Button>
         </div>
       }
@@ -107,12 +105,6 @@ const ApplyScheduleDialog = ({ baseUrl, source, sectionName, onClose, onApplied,
               ...(source.shift ? [{ value: "shift", label: t("applyToShift", { shift: t(`shift.${source.shift}`) }) }] : []),
             ]}
           />
-          <Checkbox
-            label={t("includeSettings")}
-            hint={t("includeSettingsHint")}
-            checked={includeSettings}
-            onChange={(event) => setIncludeSettings(event.target.checked)}
-          />
           {!preview ? (
             <div aria-busy="true">
               <Skeleton lines={3} />
@@ -121,22 +113,12 @@ const ApplyScheduleDialog = ({ baseUrl, source, sectionName, onClose, onApplied,
             <p className="text-body-sm text-ink-muted">{t("applyNone")}</p>
           ) : (
             <div className="flex flex-col gap-2">
-              <p className="text-body-sm font-medium text-ink">{t("applyWillReplace", { count })}</p>
+              <p className="text-body-sm font-medium text-ink">{t("applySettingsWill", { count })}</p>
               <ul className="flex flex-col gap-1 text-body-sm">
                 {preview.sections.map((section) => (
-                  <li key={section.id} className="flex flex-wrap justify-between gap-2">
-                    <span className="text-ink">{`${section.class_name} ${section.name}`}</span>
-                    <span className="text-ink-muted">
-                      {section.slots_before > 0 ? t("applySlotsBefore", { count: section.slots_before }) : t("applyEmpty")}
-                    </span>
-                  </li>
+                  <li key={section.id} className="text-ink">{`${section.class_name} ${section.name}`}</li>
                 ))}
               </ul>
-              {teachersDropped > 0 ? (
-                <p className="text-body-sm text-warning" role="note">
-                  {t("applyTeachersDropped", { count: teachersDropped })}
-                </p>
-              ) : null}
             </div>
           )}
         </div>
@@ -145,4 +127,4 @@ const ApplyScheduleDialog = ({ baseUrl, source, sectionName, onClose, onApplied,
   );
 };
 
-export default ApplyScheduleDialog;
+export default ApplySettingsDialog;

@@ -3,7 +3,7 @@
 import { AxiosError } from "axios";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { Button, ConfirmDialog, Drawer, Input, Select, TimePicker } from "@/design/ui";
+import { Button, Checkbox, ConfirmDialog, Drawer, Input, Select, TimePicker } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
 import axiosReq from "@/lib/axios";
 import { type IsoDay, SCHOOL_WEEK } from "@/utils/schoolDate";
@@ -12,7 +12,7 @@ import { sectionLabel, useClock } from "./RoutineWeek";
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 /** Refusals the form explains itself (messages `routine.errors`). */
-const FORM_ERRORS = ["SCHEDULE_OVERLAP", "SCHEDULE_TIME_INVALID", "SCHEDULE_TOO_MANY", "ROUTINE_SUBJECT_INVALID", "ROUTINE_TEACHER_INVALID", "ROUTINE_NOT_FOUND"] as const;
+const FORM_ERRORS = ["SCHEDULE_OVERLAP", "SCHEDULE_TIME_INVALID", "SCHEDULE_TOO_MANY", "ROUTINE_SUBJECT_INVALID", "ROUTINE_TEACHER_INVALID", "ROUTINE_NOT_FOUND", "ROUTINE_NOT_ALLOWED"] as const;
 type FormError = (typeof FORM_ERRORS)[number];
 const isFormError = (code: unknown): code is FormError => (FORM_ERRORS as readonly unknown[]).includes(code);
 
@@ -36,21 +36,30 @@ const RoutineSlotDrawer = ({ routine, slot, start, teachers, onClose, onSaved }:
   const t = useTranslations("routine");
   const clock = useClock();
   const { handleError } = useApiError();
-  const [sectionId, setSectionId] = useState(slot?.section.id ?? start?.section_id ?? routine.sections[0]?.id ?? "");
+  const editableSections = routine.sections.filter((section) => routine.editable_section_ids.includes(section.id));
+  const [sectionId, setSectionId] = useState(slot?.section.id ?? start?.section_id ?? editableSections[0]?.id ?? "");
   const [day, setDay] = useState(String(slot?.day_of_week ?? start?.day_of_week ?? SCHOOL_WEEK[0]));
+  // A new period can go on several days at once; a period being changed has one day.
+  const [days, setDays] = useState<number[]>(start?.day_of_week ? [start.day_of_week] : []);
   const [startTime, setStartTime] = useState(slot?.start_time ?? "");
   const [endTime, setEndTime] = useState(slot?.end_time ?? "");
   const [offeringId, setOfferingId] = useState(slot?.subject?.offering_id ?? "");
   const [teacherId, setTeacherId] = useState(slot?.teacher?.id ?? "");
   const [room, setRoom] = useState(slot?.room ?? "");
-  const [error, setError] = useState<FormError | "TIMES_REQUIRED" | null>(null);
+  const [error, setError] = useState<FormError | "TIMES_REQUIRED" | "DAYS_REQUIRED" | null>(null);
   const [clashes, setClashes] = useState<RoutineClash[] | null>(null);
   const [removing, setRemoving] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const subjects = routine.subject_classes.filter((offering) => offering.section_id === sectionId);
   // A slot's own teacher stays a choice even if they are no longer in the list.
-  const teacherChoices = slot?.teacher && !teachers.some((teacher) => teacher.id === slot.teacher?.id) ? [...teachers, { id: slot.teacher.id, name: slot.teacher.full_name }] : teachers;
+  const allTeachers = slot?.teacher && !teachers.some((teacher) => teacher.id === slot.teacher?.id) ? [...teachers, { id: slot.teacher.id, name: slot.teacher.full_name }] : teachers;
+  // The subject's own teachers first, then everyone else.
+  const subjectTeacherIds = routine.subject_classes.find((offering) => offering.offering_id === offeringId)?.teacher_ids ?? [];
+  const teacherChoices = [
+    ...allTeachers.filter((teacher) => subjectTeacherIds.includes(teacher.id)).map((teacher) => ({ value: teacher.id, label: t("teachesSubject", { name: teacher.name }) })),
+    ...allTeachers.filter((teacher) => !subjectTeacherIds.includes(teacher.id)).map((teacher) => ({ value: teacher.id, label: teacher.name })),
+  ];
 
   const chooseSubject = (value: string) => {
     setOfferingId(value);
@@ -60,12 +69,12 @@ const RoutineSlotDrawer = ({ routine, slot, start, teachers, onClose, onSaved }:
   };
 
   const save = async (confirm: boolean) => {
+    if (!slot && days.length === 0) return setError("DAYS_REQUIRED");
     if (!startTime || !endTime) return setError("TIMES_REQUIRED");
     if (endTime <= startTime) return setError("SCHEDULE_TIME_INVALID");
     setError(null);
     setBusy(true);
-    const body: RoutineSlotInput = {
-      day_of_week: Number(day),
+    const period = {
       start_time: startTime,
       end_time: endTime,
       offering_id: offeringId || null,
@@ -74,8 +83,8 @@ const RoutineSlotDrawer = ({ routine, slot, start, teachers, onClose, onSaved }:
       ...(confirm ? { confirm_clashes: true } : {}),
     };
     try {
-      if (slot) await axiosReq.patch(`${baseUrl}/routine/slots/${slot.id}`, body);
-      else await axiosReq.post(`${baseUrl}/routine/slots`, { ...body, section_id: sectionId });
+      if (slot) await axiosReq.patch(`${baseUrl}/routine/slots/${slot.id}`, { ...period, day_of_week: Number(day) } satisfies RoutineSlotInput);
+      else await axiosReq.post(`${baseUrl}/routine/slots/many`, { ...period, section_id: sectionId, days });
       onSaved();
     } catch (err) {
       const data = (err as AxiosError<ApiError & { code?: string; details?: { clashes?: RoutineClash[] } }>).response?.data;
@@ -144,19 +153,38 @@ const RoutineSlotDrawer = ({ routine, slot, start, teachers, onClose, onSaved }:
           value={sectionId}
           disabled={Boolean(slot)}
           placeholder={false}
-          options={routine.sections.map((section) => ({ value: section.id, label: sectionLabel(section) }))}
+          options={(slot ? routine.sections : editableSections).map((section) => ({ value: section.id, label: sectionLabel(section) }))}
           onChange={(event) => {
             edit(setSectionId)(event.target.value);
             setOfferingId("");
           }}
         />
-        <Select
-          label={t("day")}
-          value={day}
-          placeholder={false}
-          options={SCHOOL_WEEK.map((iso) => ({ value: String(iso), label: t(`days.${iso as IsoDay}`) }))}
-          onChange={(event) => edit(setDay)(event.target.value)}
-        />
+        {slot ? (
+          <Select
+            label={t("day")}
+            value={day}
+            placeholder={false}
+            options={SCHOOL_WEEK.map((iso) => ({ value: String(iso), label: t(`days.${iso as IsoDay}`) }))}
+            onChange={(event) => edit(setDay)(event.target.value)}
+          />
+        ) : (
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1 text-body-sm font-medium text-ink">{t("days_label")}</legend>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {SCHOOL_WEEK.map((iso) => (
+                <Checkbox
+                  key={iso}
+                  label={t(`days.${iso as IsoDay}`)}
+                  checked={days.includes(iso)}
+                  onChange={(event) => {
+                    setClashes(null);
+                    setDays((current) => (event.target.checked ? [...current, iso] : current.filter((d) => d !== iso)));
+                  }}
+                />
+              ))}
+            </div>
+          </fieldset>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <TimePicker label={t("start")} value={startTime} onChange={edit(setStartTime)} />
           <TimePicker label={t("end")} value={endTime} onChange={edit(setEndTime)} />
@@ -172,7 +200,7 @@ const RoutineSlotDrawer = ({ routine, slot, start, teachers, onClose, onSaved }:
           label={t("teacher")}
           value={teacherId}
           placeholder={t("noTeacher")}
-          options={teacherChoices.map((teacher) => ({ value: teacher.id, label: teacher.name }))}
+          options={teacherChoices}
           onChange={(event) => edit(setTeacherId)(event.target.value)}
         />
         <Input label={t("room")} hint={t("roomHint")} value={room} maxLength={40} list="routine-rooms" onChange={(event) => edit(setRoom)(event.target.value)} />

@@ -7,9 +7,10 @@ import useEntitlements from "@/hooks/api/subscription/useEntitlements";
  * that is still loading so a locked item does not flash. If entitlements fail to load the item is
  * shown: the server still refuses a locked feature with the locked-feature message.
  */
-const FeatureNavGate = ({ feature, children }: { feature: string; children: React.ReactNode }) => {
+const FeatureNavGate = ({ feature, children }: { feature: string | string[]; children: React.ReactNode }) => {
   const { entitlements, loading } = useEntitlements();
-  if (loading || (entitlements && !entitlements.features?.[feature])) return null;
+  const keys = Array.isArray(feature) ? feature : [feature];
+  if (loading || (entitlements && !keys.some((key) => entitlements.features?.[key]))) return null;
   return <>{children}</>;
 };
 

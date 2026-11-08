@@ -155,7 +155,7 @@ const sidebarList: SideBarList[] = [
     route: "/routine",
     group: "academics",
     role: ["STUDENT"],
-    feature: "calendar",
+    feature: ["calendar", "attendance"],
     image: <SidebarClassesIconSVG width={16} />,
   },
   {
@@ -165,7 +165,7 @@ const sidebarList: SideBarList[] = [
     group: "academics",
     role: ["TEACHER"],
     personalWorkspaceOnly: true,
-    feature: "calendar",
+    feature: ["calendar", "attendance"],
     image: <SidebarClassesIconSVG width={16} />,
   },
   {
@@ -175,7 +175,7 @@ const sidebarList: SideBarList[] = [
     group: "academics",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
-    feature: "calendar",
+    feature: ["calendar", "attendance"],
     image: <SidebarClassesIconSVG width={16} />,
   },
   {

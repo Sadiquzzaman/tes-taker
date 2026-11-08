@@ -9,11 +9,8 @@ import useAcademicsRequest from "@/hooks/academics/useAcademicsRequest";
 import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
-import { rowsFromSlots } from "@/utils/attendance/schedule";
-import type { IsoDay } from "@/utils/schoolDate";
-import ApplyScheduleDialog from "./ApplyScheduleDialog";
-import ScheduleDrawer from "./ScheduleDrawer";
-import ScheduleImportDrawer from "./ScheduleImportDrawer";
+import { type IsoDay, SCHOOL_WEEK } from "@/utils/schoolDate";
+import ApplySettingsDialog from "./ApplySettingsDialog";
 
 const CLASS_TYPES: SectionClassType[] = ["IN_PERSON", "ONLINE"];
 const MODES: SectionAttendanceMode[] = ["SELF_CHECKIN", "PAPER_REGISTER"];
@@ -29,21 +26,18 @@ const ClassSetupPage = () => {
   const t = useTranslations("classSetup");
   const tBranches = useTranslations("branches");
   const format = useFormat();
-  const { baseUrl, run, isIndividual, organizationId } = useAcademicsRequest();
+  const { baseUrl, run } = useAcademicsRequest();
   const { handleError } = useApiError();
   const { triggerToast } = useToast();
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
   const [sessionId, setSessionId] = useState("");
   const [setup, setSetup] = useState<ClassSetup | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [teachers, setTeachers] = useState<{ id: string; name: string }[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [classFilter, setClassFilter] = useState("");
   const [shiftFilter, setShiftFilter] = useState("");
-  const [editing, setEditing] = useState<SectionSetup | null>(null);
   const [applying, setApplying] = useState<SectionSetup | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
     setFailed(false);
@@ -73,21 +67,7 @@ const ClassSetupPage = () => {
       .catch(() => setSessions([]));
   }, [baseUrl]);
 
-  // Teachers to put on a slot: for owners, admins and assistants of an organisation.
   const canManage = setup?.can_manage ?? false;
-  useEffect(() => {
-    if (!canManage || isIndividual || !organizationId) {
-      setTeachers(null);
-      return;
-    }
-    axiosReq
-      .get<ApiResponse<OrganizationMemberItem[]>>(`${baseUrl}/organizations/${organizationId}/assignable-teachers`)
-      .then((response) =>
-        setTeachers((response.data?.payload ?? []).map((member) => ({ id: member.user.id, name: member.user.full_name ?? member.user.email ?? "" }))),
-      )
-      .catch(() => setTeachers(null));
-  }, [baseUrl, canManage, isIndividual, organizationId]);
-
   const sectionName = (row: SectionSetup) => `${row.class.name} ${row.name}`;
 
   const replaceRow = (row: SectionSetup) =>
@@ -152,22 +132,24 @@ const ClassSetupPage = () => {
       header: t("schedule"),
       cell: (row) =>
         row.slots.length === 0 ? (
-          <Badge tone="warning">{t("noSchedule")}</Badge>
+          <div className="flex flex-col items-start gap-1">
+            <Badge tone="warning">{t("noSchedule")}</Badge>
+            {row.can_edit ? <Link href={`/routine?section=${row.id}`}>{t("addInRoutine")}</Link> : null}
+          </div>
         ) : (
-          <ul className="flex flex-col gap-1 text-body-sm">
-            {rowsFromSlots(row.slots).map((line, index) => {
-              const teacher = line.teacher_id ? row.slots.find((slot) => slot.teacher_id === line.teacher_id)?.teacher?.full_name : null;
-              return (
+          <div className="flex flex-col gap-1">
+            <ul className="flex flex-col gap-1 text-body-sm">
+              {periodsOf(row.slots).map((line, index) => (
                 <li key={index}>
                   <span className="text-ink">{line.days.map((day) => t(`dayShort.${day as IsoDay}`)).join(", ")}</span>{" "}
-                  <span className="text-ink-muted">
-                    {`${time(line.start)}–${time(line.end)}`}
-                    {teacher ? ` · ${teacher}` : ""}
-                  </span>
+                  <span className="text-ink-muted">{[`${time(line.start)}–${time(line.end)}`, line.subject, line.teacher].filter(Boolean).join(" · ")}</span>
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
+            <Link href={`/routine?section=${row.id}`} aria-label={t("editInRoutineFor", { section: sectionName(row) })}>
+              {row.can_edit ? t("editInRoutine") : t("viewInRoutine")}
+            </Link>
+          </div>
         ),
     },
     ...(multipleBranches
@@ -249,17 +231,10 @@ const ClassSetupPage = () => {
       header: t("actions"),
       align: "right",
       cell: (row) =>
-        row.can_edit ? (
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button size="sm" variant="secondary" onClick={() => setEditing(row)} aria-label={t("editScheduleFor", { section: sectionName(row) })}>
-              {t("editSchedule")}
-            </Button>
-            {canManage && row.slots.length > 0 ? (
-              <Button size="sm" variant="ghost" onClick={() => setApplying(row)} aria-label={t("applyFor", { section: sectionName(row) })}>
-                {t("apply")}
-              </Button>
-            ) : null}
-          </div>
+        canManage && row.can_edit ? (
+          <Button size="sm" variant="ghost" onClick={() => setApplying(row)} aria-label={t("applyFor", { section: sectionName(row) })}>
+            {t("apply")}
+          </Button>
         ) : null,
     },
   ];
@@ -271,13 +246,6 @@ const ClassSetupPage = () => {
       <PageHeader
         title={t("title")}
         description={t("intro")}
-        actions={
-          setup?.sections.some((row) => row.can_edit) ? (
-            <Button variant="secondary" onClick={() => setImporting(true)}>
-              {t("importCsv")}
-            </Button>
-          ) : undefined
-        }
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -317,35 +285,7 @@ const ClassSetupPage = () => {
         )}
       </Card>
 
-      <ScheduleDrawer
-        baseUrl={baseUrl}
-        section={editing}
-        sections={setup?.sections ?? []}
-        teachers={teachers}
-        sectionName={sectionName}
-        onClose={() => setEditing(null)}
-        onSaved={(row, copied) => {
-          replaceRow(row);
-          setEditing(null);
-          triggerToast({ title: copied ? t("copied", { section: sectionName(row) }) : t("scheduleSaved", { section: sectionName(row) }), type: "success" });
-        }}
-        onError={handleError}
-      />
-
-      {setup ? (
-        <ScheduleImportDrawer
-          open={importing}
-          sessionId={setup.session.id}
-          onClose={() => setImporting(false)}
-          onImported={(count) => {
-            setImporting(false);
-            triggerToast({ title: t("imported", { count }), type: "success" });
-            void load();
-          }}
-        />
-      ) : null}
-
-      <ApplyScheduleDialog
+      <ApplySettingsDialog
         baseUrl={baseUrl}
         source={applying}
         sectionName={sectionName}
@@ -359,6 +299,21 @@ const ClassSetupPage = () => {
       />
     </div>
   );
+};
+
+/** A section's periods grouped into lines of the same time, subject and teacher: "Sat, Mon 10:00–10:45 · Mathematics · Rina". */
+const periodsOf = (slots: ScheduleSlot[]) => {
+  const lines: { days: number[]; start: string; end: string; subject: string | null; teacher: string | null }[] = [];
+  for (const slot of slots) {
+    const subject = slot.subject?.name ?? null;
+    const teacher = slot.teacher?.full_name ?? null;
+    const line = lines.find((l) => l.start === slot.start_time && l.end === slot.end_time && l.subject === subject && l.teacher === teacher);
+    if (line) line.days.push(slot.day_of_week);
+    else lines.push({ days: [slot.day_of_week], start: slot.start_time, end: slot.end_time, subject, teacher });
+  }
+  const order = (day: number) => SCHOOL_WEEK.indexOf(day as IsoDay);
+  for (const line of lines) line.days.sort((a, b) => order(a) - order(b));
+  return lines.sort((a, b) => a.start.localeCompare(b.start) || order(a.days[0]) - order(b.days[0]));
 };
 
 export default ClassSetupPage;

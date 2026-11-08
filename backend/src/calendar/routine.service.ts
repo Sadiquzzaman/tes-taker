@@ -16,7 +16,7 @@ import { RoutineSlotEntity } from './entities/routine-slot.entity';
 import { hhmm, MAX_SLOTS_PER_SECTION, RoutineSlotsService } from './routine-slots.service';
 
 const { OWNER, ADMIN, ASSISTANT } = OrganizationMemberRoleEnum;
-/** Owners, admins and assistants build the routine (CAL-01); everyone else reads it. */
+/** Owners, admins and staff (assistants) change every section's routine (CAL-01); teachers the sections they teach. */
 const ROUTINE_MANAGERS = [OWNER, ADMIN, ASSISTANT];
 
 export type ClashKind = 'TEACHER' | 'ROOM';
@@ -49,7 +49,10 @@ export interface RoutineSlotView {
 /** `GET /routine`: a session's whole routine, with what the grid needs to edit it. */
 export interface RoutineView {
   session: { id: string; name: string; status: AcademicSessionStatusEnum };
+  /** The caller may change at least one section's routine. */
   can_manage: boolean;
+  /** Sections whose routine the caller may change: all for owners, admins and staff; the ones a teacher teaches. */
+  editable_section_ids: string[];
   sections: { id: string; name: string; class_name: string | null }[];
   subject_classes: { offering_id: string; section_id: string; subject: { id: string; name: string }; teacher_ids: string[] }[];
   rooms: string[];
@@ -87,27 +90,38 @@ export class RoutineService {
     private readonly dataSource: DataSource,
   ) {}
 
-  /** The session's routine (the default session when none is given); every staff member reads it. */
-  async routine(tenant: Tenant, sessionId?: string): Promise<RoutineView> {
-    assertStaff(tenant);
-    const { session, sections } = await this.sections.listWithClasses(sessionId);
+  /**
+   * The session's routine (the default session when none is given). Staff read every section; a
+   * student reads the sections they study in. Owners, admins and staff edit every section, a
+   * teacher the sections they teach (`editable_section_ids`); a closed session is read-only.
+   */
+  async routine(tenant: Tenant, userId: string, sessionId?: string): Promise<RoutineView> {
+    const { session, sections: all } = await this.sections.listWithClasses(sessionId);
+    const student = isStudent(tenant);
+    const own = student ? new Set((await this.sections.activeSectionsOfStudent(tenant.organizationId, userId)).map((row) => row.section_id)) : null;
+    const sections = own ? all.filter((section) => own.has(section.id)) : all;
+    const visible = new Set(sections.map((section) => section.id));
     const [offerings, rows] = await Promise.all([
       this.sections.listOfferingsForSession(session.id),
       this.activeRows(tenant.organizationId, { session_id: session.id }),
     ]);
-    const clashes = await this.clashesOf(tenant.organizationId, rows);
+    const shown = rows.filter((row) => visible.has(row.section_id));
+    const clashes = student ? new Map<string, RoutineClash[]>() : await this.clashesOf(tenant.organizationId, shown);
+    const open = session.status === AcademicSessionStatusEnum.ACTIVE;
+    const editable = !open || student ? [] : isManager(tenant) ? [...visible] : [...(await this.sections.sectionIdsTaughtBy(tenant.organizationId, session.id, userId))].filter((id) => visible.has(id));
     return {
       session: { id: session.id, name: session.name, status: session.status },
-      can_manage: isManager(tenant) && session.status === AcademicSessionStatusEnum.ACTIVE,
+      can_manage: editable.length > 0,
+      editable_section_ids: editable,
       sections: sections.map((section) => ({ id: section.id, name: section.name, class_name: section.class?.class_name ?? null })),
-      subject_classes: offerings.map((offering) => ({
+      subject_classes: offerings.filter((offering) => visible.has(offering.section_id)).map((offering) => ({
         offering_id: offering.id,
         section_id: offering.section_id,
         subject: { id: offering.subject.id, name: offering.subject.name },
         teacher_ids: offering.teachers.map((teacher) => teacher.id),
       })),
-      rooms: await this.roomsOf(tenant.organizationId),
-      slots: rows.map((row) => viewOf(row, clashes.get(row.id) ?? [])),
+      rooms: student ? [] : await this.roomsOf(tenant.organizationId),
+      slots: shown.map((row) => viewOf(row, clashes.get(row.id) ?? [])),
     };
   }
 
@@ -147,39 +161,137 @@ export class RoutineService {
 
   /** Adds a slot; teacher or room clashes need `confirm_clashes`. */
   async add(tenant: Tenant, userId: string, dto: RoutineSlotInputDto): Promise<RoutineSlotView> {
-    assertManager(tenant);
-    const section = await this.sections.findSectionWithClass(dto.section_id);
-    this.sessions.assertSessionOpen(section.session);
-    const wanted = this.normalise(dto);
-    await this.assertParts(tenant.organizationId, section.id, wanted);
+    const [view] = await this.addMany(tenant, userId, { ...dto, days: [dto.day_of_week] });
+    return view;
+  }
 
-    const id = await this.dataSource.transaction(async (manager) => {
+  /**
+   * Adds the same period on several days (one slot per day), all or none. A section overlap on any
+   * day is refused; teacher or room clashes on any day are listed together and need `confirm_clashes`.
+   */
+  async addMany(tenant: Tenant, userId: string, dto: Omit<RoutineSlotInputDto, 'day_of_week'> & { days: number[] }): Promise<RoutineSlotView[]> {
+    const section = await this.sections.findSectionWithClass(dto.section_id);
+    await this.assertCanEdit(tenant, userId, section.id, section.session_id);
+    this.sessions.assertSessionOpen(section.session);
+    const days = [...new Set(dto.days)];
+    if (days.length === 0) {
+      throw new BadRequestException({ message: 'Choose at least one day', code: SCHEDULE_ERRORS.TIME_INVALID });
+    }
+    const wanted = days.map((day) => this.normalise({ ...dto, day_of_week: day }));
+    await this.assertParts(tenant.organizationId, section.id, wanted[0]);
+
+    const ids = await this.dataSource.transaction(async (manager) => {
       await this.slots.lockOrganization(manager, tenant.organizationId);
       const repo = manager.getRepository(RoutineSlotEntity);
       const count = await repo.count({ where: { organization_id: tenant.organizationId, section_id: section.id, is_active: ActiveStatusEnum.ACTIVE } });
-      if (count >= MAX_SLOTS_PER_SECTION) {
+      if (count + wanted.length > MAX_SLOTS_PER_SECTION) {
         throw new BadRequestException({ message: `A section can have at most ${MAX_SLOTS_PER_SECTION} weekly slots`, code: SCHEDULE_ERRORS.TOO_MANY });
       }
-      await this.assertBookable(manager, tenant.organizationId, section.id, wanted, null, dto.confirm_clashes === true);
-      const inserted = await repo.insert({
-        ...wanted,
-        organization_id: tenant.organizationId,
-        session_id: section.session_id,
-        section_id: section.id,
-        created_by: userId,
-        created_at: new Date(),
+      // Overlaps stop at once; clashes of every day are gathered into one answer.
+      const clashes: RoutineClash[] = [];
+      for (const slot of wanted) {
+        try {
+          await this.assertBookable(manager, tenant.organizationId, section.id, slot, null, dto.confirm_clashes === true);
+        } catch (error) {
+          const body = error instanceof ConflictException ? (error.getResponse() as { code?: string; details?: { clashes?: RoutineClash[] } }) : null;
+          if (body?.code !== ROUTINE_ERRORS.CLASH) throw error;
+          clashes.push(...(body.details?.clashes ?? []));
+        }
+      }
+      if (clashes.length) {
+        throw new ConflictException({ message: 'This teacher or room is already booked at that time', code: ROUTINE_ERRORS.CLASH, details: { clashes } });
+      }
+      const now = new Date();
+      const inserted = await repo.insert(
+        wanted.map((slot) => ({
+          ...slot,
+          organization_id: tenant.organizationId,
+          session_id: section.session_id,
+          section_id: section.id,
+          created_by: userId,
+          created_at: now,
+        })),
+      );
+      return inserted.identifiers.map((row) => row.id as string);
+    });
+    ids.forEach((id, index) =>
+      this.audit.record({
+        action: AUDIT_ACTIONS.ROUTINE_ADD,
+        organizationId: tenant.organizationId,
+        actorId: userId,
+        entityType: 'routine_slot',
+        entityId: id,
+        after: { section_id: section.id, ...wanted[index], ...(dto.confirm_clashes ? { clashes_confirmed: true } : {}) },
+      }),
+    );
+    const views: RoutineSlotView[] = [];
+    for (const id of ids) views.push(await this.one(tenant.organizationId, id));
+    return views;
+  }
+
+  /**
+   * Copies another section's week (same session) into this section, replacing its periods (the old
+   * rows are kept, removed). Each subject becomes this section's class of the same subject (none
+   * when it has no such class); the teacher is that class's teacher when it has exactly one and
+   * they are free then; rooms are not copied.
+   */
+  async copyWeek(tenant: Tenant, userId: string, sectionId: string, fromSectionId: string): Promise<{ slots: number; without_teacher: number }> {
+    const target = await this.sections.findSectionWithClass(sectionId);
+    const source = await this.sections.findSectionWithClass(fromSectionId);
+    if (source.id === target.id || source.session_id !== target.session_id) {
+      throw new BadRequestException({ message: 'Copy from another section of the same session', code: ROUTINE_ERRORS.COPY_INVALID });
+    }
+    await this.assertCanEdit(tenant, userId, target.id, target.session_id);
+    this.sessions.assertSessionOpen(target.session);
+    const sourceRows = await this.activeRows(tenant.organizationId, { section_id: source.id });
+    const offerings = await this.sections.listOfferings(target.id);
+    const bySubject = new Map(offerings.map((offering) => [offering.subject.id, offering]));
+
+    const result = await this.dataSource.transaction(async (manager) => {
+      await this.slots.lockOrganization(manager, tenant.organizationId);
+      const repo = manager.getRepository(RoutineSlotEntity);
+      const now = new Date();
+      const before = await repo.find({ where: { organization_id: tenant.organizationId, section_id: target.id, is_active: ActiveStatusEnum.ACTIVE } });
+      if (before.length) {
+        await repo.update(
+          { id: In(before.map((row) => row.id)), organization_id: tenant.organizationId },
+          { is_active: ActiveStatusEnum.INACTIVE, removed_at: now, removed_by: userId, updated_by: userId, updated_at: now },
+        );
+      }
+      const others = (await this.activeRows(tenant.organizationId, {}, manager)).filter((row) => row.session?.status === AcademicSessionStatusEnum.ACTIVE);
+      let withoutTeacher = 0;
+      const rows = sourceRows.map((row) => {
+        const slot = wantedOf(row);
+        const offering = row.offering?.subject ? bySubject.get(row.offering.subject.id) : undefined;
+        let teacherId = offering && offering.teachers.length === 1 ? offering.teachers[0].id : null;
+        if (teacherId && others.some((other) => other.teacher_id === teacherId && overlaps(slot, wantedOf(other)))) teacherId = null;
+        if (!teacherId) withoutTeacher++;
+        return {
+          day_of_week: slot.day_of_week,
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+          offering_id: offering?.id ?? null,
+          teacher_id: teacherId,
+          room: null,
+          organization_id: tenant.organizationId,
+          session_id: target.session_id,
+          section_id: target.id,
+          created_by: userId,
+          created_at: now,
+        };
       });
-      return inserted.identifiers[0].id as string;
+      if (rows.length) await repo.insert(rows);
+      return { slots: rows.length, without_teacher: withoutTeacher, removed: before.length };
     });
     this.audit.record({
-      action: AUDIT_ACTIONS.ROUTINE_ADD,
+      action: AUDIT_ACTIONS.ROUTINE_COPY,
       organizationId: tenant.organizationId,
       actorId: userId,
-      entityType: 'routine_slot',
-      entityId: id,
-      after: { section_id: section.id, ...wanted, ...(dto.confirm_clashes ? { clashes_confirmed: true } : {}) },
+      entityType: 'section',
+      entityId: target.id,
+      after: { from_section_id: source.id, slots: result.slots, removed: result.removed },
     });
-    return this.one(tenant.organizationId, id);
+    return { slots: result.slots, without_teacher: result.without_teacher };
   }
 
   /**
@@ -187,8 +299,8 @@ export class RoutineService {
    * id); a new subject, teacher or room changes the row in place.
    */
   async change(tenant: Tenant, userId: string, id: string, dto: UpdateRoutineSlotDto): Promise<RoutineSlotView> {
-    assertManager(tenant);
     const current = await this.activeSlot(tenant.organizationId, id);
+    await this.assertCanEdit(tenant, userId, current.section_id, current.session_id);
     this.sessions.assertSessionOpen(current.session);
     const before = wantedOf(current);
     const wanted = this.normalise({
@@ -240,8 +352,8 @@ export class RoutineService {
 
   /** Removes a slot from the routine; the row is kept (is_active '0', removed_at/by). */
   async remove(tenant: Tenant, userId: string, id: string): Promise<void> {
-    assertManager(tenant);
     const current = await this.activeSlot(tenant.organizationId, id);
+    await this.assertCanEdit(tenant, userId, current.section_id, current.session_id);
     this.sessions.assertSessionOpen(current.session);
     const now = new Date();
     await this.dataSource.transaction(async (manager) => {
@@ -261,6 +373,13 @@ export class RoutineService {
       entityId: current.id,
       before: { section_id: current.section_id, ...wantedOf(current) },
     });
+  }
+
+  /** Owners, admins and staff change every section's routine; a teacher the sections they teach (403 otherwise). */
+  private async assertCanEdit(tenant: Tenant, userId: string, sectionId: string, sessionId: string): Promise<void> {
+    if (isManager(tenant)) return;
+    if (!isStudent(tenant) && (await this.sections.sectionIdsTaughtBy(tenant.organizationId, sessionId, userId)).has(sectionId)) return;
+    throw new ForbiddenException({ message: "Only owners, admins, staff and the section's teachers change its routine", code: ROUTINE_ERRORS.NOT_ALLOWED });
   }
 
   /** Real times with the start first, a room of at most 40 characters (400 SCHEDULE_TIME_INVALID otherwise). */
@@ -373,15 +492,7 @@ export class RoutineService {
 
 const isManager = (tenant: Tenant) => !tenant.viaEnrolment && ROUTINE_MANAGERS.includes(tenant.memberRole);
 
-function assertManager(tenant: Tenant): void {
-  if (!isManager(tenant)) throw new ForbiddenException('Only owners, admins and assistants change the routine');
-}
-
-function assertStaff(tenant: Tenant): void {
-  if (tenant.viaEnrolment || tenant.memberRole === OrganizationMemberRoleEnum.STUDENT) {
-    throw new ForbiddenException('Students see their own routine');
-  }
-}
+const isStudent = (tenant: Tenant) => Boolean(tenant.viaEnrolment) || tenant.memberRole === OrganizationMemberRoleEnum.STUDENT;
 
 function wantedOf(row: RoutineSlotEntity): Wanted {
   return {
