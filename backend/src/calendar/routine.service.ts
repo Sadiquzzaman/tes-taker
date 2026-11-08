@@ -125,30 +125,6 @@ export class RoutineService {
     };
   }
 
-  /**
-   * The caller's own routine in open sessions (CAL-01): a student's sections; a teacher's slots that
-   * name them or belong to a subject class they teach.
-   */
-  async mine(tenant: Tenant, userId: string): Promise<RoutineSlotView[]> {
-    const organizationId = tenant.organizationId;
-    let rows: RoutineSlotEntity[];
-    if (tenant.viaEnrolment || tenant.memberRole === OrganizationMemberRoleEnum.STUDENT) {
-      const sectionIds = (await this.sections.activeSectionsOfStudent(organizationId, userId)).map((s) => s.section_id);
-      rows = sectionIds.length ? await this.activeRows(organizationId, { section_id: In(sectionIds) }) : [];
-    } else {
-      const offeringIds = await this.sections.offeringIdsTaughtBy(organizationId, userId);
-      const [named, taught] = await Promise.all([
-        this.activeRows(organizationId, { teacher_id: userId }),
-        offeringIds.length ? this.activeRows(organizationId, { offering_id: In(offeringIds) }) : Promise.resolve([]),
-      ]);
-      const byId = new Map([...named, ...taught].map((row) => [row.id, row]));
-      // A taught subject's slot that names another teacher is theirs, not the caller's.
-      rows = [...byId.values()].filter((row) => !row.teacher_id || row.teacher_id === userId);
-    }
-    rows = rows.filter((row) => row.session?.status === AcademicSessionStatusEnum.ACTIVE).sort(byWeek);
-    return rows.map((row) => viewOf(row, []));
-  }
-
   /** Subject, teacher and room of these slots (removed ones too), by slot id, for the calendar (CAL-07). */
   async detailsOf(organizationId: string, slotIds: string[]): Promise<Map<string, Pick<RoutineSlotView, 'subject' | 'teacher' | 'room'>>> {
     if (slotIds.length === 0) return new Map();

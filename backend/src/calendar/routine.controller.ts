@@ -38,12 +38,6 @@ export class RoutineController {
     return { message: 'Routine retrieved successfully', payload: await this.routine.routine(workspace(), user.id, query.session_id) };
   }
 
-  @Get('mine')
-  @ApiOperation({ summary: "The caller's own weekly routine in open sessions (students: their sections; teachers: their classes)" })
-  async mine(@UserPayload() user: JwtPayloadInterface) {
-    return { message: 'Routine retrieved successfully', payload: await this.routine.mine(workspace(), user.id) };
-  }
-
   @Post('slots')
   @ApiOperation({ summary: 'Add a weekly slot (owners, admins, assistants); 409 ROUTINE_CLASH unless confirm_clashes' })
   async add(@Body() dto: RoutineSlotInputDto, @UserPayload() user: JwtPayloadInterface) {
