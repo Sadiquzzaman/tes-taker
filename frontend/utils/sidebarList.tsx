@@ -541,7 +541,8 @@ const sidebarList: SideBarList[] = [
     route: "/my-attendance",
     group: "attendance",
     role: ["TEACHER"],
-    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    // Staff (assistants) teach no classes, so they have nothing to check in to.
+    memberRoles: ["OWNER", "ADMIN", "TEACHER"],
     feature: "attendance",
     image: <SidebarClassesIconSVG width={16} />,
   },

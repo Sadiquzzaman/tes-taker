@@ -38,9 +38,9 @@
     "grading": "Grading",
     "billing": "Billing & Plans",
     "overview": "Overview",
-    "assistants": "Assistants",
+    "assistants": "Staff",
     "students": "Students",
-    "assignments": "Assignments",
+    "assignments": "Subject teachers",
     "account": "Account",
     "help": "Help",
     "features": "More features",
@@ -740,7 +740,8 @@
       "noDescription": "No description for this class.",
       "signUp": "Sign up",
       "logIn": "Log in"
-    }
+    },
+    "introStudent": "The [[classes]] you study in, with their tests."
   },
   "discussions": {
     "scoped": "Discussions are kept per subject.",
@@ -1480,7 +1481,7 @@
     "roles": {
       "OWNER": "Owner",
       "ADMIN": "Admin",
-      "ASSISTANT": "Assistant",
+      "ASSISTANT": "Staff",
       "TEACHER": "Teacher",
       "STUDENT": "Student"
     },
@@ -1530,11 +1531,11 @@
     },
     "members": {
       "teachers": "Teachers",
-      "assistants": "Assistants",
+      "assistants": "Staff",
       "students": "Students",
       "add": {
         "TEACHER": "Add teacher",
-        "ASSISTANT": "Add assistant",
+        "ASSISTANT": "Add staff member",
         "STUDENT": "Add student"
       },
       "idColumn": {
@@ -1579,7 +1580,7 @@
       "phoneListTitle": "Add several phone numbers",
       "phoneListHint": {
         "TEACHER": "One Bangladeshi mobile number per line. Each valid number is added as a teacher. Numbers without an account are reported, not invited.",
-        "ASSISTANT": "One Bangladeshi mobile number per line. Each valid number is added as an assistant. Numbers without an account are reported, not invited.",
+        "ASSISTANT": "One Bangladeshi mobile number per line. Each valid number is added as staff. Numbers without an account are reported, not invited.",
         "STUDENT": "One Bangladeshi mobile number per line. Each valid number is added as a student. Numbers without an account are reported, not invited."
       },
       "phoneListLabel": "Phone numbers",
@@ -1637,7 +1638,7 @@
       "deleted": "It was removed from the subject list."
     },
     "assignments": {
-      "title": "Teacher assignments",
+      "title": "Subject teachers",
       "intro": "Add subjects to a [[class]], then choose who teaches each one in each [[section]].",
       "step1": "1. Add a subject to a [[class]]",
       "step2": "2. Choose the teacher",
@@ -2084,8 +2085,8 @@
     "schools": {
       "eyebrow": "For schools and coaching centres",
       "title": "Run your whole institution from one account",
-      "detail": "Register your organisation, add teachers, assistants and students, and decide who teaches which subject in each class.",
-      "members": "Teachers, assistants and students, added one by one, by phone list or CSV",
+      "detail": "Register your organisation, add teachers, staff and students, and decide who teaches which subject in each class.",
+      "members": "Teachers, staff and students, added one by one, by phone list or CSV",
       "subjects": "Your own subject list with codes",
       "assignments": "Assign a teacher to each subject in each class",
       "cta": "Register your organisation"
@@ -4049,7 +4050,7 @@
       "dueHint": "Leave empty for no due date.",
       "dueTime": "Due time",
       "attachments": "Files for students",
-      "attachmentsAccept": "Images, PDF, Word or text, up to 20 MB each",
+      "attachmentsAccept": "Images, PDF, Word or text",
       "cancel": "Cancel",
       "saveDraft": "Save draft",
       "publish": "Publish",
@@ -4084,7 +4085,7 @@
       "answer": "Your answer",
       "files": "Photos or files",
       "filesOptional": "Photos or files (optional)",
-      "filesAccept": "Images, PDF, Word or text, up to 20 MB each, at most {count, number} files",
+      "filesAccept": "Images, PDF, Word or text, at most {count, number} files",
       "combine": "Put my photos into one PDF",
       "combineHint": "Your teacher gets one file with a page per photo.",
       "submit": "Hand in",
@@ -4102,7 +4103,8 @@
       "score": "Your score",
       "notHandedIn": "Not handed in",
       "penalty": "Scored {raw, number}; {penalty, number} taken off for handing in late.",
-      "rating": "{rating}: {value, number}/5"
+      "rating": "{rating}: {value, number}/5",
+      "leftFirst": "{count, plural, =0 {You can hand in once.} one {After handing in, you can still change it # time.} other {After handing in, you can still change it # times.}}"
     },
     "submissions": {
       "title": "Review",
@@ -4337,7 +4339,7 @@
       "attendees": "Who attends",
       "wholeOrg": "Everyone in the organisation",
       "sectionsHint": "Sections (their students):",
-      "teachersHint": "Teachers:",
+      "teachersHint": "People:",
       "save": "Save",
       "close": "Close",
       "edit": "Change",
