@@ -103,7 +103,7 @@ export const WorkspaceProvider = ({ children }: { children: React.ReactNode }) =
       }
       syncFromUser(payload);
       setContexts(payload.contexts ?? []);
-      return { payload, href: homeForContext(context, payload.role as string) };
+      return { payload, href: homeForContext(context) };
     },
     [syncFromUser],
   );

@@ -12,8 +12,10 @@ const workspaceState = {
   selectContext,
   contexts: [
     { key: "o1", type: "organization", organization_id: "org-1", member_role: "STUDENT", actionable: true, label: "ABC School", organization_status: "approved" },
-  ],
+    { key: "teacher:t1", type: "individual_teacher", teacher_id: "t1", member_role: "STUDENT", actionable: true, label: "Rina's Classes" },
+  ] as Record<string, unknown>[],
 };
+const BOTH = [...workspaceState.contexts];
 
 vi.mock("@/hooks/organization/useWorkspace", () => ({ default: () => workspaceState }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh: vi.fn() }) }));
@@ -34,6 +36,7 @@ describe("attendance workspace gate", () => {
     push.mockReset();
     reload.mockReset();
     selectContext.mockClear();
+    workspaceState.contexts = BOTH;
     Object.defineProperty(window, "location", { configurable: true, value: { ...window.location, pathname: "/my-attendance", reload } });
   });
   afterEach(() => cleanup());
@@ -52,6 +55,15 @@ describe("attendance workspace gate", () => {
     fireEvent.click(await screen.findByRole("button", { name: /ABC School/ }));
     await waitFor(() => expect(reload).toHaveBeenCalled());
     expect(selectContext).toHaveBeenCalledWith(expect.objectContaining({ key: "o1" }));
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("opens the only workspace a student has without asking", async () => {
+    workspaceState.contexts = [BOTH[0]];
+    signIn({ role: "STUDENT", session_mode: "individual" });
+    page();
+    await waitFor(() => expect(selectContext).toHaveBeenCalledWith(expect.objectContaining({ key: "o1" })));
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
     expect(push).not.toHaveBeenCalled();
   });
 

@@ -6,7 +6,6 @@ import useApiData from "@/component/Homework/useApiData";
 import useIsStudent from "@/component/Homework/useIsStudent";
 import { useToast } from "@/component/Toast/ToastContext";
 import { Button, Card, Checkbox, ChevronLeftIcon, ChevronRightIcon, Drawer, ErrorState, IconButton, PageHeader, Select, Skeleton } from "@/design/ui";
-import useWorkspace from "@/hooks/organization/useWorkspace";
 import useFormat from "@/i18n/useFormat";
 import { todayInSchool } from "@/utils/schoolDate";
 import { type CalendarView, datesBetween, rangeOf, shift } from "./calendarDates";
@@ -14,6 +13,7 @@ import { DayAgenda, MonthView, TimeGrid } from "./CalendarViews";
 import EventDrawer from "./EventDrawer";
 import ItemDrawer from "./ItemDrawer";
 import RemindersCard from "./RemindersCard";
+import useIsHere from "./useIsHere";
 import SubscribeCard from "./SubscribeCard";
 
 const VIEWS: CalendarView[] = ["month", "week", "day"];
@@ -34,7 +34,7 @@ const CalendarPage = () => {
   const format = useFormat();
   const { triggerToast } = useToast();
   const isStudent = useIsStudent();
-  const { contextType, organizationId } = useWorkspace();
+  const isHere = useIsHere();
   const [view, setView] = useState<CalendarView>("month");
   const [date, setDate] = useState(() => todayInSchool());
   const [kinds, setKinds] = useState<Set<CalendarFeedItem["kind"]>>(() => new Set(KINDS));
@@ -54,9 +54,6 @@ const CalendarPage = () => {
 
   const workspaces = feed?.workspaces ?? [];
   const showWorkspace = workspaces.length > 1;
-  const hereKey = contextType === "organization" && organizationId ? `org:${organizationId}` : contextType === "personal_teacher" ? "personal_teacher" : null;
-  const isHere = (item: CalendarFeedItem) =>
-    !item.workspace || item.workspace.key === hereKey || (contextType === "individual_teacher" && item.workspace.key.startsWith("teacher:"));
 
   const items = (feed?.items ?? []).filter(
     (item) =>

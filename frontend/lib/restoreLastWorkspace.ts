@@ -27,12 +27,9 @@ const defaultHomeForPayload = (payload: LoginResponsePayload) => {
       organization_status: payload.organization?.status,
       actionable: true,
     };
-    return homeForContext(synthetic, payload.role as string);
+    return homeForContext(synthetic);
   }
-  if (payload.context_type === "individual_teacher") {
-    return "/classes";
-  }
-  return "/dashboard";
+  return "/today";
 };
 
 const selectContextRemote = async (context: UserContextItem) => {
@@ -87,12 +84,12 @@ export const restoreLastWorkspace = async (
 
     if (alreadyActive) {
       await persistSelectedContext(payload, match);
-      return { payload, href: homeForContext(match, payload.role as string) };
+      return { payload, href: homeForContext(match) };
     }
 
     const selected = await selectContextRemote(match);
     await persistSelectedContext(selected, match);
-    return { payload: selected, href: homeForContext(match, selected.role as string) };
+    return { payload: selected, href: homeForContext(match) };
   }
 
   const current = workspaceFromUser(payload);

@@ -62,7 +62,8 @@
     "homework": "Homework",
     "homeworkSettings": "Homework settings",
     "routine": "Routine",
-    "calendar": "Calendar"
+    "calendar": "Calendar",
+    "today": "Today"
   },
   "shell": {
     "organization": "Organization",
@@ -4441,5 +4442,22 @@
     "openHomework": "Open the homework",
     "openRoutine": "See it in the Routine",
     "otherWorkspace": "This is in {workspace}. Switch to that workspace to open it."
+  },
+  "today": {
+    "title": "Today",
+    "loadFailed": "Today's schedule could not be loaded.",
+    "schedule": "Your day",
+    "checkInOpen": "Check-in is open: {classes}",
+    "checkIn": "Check in",
+    "dueTitle": "Due this week",
+    "nothingDue": "Nothing due this week.",
+    "comingUpTitle": "Coming up",
+    "nothingComingUp": "No events or exams in the next 7 days.",
+    "openCalendar": "Open the calendar",
+    "noCalendar": "Your schedule shows here once the calendar is on",
+    "noCalendarHint": "Your school's plan includes the calendar? Ask an owner or admin to turn it on.",
+    "schoolTitle": "Your school",
+    "schoolIntro": "Setup, people and numbers are on the overview.",
+    "openOverview": "Open the overview"
   }
 }

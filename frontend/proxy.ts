@@ -113,6 +113,11 @@ const routePolicies: RoutePolicy[] = [
     match: "prefix",
     allowedRoles: ["TEACHER", "STUDENT"],
   },
+  {
+    path: "/today",
+    match: "exact",
+    allowedRoles: ["TEACHER", "STUDENT"],
+  },
 ];
 
 const isStaticAsset = (pathname: string) =>
@@ -136,27 +141,13 @@ const matchesPolicy = (pathname: string, policy: RoutePolicy) => {
   return pathname === policy.path;
 };
 
-const getRoleHomeRoute = (
-  role: RoleUserType | null,
-  sessionMode: string | null,
-  memberRole?: string | null,
-) => {
-  if (role === "STUDENT" || memberRole === "STUDENT") {
-    return "/dashboard";
-  }
-
-  if (sessionMode === "organization") {
-    if (memberRole === "TEACHER" || memberRole === "ASSISTANT") {
-      return "/organization/classes";
-    }
-    return "/organization";
-  }
-
+const getRoleHomeRoute = (role: RoleUserType | null) => {
   if (role === "ADMIN" || role === "SUPER_ADMIN") {
     return "/admin";
   }
 
-  return "/dashboard";
+  // Everyone else starts the day on Today, in a workspace or not (P5 follow-up).
+  return "/today";
 };
 
 const createRedirectResponse = (request: NextRequest, pathname: string) => {
@@ -191,7 +182,7 @@ export function proxy(request: NextRequest) {
   if (matchedPolicy?.isPublic) {
     if (isAuthenticated) {
       if (pathname === "/" && role) {
-        return createRedirectResponse(request, getRoleHomeRoute(role, sessionMode, memberRole));
+        return createRedirectResponse(request, getRoleHomeRoute(role));
       }
 
       if (matchedPolicy.redirectAuthenticatedTo) {
@@ -209,7 +200,7 @@ export function proxy(request: NextRequest) {
   if (matchedPolicy?.allowedRoles && !matchedPolicy.allowedRoles.includes(role)) {
     return createRedirectResponse(
       request,
-      matchedPolicy.redirectUnauthorizedTo ?? getRoleHomeRoute(role, sessionMode, memberRole),
+      matchedPolicy.redirectUnauthorizedTo ?? getRoleHomeRoute(role),
     );
   }
 
@@ -220,7 +211,7 @@ export function proxy(request: NextRequest) {
     return createRedirectResponse(
       request,
       sessionMode === "organization"
-        ? getRoleHomeRoute(role, sessionMode, memberRole)
+        ? getRoleHomeRoute(role)
         : "/dashboard",
     );
   }
@@ -231,7 +222,7 @@ export function proxy(request: NextRequest) {
   ) {
     return createRedirectResponse(
       request,
-      matchedPolicy.redirectUnauthorizedTo ?? getRoleHomeRoute(role, sessionMode, memberRole),
+      matchedPolicy.redirectUnauthorizedTo ?? getRoleHomeRoute(role),
     );
   }
 
@@ -242,7 +233,7 @@ export function proxy(request: NextRequest) {
   ) {
     return createRedirectResponse(
       request,
-      matchedPolicy.redirectUnauthorizedTo ?? getRoleHomeRoute(role, sessionMode, memberRole),
+      matchedPolicy.redirectUnauthorizedTo ?? getRoleHomeRoute(role),
     );
   }
 

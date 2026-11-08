@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge, ChevronRightIcon, cn, EmptyState, focusRing, Skeleton, Spinner } from "@/design/ui";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 
@@ -11,13 +11,15 @@ const isStudentContext = (context: UserContextItem) =>
 
 /**
  * The student home: the organisations and teachers they study with. Opening one switches workspace
- * and goes to its home, or with `stayOnPage` reloads the current page inside it (attendance pages).
+ * and goes to its home, or with `stayOnPage` reloads the current page inside it (attendance pages);
+ * there, a student with only one workspace goes straight into it.
  */
 const StudentWorkspaceCards = ({ stayOnPage = false }: { stayOnPage?: boolean }) => {
   const t = useTranslations("dashboard.student");
   const router = useRouter();
   const { contexts, selectContext, loading, workspace } = useWorkspace({ loadOrganizations: true });
   const [selectingKey, setSelectingKey] = useState<string | null>(null);
+  const autoOpened = useRef(false);
 
   const studentContexts = useMemo(
     () => contexts.filter((context) => context.actionable && isStudentContext(context)),
@@ -42,7 +44,7 @@ const StudentWorkspaceCards = ({ stayOnPage = false }: { stayOnPage?: boolean })
       workspace.type === "individual_teacher" &&
       workspace.teacherId === context.teacher_id);
 
-  const open = async (context: UserContextItem) => {
+  const open = useCallback(async (context: UserContextItem) => {
     if (selectingKey) return;
     setSelectingKey(context.key);
     try {
@@ -60,7 +62,16 @@ const StudentWorkspaceCards = ({ stayOnPage = false }: { stayOnPage?: boolean })
     } finally {
       setSelectingKey(null);
     }
-  };
+  }, [router, selectContext, selectingKey, stayOnPage]);
+
+  // Nothing to choose with a single workspace: open it (once) instead of showing one card.
+  useEffect(() => {
+    if (!stayOnPage || loading || autoOpened.current) return;
+    const [only, ...others] = studentContexts;
+    if (!only || others.length > 0 || only.organization_status === "pending") return;
+    autoOpened.current = true;
+    void open(only);
+  }, [stayOnPage, loading, studentContexts, open]);
 
   if (loading) {
     return (
