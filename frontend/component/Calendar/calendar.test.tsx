@@ -244,16 +244,22 @@ describe("calendar page (CAL-07)", () => {
     expect(await drawer.findByText("Choose who attends.")).toBeTruthy();
   });
 
-  it("keeps reminders and the private calendar link in Settings", async () => {
+  it("opens the Google Calendar link and the reminders each from their own button", async () => {
     serve();
     post.mockReturnValue(ok({ path: "/calendar/ical/abc.ics", created_at: "2026-11-07T04:00:00.000Z" }));
     del.mockReturnValue(ok(null));
     renderApp(<CalendarPage />);
     await screen.findByRole("region", { name: "Saturday 7 November" });
     expect(screen.queryByRole("button", { name: "Make my link" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Reminders and link" }));
-    const settings = within(await screen.findByRole("dialog", { name: "Calendar settings" }));
-    expect(await settings.findByRole("heading", { name: "My reminders" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Reminders" }));
+    const reminders = within(await screen.findByRole("dialog", { name: "Reminders" }));
+    expect(await reminders.findByRole("heading", { name: "My reminders" })).toBeTruthy();
+    expect(reminders.queryByRole("button", { name: "Make my link" })).toBeNull();
+    fireEvent.click(reminders.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Reminders" })).toBeNull());
+
+    fireEvent.click(screen.getByRole("button", { name: "Add to Google Calendar" }));
+    const settings = within(await screen.findByRole("dialog", { name: "Add to Google or Apple Calendar" }));
     fireEvent.click(await settings.findByRole("button", { name: "Make my link" }));
     const field = (await settings.findByLabelText("Your private link")) as HTMLInputElement;
     expect(field.value).toMatch(/\/calendar\/ical\/abc\.ics$/);

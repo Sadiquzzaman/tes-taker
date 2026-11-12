@@ -153,6 +153,21 @@ describe('routine API', () => {
     expect(month.body.payload.days.find((d) => d.date === '2026-12-05')?.classes[0]?.subject).toMatchObject({ name: 'Math' });
   });
 
+  it('lists everyone who teaches: subject teachers and teachers named on a period', async () => {
+    const s = await school();
+    const teachersOf = async (token: string) => (await call<{ teachers: { id: string; full_name: string }[] }>('GET', '/routine', token)).body.payload.teachers;
+    // Rina teaches Math in A (the Subject teachers page), with no period yet.
+    expect(await teachersOf(s.ownerToken)).toEqual([{ id: s.rina.id, full_name: 'Rina' }]);
+    // Karim is named on a period of B without being its subject teacher.
+    expect((await call('POST', '/routine/slots', s.ownerToken, { section_id: s.b, offering_id: s.mathB, teacher_id: s.karim.id, day_of_week: 1, start_time: '09:00', end_time: '09:45' })).status).toBe(201);
+    expect(await teachersOf(s.rinaToken)).toEqual([
+      { id: s.karim.id, full_name: 'Karim' },
+      { id: s.rina.id, full_name: 'Rina' },
+    ]);
+    // A student sees only their own sections' teachers.
+    expect(await teachersOf(s.studentToken)).toEqual([{ id: s.rina.id, full_name: 'Rina' }]);
+  });
+
   it('refuses two classes of one section at once, and asks to confirm a teacher or room booked twice, then marks it', async () => {
     const s = await school();
     const first = await call<Slot>('POST', '/routine/slots', s.ownerToken, {

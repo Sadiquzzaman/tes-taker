@@ -395,6 +395,8 @@ describe("holidays page (CAL-04)", () => {
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith(expect.stringMatching(/\/holidays\/h-next$/), { date_from: "2026-12-16", date_to: "2026-12-17", name: "Victory Day" }),
     );
+    // The open drawer hides the page from the accessibility tree until it has closed.
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Edit holiday" })).toBeNull());
 
     fireEvent.click(table().getByRole("button", { name: /^Remove holiday on/ }));
     const confirm = await screen.findByRole("dialog", { name: "Remove this holiday?" });

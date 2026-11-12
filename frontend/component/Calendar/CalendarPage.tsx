@@ -26,8 +26,8 @@ type TimedItem = Exclude<CalendarFeedItem, { kind: "HOLIDAY" }>;
  * The person's own calendar (CAL-07), across every workspace they belong to: their classes (with
  * a day's changes), events, exams, homework due and closed days. A month with the chosen day's
  * list beside it, or a week or a day on an hour grid, as in Google Calendar. Anything opens in a
- * drawer; staff add events to the workspace they are in. Reminders and the private link for
- * Google or Apple Calendar are in Settings.
+ * drawer; staff add events to the workspace they are in. "Add to Google Calendar" and "Reminders"
+ * each open their own drawer from the header.
  */
 const CalendarPage = () => {
   const t = useTranslations("calendar");
@@ -41,7 +41,7 @@ const CalendarPage = () => {
   const [workspace, setWorkspace] = useState(ALL);
   const [openEvent, setOpenEvent] = useState<{ id: string } | { new: true; date: string } | null>(null);
   const [openItem, setOpenItem] = useState<TimedItem | null>(null);
-  const [settings, setSettings] = useState(false);
+  const [panel, setPanel] = useState<"link" | "reminders" | null>(null);
   const [now, setNow] = useState(() => new Date());
   const range = rangeOf(view, date);
   const { data: feed, failed, reload } = useApiData<CalendarFeed>("/calendar/me", range);
@@ -97,8 +97,11 @@ const CalendarPage = () => {
         description={t("intro")}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => setSettings(true)}>
-              {t("settings.open")}
+            <Button variant="secondary" onClick={() => setPanel("link")}>
+              {t("settings.openLink")}
+            </Button>
+            <Button variant="secondary" onClick={() => setPanel("reminders")}>
+              {t("settings.openReminders")}
             </Button>
             {isStudent === false ? <Button onClick={() => setOpenEvent({ new: true, date })}>{t("addEvent")}</Button> : null}
           </div>
@@ -180,10 +183,12 @@ const CalendarPage = () => {
           )}
         </div>
       </Card>
-      <Drawer open={settings} onClose={() => setSettings(false)} title={t("settings.title")} description={t("settings.intro")} wide>
+      <Drawer open={panel === "link"} onClose={() => setPanel(null)} title={t("subscribe.title")} description={t("subscribe.intro")}>
+        <SubscribeCard bare />
+      </Drawer>
+      <Drawer open={panel === "reminders"} onClose={() => setPanel(null)} title={t("settings.remindersTitle")} description={t("settings.remindersIntro")} wide>
         <div className="flex flex-col gap-4">
           <RemindersCard />
-          <SubscribeCard />
         </div>
       </Drawer>
       <ItemDrawer item={openItem} timeZone={timeZone} here={openItem ? isHere(openItem) : false} showWorkspace={showWorkspace} onClose={() => setOpenItem(null)} />

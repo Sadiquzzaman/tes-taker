@@ -14,9 +14,10 @@ const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 /**
  * "Add to Google or Apple Calendar" (CAL-07): a private subscription link. The link is shown once,
- * when made; making a new one stops the old one, and it can be turned off.
+ * when made; making a new one stops the old one, and it can be turned off. `bare` leaves out the
+ * card and its heading (inside a drawer that already has them).
  */
-const SubscribeCard = () => {
+const SubscribeCard = ({ bare = false }: { bare?: boolean }) => {
   const t = useTranslations("calendar.subscribe");
   const format = useFormat();
   const { triggerToast } = useToast();
@@ -63,8 +64,8 @@ const SubscribeCard = () => {
     }
   };
 
-  return (
-    <Card title={t("title")} description={t("intro")}>
+  const body = (
+    <>
       <div className="flex flex-col gap-3">
         {link ? (
           <>
@@ -104,6 +105,14 @@ const SubscribeCard = () => {
         onConfirm={() => void turnOff()}
         onCancel={() => setTurningOff(false)}
       />
+    </>
+  );
+
+  return bare ? (
+    body
+  ) : (
+    <Card title={t("title")} description={t("intro")}>
+      {body}
     </Card>
   );
 };

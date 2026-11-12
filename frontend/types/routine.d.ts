@@ -40,6 +40,8 @@ interface RoutineView {
   editable_section_ids: string[];
   sections: RoutineSection[];
   subject_classes: { offering_id: string; section_id: string; subject: { id: string; name: string }; teacher_ids: string[] }[];
+  /** Everyone who teaches in these sections (a subject's teachers and teachers named on a period), by name. */
+  teachers: { id: string; full_name: string }[];
   rooms: string[];
   slots: RoutineSlot[];
 }

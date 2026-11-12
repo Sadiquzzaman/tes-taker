@@ -55,6 +55,8 @@ export interface RoutineView {
   editable_section_ids: string[];
   sections: { id: string; name: string; class_name: string | null }[];
   subject_classes: { offering_id: string; section_id: string; subject: { id: string; name: string }; teacher_ids: string[] }[];
+  /** Everyone who teaches in these sections: a subject's teachers and teachers named on a period, by name. */
+  teachers: { id: string; full_name: string }[];
   rooms: string[];
   slots: RoutineSlotView[];
 }
@@ -108,18 +110,23 @@ export class RoutineService {
     const shown = rows.filter((row) => visible.has(row.section_id));
     const clashes = student ? new Map<string, RoutineClash[]>() : await this.clashesOf(tenant.organizationId, shown);
     const open = session.status === AcademicSessionStatusEnum.ACTIVE;
+    const visibleOfferings = offerings.filter((offering) => visible.has(offering.section_id));
+    const teachers = new Map<string, string>();
+    for (const offering of visibleOfferings) for (const teacher of offering.teachers) teachers.set(teacher.id, teacher.full_name);
+    for (const row of shown) if (row.teacher) teachers.set(row.teacher.id, row.teacher.full_name ?? '');
     const editable = !open || student ? [] : isManager(tenant) ? [...visible] : [...(await this.sections.sectionIdsTaughtBy(tenant.organizationId, session.id, userId))].filter((id) => visible.has(id));
     return {
       session: { id: session.id, name: session.name, status: session.status },
       can_manage: editable.length > 0,
       editable_section_ids: editable,
       sections: sections.map((section) => ({ id: section.id, name: section.name, class_name: section.class?.class_name ?? null })),
-      subject_classes: offerings.filter((offering) => visible.has(offering.section_id)).map((offering) => ({
+      subject_classes: visibleOfferings.map((offering) => ({
         offering_id: offering.id,
         section_id: offering.section_id,
         subject: { id: offering.subject.id, name: offering.subject.name },
         teacher_ids: offering.teachers.map((teacher) => teacher.id),
       })),
+      teachers: [...teachers].map(([id, full_name]) => ({ id, full_name })).sort((a, b) => a.full_name.localeCompare(b.full_name)),
       rooms: student ? [] : await this.roomsOf(tenant.organizationId),
       slots: shown.map((row) => viewOf(row, clashes.get(row.id) ?? [])),
     };
