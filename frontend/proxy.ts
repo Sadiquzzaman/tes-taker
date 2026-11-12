@@ -34,7 +34,6 @@ const routePolicies: RoutePolicy[] = [
     path: "/dashboard",
     match: "exact",
     allowedRoles: ["TEACHER", "STUDENT"],
-    redirectUnauthorizedTo: "/classes",
   },
   {
     path: "/join",
@@ -46,27 +45,23 @@ const routePolicies: RoutePolicy[] = [
     match: "prefix",
     allowedRoles: ["TEACHER"],
     allowedSessionModes: ["organization"],
-    redirectUnauthorizedTo: "/dashboard",
   },
   {
     path: "/classes/create",
     match: "exact",
     allowedRoles: ["TEACHER"],
-    redirectUnauthorizedTo: "/organization",
   },
   {
     path: "/tests/create",
     match: "exact",
     allowedRoles: ["TEACHER"],
     blockedMemberRoles: ["ASSISTANT", "STUDENT"],
-    redirectUnauthorizedTo: "/organization",
   },
   {
     path: "/grading",
     match: "prefix",
     allowedRoles: ["TEACHER"],
     blockedMemberRoles: ["ASSISTANT", "STUDENT"],
-    redirectUnauthorizedTo: "/organization",
   },
   {
     path: "/billing",
@@ -74,19 +69,40 @@ const routePolicies: RoutePolicy[] = [
     allowedRoles: ["TEACHER"],
     // A solo teacher's own plan, or a school's plan for its owners and admins (P2-02).
     blockedMemberRoles: ["TEACHER", "ASSISTANT", "STUDENT"],
-    redirectUnauthorizedTo: "/today",
+  },
+  // Staff pages (attendance, homework settings, plan features) are not for students; the
+  // activity and message logs are for a school's owners and admins, or a solo teacher.
+  {
+    path: "/attendance",
+    match: "prefix",
+    allowedRoles: ["TEACHER"],
   },
   {
-    path: "/admin/organizations",
-    match: "prefix",
-    allowedRoles: ["ADMIN", "SUPER_ADMIN"],
-    redirectUnauthorizedTo: "/admin",
+    path: "/homework-settings",
+    match: "exact",
+    allowedRoles: ["TEACHER"],
+  },
+  {
+    path: "/features",
+    match: "exact",
+    allowedRoles: ["TEACHER"],
+  },
+  {
+    path: "/activity-log",
+    match: "exact",
+    allowedRoles: ["TEACHER"],
+    blockedMemberRoles: ["TEACHER", "ASSISTANT", "STUDENT"],
+  },
+  {
+    path: "/message-log",
+    match: "exact",
+    allowedRoles: ["TEACHER"],
+    blockedMemberRoles: ["TEACHER", "ASSISTANT", "STUDENT"],
   },
   {
     path: "/admin",
     match: "prefix",
     allowedRoles: ["ADMIN", "SUPER_ADMIN"],
-    redirectUnauthorizedTo: "/dashboard",
   },
   {
     path: "/payment",
@@ -211,9 +227,7 @@ export function proxy(request: NextRequest) {
   ) {
     return createRedirectResponse(
       request,
-      sessionMode === "organization"
-        ? getRoleHomeRoute(role)
-        : "/dashboard",
+      getRoleHomeRoute(role),
     );
   }
 
