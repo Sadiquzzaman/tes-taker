@@ -1371,7 +1371,7 @@ Table event_attendees {
 
 Table calendar_feed_tokens {
   id uuid [pk]
-  organization_id uuid [not null]
+  organization_id uuid [note: 'null = a personal link across all the person\'s workspaces (migration PersonalCalendarLinks)']
   user_id uuid [not null, ref: > users.id, note: 'FK ON DELETE CASCADE']
   token_hash varchar(64) [not null, unique, note: 'SHA-256 of the link token; the token is shown once']
   created_at timestamptz [not null]
@@ -1379,8 +1379,9 @@ Table calendar_feed_tokens {
   last_used_at timestamptz
   Indexes {
     (organization_id, user_id)
+    user_id [name: 'IDX_calendar_feed_tokens_personal', note: 'partial: WHERE organization_id IS NULL']
   }
-  Note: 'BUILT P5-05 part 2 (CAL-07, calendar-feed module, migration CalendarFeedTokens): private iCal subscription links'
+  Note: 'BUILT P5-05 part 2 (CAL-07, calendar-feed module, migration CalendarFeedTokens): private iCal subscription links; personal links since PersonalCalendarLinks'
 }
 
 Table holidays {

@@ -328,7 +328,8 @@ const sidebarList: SideBarList[] = [
     setup: true,
     role: ["TEACHER"],
     personalWorkspaceOnly: true,
-    feature: "attendance",
+    // Holidays matter to the calendar too (closed days), not only to attendance.
+    feature: ["attendance", "calendar"],
     image: <SidebarDashboardIconSVG width={16} />,
   },
   {
@@ -344,7 +345,7 @@ const sidebarList: SideBarList[] = [
     label: "overview",
     route: "/organization",
     role: ["TEACHER"],
-    memberRoles: ["OWNER", "ADMIN"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT"],
     image: <SidebarDashboardIconSVG width={16} />,
   },
   {
@@ -353,7 +354,7 @@ const sidebarList: SideBarList[] = [
     route: "/organization/teachers",
     group: "people",
     role: ["TEACHER"],
-    memberRoles: ["OWNER", "ADMIN"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT"],
     image: <SidebarAccountIconSVG width={16} />,
   },
   {
@@ -371,7 +372,7 @@ const sidebarList: SideBarList[] = [
     route: "/organization/students",
     group: "people",
     role: ["TEACHER"],
-    memberRoles: ["OWNER", "ADMIN"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT"],
     image: <SidebarClassesIconSVG width={16} />,
   },
   {
@@ -598,7 +599,8 @@ const sidebarList: SideBarList[] = [
     setup: true,
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN"],
-    feature: "attendance",
+    // Holidays matter to the calendar too (closed days), not only to attendance.
+    feature: ["attendance", "calendar"],
     image: <SidebarDashboardIconSVG width={16} />,
   },
   {

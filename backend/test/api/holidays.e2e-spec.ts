@@ -147,9 +147,18 @@ describe('holidays API', () => {
     expect((await edit(adminToken, id, { name: 'By admin' })).status).toBe(200);
   });
 
-  it('refuses holidays with FEATURE_NOT_IN_PLAN while the plan has no attendance', async () => {
-    const { token } = await school({ enabled: false });
-    for (const response of [await list(token), await add(token, { date_from: inDays(1) })]) {
+  it('opens holidays with the calendar alone, and refuses with FEATURE_NOT_IN_PLAN with neither feature', async () => {
+    const { organization, token } = await school({ enabled: false });
+    const override = async (key: string, value: boolean) =>
+      expect(
+        (await t.api.request('PUT', `/subscriptions/admin/organizations/${organization.id}/overrides/${key}`, { body: { value, reason: 'holidays test' }, token: t.tokenFor(admin) })).status,
+      ).toBe(200);
+    await override('attendance', false);
+    await override('calendar', true);
+    expect((await list(token)).status).toBe(200);
+    expect((await add(token, { date_from: inDays(1) })).status).toBe(201);
+    await override('calendar', false);
+    for (const response of [await list(token), await add(token, { date_from: inDays(2) })]) {
       expect(response.status).toBe(403);
       expect(response.body).toMatchObject({ code: 'FEATURE_NOT_IN_PLAN', feature: 'attendance' });
     }

@@ -45,7 +45,9 @@ const RoutineSlotDrawer = ({ routine, slot, start, teachers, onClose, onSaved }:
   const [endTime, setEndTime] = useState(slot?.end_time ?? "");
   const [offeringId, setOfferingId] = useState(slot?.subject?.offering_id ?? "");
   const [teacherId, setTeacherId] = useState(slot?.teacher?.id ?? "");
-  const [room, setRoom] = useState(slot?.room ?? "");
+  // A new period starts in its section's own room; the period keeps its own (a lab, a hall).
+  const roomOf = (id: string) => routine.sections.find((section) => section.id === id)?.room ?? "";
+  const [room, setRoom] = useState(slot ? (slot.room ?? "") : roomOf(sectionId));
   const [error, setError] = useState<FormError | "TIMES_REQUIRED" | "DAYS_REQUIRED" | null>(null);
   const [clashes, setClashes] = useState<RoutineClash[] | null>(null);
   const [removing, setRemoving] = useState(false);
@@ -155,7 +157,10 @@ const RoutineSlotDrawer = ({ routine, slot, start, teachers, onClose, onSaved }:
           placeholder={false}
           options={(slot ? routine.sections : editableSections).map((section) => ({ value: section.id, label: sectionLabel(section) }))}
           onChange={(event) => {
-            edit(setSectionId)(event.target.value);
+            const next = event.target.value;
+            // Still the old section's room (or none): follow the new section's.
+            if (!slot && (room.trim() === "" || room === roomOf(sectionId))) setRoom(roomOf(next));
+            edit(setSectionId)(next);
             setOfferingId("");
           }}
         />

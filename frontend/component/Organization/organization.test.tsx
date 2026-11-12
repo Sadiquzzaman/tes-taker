@@ -2,6 +2,7 @@ import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderApp } from "@/i18n/test-utils";
 import { OrganizationStudents, OrganizationTeachers, parsePhoneList } from "./OrganizationMembers";
+import OrganizationOverview from "./OrganizationOverview";
 import OrganizationSubjects from "./OrganizationSubjects";
 import OrganizationWorkspaceGate from "./OrganizationWorkspaceGate";
 
@@ -106,6 +107,28 @@ describe("members", () => {
     fireEvent.click(await drawer.findByRole("button", { name: "Add to Class 6 A" }));
     await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/sections\/s6\/enrolments$/), { student_id: "u9" }));
     expect(await screen.findByText("Added to Class 6 A")).toBeTruthy();
+  });
+
+  it("lets staff see the people and the overview, without adding, removing or settings", async () => {
+    workspace.mockReturnValue(org("approved", "ASSISTANT"));
+    get.mockImplementation((url: string) =>
+      url.endsWith("/members")
+        ? Promise.resolve({ data: { payload: members } })
+        : url.endsWith("/organizations/org-1")
+          ? Promise.resolve({ data: { payload: { id: "org-1", name: "Green School", status: "approved", teachers_count: 2, students_count: 1, classes_count: 3, exams_count: 0 } } })
+          : Promise.reject(new Error(`unexpected GET ${url}`)),
+    );
+    renderApp(<OrganizationStudents />);
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("Student Three")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add student" })).toBeNull();
+    expect(within(table).queryByRole("button", { name: "Remove" })).toBeNull();
+    cleanup();
+    renderApp(<OrganizationOverview />);
+    expect(await screen.findByText("Green School")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Start setup" })).toBeNull();
+    expect(screen.queryByLabelText(/language/i)).toBeNull();
+    expect(get).not.toHaveBeenCalledWith(expect.stringMatching(/\/setup$/));
   });
 
   it("lets admins add teachers", async () => {

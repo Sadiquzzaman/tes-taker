@@ -13,7 +13,8 @@ import axiosReq from "@/lib/axios";
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
 /**
- * "Add to Google or Apple Calendar" (CAL-07): a private subscription link. The link is shown once,
+ * "Add to Google or Apple Calendar" (CAL-07): one private subscription link for all the person's
+ * workspaces (`/calendar/me/ical-link`). The link is shown once,
  * when made; making a new one stops the old one, and it can be turned off. `bare` leaves out the
  * card and its heading (inside a drawer that already has them).
  */
@@ -22,7 +23,7 @@ const SubscribeCard = ({ bare = false }: { bare?: boolean }) => {
   const format = useFormat();
   const { triggerToast } = useToast();
   const { handleError } = useApiError();
-  const { data: status, setData } = useApiData<{ active: boolean; created_at: string | null }>("/calendar/ical-link");
+  const { data: status, setData } = useApiData<{ active: boolean; created_at: string | null }>("/calendar/me/ical-link");
   const [link, setLink] = useState<string | null>(null);
   const [turningOff, setTurningOff] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -30,7 +31,7 @@ const SubscribeCard = ({ bare = false }: { bare?: boolean }) => {
   const make = async () => {
     setBusy(true);
     try {
-      const made = (await axiosReq.post<ApiResponse<{ path: string; created_at: string }>>(`${baseUrl}/calendar/ical-link`, {})).data.payload;
+      const made = (await axiosReq.post<ApiResponse<{ path: string; created_at: string }>>(`${baseUrl}/calendar/me/ical-link`, {})).data.payload;
       setLink(`${baseUrl}${made.path}`);
       setData({ active: true, created_at: made.created_at });
     } catch (err) {
@@ -43,7 +44,7 @@ const SubscribeCard = ({ bare = false }: { bare?: boolean }) => {
   const turnOff = async () => {
     setBusy(true);
     try {
-      await axiosReq.delete(`${baseUrl}/calendar/ical-link`);
+      await axiosReq.delete(`${baseUrl}/calendar/me/ical-link`);
       setLink(null);
       setData({ active: false, created_at: null });
     } catch (err) {

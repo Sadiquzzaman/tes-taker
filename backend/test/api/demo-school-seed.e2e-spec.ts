@@ -41,5 +41,25 @@ describe('demo school seed', () => {
     expect(await users.count({ where: { email: 'demo.student1@yopmail.com' } })).toBe(1);
     expect((await users.findOneByOrFail({ email: 'demo.solo@yopmail.com' })).personal_teacher_enabled).toBe(true);
     expect(await t.dataSource.getRepository(OrganizationEntity).countBy({ name: 'Demo School' })).toBe(1);
+
+    // The large Sunrise School and a platform admin, for testing on beta with a lot of data.
+    const sunrise = await t.dataSource.getRepository(OrganizationEntity).findOneByOrFail({ name: 'Sunrise School' });
+    const sunriseMembers = await t.dataSource.getRepository(OrganizationMemberEntity).find({ where: { organization_id: sunrise.id } });
+    expect(sunriseMembers.map((m) => m.role).sort()).toEqual(['ADMIN', 'ASSISTANT', 'ASSISTANT', 'OWNER', ...Array(8).fill('TEACHER')].sort());
+    expect(await users.count({ where: { email: 'sun.student60@yopmail.com', role: 'STUDENT' as UserEntity['role'] } })).toBe(1);
+    expect((await users.findOneByOrFail({ email: 'sun.solo@yopmail.com' })).personal_teacher_enabled).toBe(true);
+    expect((await users.findOneByOrFail({ email: 'test.platform@yopmail.com' })).role).toBe('ADMIN');
+    const sunriseOverrides = await t.dataSource.getRepository(FeatureOverrideEntity).find({ where: { organization_id: sunrise.id } });
+    expect(sunriseOverrides.map((o) => o.key).sort()).toEqual(['attendance', 'calendar', 'homework']);
+    expect(await t.dataSource.getRepository(OrganizationEntity).countBy({ name: 'Sunrise School' })).toBe(1);
+    // Both seeded schools are on Pro, once, like every school.
+    const plans = await t.dataSource.query(
+      `SELECT o.name, p.slug, count(*)::int AS n FROM account_subscriptions s JOIN organizations o ON o.id = s.organization_id JOIN subscription_plans p ON p.id = s.plan_id
+       WHERE o.name IN ('Demo School', 'Sunrise School') AND s.status = 'ACTIVE' GROUP BY 1, 2 ORDER BY 1`,
+    );
+    expect(plans).toEqual([
+      { name: 'Demo School', slug: 'pro', n: 1 },
+      { name: 'Sunrise School', slug: 'pro', n: 1 },
+    ]);
   });
 });

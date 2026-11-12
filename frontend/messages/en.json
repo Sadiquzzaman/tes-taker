@@ -2537,7 +2537,9 @@
         "subjectName": "Subject name",
         "subjectCode": "Code",
         "createSubject": "Create subject",
-        "subjectCreated": "Subject created"
+        "subjectCreated": "Subject created",
+        "newSubjectOption": "+ New subject…",
+        "createAndAdd": "Create and add"
       },
       "sections": {
         "intro": "Each [[class]] needs at least one [[section]]. Set the shift, room and class teacher, or add more [[sections]].",
@@ -3382,8 +3384,7 @@
       "SCHEDULE_OVERLAP": "This overlaps another time on the same day.",
       "SCHEDULE_TEACHER_CLASH": "This teacher already has a class at this time ({section}).",
       "SCHEDULE_TOO_MANY": "A [[section]] can have at most 70 times a week.",
-      "ATTENDANCE_SETUP_TEACHER_INVALID": "Choose a teacher of this organisation.",
-      "ATTENDANCE_SETUP_SOURCE_INVALID": "Copy from another [[section]] of the same session."
+      "ATTENDANCE_SETUP_TEACHER_INVALID": "Choose a teacher of this organisation."
     },
     "applyTo": "Apply to",
     "applyToClass": "Every other [[section]] of {class}",
@@ -4239,7 +4240,7 @@
     "teacher": "Teacher",
     "noTeacher": "No teacher",
     "room": "Room",
-    "roomHint": "Optional, e.g. Room 201 or Lab",
+    "roomHint": "Filled in from the section's room; change it for a lab or another room.",
     "noClasses": "No classes",
     "save": "Save",
     "saveAnyway": "Save anyway",
@@ -4382,7 +4383,7 @@
     },
     "subscribe": {
       "title": "Add to Google or Apple Calendar",
-      "intro": "A private link shows your calendar in Google or Apple Calendar and keeps it up to date. Anyone with the link can see your schedule, so keep it to yourself.",
+      "intro": "One private link shows your whole calendar, from every school and class you belong to, in Google or Apple Calendar and keeps it up to date. Anyone with the link can see your schedule, so keep it to yourself.",
       "make": "Make my link",
       "newLink": "Make a new link",
       "copy": "Copy link",
