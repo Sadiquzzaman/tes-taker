@@ -476,8 +476,11 @@ describe("homework settings", () => {
     fireEvent.click(await screen.findByLabelText("Accept late work"));
     fireEvent.change(screen.getByLabelText("Late penalty"), { target: { value: "PER_DAY" } });
     fireEvent.change(screen.getByLabelText("Percent"), { target: { value: "15" } });
-    fireEvent.change(screen.getByLabelText(/Hand in again/), { target: { value: "0" } });
-    fireEvent.change(screen.getByLabelText("Files per hand-in"), { target: { value: "3" } });
+    // Said in one plain sentence, kept up to date.
+    expect(screen.getByText("Students hand in, then can change it 1 more time. Each hand-in can have up to 5 files.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/Changes after handing in/), { target: { value: "0" } });
+    fireEvent.change(screen.getByLabelText(/Files in one hand-in/), { target: { value: "3" } });
+    expect(screen.getByText("Students hand in once. Each hand-in can have up to 3 files.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
     await waitFor(() => expect(patch).toHaveBeenCalledTimes(1));
     expect(patch.mock.calls[0][1]).toEqual({ late_allowed: false, late_penalty: { type: "PER_DAY", percent: 15 }, resubmissions: 0, max_files: 3 });
