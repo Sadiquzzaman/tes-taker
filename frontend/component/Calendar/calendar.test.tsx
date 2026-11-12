@@ -165,7 +165,8 @@ describe("calendar page (CAL-07)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Open Monday 9 November" }));
     expect(await screen.findByRole("heading", { name: /Monday,? 9 November 2026/ })).toBeTruthy();
-    expect(within(screen.getByRole("region", { name: "Monday 9 November" })).getByRole("button", { name: "Event: Sports day at 09:00" })).toBeTruthy();
+    // Day view loads its own range: wait for the day, not just the heading.
+    expect(within(await screen.findByRole("region", { name: "Monday 9 November" })).getByRole("button", { name: "Event: Sports day at 09:00" })).toBeTruthy();
   });
 
   it("opens a homework's details with a link to it", async () => {
