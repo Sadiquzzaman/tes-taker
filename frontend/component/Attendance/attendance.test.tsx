@@ -426,14 +426,15 @@ describe("holidays page (CAL-04)", () => {
 });
 
 describe("menu", () => {
-  it("shows attendance settings, branches and holidays to owners, admins and solo teachers, only with the attendance feature", () => {
+  it("shows attendance settings and branches with the attendance feature, and holidays with attendance or the calendar, to owners, admins and solo teachers", () => {
     const items = sidebarList.filter((item) => item.route === "/attendance-settings" || item.route === "/holidays");
     expect(items).toHaveLength(4);
     const branches = sidebarList.filter((item) => item.route === "/attendance-branches");
     // Branches are for organisations; a solo teacher sets their one pin in the settings.
     expect(branches).toHaveLength(1);
     expect(branches[0]).toMatchObject({ category: "Organization", memberRoles: ["OWNER", "ADMIN"], feature: "attendance" });
-    expect(items.every((item) => item.feature === "attendance")).toBe(true);
+    expect(items.filter((item) => item.route === "/attendance-settings").every((item) => item.feature === "attendance")).toBe(true);
+    expect(items.filter((item) => item.route === "/holidays").every((item) => JSON.stringify(item.feature) === JSON.stringify(["attendance", "calendar"]))).toBe(true);
     expect(items.filter((item) => item.category === "Organization").every((item) => item.memberRoles?.join() === "OWNER,ADMIN")).toBe(true);
     expect(items.filter((item) => item.category === "Platform").every((item) => item.personalWorkspaceOnly)).toBe(true);
   });
