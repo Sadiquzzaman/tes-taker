@@ -90,12 +90,17 @@ const HomeworkSettingsPage = () => {
             />
             <Select
               label={t("maxFiles")}
+              hint={t("maxFilesHint")}
               placeholder={false}
               value={String(value.max_files)}
               onChange={(event) => change({ max_files: Number(event.target.value) })}
               options={Array.from({ length: 10 }, (_, i) => i + 1).map((n) => ({ value: String(n), label: format.number(n) }))}
             />
           </div>
+          {/* The two numbers above in one plain sentence, as students will live them. */}
+          <p className="rounded-input bg-canvas px-3 py-2 text-body-sm text-ink" aria-live="polite">
+            {t("summary", { changes: value.resubmissions, files: value.max_files })}
+          </p>
         </fieldset>
       </Card>
       {canEdit ? (

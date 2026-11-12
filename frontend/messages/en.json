@@ -4200,15 +4200,17 @@
       },
       "percent": "Percent",
       "percentInvalid": "Between 1 and 100.",
-      "resubmissions": "Hand in again",
-      "resubmissionsHint": "Times a student may hand in again before it is scored.",
-      "noResubmission": "Not allowed",
-      "maxFiles": "Files per hand-in",
+      "resubmissions": "Changes after handing in",
+      "resubmissionsHint": "After handing in, a student can send a new version this many times, until the teacher marks it. Work returned for redo gets one more.",
+      "noResubmission": "None: one hand-in only",
+      "maxFiles": "Files in one hand-in",
       "save": "Save settings",
       "undo": "Undo changes",
       "savedTitle": "Saved",
       "saved": "Homework settings saved.",
-      "loadFailed": "Homework settings could not be loaded."
+      "loadFailed": "Homework settings could not be loaded.",
+      "maxFilesHint": "The most files (photos, PDF, Word) a student can attach each time they hand in.",
+      "summary": "{changes, plural, =0 {Students hand in once.} one {Students hand in, then can change it # more time.} other {Students hand in, then can change it # more times.}} {files, plural, one {Each hand-in can have # file.} other {Each hand-in can have up to # files.}}"
     }
   },
   "routine": {
@@ -4443,9 +4445,10 @@
     "workspace": "Workspace",
     "allWorkspaces": "All workspaces",
     "settings": {
-      "open": "Reminders and link",
-      "title": "Calendar settings",
-      "intro": "Your reminders and the Google or Apple Calendar link, for the workspace you are in now."
+      "openLink": "Add to Google Calendar",
+      "openReminders": "Reminders",
+      "remindersTitle": "Reminders",
+      "remindersIntro": "For the workspace you are in now."
     },
     "details": {
       "when": "When",
