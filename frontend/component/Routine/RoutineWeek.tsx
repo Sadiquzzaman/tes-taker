@@ -25,9 +25,12 @@ const RoutineWeek = ({
   show,
   onOpen,
   canOpen = () => true,
+  teacherOf = (slot) => slot.teacher?.full_name ?? null,
 }: {
   slots: RoutineSlot[];
   show: { section?: boolean; teacher?: boolean };
+  /** Who teaches a period: the one named on it, or its subject's teachers when none is named. */
+  teacherOf?: (slot: RoutineSlot) => string | null;
   onOpen?: (slot: RoutineSlot) => void;
   /** Whether a period opens for editing (the caller may change its section). */
   canOpen?: (slot: RoutineSlot) => boolean;
@@ -52,7 +55,7 @@ const RoutineWeek = ({
                   </span>
                   <span className="font-medium text-ink">{slot.subject?.name ?? t("noSubject")}</span>
                   {show.section ? <span className="text-body-sm text-ink">{sectionLabel(slot.section)}</span> : null}
-                  {show.teacher !== false && slot.teacher ? <span className="text-body-sm text-ink-muted">{slot.teacher.full_name}</span> : null}
+                  {show.teacher !== false && teacherOf(slot) ? <span className="text-body-sm text-ink-muted">{teacherOf(slot)}</span> : null}
                   {slot.room ? (
                     <span className="text-body-sm text-ink-muted">
                       <span className="sr-only">{t("room")}: </span>

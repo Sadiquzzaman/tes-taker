@@ -12,6 +12,7 @@ import { Button, Card, ConfirmDialog, EmptyState, ErrorState, Modal, PageHeader,
 import { useApiError } from "@/hooks/api/useApiError";
 import useEntitlements from "@/hooks/api/subscription/useEntitlements";
 import useWorkspace from "@/hooks/organization/useWorkspace";
+import { getStoredUser } from "@/lib/authSession";
 import axiosReq from "@/lib/axios";
 import RoutineSlotDrawer from "./RoutineSlotDrawer";
 import RoutineWeek, { sectionLabel } from "./RoutineWeek";
@@ -24,14 +25,14 @@ type ViewBy = "section" | "teacher" | "room";
  * The weekly routine (CAL-01, CAL-02), the one place the timetable is made: a session's week by
  * section, teacher or room, clashes marked. Owners, admins and staff change every section, a
  * teacher the sections they teach: a period on one or several days, a week copied from another
- * section, or a CSV import. Students see their own sections. Each person's own week is on the Calendar.
+ * section, or a CSV import. Students see their own sections; a teacher opens on their own week.
  */
 const RoutinePage = () => {
   const t = useTranslations("routine");
   const { triggerToast } = useToast();
   const { handleError } = useApiError();
   const isStudent = useIsStudent();
-  const { isIndividual, organizationId } = useWorkspace();
+  const { isIndividual, organizationId, memberRole } = useWorkspace();
   const { entitlements } = useEntitlements();
   const params = useSearchParams();
   const [sessionId, setSessionId] = useState("");
@@ -48,6 +49,25 @@ const RoutinePage = () => {
   const [busy, setBusy] = useState(false);
 
   const editable = useMemo(() => new Set(routine?.editable_section_ids ?? []), [routine]);
+  const me = getStoredUser()?.id ?? null;
+
+  // A teacher opens on their own week (unless a link names a section).
+  const [ownWeekShown, setOwnWeekShown] = useState(false);
+  useEffect(() => {
+    if (ownWeekShown || !routine) return;
+    setOwnWeekShown(true);
+    if (memberRole === "TEACHER" && me && !params?.get("section") && routine.teachers.some((teacher) => teacher.id === me)) {
+      setViewBy("teacher");
+      setChosen(me);
+    }
+  }, [me, memberRole, ownWeekShown, params, routine]);
+
+  /** Who teaches a period: the teacher named on it, else its subject's teachers (Subject teachers page). */
+  const teachersOfSlot = useMemo(() => {
+    const bySubject = new Map((routine?.subject_classes ?? []).map((subjectClass) => [subjectClass.offering_id, subjectClass.teacher_ids]));
+    return (slot: RoutineSlot) => (slot.teacher ? [slot.teacher.id] : slot.subject ? (bySubject.get(slot.subject.offering_id) ?? []) : []);
+  }, [routine]);
+  const teacherName = useMemo(() => new Map((routine?.teachers ?? []).map((teacher) => [teacher.id, teacher.full_name])), [routine]);
   const canManage = routine?.can_manage ?? false;
 
   // Teachers to put on a period: the organisation's teaching members.
@@ -69,12 +89,11 @@ const RoutinePage = () => {
     if (!routine) return [];
     if (viewBy === "section") return routine.sections.map((section) => ({ value: section.id, label: sectionLabel(section) }));
     if (viewBy === "teacher") {
-      const seen = new Map<string, string>();
-      for (const slot of routine.slots) if (slot.teacher) seen.set(slot.teacher.id, slot.teacher.full_name);
-      return [...seen].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+      // Everyone who teaches, also before a period names them; the caller's own name says so.
+      return routine.teachers.map((teacher) => ({ value: teacher.id, label: teacher.id === me ? t("you", { name: teacher.full_name }) : teacher.full_name }));
     }
     return routine.rooms.map((room) => ({ value: room, label: room }));
-  }, [routine, viewBy]);
+  }, [me, routine, t, viewBy]);
 
   if (failed !== null) return <ErrorState title={t("loadFailed")} onRetry={reload} />;
   if (!routine || isStudent === undefined) {
@@ -88,7 +107,7 @@ const RoutinePage = () => {
 
   const current = choices.some((choice) => choice.value === chosen) ? chosen : (choices[0]?.value ?? "");
   const shown = routine.slots.filter((slot) =>
-    viewBy === "section" ? slot.section.id === current : viewBy === "teacher" ? slot.teacher?.id === current : slot.room?.toLowerCase() === current.toLowerCase(),
+    viewBy === "section" ? slot.section.id === current : viewBy === "teacher" ? teachersOfSlot(slot).includes(current) : slot.room?.toLowerCase() === current.toLowerCase(),
   );
   const clashCount = routine.slots.filter((slot) => slot.clashes.length > 0).length;
   const sectionEditable = viewBy === "section" && editable.has(current);
@@ -191,6 +210,7 @@ const RoutinePage = () => {
           show={{ section: viewBy !== "section", teacher: viewBy !== "teacher" }}
           onOpen={(slot) => (editable.has(slot.section.id) ? setEditing({ slot }) : undefined)}
           canOpen={(slot) => editable.has(slot.section.id)}
+          teacherOf={(slot) => slot.teacher?.full_name ?? (teachersOfSlot(slot).map((id) => teacherName.get(id)).filter(Boolean).join(", ") || null)}
         />
       )}
       {editing ? (

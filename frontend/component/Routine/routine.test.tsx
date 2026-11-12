@@ -11,7 +11,8 @@ const del = vi.fn();
 let memberRole: string | undefined = "OWNER";
 let searchSection: string | null = null;
 let attendanceOn = true;
-vi.mock("@/lib/authSession", () => ({ getStoredUser: () => ({ id: "me", role: memberRole === "STUDENT" ? "STUDENT" : "TEACHER", access_token: "token" }), clearAuthSession: vi.fn() }));
+let myId = "me";
+vi.mock("@/lib/authSession", () => ({ getStoredUser: () => ({ id: myId, role: memberRole === "STUDENT" ? "STUDENT" : "TEACHER", access_token: "token" }), clearAuthSession: vi.fn() }));
 vi.mock("@/hooks/organization/useWorkspace", () => ({ default: () => ({ memberRole, isIndividual: false, organizationId: "org1" }) }));
 vi.mock("@/hooks/api/subscription/useEntitlements", () => ({ default: () => ({ entitlements: { features: { calendar: true, attendance: attendanceOn } }, loading: false }) }));
 vi.mock("@/lib/axios", () => ({
@@ -54,6 +55,7 @@ const routine = (extra: Partial<RoutineView> = {}): RoutineView => ({
     { offering_id: "o-a-math", section_id: "sa", subject: { id: "math", name: "Math" }, teacher_ids: ["t1"] },
     { offering_id: "o-b-math", section_id: "sb", subject: { id: "math", name: "Math" }, teacher_ids: [] },
   ],
+  teachers: [{ id: "t1", full_name: "Rina" }],
   rooms: ["Room 201"],
   slots: [slot()],
   ...extra,
@@ -73,6 +75,7 @@ const serve = (view: RoutineView = routine()) =>
 
 beforeEach(() => {
   memberRole = "OWNER";
+  myId = "me";
   searchSection = null;
   attendanceOn = true;
   for (const mock of [get, post, patch, del]) mock.mockReset();
@@ -204,6 +207,40 @@ describe("routine (CAL-01, CAL-02)", () => {
     cleanup();
     renderApp(<RoutinePage />, { locale: "bn" });
     expect(await screen.findByRole("button", { name: "পিরিয়ড যোগ করুন" })).toBeTruthy();
+  });
+});
+
+describe("routine for teachers (co-founder review)", () => {
+  it("opens on the teacher's own week, with periods of their subject that name no teacher", async () => {
+    memberRole = "TEACHER";
+    myId = "t1";
+    serve(
+      routine({
+        editable_section_ids: ["sa"],
+        slots: [slot(), slot({ id: "r2", teacher: null, day_of_week: 1, start_time: "09:00", end_time: "09:45" }), slot({ id: "r3", section: sectionB, subject: { offering_id: "o-b-math", id: "math", name: "Math" }, teacher: null, day_of_week: 2 })],
+      }),
+    );
+    renderApp(<RoutinePage />);
+    expect(((await screen.findByLabelText("Show by")) as HTMLSelectElement).value).toBe("teacher");
+    expect((screen.getByLabelText("Teacher") as HTMLSelectElement).selectedOptions[0].text).toBe("Rina (you)");
+    // Saturday's period names Rina; Monday's names nobody but Math in A is hers; Tuesday's (B) is not.
+    expect(within(screen.getByRole("region", { name: "Saturday" })).getByText("Math")).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "Monday" })).getByText("09:00–09:45")).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "Tuesday" })).getByText("No classes")).toBeTruthy();
+  });
+
+  it("lists everyone who teaches, and shows a period's subject teacher when the period names none", async () => {
+    serve(routine({ teachers: [{ id: "t2", full_name: "Karim" }, { id: "t1", full_name: "Rina" }], slots: [slot({ teacher: null })] }));
+    renderApp(<RoutinePage />);
+    // By section, the period shows Rina: she teaches Math in A.
+    expect(await within(await screen.findByRole("region", { name: "Saturday" })).findByText("Rina")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Show by"), { target: { value: "teacher" } });
+    const teacher = screen.getByLabelText("Teacher") as HTMLSelectElement;
+    expect([...teacher.options].map((option) => option.text)).toEqual(["Karim", "Rina"]);
+    // Karim has no periods yet: an empty week, not a missing name.
+    expect(within(screen.getByRole("region", { name: "Saturday" })).getByText("No classes")).toBeTruthy();
+    fireEvent.change(teacher, { target: { value: "t1" } });
+    expect(within(screen.getByRole("region", { name: "Saturday" })).getByText("Class 6 A")).toBeTruthy();
   });
 });
 
