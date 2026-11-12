@@ -107,6 +107,11 @@ export class CalendarFeedService {
     if (to < from || daysBetween(from, to) > MAX_FEED_DAYS) {
       throw new BadRequestException({ message: `Choose at most ${MAX_FEED_DAYS} days`, code: 'CALENDAR_RANGE_INVALID' });
     }
+    return this.personalBetween(userId, from, to);
+  }
+
+  /** The personal calendar for any range (the iCal link asks for 120 days). */
+  private async personalBetween(userId: string, from: string, to: string): Promise<CalendarFeed & { workspaces: FeedWorkspace[] }> {
     const items: FeedItem[] = [];
     const workspaces: FeedWorkspace[] = [];
     let timeZone: string | null = null;
@@ -127,33 +132,45 @@ export class CalendarFeedService {
     return { from, to, time_zone: zone, items, workspaces };
   }
 
-  /** Whether the caller has a subscription link, and since when (the link itself is shown only once). */
-  async linkStatus(tenant: Tenant, userId: string): Promise<{ active: boolean; created_at: Date | null }> {
-    const row = await this.tokenRepo.findOne({ where: { organization_id: tenant.organizationId, user_id: userId, revoked_at: IsNull() }, order: { created_at: 'DESC' } });
+  /**
+   * Whether the caller has a subscription link, and since when (the link itself is shown only once).
+   * `tenant` null: the personal link across all workspaces; otherwise that workspace's link.
+   */
+  async linkStatus(tenant: Tenant | null, userId: string): Promise<{ active: boolean; created_at: Date | null }> {
+    const row = await this.tokenRepo.findOne({ where: { organization_id: tenant?.organizationId ?? IsNull(), user_id: userId, revoked_at: IsNull() }, order: { created_at: 'DESC' } });
     return { active: Boolean(row), created_at: row?.created_at ?? null };
   }
 
   /** Makes a new subscription link (the old one stops working) and returns its path once. */
-  async newLink(tenant: Tenant, userId: string): Promise<{ path: string; created_at: Date }> {
+  async newLink(tenant: Tenant | null, userId: string): Promise<{ path: string; created_at: Date }> {
     await this.revoke(tenant, userId);
     const token = randomBytes(32).toString('base64url');
-    const row = await this.tokenRepo.save(this.tokenRepo.create({ organization_id: tenant.organizationId, user_id: userId, token_hash: hashOf(token) }));
+    const row = await this.tokenRepo.save(this.tokenRepo.create({ organization_id: tenant?.organizationId ?? null, user_id: userId, token_hash: hashOf(token) }));
     return { path: `/calendar/ical/${token}.ics`, created_at: row.created_at };
   }
 
   /** Turns the subscription link off (the row is kept). */
-  async revoke(tenant: Tenant, userId: string): Promise<void> {
-    await this.tokenRepo.update({ organization_id: tenant.organizationId, user_id: userId, revoked_at: IsNull() }, { revoked_at: new Date() });
+  async revoke(tenant: Tenant | null, userId: string): Promise<void> {
+    await this.tokenRepo.update({ organization_id: tenant?.organizationId ?? IsNull(), user_id: userId, revoked_at: IsNull() }, { revoked_at: new Date() });
   }
 
   /**
    * The iCal text for a subscription link: 30 days back to 90 ahead. 404 when the link is unknown
-   * or turned off, the person left the organisation, or the plan has no calendar.
+   * or turned off, the person left the organisation, or the plan has no calendar. A personal link
+   * covers every workspace the person is in now that has the calendar (404 when none has).
    */
   async ical(token: string): Promise<string> {
     const notFound = () => new NotFoundException('Calendar link not found');
     const row = await this.tokenRepo.findOne({ where: { token_hash: hashOf(token.replace(/\.ics$/, '')), revoked_at: IsNull() }, relations: ['user'] });
     if (!row) throw notFound();
+    const title = `Instructor — ${row.user?.full_name ?? ''}`.trim();
+    if (row.organization_id === null) {
+      const today = schoolDateIn(DEFAULT_TIME_ZONE, new Date());
+      const feed = await this.personalBetween(row.user_id, addDays(today, -ICAL_DAYS_BACK), addDays(today, ICAL_DAYS_AHEAD));
+      if (feed.workspaces.length === 0) throw notFound();
+      await this.tokenRepo.update({ id: row.id }, { last_used_at: new Date() });
+      return icalCalendar(title, feed.items.flatMap((item) => icalEventOf(item, feed.time_zone)));
+    }
     const tenant = await this.tenantOf(row.organization_id, row.user_id);
     if (!tenant || !(await this.entitlements.hasFeature(row.organization_id, FeatureKey.CALENDAR))) throw notFound();
     // The feed's services read the request's workspace, as they do for a signed-in request.
@@ -162,7 +179,7 @@ export class CalendarFeedService {
     const today = schoolDateIn(timeZone, new Date());
     const feed = await this.between(tenant, row.user_id, addDays(today, -ICAL_DAYS_BACK), addDays(today, ICAL_DAYS_AHEAD));
     await this.tokenRepo.update({ id: row.id }, { last_used_at: new Date() });
-    return icalCalendar(`Instructor — ${row.user?.full_name ?? ''}`.trim(), feed.items.flatMap((item) => icalEventOf(item, timeZone)));
+    return icalCalendar(title, feed.items.flatMap((item) => icalEventOf(item, timeZone)));
   }
 
   private async between(tenant: Tenant, userId: string, from: string, to: string): Promise<CalendarFeed> {
@@ -304,7 +321,8 @@ function icalEventOf(item: FeedItem, timeZone: string): IcalEvent[] {
       if (item.reason !== 'HOLIDAY') return [];
       return [
         {
-          uid: `holiday-${item.date}@instructor`,
+          // Two workspaces may close on the same day: a personal link keeps them apart.
+          uid: item.workspace ? `holiday-${item.workspace.key.replace(':', '-')}-${item.date}@instructor` : `holiday-${item.date}@instructor`,
           start: zonedInstant(item.date, '00:00', timeZone),
           end: zonedInstant(addDays(item.date, 1), '00:00', timeZone),
           summary: item.title || 'Holiday',

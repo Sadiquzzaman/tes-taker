@@ -71,6 +71,26 @@ export class CalendarPersonalController {
   async get(@Query() query: CalendarFeedQueryDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Calendar retrieved successfully', payload: await this.feed.personal(user.id, query.from, query.to) };
   }
+
+  @Get('ical-link')
+  @ApiOperation({ summary: 'Whether the caller has a personal subscription link (all their workspaces in one calendar)' })
+  async link(@UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Calendar link retrieved successfully', payload: await this.feed.linkStatus(null, user.id) };
+  }
+
+  @Post('ical-link')
+  @ApiOperation({ summary: 'Make a new personal subscription link for all workspaces (the old one stops working); its path is shown once' })
+  async newLink(@UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Calendar link made', payload: await this.feed.newLink(null, user.id) };
+  }
+
+  @Delete('ical-link')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Turn the personal subscription link off' })
+  async revoke(@UserPayload() user: JwtPayloadInterface) {
+    await this.feed.revoke(null, user.id);
+    return { message: 'Calendar link turned off', payload: null };
+  }
 }
 
 /**

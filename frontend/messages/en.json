@@ -4383,7 +4383,7 @@
     },
     "subscribe": {
       "title": "Add to Google or Apple Calendar",
-      "intro": "A private link shows your calendar in Google or Apple Calendar and keeps it up to date. Anyone with the link can see your schedule, so keep it to yourself.",
+      "intro": "One private link shows your whole calendar, from every school and class you belong to, in Google or Apple Calendar and keeps it up to date. Anyone with the link can see your schedule, so keep it to yourself.",
       "make": "Make my link",
       "newLink": "Make a new link",
       "copy": "Copy link",

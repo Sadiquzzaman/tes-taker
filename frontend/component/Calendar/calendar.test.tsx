@@ -67,7 +67,7 @@ const EVENT: CalendarEventItem = {
 const serve = (items: CalendarFeedItem[] = ITEMS, workspaces: CalendarWorkspace[] = [HERE], link = { active: false, created_at: null as string | null }) =>
   get.mockImplementation((url: string, config?: { params?: { from?: string; to?: string } }) => {
     if (url.endsWith("/calendar/me")) return ok({ from: config?.params?.from, to: config?.params?.to, time_zone: "Asia/Dhaka", items, workspaces });
-    if (url.endsWith("/calendar/ical-link")) return ok(link);
+    if (url.endsWith("/calendar/me/ical-link")) return ok(link);
     if (url.endsWith("/reminders"))
       return ok({ defaults: { CLASS: [], EXAM: [], EVENT: [] }, mine: { CLASS: { offsets: [], own: false }, EXAM: { offsets: [], own: false }, EVENT: { offsets: [], own: false } }, can_manage: false });
     if (url.endsWith("/events/e1")) return ok(EVENT);
@@ -266,7 +266,7 @@ describe("calendar page (CAL-07)", () => {
     fireEvent.click(settings.getByRole("button", { name: "Turn off" }));
     const confirm = within(await screen.findByRole("dialog", { name: "Turn off your calendar link?" }));
     fireEvent.click(confirm.getByRole("button", { name: "Turn off" }));
-    await waitFor(() => expect(del).toHaveBeenCalledWith(expect.stringMatching(/\/calendar\/ical-link$/)));
+    await waitFor(() => expect(del).toHaveBeenCalledWith(expect.stringMatching(/\/calendar\/me\/ical-link$/)));
     expect(await settings.findByText("You have no link yet.")).toBeTruthy();
   });
 
