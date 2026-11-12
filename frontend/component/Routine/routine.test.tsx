@@ -244,6 +244,22 @@ describe("routine for teachers (co-founder review)", () => {
   });
 });
 
+describe("rooms", () => {
+  it("starts a new period in its section's room, follows the section, and keeps a room typed in", async () => {
+    serve(routine({ sections: [{ ...sectionA, room: "Room 101" }, { ...sectionB, room: "Room 102" }] }));
+    renderApp(<RoutinePage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Add period" }));
+    const drawer = within(await screen.findByRole("dialog", { name: "Add a period" }));
+    const room = drawer.getByLabelText("Room") as HTMLInputElement;
+    expect(room.value).toBe("Room 101");
+    fireEvent.change(drawer.getByLabelText("Section"), { target: { value: "sb" } });
+    expect(room.value).toBe("Room 102");
+    fireEvent.change(room, { target: { value: "Lab" } });
+    fireEvent.change(drawer.getByLabelText("Section"), { target: { value: "sa" } });
+    expect(room.value).toBe("Lab");
+  });
+});
+
 describe("routine for students", () => {
   it("shows their own section read-only, or says they are in none", async () => {
     memberRole = "STUDENT";

@@ -53,7 +53,8 @@ export interface RoutineView {
   can_manage: boolean;
   /** Sections whose routine the caller may change: all for owners, admins and staff; the ones a teacher teaches. */
   editable_section_ids: string[];
-  sections: { id: string; name: string; class_name: string | null }[];
+  /** `room`: the section's own room, the default for its new periods. */
+  sections: { id: string; name: string; class_name: string | null; room: string | null }[];
   subject_classes: { offering_id: string; section_id: string; subject: { id: string; name: string }; teacher_ids: string[] }[];
   /** Everyone who teaches in these sections: a subject's teachers and teachers named on a period, by name. */
   teachers: { id: string; full_name: string }[];
@@ -119,7 +120,7 @@ export class RoutineService {
       session: { id: session.id, name: session.name, status: session.status },
       can_manage: editable.length > 0,
       editable_section_ids: editable,
-      sections: sections.map((section) => ({ id: section.id, name: section.name, class_name: section.class?.class_name ?? null })),
+      sections: sections.map((section) => ({ id: section.id, name: section.name, class_name: section.class?.class_name ?? null, room: student ? null : section.room })),
       subject_classes: visibleOfferings.map((offering) => ({
         offering_id: offering.id,
         section_id: offering.section_id,

@@ -5,6 +5,8 @@ interface RoutineSection {
   id: string;
   name: string;
   class_name: string | null;
+  /** The section's own room (`GET /routine`): filled in on its new periods. */
+  room?: string | null;
 }
 
 /** Another slot with the same teacher or room at an overlapping time (CAL-02). */

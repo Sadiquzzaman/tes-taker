@@ -168,6 +168,14 @@ describe('routine API', () => {
     expect(await teachersOf(s.studentToken)).toEqual([{ id: s.rina.id, full_name: 'Rina' }]);
   });
 
+  it("gives each section's own room, the default for its new periods (not shown to students)", async () => {
+    const s = await school();
+    expect((await call('PATCH', `/sections/${s.a}`, s.ownerToken, { room: 'Room 101' })).status).toBe(200);
+    const sections = async (token: string) => (await call<{ sections: { id: string; room: string | null }[] }>('GET', '/routine', token)).body.payload.sections;
+    expect((await sections(s.ownerToken)).find((x) => x.id === s.a)?.room).toBe('Room 101');
+    expect((await sections(s.studentToken)).find((x) => x.id === s.a)?.room).toBeNull();
+  });
+
   it('refuses two classes of one section at once, and asks to confirm a teacher or room booked twice, then marks it', async () => {
     const s = await school();
     const first = await call<Slot>('POST', '/routine/slots', s.ownerToken, {

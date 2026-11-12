@@ -4239,7 +4239,7 @@
     "teacher": "Teacher",
     "noTeacher": "No teacher",
     "room": "Room",
-    "roomHint": "Optional, e.g. Room 201 or Lab",
+    "roomHint": "Filled in from the section's room; change it for a lab or another room.",
     "noClasses": "No classes",
     "save": "Save",
     "saveAnyway": "Save anyway",
