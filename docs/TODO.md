@@ -74,4 +74,3 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - SMS for event changes within 48 hours (CAL-06: "SMS is optional per org") — P5-05 tells attendees in-app only; an organisation setting and guardian/attendee SMS through the outbox would cost credits each time.
 - Email reminders (CAL-05 lists "in-app/push, email or SMS") — P5-05 offers in-app and SMS; email needs a template per kind and the person's email preference.
 - Class reminders for teachers of slots that name no teacher — P5-05 reminds the slot's named teacher (or that day's substitute); unnamed slots remind only students.
-- One calendar subscription link (iCal) across all of a person's workspaces — `GET /calendar/me` covers every workspace, but the iCal link and reminders are still made per workspace.

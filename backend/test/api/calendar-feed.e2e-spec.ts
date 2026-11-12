@@ -255,4 +255,36 @@ describe('calendar feed API', () => {
     expect((await t.api.request('GET', again.body.payload.path)).status).toBe(404);
     expect((await t.api.request('GET', '/calendar/ical/not-a-token.ics')).status).toBe(404);
   });
+  it("gives one personal link for all of a person's workspaces, apart from each workspace's own link", async () => {
+    const s = await school();
+    const secondOwner = await make.teacher({ personal_teacher_enabled: false });
+    const second = await make.organization(secondOwner, { name: 'Second School' });
+    expect((await override(second.id, 'calendar', true)).status).toBe(200);
+    await make.member(second, s.rina, OrganizationMemberRoleEnum.TEACHER);
+    const secondToken = t.tokenFor(secondOwner, { session_mode: 'organization', context_type: 'organization', organization_id: second.id, member_role: OrganizationMemberRoleEnum.OWNER });
+    const meeting = await call<{ id: string }>('POST', '/events', secondToken, { type: 'MEETING', title: 'Staff meeting', starts_at: '2026-12-10T10:00:00.000Z', ends_at: '2026-12-10T11:00:00.000Z', whole_org: true });
+    expect(meeting.status).toBe(201);
+
+    // No workspace needs to be chosen.
+    const plain = t.tokenFor(s.rina);
+    expect((await call<{ active: boolean }>('GET', '/calendar/me/ical-link', plain)).body.payload.active).toBe(false);
+    const made = await call<{ path: string }>('POST', '/calendar/me/ical-link', plain);
+    expect(made.status).toBe(201);
+    expect((await call<{ active: boolean }>('GET', '/calendar/me/ical-link', plain)).body.payload.active).toBe(true);
+    // The first school's own link is a different one, still off.
+    expect((await call<{ active: boolean }>('GET', '/calendar/ical-link', s.rinaToken)).body.payload.active).toBe(false);
+
+    const text = (await t.api.request<string>('GET', made.body.payload.path)).body;
+    expect(text).toContain(`UID:class-${s.slotId}-2026-12-05@instructor`);
+    expect(text).toContain(`UID:event-${meeting.body.payload.id}@instructor`);
+
+    // Without the calendar in any workspace the link shows nothing; turned off, it stops.
+    await override(s.organization.id, 'calendar', false);
+    await override(second.id, 'calendar', false);
+    expect((await t.api.request('GET', made.body.payload.path)).status).toBe(404);
+    await override(s.organization.id, 'calendar', true);
+    expect((await t.api.request('GET', made.body.payload.path)).status).toBe(200);
+    expect((await call('DELETE', '/calendar/me/ical-link', plain)).status).toBe(200);
+    expect((await t.api.request('GET', made.body.payload.path)).status).toBe(404);
+  });
 });
