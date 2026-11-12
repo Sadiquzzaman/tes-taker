@@ -72,8 +72,9 @@ const routePolicies: RoutePolicy[] = [
     path: "/billing",
     match: "prefix",
     allowedRoles: ["TEACHER"],
-    blockedSessionModes: ["organization"],
-    redirectUnauthorizedTo: "/organization",
+    // A solo teacher's own plan, or a school's plan for its owners and admins (P2-02).
+    blockedMemberRoles: ["TEACHER", "ASSISTANT", "STUDENT"],
+    redirectUnauthorizedTo: "/today",
   },
   {
     path: "/admin/organizations",
