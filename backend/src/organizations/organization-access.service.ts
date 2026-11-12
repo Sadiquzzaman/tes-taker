@@ -261,6 +261,15 @@ export class OrganizationAccessService {
     return this.requireOwnerOrAdmin(organizationId, userId);
   }
 
+  /** Who may read the people of the organisation (Teachers, Staff, Students lists): owners, admins and staff. */
+  async requireMemberDirectoryViewer(organizationId: string, userId: string): Promise<OrganizationMemberEntity> {
+    const member = await this.requireApprovedMember(organizationId, userId);
+    if (![OrganizationMemberRoleEnum.OWNER, OrganizationMemberRoleEnum.ADMIN, OrganizationMemberRoleEnum.ASSISTANT].includes(member.role)) {
+      throw new ForbiddenException('Only owners, admins and staff see the members list');
+    }
+    return member;
+  }
+
   async requireStaffManager(
     organizationId: string,
     userId: string,

@@ -46,6 +46,8 @@ const OrganizationOverviewContent = () => {
   }, [load]);
 
   const status = detail?.status || activeOrganization?.status || "approved";
+  // Staff see the numbers and details; setup and settings are for owners and admins.
+  const manages = activeOrganization?.role === "OWNER" || activeOrganization?.role === "ADMIN";
   const tiles = [
     { key: "teachers", value: detail?.teachers_count },
     { key: "students", value: detail?.students_count },
@@ -56,7 +58,7 @@ const OrganizationOverviewContent = () => {
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader title={t("overview.title")} description={activeOrganization?.name} />
-      {organizationId ? <SetupBanner /> : null}
+      {organizationId && manages ? <SetupBanner /> : null}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {tiles.map((tile) =>
           loading ? (
@@ -84,14 +86,14 @@ const OrganizationOverviewContent = () => {
           </div>
         </dl>
       </Card>
-      {organizationId ? <OrganizationSettingsCard organizationId={organizationId} /> : null}
+      {organizationId && manages ? <OrganizationSettingsCard organizationId={organizationId} /> : null}
       {organizationId && activeOrganization?.role === "OWNER" ? <LevelLabelsCard /> : null}
     </div>
   );
 };
 
 const OrganizationOverview = () => (
-  <OrganizationWorkspaceGate allowedRoles={["OWNER", "ADMIN"]}>
+  <OrganizationWorkspaceGate allowedRoles={["OWNER", "ADMIN", "ASSISTANT"]}>
     <OrganizationOverviewContent />
   </OrganizationWorkspaceGate>
 );

@@ -479,8 +479,9 @@ export class OrganizationsService {
     return saved;
   }
 
+  /** Active members; owners, admins and staff read it, only owners and admins change it. */
   async listMembers(organizationId: string, actorUserId: string) {
-    await this.accessService.requireApprovedOwnerOrAdmin(organizationId, actorUserId);
+    await this.accessService.requireMemberDirectoryViewer(organizationId, actorUserId);
 
     const members = await this.memberRepo.find({
       where: {
