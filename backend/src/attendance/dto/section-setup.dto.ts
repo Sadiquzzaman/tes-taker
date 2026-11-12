@@ -75,12 +75,6 @@ export class ReplaceSlotsDto {
   slots: SlotDto[];
 }
 
-export class CopyScheduleDto {
-  @ApiProperty({ description: 'The section whose schedule is copied (same session); teachers are not copied' })
-  @IsUUID()
-  from_section_id: string;
-}
-
 /** Apply one section's schedule and/or its type, mode and grace to a class or a shift. */
 export class ApplyScheduleDto {
   @ApiProperty()

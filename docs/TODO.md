@@ -75,4 +75,3 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Email reminders (CAL-05 lists "in-app/push, email or SMS") — P5-05 offers in-app and SMS; email needs a template per kind and the person's email preference.
 - Class reminders for teachers of slots that name no teacher — P5-05 reminds the slot's named teacher (or that day's substitute); unnamed slots remind only students.
 - One calendar subscription link (iCal) across all of a person's workspaces — `GET /calendar/me` covers every workspace, but the iCal link and reminders are still made per workspace.
-- Remove `POST /attendance/setup/sections/:id/copy` — the web copies a week with `POST /routine/sections/:id/copy` now; the setup copy's e2e checks also cover setup permissions, tenancy and audit, which should move to the routine copy first.

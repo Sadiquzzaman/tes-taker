@@ -59,7 +59,6 @@ describe('section setup API', () => {
   const grid = (token: string, query = '') => call<Grid>('GET', `/attendance/setup${query}`, token);
   const patchSection = (token: string, id: string, body: unknown) => call<Row>('PATCH', `/attendance/setup/sections/${id}`, token, body);
   const putSlots = (token: string, id: string, slots: unknown[]) => call<Row>('PUT', `/attendance/setup/sections/${id}/slots`, token, { slots });
-  const copy = (token: string, id: string, from: string) => call<Row>('POST', `/attendance/setup/sections/${id}/copy`, token, { from_section_id: from });
   const apply = (token: string, body: unknown) =>
     call<{ dry_run: boolean; sections: { id: string; name: string; slots_before: number; teachers_dropped: number }[] }>('POST', '/attendance/setup/apply', token, body);
 
@@ -269,36 +268,6 @@ describe('section setup API', () => {
     }
   });
 
-  it("copies another section's schedule without its teachers, only within the session", async () => {
-    const { organization, token, s6A, s6B } = await school();
-    const { user: teacher } = await memberOf(organization, OrganizationMemberRoleEnum.TEACHER);
-    await putSlots(token, s6A.id, [{ ...BATCH[0], teacher_id: teacher.id }, BATCH[1], BATCH[2]]);
-
-    const copied = await copy(token, s6B.id, s6A.id);
-    expect(copied.status).toBe(200);
-    expect(times(copied.body.payload.slots)).toEqual(times((await rowOf(token, s6A.id)).slots));
-    expect(copied.body.payload.slots.every((slot) => slot.teacher_id === null)).toBe(true);
-
-    const self = await copy(token, s6A.id, s6A.id);
-    expect(self.body.code).toBe('ATTENDANCE_SETUP_SOURCE_INVALID');
-    // A section of another session.
-    const session = await t.dataSource.getRepository(AcademicSessionEntity).save({
-      organization_id: organization.id,
-      name: 'Next year',
-      start_date: '2099-01-01',
-      end_date: '2099-12-31',
-      status: AcademicSessionStatusEnum.ACTIVE,
-      is_default: false,
-    } as DeepPartial<AcademicSessionEntity>);
-    const later = await t.dataSource.getRepository(SectionEntity).save({
-      organization_id: organization.id,
-      class_id: s6A.class_id,
-      session_id: session.id,
-      name: 'A',
-    } as DeepPartial<SectionEntity>);
-    expect((await copy(token, later.id, s6A.id)).body.code).toBe('ATTENDANCE_SETUP_SOURCE_INVALID');
-  });
-
   it('applies a schedule to every other section of a class or a shift, with a preview first', async () => {
     const { organization, token, class6, s6A, s6B, s7A } = await school();
     const { user: teacher } = await memberOf(organization, OrganizationMemberRoleEnum.TEACHER);
@@ -369,7 +338,6 @@ describe('section setup API', () => {
     expect(teacherGrid.sections.filter((row) => row.can_edit).map((row) => row.id)).toEqual([s6A.id]);
     expect((await putSlots(subjectTeacher.token, s6A.id, [BATCH[2]])).status).toBe(200);
     expect((await patchSection(subjectTeacher.token, s6A.id, { grace_minutes: 5, class_type: 'ONLINE' })).status).toBe(200);
-    expect((await copy(subjectTeacher.token, s6A.id, s6B.id)).status).toBe(200);
     expect((await putSlots(subjectTeacher.token, s6B.id, [BATCH[2]])).status).toBe(403);
     expect((await patchSection(subjectTeacher.token, s7A.id, { grace_minutes: 5 })).status).toBe(403);
     // Teachers neither move sections between branches nor apply a schedule to many sections.
@@ -385,7 +353,7 @@ describe('section setup API', () => {
   });
 
   it('keeps a closed session read-only', async () => {
-    const { organization, token, class6, s6A, s6B } = await school();
+    const { organization, token, class6, s6A } = await school();
     await putSlots(token, s6A.id, [BATCH[0]]);
     await t.dataSource
       .getRepository(AcademicSessionEntity)
@@ -395,7 +363,6 @@ describe('section setup API', () => {
     expect(view.sections.every((row) => !row.can_edit)).toBe(true);
     expect((await putSlots(token, s6A.id, [])).status).toBe(400);
     expect((await patchSection(token, s6A.id, { mode: 'PAPER_REGISTER' })).status).toBe(400);
-    expect((await copy(token, s6B.id, s6A.id)).status).toBe(400);
     expect((await apply(token, { from_section_id: s6A.id, class_id: class6 })).status).toBe(400);
     expect((await rowOf(token, s6A.id)).slots).toHaveLength(1);
   });
@@ -416,8 +383,6 @@ describe('section setup API', () => {
     expect((await grid(b.token)).body.payload.sections.map((row) => row.id)).not.toContain(a.s6A.id);
     expect((await putSlots(b.token, a.s6A.id, [])).status).toBe(404);
     expect((await patchSection(b.token, a.s6A.id, { mode: 'PAPER_REGISTER' })).status).toBe(404);
-    expect((await copy(b.token, b.s6A.id, a.s6A.id)).status).toBe(404);
-    expect((await copy(b.token, a.s6B.id, b.s6A.id)).status).toBe(404);
     expect((await apply(b.token, { from_section_id: a.s6A.id, class_id: a.class6 })).status).toBe(404);
     // B's teacher cannot be placed on A's slots.
     const { user: bTeacher } = await memberOf(b.organization, OrganizationMemberRoleEnum.TEACHER);
@@ -436,8 +401,7 @@ describe('section setup API', () => {
     await patchSection(token, s6A.id, { mode: 'PAPER_REGISTER' }); // no change, no row
     await putSlots(token, s6A.id, [BATCH[0]]);
     await putSlots(token, s6A.id, [BATCH[0]]); // no change, no row
-    await copy(token, s6B.id, s6A.id);
-    await putSlots(token, s6B.id, []);
+    await putSlots(token, s6B.id, [BATCH[1]]);
     await apply(token, { from_section_id: s6A.id, class_id: class6 });
     await audit.flush();
     const rows = await t.dataSource.getRepository(AuditLogEntity).find({ where: { organization_id: organization.id, entity_type: 'section' } });
@@ -445,7 +409,6 @@ describe('section setup API', () => {
     expect(summary).toEqual([
       'schedule.update 6A grid',
       'schedule.update 6B apply',
-      'schedule.update 6B copy',
       'schedule.update 6B grid',
       'section_attendance.update 6A',
     ]);
@@ -454,7 +417,5 @@ describe('section setup API', () => {
     expect(settings).toMatchObject({ before: { mode: 'SELF_CHECKIN' }, after: { mode: 'PAPER_REGISTER' } });
     const first = rows.find((row) => row.action === 'schedule.update' && (row.after as { source: string }).source === 'grid' && row.entity_id === s6A.id);
     expect(first).toMatchObject({ before: { slots: [] }, after: { slots: [{ day_of_week: MON, start_time: '16:00', end_time: '17:30', teacher_id: null }] } });
-    const copied = rows.find((row) => (row.after as { source: string }).source === 'copy');
-    expect(copied?.after).toMatchObject({ from_section_id: s6A.id });
   });
 });

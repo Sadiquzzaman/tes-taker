@@ -1,4 +1,6 @@
 import { DeepPartial } from 'typeorm';
+import { AcademicSessionEntity, AcademicSessionStatusEnum } from '../../src/academics/entities/academic-session.entity';
+import { SectionEntity } from '../../src/academics/entities/section.entity';
 import { AuditService } from '../../src/audit/audit.service';
 import { AuditLogEntity } from '../../src/audit/entities/audit-log.entity';
 import { RoutineSlotEntity } from '../../src/calendar/entities/routine-slot.entity';
@@ -337,5 +339,32 @@ describe('routine API', () => {
     const same = await call('POST', `/routine/sections/${s.a}/copy`, s.ownerToken, { from_section_id: s.a });
     expect([same.status, same.body.code]).toEqual([400, 'ROUTINE_COPY_INVALID']);
     expect((await call('POST', `/routine/sections/${s.b}/copy`, s.rinaToken, { from_section_id: s.a })).status).toBe(403);
+  });
+  it('copies only within one session and one organisation, lets a teacher fill their own section, logs it, and not in a closed session', async () => {
+    const s = await school();
+    await call('POST', '/routine/slots', s.ownerToken, { section_id: s.b, day_of_week: 2, start_time: '11:00', end_time: '11:45' });
+    // Rina teaches Math in A: she may copy into A, not into B.
+    expect((await call('POST', `/routine/sections/${s.a}/copy`, s.rinaToken, { from_section_id: s.b })).status).toBe(200);
+
+    // A section of another session.
+    const next = await t.dataSource.getRepository(AcademicSessionEntity).save({
+      organization_id: s.organization.id, name: 'Next year', start_date: '2099-01-01', end_date: '2099-12-31', status: AcademicSessionStatusEnum.ACTIVE, is_default: false,
+    } as DeepPartial<AcademicSessionEntity>);
+    const sectionA = await t.dataSource.getRepository(SectionEntity).findOneByOrFail({ id: s.a });
+    const later = await t.dataSource.getRepository(SectionEntity).save({ organization_id: s.organization.id, class_id: sectionA.class_id, session_id: next.id, name: 'A' } as DeepPartial<SectionEntity>);
+    const across = await call('POST', `/routine/sections/${later.id}/copy`, s.ownerToken, { from_section_id: s.a });
+    expect([across.status, across.body.code]).toEqual([400, 'ROUTINE_COPY_INVALID']);
+
+    // Another organisation's sections are not found, either way round.
+    const other = await school();
+    expect((await call('POST', `/routine/sections/${other.a}/copy`, s.ownerToken, { from_section_id: s.a })).status).toBe(404);
+    expect((await call('POST', `/routine/sections/${s.a}/copy`, s.ownerToken, { from_section_id: other.b })).status).toBe(404);
+
+    await t.app.get(AuditService).flush();
+    const logged = await t.dataSource.getRepository(AuditLogEntity).find({ where: { organization_id: s.organization.id, action: 'routine.copy' } });
+    expect(logged.map((row) => [row.entity_id, row.actor_id, (row.after as { from_section_id: string }).from_section_id])).toEqual([[s.a, s.rina.id, s.b]]);
+
+    await t.dataSource.getRepository(AcademicSessionEntity).update({ organization_id: s.organization.id }, { status: AcademicSessionStatusEnum.CLOSED });
+    expect((await call('POST', `/routine/sections/${s.b}/copy`, s.ownerToken, { from_section_id: s.a })).status).toBe(400);
   });
 });
