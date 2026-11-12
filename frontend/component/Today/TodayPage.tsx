@@ -47,7 +47,7 @@ const TodayPage = () => {
   const checkInOpen = todays.filter((item) => item.kind === "CLASS" && item.status === "OPEN");
   const due = timed.filter((item) => item.kind === "HOMEWORK" && item.handed_in !== true && new Date(item.starts_at) >= now);
   const comingUp = timed.filter((item) => (item.kind === "EVENT" || item.kind === "EXAM") && dateOf(item, timeZone) > today && !(item.kind === "EVENT" && item.cancelled)).slice(0, COMING_UP);
-  const manager = contextType === "organization" && (memberRole === "OWNER" || memberRole === "ADMIN");
+  const manager = contextType === "organization" && (memberRole === "OWNER" || memberRole === "ADMIN" || memberRole === "ASSISTANT");
   const shared = { timeZone, onOpen: setOpenItem, showWorkspace };
   const dayOf = (item: TimedItem) => format.date(`${dateOf(item, timeZone)}T00:00:00Z`, { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 

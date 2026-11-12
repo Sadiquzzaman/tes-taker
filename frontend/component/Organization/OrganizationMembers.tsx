@@ -528,8 +528,9 @@ const OrganizationMembersTable = ({
   );
 };
 
+// Staff read the Teachers and Students lists; adding and removing people stays with owners and admins.
 export const OrganizationTeachers = () => (
-  <OrganizationWorkspaceGate allowedRoles={["OWNER", "ADMIN"]}>
+  <OrganizationWorkspaceGate allowedRoles={["OWNER", "ADMIN", "ASSISTANT"]}>
     <OrganizationMembersTable titleKey="teachers" roles={["OWNER", "ADMIN", "TEACHER"]} addRole="TEACHER" />
   </OrganizationWorkspaceGate>
 );
@@ -541,7 +542,7 @@ export const OrganizationAssistants = () => (
 );
 
 export const OrganizationStudents = () => (
-  <OrganizationWorkspaceGate allowedRoles={["OWNER", "ADMIN"]}>
+  <OrganizationWorkspaceGate allowedRoles={["OWNER", "ADMIN", "ASSISTANT"]}>
     <OrganizationMembersTable titleKey="students" roles={["STUDENT"]} addRole="STUDENT" />
   </OrganizationWorkspaceGate>
 );
