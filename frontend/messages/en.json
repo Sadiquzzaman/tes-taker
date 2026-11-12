@@ -4294,7 +4294,8 @@
     "imported": "{count, plural, one {Routine of # [[section]] imported} other {Routine of # [[sections]] imported}}",
     "noSectionsStudent": "You are not in a [[section]] yet",
     "teachesSubject": "{name} (teaches this subject)",
-    "days_label": "Days"
+    "days_label": "Days",
+    "you": "{name} (you)"
   },
   "calendar": {
     "title": "Calendar",

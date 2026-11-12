@@ -4294,7 +4294,8 @@
     "imported": "{count, plural, other {#টি [[section]]ের রুটিন ইমপোর্ট হয়েছে}}",
     "noSectionsStudent": "আপনি এখনো কোনো [[section]]ে নেই",
     "teachesSubject": "{name} (এই বিষয় পড়ান)",
-    "days_label": "দিন"
+    "days_label": "দিন",
+    "you": "{name} (আপনি)"
   },
   "calendar": {
     "title": "ক্যালেন্ডার",
