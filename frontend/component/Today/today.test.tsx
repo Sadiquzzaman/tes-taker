@@ -84,7 +84,7 @@ describe("Today", () => {
     serve([], []);
     renderApp(<TodayPage />, { locale: "bn" });
     expect(await screen.findByRole("heading", { name: "আজ" })).toBeTruthy();
-    expect(screen.getByText("ক্যালেন্ডার চালু হলে আপনার সময়সূচি এখানে দেখাবে")).toBeTruthy();
+    expect(await screen.findByText("ক্যালেন্ডার চালু হলে আপনার সময়সূচি এখানে দেখাবে")).toBeTruthy();
   });
 });
 
