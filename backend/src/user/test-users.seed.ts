@@ -79,6 +79,54 @@ const DEMO_SOLO_TEACHER = { phone: '01111111146', fullName: 'Solo Teacher', emai
 /** Features the demo school has on, whatever its plan. */
 const DEMO_FEATURES = ['attendance', 'homework', 'calendar'];
 
+type SeedPerson = { phone: string; fullName: string; email: string };
+type SeedStaff = SeedPerson & { role: OrganizationMemberRoleEnum };
+
+/** One test school: its staff (members), students (members once enrolled in the app) and features. */
+interface SeedSchool {
+  name: string;
+  staff: SeedStaff[];
+  students: SeedPerson[];
+  /** Solo teachers with their own workspace. */
+  soloTeachers: SeedPerson[];
+  features: string[];
+}
+
+/**
+ * A large school for testing with a lot of data (co-founder review, 13 Nov): owner, admin, two
+ * staff, eight teachers and sixty students. Its classes, routine, events and homework are added
+ * through the API after seeding (scripts/beta-sunrise-data), so they go through the app's rules.
+ */
+const SUNRISE_SCHOOL = 'Sunrise School';
+const SUNRISE_TEACHERS = ['Nasima Khatun', 'Abdul Karim', 'Shahana Parvin', 'Rezaul Haque', 'Tania Sultana', 'Habibur Rahman', 'Lipika Roy', 'Mizanur Rahman'];
+const SUNRISE_FIRST = ['Ayesha', 'Rahim', 'Fatema', 'Sabbir', 'Nadia', 'Imran', 'Sadia', 'Tanjim', 'Mehjabin', 'Rakib', 'Farzana', 'Shakib', 'Lamia', 'Hasan', 'Riya', 'Nayeem', 'Tasnim', 'Sohel', 'Anika', 'Fahim'];
+const SUNRISE_LAST = ['Rahman', 'Hossain', 'Akter', 'Islam', 'Chowdhury', 'Sarkar', 'Khan', 'Ahmed', 'Begum', 'Das', 'Roy', 'Sikder'];
+const pad = (n: number, width: number) => String(n).padStart(width, '0');
+const SUNRISE: SeedSchool = {
+  name: SUNRISE_SCHOOL,
+  staff: [
+    { phone: '01111130001', fullName: 'Farhana Islam', email: 'sun.owner@yopmail.com', role: OrganizationMemberRoleEnum.OWNER },
+    { phone: '01111130002', fullName: 'Mahmud Hasan', email: 'sun.admin@yopmail.com', role: OrganizationMemberRoleEnum.ADMIN },
+    { phone: '01111130003', fullName: 'Shirin Akhter', email: 'sun.staff1@yopmail.com', role: OrganizationMemberRoleEnum.ASSISTANT },
+    { phone: '01111130004', fullName: 'Jamal Uddin', email: 'sun.staff2@yopmail.com', role: OrganizationMemberRoleEnum.ASSISTANT },
+    ...SUNRISE_TEACHERS.map((fullName, i) => ({
+      phone: `011111301${pad(i + 1, 2)}`,
+      fullName,
+      email: `sun.teacher${i + 1}@yopmail.com`,
+      role: OrganizationMemberRoleEnum.TEACHER,
+    })),
+  ],
+  students: Array.from({ length: 60 }, (_, i) => ({
+    phone: `0111114${pad(i + 1, 4)}`,
+    fullName: `${SUNRISE_FIRST[i % SUNRISE_FIRST.length]} ${SUNRISE_LAST[(i * 5) % SUNRISE_LAST.length]}`,
+    email: `sun.student${pad(i + 1, 2)}@yopmail.com`,
+  })),
+  soloTeachers: [{ phone: '01111130201', fullName: 'Kamrul Hasan', email: 'sun.solo@yopmail.com' }],
+  features: ['attendance', 'homework', 'calendar'],
+};
+/** A platform admin account for testing the admin pages on beta. */
+const TEST_PLATFORM_ADMIN: SeedPerson = { phone: '01111139999', fullName: 'Test Platform Admin', email: 'test.platform@yopmail.com' };
+
 @Injectable()
 export class TestUsersSeedService {
   private readonly logger = new Logger(TestUsersSeedService.name);
@@ -210,55 +258,67 @@ export class TestUsersSeedService {
       createdStudents += 1;
     }
 
-    const demo = await this.seedDemoSchool(hashedPassword);
-
-    this.logger.log(
-      `Demo school: created ${demo.users} users, ${demo.members} memberships, ${demo.features} feature switches.`,
+    const demo = await this.seedSchool(
+      { name: DEMO_SCHOOL, staff: DEMO_STAFF, students: DEMO_STUDENTS, soloTeachers: [DEMO_SOLO_TEACHER], features: DEMO_FEATURES },
+      hashedPassword,
     );
+    this.logger.log(`Demo school: created ${demo.users} users, ${demo.members} memberships, ${demo.features} feature switches.`);
+    const sunrise = await this.seedSchool(SUNRISE, hashedPassword);
+    this.logger.log(`Sunrise school: created ${sunrise.users} users, ${sunrise.members} memberships, ${sunrise.features} feature switches.`);
+    const admin = await this.userOf(TEST_PLATFORM_ADMIN, RolesEnum.ADMIN, false, hashedPassword);
+    this.logger.log(`Test platform admin: ${admin.created ? 'created' : 'already present'}.`);
     this.logger.log(
       `Test seed complete: created ${createdOwners} owners, ${createdOrgs} orgs, ${createdStudents} students; skipped ${skipped} already present. Password for seeded accounts: ${TEST_PASSWORD}`,
     );
   }
 
   /** The demo school, its people and features; only what is missing is added. */
-  private async seedDemoSchool(hashedPassword: string): Promise<{ users: number; members: number; features: number }> {
+  /** A test account, created once (found by phone or email); `created` says whether it is new. */
+  private async userOf(person: SeedPerson, role: RolesEnum, personal: boolean, hashedPassword: string): Promise<{ user: UserEntity; created: boolean }> {
+    const existing = await this.userRepository.findOne({ where: [{ phone: person.phone }, { email: person.email }] });
+    if (existing) return { user: existing, created: false };
+    const user = await this.userRepository.save(
+      this.userRepository.create({
+        full_name: person.fullName,
+        email: person.email,
+        phone: person.phone,
+        password: hashedPassword,
+        role,
+        personal_teacher_enabled: personal,
+        is_otp_verified: true,
+        is_verified: true,
+        is_active: ActiveStatusEnum.ACTIVE,
+        refresh_token: this.refreshTokenUtil.generate().hash,
+        teacher_public_id: role === RolesEnum.TEACHER ? await this.publicIdService.nextTeacherPublicId() : null,
+        student_public_id: role === RolesEnum.STUDENT ? await this.publicIdService.nextStudentPublicId() : null,
+        public_id: null,
+        created_at: new Date(),
+      }),
+    );
+    return { user, created: true };
+  }
+
+  /** A test school with its accounts, staff memberships and features, added once. */
+  private async seedSchool(school: SeedSchool, hashedPassword: string): Promise<{ users: number; members: number; features: number }> {
     const counts = { users: 0, members: 0, features: 0 };
-    const userOf = async (person: { phone: string; fullName: string; email: string }, role: RolesEnum, personal = false): Promise<UserEntity> => {
-      const existing = await this.userRepository.findOne({ where: [{ phone: person.phone }, { email: person.email }] });
-      if (existing) return existing;
-      counts.users += 1;
-      return this.userRepository.save(
-        this.userRepository.create({
-          full_name: person.fullName,
-          email: person.email,
-          phone: person.phone,
-          password: hashedPassword,
-          role,
-          personal_teacher_enabled: personal,
-          is_otp_verified: true,
-          is_verified: true,
-          is_active: ActiveStatusEnum.ACTIVE,
-          refresh_token: this.refreshTokenUtil.generate().hash,
-          teacher_public_id: role === RolesEnum.TEACHER ? await this.publicIdService.nextTeacherPublicId() : null,
-          student_public_id: role === RolesEnum.STUDENT ? await this.publicIdService.nextStudentPublicId() : null,
-          public_id: null,
-          created_at: new Date(),
-        }),
-      );
+    const userOf = async (person: SeedPerson, role: RolesEnum, personal = false): Promise<UserEntity> => {
+      const { user, created } = await this.userOf(person, role, personal, hashedPassword);
+      if (created) counts.users += 1;
+      return user;
     };
 
-    const staff: ((typeof DEMO_STAFF)[number] & { user: UserEntity })[] = [];
-    for (const person of DEMO_STAFF) staff.push({ ...person, user: await userOf(person, RolesEnum.TEACHER) });
-    for (const student of DEMO_STUDENTS) await userOf(student, RolesEnum.STUDENT);
-    await userOf(DEMO_SOLO_TEACHER, RolesEnum.TEACHER, true);
+    const staff: (SeedStaff & { user: UserEntity })[] = [];
+    for (const person of school.staff) staff.push({ ...person, user: await userOf(person, RolesEnum.TEACHER) });
+    for (const student of school.students) await userOf(student, RolesEnum.STUDENT);
+    for (const solo of school.soloTeachers) await userOf(solo, RolesEnum.TEACHER, true);
 
     const owner = staff[0].user;
-    let organization = await this.organizationRepository.findOne({ where: { name: DEMO_SCHOOL } });
+    let organization = await this.organizationRepository.findOne({ where: { name: school.name } });
     if (!organization) {
       const organizationNumber = await this.publicIdService.nextOrganizationPublicId();
       organization = await this.organizationRepository.save(
         this.organizationRepository.create({
-          name: DEMO_SCHOOL,
+          name: school.name,
           public_id: organizationNumber,
           organization_number: organizationNumber,
           status: OrganizationStatusEnum.APPROVED,
@@ -283,9 +343,9 @@ export class TestUsersSeedService {
       );
       counts.members += 1;
     }
-    for (const key of DEMO_FEATURES) {
+    for (const key of school.features) {
       if (await this.overrideRepository.findOne({ where: { organization_id: organization.id, key } })) continue;
-      await this.overrideRepository.save(this.overrideRepository.create({ organization_id: organization.id, key, value: true, reason: 'Demo school (test seed)' }));
+      await this.overrideRepository.save(this.overrideRepository.create({ organization_id: organization.id, key, value: true, reason: `${school.name} (test seed)` }));
       counts.features += 1;
     }
     return counts;
