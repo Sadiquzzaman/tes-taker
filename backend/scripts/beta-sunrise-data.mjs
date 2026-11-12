@@ -276,18 +276,28 @@ async function main() {
     }
   }
 
-  // Exams: one per class, a week or more ahead (the plan's exam limit may stop some).
+  // Exams: one per class, a week or more ahead, made by the subject's teacher for their section A
+  // (only a class's own teachers make its exams).
   for (const [ci, name] of CLASSES.entries()) {
     const klass = classes.find((c) => c.class_name === name);
-    const subject = SUBJECTS[ci % SUBJECTS.length][0];
+    const si = ci % SUBJECTS.length;
+    const subject = SUBJECTS[si][0];
+    const sectionA = sections.find((s) => s.className === name && s.name === 'A');
+    const offering = sectionA.offerings.find((o) => o.subject.name === subject);
+    const teacherEmail = `sun.teacher${teacherIds.indexOf(teacherFor('MORNING', si)) + 1}@yopmail.com`;
+    const teacher = await inSchool(teacherEmail, orgId);
+    const testName = `${name} A ${subject} class test`;
+    const existing = await call('GET', '/exams', teacher.token, undefined, orgId);
+    const list = existing.body?.payload?.items ?? existing.body?.payload ?? [];
+    if (Array.isArray(list) && list.some((e) => (e.test_name ?? e.testName) === testName)) continue;
     const start = at(addDays(today, 8 + ci * 7), '10:00');
     const correct = randomUUID();
     const res = await call(
       'POST',
       '/exams',
-      owner.token,
+      teacher.token,
       {
-        formState: { testName: `${name} ${subject} class test`, duration: '40', passingScore: '', allowNegativeMarking: false, negativeMarking: '', isModelTest: false },
+        formState: { testName, duration: '40', passingScore: '', allowNegativeMarking: false, negativeMarking: '', isModelTest: false },
         subjects: [
           {
             id: subjectId(subject),
@@ -317,13 +327,14 @@ async function main() {
           endingAt: new Date(new Date(start).getTime() + 2 * 3_600_000).toISOString(),
           testAudience: 'selected_class',
           selectedClassId: klass.id,
+          selectedOfferingId: offering.id,
           excluded_students: [],
         },
       },
       orgId,
     );
     if (res.status === 201 || res.status === 200) tally('exams');
-    else tally(`exams refused (${res.status} ${res.body?.code ?? ''})`);
+    else tally(`exams refused (${res.status} ${String(res.body?.message ?? '').slice(0, 60)})`);
   }
 
   // Leave: two students apply ahead, one is approved by the admin.
@@ -334,7 +345,7 @@ async function main() {
   ]) {
     const student = await inSchool(`sun.student${n}@yopmail.com`, orgId);
     const mine = await get(student, '/attendance/leave/mine');
-    if (mine.length) continue;
+    if ((mine.requests ?? mine).length) continue;
     const leave = await post(student, '/attendance/leave', { from_date: from, to_date: addDays(from, days - 1), reason: 'Family programme in the village.' });
     tally('leave requests');
     if (approve) {

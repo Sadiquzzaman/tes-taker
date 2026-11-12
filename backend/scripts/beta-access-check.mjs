@@ -91,7 +91,7 @@ async function main() {
     if (!isPublic && !(res.to === '/login')) problems.push(`signed out: ${path} is ${outcome}, expected → /login`);
     if (isPublic && res.status !== 200 && res.to !== '/login') problems.push(`signed out: public ${path} is ${outcome}`);
   }
-  for (const path of ['/routine', '/calendar/me', '/organizations/admin', '/homework', '/attendance/setup']) {
+  for (const path of ['/routine', `/calendar/me?from=${day(0)}&to=${day(7)}`, '/organizations/admin', '/homework', '/attendance/setup']) {
     const res = await api('GET', path);
     if (res.status !== 401) problems.push(`signed out: API GET ${path} → ${res.status}, expected 401`);
   }
@@ -138,8 +138,9 @@ async function main() {
     ['GET', '/attendance/setup', ['owner', 'admin', 'staff', 'teacher']],
     ['GET', '/homework', ['owner', 'admin', 'staff', 'teacher']],
     ['GET', '/routine', roles],
-    ['GET', '/calendar/me', roles],
-    ['GET', `/organizations/${sunrise}/settings`, roles],
+    ['GET', `/calendar/me?from=${day(0)}&to=${day(7)}`, roles],
+    // Staff pages read the organisation settings; students have no page that does.
+    ['GET', `/organizations/${sunrise}/settings`, ['owner', 'admin', 'staff', 'teacher']],
     ['GET', '/audit-logs', ['owner', 'admin']],
     ['GET', `/attendance/reports/teachers?from=${day(-7)}&to=${day(0)}`, ['owner', 'admin']],
     ['GET', `/events?from=${day(0)}&to=${day(30)}`, roles],
