@@ -2537,7 +2537,9 @@
         "subjectName": "Subject name",
         "subjectCode": "Code",
         "createSubject": "Create subject",
-        "subjectCreated": "Subject created"
+        "subjectCreated": "Subject created",
+        "newSubjectOption": "+ New subject…",
+        "createAndAdd": "Create and add"
       },
       "sections": {
         "intro": "Each [[class]] needs at least one [[section]]. Set the shift, room and class teacher, or add more [[sections]].",

@@ -168,6 +168,24 @@ describe("academic setup wizard (FND-02)", () => {
     await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/classes\/c6\/subjects$/), { subject_id: "m" }));
   });
 
+  it("makes a new subject straight from a class, and adds it to that class", async () => {
+    routes({ "/setup": summary([{ ...class6, subject_count: 0 }]), "/organizations/org-1/subjects": [], "/classes/c6/subjects": [] });
+    post.mockImplementation((url: string) =>
+      Promise.resolve({ data: { payload: url.endsWith("/organizations/org-1/subjects") ? { id: "sci", name: "Science", code: "SCI" } : {} } }),
+    );
+    renderApp(<SetupWizard />);
+    next();
+    next();
+    // No subjects in the organisation yet: the class still offers to make one.
+    fireEvent.change(await screen.findByLabelText("Subject to add to Class 6"), { target: { value: "__new__" } });
+    const row = screen.getByLabelText("Subject to add to Class 6").closest("li") as HTMLElement;
+    fireEvent.change(within(row).getByLabelText("Subject name"), { target: { value: " Science " } });
+    fireEvent.change(within(row).getByLabelText("Code"), { target: { value: "SCI" } });
+    fireEvent.click(within(row).getByRole("button", { name: "Create and add" }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/classes\/c6\/subjects$/), { subject_id: "sci" }));
+    expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/organizations\/org-1\/subjects$/), { name: "Science", code: "SCI" });
+  });
+
   it("is only for owners and admins", async () => {
     workspace.mockReturnValue(school("TEACHER"));
     renderApp(<SetupWizard />);

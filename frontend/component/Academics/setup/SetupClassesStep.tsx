@@ -8,13 +8,29 @@ import axiosReq from "@/lib/axios";
 
 type SetupClass = AcademicSetupSummary["classes"][number];
 
-/** One class and its subjects: add a subject from the organisation's list. */
-const ClassSubjectsRow = ({ setupClass, subjects, onChanged }: { setupClass: SetupClass; subjects: OrganizationSubjectItem[]; onChanged: () => void }) => {
+const NEW_SUBJECT = "__new__";
+
+/** One class and its subjects: add one from the organisation's list, or make a new subject right here. */
+const ClassSubjectsRow = ({
+  setupClass,
+  subjects,
+  organizationId,
+  onChanged,
+  onSubjectCreated,
+}: {
+  setupClass: SetupClass;
+  subjects: OrganizationSubjectItem[];
+  organizationId: string;
+  onChanged: () => void;
+  onSubjectCreated: () => void;
+}) => {
   const t = useTranslations("academics.setup.classes");
   const { baseUrl, run } = useAcademicsRequest();
   const [attached, setAttached] = useState<ClassSubject[] | null>(null);
   const [subjectId, setSubjectId] = useState("");
   const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newCode, setNewCode] = useState("");
 
   const fetchAttached = useCallback(
     () => run(() => axiosReq.get<ApiResponse<ClassSubject[]>>(`${baseUrl}/classes/${setupClass.id}/subjects`)).then((res) => res?.data?.payload ?? []),
@@ -27,12 +43,29 @@ const ClassSubjectsRow = ({ setupClass, subjects, onChanged }: { setupClass: Set
 
   const available = subjects.filter((s) => !attached?.some((a) => a.subject_id === s.id));
 
+  const creating = subjectId === NEW_SUBJECT;
+
   const add = async () => {
     setAdding(true);
-    const saved = await run(() => axiosReq.post(`${baseUrl}/classes/${setupClass.id}/subjects`, { subject_id: subjectId }), t("subjectAdded"));
+    let id = subjectId;
+    if (creating) {
+      // Make the subject for the whole organisation first, then add it to this class.
+      const created = await run(() =>
+        axiosReq.post<ApiResponse<OrganizationSubjectItem>>(`${baseUrl}/organizations/${organizationId}/subjects`, { name: newName.trim(), code: newCode.trim() }),
+      );
+      id = created?.data?.payload?.id ?? "";
+      if (!id) {
+        setAdding(false);
+        return;
+      }
+      onSubjectCreated();
+    }
+    const saved = await run(() => axiosReq.post(`${baseUrl}/classes/${setupClass.id}/subjects`, { subject_id: id }), t("subjectAdded"));
     setAdding(false);
     if (!saved) return;
     setSubjectId("");
+    setNewName("");
+    setNewCode("");
     void fetchAttached().then(setAttached);
     onChanged();
   };
@@ -51,23 +84,30 @@ const ClassSubjectsRow = ({ setupClass, subjects, onChanged }: { setupClass: Set
           ))}
         </div>
       )}
-      {available.length > 0 ? (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-          <Select
-            label={t("subject")}
-            hideLabel
-            placeholder={t("chooseSubject")}
-            value={subjectId}
-            options={available.map((s) => ({ value: s.id, label: s.code ? `${s.name} (${s.code})` : s.name }))}
-            onChange={(e) => setSubjectId(e.target.value)}
-            fieldClassName="sm:max-w-xs sm:flex-1"
-            aria-label={t("subjectFor", { name: setupClass.name })}
-          />
-          <Button size="sm" variant="secondary" disabled={!subjectId} loading={adding} onClick={() => void add()}>
-            {t("addSubject")}
-          </Button>
-        </div>
-      ) : null}
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+        <Select
+          label={t("subject")}
+          hideLabel
+          placeholder={t("chooseSubject")}
+          value={subjectId}
+          options={[
+            ...available.map((s) => ({ value: s.id, label: s.code ? `${s.name} (${s.code})` : s.name })),
+            { value: NEW_SUBJECT, label: t("newSubjectOption") },
+          ]}
+          onChange={(e) => setSubjectId(e.target.value)}
+          fieldClassName="sm:max-w-xs sm:flex-1"
+          aria-label={t("subjectFor", { name: setupClass.name })}
+        />
+        {creating ? (
+          <>
+            <Input label={t("subjectName")} value={newName} maxLength={100} fieldClassName="sm:max-w-xs" onChange={(e) => setNewName(e.target.value)} />
+            <Input label={t("subjectCode")} value={newCode} maxLength={20} fieldClassName="sm:w-32" onChange={(e) => setNewCode(e.target.value)} />
+          </>
+        ) : null}
+        <Button size="sm" variant="secondary" disabled={!subjectId || (creating && (!newName.trim() || !newCode.trim()))} loading={adding} onClick={() => void add()}>
+          {creating ? t("createAndAdd") : t("addSubject")}
+        </Button>
+      </div>
     </li>
   );
 };
@@ -153,7 +193,14 @@ const SetupClassesStep = ({ organizationId }: { organizationId: string }) => {
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {classes.map((setupClass) => (
-                <ClassSubjectsRow key={setupClass.id} setupClass={setupClass} subjects={subjects} onChanged={() => void fetchClasses().then(setClasses)} />
+                <ClassSubjectsRow
+                  key={setupClass.id}
+                  setupClass={setupClass}
+                  subjects={subjects}
+                  organizationId={organizationId}
+                  onChanged={() => void fetchClasses().then(setClasses)}
+                  onSubjectCreated={() => void fetchSubjects().then(setSubjects)}
+                />
               ))}
             </ul>
           )}
