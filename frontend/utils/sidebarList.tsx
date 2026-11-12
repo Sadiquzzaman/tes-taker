@@ -328,7 +328,8 @@ const sidebarList: SideBarList[] = [
     setup: true,
     role: ["TEACHER"],
     personalWorkspaceOnly: true,
-    feature: "attendance",
+    // Holidays matter to the calendar too (closed days), not only to attendance.
+    feature: ["attendance", "calendar"],
     image: <SidebarDashboardIconSVG width={16} />,
   },
   {
@@ -598,7 +599,8 @@ const sidebarList: SideBarList[] = [
     setup: true,
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN"],
-    feature: "attendance",
+    // Holidays matter to the calendar too (closed days), not only to attendance.
+    feature: ["attendance", "calendar"],
     image: <SidebarDashboardIconSVG width={16} />,
   },
   {

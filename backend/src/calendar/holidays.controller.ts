@@ -15,14 +15,14 @@ import { HolidaysService } from './holidays.service';
 const MANAGERS = [OrganizationMemberRoleEnum.OWNER, OrganizationMemberRoleEnum.ADMIN];
 
 /**
- * Holidays and closures of the current workspace (CAL-04). Gated by `attendance` until the calendar
- * epic (P5) adds the `calendar` key; then either key will open it (owner decision, P3-01).
+ * Holidays and closures of the current workspace (CAL-04). Either `attendance` or `calendar` opens
+ * it (owner decision, P3-01): closed days matter to both.
  */
 @ApiTags('Holidays')
 @ApiBearerAuth('jwt')
 @ApiHeader({ name: 'X-Organization-Id', required: false, description: 'Organisation workspace; empty = your own workspace' })
 @UseGuards(AuthGuard('jwt'), OrganizationContextGuard, FeatureGuard)
-@RequiresFeature(FeatureKey.ATTENDANCE)
+@RequiresFeature(FeatureKey.ATTENDANCE, FeatureKey.CALENDAR)
 @Controller({ path: 'holidays', version: '1' })
 export class HolidaysController {
   constructor(private readonly holidays: HolidaysService) {}
