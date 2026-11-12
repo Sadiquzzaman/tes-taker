@@ -27,6 +27,7 @@ const { OWNER, ADMIN, ASSISTANT } = OrganizationMemberRoleEnum;
 const SETUP_MANAGERS = [OWNER, ADMIN, ASSISTANT];
 
 /** Where a schedule change came from, kept in the audit row. */
+/** Where a schedule change came from; 'copy' is kept for older audit rows (Class setup copied weeks until the Routine took over). */
 export type ScheduleSource = 'grid' | 'copy' | 'apply' | 'import';
 
 /** One row of the setup grid. */
@@ -175,22 +176,6 @@ export class SectionSetupService {
       return this.slots.replace(manager, section, inputs, userId);
     });
     if (result.changed) this.audit.record(this.scheduleAudit(section, userId, result.before, result.after, 'grid'));
-    return this.rowOf(tenant, userId, section.id);
-  }
-
-  /** Copies another section's weekly slots (same session) into this one; teachers are not copied. */
-  async copy(tenant: Tenant, userId: string, sectionId: string, fromSectionId: string): Promise<SectionSetupView> {
-    const section = await this.editableSection(tenant, userId, sectionId);
-    const source = await this.sections.findSectionWithClass(fromSectionId);
-    if (source.session_id !== section.session_id || source.id === section.id) {
-      throw new BadRequestException({ message: 'Copy from another section of the same session', code: ATTENDANCE_ERRORS.SETUP_SOURCE_INVALID });
-    }
-    const sourceSlots = (await this.slots.activeBySection(tenant.organizationId, [source.id])).get(source.id) ?? [];
-    const result = await this.dataSource.transaction(async (manager) => {
-      await this.slots.lockOrganization(manager, tenant.organizationId);
-      return this.slots.replace(manager, section, withoutTeachers(sourceSlots), userId);
-    });
-    if (result.changed) this.audit.record(this.scheduleAudit(section, userId, result.before, result.after, 'copy', source.id));
     return this.rowOf(tenant, userId, section.id);
   }
 

@@ -9,7 +9,7 @@ import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.d
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
 import { ATTENDANCE_STAFF, requireAttendanceRole } from './attendance-access';
 import { ScheduleImportDto } from './dto/schedule-import.dto';
-import { ApplyScheduleDto, CopyScheduleDto, ReplaceSlotsDto, SetupQueryDto, UpdateSectionSetupDto } from './dto/section-setup.dto';
+import { ApplyScheduleDto, ReplaceSlotsDto, SetupQueryDto, UpdateSectionSetupDto } from './dto/section-setup.dto';
 import { ScheduleImportService } from './schedule-import.service';
 import { SectionSetupService } from './section-setup.service';
 
@@ -51,14 +51,6 @@ export class SectionSetupController {
   async replaceSlots(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReplaceSlotsDto, @UserPayload() user: JwtPayloadInterface) {
     const tenant = requireAttendanceRole(ATTENDANCE_STAFF, STAFF_ONLY);
     return { message: 'Schedule saved', payload: await this.setup.replaceSlots(tenant, user.id, id, dto.slots) };
-  }
-
-  @Post('sections/:id/copy')
-  @HttpCode(200)
-  @ApiOperation({ summary: "Copy another section's schedule into this one (same session; teachers are not copied)" })
-  async copy(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CopyScheduleDto, @UserPayload() user: JwtPayloadInterface) {
-    const tenant = requireAttendanceRole(ATTENDANCE_STAFF, STAFF_ONLY);
-    return { message: 'Schedule copied', payload: await this.setup.copy(tenant, user.id, id, dto.from_section_id) };
   }
 
   @Post('apply')

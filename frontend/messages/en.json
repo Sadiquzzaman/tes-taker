@@ -3382,8 +3382,7 @@
       "SCHEDULE_OVERLAP": "This overlaps another time on the same day.",
       "SCHEDULE_TEACHER_CLASH": "This teacher already has a class at this time ({section}).",
       "SCHEDULE_TOO_MANY": "A [[section]] can have at most 70 times a week.",
-      "ATTENDANCE_SETUP_TEACHER_INVALID": "Choose a teacher of this organisation.",
-      "ATTENDANCE_SETUP_SOURCE_INVALID": "Copy from another [[section]] of the same session."
+      "ATTENDANCE_SETUP_TEACHER_INVALID": "Choose a teacher of this organisation."
     },
     "applyTo": "Apply to",
     "applyToClass": "Every other [[section]] of {class}",

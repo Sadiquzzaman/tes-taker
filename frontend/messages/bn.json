@@ -3382,8 +3382,7 @@
       "SCHEDULE_OVERLAP": "একই দিনে এটি আরেকটি সময়ের সঙ্গে মিলে যায়।",
       "SCHEDULE_TEACHER_CLASH": "এই শিক্ষকের এই সময়ে আরেকটি ক্লাস আছে ({section})।",
       "SCHEDULE_TOO_MANY": "একটি [[section]]-এর সপ্তাহে সর্বোচ্চ ৭০টি সময় থাকতে পারে।",
-      "ATTENDANCE_SETUP_TEACHER_INVALID": "এই প্রতিষ্ঠানের একজন শিক্ষক বেছে নিন।",
-      "ATTENDANCE_SETUP_SOURCE_INVALID": "একই সেশনের অন্য [[section]] থেকে কপি করুন।"
+      "ATTENDANCE_SETUP_TEACHER_INVALID": "এই প্রতিষ্ঠানের একজন শিক্ষক বেছে নিন।"
     },
     "applyTo": "কোথায় দেবেন",
     "applyToClass": "{class}-এর বাকি সব [[sections]]",
