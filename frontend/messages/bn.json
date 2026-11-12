@@ -2537,7 +2537,9 @@
         "subjectName": "বিষয়ের নাম",
         "subjectCode": "কোড",
         "createSubject": "বিষয় তৈরি করুন",
-        "subjectCreated": "বিষয় তৈরি হয়েছে"
+        "subjectCreated": "বিষয় তৈরি হয়েছে",
+        "newSubjectOption": "+ নতুন বিষয়…",
+        "createAndAdd": "তৈরি করে যোগ করুন"
       },
       "sections": {
         "intro": "প্রতিটি [[class]]ে অন্তত একটি [[section]] লাগে। শিফট, রুম ও শ্রেণি শিক্ষক ঠিক করুন, বা আরও [[section]] যোগ করুন।",
