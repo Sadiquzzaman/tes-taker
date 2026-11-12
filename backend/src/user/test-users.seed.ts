@@ -343,6 +343,13 @@ export class TestUsersSeedService {
       );
       counts.members += 1;
     }
+    // Schools are on Pro (P2-02, as migration AccountSubscriptions did for existing schools).
+    await this.organizationRepository.manager.query(
+      `INSERT INTO account_subscriptions (organization_id, plan_id, price_due, amount_paid, status, start_date, created_user_name, created_at, is_active)
+       SELECT $1, p.id, 0, 0, 'ACTIVE', now(), 'Test seed', now(), '1' FROM subscription_plans p
+       WHERE p.slug = 'pro' AND NOT EXISTS (SELECT 1 FROM account_subscriptions s WHERE s.organization_id = $1 AND s.status = 'ACTIVE')`,
+      [organization.id],
+    );
     for (const key of school.features) {
       if (await this.overrideRepository.findOne({ where: { organization_id: organization.id, key } })) continue;
       await this.overrideRepository.save(this.overrideRepository.create({ organization_id: organization.id, key, value: true, reason: `${school.name} (test seed)` }));
