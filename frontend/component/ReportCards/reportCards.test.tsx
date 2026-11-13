@@ -106,6 +106,24 @@ describe("report cards page (PRF-09)", () => {
     expect(await screen.findByText("1 card made")).toBeTruthy();
   });
 
+  it("sends the cards to guardians after asking, and shows how long the link works", async () => {
+    get.mockImplementation((url: string) =>
+      url.endsWith("/scores/sections")
+        ? ok({ session: { id: "s1", name: "2026", closed: false }, terms: [], sections: [{ id: "sa", name: "A", class_name: "Class 6" }] })
+        : ok(list(summary({ shared_at: "2026-11-13T05:00:00Z", share_expires_at: "2999-12-13T05:00:00Z" }))),
+    );
+    post.mockReturnValue(ok({ cards: 1, guardian_sms: 2, links: [] }));
+    renderApp(<ReportCardsPage />);
+    expect(await screen.findByText(/^Link works until/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Send to guardians" }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Send these report cards to guardians?" }));
+    expect(dialog.getByText(/SMS uses your SMS credits/)).toBeTruthy();
+    fireEvent.click(dialog.getByRole("button", { name: "Send to guardians" }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/report-cards\/share$/), { section_id: "sa", term_id: undefined }));
+    expect(await screen.findByText("1 card sent")).toBeTruthy();
+    expect(screen.getByText("2 SMS on their way to guardians.")).toBeTruthy();
+  });
+
   it("leaves the principal's remark to owners and admins", async () => {
     memberRole = "TEACHER";
     get.mockImplementation((url: string) =>

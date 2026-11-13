@@ -32,7 +32,8 @@ const SectionCards = ({ sectionId, termId }: { sectionId: string; termId?: strin
   return <Sheets cards={data} failed={failed} reload={reload} />;
 };
 
-const Sheets = ({ cards, failed, reload }: { cards: ReportCardView[] | null; failed: number | null; reload: () => void }) => {
+/** Cards one per page with a print button (also the guardian's shared card, which comes from the server). */
+export const Sheets = ({ cards, failed = null, reload }: { cards: ReportCardView[] | null; failed?: number | null; reload?: () => void }) => {
   const t = useTranslations("reportCard");
   return (
     <main className="min-h-screen bg-canvas py-6 print:bg-surface print:py-0">

@@ -45,3 +45,13 @@ export class GenerateReportCardsDto extends ReportCardsQueryDto {
   @Type(() => ReportCardRowDto)
   rows: ReportCardRowDto[];
 }
+
+/** Share the latest cards of a section and term with the students' guardians (all, or some students). */
+export class ShareReportCardsDto extends ReportCardsQueryDto {
+  @ApiPropertyOptional({ type: [String], description: 'Only these students; every student with a card if none are given' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(200)
+  @IsUUID('all', { each: true })
+  student_ids?: string[];
+}

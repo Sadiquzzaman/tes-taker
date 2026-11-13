@@ -8,7 +8,7 @@ import { OrganizationContextGuard } from 'src/organizations/guards/organization-
 import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.decorator';
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
-import { GenerateReportCardsDto, ReportCardsQueryDto } from './dto/report-card.dto';
+import { GenerateReportCardsDto, ReportCardsQueryDto, ShareReportCardsDto } from './dto/report-card.dto';
 import { ReportCardsService } from './report-cards.service';
 
 const workspace = (): Tenant => {
@@ -40,6 +40,13 @@ export class ReportCardsController {
     return { message: 'Report cards made', payload: await this.cards.generate(workspace(), user, dto) };
   }
 
+  @Post('share')
+  @HttpCode(200)
+  @ApiOperation({ summary: "Send the latest cards to the students' guardians: a 30-day link that needs no login, by SMS (staff)" })
+  async share(@Body() dto: ShareReportCardsDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Report cards shared', payload: await this.cards.share(workspace(), user, dto) };
+  }
+
   @Get('print')
   @ApiOperation({ summary: "The latest cards of a section for a term, to print as one PDF (staff)" })
   async print(@Query() query: ReportCardsQueryDto, @UserPayload() user: JwtPayloadInterface) {
@@ -56,5 +63,21 @@ export class ReportCardsController {
   @ApiOperation({ summary: 'One report card: for staff of its section or the student it belongs to' })
   async one(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Report card retrieved successfully', payload: await this.cards.one(workspace(), user.id, id) };
+  }
+}
+
+/**
+ * A report card shared with guardians (PRF-09): the link in the SMS opens it without signing in;
+ * the token in the path is the key and works for 30 days.
+ */
+@ApiTags('Report cards')
+@Controller({ path: 'public/report-cards', version: '1' })
+export class PublicReportCardsController {
+  constructor(private readonly cards: ReportCardsService) {}
+
+  @Get(':token')
+  @ApiOperation({ summary: 'A shared report card by its link (no login; 30 days)' })
+  async byLink(@Param('token') token: string) {
+    return { message: 'Report card retrieved successfully', payload: await this.cards.byLink(token) };
   }
 }

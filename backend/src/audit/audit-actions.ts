@@ -102,6 +102,7 @@ export const AUDIT_ACTIONS = {
   SCORE_WEIGHTS: 'score.weights',
   PERFORMANCE_SETTINGS: 'performance.settings',
   REPORT_CARD_GENERATE: 'report_card.generate',
+  REPORT_CARD_SHARE: 'report_card.share',
   EVENT_CREATE: 'event.create',
   EVENT_UPDATE: 'event.update',
   EVENT_CANCEL: 'event.cancel',
