@@ -343,11 +343,15 @@
         "tabs": "Do not open additional tabs.",
         "time": "Finish the test within the allotted time.",
         "flags": "Proctor can flag your activity.",
-        "limit": "If you receive {count, number} flags, the test will be terminated."
+        "limit": "If you receive {count, number} flags, the test will be terminated.",
+        "warn": "You will be warned at {count, number} flags.",
+        "review": "Flags are recorded for your teacher to review; you will not be removed automatically."
       },
       "accept": "I read and understand the rules.",
       "startTest": "Start Test",
-      "back": "Back"
+      "back": "Back",
+      "watchedTitle": "Watched during this test",
+      "watchedNone": "Nothing is watched during this test."
     },
     "retry": "Retry",
     "navigator": {
@@ -366,7 +370,20 @@
     "submitDetail": "{open, plural, =0 {Every question is answered.} one {# question is not answered yet.} other {# questions are not answered yet.}} You cannot change your answers after submitting.",
     "submitConfirm": "Submit",
     "keepWorking": "Keep working",
-    "questionLabel": "Question {number, number}"
+    "questionLabel": "Question {number, number}",
+    "endedByTeacher": "Your teacher ended your test: {reason}",
+    "teacherWarningTitle": "A message from your teacher",
+    "teacherWarningOk": "I understand",
+    "saveStatus": {
+      "device": "Saved on this device",
+      "saving": "Saving…",
+      "server": "Saved to server"
+    },
+    "saveStatusHint": "Your answers are kept on this device and sent when the connection is back.",
+    "submitWaitingTitle": "Waiting for the connection",
+    "submitWaitingDetail": "Your answers are saved on this device. We'll submit them as soon as the connection is back.",
+    "submitOfflineTitle": "Couldn't reach the server",
+    "submitOfflineDetail": "Try submitting again. Answers already saved to the server are submitted automatically when time is up."
   },
   "proctoring": {
     "title": "Proctoring",
@@ -440,7 +457,8 @@
       "close": "Close"
     },
     "close": "Close",
-    "retry": "Retry"
+    "retry": "Retry",
+    "limitWarning": "You have {count, number} of {total, number} flags. At {total, number} the test ends."
   },
   "ui": {
     "close": "Close",
@@ -901,7 +919,10 @@
       "negativeMarking": "Negative marking",
       "off": "Off",
       "questionCount": "{count, plural, one {# question} other {# questions}}",
-      "sessionClosed": "This test belongs to a closed session, so it cannot be changed or graded. The owner can reopen the session."
+      "sessionClosed": "This test belongs to a closed session, so it cannot be changed or graded. The owner can reopen the session.",
+      "monitor": "Live monitor",
+      "print": "Print paper",
+      "integrity": "Integrity report"
     },
     "audience": {
       "anyone": "Anyone with the link",
@@ -939,6 +960,23 @@
       "private": "This test is only for students the teacher chose.",
       "public": "Any student can take this test.",
       "continue": "Continue"
+    },
+    "print": {
+      "title": "Print the paper",
+      "description": "A PDF ready to print, for a paper exam with the same questions.",
+      "set": "Set",
+      "setLabel": "Set {set}",
+      "setAHint": "Questions and options in your order.",
+      "setShuffledHint": "Questions and options in a different order.",
+      "paper": "Paper size",
+      "a4": "A4",
+      "legal": "Legal",
+      "answerKey": "Answer key too",
+      "answerKeyHint": "A separate PDF with this set's answers, for you.",
+      "download": "Download PDF",
+      "cancel": "Cancel",
+      "noQuestions": "This test has no questions yet.",
+      "failed": "Couldn't make the PDF. Try again."
     }
   },
   "createTest": {
@@ -1009,7 +1047,8 @@
       "questionSubject": "Every question needs a subject.",
       "marksBelowPassing": "Total marks ({total, number}) are below the passing score ({passing, number}). Add questions or lower the passing score.",
       "fixQuestions": "Fix the highlighted questions before continuing.",
-      "scheduleRequired": "Choose both the start and the end date and time."
+      "scheduleRequired": "Choose both the start and the end date and time.",
+      "proctoringInvalid": "Check the proctoring: the number of flags is 1–100 and at least one check counts."
     },
     "categories": {
       "graded": "Graded",
@@ -1235,6 +1274,37 @@
       "cancel": "Cancel",
       "save": "Add subject",
       "saving": "Adding…"
+    },
+    "proctoring": {
+      "title": "Proctoring",
+      "intro": "What is watched while students take this test. A quick class quiz may need no camera.",
+      "level": "Proctoring level",
+      "levels": {
+        "OFF": "Off",
+        "LIGHT": "Light",
+        "STRICT": "Strict"
+      },
+      "levelHints": {
+        "OFF": "No checks.",
+        "LIGHT": "Browser checks only: tab switches, leaving full screen and the like. No camera.",
+        "STRICT": "Browser checks plus camera, microphone and phone detection."
+      },
+      "notOnPlan": "Not on your plan.",
+      "checks": "Checks (switch off any you don't need)",
+      "autoDisqualify": "Disqualify automatically",
+      "autoDisqualifyHint": "Off by default: false alarms in a noisy room should not fail a student. You can review flags after the test.",
+      "autoDisqualifyNotOnPlan": "Not on your plan.",
+      "threshold": "Disqualify after this many flags",
+      "thresholdInvalid": "Use a number from 1 to 100.",
+      "warnAt": "Students are warned at {count, plural, one {# flag} other {# flags}}.",
+      "counted": "Flags that count",
+      "countedNone": "Choose at least one check.",
+      "summaryOff": "Nothing is watched; students start without camera or microphone.",
+      "summaryBrowser": "{count, plural, one {# check runs} other {# checks run}} in the browser; no camera.",
+      "summaryCamera": "{count, plural, one {# check runs} other {# checks run}}; students turn on camera and microphone before starting.",
+      "alerts": "Alert me during the test",
+      "alertsHint": "You get a notice when a student reaches this many flags (at most one per student every 5 minutes).",
+      "alertAt": "Alert at this many flags"
     }
   },
   "grading": {
@@ -4885,5 +4955,116 @@
     "settingsSaved": "Settings saved",
     "criteriaHint": "Behaviour criteria (what teachers rate) are on the Behaviour page.",
     "criteriaLink": "Open Behaviour"
+  },
+  "monitor": {
+    "title": "Live monitor",
+    "live": "Live",
+    "connecting": "Connecting…",
+    "refresh": "Refresh",
+    "notAllowed": "You can't watch this test.",
+    "loadFailed": "Couldn't load the live monitor.",
+    "empty": "Nobody has started yet",
+    "emptyHint": "Students appear here as they open the test.",
+    "summary": "{writing, number} writing · {lost, number} monitoring lost · {done, number} finished",
+    "tilesLabel": "Students taking the test",
+    "tileLabel": "{name}: {status}, {count, plural, one {# flag} other {# flags}}",
+    "status": {
+      "WRITING": "Writing",
+      "SUBMITTED": "Submitted",
+      "ENDED": "Ended",
+      "DISCONNECTED": "Disconnected",
+      "LOST": "Monitoring lost"
+    },
+    "timeLeft": "{clock} left",
+    "flags": "{count, plural, one {# flag} other {# flags}}",
+    "noFlags": "No flags",
+    "events": {
+      "tab-switch": "Switched tab",
+      "window-blur": "Left the test window",
+      "fullscreen-exit": "Left full screen",
+      "no-face": "Face not visible",
+      "multiple-faces": "More than one face",
+      "looking-away": "Looked away",
+      "phone-detected": "Phone seen",
+      "paste-attempt": "Tried to paste",
+      "restricted-action": "Blocked action",
+      "voice-detected": "Voices heard",
+      "idle-too-long": "Idle for a while",
+      "devtools-open": "Opened developer tools",
+      "screen-sharing": "Screen sharing",
+      "camera-blocked": "Camera blocked",
+      "screen-share-stopped": "Screen sharing stopped",
+      "double-display": "Second display",
+      "monitoring-lost": "Monitoring lost",
+      "monitoring-back": "Monitoring back",
+      "teacher-warning": "Warning sent",
+      "teacher-ended": "Exam ended by the teacher"
+    },
+    "timeline": "Timeline",
+    "warnLabel": "Warning to this student",
+    "warnPlaceholder": "For example: please keep your eyes on your own screen.",
+    "warn": "Send warning",
+    "warned": "Warning sent",
+    "end": "End this student's exam",
+    "endReason": "Reason",
+    "endHint": "The student's answers so far are kept and marked; you can review the decision later.",
+    "endConfirm": "End exam",
+    "ended": "Exam ended for the student",
+    "cancel": "Cancel",
+    "alertTitle": "Check {name}",
+    "alertDetail": "{count, plural, one {# flag} other {# flags}} so far."
+  },
+  "integrity": {
+    "title": "Integrity report",
+    "print": "Print",
+    "notAllowed": "You can't see this test's integrity report.",
+    "loadFailed": "Couldn't load the integrity report.",
+    "students": "Students",
+    "flagged": "Flagged",
+    "disqualified": "Disqualified",
+    "reviewed": "Reviewed",
+    "byCheck": "Flags by check",
+    "checkCount": "{count, plural, one {# flag} other {# flags}} · {students, plural, one {# student} other {# students}}",
+    "noFlags": "No flags",
+    "otherCheck": "Other",
+    "tableCaption": "Students who took the test, most flagged first",
+    "empty": "Nobody has taken this test yet.",
+    "student": "Student",
+    "result": "Result",
+    "score": "Score",
+    "scoreOf": "{score, number} of {max, number}",
+    "flags": "Flags",
+    "mostFlagged": "Most flagged",
+    "review": "Review",
+    "actions": "Actions",
+    "open": "Open",
+    "openFor": "Open the report for {name}",
+    "status": {
+      "SUBMITTED": "Submitted",
+      "AUTO_SUBMITTED": "Submitted when time ran out",
+      "DISQUALIFIED": "Disqualified",
+      "IN_PROGRESS": "Writing"
+    },
+    "why": "Reason",
+    "timeline": "Timeline",
+    "history": "Earlier reviews",
+    "decidedBy": "{name} — reason: {reason}",
+    "decide": "Your decision",
+    "decisionLegend": "What happens to this attempt?",
+    "decision": {
+      "REINSTATE": "Reinstate",
+      "RETAKE": "Allow a retake",
+      "CONFIRM": "Confirm the result"
+    },
+    "decisionHint": {
+      "REINSTATE": "The attempt counts as submitted, with the marks it got.",
+      "RETAKE": "The student takes the test again before it closes. Their earlier answers are kept in this review.",
+      "CONFIRM": "The result stands as it is."
+    },
+    "reason": "Reason",
+    "reasonHint": "The student sees this reason.",
+    "save": "Save decision",
+    "saved": "Decision saved",
+    "writing": "The student is writing this test; review it once they finish."
   }
 }

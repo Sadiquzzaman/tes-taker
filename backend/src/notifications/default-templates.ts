@@ -348,6 +348,12 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
   { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: IN_APP, locale: 'bn', subject: 'মনে করিয়ে দেওয়া: {{title}}', body: 'শুরু {{starts_at}} {{place}}' },
   { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: SMS, locale: 'en', subject: null, body: 'Reminder: {{title}} starts {{starts_at}}. {{place}} - {{organization_name}}' },
   { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: SMS, locale: 'bn', subject: null, body: 'মনে করিয়ে দেওয়া: {{title}} শুরু {{starts_at}}। {{place}} - {{organization_name}}' },
+  // Proctoring alerts (P8-03, PRO-08): to the teacher, linked to the live monitor (`path`).
+  { event_type: NOTIFICATION_EVENTS.PROCTORING_ALERT, channel: IN_APP, locale: 'en', subject: 'Check {{student_name}}', body: '{{flags}} flags in {{exam_name}}.' },
+  { event_type: NOTIFICATION_EVENTS.PROCTORING_ALERT, channel: IN_APP, locale: 'bn', subject: '{{student_name}}-কে দেখুন', body: '{{exam_name}}-এ {{flags}}টি ফ্ল্যাগ।' },
+  // Attempt reviews (P8-04, PRO-05): to the student; the decision code is shown by its label below.
+  { event_type: NOTIFICATION_EVENTS.EXAM_REVIEW_DECIDED, channel: IN_APP, locale: 'en', subject: '{{exam_name}}: your attempt was reviewed', body: '{{decision}}. {{reason}}' },
+  { event_type: NOTIFICATION_EVENTS.EXAM_REVIEW_DECIDED, channel: IN_APP, locale: 'bn', subject: '{{exam_name}}: আপনার পরীক্ষা পর্যালোচনা করা হয়েছে', body: '{{decision}}। {{reason}}' },
   // Report cards (P7-04, PRF-09): to guardians, with the link that needs no login.
   {
     event_type: NOTIFICATION_EVENTS.REPORT_CARD_SHARED,
@@ -410,6 +416,6 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
 
 /** Values shown translated when a variable holds one of these codes (e.g. a member role). */
 export const VALUE_LABELS: Record<NotificationLocale, Record<string, string>> = {
-  en: { OWNER: 'owner', ADMIN: 'admin', TEACHER: 'teacher', STUDENT: 'student', ASSISTANT: 'staff member', NO_DUE_DATE: 'any time', NO_TEACHER: 'as usual' },
-  bn: { OWNER: 'মালিক', ADMIN: 'অ্যাডমিন', TEACHER: 'শিক্ষক', STUDENT: 'শিক্ষার্থী', ASSISTANT: 'স্টাফ', NO_DUE_DATE: 'যেকোনো সময়', NO_TEACHER: 'যথারীতি' },
+  en: { OWNER: 'owner', ADMIN: 'admin', TEACHER: 'teacher', STUDENT: 'student', ASSISTANT: 'staff member', NO_DUE_DATE: 'any time', NO_TEACHER: 'as usual', REINSTATE: 'Your attempt counts as submitted', RETAKE: 'You may take the exam again', CONFIRM: 'The result stands' },
+  bn: { OWNER: 'মালিক', ADMIN: 'অ্যাডমিন', TEACHER: 'শিক্ষক', STUDENT: 'শিক্ষার্থী', ASSISTANT: 'স্টাফ', NO_DUE_DATE: 'যেকোনো সময়', NO_TEACHER: 'যথারীতি', REINSTATE: 'আপনার পরীক্ষা জমা হিসেবে গণ্য হবে', RETAKE: 'আপনি আবার পরীক্ষা দিতে পারবেন', CONFIRM: 'ফলাফল বহাল থাকছে' },
 };

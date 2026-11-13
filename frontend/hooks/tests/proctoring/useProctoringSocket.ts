@@ -4,13 +4,23 @@ import { getProctoringSocketUrl } from "@/utils/tests/proctoringSocket";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 
+/** How often the student's browser says it is still there (the server allows 60 seconds). */
+const HEARTBEAT_MS = 15_000;
+
 const useProctoringSocket = ({
   answerSheet,
   examId,
   flags,
   isEnabled,
   totalFlagPoints,
+  onTeacherWarning,
+  onExamEnded,
 }: UseProctoringSocketOptions): UseProctoringSocketResult => {
+  // The latest handlers, so the socket is not rebuilt when they change.
+  const teacherHandlers = useRef({ onTeacherWarning, onExamEnded });
+  useEffect(() => {
+    teacherHandlers.current = { onTeacherWarning, onExamEnded };
+  });
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isSessionReady, setIsSessionReady] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -88,6 +98,9 @@ const useProctoringSocket = ({
 
       socket.emit("flag:report", {
         examId,
+        // The flag's own id and kind, so the server stores it once (also sent with the submit).
+        id: flag.id,
+        kind: flag.type,
         type: socketFlagType,
         message: flag.message,
         points: flag.points,
@@ -105,6 +118,19 @@ const useProctoringSocket = ({
       });
     });
   }, [examId, flags, isSessionReady, reportViolation, socket]);
+
+  // A sign of life every 15 seconds: the teacher sees "Monitoring lost" after 60 without one (P8-02).
+  useEffect(() => {
+    if (!socket || !isSessionReady) {
+      return;
+    }
+    const beat = () => {
+      if (socket.connected) socket.emit("heartbeat");
+    };
+    beat();
+    const intervalId = window.setInterval(beat, HEARTBEAT_MS);
+    return () => window.clearInterval(intervalId);
+  }, [isSessionReady, socket]);
 
   const connectToSocket = useCallback(() => {
     if (!isEnabled || !examId || !socketUrl) {
@@ -139,6 +165,9 @@ const useProctoringSocket = ({
       setIsSessionReady(false);
       emitExamJoin(nextSocket);
     });
+
+    nextSocket.on("proctor:warning", (warning: { message: string; from: string }) => teacherHandlers.current.onTeacherWarning?.(warning));
+    nextSocket.on("exam:ended", (event: { reason: string }) => teacherHandlers.current.onExamEnded?.(event.reason));
 
     nextSocket.on("session:ready", () => {
       setConnectionError(null);

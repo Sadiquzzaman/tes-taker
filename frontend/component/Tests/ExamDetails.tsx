@@ -12,6 +12,8 @@ import { useToast } from "@/component/Toast/ToastContext";
 import { useApiError } from "@/hooks/api/useApiError";
 import { sumExamMarks } from "@/utils/exam/examMarks";
 import { getStoredUser } from "@/lib/authSession";
+import useWorkspace from "@/hooks/organization/useWorkspace";
+import PrintPaperDrawer from "./PrintPaperDrawer";
 
 const countQuestions = (subjects: StudentExamSubject[]) =>
   subjects.reduce(
@@ -30,9 +32,11 @@ const questionsIn = (subject: StudentExamSubject) =>
 /** A teacher's test: status, schedule, marks, subjects; edit, enable/disable and grade. */
 const ExamDetails = ({ examId }: { examId: string }) => {
   const t = useTranslations("tests");
+  const { memberRole, activeOrganization } = useWorkspace();
   const format = useFormat();
   const router = useRouter();
   const [confirmDisable, setConfirmDisable] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const { triggerToast } = useToast();
   const { handleError } = useApiError();
 
@@ -79,6 +83,8 @@ const ExamDetails = ({ examId }: { examId: string }) => {
   }, [sessionClosed, startAt]);
 
   const canGradeTest = !sessionClosed && Boolean(exam?.created_by) && exam?.created_by === getStoredUser()?.id;
+  // The live monitor (P8-03) and integrity report (P8-04): the teacher who made the test, or the school's owners and admins.
+  const canMonitor = (Boolean(exam?.created_by) && exam?.created_by === getStoredUser()?.id) || memberRole === "OWNER" || memberRole === "ADMIN";
 
   const handleToggleStatus = useCallback(async () => {
     if (!exam) {
@@ -163,6 +169,21 @@ const ExamDetails = ({ examId }: { examId: string }) => {
         }
         actions={
           <>
+            {canMonitor && exam.status !== "completed" ? (
+              <Link href={`/tests/${exam.id}/monitor`} className={buttonClasses({ variant: exam.status === "ongoing" ? "primary" : "secondary" })}>
+                {t("details.monitor")}
+              </Link>
+            ) : null}
+            {canMonitor && exam.status !== "pending" ? (
+              <Link href={`/tests/${exam.id}/integrity`} className={buttonClasses({ variant: "secondary" })}>
+                {t("details.integrity")}
+              </Link>
+            ) : null}
+            {canMonitor ? (
+              <Button variant="secondary" onClick={() => setPrinting(true)}>
+                {t("details.print")}
+              </Button>
+            ) : null}
             {canGradeTest ? (
               <Link href={`/grading/details/${exam.id}`} className={buttonClasses({ variant: "secondary" })}>
                 {t("card.grade")}
@@ -212,6 +233,8 @@ const ExamDetails = ({ examId }: { examId: string }) => {
           ))}
         </ul>
       </Card>
+
+      <PrintPaperDrawer open={printing} onClose={() => setPrinting(false)} exam={{ ...exam, subjects }} organizationName={activeOrganization?.name ?? null} />
 
       <ConfirmDialog
         open={confirmDisable}

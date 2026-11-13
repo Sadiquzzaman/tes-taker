@@ -57,5 +57,5 @@ export default function TestPermissionsPage() {
     return <ExamMessageScreen variant={messageVariant} reason={eligibility?.reason} />;
   }
 
-  return <StudentExamPermissionFlow />;
+  return <StudentExamPermissionFlow proctoring={eligibility?.proctoring ?? null} />;
 }

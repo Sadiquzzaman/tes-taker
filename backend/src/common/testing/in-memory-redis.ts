@@ -57,6 +57,24 @@ export class InMemoryRedis {
     return [...this.store.keys()].filter((key) => this.live(key) && regex.test(key));
   }
 
+  private readonly sets = new Map<string, Set<string>>();
+
+  async sadd(key: string, member: string): Promise<void> {
+    this.sets.set(key, (this.sets.get(key) ?? new Set()).add(member));
+  }
+
+  async smembers(key: string): Promise<string[]> {
+    return [...(this.sets.get(key) ?? [])];
+  }
+
+  async srem(key: string, member: string): Promise<void> {
+    this.sets.get(key)?.delete(member);
+  }
+
+  async mget(keys: string[]): Promise<(string | null)[]> {
+    return Promise.all(keys.map((key) => this.get(key)));
+  }
+
   async delMultiple(keys: string[]): Promise<number> {
     let deleted = 0;
     for (const key of keys) deleted += await this.del(key);

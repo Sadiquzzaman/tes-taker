@@ -807,6 +807,12 @@ Table exams {
   is_negative_marking boolean
   negative_mark_value numeric
   result_published_at timestamptz
+  proctoring_level varchar(10) [not null, default: 'STRICT', note: 'BUILT P8-01 (PRO-01): OFF | LIGHT | STRICT; checks = the level’s checks the plan has, minus proctoring_checks_off']
+  proctoring_checks_off jsonb [not null, default: '[]', note: 'BUILT P8-01: plan feature keys switched off within the level']
+  auto_disqualify boolean [not null, default: false, note: 'BUILT P8-01 (PRO-02): off for new exams; exams from before P8 were set on (the old fixed rule)']
+  disqualify_threshold smallint [not null, default: 15, note: 'BUILT P8-01: CHECK 1..100 flags; students warned at 60%']
+  disqualify_checks jsonb [note: 'BUILT P8-01: checks whose flags count; null = every active check']
+  alert_flags smallint [note: 'BUILT P8-03 (PRO-08): alert the teacher at this many flags; null = no alerts; CHECK 1..100']
   Note: 'CHANGED — plus existing join tables exam_target_students, exam_excluded_students'
 }
 
@@ -910,7 +916,7 @@ Table proctoring_reviews {
   reason text [not null]
   decided_by uuid [ref: > users.id]
   decided_at timestamptz
-  Note: 'NEW (PRO-05)'
+  Note: 'NEW (PRO-05) — BUILT P8-04 as exam_attempt_reviews (below)'
 }
 
 Table offline_exams {
@@ -1747,3 +1753,42 @@ Table ielts_results {
 // private_messages      { _id, conversationId, senderId, body, attachments[], readAt, createdAt }  EXISTING (+readAt)
 // discussion_posts / discussion_comments / discussion_attachments  EXISTING (shown as the "Discussions" tab)
 // user_mutes         { groupId, userId, until, by }  NEW (COM-04)
+
+Table proctoring_events {
+  id uuid [pk]
+  organization_id uuid
+  exam_id uuid [not null, ref: > exams.id]
+  student_id uuid [not null, ref: > users.id]
+  client_id varchar(64) [note: 'the browser’s flag id: one row whether sent live or with the submit']
+  type varchar(40) [not null, note: 'tab-switch, phone-detected, …; monitoring-lost / monitoring-back from the server']
+  check_key varchar(60) [note: 'the check (plan feature key) it belongs to']
+  message varchar(300)
+  points smallint [not null, default: 0]
+  source varchar(10) [not null, note: 'LIVE | SUBMIT | SERVER']
+  occurred_at timestamptz [not null]
+  created_at timestamptz [not null]
+  Indexes {
+    (exam_id, student_id, occurred_at)
+    (exam_id, student_id, client_id) [unique, note: 'where client_id is not null']
+  }
+  Note: 'NEW, BUILT P8-02 (exams module, migration ProctoringEvents); live state itself is in Redis'
+}
+
+Table exam_attempt_reviews {
+  id uuid [pk]
+  organization_id uuid
+  exam_id uuid [not null, ref: > exams.id]
+  student_id uuid [not null, ref: > users.id]
+  submission_id uuid [not null, ref: > student_exam_submissions.id]
+  decision varchar(10) [not null, note: 'REINSTATE | RETAKE | CONFIRM (CHECK)']
+  reason varchar(500) [not null]
+  previous_status varchar(20) [not null, note: 'the attempt status before the decision']
+  previous_score numeric(10,2)
+  previous_attempt jsonb [note: 'RETAKE only: the earlier answers, score and times (the answer rows are cleared, not deleted)']
+  decided_by uuid [not null, ref: > users.id]
+  decided_at timestamptz [not null]
+  Indexes {
+    (exam_id, student_id, decided_at)
+  }
+  Note: 'NEW, BUILT P8-04 (PRO-05; exams module, migration ExamAttemptReviews); append-only history of decisions'
+}

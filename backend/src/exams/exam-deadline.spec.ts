@@ -128,6 +128,7 @@ describe('exam deadline and attempt status on writes (P0-06)', () => {
       {} as never, // sessionRepo
       { record: jest.fn() } as never, // audit
       {} as never, // gradingScales
+      { record: jest.fn() } as never, // proctoringEvents
     );
 
     // Scoring is covered elsewhere; these tests only care about who may write when.
@@ -191,7 +192,7 @@ describe('exam deadline and attempt status on writes (P0-06)', () => {
 
     it('save-answer, autosave and manual final submit succeed before the deadline', async () => {
       await expect(saveOne()).resolves.toMatchObject({ question_id: essayId });
-      await expect(autosave()).resolves.toEqual({ submission_id: submissionId, saved_count: 1 });
+      await expect(autosave()).resolves.toEqual({ submission_id: submissionId, saved_count: 1, saved_at: expect.any(String) });
 
       const result = await finalize(ExamFinalizeReasonEnum.MANUAL);
 

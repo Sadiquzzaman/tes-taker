@@ -34,6 +34,8 @@ const useProctoring = ({
   initialMediaStream = null,
   skipAutoSetup = false,
   proctoringFeatures = {},
+  autoDisqualify,
+  needsCamera = true,
 }: UseProctoringOptions): UseProctoringResult => {
   const dispatch = useAppDispatch();
   const { triggerToast } = useToast();
@@ -55,11 +57,14 @@ const useProctoring = ({
 
   useEffect(() => {
     dispatch(
-      setProctoringFeatures({
-        enableAutoDisqualification: featureEnabled("proctoring_auto_disqualification", true),
-      }),
+      autoDisqualify !== undefined
+        ? // The exam's own rule (P8-01): off, or this many flags of these checks.
+          setProctoringFeatures({ autoDisqualify })
+        : setProctoringFeatures({
+            enableAutoDisqualification: featureEnabled("proctoring_auto_disqualification", true),
+          }),
     );
-  }, [dispatch, proctoringFeatures]);
+  }, [dispatch, proctoringFeatures, autoDisqualify]);
 
   const stopProctoringSession = useCallback(() => {
     if (!skipAutoSetup) {
@@ -154,10 +159,20 @@ const useProctoring = ({
     dispatch(setProctoringReady());
   }, [dispatch, initialMediaStream]);
 
+  // An exam without camera checks (Off or Light) starts without asking for camera or microphone.
+  useEffect(() => {
+    if (!isExamReady || needsCamera) {
+      return;
+    }
+    dispatch(resetProctoring());
+    dispatch(startProctoring());
+    dispatch(setProctoringReady());
+  }, [dispatch, isExamReady, needsCamera]);
+
   useEffect(() => {
     let cleanup = () => {};
 
-    if (isExamReady && !skipAutoSetup && !initialMediaStream) {
+    if (isExamReady && needsCamera && !skipAutoSetup && !initialMediaStream) {
       const setupTimeoutId = window.setTimeout(() => {
         void requestMediaAccess();
       }, 0);
@@ -170,7 +185,7 @@ const useProctoring = ({
     }
 
     return cleanup;
-  }, [initialMediaStream, isExamReady, requestMediaAccess, skipAutoSetup, stopProctoringSession]);
+  }, [initialMediaStream, isExamReady, needsCamera, requestMediaAccess, skipAutoSetup, stopProctoringSession]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -191,7 +206,7 @@ const useProctoring = ({
     return cleanup;
   });
 
-  const isMonitoringActive = isExamReady && isProctoringActive && Boolean(mediaStream);
+  const isMonitoringActive = isExamReady && isProctoringActive && (Boolean(mediaStream) || !needsCamera);
 
   const browserMonitoringActive =
     isMonitoringActive &&

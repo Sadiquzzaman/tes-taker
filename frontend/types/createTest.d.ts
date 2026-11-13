@@ -6,6 +6,8 @@ type FormState = {
   negativeMarking: string;
   isModelTest: boolean;
   examCategory: "academic" | "ielts";
+  /** Proctoring for this exam (P8-01); null = the plan's best level, auto-disqualify off. */
+  proctoring?: ExamProctoringChoice | null;
 };
 
 type BasicInfoErrors = {

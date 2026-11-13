@@ -32,6 +32,8 @@ type ProctoringWarningState = {
   type: ProctoringFlagType;
   message: string;
   flagCount: number;
+  /** Set when this flag reached the warning point: counted flags so far and the limit (PRO-02). */
+  limit?: { count: number; threshold: number };
 };
 
 type ProctoringFlag = {
@@ -59,6 +61,12 @@ interface ProctoringState extends ProctoringSummary {
   activeCountdown: ProctoringCountdownState | null;
   disqualificationReason: string | null;
   enableAutoDisqualification: boolean;
+  /** The exam's limit (P8-01): flags of the counted checks; warned at `warnAt`. */
+  disqualifyThreshold: number;
+  disqualifyWarnAt: number;
+  /** Checks whose flags count; null = every flag. */
+  countedChecks: string[] | null;
+  countedFlags: number;
 }
 
 interface AddProctoringFlagPayload {
@@ -85,6 +93,10 @@ interface UseProctoringOptions {
   initialMediaStream?: MediaStream | null;
   skipAutoSetup?: boolean;
   proctoringFeatures?: Record<string, boolean>;
+  /** The exam's limit for auto-disqualification (P8-01); null = never automatic. */
+  autoDisqualify?: { threshold: number; warn_at: number; checks: string[] } | null;
+  /** Whether this exam uses the camera and microphone (Strict); false = no media is requested. */
+  needsCamera?: boolean;
 }
 
 interface UseProctoringResult {
@@ -106,6 +118,10 @@ interface UseProctoringSocketOptions {
   flags: ProctoringFlag[];
   isEnabled: boolean;
   totalFlagPoints: number;
+  /** A warning the teacher sent from the live monitor (P8-03). */
+  onTeacherWarning?: (warning: { message: string; from: string }) => void;
+  /** The teacher ended this student's exam (P8-03). */
+  onExamEnded?: (reason: string) => void;
 }
 
 interface UseProctoringSocketResult {
@@ -148,4 +164,90 @@ interface Screen {
 interface Window {
   getScreenDetails?: () => Promise<{ screens: readonly unknown[] }>;
   webkitAudioContext?: typeof AudioContext;
+}
+
+/** Proctoring level per exam (P8-01, PRO-01, PRO-02). */
+type ProctoringLevel = "OFF" | "LIGHT" | "STRICT";
+
+/** What a teacher chose; check keys are plan feature keys (e.g. proctoring_idle). */
+interface ExamProctoringChoice {
+  level: ProctoringLevel;
+  checks_off: string[];
+  auto_disqualify: boolean;
+  disqualify_threshold: number;
+  disqualify_checks: string[] | null;
+  /** Alert the teacher when a student reaches this many flags (P8-03); null = no alerts. */
+  alert_flags?: number | null;
+}
+
+/** `GET /exams/proctoring-options`: what the workspace's plan offers. */
+interface ProctoringOptions {
+  levels: { level: ProctoringLevel; available: boolean; checks: string[] }[];
+  auto_disqualify_available: boolean;
+  alerts_available?: boolean;
+  default_level: ProctoringLevel;
+}
+
+/** What the student's browser runs (`proctoring` in the eligibility check). */
+interface EffectiveProctoring {
+  level: ProctoringLevel;
+  checks: string[];
+  camera: boolean;
+  auto_disqualify: { threshold: number; warn_at: number; checks: string[] } | null;
+}
+
+/** A student on the live monitor (P8-03, PRO-03): `GET /exams/:id/proctoring/sessions` and socket events. */
+type MonitorLiveStatus = "WRITING" | "SUBMITTED" | "ENDED" | "DISCONNECTED" | "LOST";
+
+interface MonitorSession {
+  studentId: string;
+  studentName: string;
+  liveStatus: MonitorLiveStatus;
+  lastSeenAt?: string;
+  lostSince?: string | null;
+  flagCount: number;
+  totalFlagPoints: number;
+  latestFlag: { id: string; type: string; message: string; points: number; timestamp: string } | null;
+  deadline?: string | null;
+  attemptStatus?: string | null;
+}
+
+interface MonitorTimelineEvent {
+  id: string;
+  type: string;
+  check: string | null;
+  message: string | null;
+  points: number;
+  source: "LIVE" | "SUBMIT" | "SERVER";
+  occurred_at: string;
+}
+
+/** The integrity report (P8-04, PRO-04): `GET /exams/:id/proctoring/integrity`. */
+type AttemptReviewDecision = "REINSTATE" | "RETAKE" | "CONFIRM";
+
+interface IntegrityStudentRow {
+  student_id: string;
+  student_name: string;
+  status: string;
+  total_score: number | null;
+  max_score: number | null;
+  flags: number;
+  checks: { check: string; count: number }[];
+  disqualification_reason: string | null;
+  last_review: { decision: AttemptReviewDecision; reason: string; decided_at: string } | null;
+}
+
+interface IntegrityReport {
+  exam_id: string;
+  summary: { students: number; flagged: number; disqualified: number; reviewed: number };
+  by_check: { check: string; count: number; students: number }[];
+  students: IntegrityStudentRow[];
+}
+
+/** One student's report (PRO-04, PRO-05): `GET /exams/:id/proctoring/students/:studentId/report`. */
+interface StudentIntegrityReport {
+  attempt: { student_id: string; student_name: string; status: string; started_at: string | null; submitted_at: string | null; total_score: number | null; max_score: number | null; disqualification_reason: string | null };
+  checks: { check: string; count: number }[];
+  timeline: MonitorTimelineEvent[];
+  reviews: { id: string; decision: AttemptReviewDecision; reason: string; previous_status: string; previous_score: number | null; decided_at: string; decided_by_name: string | null }[];
 }

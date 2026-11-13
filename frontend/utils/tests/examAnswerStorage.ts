@@ -2,7 +2,11 @@ const STORAGE_PREFIX = "exam-answers";
 
 const buildStorageKey = (examId: string, studentId: string) => `${STORAGE_PREFIX}:${examId}:${studentId}`;
 
-export const saveExamAnswersToStorage = (examId: string, studentId: string, values: ExamAnswerState): void => {
+/**
+ * Answers kept on the device while writing. `attempt` (the attempt's start time) ties them to one
+ * attempt, so a retake (P8-04) never brings back the answers of the attempt before it.
+ */
+export const saveExamAnswersToStorage = (examId: string, studentId: string, values: ExamAnswerState, attempt?: string | null): void => {
   if (typeof window === "undefined") {
     return;
   }
@@ -14,6 +18,7 @@ export const saveExamAnswersToStorage = (examId: string, studentId: string, valu
         examId,
         studentId,
         values,
+        attempt: attempt ?? null,
         updatedAt: new Date().toISOString(),
       }),
     );
@@ -22,7 +27,7 @@ export const saveExamAnswersToStorage = (examId: string, studentId: string, valu
   }
 };
 
-export const loadExamAnswersFromStorage = (examId: string, studentId: string): ExamAnswerState | null => {
+export const loadExamAnswersFromStorage = (examId: string, studentId: string, attempt?: string | null): ExamAnswerState | null => {
   if (typeof window === "undefined") {
     return null;
   }
@@ -33,7 +38,11 @@ export const loadExamAnswersFromStorage = (examId: string, studentId: string): E
       return null;
     }
 
-    const parsed = JSON.parse(raw) as { values?: ExamAnswerState };
+    const parsed = JSON.parse(raw) as { values?: ExamAnswerState; attempt?: string | null };
+    // Saved for another attempt of this exam: not this one's answers.
+    if (attempt && parsed.attempt && parsed.attempt !== attempt) {
+      return null;
+    }
     return parsed.values ?? null;
   } catch {
     return null;

@@ -26,6 +26,11 @@ const ProctoringWarningModal = () => {
     >
       <div className="flex flex-col gap-1 text-body-sm">
         <p className="font-medium text-warning">{t("currentFlagCount", { count: pendingWarning.flagCount })}</p>
+        {pendingWarning.limit ? (
+          <p role="alert" className="font-medium text-danger">
+            {t("limitWarning", { count: pendingWarning.limit.count, total: pendingWarning.limit.threshold })}
+          </p>
+        ) : null}
         <p className="text-ink-muted">{t("continueCarefully")}</p>
       </div>
     </ExamDialog>

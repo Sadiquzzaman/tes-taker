@@ -75,4 +75,3 @@ export const createProctoringSummary = (state: ProctoringState): ProctoringSumma
 });
 
 /** The exam rules shown before a test, as keys under `exam.permissions.rules` in messages/*.json. */
-export const EXAM_RULE_KEYS = ["media", "read", "tabs", "time", "flags", "limit"] as const;

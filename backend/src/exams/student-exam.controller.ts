@@ -5,6 +5,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -24,6 +25,7 @@ import { RolesEnum } from 'src/common/enums/roles.enum';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { StudentExamService } from './student-exam.service';
+import { ExamAccessReasonCodeEnum } from './enums/exam-access-reason.enum';
 import { ExamService } from './exam.service';
 import {
   StartExamDto,
@@ -184,6 +186,9 @@ export class StudentExamController {
         can_access: payload.canAccess,
         reason: payload.reason,
         reason_code: payload.reason_code,
+        // What runs during the exam (P8-01): shown before starting (also before it opens); the camera only when needed.
+        proctoring:
+          payload.canAccess || payload.reason_code === ExamAccessReasonCodeEnum.NOT_STARTED ? await this.studentExamService.proctoringForExam(examId) : null,
       },
     };
   }
@@ -247,6 +252,27 @@ export class StudentExamController {
       dto,
     );
     return { message: 'Exam submitted successfully', payload };
+  }
+
+  @Put(':examId/answersheet')
+  @ApiBearerAuth('jwt')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.STUDENT)
+  @ApiOperation({
+    summary: 'Save answers while writing (low-bandwidth mode, PRO-09)',
+    description:
+      'Body: answersheet with only the questions that changed since the last save (question UUID → answer; an empty value clears it). Merged into the saved sheet. Accepted until the deadline + 60 seconds; after that 403, and the attempt is finalised with what was saved.',
+  })
+  @ApiParam({ name: 'examId', description: 'Exam UUID' })
+  @ApiResponse({ status: 200, description: 'Answers saved: { saved_count, saved_at }' })
+  @ApiResponse({ status: 403, description: 'Not writing this exam, or time is up' })
+  async saveAnswerSheetDraft(
+    @Param('examId', ParseUUIDPipe) examId: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+    @Body() dto: SubmitAnswerSheetDto,
+  ) {
+    const payload = await this.studentExamService.saveAnswerSheet(examId, jwtPayload.id, jwtPayload, dto);
+    return { message: 'Answers saved', payload };
   }
 
   @Post(':examId/save-answer')

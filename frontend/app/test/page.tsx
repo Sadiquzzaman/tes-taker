@@ -1,7 +1,7 @@
 "use client";
 
 import ExamDialog from "@/component/Tests/exam/ExamDialog";
-import { Button, Card, ErrorState, Spinner } from "@/design/ui";
+import { Button, Card, ErrorState, Modal, Spinner } from "@/design/ui";
 import ExamHeader from "@/component/Tests/exam/ExamHeader";
 import ProctoringCountdownModal from "@/component/Tests/exam/ProctoringCountdownModal";
 import ProctoringDisqualificationScreen from "@/component/Tests/exam/ProctoringDisqualificationScreen";
@@ -14,8 +14,11 @@ import StudentExamMain from "@/component/Tests/exam/StudentExamMain";
 import useExamEligibility from "@/hooks/api/exam/useExamEligibility";
 import useStartStudentExam from "@/hooks/api/exam/useStartStudentExam";
 import useStudentExam from "@/hooks/api/exam/useStudentExam";
-import useSubmitAnswersheet from "@/hooks/api/tests/useSubmitAnswersheet";
+import useSubmitAnswersheet, { OFFLINE } from "@/hooks/api/tests/useSubmitAnswersheet";
+import useAnswerSync from "@/hooks/tests/useAnswerSync";
+import { useToast } from "@/component/Toast/ToastContext";
 import useExamFullscreen from "@/hooks/tests/proctoring/useExamFullscreen";
+import { proctoringFeaturesOf } from "@/utils/tests/proctoringLevel";
 import useProctoring from "@/hooks/tests/proctoring/useProctoring";
 import useProctoringSocket from "@/hooks/tests/proctoring/useProctoringSocket";
 import { useIsClient } from "@/hooks/useBrowserStorage";
@@ -25,7 +28,7 @@ import {
   selectExamAnswerState,
   setExamAnswerValue,
 } from "@/lib/features/studentExamAnswerSlice";
-import { selectIsExamInteractionBlocked, selectIsProctoringReady } from "@/lib/features/proctoringSlice";
+import { endedByTeacher, selectIsExamInteractionBlocked, selectIsProctoringReady } from "@/lib/features/proctoringSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { PROCTORING_CONFIG } from "@/utils/tests/proctoringConfig";
 import {
@@ -38,7 +41,7 @@ import { createInitialExamAnswerState } from "@/utils/tests/studentExamAnswers";
 import { loadExamAnswersFromStorage, saveExamAnswersToStorage } from "@/utils/tests/examAnswerStorage";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import ExamLoading from "@/component/Tests/exam/ExamLoading";
 
 const getStoredUserId = () => {
@@ -64,6 +67,10 @@ const readExamSession = (): ExamSession => ({
   initialMediaStream: getExamMediaStreams().cameraStream,
 });
 
+/** The final submit without a connection: tried again every 5 seconds for 2 minutes (PRO-09). */
+const SUBMIT_RETRY_MS = 5_000;
+const SUBMIT_RETRIES = 24;
+
 const isMediaStreamActive = (stream: MediaStream | null) =>
   Boolean(stream?.getTracks().some((track) => track.readyState === "live" && track.enabled));
 
@@ -86,6 +93,8 @@ export default function ParticipateTest() {
   const testId = examSession?.testId ?? null;
   const initialMediaStream = examSession?.initialMediaStream ?? null;
   const [hasStartedExam, setHasStartedExam] = useState(false);
+  // The attempt's start time: answers kept on the device belong to this attempt only.
+  const [attemptStartedAt, setAttemptStartedAt] = useState<string | null>(null);
   const [hasAttemptedStart, setHasAttemptedStart] = useState(false);
   const [submitReason, setSubmitReason] = useState<"manual" | "timeout" | "disqualified" | null>(null);
   const [postSubmitMessage, setPostSubmitMessage] = useState<ExamMessageVariant | null>(null);
@@ -94,6 +103,9 @@ export default function ParticipateTest() {
   const hasFinalizedRef = useRef(false);
   const [startStudentExam, { loading: startLoading }] = useStartStudentExam();
   const [submitAnswersheet, { loading: submitLoading }] = useSubmitAnswersheet();
+  // The final submit is waiting for the connection to come back (PRO-09).
+  const [waitingToSubmit, setWaitingToSubmit] = useState(false);
+  const { triggerToast } = useToast();
 
   const {
     loading: eligibilityLoading,
@@ -102,8 +114,12 @@ export default function ParticipateTest() {
     messageVariant: eligibilityMessageVariant,
   } = useExamEligibility(testId, isMounted && Boolean(testId));
 
-  const isExamPageReady =
-    isMounted && Boolean(testId) && isExamPermissionsComplete() && isMediaStreamActive(initialMediaStream);
+  // The exam's proctoring (P8-01): until it is known, assume the camera (as before P8).
+  const proctoring = eligibility?.proctoring ?? null;
+  const needsCamera = proctoring ? proctoring.camera : true;
+  const hasMedia = !needsCamera || isMediaStreamActive(initialMediaStream);
+  const isExamPageReady = isMounted && Boolean(testId) && isExamPermissionsComplete() && eligibilityChecked && hasMedia;
+  const proctoringFeatures = useMemo(() => (proctoring ? proctoringFeaturesOf(proctoring) : undefined), [proctoring]);
 
   const {
     examData: test,
@@ -120,14 +136,21 @@ export default function ParticipateTest() {
     doubleDisplayTimeoutSeconds: PROCTORING_CONFIG.doubleDisplayTimeout,
     initialMediaStream,
     skipAutoSetup: Boolean(initialMediaStream),
+    proctoringFeatures,
+    autoDisqualify: proctoring ? proctoring.auto_disqualify : undefined,
+    needsCamera,
   });
 
+  // The teacher's warning from the live monitor, shown until the student closes it (P8-03).
+  const [teacherWarning, setTeacherWarning] = useState<{ message: string; from: string } | null>(null);
   const { connectToSocket, emitExamSubmit, connectionError } = useProctoringSocket({
     answerSheet: answerState,
     examId: test?.id,
     flags: proctoringState.flags,
     isEnabled: isProctoringReady && hasStartedExam && Boolean(test?.id),
     totalFlagPoints: proctoringState.totalPenaltyPoints,
+    onTeacherWarning: setTeacherWarning,
+    onExamEnded: (reason) => dispatch(endedByTeacher(t("endedByTeacher", { reason }))),
   });
 
   const isInteractionDisabled =
@@ -136,7 +159,9 @@ export default function ParticipateTest() {
   const isExamActive =
     isMounted && Boolean(testId) && isProctoringReady && !proctoringState.isDisqualified && !submitLoading;
 
-  const { needsFullscreen, restoreFullscreen } = useExamFullscreen(isExamActive);
+  // Full screen is asked for only when leaving it is watched.
+  const watchesFullscreen = proctoring ? proctoring.checks.includes("proctoring_fullscreen_exit") : true;
+  const { needsFullscreen, restoreFullscreen } = useExamFullscreen(isExamActive && watchesFullscreen);
 
   const handleExamSurfaceClick = () => {
     if (needsFullscreen) {
@@ -175,6 +200,7 @@ export default function ParticipateTest() {
       });
 
       if (response?.status === 201) {
+        setAttemptStartedAt(response.data.payload?.started_at ?? null);
         setHasStartedExam(true);
       }
     };
@@ -190,7 +216,7 @@ export default function ParticipateTest() {
     const studentId = getStoredUserId();
     const defaults = createInitialExamAnswerState(test);
     const savedValues =
-      studentId && test.id ? (loadExamAnswersFromStorage(test.id, studentId) ?? undefined) : undefined;
+      studentId && test.id ? (loadExamAnswersFromStorage(test.id, studentId, attemptStartedAt) ?? undefined) : undefined;
 
     dispatch(
       hydrateExamAnswers({
@@ -199,7 +225,7 @@ export default function ParticipateTest() {
         savedValues,
       }),
     );
-  }, [dispatch, test]);
+  }, [attemptStartedAt, dispatch, test]);
 
   useEffect(() => {
     if (!test?.id) {
@@ -211,14 +237,21 @@ export default function ParticipateTest() {
       return;
     }
 
-    saveExamAnswersToStorage(test.id, studentId, answerState);
-  }, [answerState, test?.id]);
+    saveExamAnswersToStorage(test.id, studentId, answerState, attemptStartedAt);
+  }, [answerState, attemptStartedAt, test?.id]);
 
   useEffect(() => {
     return () => {
       dispatch(resetExamAnswers());
     };
   }, [dispatch]);
+
+  // Low-bandwidth mode (P8-05, PRO-09): what changed goes to the server a few seconds later.
+  const { status: saveStatus } = useAnswerSync({
+    examId: test?.id,
+    answers: answerState,
+    enabled: hasStartedExam && Boolean(test?.id) && !proctoringState.isDisqualified && submitReason === null,
+  });
 
   const handleSubmit = async (reason: "manual" | "timeout" | "disqualified" = "manual") => {
     if (hasFinalizedRef.current || !isProctoringReady || !test?.id) {
@@ -236,7 +269,7 @@ export default function ParticipateTest() {
     setSubmitReason(reason);
     emitExamSubmit();
 
-    const response = await submitAnswersheet({
+    const submitOnce = () => submitAnswersheet({
       examId: test.id,
       payload: {
         studentId,
@@ -265,8 +298,19 @@ export default function ParticipateTest() {
       },
     });
 
-    if (!response) {
+    // No connection: the answers are on the device; try again every few seconds for a while.
+    let response = await submitOnce();
+    for (let attempt = 0; response === OFFLINE && attempt < SUBMIT_RETRIES; attempt += 1) {
+      setWaitingToSubmit(true);
+      await new Promise((resolve) => window.setTimeout(resolve, SUBMIT_RETRY_MS));
+      response = await submitOnce();
+    }
+    setWaitingToSubmit(false);
+
+    if (!response || response === OFFLINE) {
+      if (response === OFFLINE) triggerToast({ title: t("submitOfflineTitle"), description: t("submitOfflineDetail"), type: "warning" });
       hasFinalizedRef.current = false;
+      setSubmitReason(null);
       stopProctoringSession();
     }
   };
@@ -337,6 +381,16 @@ export default function ParticipateTest() {
       <ProctoringMobileFab mediaStream={mediaStream} />
       <ProctoringWarningModal />
       <ProctoringCountdownModal />
+      <Modal
+        open={teacherWarning !== null && !proctoringState.isDisqualified}
+        onClose={() => setTeacherWarning(null)}
+        title={t("teacherWarningTitle")}
+        footer={<Button onClick={() => setTeacherWarning(null)}>{t("teacherWarningOk")}</Button>}
+      >
+        <p role="alert" className="text-body text-ink">
+          {teacherWarning?.message}
+        </p>
+      </Modal>
       <ProctoringDisqualificationScreen
         open={proctoringState.isDisqualified}
         reason={proctoringState.disqualificationReason}
@@ -344,7 +398,7 @@ export default function ParticipateTest() {
     </>
   );
 
-  if (!isMediaStreamActive(initialMediaStream)) {
+  if (eligibilityChecked && !hasMedia) {
     return (
       <div className="flex h-screen flex-col overflow-hidden">
         <ExamHeader />
@@ -461,6 +515,7 @@ export default function ParticipateTest() {
           submitButtonRef={submitButtonRef}
           onAnswerChange={(questionId, value) => dispatch(setExamAnswerValue({ questionId, value }))}
           onMatchingChange={(questionId, value) => dispatch(setExamAnswerValue({ questionId, value }))}
+          saveStatus={saveStatus}
           onSubmit={() => void handleSubmit("manual")}
           onCountdownStart={connectToSocket}
           onTimeUp={() => void handleSubmit("timeout")}
@@ -484,11 +539,11 @@ export default function ParticipateTest() {
         reason={proctoringState.disqualificationReason}
       />
       <ExamDialog
-        open={submitLoading}
-        tone="info"
+        open={submitLoading || waitingToSubmit}
+        tone={waitingToSubmit ? "warning" : "info"}
         icon={<Spinner className="size-5" />}
-        title={t("submittingTitle", { reason: submitReason ?? "manual" })}
-        description={t("submittingDescription", { reason: submitReason ?? "manual" })}
+        title={waitingToSubmit ? t("submitWaitingTitle") : t("submittingTitle", { reason: submitReason ?? "manual" })}
+        description={waitingToSubmit ? t("submitWaitingDetail") : t("submittingDescription", { reason: submitReason ?? "manual" })}
       />
     </div>
   );
