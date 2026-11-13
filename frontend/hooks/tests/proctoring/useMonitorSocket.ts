@@ -30,21 +30,31 @@ const useMonitorSocket = (examId: string) => {
     setSessions((all) => (all && all[studentId] ? { ...all, [studentId]: { ...all[studentId], ...change } } : all));
   }, []);
 
-  const load = useCallback(async () => {
-    try {
-      const res = await axiosReq.get<ApiResponse<{ sessions: MonitorSession[] }>>(`${process.env.NEXT_PUBLIC_BASE_URL}/exams/${examId}/proctoring/sessions`);
-      setSessions(Object.fromEntries(res.data.payload.sessions.map((s) => [s.studentId, s])));
-      setFailed(null);
-    } catch (error) {
-      setFailed((error as { response?: { status?: number } }).response?.status ?? 0);
-    }
-  }, [examId]);
+  // `attempt` asks for the list again (reload, a student joining, every 30 seconds).
+  const [attempt, setAttempt] = useState(0);
+  const reload = useCallback(() => setAttempt((value) => value + 1), []);
 
   useEffect(() => {
-    void load();
-    const id = window.setInterval(() => void load(), 30_000);
+    let live = true;
+    axiosReq
+      .get<ApiResponse<{ sessions: MonitorSession[] }>>(`${process.env.NEXT_PUBLIC_BASE_URL}/exams/${examId}/proctoring/sessions`)
+      .then((res) => {
+        if (!live) return;
+        setSessions(Object.fromEntries(res.data.payload.sessions.map((s) => [s.studentId, s])));
+        setFailed(null);
+      })
+      .catch((error: { response?: { status?: number } }) => {
+        if (live) setFailed(error.response?.status ?? 0);
+      });
+    return () => {
+      live = false;
+    };
+  }, [examId, attempt]);
+
+  useEffect(() => {
+    const id = window.setInterval(reload, 30_000);
     return () => window.clearInterval(id);
-  }, [load]);
+  }, [reload]);
 
   useEffect(() => {
     const url = getProctoringSocketUrl(process.env.NEXT_PUBLIC_SOCKET_URL, process.env.NEXT_PUBLIC_BASE_URL);
@@ -56,7 +66,7 @@ const useMonitorSocket = (examId: string) => {
       socket.emit("exam:join", { examId, role: "monitor" });
     });
     socket.on("disconnect", () => setConnected(false));
-    socket.on("session:joined", () => void load());
+    socket.on("session:joined", reload);
     socket.on("flag:update", (e: { studentId: string; flagCount: number; totalFlagPoints: number; flag: MonitorSession["latestFlag"] }) =>
       patch(e.studentId, { flagCount: e.flagCount, totalFlagPoints: e.totalFlagPoints, latestFlag: e.flag, liveStatus: "WRITING" }),
     );
@@ -71,9 +81,9 @@ const useMonitorSocket = (examId: string) => {
       socket.removeAllListeners();
       socket.disconnect();
     };
-  }, [examId, load, patch]);
+  }, [examId, reload, patch]);
 
-  return { sessions: sessions ? Object.values(sessions) : null, failed, connected, alerts, reload: load, patch };
+  return { sessions: sessions ? Object.values(sessions) : null, failed, connected, alerts, reload, patch };
 };
 
 export default useMonitorSocket;

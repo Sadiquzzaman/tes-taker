@@ -65,13 +65,13 @@ const LiveMonitor = ({ examId }: { examId: string }) => {
         title={t("title")}
         description={[exam?.test_name, connected ? t("live") : t("connecting")].filter(Boolean).join(" · ")}
         actions={
-          <Button variant="secondary" onClick={() => void reload()}>
+          <Button variant="secondary" onClick={reload}>
             {t("refresh")}
           </Button>
         }
       />
       {failed !== null ? (
-        <ErrorState title={failed === 403 ? t("notAllowed") : t("loadFailed")} onRetry={() => void reload()} />
+        <ErrorState title={failed === 403 ? t("notAllowed") : t("loadFailed")} onRetry={reload} />
       ) : !sessions ? (
         <Card aria-busy="true">
           <Skeleton lines={4} />
