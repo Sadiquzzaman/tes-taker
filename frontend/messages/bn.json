@@ -70,7 +70,8 @@
     "performanceSettings": "পারফরম্যান্স সেটিংস",
     "performance": "পারফরম্যান্স",
     "reportCards": "রিপোর্ট কার্ড",
-    "chat": "চ্যাট"
+    "chat": "চ্যাট",
+    "chatReview": "চ্যাট পর্যালোচনা"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -5136,5 +5137,72 @@
     "reportReason": "কেন রিপোর্ট করছেন?",
     "reportSend": "রিপোর্ট করুন",
     "reported": "ধন্যবাদ — প্রতিষ্ঠান বিষয়টি দেখবে।"
+  },
+  "chatReview": {
+    "title": "চ্যাট পর্যালোচনা",
+    "description": "প্রতিষ্ঠানের সব চ্যাট। কোনোটি খুলতে কারণ লাগে, যা লগে থাকে; সদস্যরা জানেন না কে পড়ছেন।",
+    "chats": "চ্যাট",
+    "reports": "রিপোর্ট",
+    "accessLog": "প্রবেশের লগ",
+    "chat": "চ্যাট",
+    "type": "ধরন",
+    "types": {
+      "GROUP": "ক্লাস চ্যাট",
+      "DIRECT": "ব্যক্তিগত"
+    },
+    "state": "অবস্থা",
+    "closed": "বন্ধ",
+    "open": "খোলা",
+    "lastActivity": "শেষ বার্তা",
+    "actions": "কাজ",
+    "openChat": "খুলুন",
+    "openFor": "{chat} খুলুন",
+    "notAllowed": "শুধু মালিক ও অ্যাডমিনরা চ্যাট পর্যালোচনা করতে পারেন।",
+    "loadFailed": "লোড করা যায়নি।",
+    "chatsCaption": "প্রতিষ্ঠানের চ্যাট",
+    "noChats": "এখনো কোনো চ্যাট নেই",
+    "reasonTitle": "{chat} কেন খুলছেন?",
+    "reasonDetail": "আপনার কারণ প্রবেশের লগে থাকবে, যা মালিক দেখতে পারেন।",
+    "reason": "কারণ",
+    "cancel": "বাতিল",
+    "readingNote": "আপনি পর্যালোচনার জন্য পড়ছেন; আপনাকে সদস্য হিসেবে দেখানো হয় না।",
+    "closeChat": "বন্ধ",
+    "closeChatHint": "বন্ধ চ্যাট সবার জন্য শুধু পড়া যায়।",
+    "closedDone": "চ্যাট বন্ধ হয়েছে",
+    "reopenedDone": "চ্যাট আবার খোলা হয়েছে",
+    "noMessages": "কোনো বার্তা নেই",
+    "messages": "বার্তা",
+    "delete": "মুছুন",
+    "deletedDone": "বার্তা মুছে ফেলা হয়েছে",
+    "muteAuthor": "{name}-কে নীরব করুন",
+    "muteTitle": "এই চ্যাটে {name}-কে নীরব করুন",
+    "muteDetail": "সময় শেষ না হওয়া পর্যন্ত তিনি পড়তে পারবেন, লিখতে পারবেন না।",
+    "muteFor": "কতক্ষণ",
+    "hours": "{count, plural, other {# ঘণ্টা}}",
+    "reasonOptional": "কারণ (ঐচ্ছিক)",
+    "mute": "নীরব করুন",
+    "mutedDone": "নীরব করা হয়েছে",
+    "show": "দেখান",
+    "statusOpen": "পর্যালোচনার অপেক্ষায়",
+    "statusResolved": "নিষ্পন্ন",
+    "noReports": "পর্যালোচনার কিছু নেই",
+    "noResolved": "এখনো কোনো রিপোর্ট নিষ্পন্ন হয়নি",
+    "reportedBy": "{name} রিপোর্ট করেছেন: {reason}",
+    "context": "বার্তাটি ও তার আশেপাশের বার্তা",
+    "deletedMessage": "(মুছে ফেলা)",
+    "keep": "বার্তাটি রাখুন",
+    "deleteMessage": "বার্তাটি মুছুন",
+    "resolved": {
+      "KEPT": "রাখা হয়েছে",
+      "DELETED": "বার্তা মুছে ফেলা হয়েছে"
+    },
+    "resolution": {
+      "KEPT": "{name} রেখেছেন",
+      "DELETED": "{name} মুছেছেন"
+    },
+    "when": "কখন",
+    "who": "কে",
+    "accessLogCaption": "কে কোন চ্যাট খুলেছেন",
+    "noAccess": "এখনো কেউ কোনো চ্যাট খোলেননি"
   }
 }
