@@ -59,6 +59,7 @@ describe("pages people cannot use send them home", () => {
     expect(visit("/today", platform)).toBe("/admin");
     expect(visit("/admin/organizations", school("OWNER"))).toBe("/today");
     expect(visit("/dashboard", platform)).toBe("/admin");
+    for (const path of ["/performance", "/marks", "/marks/x1", "/report-cards"]) expect([path, visit(path, platform)]).toEqual([path, "/admin"]);
   });
 });
 

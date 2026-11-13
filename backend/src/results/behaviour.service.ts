@@ -77,6 +77,12 @@ export class BehaviourService {
     private readonly audit: AuditService,
   ) {}
 
+  /** The criteria list for its page: staff of the workspace only (students never rate). */
+  async criteriaForStaff(tenant: Tenant): Promise<CriterionView[]> {
+    if (tenant.viaEnrolment || ![...MANAGERS, TEACHER].includes(tenant.memberRole)) this.notAllowed();
+    return this.criteria(tenant);
+  }
+
   /** The organisation's criteria in order; the defaults are added the first time. */
   async criteria(tenant: Tenant): Promise<CriterionView[]> {
     const organizationId = tenant.organizationId;

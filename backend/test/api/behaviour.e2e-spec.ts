@@ -119,6 +119,7 @@ describe('behaviour API', () => {
     expect([remarkOnly.status, remarkOnly.body.code]).toEqual([400, 'RESULTS_REMARK_NEEDS_RATING']);
     expect((await call('PUT', '/behaviour/grid', s.karimToken, { offering_id: s.mathOffering, date: day, rows: [{ student_id: s.mitu.id, ratings: { [p.id]: 4 } }] })).status).toBe(404);
     expect((await call('GET', `/behaviour/grid?offering_id=${s.mathOffering}&date=${day}`, s.mituToken)).status).toBe(403);
+    expect((await call('GET', '/behaviour/criteria', s.mituToken)).status).toBe(403);
 
     const saved = await call<Grid>('PUT', '/behaviour/grid', s.rinaToken, {
       offering_id: s.mathOffering,
