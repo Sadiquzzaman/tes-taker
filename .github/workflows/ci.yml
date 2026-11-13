@@ -132,6 +132,10 @@ jobs:
         run: make backend-install
       - name: API tests
         working-directory: backend
+        # All API test files run one after another in one process (they share one database), and
+        # each starts the whole app; past ~120 files the default heap (about 2 GB) ran out (#266).
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
         run: pnpm test:e2e
 
   frontend:
