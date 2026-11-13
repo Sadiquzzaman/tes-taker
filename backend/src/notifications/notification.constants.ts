@@ -70,6 +70,8 @@ export const NOTIFICATION_EVENTS = {
   PROCTORING_ALERT: 'proctoring.alert',
   /** A teacher reviewed a student's exam attempt (P8-04, PRO-05): in-app to the student, with the decision. */
   EXAM_REVIEW_DECIDED: 'exam.review_decided',
+  /** A teacher posted in a group chat that is in announcement mode (P9-01, COM-01, COM-03): in-app to the members who have not muted it. */
+  CHAT_ANNOUNCEMENT: 'chat.announcement',
 } as const;
 
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFICATION_EVENTS];

@@ -45,6 +45,12 @@ export const AUDIT_ACTIONS = {
   EXAM_STUDENT_ENDED: 'exam.student_ended',
   /** A teacher reviewed an attempt: reinstated, retake or confirmed (P8-04, PRO-05). */
   EXAM_ATTEMPT_REVIEW: 'exam.attempt_review',
+
+  // Chat (Epic 7)
+  /** A teacher deleted someone else's message in their group chat (P9-01, COM-01). */
+  CHAT_MESSAGE_DELETE: 'chat.message_delete',
+  /** A teacher turned announcement mode on or off (P9-01, COM-01). */
+  CHAT_GROUP_UPDATE: 'chat.group_update',
   GRADE_UPDATE: 'grade.update',
 
   // Grading scale (owner and admins, FND-11)
