@@ -87,6 +87,8 @@ export default function ParticipateTest() {
   const testId = examSession?.testId ?? null;
   const initialMediaStream = examSession?.initialMediaStream ?? null;
   const [hasStartedExam, setHasStartedExam] = useState(false);
+  // The attempt's start time: answers kept on the device belong to this attempt only.
+  const [attemptStartedAt, setAttemptStartedAt] = useState<string | null>(null);
   const [hasAttemptedStart, setHasAttemptedStart] = useState(false);
   const [submitReason, setSubmitReason] = useState<"manual" | "timeout" | "disqualified" | null>(null);
   const [postSubmitMessage, setPostSubmitMessage] = useState<ExamMessageVariant | null>(null);
@@ -189,6 +191,7 @@ export default function ParticipateTest() {
       });
 
       if (response?.status === 201) {
+        setAttemptStartedAt(response.data.payload?.started_at ?? null);
         setHasStartedExam(true);
       }
     };
@@ -204,7 +207,7 @@ export default function ParticipateTest() {
     const studentId = getStoredUserId();
     const defaults = createInitialExamAnswerState(test);
     const savedValues =
-      studentId && test.id ? (loadExamAnswersFromStorage(test.id, studentId) ?? undefined) : undefined;
+      studentId && test.id ? (loadExamAnswersFromStorage(test.id, studentId, attemptStartedAt) ?? undefined) : undefined;
 
     dispatch(
       hydrateExamAnswers({
@@ -213,7 +216,7 @@ export default function ParticipateTest() {
         savedValues,
       }),
     );
-  }, [dispatch, test]);
+  }, [attemptStartedAt, dispatch, test]);
 
   useEffect(() => {
     if (!test?.id) {
@@ -225,8 +228,8 @@ export default function ParticipateTest() {
       return;
     }
 
-    saveExamAnswersToStorage(test.id, studentId, answerState);
-  }, [answerState, test?.id]);
+    saveExamAnswersToStorage(test.id, studentId, answerState, attemptStartedAt);
+  }, [answerState, attemptStartedAt, test?.id]);
 
   useEffect(() => {
     return () => {
