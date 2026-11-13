@@ -8,7 +8,7 @@ import { OrganizationContextGuard } from 'src/organizations/guards/organization-
 import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.decorator';
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
-import { SaveScoreWeightsDto, ScoreWeightsQueryDto, SectionScoresQueryDto, UpdatePerformanceSettingsDto } from './dto/scores.dto';
+import { SaveScoreWeightsDto, ScoreWeightsQueryDto, SectionScoresQueryDto, StudentScoresQueryDto, UpdatePerformanceSettingsDto } from './dto/scores.dto';
 import { ScoreSettingsService } from './score-settings.service';
 import { ScoresService } from './scores.service';
 
@@ -18,7 +18,7 @@ const workspace = (): Tenant => {
   return tenant;
 };
 
-/** Scores, weights and performance settings (P7-02, PRF-01, PRF-07, PRF-10). Needs the `performance` feature. */
+/** Scores, weights and performance settings (P7-02, P7-03; PRF-01, PRF-05–07, PRF-10). Needs the `performance` feature. */
 @ApiTags('Scores')
 @ApiBearerAuth('jwt')
 @ApiHeader({ name: 'X-Organization-Id', required: false, description: 'Organisation workspace; empty = your own workspace' })
@@ -53,6 +53,18 @@ export class ScoresController {
   @ApiOperation({ summary: 'Change the at-risk limits or the position setting (owners and admins)' })
   async saveSettings(@Body() dto: UpdatePerformanceSettingsDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Settings saved', payload: await this.settings.saveSettings(workspace(), user, dto) };
+  }
+
+  @Get('sections')
+  @ApiOperation({ summary: "The sections of a session whose scores you see (owners, admins and staff all; a teacher the ones they look after), with the session's terms" })
+  async sections(@Query() query: ScoreWeightsQueryDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Sections retrieved successfully', payload: await this.scores.visibleSections(workspace(), user.id, query.session_id) };
+  }
+
+  @Get('students/:id')
+  @ApiOperation({ summary: "A student's performance: subjects, every exam and homework, trend per term, strengths; a student sees their own published results" })
+  async student(@Param('id', ParseUUIDPipe) id: string, @Query() query: StudentScoresQueryDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Performance retrieved successfully', payload: await this.scores.student(workspace(), user.id, id, query.section_id, query.term_id) };
   }
 
   @Get('sections/:id')

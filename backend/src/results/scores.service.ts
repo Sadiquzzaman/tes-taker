@@ -2,24 +2,29 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AcademicSessionsService } from 'src/academics/academic-sessions.service';
+import { AcademicSessionEntity, AcademicSessionStatusEnum } from 'src/academics/entities/academic-session.entity';
+import { SectionEntity } from 'src/academics/entities/section.entity';
 import { SectionsService } from 'src/academics/sections.service';
-import { AttendanceReportsService } from 'src/attendance/attendance-reports.service';
+import { AttendanceCounts } from 'src/attendance/attendance-report';
+import { AttendanceReportsService, StudentAttendance } from 'src/attendance/attendance-reports.service';
 import { Tenant } from 'src/common/tenancy/tenant-context';
 import { ExamResultsReadService } from 'src/exams/exam-results-read.service';
 import { OfflineExamsService } from 'src/exams/offline-exams.service';
-import { HomeworkScoresService } from 'src/homework/homework-scores.service';
+import { HomeworkScoreFact, HomeworkScoresService } from 'src/homework/homework-scores.service';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { OrgSettingsService, PerformanceSettings } from 'src/organizations/org-settings.service';
 import { GradingScaleService } from 'src/performance/grading-scale.service';
-import { Grade, gradeForPercentage } from 'src/performance/grading-scale.util';
-import { BehaviourService } from './behaviour.service';
+import { Grade, GradeBand, gradeForPercentage } from 'src/performance/grading-scale.util';
+import { BehaviourAverage, BehaviourService } from './behaviour.service';
 import { ScoreWeightEntity } from './entities/score-weight.entity';
 import { RESULTS_ERRORS } from './results-errors';
 import { DEFAULT_WEIGHTS, mean, positions, round2, ScoreParts, ScoreWeights, weightedScore } from './score-calc';
 
-const { OWNER, ADMIN, ASSISTANT, TEACHER } = OrganizationMemberRoleEnum;
+const { OWNER, ADMIN, ASSISTANT, TEACHER, STUDENT } = OrganizationMemberRoleEnum;
 /** Staff who see every section's scores; teachers see the sections they look after. */
 const MANAGERS = [OWNER, ADMIN, ASSISTANT];
+/** A subject needs this many scored items to count as a strength or weakness (PRF-06). */
+const MIN_ITEMS_FOR_STRENGTH = 3;
 
 export type AtRiskReason = 'SCORE' | 'ATTENDANCE' | 'MISSING_HOMEWORK';
 
@@ -30,14 +35,30 @@ export interface ScoreLine extends ScoreParts {
   counts: { exams: number; homework: number; ratings: number };
 }
 
+export interface SubjectLine extends ScoreLine {
+  subject: { id: string; name: string };
+}
+
 export interface StudentScore {
   student: { id: string; full_name: string; roll_no: string | null };
   overall: ScoreLine;
-  subjects: (ScoreLine & { subject: { id: string; name: string } })[];
+  subjects: SubjectLine[];
+  homework: { set: number; missing: number; late: number };
   missing_homework: number;
   at_risk: AtRiskReason[];
   /** Merit position in the section (PRF-10); null without a score. */
   position: number | null;
+}
+
+/** One exam of the period with the section's average, for the trend across exams (PRF-07). */
+export interface ExamSummary {
+  id: string;
+  kind: 'ONLINE' | 'PAPER';
+  name: string;
+  date: string;
+  subject_id: string | null;
+  average_pct: number | null;
+  taken: number;
 }
 
 export interface SectionScores {
@@ -45,13 +66,85 @@ export interface SectionScores {
   period: { from: string; to: string; term: { id: string; name: string } | null };
   weights: ScoreWeights & { is_default: boolean };
   thresholds: PerformanceSettings['at_risk'];
+  subjects: { id: string; name: string }[];
+  exams: ExamSummary[];
   students: StudentScore[];
 }
 
-/** An exam result as the scores count it: online or on paper, as a percentage. */
-interface ExamItem {
+export interface StudentExamItem {
+  id: string;
+  kind: 'ONLINE' | 'PAPER';
+  name: string;
+  date: string;
+  subject: { id: string; name: string } | null;
+  marks: number | null;
+  total: number;
+  percent: number | null;
+  is_absent: boolean;
+}
+
+export interface StudentPerformance {
+  student: { id: string; full_name: string; roll_no: string | null };
+  section: { id: string; name: string; class_name: string; session: { id: string; name: string; closed: boolean } };
+  /** Every section the student is or was in, newest session first (history, PRF-05). */
+  sections: { id: string; name: string; class_name: string; session: { id: string; name: string } }[];
+  terms: { id: string; name: string }[];
+  period: SectionScores['period'];
+  weights: SectionScores['weights'];
+  overall: ScoreLine;
+  subjects: SubjectLine[];
+  /** Null when the student may not see it (the organisation's show_rank setting). */
+  position: number | null;
+  class_size: number;
+  at_risk: AtRiskReason[];
+  attendance: { counts: AttendanceCounts; attendance_pct: number | null };
+  homework: StudentScore['homework'] & { on_time_pct: number | null };
+  exams: StudentExamItem[];
+  homework_items: { id: string; title: string; subject: { id: string; name: string } | null; due_date: string; percent: number; is_missing: boolean; is_late: boolean }[];
+  /** The overall score per term of the session, in order (PRF-05). */
+  trend: { term: { id: string; name: string }; score_pct: number | null }[];
+  /** The best and weakest subjects with at least 3 scored items (PRF-06; topics come with the syllabus, Epic 6). */
+  strengths: SubjectLine[];
+  weaknesses: SubjectLine[];
+  /** Results only students can see (published), as on their own page. */
+  published_only: boolean;
+}
+
+/** An exam result as the scores count it: online or on paper. */
+interface ExamFact {
+  exam_id: string;
+  kind: 'ONLINE' | 'PAPER';
+  name: string;
+  date: string;
   subject_id: string | null;
+  student_id: string;
+  marks: number | null;
+  total: number;
+  /** As counted: a missed paper exam is 0. */
   percent: number;
+  is_absent: boolean;
+}
+
+interface Context {
+  organizationId: string;
+  section: SectionEntity;
+  session: AcademicSessionEntity;
+  term: { id: string; name: string } | null;
+  terms: { id: string; name: string; start_date: string | null; end_date: string | null }[];
+  from: string;
+  to: string;
+  weights: ScoreWeights & { is_default: boolean };
+  settings: PerformanceSettings;
+  timeZone: string;
+  bands: GradeBand[];
+  offerings: { id: string; subject: { id: string; name: string } }[];
+}
+
+interface Facts {
+  exams: ExamFact[];
+  homework: HomeworkScoreFact[];
+  attendance: Map<string, StudentAttendance>;
+  behaviour: BehaviourAverage[];
 }
 
 /**
@@ -59,7 +152,8 @@ interface ExamItem {
  * exams (online and on paper), homework, attendance and behaviour, so they are always up to date.
  * Nothing is stored; report cards (P7-04) freeze a copy. A section's students for a term (or the
  * whole session), with the class's weights, per subject and overall, their merit positions and
- * whether they are at risk.
+ * whether they are at risk; and one student's page with every item, the trend across terms and
+ * their strongest and weakest subjects (P7-03).
  *
  * Which items count for a term: exams with that term, or without a term and held within its dates;
  * homework due, attendance and ratings within its dates. A paper exam a student missed counts as
@@ -90,16 +184,30 @@ export class ScoresService {
       : { ...DEFAULT_WEIGHTS, is_default: true };
   }
 
+  /**
+   * The sections of a session (the default one if none is given) whose scores the caller sees,
+   * with the session's terms: owners, admins and staff every section; a teacher those they look after.
+   */
+  async visibleSections(
+    tenant: Tenant,
+    userId: string,
+    sessionId?: string,
+  ): Promise<{ session: { id: string; name: string; closed: boolean }; terms: { id: string; name: string }[]; sections: { id: string; name: string; class_name: string }[] }> {
+    this.staffOnly(tenant);
+    const { session, sections } = await this.sections.listWithClasses(sessionId);
+    const mine = MANAGERS.includes(tenant.memberRole) ? null : await this.sections.sectionIdsTaughtBy(tenant.organizationId, session.id, userId);
+    const terms = await this.sessions.termsOf(tenant.organizationId, session.id);
+    return {
+      session: { id: session.id, name: session.name, closed: session.status === AcademicSessionStatusEnum.CLOSED },
+      terms: terms.map((term) => ({ id: term.id, name: term.name })),
+      sections: sections.filter((section) => !mine || mine.has(section.id)).map((section) => ({ id: section.id, name: section.name, class_name: section.class?.class_name ?? '' })),
+    };
+  }
+
   /** A section's scores for staff: owners, admins and staff any section; a teacher the sections they look after. */
   async section(tenant: Tenant, userId: string, sectionId: string, termId?: string): Promise<SectionScores> {
-    if (tenant.viaEnrolment || ![...MANAGERS, TEACHER].includes(tenant.memberRole)) {
-      throw new ForbiddenException({ message: 'Only staff of this workspace see scores', code: RESULTS_ERRORS.NOT_ALLOWED });
-    }
-    const [section] = await this.sections.findSectionsWithClasses(tenant.organizationId, [sectionId]);
-    if (!section || !section.session) throw new NotFoundException({ message: 'Section not found', code: RESULTS_ERRORS.NOT_FOUND });
-    if (!MANAGERS.includes(tenant.memberRole) && !(await this.sections.sectionIdsTaughtBy(tenant.organizationId, section.session_id, userId)).has(section.id)) {
-      throw new NotFoundException({ message: 'Section not found', code: RESULTS_ERRORS.NOT_FOUND });
-    }
+    this.staffOnly(tenant);
+    const section = await this.staffSection(tenant, userId, sectionId);
     return this.compute(tenant.organizationId, section.id, termId, false);
   }
 
@@ -108,21 +216,110 @@ export class ScoresService {
    * the students can already see (their own page, report cards).
    */
   async compute(organizationId: string, sectionId: string, termId: string | undefined, published: boolean): Promise<SectionScores> {
+    const ctx = await this.context(organizationId, sectionId, termId);
+    const roster = await this.sections.sectionResultsRoster(organizationId, ctx.section.id);
+    const facts = await this.facts(ctx, roster.map((s) => s.student_id), published);
+    const students: StudentScore[] = roster.map((student) => ({
+      student: { id: student.student_id, full_name: student.full_name, roll_no: student.roll_no },
+      ...this.score(ctx, facts, student.student_id),
+      position: null,
+    }));
+    const ranked = positions(students.map((s) => ({ id: s.student.id, score: s.overall.score_pct, exams: s.overall.exams_pct })));
+    for (const student of students) student.position = ranked.get(student.student.id) ?? null;
+
+    const byExam = new Map<string, ExamFact[]>();
+    for (const fact of facts.exams) byExam.set(`${fact.kind}:${fact.exam_id}`, [...(byExam.get(`${fact.kind}:${fact.exam_id}`) ?? []), fact]);
+    const exams: ExamSummary[] = [...byExam.values()]
+      .map((group) => {
+        const taken = group.filter((f) => !f.is_absent);
+        return { id: group[0].exam_id, kind: group[0].kind, name: group[0].name, date: group[0].date, subject_id: group[0].subject_id, average_pct: mean(taken.map((f) => f.percent)), taken: taken.length };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name));
+
+    return {
+      section: { id: ctx.section.id, name: ctx.section.name, class_id: ctx.section.class_id, class_name: ctx.section.class?.class_name ?? '', session_id: ctx.session.id },
+      period: { from: ctx.from, to: ctx.to, term: ctx.term },
+      weights: ctx.weights,
+      thresholds: ctx.settings.at_risk,
+      subjects: ctx.offerings.map((o) => o.subject),
+      exams,
+      students,
+    };
+  }
+
+  /**
+   * One student's performance page (PRF-05, PRF-06): their own (published results only; their
+   * position only when the organisation shows it), or for staff who see their section. Any of the
+   * student's sections, so earlier sessions stay reachable; their current one by default.
+   */
+  async student(tenant: Tenant, userId: string, studentId: string, sectionId?: string, termId?: string): Promise<StudentPerformance> {
+    const self = tenant.memberRole === STUDENT || Boolean(tenant.viaEnrolment);
+    if (self && studentId !== userId) throw new ForbiddenException({ message: 'Students see only their own results', code: RESULTS_ERRORS.NOT_ALLOWED });
+    if (!self) this.staffOnly(tenant);
+    const organizationId = tenant.organizationId;
+    const history = await this.sections.sectionsOfStudent(organizationId, studentId);
+    if (history.length === 0) throw new NotFoundException({ message: 'Student not found', code: RESULTS_ERRORS.NOT_FOUND });
+    const chosen = sectionId ? history.find((s) => s.id === sectionId) : (history.find((s) => s.session?.status !== AcademicSessionStatusEnum.CLOSED) ?? history[0]);
+    if (!chosen) throw new NotFoundException({ message: 'Section not found', code: RESULTS_ERRORS.NOT_FOUND });
+    if (!self) await this.staffSection(tenant, userId, chosen.id);
+
+    const scores = await this.compute(organizationId, chosen.id, termId, self);
+    const own = scores.students.find((s) => s.student.id === studentId);
+    if (!own) throw new NotFoundException({ message: 'Student not found', code: RESULTS_ERRORS.NOT_FOUND });
+    const ctx = await this.context(organizationId, chosen.id, termId);
+    const facts = await this.facts(ctx, [studentId], self);
+    const subjectOf = (id: string | null) => ctx.offerings.find((o) => o.subject.id === id)?.subject ?? null;
+
+    const trend: StudentPerformance['trend'] = [];
+    for (const term of ctx.terms) {
+      const termCtx = await this.context(organizationId, chosen.id, term.id);
+      trend.push({ term: { id: term.id, name: term.name }, score_pct: this.score(termCtx, await this.facts(termCtx, [studentId], self), studentId).overall.score_pct });
+    }
+    const ranked = own.subjects.filter((s) => s.score_pct !== null && s.counts.exams + s.counts.homework >= MIN_ITEMS_FOR_STRENGTH).sort((a, b) => b.score_pct! - a.score_pct!);
+    const attendance = facts.attendance.get(studentId) ?? { counts: { present: 0, late: 0, absent: 0, leave: 0 }, attendance_pct: null };
+    const handedIn = own.homework.set - own.homework.missing;
+
+    return {
+      student: own.student,
+      section: {
+        id: chosen.id,
+        name: chosen.name,
+        class_name: chosen.class?.class_name ?? '',
+        session: { id: ctx.session.id, name: ctx.session.name, closed: ctx.session.status === AcademicSessionStatusEnum.CLOSED },
+      },
+      sections: history.map((s) => ({ id: s.id, name: s.name, class_name: s.class?.class_name ?? '', session: { id: s.session?.id ?? s.session_id, name: s.session?.name ?? '' } })),
+      terms: ctx.terms.map((t) => ({ id: t.id, name: t.name })),
+      period: scores.period,
+      weights: scores.weights,
+      overall: own.overall,
+      subjects: own.subjects,
+      position: !self || ctx.settings.show_rank ? own.position : null,
+      class_size: scores.students.length,
+      at_risk: self ? [] : own.at_risk,
+      attendance,
+      homework: { ...own.homework, on_time_pct: own.homework.set ? round2(((handedIn - own.homework.late) / own.homework.set) * 100) : null },
+      exams: facts.exams
+        .map((f) => ({ id: f.exam_id, kind: f.kind, name: f.name, date: f.date, subject: subjectOf(f.subject_id), marks: f.marks, total: f.total, percent: f.is_absent ? null : f.percent, is_absent: f.is_absent }))
+        .sort((a, b) => b.date.localeCompare(a.date)),
+      homework_items: facts.homework
+        .map((h) => ({ id: h.homework_id, title: h.title, subject: subjectOf(h.subject_id), due_date: h.due_date, percent: h.percent, is_missing: h.is_missing, is_late: h.is_late }))
+        .sort((a, b) => b.due_date.localeCompare(a.due_date)),
+      trend,
+      strengths: ranked.slice(0, 3),
+      weaknesses: ranked.length > 3 ? ranked.slice(-3).reverse() : [],
+      published_only: self,
+    };
+  }
+
+  // ------------------------------------------------------------------ helpers
+
+  private async context(organizationId: string, sectionId: string, termId: string | undefined): Promise<Context> {
     const [section] = await this.sections.findSectionsWithClasses(organizationId, [sectionId]);
     if (!section || !section.session) throw new NotFoundException({ message: 'Section not found', code: RESULTS_ERRORS.NOT_FOUND });
     const session = section.session;
-    let term: { id: string; name: string; start_date: string | null; end_date: string | null } | null = null;
-    if (termId) {
-      term = (await this.sessions.termsOf(organizationId, session.id)).find((t) => t.id === termId) ?? null;
-      if (!term) throw new NotFoundException({ message: 'Term not found', code: RESULTS_ERRORS.NOT_FOUND });
-    }
-    const from = term?.start_date ?? session.start_date;
-    const to = term?.end_date ?? session.end_date;
-    const inPeriod = (date: string) => date >= from && date <= to;
-    const counts = (item: { term_id: string | null; date: string }) => (term ? item.term_id === term.id || (item.term_id === null && inPeriod(item.date)) : inPeriod(item.date));
-
-    const roster = (await this.sections.activeStudentsOfSections(organizationId, [section.id])).get(section.id) ?? [];
-    const ids = roster.map((s) => s.student_id);
+    const terms = (await this.sessions.termsOf(organizationId, session.id)).map((t) => ({ id: t.id, name: t.name, start_date: t.start_date, end_date: t.end_date }));
+    const term = termId ? (terms.find((t) => t.id === termId) ?? null) : null;
+    if (termId && !term) throw new NotFoundException({ message: 'Term not found', code: RESULTS_ERRORS.NOT_FOUND });
     const [weights, settings, timeZone, scale, offerings] = await Promise.all([
       this.weightsFor(organizationId, session.id, section.class_id),
       this.orgSettings.getPerformance(organizationId),
@@ -130,6 +327,26 @@ export class ScoresService {
       this.grading.getScale(organizationId),
       this.sections.offeringsOfSection(organizationId, section.id),
     ]);
+    return {
+      organizationId,
+      section,
+      session,
+      term: term ? { id: term.id, name: term.name } : null,
+      terms,
+      from: term?.start_date ?? session.start_date,
+      to: term?.end_date ?? session.end_date,
+      weights,
+      settings,
+      timeZone,
+      bands: scale.bands,
+      offerings,
+    };
+  }
+
+  private async facts(ctx: Context, ids: string[], published: boolean): Promise<Facts> {
+    const inPeriod = (date: string) => date >= ctx.from && date <= ctx.to;
+    const counts = (termId: string | null, date: string) => (ctx.term ? termId === ctx.term.id || (termId === null && inPeriod(date)) : inPeriod(date));
+    const { organizationId, session, from, to, timeZone } = ctx;
     // Exams are read for the whole session, then kept by the term rule (a term's exam may fall outside its dates).
     const [paper, online, homework, attendance, behaviour] = await Promise.all([
       this.offlineExams.marksOf(organizationId, ids, session.start_date, session.end_date, published),
@@ -138,69 +355,75 @@ export class ScoresService {
       this.attendance.studentAttendance(organizationId, ids, from, to),
       this.behaviour.averagesOf(organizationId, ids, from, to),
     ]);
-
-    const exams = new Map<string, ExamItem[]>(ids.map((id) => [id, []]));
-    for (const mark of paper) {
-      if (!counts({ term_id: mark.term_id, date: mark.exam_date })) continue;
-      if (mark.is_absent) exams.get(mark.student_id)?.push({ subject_id: mark.subject_id, percent: 0 });
-      else if (mark.percent !== null) exams.get(mark.student_id)?.push({ subject_id: mark.subject_id, percent: mark.percent });
+    const exams: ExamFact[] = [];
+    for (const m of paper) {
+      if (!counts(m.term_id, m.exam_date) || (!m.is_absent && m.percent === null)) continue;
+      exams.push({ exam_id: m.exam_id, kind: 'PAPER', name: m.name, date: m.exam_date, subject_id: m.subject_id, student_id: m.student_id, marks: m.marks, total: m.total_marks, percent: m.is_absent ? 0 : m.percent!, is_absent: m.is_absent });
     }
-    for (const result of online) {
-      if (counts({ term_id: result.term_id, date: result.exam_date })) exams.get(result.student_id)?.push({ subject_id: result.subject_id, percent: result.percent });
+    for (const r of online) {
+      if (!counts(r.term_id, r.exam_date)) continue;
+      exams.push({ exam_id: r.exam_id, kind: 'ONLINE', name: r.name, date: r.exam_date, subject_id: r.subject_id, student_id: r.student_id, marks: r.score, total: r.max_score, percent: r.percent, is_absent: false });
     }
+    return { exams, homework, attendance, behaviour };
+  }
 
-    const line = (items: ExamItem[], work: typeof homework, ratings: typeof behaviour, attendancePct: number | null, subject: boolean): ScoreLine => {
-      const ratingCount = ratings.reduce((sum, r) => sum + r.ratings, 0);
+  private score(ctx: Context, facts: Facts, studentId: string): Omit<StudentScore, 'student' | 'position'> {
+    const items = facts.exams.filter((f) => f.student_id === studentId);
+    const work = facts.homework.filter((w) => w.student_id === studentId);
+    const ratings = facts.behaviour.filter((r) => r.student_id === studentId);
+    const attendancePct = facts.attendance.get(studentId)?.attendance_pct ?? null;
+
+    const line = (exams: ExamFact[], hw: HomeworkScoreFact[], rated: BehaviourAverage[], subject: boolean): ScoreLine => {
+      const ratingCount = rated.reduce((sum, r) => sum + r.ratings, 0);
       const parts: ScoreParts = {
-        exams_pct: mean(items.map((i) => i.percent)),
-        homework_pct: mean(work.map((w) => w.percent)),
+        exams_pct: mean(exams.map((e) => e.percent)),
+        homework_pct: mean(hw.map((w) => w.percent)),
         attendance_pct: attendancePct,
-        behaviour_pct: ratingCount ? round2((ratings.reduce((sum, r) => sum + r.average * r.ratings, 0) / ratingCount / 5) * 100) : null,
+        behaviour_pct: ratingCount ? round2((rated.reduce((sum, r) => sum + r.average * r.ratings, 0) / ratingCount / 5) * 100) : null,
       };
       // A subject with nothing of its own yet has no score (attendance alone is not a subject's score).
       const empty = subject && parts.exams_pct === null && parts.homework_pct === null && parts.behaviour_pct === null;
-      const score = empty ? null : weightedScore(parts, weights);
-      return { ...parts, score_pct: score, grade: gradeForPercentage(scale.bands, score), counts: { exams: items.length, homework: work.length, ratings: ratingCount } };
+      const score = empty ? null : weightedScore(parts, ctx.weights);
+      return { ...parts, score_pct: score, grade: gradeForPercentage(ctx.bands, score), counts: { exams: exams.length, homework: hw.length, ratings: ratingCount } };
     };
 
-    const students: StudentScore[] = roster.map((student) => {
-      const items = exams.get(student.student_id) ?? [];
-      const work = homework.filter((w) => w.student_id === student.student_id);
-      const ratings = behaviour.filter((r) => r.student_id === student.student_id);
-      const attendancePct = attendance.get(student.student_id)?.attendance_pct ?? null;
-      const overall = line(items, work, ratings, attendancePct, false);
-      const missing = work.filter((w) => w.is_missing).length;
-      const atRisk: AtRiskReason[] = [];
-      if (overall.score_pct !== null && overall.score_pct < settings.at_risk.score_pct) atRisk.push('SCORE');
-      if (attendancePct !== null && attendancePct < settings.at_risk.attendance_pct) atRisk.push('ATTENDANCE');
-      if (missing >= settings.at_risk.missing_homework) atRisk.push('MISSING_HOMEWORK');
-      return {
-        student: { id: student.student_id, full_name: student.full_name, roll_no: student.roll_no },
-        overall,
-        subjects: offerings.map((offering) => ({
-          subject: offering.subject,
-          ...line(
-            items.filter((i) => i.subject_id === offering.subject.id),
-            work.filter((w) => w.subject_id === offering.subject.id),
-            ratings.filter((r) => r.offering_id === offering.id),
-            attendancePct,
-            true,
-          ),
-        })),
-        missing_homework: missing,
-        at_risk: atRisk,
-        position: null,
-      };
-    });
-    const ranked = positions(students.map((s) => ({ id: s.student.id, score: s.overall.score_pct, exams: s.overall.exams_pct })));
-    for (const student of students) student.position = ranked.get(student.student.id) ?? null;
-
+    const overall = line(items, work, ratings, false);
+    const missing = work.filter((w) => w.is_missing).length;
+    const atRisk: AtRiskReason[] = [];
+    const limits = ctx.settings.at_risk;
+    if (overall.score_pct !== null && overall.score_pct < limits.score_pct) atRisk.push('SCORE');
+    if (attendancePct !== null && attendancePct < limits.attendance_pct) atRisk.push('ATTENDANCE');
+    if (missing >= limits.missing_homework) atRisk.push('MISSING_HOMEWORK');
     return {
-      section: { id: section.id, name: section.name, class_id: section.class_id, class_name: section.class?.class_name ?? '', session_id: session.id },
-      period: { from, to, term: term ? { id: term.id, name: term.name } : null },
-      weights,
-      thresholds: settings.at_risk,
-      students,
+      overall,
+      subjects: ctx.offerings.map((offering) => ({
+        subject: offering.subject,
+        ...line(
+          items.filter((i) => i.subject_id === offering.subject.id),
+          work.filter((w) => w.subject_id === offering.subject.id),
+          ratings.filter((r) => r.offering_id === offering.id),
+          true,
+        ),
+      })),
+      homework: { set: work.length, missing, late: work.filter((w) => w.is_late && !w.is_missing).length },
+      missing_homework: missing,
+      at_risk: atRisk,
     };
+  }
+
+  private staffOnly(tenant: Tenant): void {
+    if (tenant.viaEnrolment || ![...MANAGERS, TEACHER].includes(tenant.memberRole)) {
+      throw new ForbiddenException({ message: 'Only staff of this workspace see scores', code: RESULTS_ERRORS.NOT_ALLOWED });
+    }
+  }
+
+  /** A section staff may see: any for owners, admins and staff; a teacher the ones they look after (404 otherwise). */
+  private async staffSection(tenant: Tenant, userId: string, sectionId: string): Promise<SectionEntity> {
+    const [section] = await this.sections.findSectionsWithClasses(tenant.organizationId, [sectionId]);
+    if (!section || !section.session) throw new NotFoundException({ message: 'Section not found', code: RESULTS_ERRORS.NOT_FOUND });
+    if (!MANAGERS.includes(tenant.memberRole) && !(await this.sections.sectionIdsTaughtBy(tenant.organizationId, section.session_id, userId)).has(section.id)) {
+      throw new NotFoundException({ message: 'Section not found', code: RESULTS_ERRORS.NOT_FOUND });
+    }
+    return section;
   }
 }
