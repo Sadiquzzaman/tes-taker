@@ -97,6 +97,8 @@ export const AUDIT_ACTIONS = {
   OFFLINE_EXAM_REMOVE: 'offline_exam.remove',
   OFFLINE_EXAM_PUBLISH: 'offline_exam.publish',
   OFFLINE_EXAM_MARKS: 'offline_exam.marks',
+  BEHAVIOUR_CRITERIA: 'behaviour.criteria',
+  BEHAVIOUR_RATE: 'behaviour.rate',
   EVENT_CREATE: 'event.create',
   EVENT_UPDATE: 'event.update',
   EVENT_CANCEL: 'event.cancel',

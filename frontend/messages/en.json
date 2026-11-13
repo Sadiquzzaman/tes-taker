@@ -65,7 +65,8 @@
     "routine": "Routine",
     "calendar": "Calendar",
     "today": "Today",
-    "marks": "Paper exams"
+    "marks": "Paper exams",
+    "behaviour": "Behaviour"
   },
   "shell": {
     "organization": "Organization",
@@ -4581,6 +4582,47 @@
       "CLASS_REQUIRED": "Choose the subject and [[section]].",
       "NAME_REQUIRED": "Give the exam a name.",
       "TOTAL_REQUIRED": "Enter the total marks."
+    }
+  },
+  "behaviour": {
+    "title": "Behaviour",
+    "intro": "Rate each student from 1 (needs help) to 5 (excellent) for a lesson. Rate as often as you like: the term's average counts towards the score.",
+    "criteria": "Criteria",
+    "subjectClass": "Subject and section",
+    "date": "Day",
+    "loadFailed": "Couldn't load behaviour ratings.",
+    "noClasses": "No subject classes yet",
+    "noClassesHint": "You can rate behaviour in the subject classes you teach.",
+    "gridCaption": "Behaviour ratings",
+    "student": "Student",
+    "remark": "Remark",
+    "ratingFor": "{criterion} for {name}",
+    "remarkFor": "Remark for {name}",
+    "noStudents": "No students take this subject class yet.",
+    "scale": "1 needs help · 2 fair · 3 good · 4 very good · 5 excellent. A rating once given can be changed but not cleared.",
+    "unsaved": "{count, plural, =0 {No changes} one {# change not saved} other {# changes not saved}}",
+    "save": "Save ratings",
+    "saved": "Ratings saved",
+    "readOnly": "You can see these ratings but not change them.",
+    "criteriaSaved": "Criteria saved",
+    "criteriaTitle": "Behaviour criteria",
+    "criteriaIntro": "What teachers rate, in English and Bangla. A criterion you take off is kept for the ratings already given.",
+    "criterionNumber": "Criterion {number}",
+    "nameEn": "Name {number} (English)",
+    "nameBn": "Name {number} (Bangla)",
+    "removeCriterion": "Remove criterion {number}",
+    "addCriterion": "Add a criterion",
+    "retireHint": "Up to 10 criteria.",
+    "cancel": "Cancel",
+    "saveCriteria": "Save criteria",
+    "errors": {
+      "RESULTS_NOT_ALLOWED": "You can't rate behaviour in this subject class.",
+      "RESULTS_NOT_FOUND": "This subject class wasn't found.",
+      "RESULTS_SESSION_CLOSED": "The session is closed, so its ratings can't change.",
+      "RESULTS_CRITERIA_INVALID": "Each criterion needs a different name in English and in Bangla.",
+      "RESULTS_RATING_INVALID": "Ratings are 1 to 5, for today or an earlier day.",
+      "RESULTS_REMARK_NEEDS_RATING": "Give at least one rating with a remark.",
+      "RESULTS_STUDENT_NOT_IN_CLASS": "A student no longer takes this subject class. Reload and try again."
     }
   }
 }
