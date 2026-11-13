@@ -12,6 +12,7 @@ import { useToast } from "@/component/Toast/ToastContext";
 import { useApiError } from "@/hooks/api/useApiError";
 import { sumExamMarks } from "@/utils/exam/examMarks";
 import { getStoredUser } from "@/lib/authSession";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 
 const countQuestions = (subjects: StudentExamSubject[]) =>
   subjects.reduce(
@@ -30,6 +31,7 @@ const questionsIn = (subject: StudentExamSubject) =>
 /** A teacher's test: status, schedule, marks, subjects; edit, enable/disable and grade. */
 const ExamDetails = ({ examId }: { examId: string }) => {
   const t = useTranslations("tests");
+  const { memberRole } = useWorkspace();
   const format = useFormat();
   const router = useRouter();
   const [confirmDisable, setConfirmDisable] = useState(false);
@@ -79,6 +81,8 @@ const ExamDetails = ({ examId }: { examId: string }) => {
   }, [sessionClosed, startAt]);
 
   const canGradeTest = !sessionClosed && Boolean(exam?.created_by) && exam?.created_by === getStoredUser()?.id;
+  // The live monitor (P8-03): the teacher who made the test, or the school's owners and admins.
+  const canMonitor = (Boolean(exam?.created_by) && exam?.created_by === getStoredUser()?.id) || memberRole === "OWNER" || memberRole === "ADMIN";
 
   const handleToggleStatus = useCallback(async () => {
     if (!exam) {
@@ -163,6 +167,11 @@ const ExamDetails = ({ examId }: { examId: string }) => {
         }
         actions={
           <>
+            {canMonitor && exam.status !== "completed" ? (
+              <Link href={`/tests/${exam.id}/monitor`} className={buttonClasses({ variant: exam.status === "ongoing" ? "primary" : "secondary" })}>
+                {t("details.monitor")}
+              </Link>
+            ) : null}
             {canGradeTest ? (
               <Link href={`/grading/details/${exam.id}`} className={buttonClasses({ variant: "secondary" })}>
                 {t("card.grade")}

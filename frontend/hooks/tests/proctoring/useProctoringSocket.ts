@@ -13,7 +13,14 @@ const useProctoringSocket = ({
   flags,
   isEnabled,
   totalFlagPoints,
+  onTeacherWarning,
+  onExamEnded,
 }: UseProctoringSocketOptions): UseProctoringSocketResult => {
+  // The latest handlers, so the socket is not rebuilt when they change.
+  const teacherHandlers = useRef({ onTeacherWarning, onExamEnded });
+  useEffect(() => {
+    teacherHandlers.current = { onTeacherWarning, onExamEnded };
+  });
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isSessionReady, setIsSessionReady] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -158,6 +165,9 @@ const useProctoringSocket = ({
       setIsSessionReady(false);
       emitExamJoin(nextSocket);
     });
+
+    nextSocket.on("proctor:warning", (warning: { message: string; from: string }) => teacherHandlers.current.onTeacherWarning?.(warning));
+    nextSocket.on("exam:ended", (event: { reason: string }) => teacherHandlers.current.onExamEnded?.(event.reason));
 
     nextSocket.on("session:ready", () => {
       setConnectionError(null);
