@@ -38,6 +38,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { FilesModule } from './files/files.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { HomeworkModule } from './homework/homework.module';
+import { ResultsModule } from './results/results.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { CalendarFeedModule } from './calendar-feed/calendar-feed.module';
 
@@ -114,6 +115,7 @@ import { CalendarFeedModule } from './calendar-feed/calendar-feed.module';
     CalendarFeedModule,
     AttendanceModule,
     HomeworkModule,
+    ResultsModule,
   ],
   controllers: [AppController],
   providers: [

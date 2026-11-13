@@ -1159,24 +1159,37 @@ Table score_weights {
 
 Table behaviour_criteria {
   id uuid [pk]
-  organization_id uuid [not null]
-  name_bn varchar(80)
-  name_en varchar(80)
-  is_active boolean
-  Note: 'NEW (PRF-04)'
+  organization_id uuid [not null, ref: > organizations.id]
+  name_en varchar(80) [not null]
+  name_bn varchar(80) [not null]
+  sort_order smallint [not null, default: 0]
+  is_active boolean [not null, default: true]
+  created_by uuid
+  created_at timestamptz [not null]
+  retired_at timestamptz [note: 'taken off the list; past ratings still count']
+  retired_by uuid
+  Indexes {
+    (organization_id, is_active)
+  }
+  Note: 'NEW (PRF-04), BUILT P7-01 (results module, migration BehaviourRatings); defaults Participation, Discipline, Attentiveness'
 }
 
 Table behaviour_ratings {
   id uuid [pk]
   organization_id uuid [not null]
-  offering_id uuid [ref: > course_offerings.id]
+  offering_id uuid [not null, ref: > course_offerings.id]
   student_id uuid [not null, ref: > users.id]
   criterion_id uuid [not null, ref: > behaviour_criteria.id]
-  rating smallint [note: '1..5']
-  remark varchar(300)
-  rated_on date
+  rating smallint [not null, note: 'check 1..5']
+  remark varchar(300) [note: 'the day\'s remark, kept on each of that day\'s ratings']
+  rated_on date [not null, note: 'school day; today or earlier']
   rated_by uuid [ref: > users.id]
-  Note: 'NEW (PRF-04)'
+  rated_at timestamptz [not null]
+  Indexes {
+    (offering_id, student_id, criterion_id, rated_on) [unique]
+    (organization_id, student_id, rated_on)
+  }
+  Note: 'NEW (PRF-04), BUILT P7-01; every change is in audit_logs (behaviour.rate)'
 }
 
 Table student_term_scores {

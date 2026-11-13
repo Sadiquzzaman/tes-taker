@@ -22,6 +22,7 @@ import { HomeworkSubmissions1756280000000 } from '../../src/migrations/175628000
 import { Events1756310000000 } from '../../src/migrations/1756310000000-Events';
 import { HomeworkScores1756290000000 } from '../../src/migrations/1756290000000-HomeworkScores';
 import { OfflineExams1756350000000 } from '../../src/migrations/1756350000000-OfflineExams';
+import { BehaviourRatings1756360000000 } from '../../src/migrations/1756360000000-BehaviourRatings';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
 import { factories } from '../support/factories';
@@ -130,7 +131,10 @@ describe('AcademicStructure migration', () => {
     const events = new Events1756310000000();
     // Paper exams (P7-01) point at sessions, terms and subject classes: down first, back last.
     const offlineExams = new OfflineExams1756350000000();
+    // Behaviour ratings (P7-01) point at subject classes: down first, back last.
+    const behaviour = new BehaviourRatings1756360000000();
     try {
+      await behaviour.down(runner);
       await offlineExams.down(runner);
       await events.down(runner);
       await scores.down(runner);
@@ -174,6 +178,7 @@ describe('AcademicStructure migration', () => {
       await new ClassSessionChanges1756300000000().up(runner);
       await events.up(runner);
       await offlineExams.up(runner);
+      await behaviour.up(runner);
     } finally {
       await runner.release();
     }

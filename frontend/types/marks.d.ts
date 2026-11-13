@@ -58,3 +58,18 @@ interface MyPaperResult {
   percent: number | null;
   grade: { grade: string; gpa: number | null } | null;
 }
+
+/** Behaviour ratings (P7-01, PRF-04): `GET /behaviour/criteria`, `/behaviour/grid`. */
+interface BehaviourCriterion {
+  id: string;
+  name_en: string;
+  name_bn: string;
+}
+
+interface BehaviourGrid {
+  offering: { id: string; subject: { id: string; name: string }; section: { id: string; name: string; class_name: string | null } };
+  date: string;
+  criteria: BehaviourCriterion[];
+  rows: { student: { id: string; full_name: string; roll_no: string | null }; ratings: Record<string, number>; remark: string | null }[];
+  can_edit: boolean;
+}
