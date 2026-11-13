@@ -1,5 +1,6 @@
 import { PROCTORING_CONFIG } from "@/utils/tests/proctoringConfig";
 import { getProctoringFlagCount, getProctoringRiskLevel, PROCTORING_FLAG_POINTS } from "@/utils/tests/proctoring";
+import { countsTowardsLimit } from "@/utils/tests/proctoringLevel";
 import type { RootState } from "@/lib/store";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 
@@ -17,6 +18,10 @@ const initialState: ProctoringState = {
   activeCountdown: null,
   disqualificationReason: null,
   enableAutoDisqualification: true,
+  disqualifyThreshold: PROCTORING_CONFIG.disqualifyAfter,
+  disqualifyWarnAt: Math.ceil(PROCTORING_CONFIG.disqualifyAfter * 0.6),
+  countedChecks: null,
+  countedFlags: 0,
 };
 
 const createFlagId = () => {
@@ -50,16 +55,22 @@ const addPenaltyFlag = (state: ProctoringState, payload: AddProctoringFlagPayloa
   state.totalPenaltyPoints += points;
   syncDerivedState(state);
 
-  if (PROCTORING_CONFIG.enableFlagging) {
+  if (state.enableAutoDisqualification && countsTowardsLimit(payload.type, state.countedChecks)) {
+    state.countedFlags += 1;
+  }
+  const reachedWarning = state.enableAutoDisqualification && state.countedFlags === state.disqualifyWarnAt && state.countedFlags < state.disqualifyThreshold;
+
+  if (PROCTORING_CONFIG.enableFlagging || reachedWarning) {
     state.pendingWarning = {
       type: payload.type,
       message: payload.message,
       flagCount: state.flags.length,
+      ...(reachedWarning ? { limit: { count: state.countedFlags, threshold: state.disqualifyThreshold } } : {}),
     };
     state.isWarningBlocking = true;
   }
 
-  if (state.flags.length >= PROCTORING_CONFIG.disqualifyAfter && state.enableAutoDisqualification) {
+  if (state.enableAutoDisqualification && state.countedFlags >= state.disqualifyThreshold) {
     state.isDisqualified = true;
     state.disqualificationReason = "Maximum allowed violations exceeded.";
     state.isWarningBlocking = false;
@@ -101,9 +112,29 @@ export const proctoringSlice = createSlice({
     setProctoringCountdown: (state, action: PayloadAction<ProctoringCountdownState | null>) => {
       state.activeCountdown = action.payload;
     },
-    resetProctoring: () => ({ ...initialState, flags: [] }),
-    setProctoringFeatures: (state, action: PayloadAction<{ enableAutoDisqualification?: boolean }>) => {
-      if (action.payload.enableAutoDisqualification !== undefined) {
+    // A new start keeps the exam's rule (set once from its settings), not the old flags.
+    resetProctoring: (state) => ({
+      ...initialState,
+      flags: [],
+      enableAutoDisqualification: state.enableAutoDisqualification,
+      disqualifyThreshold: state.disqualifyThreshold,
+      disqualifyWarnAt: state.disqualifyWarnAt,
+      countedChecks: state.countedChecks,
+    }),
+    setProctoringFeatures: (
+      state,
+      action: PayloadAction<{ enableAutoDisqualification?: boolean; autoDisqualify?: { threshold: number; warn_at: number; checks: string[] } | null }>,
+    ) => {
+      if (action.payload.autoDisqualify !== undefined) {
+        // The exam's own rule (P8-01): off, or this many flags of these checks.
+        const rule = action.payload.autoDisqualify;
+        state.enableAutoDisqualification = Boolean(rule);
+        if (rule) {
+          state.disqualifyThreshold = rule.threshold;
+          state.disqualifyWarnAt = rule.warn_at;
+          state.countedChecks = rule.checks;
+        }
+      } else if (action.payload.enableAutoDisqualification !== undefined) {
         state.enableAutoDisqualification = action.payload.enableAutoDisqualification;
       }
     },

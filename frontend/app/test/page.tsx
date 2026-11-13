@@ -16,6 +16,7 @@ import useStartStudentExam from "@/hooks/api/exam/useStartStudentExam";
 import useStudentExam from "@/hooks/api/exam/useStudentExam";
 import useSubmitAnswersheet from "@/hooks/api/tests/useSubmitAnswersheet";
 import useExamFullscreen from "@/hooks/tests/proctoring/useExamFullscreen";
+import { proctoringFeaturesOf } from "@/utils/tests/proctoringLevel";
 import useProctoring from "@/hooks/tests/proctoring/useProctoring";
 import useProctoringSocket from "@/hooks/tests/proctoring/useProctoringSocket";
 import { useIsClient } from "@/hooks/useBrowserStorage";
@@ -38,7 +39,7 @@ import { createInitialExamAnswerState } from "@/utils/tests/studentExamAnswers";
 import { loadExamAnswersFromStorage, saveExamAnswersToStorage } from "@/utils/tests/examAnswerStorage";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import ExamLoading from "@/component/Tests/exam/ExamLoading";
 
 const getStoredUserId = () => {
@@ -102,8 +103,12 @@ export default function ParticipateTest() {
     messageVariant: eligibilityMessageVariant,
   } = useExamEligibility(testId, isMounted && Boolean(testId));
 
-  const isExamPageReady =
-    isMounted && Boolean(testId) && isExamPermissionsComplete() && isMediaStreamActive(initialMediaStream);
+  // The exam's proctoring (P8-01): until it is known, assume the camera (as before P8).
+  const proctoring = eligibility?.proctoring ?? null;
+  const needsCamera = proctoring ? proctoring.camera : true;
+  const hasMedia = !needsCamera || isMediaStreamActive(initialMediaStream);
+  const isExamPageReady = isMounted && Boolean(testId) && isExamPermissionsComplete() && eligibilityChecked && hasMedia;
+  const proctoringFeatures = useMemo(() => (proctoring ? proctoringFeaturesOf(proctoring) : undefined), [proctoring]);
 
   const {
     examData: test,
@@ -120,6 +125,9 @@ export default function ParticipateTest() {
     doubleDisplayTimeoutSeconds: PROCTORING_CONFIG.doubleDisplayTimeout,
     initialMediaStream,
     skipAutoSetup: Boolean(initialMediaStream),
+    proctoringFeatures,
+    autoDisqualify: proctoring ? proctoring.auto_disqualify : undefined,
+    needsCamera,
   });
 
   const { connectToSocket, emitExamSubmit, connectionError } = useProctoringSocket({
@@ -136,7 +144,9 @@ export default function ParticipateTest() {
   const isExamActive =
     isMounted && Boolean(testId) && isProctoringReady && !proctoringState.isDisqualified && !submitLoading;
 
-  const { needsFullscreen, restoreFullscreen } = useExamFullscreen(isExamActive);
+  // Full screen is asked for only when leaving it is watched.
+  const watchesFullscreen = proctoring ? proctoring.checks.includes("proctoring_fullscreen_exit") : true;
+  const { needsFullscreen, restoreFullscreen } = useExamFullscreen(isExamActive && watchesFullscreen);
 
   const handleExamSurfaceClick = () => {
     if (needsFullscreen) {
@@ -344,7 +354,7 @@ export default function ParticipateTest() {
     </>
   );
 
-  if (!isMediaStreamActive(initialMediaStream)) {
+  if (eligibilityChecked && !hasMedia) {
     return (
       <div className="flex h-screen flex-col overflow-hidden">
         <ExamHeader />

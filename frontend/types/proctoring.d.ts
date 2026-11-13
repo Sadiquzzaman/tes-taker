@@ -32,6 +32,8 @@ type ProctoringWarningState = {
   type: ProctoringFlagType;
   message: string;
   flagCount: number;
+  /** Set when this flag reached the warning point: counted flags so far and the limit (PRO-02). */
+  limit?: { count: number; threshold: number };
 };
 
 type ProctoringFlag = {
@@ -59,6 +61,12 @@ interface ProctoringState extends ProctoringSummary {
   activeCountdown: ProctoringCountdownState | null;
   disqualificationReason: string | null;
   enableAutoDisqualification: boolean;
+  /** The exam's limit (P8-01): flags of the counted checks; warned at `warnAt`. */
+  disqualifyThreshold: number;
+  disqualifyWarnAt: number;
+  /** Checks whose flags count; null = every flag. */
+  countedChecks: string[] | null;
+  countedFlags: number;
 }
 
 interface AddProctoringFlagPayload {
@@ -85,6 +93,10 @@ interface UseProctoringOptions {
   initialMediaStream?: MediaStream | null;
   skipAutoSetup?: boolean;
   proctoringFeatures?: Record<string, boolean>;
+  /** The exam's limit for auto-disqualification (P8-01); null = never automatic. */
+  autoDisqualify?: { threshold: number; warn_at: number; checks: string[] } | null;
+  /** Whether this exam uses the camera and microphone (Strict); false = no media is requested. */
+  needsCamera?: boolean;
 }
 
 interface UseProctoringResult {
@@ -148,4 +160,31 @@ interface Screen {
 interface Window {
   getScreenDetails?: () => Promise<{ screens: readonly unknown[] }>;
   webkitAudioContext?: typeof AudioContext;
+}
+
+/** Proctoring level per exam (P8-01, PRO-01, PRO-02). */
+type ProctoringLevel = "OFF" | "LIGHT" | "STRICT";
+
+/** What a teacher chose; check keys are plan feature keys (e.g. proctoring_idle). */
+interface ExamProctoringChoice {
+  level: ProctoringLevel;
+  checks_off: string[];
+  auto_disqualify: boolean;
+  disqualify_threshold: number;
+  disqualify_checks: string[] | null;
+}
+
+/** `GET /exams/proctoring-options`: what the workspace's plan offers. */
+interface ProctoringOptions {
+  levels: { level: ProctoringLevel; available: boolean; checks: string[] }[];
+  auto_disqualify_available: boolean;
+  default_level: ProctoringLevel;
+}
+
+/** What the student's browser runs (`proctoring` in the eligibility check). */
+interface EffectiveProctoring {
+  level: ProctoringLevel;
+  checks: string[];
+  camera: boolean;
+  auto_disqualify: { threshold: number; warn_at: number; checks: string[] } | null;
 }

@@ -13,10 +13,13 @@ import {
   Min,
   ValidateNested,
   ArrayMinSize,
+  ArrayMaxSize,
+  IsInt,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { PublishTimingEnum, TestAudienceEnum } from '../enums/exam-wizard.enums';
 import { ExamCategoryEnum } from '../enums/exam-category.enum';
+import { ProctoringLevelEnum } from '../proctoring-settings';
 import {
   AUTO_SCORED_SUB_TYPES,
   IELTS_AUTO_SUB_TYPES,
@@ -563,6 +566,39 @@ export class WizardSubjectBlockDto {
   questions: WizardQuestionDto[];
 }
 
+/** Proctoring for one exam (P8-01, PRO-01, PRO-02); left out = the plan's best level, no auto-disqualify (new) or unchanged (edit). */
+export class WizardProctoringDto {
+  @ApiProperty({ enum: ProctoringLevelEnum })
+  @IsIn(Object.values(ProctoringLevelEnum))
+  level: ProctoringLevelEnum;
+
+  @ApiPropertyOptional({ type: [String], description: 'Checks switched off within the level (plan feature keys, e.g. proctoring_idle)' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  checks_off?: string[];
+
+  @ApiPropertyOptional({ description: 'Disqualify automatically at the threshold (off by default)' })
+  @IsOptional()
+  @IsBoolean()
+  auto_disqualify?: boolean;
+
+  @ApiPropertyOptional({ description: 'Flags that disqualify, 1–100', example: 15 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  disqualify_threshold?: number;
+
+  @ApiPropertyOptional({ type: [String], description: 'Checks whose flags count; none = every active check' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  disqualify_checks?: string[] | null;
+}
+
 export class WizardFormStateDto {
   @ApiProperty({ description: 'Title of the test' })
   @IsString()
@@ -614,6 +650,12 @@ export class WizardFormStateDto {
   @Min(0)
   @Max(100)
   negativeMarking?: number;
+
+  @ApiPropertyOptional({ type: WizardProctoringDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WizardProctoringDto)
+  proctoring?: WizardProctoringDto;
 }
 
 export class WizardPublishStateDto {

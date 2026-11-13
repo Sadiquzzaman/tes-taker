@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   Entity,
   OneToMany,
@@ -8,6 +9,7 @@ import {
   JoinTable,
   Index,
 } from 'typeorm';
+import { ProctoringLevelEnum } from '../proctoring-settings';
 import { ExamQuestionEntity } from './exam-question.entity';
 import { ExamQuestionSectionEntity } from './exam-question-section.entity';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
@@ -28,6 +30,8 @@ export enum ExamTypeEnum {
 }
 
 @Entity({ name: 'exams' })
+@Check('CHK_exams_proctoring_level', `"proctoring_level" IN ('OFF', 'LIGHT', 'STRICT')`)
+@Check('CHK_exams_disqualify_threshold', '"disqualify_threshold" BETWEEN 1 AND 100')
 export class ExamEntity extends CustomBaseEntity {
   @ApiProperty({ description: 'Legacy coarse type (OBJECTIVE / SUBJECTIVE)', enum: ExamTypeEnum })
   @Column({ name: 'exam_type', type: 'enum', enum: ExamTypeEnum, default: ExamTypeEnum.OBJECTIVE })
@@ -115,6 +119,26 @@ export class ExamEntity extends CustomBaseEntity {
   })
   @Column({ name: 'screen_share_disqualify_seconds', type: 'int', default: 15 })
   screen_share_disqualify_seconds: number;
+
+  @ApiPropertyOptional({ enum: ProctoringLevelEnum, description: 'OFF, LIGHT (browser checks) or STRICT (plus camera, microphone, phone); P8-01' })
+  @Column({ name: 'proctoring_level', type: 'varchar', length: 10, default: ProctoringLevelEnum.STRICT })
+  proctoring_level: ProctoringLevelEnum;
+
+  @ApiPropertyOptional({ type: [String], description: 'Checks switched off within the level (plan feature keys)' })
+  @Column({ name: 'proctoring_checks_off', type: 'jsonb', default: () => "'[]'" })
+  proctoring_checks_off: string[];
+
+  @ApiPropertyOptional({ description: 'Disqualify automatically at the threshold (off unless the teacher turns it on)' })
+  @Column({ name: 'auto_disqualify', type: 'boolean', default: false })
+  auto_disqualify: boolean;
+
+  @ApiPropertyOptional({ description: 'Flags that disqualify (1–100)', default: 15 })
+  @Column({ name: 'disqualify_threshold', type: 'smallint', default: 15 })
+  disqualify_threshold: number;
+
+  @ApiPropertyOptional({ type: [String], description: 'Checks whose flags count; null = every active check' })
+  @Column({ name: 'disqualify_checks', type: 'jsonb', nullable: true })
+  disqualify_checks: string[] | null;
 
   @ApiPropertyOptional({ description: 'Deprecated: use test_name + subjects. Kept for legacy rows.' })
   @Column({ name: 'subject', type: 'varchar', length: 100, nullable: true })

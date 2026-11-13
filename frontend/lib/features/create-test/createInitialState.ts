@@ -22,6 +22,7 @@ const createInitialState = (): CreateTestState => ({
     negativeMarking: "",
     isModelTest: false,
     examCategory: "academic",
+    proctoring: null,
   },
   subjects: [],
   questionOrder: [],

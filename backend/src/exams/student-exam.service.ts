@@ -16,6 +16,7 @@ import {
 } from 'typeorm';
 import { EntitlementsService } from 'src/subscriptions/entitlements.service';
 import { LimitKey } from 'src/subscriptions/constants/feature-catalog';
+import { ALL_PROCTORING_FEATURES, DEFAULT_DISQUALIFY_THRESHOLD, EffectiveProctoring, effectiveProctoring, ProctoringLevelEnum } from './proctoring-settings';
 import { ExamEntity } from './entities/exam.entity';
 import { TestAudienceEnum } from './enums/exam-wizard.enums';
 import {
@@ -447,6 +448,31 @@ export class StudentExamService {
    * For `anyone` audience, any authenticated student who knows the exam id may take the exam.
    * `forWrite` (answer saves) lets an IN_PROGRESS attempt through until its deadline + grace.
    */
+  /**
+   * What the student's browser runs for this exam (P8-01): its level's checks that the exam's
+   * organisation's plan has, minus those switched off, and whether it auto-disqualifies.
+   */
+  async proctoringOf(exam: Pick<ExamEntity, 'organization_id' | 'proctoring_level' | 'proctoring_checks_off' | 'auto_disqualify' | 'disqualify_threshold' | 'disqualify_checks'>): Promise<EffectiveProctoring> {
+    // Exams from before organisations ran every check.
+    const features = exam.organization_id ? (await this.entitlementsService.getEntitlements(exam.organization_id)).features : ALL_PROCTORING_FEATURES;
+    return effectiveProctoring(features, {
+      proctoring_level: exam.proctoring_level ?? ProctoringLevelEnum.STRICT,
+      proctoring_checks_off: exam.proctoring_checks_off ?? [],
+      auto_disqualify: exam.auto_disqualify ?? false,
+      disqualify_threshold: exam.disqualify_threshold ?? DEFAULT_DISQUALIFY_THRESHOLD,
+      disqualify_checks: exam.disqualify_checks ?? null,
+    });
+  }
+
+  async proctoringForExam(examId: string): Promise<EffectiveProctoring> {
+    const exam = await this.examRepo.findOne({
+      where: { id: examId },
+      select: ['id', 'organization_id', 'proctoring_level', 'proctoring_checks_off', 'auto_disqualify', 'disqualify_threshold', 'disqualify_checks'],
+    });
+    if (!exam) throw new NotFoundException('Exam not found');
+    return this.proctoringOf(exam);
+  }
+
   async validateExamAccess(
     examId: string,
     studentId: string,
@@ -841,7 +867,8 @@ export class StudentExamService {
     let status = ExamSubmissionStatusEnum.SUBMITTED;
     if (reason === ExamFinalizeReasonEnum.TIMEOUT) {
       status = ExamSubmissionStatusEnum.AUTO_SUBMITTED;
-    } else if (reason === ExamFinalizeReasonEnum.DISQUALIFIED) {
+    } else if (reason === ExamFinalizeReasonEnum.DISQUALIFIED && (await this.proctoringOf(exam)).auto_disqualify) {
+      // Only an exam that auto-disqualifies does (P8-01, PRO-02); otherwise it is a normal submit.
       status = ExamSubmissionStatusEnum.DISQUALIFIED;
     }
 

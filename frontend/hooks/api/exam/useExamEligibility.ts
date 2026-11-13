@@ -17,6 +17,8 @@ interface ExamEligibilityPayload {
   can_access: boolean;
   reason?: string;
   reason_code: ExamAccessReasonCode;
+  /** What runs during the exam (P8-01); given before it starts. */
+  proctoring?: EffectiveProctoring | null;
 }
 
 export type ExamMessageVariant =
