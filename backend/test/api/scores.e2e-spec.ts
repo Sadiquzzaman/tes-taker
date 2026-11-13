@@ -405,6 +405,20 @@ describe('scores API', () => {
     expect(await t.dataSource.getRepository(AuditLogEntity).count({ where: { organization_id: s.organization.id, action: 'report_card.share' } })).toBe(3);
   });
 
+  it('gives owners, admins and staff the whole school by section and subject (PRF-08)', async () => {
+    const s = await school();
+    type Overview = { sections: { section: { id: string }; students: number; average_pct: number; highest_pct: number; lowest_pct: number; attendance_pct: number; homework_rate_pct: number; at_risk: number }[]; subjects: { subject: { name: string }; average_pct: number | null; sections: number }[]; term: { id: string } | null };
+    const res = await call<Overview>('GET', `/scores/overview?session_id=${s.sessionId}&term_id=${s.term.id}`, s.ownerToken);
+    expect(res.status).toBe(200);
+    expect(res.body.payload.term?.id).toBe(s.term.id);
+    expect(res.body.payload.sections).toEqual([
+      { section: expect.objectContaining({ id: s.sectionId, class_name: 'Class 6' }), students: 2, average_pct: 65.5, highest_pct: 88, lowest_pct: 43, attendance_pct: 82.5, homework_rate_pct: 50, at_risk: 1 },
+    ]);
+    // Math: Mitu 90.5, Rafi 0.5×30 + 0.2×0 + 0.2×70 + 0.1×40 = 33.
+    expect(res.body.payload.subjects.find((x) => x.subject.name === 'Math')).toEqual({ subject: expect.objectContaining({ name: 'Math' }), average_pct: 61.75, sections: 1 });
+    for (const token of [s.rinaToken, s.mituToken]) expect((await call('GET', '/scores/overview', token)).status).toBe(403);
+  });
+
   it("shows a section's scores to its staff only, needs the performance feature, and keeps schools apart", async () => {
     const s = await school();
     const path = `/scores/sections/${s.sectionId}`;

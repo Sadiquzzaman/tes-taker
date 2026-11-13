@@ -4714,7 +4714,10 @@
       "kind": "ধরন",
       "marks": "নম্বর",
       "homework": "বাড়ির কাজ",
-      "due": "জমার তারিখ"
+      "due": "জমার তারিখ",
+      "students": "শিক্ষার্থী",
+      "sections": "[[Sections]]",
+      "open": "খুলুন"
     },
     "parts": {
       "exams": "পরীক্ষা",
@@ -4751,7 +4754,13 @@
     "termTrendChart": "টার্ম অনুযায়ী স্কোর: {terms}",
     "examsTitle": "পরীক্ষা",
     "homeworkTitle": "বাড়ির কাজ",
-    "noHomework": "এখনো কোনো নম্বর দেওয়া বাড়ির কাজ নেই।"
+    "noHomework": "এখনো কোনো নম্বর দেওয়া বাড়ির কাজ নেই।",
+    "wholeSchool": "পুরো প্রতিষ্ঠান",
+    "oneSection": "একটি [[section]]",
+    "bySection": "[[Section]] অনুযায়ী",
+    "bySubject": "বিষয় অনুযায়ী",
+    "open": "খুলুন",
+    "openSection": "{section} খুলুন"
   },
   "reportCards": {
     "title": "রিপোর্ট কার্ড",

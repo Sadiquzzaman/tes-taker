@@ -125,6 +125,39 @@ describe("class dashboard (PRF-07)", () => {
   });
 });
 
+describe("whole school (PRF-08)", () => {
+  it("shows owners every section and subject, and opens a section", async () => {
+    memberRole = "OWNER";
+    const overview: SchoolOverview = {
+      session: { id: "s1", name: "2026", closed: false },
+      term: null,
+      terms: [],
+      sections: [
+        { section: { id: "sa", name: "A", class_name: "Class 6" }, students: 30, average_pct: 72.5, highest_pct: 95, lowest_pct: 31, attendance_pct: 91, homework_rate_pct: 88, at_risk: 3 },
+        { section: { id: "sb", name: "B", class_name: "Class 6" }, students: 28, average_pct: 68, highest_pct: 90, lowest_pct: 40, attendance_pct: 89, homework_rate_pct: 80, at_risk: 1 },
+      ],
+      subjects: [{ subject: { id: "math", name: "Math" }, average_pct: 61.75, sections: 2 }],
+    };
+    get.mockImplementation((url: string) =>
+      url.endsWith("/scores/sections")
+        ? ok({ session: { id: "s1", name: "2026", closed: false }, terms: [], sections: [{ id: "sa", name: "A", class_name: "Class 6" }, { id: "sb", name: "B", class_name: "Class 6" }] })
+        : url.endsWith("/scores/overview")
+          ? ok(overview)
+          : url.endsWith("/scores/sections/sb")
+            ? ok({ ...section, section: { ...section.section, id: "sb", name: "B" } })
+            : ok([]),
+    );
+    renderApp(<PerformancePage />);
+    const bySection = within(await screen.findByRole("table", { name: "By section" }));
+    expect(bySection.getByText("72.5%")).toBeTruthy();
+    expect(within(screen.getByRole("table", { name: "By subject" })).getByText("61.75%")).toBeTruthy();
+    expect(screen.queryByLabelText("Section")).toBeNull();
+    fireEvent.click(bySection.getByRole("button", { name: "Open Class 6 B" }));
+    expect(await screen.findByRole("table", { name: "Scores in Class 6 B" })).toBeTruthy();
+    expect((screen.getByLabelText("Section") as HTMLSelectElement).value).toBe("sb");
+  });
+});
+
 describe("student performance page (PRF-05, PRF-06)", () => {
   it("shows the score, subjects, every exam and homework, strengths and earlier sessions", async () => {
     get.mockImplementation((url: string, config?: { params?: Record<string, string> }) => ok(performance(config?.params?.section_id === "s5" ? { section: { id: "s5", name: "A", class_name: "Class 5", session: { id: "s0", name: "2025", closed: true } } } : {})));

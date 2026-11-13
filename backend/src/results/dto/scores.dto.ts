@@ -98,3 +98,10 @@ export class StudentScoresQueryDto {
   @IsUUID()
   term_id?: string;
 }
+
+export class OverviewQueryDto extends ScoreWeightsQueryDto {
+  @ApiPropertyOptional({ description: 'A term of the session; the whole session if none is given' })
+  @IsOptional()
+  @IsUUID()
+  term_id?: string;
+}
