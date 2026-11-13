@@ -22,6 +22,7 @@ const StudentPerformanceView = ({ studentId, initialSectionId, own = false }: { 
   const [sectionId, setSectionId] = useState(initialSectionId ?? "");
   const [termId, setTermId] = useState("");
   const { data, failed, reload } = useApiData<StudentPerformance>(`/scores/students/${studentId}`, { section_id: sectionId || undefined, term_id: termId || undefined });
+  const gpa = (value: number) => format.number(value, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const pct = (value: number | null | undefined) => (value === null || value === undefined ? "—" : `${format.number(value)}%`);
   const day = (date: string) => format.date(`${date}T00:00:00Z`, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
@@ -37,13 +38,13 @@ const StudentPerformanceView = ({ studentId, initialSectionId, own = false }: { 
   const subjectColumns: TableColumn<SubjectScoreLine>[] = [
     { key: "subject", header: t("columns.subject"), cell: (row) => row.subject.name, sortValue: (row) => row.subject.name },
     { key: "score", header: t("columns.score"), align: "right", cell: (row) => pct(row.score_pct), sortValue: (row) => row.score_pct ?? -1 },
-    { key: "grade", header: t("columns.grade"), cell: (row) => (row.grade ? `${row.grade.grade} (${format.number(row.grade.gpa)})` : "—") },
+    { key: "grade", header: t("columns.grade"), cell: (row) => (row.grade ? `${row.grade.grade} (${gpa(row.grade.gpa)})` : "—") },
     { key: "exams", header: t("parts.exams"), align: "right", cell: (row) => pct(row.exams_pct), hideOnMobile: true },
     { key: "homework", header: t("parts.homework"), align: "right", cell: (row) => pct(row.homework_pct), hideOnMobile: true },
     { key: "behaviour", header: t("parts.behaviour"), align: "right", cell: (row) => pct(row.behaviour_pct), hideOnMobile: true },
   ];
   const examColumns: TableColumn<StudentPerformance["exams"][number]>[] = [
-    { key: "name", header: t("columns.exam"), cell: (row) => row.name, sortValue: (row) => row.name },
+    { key: "name", header: t("columns.name"), cell: (row) => row.name, sortValue: (row) => row.name },
     { key: "subject", header: t("columns.subject"), cell: (row) => row.subject?.name ?? "—", hideOnMobile: true },
     { key: "date", header: t("columns.date"), cell: (row) => day(row.date), sortValue: (row) => row.date },
     { key: "kind", header: t("columns.kind"), cell: (row) => t(`kinds.${row.kind}`), hideOnMobile: true },
@@ -56,7 +57,7 @@ const StudentPerformanceView = ({ studentId, initialSectionId, own = false }: { 
     },
   ];
   const homeworkColumns: TableColumn<StudentPerformance["homework_items"][number]>[] = [
-    { key: "title", header: t("columns.homework"), cell: (row) => row.title, sortValue: (row) => row.title },
+    { key: "title", header: t("columns.title"), cell: (row) => row.title, sortValue: (row) => row.title },
     { key: "subject", header: t("columns.subject"), cell: (row) => row.subject?.name ?? "—", hideOnMobile: true },
     { key: "due", header: t("columns.due"), cell: (row) => day(row.due_date), sortValue: (row) => row.due_date },
     {
@@ -123,7 +124,7 @@ const StudentPerformanceView = ({ studentId, initialSectionId, own = false }: { 
       ) : null}
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile label={t("overall")} value={data.overall.score_pct === null ? "—" : `${pct(data.overall.score_pct)}${data.overall.grade ? ` · ${data.overall.grade.grade}` : ""}`} />
-        <StatTile label={t("gpa")} value={data.overall.grade ? format.number(data.overall.grade.gpa) : "—"} />
+        <StatTile label={t("gpa")} value={data.overall.grade ? gpa(data.overall.grade.gpa) : "—"} />
         <StatTile label={t("position")} value={data.position ? t("positionOf", { position: data.position, size: data.class_size }) : "—"} />
         <StatTile label={t("parts.attendance")} value={pct(data.attendance.attendance_pct)} />
         <StatTile label={t("onTime")} value={pct(data.homework.on_time_pct)} />

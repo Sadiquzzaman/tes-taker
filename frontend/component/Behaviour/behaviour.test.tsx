@@ -105,6 +105,8 @@ describe("behaviour ratings (PRF-04)", () => {
     cleanup();
     renderApp(<BehaviourPage />, { locale: "bn" });
     expect(await screen.findByRole("columnheader", { name: "শৃঙ্খলা" })).toBeTruthy();
+    // Ratings read in Bangla digits too.
+    expect(within(await screen.findByLabelText("Mitu Das-এর শৃঙ্খলা")).getByRole("option", { name: "৫" })).toBeTruthy();
   });
 
   it("is read-only when the session is closed", async () => {

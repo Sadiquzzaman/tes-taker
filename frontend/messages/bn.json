@@ -4717,7 +4717,9 @@
       "due": "জমার তারিখ",
       "students": "শিক্ষার্থী",
       "sections": "[[Sections]]",
-      "open": "খুলুন"
+      "open": "খুলুন",
+      "name": "নাম",
+      "title": "শিরোনাম"
     },
     "parts": {
       "exams": "পরীক্ষা",
