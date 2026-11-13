@@ -358,6 +358,16 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Organization",
+    label: "chatReview",
+    route: "/chat-admin",
+    group: "logs",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN"],
+    feature: "chat",
+    image: <SidebarClassesIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
     label: "chat",
     route: "/chat",
     role: ["TEACHER"],

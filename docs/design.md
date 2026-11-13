@@ -683,6 +683,8 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 
 **Built in P9-02 part 3 (private chat screen and reports, COM-02, COM-05):** the Chat page has two tabs, "Class chats" and "Private" (`?direct=` opens a private chat). Private: the person's chats with unread counts; "New message" picks one of the people they may message (`/chat/direct/contacts`, with the subject classes that link them); the open chat shows messages oldest first (yours on the right), the rule notice, mute, reply, delete your own, and "Seen <time>" under your last message once the other person read it (live through `chat:read`); a closed chat says the school closed it. Files are offered only in group chats (uploads are scoped to the section's class). "Report" on anyone else's message (group posts, comments and private messages) asks for a reason and sends it to the school's review queue.
 
+**Built in P9-02 part 4 (chat review screen, COM-04, COM-05):** "Chat review" under Logs in the menu (owners and admins, `chat` feature) opens `/chat-admin` (`?tab=reports` opens the queue, as the report notice links). **Chats:** every chat by name, type, open/closed and last message; "Open" asks for a reason first, then a drawer shows its messages (newest first) with delete and "Mute <author>" (1 hour to 30 days, optional reason) and a "Closed" switch. **Reports:** waiting or resolved; each shows who reported and why, and the message among the ones around it (the reported one marked), with "Keep the message" or "Delete the message". **Access log** (the owner only): when, who, which chat and why.
+
 ### 9.10 Notifications, files, AI, integrity, IELTS
 
 | Table | Status | Purpose and key columns |

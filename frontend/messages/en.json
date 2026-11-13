@@ -70,7 +70,8 @@
     "performanceSettings": "Performance settings",
     "performance": "Performance",
     "reportCards": "Report cards",
-    "chat": "Chat"
+    "chat": "Chat",
+    "chatReview": "Chat review"
   },
   "shell": {
     "organization": "Organization",
@@ -5145,5 +5146,72 @@
     "assistants": "Staff",
     "pending": "Waiting for approval",
     "setup": "Set up"
+  },
+  "chatReview": {
+    "title": "Chat review",
+    "description": "Every chat in the school. Opening one needs a reason, which is logged; members are not told who reads.",
+    "chats": "Chats",
+    "reports": "Reports",
+    "accessLog": "Access log",
+    "chat": "Chat",
+    "type": "Type",
+    "types": {
+      "GROUP": "Class chat",
+      "DIRECT": "Private"
+    },
+    "state": "State",
+    "closed": "Closed",
+    "open": "Open",
+    "lastActivity": "Last message",
+    "actions": "Actions",
+    "openChat": "Open",
+    "openFor": "Open {chat}",
+    "notAllowed": "Only owners and admins can review chats.",
+    "loadFailed": "Couldn't load this.",
+    "chatsCaption": "Chats in the school",
+    "noChats": "No chats yet",
+    "reasonTitle": "Why are you opening {chat}?",
+    "reasonDetail": "Your reason is kept in the access log, which the owner can read.",
+    "reason": "Reason",
+    "cancel": "Cancel",
+    "readingNote": "You are reading this chat for review; you are not shown as a member.",
+    "closeChat": "Closed",
+    "closeChatHint": "A closed chat is read-only for everyone.",
+    "closedDone": "Chat closed",
+    "reopenedDone": "Chat reopened",
+    "noMessages": "No messages",
+    "messages": "Messages",
+    "delete": "Delete",
+    "deletedDone": "Message deleted",
+    "muteAuthor": "Mute {name}",
+    "muteTitle": "Mute {name} in this chat",
+    "muteDetail": "They can read but not write here until the time is up.",
+    "muteFor": "For",
+    "hours": "{count, plural, one {# hour} other {# hours}}",
+    "reasonOptional": "Reason (optional)",
+    "mute": "Mute",
+    "mutedDone": "Muted",
+    "show": "Show",
+    "statusOpen": "Waiting for review",
+    "statusResolved": "Resolved",
+    "noReports": "Nothing to review",
+    "noResolved": "No resolved reports yet",
+    "reportedBy": "{name} reported: {reason}",
+    "context": "The message and the ones around it",
+    "deletedMessage": "(deleted)",
+    "keep": "Keep the message",
+    "deleteMessage": "Delete the message",
+    "resolved": {
+      "KEPT": "Kept",
+      "DELETED": "Message deleted"
+    },
+    "resolution": {
+      "KEPT": "Kept by {name}",
+      "DELETED": "Deleted by {name}"
+    },
+    "when": "When",
+    "who": "Who",
+    "accessLogCaption": "Who opened which chat",
+    "noAccess": "Nobody has opened a chat yet"
   }
 }

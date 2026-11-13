@@ -70,3 +70,40 @@ type ChatSocketEvent =
   | { type: "deleted"; group_id: string; id: string; parent_id: string | null }
   | { type: "group"; group_id: string; pinned_ids: string[]; announcement_only: boolean }
   | { type: "read"; chat_id: string; user_id: string; at: string };
+
+/** Supervising chats (P9-02, COM-04, COM-05): owners and admins. */
+type ChatType = "GROUP" | "DIRECT";
+
+interface AdminChat {
+  type: ChatType;
+  id: string;
+  label: string;
+  closed: boolean;
+  last_activity: string | null;
+}
+
+interface ChatReport {
+  id: string;
+  chat_type: ChatType;
+  chat_id: string;
+  chat_label: string;
+  message_id: string;
+  reporter: { id: string; name: string };
+  reason: string;
+  context: { id: string; author_id: string; author_name: string; content: string; files: string[]; created_at: string; reported: boolean }[];
+  status: "OPEN" | "RESOLVED";
+  resolution: "KEPT" | "DELETED" | null;
+  resolved_by: { id: string; name: string } | null;
+  resolved_at: string | null;
+  created_at: string;
+}
+
+interface ChatAccessLogRow {
+  id: string;
+  actor: { id: string; name: string };
+  chat_type: ChatType;
+  chat_id: string;
+  chat_label: string;
+  reason: string;
+  opened_at: string;
+}
