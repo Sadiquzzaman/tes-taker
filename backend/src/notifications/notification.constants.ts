@@ -66,6 +66,8 @@ export const NOTIFICATION_EVENTS = {
   CALENDAR_REMINDER: 'calendar.reminder',
   /** A report card shared with a student's guardians (P7-04, PRF-09): SMS with a summary and the 30-day link. */
   REPORT_CARD_SHARED: 'report_card.shared',
+  /** A student reached the exam's alert level of flags (P8-03, PRO-08): in-app to the teacher, at most every 5 minutes. */
+  PROCTORING_ALERT: 'proctoring.alert',
 } as const;
 
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFICATION_EVENTS];

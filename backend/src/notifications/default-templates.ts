@@ -348,6 +348,9 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
   { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: IN_APP, locale: 'bn', subject: 'মনে করিয়ে দেওয়া: {{title}}', body: 'শুরু {{starts_at}} {{place}}' },
   { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: SMS, locale: 'en', subject: null, body: 'Reminder: {{title}} starts {{starts_at}}. {{place}} - {{organization_name}}' },
   { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: SMS, locale: 'bn', subject: null, body: 'মনে করিয়ে দেওয়া: {{title}} শুরু {{starts_at}}। {{place}} - {{organization_name}}' },
+  // Proctoring alerts (P8-03, PRO-08): to the teacher, linked to the live monitor (`path`).
+  { event_type: NOTIFICATION_EVENTS.PROCTORING_ALERT, channel: IN_APP, locale: 'en', subject: 'Check {{student_name}}', body: '{{flags}} flags in {{exam_name}}.' },
+  { event_type: NOTIFICATION_EVENTS.PROCTORING_ALERT, channel: IN_APP, locale: 'bn', subject: '{{student_name}}-কে দেখুন', body: '{{exam_name}}-এ {{flags}}টি ফ্ল্যাগ।' },
   // Report cards (P7-04, PRF-09): to guardians, with the link that needs no login.
   {
     event_type: NOTIFICATION_EVENTS.REPORT_CARD_SHARED,

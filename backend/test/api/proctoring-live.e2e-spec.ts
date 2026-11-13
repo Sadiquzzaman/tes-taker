@@ -1,5 +1,11 @@
 import type { Server, Socket } from 'socket.io';
+import { AuditService } from '../../src/audit/audit.service';
+import { AuditLogEntity } from '../../src/audit/entities/audit-log.entity';
+import { ExamEntity } from '../../src/exams/entities/exam.entity';
 import { ProctoringEventEntity } from '../../src/exams/entities/proctoring-event.entity';
+import { StudentExamSubmissionEntity } from '../../src/exams/entities/student-exam-answer.entity';
+import { NotificationOutboxEntity } from '../../src/notifications/entities/notification-outbox.entity';
+import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { ProctoringGateway } from '../../src/proctoring/proctoring.gateway';
 import { LOST_AFTER_MS, ProctoringStoreService } from '../../src/proctoring/proctoring-store.service';
 import { UserEntity } from '../../src/user/entities/user.entity';
@@ -129,5 +135,85 @@ describe('live proctoring state', () => {
     await gateway.sweepLostMonitoring(Date.now() + 10 * LOST_AFTER_MS);
     expect(toMonitors('session:lost', s.exam.id)).toEqual([]);
     expect((await t.app.get(ProctoringStoreService).getExamSessions(s.exam.id))[0].liveStatus).toBe('SUBMITTED');
+  });
+
+  describe('the live monitor (P8-03, PRO-03, PRO-08)', () => {
+    /** A school: the owner, a teacher who made an exam, another teacher, and a student writing it. */
+    const school = async ({ alertFlags = null as number | null } = {}) => {
+      const owner = await make.teacher();
+      const organization = await make.organization(owner);
+      const [teacher, other] = [await make.teacher(), await make.teacher()];
+      for (const user of [teacher, other]) await make.member(organization, user, OrganizationMemberRoleEnum.TEACHER);
+      const orgToken = (user: UserEntity, role: OrganizationMemberRoleEnum) =>
+        t.tokenFor(user, { session_mode: 'organization', context_type: 'organization', organization_id: organization.id, member_role: role });
+      const row = await make.openExam(teacher, { organization_id: organization.id, alert_flags: alertFlags });
+      const student = await make.student();
+      await make.member(organization, student, OrganizationMemberRoleEnum.STUDENT);
+      const studentToken = orgToken(student, OrganizationMemberRoleEnum.STUDENT);
+      const studentSocket = socket(studentToken);
+      await gateway.handleJoin(studentSocket, { examId: row.id });
+      return {
+        exam: row,
+        student,
+        studentSocket,
+        studentToken,
+        ownerToken: orgToken(owner, OrganizationMemberRoleEnum.OWNER),
+        teacherToken: orgToken(teacher, OrganizationMemberRoleEnum.TEACHER),
+        otherToken: orgToken(other, OrganizationMemberRoleEnum.TEACHER),
+        teacher,
+      };
+    };
+
+    it("lets the exam's teacher and the school's owner watch, with each student's time left; not another teacher", async () => {
+      const s = await school();
+      expect((await t.api.post(`/student/exams/${s.exam.id}/start`, {}, s.studentToken)).status).toBe(201);
+      for (const token of [s.teacherToken, s.ownerToken]) {
+        const res = await t.api.get<{ payload: { sessions: { studentId: string; deadline: string | null; attemptStatus: string }[] } }>(`/exams/${s.exam.id}/proctoring/sessions`, token);
+        expect(res.status).toBe(200);
+        expect(res.body.payload.sessions[0]).toMatchObject({ studentId: s.student.id, attemptStatus: 'IN_PROGRESS' });
+        expect(res.body.payload.sessions[0].deadline).not.toBeNull();
+      }
+      expect((await t.api.get(`/exams/${s.exam.id}/proctoring/sessions`, s.otherToken)).status).toBe(403);
+      expect((await t.api.post(`/exams/${s.exam.id}/proctoring/students/${s.student.id}/warn`, { message: 'Eyes on your screen.' }, s.otherToken)).status).toBe(403);
+    });
+
+    it('warns one student on their screen and ends one student’s exam with a reason, recorded and audited', async () => {
+      const s = await school();
+      expect((await t.api.post(`/student/exams/${s.exam.id}/start`, {}, s.studentToken)).status).toBe(201);
+      const warned = await t.api.post(`/exams/${s.exam.id}/proctoring/students/${s.student.id}/warn`, { message: ' Eyes on your screen. ' }, s.teacherToken);
+      expect(warned.status).toBe(200);
+      expect(emitted).toContainEqual({ room: `exam:${s.exam.id}:student:${s.student.id}`, event: 'proctor:warning', payload: expect.objectContaining({ message: 'Eyes on your screen.' }) });
+
+      const ended = await t.api.post<{ payload: { status: string } }>(`/exams/${s.exam.id}/proctoring/students/${s.student.id}/end`, { reason: 'Talking off camera' }, s.ownerToken);
+      expect([ended.status, ended.body.payload.status]).toEqual([200, 'DISQUALIFIED']);
+      expect((await t.dataSource.getRepository(StudentExamSubmissionEntity).findOneByOrFail({ exam_id: s.exam.id, student_id: s.student.id })).disqualification_reason).toBe(
+        'Ended by the teacher: Talking off camera',
+      );
+      expect(emitted).toContainEqual({ room: `exam:${s.exam.id}:student:${s.student.id}`, event: 'exam:ended', payload: { reason: 'Talking off camera' } });
+      expect(toMonitors('session:ended', s.exam.id)).toEqual([expect.objectContaining({ studentId: s.student.id, liveStatus: 'ENDED' })]);
+      expect((await t.app.get(ProctoringStoreService).getExamSessions(s.exam.id))[0].liveStatus).toBe('ENDED');
+      const again = await t.api.post<{ code?: string }>(`/exams/${s.exam.id}/proctoring/students/${s.student.id}/end`, { reason: 'Again' }, s.ownerToken);
+      expect([again.status, again.body.code]).toEqual([409, 'EXAM_STUDENT_NOT_WRITING']);
+
+      const timeline = await t.api.get<{ payload: { type: string; message: string }[] }>(`/exams/${s.exam.id}/proctoring/students/${s.student.id}/timeline`, s.teacherToken);
+      expect(timeline.body.payload.map((e) => [e.type, e.message])).toEqual([
+        ['teacher-warning', 'Eyes on your screen.'],
+        ['teacher-ended', 'Talking off camera'],
+      ]);
+      await t.app.get(AuditService).flush();
+      expect(await t.dataSource.getRepository(AuditLogEntity).count({ where: { entity_id: s.exam.id, action: 'exam.student_ended' } })).toBe(1);
+    });
+
+    it("alerts the exam's teacher when a student reaches the exam's alert level, at most once in 5 minutes", async () => {
+      const s = await school({ alertFlags: 2 });
+      for (const n of [1, 2, 3]) {
+        await gateway.handleFlagReport(s.studentSocket, { examId: s.exam.id, id: `alert-${n}`, kind: 'tab-switch', type: 'TAB_SWITCH', message: 'Left the tab', points: 1 });
+      }
+      expect(toMonitors('alert', s.exam.id)).toEqual([expect.objectContaining({ studentId: s.student.id, flagCount: 2 })]);
+      const inbox = await t.dataSource.getRepository(NotificationOutboxEntity).find({ where: { event_type: 'proctoring.alert', recipient_id: s.teacher.id } });
+      expect(inbox).toHaveLength(1);
+      expect(inbox[0].payload).toMatchObject({ flags: '2', path: `/tests/${s.exam.id}/monitor` });
+      expect((await t.dataSource.getRepository(ExamEntity).findOneByOrFail({ id: s.exam.id })).alert_flags).toBe(2);
+    });
   });
 });

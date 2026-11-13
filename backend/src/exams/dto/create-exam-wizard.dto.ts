@@ -597,6 +597,13 @@ export class WizardProctoringDto {
   @ArrayMaxSize(20)
   @IsString({ each: true })
   disqualify_checks?: string[] | null;
+
+  @ApiPropertyOptional({ description: 'Alert the teacher when a student reaches this many flags (1–100); null = no alerts', example: 5 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  alert_flags?: number | null;
 }
 
 export class WizardFormStateDto {

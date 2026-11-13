@@ -6,12 +6,13 @@ import useFeatureNames from "@/component/Subscription/useFeatureNames";
 import { Card, Checkbox, Input, RadioGroup, Skeleton } from "@/design/ui";
 
 const DEFAULT_THRESHOLD = 15;
+const DEFAULT_ALERT_FLAGS = 5;
 /** Checks that need the camera or microphone (the rest run in the browser). */
 export const CAMERA_CHECKS = ["proctoring_no_face", "proctoring_multiple_face", "proctoring_looking_away", "proctoring_phone", "proctoring_voice"];
 
 /** The choice to show: the saved one, or the plan's best level with auto-disqualify off. */
 export const proctoringChoice = (value: ExamProctoringChoice | null | undefined, options: ProctoringOptions): ExamProctoringChoice =>
-  value ?? { level: options.default_level, checks_off: [], auto_disqualify: false, disqualify_threshold: DEFAULT_THRESHOLD, disqualify_checks: null };
+  value ?? { level: options.default_level, checks_off: [], auto_disqualify: false, disqualify_threshold: DEFAULT_THRESHOLD, disqualify_checks: null, alert_flags: null };
 
 /**
  * Proctoring for one exam (P8-01, PRO-01, PRO-02): Off, Light (browser checks) or Strict (plus
@@ -112,6 +113,28 @@ const ProctoringSettingsCard = ({ value, onChange }: { value: ExamProctoringChoi
                   {counted.length === 0 ? <p className="text-body-sm text-danger">{t("countedNone")}</p> : null}
                 </fieldset>
               </>
+            ) : null}
+          </div>
+        ) : null}
+        {active.length && options.alerts_available ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <Checkbox
+              label={t("alerts")}
+              hint={t("alertsHint")}
+              checked={choice.alert_flags !== null && choice.alert_flags !== undefined}
+              onChange={(event) => set({ alert_flags: event.target.checked ? DEFAULT_ALERT_FLAGS : null })}
+            />
+            {choice.alert_flags !== null && choice.alert_flags !== undefined ? (
+              <Input
+                label={t("alertAt")}
+                fieldClassName="sm:w-48"
+                type="number"
+                min={1}
+                max={100}
+                value={String(choice.alert_flags)}
+                error={choice.alert_flags >= 1 && choice.alert_flags <= 100 ? undefined : t("thresholdInvalid")}
+                onChange={(event) => set({ alert_flags: Math.round(Number(event.target.value)) })}
+              />
             ) : null}
           </div>
         ) : null}

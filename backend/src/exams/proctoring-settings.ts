@@ -63,6 +63,8 @@ export interface ExamProctoringSettings {
   disqualify_threshold: number;
   /** Checks whose flags count towards the threshold; null = every active check. */
   disqualify_checks: string[] | null;
+  /** Alert the teacher at this many flags (PRO-08); null = no alerts. */
+  alert_flags: number | null;
 }
 
 /** What the student's browser runs for one exam. */
@@ -78,6 +80,8 @@ export interface EffectiveProctoring {
 export interface ProctoringOptions {
   levels: { level: ProctoringLevelEnum; available: boolean; checks: ProctoringCheck[] }[];
   auto_disqualify_available: boolean;
+  /** Live alerts to the teacher (PRO-08). */
+  alerts_available: boolean;
   default_level: ProctoringLevelEnum;
 }
 
@@ -94,14 +98,23 @@ export function proctoringOptions(features: PlanFeatures): ProctoringOptions {
     return { level, available, checks };
   });
   const best = [...levels].reverse().find((l) => l.available)!.level;
-  return { levels, auto_disqualify_available: Boolean(features[FeatureKey.PROCTORING_AUTO_DISQUALIFICATION]), default_level: best };
+  return {
+    levels,
+    auto_disqualify_available: Boolean(features[FeatureKey.PROCTORING_AUTO_DISQUALIFICATION]),
+    alerts_available: Boolean(features[FeatureKey.PROCTORING_REAL_TIME_ALERTS]),
+    default_level: best,
+  };
 }
 
 /** Why settings are refused, or null when they fit the plan. */
-export function settingsProblem(features: PlanFeatures, settings: ExamProctoringSettings): 'LEVEL_NOT_IN_PLAN' | 'AUTO_DISQUALIFY_NOT_IN_PLAN' | 'CHECKS_INVALID' | null {
+export function settingsProblem(
+  features: PlanFeatures,
+  settings: ExamProctoringSettings,
+): 'LEVEL_NOT_IN_PLAN' | 'AUTO_DISQUALIFY_NOT_IN_PLAN' | 'ALERTS_NOT_IN_PLAN' | 'CHECKS_INVALID' | null {
   const options = proctoringOptions(features);
   if (!options.levels.find((l) => l.level === settings.proctoring_level)?.available) return 'LEVEL_NOT_IN_PLAN';
   if (settings.auto_disqualify && !options.auto_disqualify_available) return 'AUTO_DISQUALIFY_NOT_IN_PLAN';
+  if (settings.alert_flags !== null && !options.alerts_available) return 'ALERTS_NOT_IN_PLAN';
   const known = new Set<string>(ALL_CHECKS);
   if (settings.proctoring_checks_off.some((c) => !known.has(c)) || (settings.disqualify_checks ?? []).some((c) => !known.has(c))) return 'CHECKS_INVALID';
   if (settings.auto_disqualify && effectiveProctoring(features, settings).auto_disqualify?.checks.length === 0) return 'CHECKS_INVALID';

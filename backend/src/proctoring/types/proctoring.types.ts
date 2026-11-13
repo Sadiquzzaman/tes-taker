@@ -7,7 +7,7 @@ export interface ProctoringFlagEntry {
 }
 
 /** What the monitor shows for a student (PRO-03, PRO-07). */
-export type ProctoringLiveStatus = 'WRITING' | 'SUBMITTED' | 'DISCONNECTED' | 'LOST';
+export type ProctoringLiveStatus = 'WRITING' | 'SUBMITTED' | 'ENDED' | 'DISCONNECTED' | 'LOST';
 
 export interface ProctoringStudentSession {
   socketId: string;

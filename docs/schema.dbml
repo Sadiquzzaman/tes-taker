@@ -812,6 +812,7 @@ Table exams {
   auto_disqualify boolean [not null, default: false, note: 'BUILT P8-01 (PRO-02): off for new exams; exams from before P8 were set on (the old fixed rule)']
   disqualify_threshold smallint [not null, default: 15, note: 'BUILT P8-01: CHECK 1..100 flags; students warned at 60%']
   disqualify_checks jsonb [note: 'BUILT P8-01: checks whose flags count; null = every active check']
+  alert_flags smallint [note: 'BUILT P8-03 (PRO-08): alert the teacher at this many flags; null = no alerts; CHECK 1..100']
   Note: 'CHANGED — plus existing join tables exam_target_students, exam_excluded_students'
 }
 
