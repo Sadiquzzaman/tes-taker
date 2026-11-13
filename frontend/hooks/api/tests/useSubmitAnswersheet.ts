@@ -7,6 +7,9 @@ import { useState } from "react";
 import { useApiError } from "../useApiError";
 import { useRouter } from "next/navigation";
 
+/** The submit could not reach the server (no connection). */
+export const OFFLINE = "offline" as const;
+
 const useSubmitAnswersheet = () => {
   const { triggerToast } = useToast();
   const router = useRouter();
@@ -46,6 +49,8 @@ const useSubmitAnswersheet = () => {
         return response;
       })
       .catch((error: AxiosError<ApiError>) => {
+        // No answer at all: the connection is down (PRO-09); the page tries again.
+        if (!error.response) return OFFLINE;
         handleError(error);
       })
       .finally(() => {

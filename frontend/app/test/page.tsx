@@ -14,7 +14,9 @@ import StudentExamMain from "@/component/Tests/exam/StudentExamMain";
 import useExamEligibility from "@/hooks/api/exam/useExamEligibility";
 import useStartStudentExam from "@/hooks/api/exam/useStartStudentExam";
 import useStudentExam from "@/hooks/api/exam/useStudentExam";
-import useSubmitAnswersheet from "@/hooks/api/tests/useSubmitAnswersheet";
+import useSubmitAnswersheet, { OFFLINE } from "@/hooks/api/tests/useSubmitAnswersheet";
+import useAnswerSync from "@/hooks/tests/useAnswerSync";
+import { useToast } from "@/component/Toast/ToastContext";
 import useExamFullscreen from "@/hooks/tests/proctoring/useExamFullscreen";
 import { proctoringFeaturesOf } from "@/utils/tests/proctoringLevel";
 import useProctoring from "@/hooks/tests/proctoring/useProctoring";
@@ -65,6 +67,10 @@ const readExamSession = (): ExamSession => ({
   initialMediaStream: getExamMediaStreams().cameraStream,
 });
 
+/** The final submit without a connection: tried again every 5 seconds for 2 minutes (PRO-09). */
+const SUBMIT_RETRY_MS = 5_000;
+const SUBMIT_RETRIES = 24;
+
 const isMediaStreamActive = (stream: MediaStream | null) =>
   Boolean(stream?.getTracks().some((track) => track.readyState === "live" && track.enabled));
 
@@ -97,6 +103,9 @@ export default function ParticipateTest() {
   const hasFinalizedRef = useRef(false);
   const [startStudentExam, { loading: startLoading }] = useStartStudentExam();
   const [submitAnswersheet, { loading: submitLoading }] = useSubmitAnswersheet();
+  // The final submit is waiting for the connection to come back (PRO-09).
+  const [waitingToSubmit, setWaitingToSubmit] = useState(false);
+  const { triggerToast } = useToast();
 
   const {
     loading: eligibilityLoading,
@@ -237,6 +246,13 @@ export default function ParticipateTest() {
     };
   }, [dispatch]);
 
+  // Low-bandwidth mode (P8-05, PRO-09): what changed goes to the server a few seconds later.
+  const { status: saveStatus } = useAnswerSync({
+    examId: test?.id,
+    answers: answerState,
+    enabled: hasStartedExam && Boolean(test?.id) && !proctoringState.isDisqualified && submitReason === null,
+  });
+
   const handleSubmit = async (reason: "manual" | "timeout" | "disqualified" = "manual") => {
     if (hasFinalizedRef.current || !isProctoringReady || !test?.id) {
       return;
@@ -253,7 +269,7 @@ export default function ParticipateTest() {
     setSubmitReason(reason);
     emitExamSubmit();
 
-    const response = await submitAnswersheet({
+    const submitOnce = () => submitAnswersheet({
       examId: test.id,
       payload: {
         studentId,
@@ -282,8 +298,19 @@ export default function ParticipateTest() {
       },
     });
 
-    if (!response) {
+    // No connection: the answers are on the device; try again every few seconds for a while.
+    let response = await submitOnce();
+    for (let attempt = 0; response === OFFLINE && attempt < SUBMIT_RETRIES; attempt += 1) {
+      setWaitingToSubmit(true);
+      await new Promise((resolve) => window.setTimeout(resolve, SUBMIT_RETRY_MS));
+      response = await submitOnce();
+    }
+    setWaitingToSubmit(false);
+
+    if (!response || response === OFFLINE) {
+      if (response === OFFLINE) triggerToast({ title: t("submitOfflineTitle"), description: t("submitOfflineDetail"), type: "warning" });
       hasFinalizedRef.current = false;
+      setSubmitReason(null);
       stopProctoringSession();
     }
   };
@@ -488,6 +515,7 @@ export default function ParticipateTest() {
           submitButtonRef={submitButtonRef}
           onAnswerChange={(questionId, value) => dispatch(setExamAnswerValue({ questionId, value }))}
           onMatchingChange={(questionId, value) => dispatch(setExamAnswerValue({ questionId, value }))}
+          saveStatus={saveStatus}
           onSubmit={() => void handleSubmit("manual")}
           onCountdownStart={connectToSocket}
           onTimeUp={() => void handleSubmit("timeout")}
@@ -511,11 +539,11 @@ export default function ParticipateTest() {
         reason={proctoringState.disqualificationReason}
       />
       <ExamDialog
-        open={submitLoading}
-        tone="info"
+        open={submitLoading || waitingToSubmit}
+        tone={waitingToSubmit ? "warning" : "info"}
         icon={<Spinner className="size-5" />}
-        title={t("submittingTitle", { reason: submitReason ?? "manual" })}
-        description={t("submittingDescription", { reason: submitReason ?? "manual" })}
+        title={waitingToSubmit ? t("submitWaitingTitle") : t("submittingTitle", { reason: submitReason ?? "manual" })}
+        description={waitingToSubmit ? t("submitWaitingDetail") : t("submittingDescription", { reason: submitReason ?? "manual" })}
       />
     </div>
   );

@@ -5,7 +5,8 @@ import { useMemo, useState } from "react";
 import ExamCountdown from "@/component/Tests/ExamCountdown";
 import StudentExamSection from "@/component/Tests/exam/StudentExamSection";
 import ExamTimerIconSVG from "@/component/svg/ExamTimerIconSVG";
-import { Button, Card, ConfirmDialog, MenuIcon, Sheet } from "@/design/ui";
+import { Button, Card, ConfirmDialog, MenuIcon, Sheet, StatusPill } from "@/design/ui";
+import type { AnswerSaveStatus } from "@/hooks/tests/useAnswerSync";
 import useFormat from "@/i18n/useFormat";
 import { buildStudentExamViewModel } from "@/utils/tests/studentExamViewModel";
 import QuestionNavigator, { isAnswered } from "./QuestionNavigator";
@@ -18,6 +19,8 @@ interface StudentExamMainProps {
   submitButtonRef: React.RefObject<HTMLButtonElement | null>;
   onAnswerChange: (questionId: string, value: ExamAnswerValue) => void;
   onMatchingChange: (questionId: string, value: string[]) => void;
+  /** Where the latest answers are (PRO-09): on this device, being saved, or on the server. */
+  saveStatus?: AnswerSaveStatus;
   onSubmit: () => void;
   onCountdownStart: () => void;
   onTimeUp: () => void;
@@ -35,6 +38,7 @@ const StudentExamMain = ({
   submitButtonRef,
   onAnswerChange,
   onMatchingChange,
+  saveStatus = "idle",
   onSubmit,
   onCountdownStart,
   onTimeUp,
@@ -88,6 +92,11 @@ const StudentExamMain = ({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <span role="status" aria-live="polite" title={saveStatus === "device" ? t("saveStatusHint") : undefined}>
+              {saveStatus === "idle" ? null : (
+                <StatusPill tone={saveStatus === "server" ? "success" : saveStatus === "device" ? "warning" : "neutral"}>{t(`saveStatus.${saveStatus}`)}</StatusPill>
+              )}
+            </span>
             <div className="flex items-center gap-1.5 rounded-input bg-primary-soft px-3 py-1.5 text-primary" aria-label={t("timeLeftLabel")}>
               <ExamTimerIconSVG width={16} />
               <ExamCountdown

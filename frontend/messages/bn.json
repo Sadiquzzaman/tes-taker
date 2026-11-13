@@ -373,7 +373,17 @@
     "questionLabel": "প্রশ্ন {number, number}",
     "endedByTeacher": "আপনার শিক্ষক পরীক্ষা শেষ করেছেন: {reason}",
     "teacherWarningTitle": "আপনার শিক্ষকের বার্তা",
-    "teacherWarningOk": "বুঝেছি"
+    "teacherWarningOk": "বুঝেছি",
+    "saveStatus": {
+      "device": "এই ডিভাইসে সংরক্ষিত",
+      "saving": "সংরক্ষণ হচ্ছে…",
+      "server": "সার্ভারে সংরক্ষিত"
+    },
+    "saveStatusHint": "আপনার উত্তর এই ডিভাইসে রাখা আছে; সংযোগ ফিরলে পাঠানো হবে।",
+    "submitWaitingTitle": "সংযোগের অপেক্ষায়",
+    "submitWaitingDetail": "আপনার উত্তর এই ডিভাইসে সংরক্ষিত আছে। সংযোগ ফিরলেই জমা দেওয়া হবে।",
+    "submitOfflineTitle": "সার্ভারে পৌঁছানো যায়নি",
+    "submitOfflineDetail": "আবার জমা দেওয়ার চেষ্টা করুন। সার্ভারে সংরক্ষিত উত্তর সময় শেষ হলে নিজে থেকেই জমা হবে।"
   },
   "proctoring": {
     "title": "প্রক্টরিং",
