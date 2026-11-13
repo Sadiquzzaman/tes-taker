@@ -68,7 +68,8 @@
     "marks": "Paper exams",
     "behaviour": "Behaviour",
     "performanceSettings": "Performance settings",
-    "performance": "Performance"
+    "performance": "Performance",
+    "reportCards": "Report cards"
   },
   "shell": {
     "organization": "Organization",
@@ -2803,7 +2804,8 @@
       "offline_exam": "Paper exams",
       "behaviour": "Behaviour",
       "score": "Score weights",
-      "performance": "Performance settings"
+      "performance": "Performance settings",
+      "report_card": "Report cards"
     },
     "actions": {
       "plan": {
@@ -2943,6 +2945,9 @@
       },
       "performance": {
         "settings": "Performance settings changed"
+      },
+      "report_card": {
+        "generate": "Report card made"
       }
     },
     "fields": {
@@ -4743,6 +4748,76 @@
     "examsTitle": "Exams",
     "homeworkTitle": "Homework",
     "noHomework": "No marked homework yet."
+  },
+  "reportCards": {
+    "title": "Report cards",
+    "intro": "Write each student's remarks, make the cards and print them. A card keeps the scores it was made with; make it again after a change.",
+    "loadFailed": "Couldn't load the report cards.",
+    "noSections": "No [[sections]] to show",
+    "noSectionsHint": "You see the [[sections]] you teach or look after.",
+    "section": "[[Section]]",
+    "term": "Term",
+    "wholeSession": "Whole session",
+    "language": "Card language",
+    "languages": {
+      "bn": "Bangla",
+      "en": "English"
+    },
+    "noStudents": "No students in this [[section]].",
+    "madeCount": "{made, number} of {total, number} cards made",
+    "printAll": "Print all (one PDF)",
+    "make": "Make cards",
+    "makeHint": "Making cards again changes only the cards whose scores, remarks or language changed; each change is a new version.",
+    "madeToast": "{count, plural, =0 {Nothing changed; the cards are up to date} one {# card made} other {# cards made}}",
+    "version": "Version {version}, {date}.",
+    "openFor": "Open the card of {name}",
+    "notMade": "No card yet",
+    "teacherRemarkFor": "Teacher's remark for {name}",
+    "principalRemarkFor": "Principal's remark for {name}",
+    "principalSaid": "Principal: {remark}",
+    "principalLater": "The principal's remark is written by an owner or admin.",
+    "myTitle": "My report cards",
+    "myIntro": "Your report cards, as your school made them.",
+    "myEmpty": "No report cards yet",
+    "myEmptyHint": "Your report card appears here when your school makes it.",
+    "madeOn": "Made on {date}",
+    "open": "Open"
+  },
+  "reportCard": {
+    "title": "Report card",
+    "cardOf": "Report card of {name}",
+    "wholeSession": "Whole session",
+    "student": "Student",
+    "roll": "Roll",
+    "class": "[[Class]]",
+    "position": "Position",
+    "positionOf": "{position, number} of {size, number}",
+    "subjects": "Subjects",
+    "subject": "Subject",
+    "exams": "Exams",
+    "homework": "Homework",
+    "score": "Score",
+    "grade": "Grade",
+    "gpa": "GPA",
+    "overall": "Overall",
+    "attendance": "Attendance",
+    "attendanceDays": "Present {present} · absent {absent} · leave {leave}",
+    "behaviour": "Behaviour",
+    "onTime": "Homework on time",
+    "weights": "Score made of",
+    "weightsValue": "exams {exams}%, homework {homework}%, attendance {attendance}%, behaviour {behaviour}%",
+    "strengths": "Strongest subjects",
+    "weaknesses": "Needs more work in",
+    "teacherRemark": "Class teacher's remark",
+    "principalRemark": "Principal's remark",
+    "teacherSignature": "Class teacher's signature",
+    "principalSignature": "Principal's signature",
+    "footer": "Made on {date} · version {version}",
+    "count": "{count, plural, one {# card} other {# cards}}",
+    "print": "Print / Save as PDF",
+    "loadFailed": "Couldn't load the report cards.",
+    "none": "No report cards made yet",
+    "noneHint": "Make the cards on the Report cards page first."
   },
   "performanceSettings": {
     "title": "Performance settings",

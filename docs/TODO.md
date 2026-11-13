@@ -76,3 +76,5 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Class reminders for teachers of slots that name no teacher — P5-05 reminds the slot's named teacher (or that day's substitute); unnamed slots remind only students.
 - Strengths and weaknesses by topic (PRF-06) — P7-03 ranks subjects (at least 3 marked exams or homework); topics need the syllabus and question tags (Epic 6), then rank topics with the same rule.
 - Organisation dashboard filters by branch and teacher (PRF-08) and syllabus coverage — needs the syllabus (Epic 6); P7 shows sections and subjects.
+- School logo on report cards (PRF-09 "the org logo and name") — organisations have no logo yet; P7-04 prints the name. Add a logo upload (file storage, FND) and print it.
+- Report cards as a ZIP of separate PDFs (PRF-09 "one PDF or a ZIP") — P7-04 prints a whole section as one PDF through the browser; a ZIP needs a server-side PDF renderer with Bangla shaping (a package; owner approval).

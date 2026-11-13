@@ -13,6 +13,8 @@ export const RESULTS_ERRORS = {
   REMARK_NEEDS_RATING: 'RESULTS_REMARK_NEEDS_RATING',
   /** Weights are whole percent from 0 to 100 adding up to 100. */
   WEIGHTS_INVALID: 'RESULTS_WEIGHTS_INVALID',
+  /** A report card can be made only for a student of the section. */
+  CARD_STUDENT_UNKNOWN: 'RESULTS_CARD_STUDENT_UNKNOWN',
   /** The student does not take the subject class. */
   STUDENT_NOT_IN_CLASS: 'RESULTS_STUDENT_NOT_IN_CLASS',
 } as const;

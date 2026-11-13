@@ -98,6 +98,16 @@ const routePolicies: RoutePolicy[] = [
     allowedRoles: ["TEACHER"],
   },
   {
+    path: "/report-cards/print",
+    match: "exact",
+    allowedRoles: ["TEACHER"],
+  },
+  {
+    path: "/report-cards",
+    match: "prefix",
+    allowedRoles: ["TEACHER", "STUDENT"],
+  },
+  {
     path: "/features",
     match: "exact",
     allowedRoles: ["TEACHER"],

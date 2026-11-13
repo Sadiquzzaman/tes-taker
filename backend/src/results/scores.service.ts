@@ -110,6 +110,9 @@ export interface StudentPerformance {
   published_only: boolean;
 }
 
+/** A student's page before it is fitted to who reads it (history, position, at risk). */
+export type SectionPage = Omit<StudentPerformance, 'sections' | 'published_only'>;
+
 /** An exam result as the scores count it: online or on paper. */
 interface ExamFact {
   exam_id: string;
@@ -263,52 +266,80 @@ export class ScoresService {
     if (!chosen) throw new NotFoundException({ message: 'Section not found', code: RESULTS_ERRORS.NOT_FOUND });
     if (!self) await this.staffSection(tenant, userId, chosen.id);
 
-    const scores = await this.compute(organizationId, chosen.id, termId, self);
-    const own = scores.students.find((s) => s.student.id === studentId);
-    if (!own) throw new NotFoundException({ message: 'Student not found', code: RESULTS_ERRORS.NOT_FOUND });
-    const ctx = await this.context(organizationId, chosen.id, termId);
-    const facts = await this.facts(ctx, [studentId], self);
-    const subjectOf = (id: string | null) => ctx.offerings.find((o) => o.subject.id === id)?.subject ?? null;
-
-    const trend: StudentPerformance['trend'] = [];
-    for (const term of ctx.terms) {
-      const termCtx = await this.context(organizationId, chosen.id, term.id);
-      trend.push({ term: { id: term.id, name: term.name }, score_pct: this.score(termCtx, await this.facts(termCtx, [studentId], self), studentId).overall.score_pct });
-    }
-    const ranked = own.subjects.filter((s) => s.score_pct !== null && s.counts.exams + s.counts.homework >= MIN_ITEMS_FOR_STRENGTH).sort((a, b) => b.score_pct! - a.score_pct!);
-    const attendance = facts.attendance.get(studentId) ?? { counts: { present: 0, late: 0, absent: 0, leave: 0 }, attendance_pct: null };
-    const handedIn = own.homework.set - own.homework.missing;
-
+    const { pages, show_rank } = await this.pages(organizationId, chosen.id, termId, self, [studentId]);
+    const page = pages.get(studentId);
+    if (!page) throw new NotFoundException({ message: 'Student not found', code: RESULTS_ERRORS.NOT_FOUND });
     return {
-      student: own.student,
-      section: {
-        id: chosen.id,
-        name: chosen.name,
-        class_name: chosen.class?.class_name ?? '',
-        session: { id: ctx.session.id, name: ctx.session.name, closed: ctx.session.status === AcademicSessionStatusEnum.CLOSED },
-      },
+      ...page,
       sections: history.map((s) => ({ id: s.id, name: s.name, class_name: s.class?.class_name ?? '', session: { id: s.session?.id ?? s.session_id, name: s.session?.name ?? '' } })),
-      terms: ctx.terms.map((t) => ({ id: t.id, name: t.name })),
-      period: scores.period,
-      weights: scores.weights,
-      overall: own.overall,
-      subjects: own.subjects,
-      position: !self || ctx.settings.show_rank ? own.position : null,
-      class_size: scores.students.length,
-      at_risk: self ? [] : own.at_risk,
-      attendance,
-      homework: { ...own.homework, on_time_pct: own.homework.set ? round2(((handedIn - own.homework.late) / own.homework.set) * 100) : null },
-      exams: facts.exams
-        .map((f) => ({ id: f.exam_id, kind: f.kind, name: f.name, date: f.date, subject: subjectOf(f.subject_id), marks: f.marks, total: f.total, percent: f.is_absent ? null : f.percent, is_absent: f.is_absent }))
-        .sort((a, b) => b.date.localeCompare(a.date)),
-      homework_items: facts.homework
-        .map((h) => ({ id: h.homework_id, title: h.title, subject: subjectOf(h.subject_id), due_date: h.due_date, percent: h.percent, is_missing: h.is_missing, is_late: h.is_late }))
-        .sort((a, b) => b.due_date.localeCompare(a.due_date)),
-      trend,
-      strengths: ranked.slice(0, 3),
-      weaknesses: ranked.length > 3 ? ranked.slice(-3).reverse() : [],
+      position: !self || show_rank ? page.position : null,
+      at_risk: self ? [] : page.at_risk,
       published_only: self,
     };
+  }
+
+  /**
+   * Performance pages of a section's students (`only` some of them, or all), with no access check:
+   * the student page and report cards (P7-04). Positions and the class size are the whole section's.
+   */
+  async pages(
+    organizationId: string,
+    sectionId: string,
+    termId: string | undefined,
+    published: boolean,
+    only?: string[],
+  ): Promise<{ pages: Map<string, SectionPage>; show_rank: boolean; scores: SectionScores }> {
+    const scores = await this.compute(organizationId, sectionId, termId, published);
+    const ctx = await this.context(organizationId, sectionId, termId);
+    const ids = only ?? scores.students.map((s) => s.student.id);
+    const facts = await this.facts(ctx, ids, published);
+    const subjectOf = (id: string | null) => ctx.offerings.find((o) => o.subject.id === id)?.subject ?? null;
+    const trends = new Map<string, StudentPerformance['trend']>(ids.map((id) => [id, []]));
+    for (const term of ctx.terms) {
+      const termCtx = await this.context(organizationId, sectionId, term.id);
+      const termFacts = await this.facts(termCtx, ids, published);
+      for (const id of ids) trends.get(id)!.push({ term: { id: term.id, name: term.name }, score_pct: this.score(termCtx, termFacts, id).overall.score_pct });
+    }
+
+    const pages = new Map<string, SectionPage>();
+    for (const own of scores.students) {
+      if (!ids.includes(own.student.id)) continue;
+      const id = own.student.id;
+      const ranked = own.subjects.filter((s) => s.score_pct !== null && s.counts.exams + s.counts.homework >= MIN_ITEMS_FOR_STRENGTH).sort((a, b) => b.score_pct! - a.score_pct!);
+      const attendance = facts.attendance.get(id) ?? { counts: { present: 0, late: 0, absent: 0, leave: 0 }, attendance_pct: null };
+      const handedIn = own.homework.set - own.homework.missing;
+      pages.set(id, {
+        student: own.student,
+        section: {
+          id: ctx.section.id,
+          name: ctx.section.name,
+          class_name: ctx.section.class?.class_name ?? '',
+          session: { id: ctx.session.id, name: ctx.session.name, closed: ctx.session.status === AcademicSessionStatusEnum.CLOSED },
+        },
+        terms: ctx.terms.map((t) => ({ id: t.id, name: t.name })),
+        period: scores.period,
+        weights: scores.weights,
+        overall: own.overall,
+        subjects: own.subjects,
+        position: own.position,
+        class_size: scores.students.length,
+        at_risk: own.at_risk,
+        attendance,
+        homework: { ...own.homework, on_time_pct: own.homework.set ? round2(((handedIn - own.homework.late) / own.homework.set) * 100) : null },
+        exams: facts.exams
+          .filter((f) => f.student_id === id)
+          .map((f) => ({ id: f.exam_id, kind: f.kind, name: f.name, date: f.date, subject: subjectOf(f.subject_id), marks: f.marks, total: f.total, percent: f.is_absent ? null : f.percent, is_absent: f.is_absent }))
+          .sort((a, b) => b.date.localeCompare(a.date)),
+        homework_items: facts.homework
+          .filter((h) => h.student_id === id)
+          .map((h) => ({ id: h.homework_id, title: h.title, subject: subjectOf(h.subject_id), due_date: h.due_date, percent: h.percent, is_missing: h.is_missing, is_late: h.is_late }))
+          .sort((a, b) => b.due_date.localeCompare(a.due_date)),
+        trend: trends.get(id) ?? [],
+        strengths: ranked.slice(0, 3),
+        weaknesses: ranked.length > 3 ? ranked.slice(-3).reverse() : [],
+      });
+    }
+    return { pages, show_rank: ctx.settings.show_rank, scores };
   }
 
   // ------------------------------------------------------------------ helpers
@@ -411,14 +442,14 @@ export class ScoresService {
     };
   }
 
-  private staffOnly(tenant: Tenant): void {
+  staffOnly(tenant: Tenant): void {
     if (tenant.viaEnrolment || ![...MANAGERS, TEACHER].includes(tenant.memberRole)) {
       throw new ForbiddenException({ message: 'Only staff of this workspace see scores', code: RESULTS_ERRORS.NOT_ALLOWED });
     }
   }
 
   /** A section staff may see: any for owners, admins and staff; a teacher the ones they look after (404 otherwise). */
-  private async staffSection(tenant: Tenant, userId: string, sectionId: string): Promise<SectionEntity> {
+  async staffSection(tenant: Tenant, userId: string, sectionId: string): Promise<SectionEntity> {
     const [section] = await this.sections.findSectionsWithClasses(tenant.organizationId, [sectionId]);
     if (!section || !section.session) throw new NotFoundException({ message: 'Section not found', code: RESULTS_ERRORS.NOT_FOUND });
     if (!MANAGERS.includes(tenant.memberRole) && !(await this.sections.sectionIdsTaughtBy(tenant.organizationId, section.session_id, userId)).has(section.id)) {

@@ -38,6 +38,9 @@ type Performance = {
   weaknesses: unknown[];
   published_only: boolean;
 };
+type CardRow = { student: { id: string }; latest: { id: string; version: number; locale: string; teacher_remark: string | null; principal_remark: string | null } | null };
+type CardList = { can_write_principal_remark: boolean; rows: CardRow[] };
+type Card = { id: string; version: number; snapshot: { organization: { name: string }; show_position: boolean; page: { student: { id: string }; overall: { score_pct: number }; position: number | null; period: { term: { name: string } | null } } } };
 type Weights = { session: { id: string }; classes: { class: { id: string; name: string }; weights: Record<string, number>; is_default: boolean }[] };
 
 /**
@@ -304,6 +307,57 @@ describe('scores API', () => {
     expect(own.homework_items).toEqual([]);
     await call('PUT', '/scores/settings', s.ownerToken, { show_rank: true });
     expect((await call<Performance>('GET', `/scores/students/${s.mitu.id}`, s.mituToken)).body.payload.position).toBe(1);
+  });
+
+  it('makes report cards that freeze the scores, with remarks, and a new version only when something changed', async () => {
+    const s = await school();
+    const path = `/report-cards?section_id=${s.sectionId}&term_id=${s.term.id}`;
+    const empty = await call<CardList>('GET', path, s.rinaToken);
+    expect([empty.body.payload.can_write_principal_remark, empty.body.payload.rows.map((r) => r.latest)]).toEqual([false, [null, null]]);
+    const make = (token: string, rows: unknown[], locale = 'bn') => call<CardList>('POST', '/report-cards/generate', token, { section_id: s.sectionId, term_id: s.term.id, locale, rows });
+
+    // A teacher's principal remark is ignored.
+    const first = await make(s.rinaToken, [{ student_id: s.mitu.id, teacher_remark: ' Works hard ', principal_remark: 'Not mine to write' }, { student_id: s.rafi.id }]);
+    expect(first.status).toBe(200);
+    const mitu = () => first.body.payload.rows.find((r) => r.student.id === s.mitu.id)!.latest!;
+    expect(mitu()).toMatchObject({ version: 1, locale: 'bn', teacher_remark: 'Works hard', principal_remark: null });
+    // The same again makes nothing new; the owner's principal remark makes version 2 and keeps the teacher's.
+    expect((await make(s.rinaToken, [{ student_id: s.mitu.id }])).body.payload.rows.find((r) => r.student.id === s.mitu.id)!.latest!.version).toBe(1);
+    const second = await make(s.ownerToken, [{ student_id: s.mitu.id, principal_remark: 'Well done' }]);
+    expect(second.body.payload.rows.find((r) => r.student.id === s.mitu.id)!.latest).toMatchObject({ version: 2, teacher_remark: 'Works hard', principal_remark: 'Well done' });
+
+    // The card keeps the scores it was made with; after a change, making it again is version 3.
+    const card = (await call<Card>('GET', `/report-cards/${second.body.payload.rows.find((r) => r.student.id === s.mitu.id)!.latest!.id}`, s.rinaToken)).body.payload;
+    expect(card.snapshot).toMatchObject({ show_position: false, page: { overall: { score_pct: 88 }, position: null, period: { term: { name: 'Half-yearly' } } } });
+    expect(card.snapshot.organization.name).toBe(s.organization.name);
+    await call('PUT', '/scores/weights', s.ownerToken, { session_id: s.sessionId, class_id: s.classId, exams_pct: 100, homework_pct: 0, attendance_pct: 0, behaviour_pct: 0 });
+    expect((await call<Card>('GET', `/report-cards/${card.id}`, s.rinaToken)).body.payload.snapshot.page.overall.score_pct).toBe(88);
+    const third = await make(s.ownerToken, [{ student_id: s.mitu.id }]);
+    expect(third.body.payload.rows.find((r) => r.student.id === s.mitu.id)!.latest!.version).toBe(3);
+
+    const print = (await call<Card[]>('GET', `/report-cards/print?section_id=${s.sectionId}&term_id=${s.term.id}`, s.ownerToken)).body.payload;
+    expect(print.map((c) => [c.snapshot.page.student.id, c.version, c.snapshot.page.overall.score_pct])).toEqual([
+      [s.mitu.id, 3, 80],
+      [s.rafi.id, 1, 43],
+    ]);
+    await t.app.get(AuditService).flush();
+    expect(await t.dataSource.getRepository(AuditLogEntity).count({ where: { organization_id: s.organization.id, action: 'report_card.generate' } })).toBe(4);
+
+    const unknown = await make(s.ownerToken, [{ student_id: s.organization.id }]);
+    expect([unknown.status, unknown.body.code]).toEqual([400, 'RESULTS_CARD_STUDENT_UNKNOWN']);
+    expect((await call('GET', path, s.linaToken)).status).toBe(404);
+    expect((await call('GET', path, s.mituToken)).status).toBe(403);
+  });
+
+  it("lets a student see their own latest cards only", async () => {
+    const s = await school();
+    const made = await call<CardList>('POST', '/report-cards/generate', s.ownerToken, { section_id: s.sectionId, term_id: s.term.id, locale: 'en', rows: [{ student_id: s.mitu.id }, { student_id: s.rafi.id }] });
+    const id = (who: string) => made.body.payload.rows.find((r) => r.student.id === who)!.latest!.id;
+    const mine = await call<{ id: string; version: number }[]>('GET', '/report-cards/mine', s.mituToken);
+    expect(mine.body.payload.map((c) => c.id)).toEqual([id(s.mitu.id)]);
+    expect((await call<Card>('GET', `/report-cards/${id(s.mitu.id)}`, s.mituToken)).status).toBe(200);
+    expect((await call('GET', `/report-cards/${id(s.rafi.id)}`, s.mituToken)).status).toBe(404);
+    expect((await call('GET', '/report-cards/mine', s.rinaToken)).status).toBe(403);
   });
 
   it("shows a section's scores to its staff only, needs the performance feature, and keeps schools apart", async () => {

@@ -68,7 +68,8 @@
     "marks": "লিখিত পরীক্ষা",
     "behaviour": "আচরণ",
     "performanceSettings": "পারফরম্যান্স সেটিংস",
-    "performance": "পারফরম্যান্স"
+    "performance": "পারফরম্যান্স",
+    "reportCards": "রিপোর্ট কার্ড"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -2803,7 +2804,8 @@
       "offline_exam": "লিখিত পরীক্ষা",
       "behaviour": "আচরণ",
       "score": "স্কোরের ভার",
-      "performance": "পারফরম্যান্স সেটিংস"
+      "performance": "পারফরম্যান্স সেটিংস",
+      "report_card": "রিপোর্ট কার্ড"
     },
     "actions": {
       "plan": {
@@ -2943,6 +2945,9 @@
       },
       "performance": {
         "settings": "পারফরম্যান্স সেটিংস বদলানো হয়েছে"
+      },
+      "report_card": {
+        "generate": "রিপোর্ট কার্ড তৈরি হয়েছে"
       }
     },
     "fields": {
@@ -4743,6 +4748,76 @@
     "examsTitle": "পরীক্ষা",
     "homeworkTitle": "বাড়ির কাজ",
     "noHomework": "এখনো কোনো নম্বর দেওয়া বাড়ির কাজ নেই।"
+  },
+  "reportCards": {
+    "title": "রিপোর্ট কার্ড",
+    "intro": "প্রত্যেক শিক্ষার্থীর মন্তব্য লিখুন, কার্ড তৈরি করুন ও প্রিন্ট করুন। কার্ড তৈরির সময়ের স্কোর রাখে; পরিবর্তনের পর আবার তৈরি করুন।",
+    "loadFailed": "রিপোর্ট কার্ড লোড করা যায়নি।",
+    "noSections": "দেখানোর মতো কোনো [[sections]] নেই",
+    "noSectionsHint": "আপনি যে [[sections]] পড়ান বা দেখাশোনা করেন সেগুলো দেখবেন।",
+    "section": "[[Section]]",
+    "term": "টার্ম",
+    "wholeSession": "পুরো সেশন",
+    "language": "কার্ডের ভাষা",
+    "languages": {
+      "bn": "বাংলা",
+      "en": "ইংরেজি"
+    },
+    "noStudents": "এই [[section]]-এ কোনো শিক্ষার্থী নেই।",
+    "madeCount": "{total, number}টির মধ্যে {made, number}টি কার্ড তৈরি",
+    "printAll": "সব প্রিন্ট করুন (একটি পিডিএফ)",
+    "make": "কার্ড তৈরি করুন",
+    "makeHint": "আবার তৈরি করলে শুধু যেসব কার্ডের স্কোর, মন্তব্য বা ভাষা বদলেছে সেগুলো বদলায়; প্রতিটি পরিবর্তন নতুন সংস্করণ।",
+    "madeToast": "{count, plural, =0 {কিছু বদলায়নি; কার্ডগুলো হালনাগাদ আছে} other {#টি কার্ড তৈরি হয়েছে}}",
+    "version": "সংস্করণ {version}, {date}।",
+    "openFor": "{name}-এর কার্ড খুলুন",
+    "notMade": "এখনো কার্ড নেই",
+    "teacherRemarkFor": "{name}-এর জন্য শিক্ষকের মন্তব্য",
+    "principalRemarkFor": "{name}-এর জন্য প্রধান শিক্ষকের মন্তব্য",
+    "principalSaid": "প্রধান শিক্ষক: {remark}",
+    "principalLater": "প্রধান শিক্ষকের মন্তব্য মালিক বা অ্যাডমিন লেখেন।",
+    "myTitle": "আমার রিপোর্ট কার্ড",
+    "myIntro": "আপনার স্কুল যেভাবে তৈরি করেছে সেভাবে আপনার রিপোর্ট কার্ড।",
+    "myEmpty": "এখনো কোনো রিপোর্ট কার্ড নেই",
+    "myEmptyHint": "আপনার স্কুল কার্ড তৈরি করলে এখানে দেখাবে।",
+    "madeOn": "{date}-এ তৈরি",
+    "open": "খুলুন"
+  },
+  "reportCard": {
+    "title": "রিপোর্ট কার্ড",
+    "cardOf": "{name}-এর রিপোর্ট কার্ড",
+    "wholeSession": "পুরো সেশন",
+    "student": "শিক্ষার্থী",
+    "roll": "রোল",
+    "class": "[[Class]]",
+    "position": "মেধাক্রম",
+    "positionOf": "{size, number} জনের মধ্যে {position, number}",
+    "subjects": "বিষয়সমূহ",
+    "subject": "বিষয়",
+    "exams": "পরীক্ষা",
+    "homework": "বাড়ির কাজ",
+    "score": "স্কোর",
+    "grade": "গ্রেড",
+    "gpa": "জিপিএ",
+    "overall": "সামগ্রিক",
+    "attendance": "উপস্থিতি",
+    "attendanceDays": "উপস্থিত {present} · অনুপস্থিত {absent} · ছুটি {leave}",
+    "behaviour": "আচরণ",
+    "onTime": "সময়মতো বাড়ির কাজ",
+    "weights": "স্কোরের গঠন",
+    "weightsValue": "পরীক্ষা {exams}%, বাড়ির কাজ {homework}%, উপস্থিতি {attendance}%, আচরণ {behaviour}%",
+    "strengths": "সবচেয়ে ভালো বিষয়",
+    "weaknesses": "আরও মনোযোগ দরকার",
+    "teacherRemark": "শ্রেণিশিক্ষকের মন্তব্য",
+    "principalRemark": "প্রধান শিক্ষকের মন্তব্য",
+    "teacherSignature": "শ্রেণিশিক্ষকের স্বাক্ষর",
+    "principalSignature": "প্রধান শিক্ষকের স্বাক্ষর",
+    "footer": "{date}-এ তৈরি · সংস্করণ {version}",
+    "count": "{count, plural, other {#টি কার্ড}}",
+    "print": "প্রিন্ট / পিডিএফ হিসেবে সংরক্ষণ",
+    "loadFailed": "রিপোর্ট কার্ড লোড করা যায়নি।",
+    "none": "এখনো কোনো রিপোর্ট কার্ড তৈরি হয়নি",
+    "noneHint": "আগে রিপোর্ট কার্ড পাতায় কার্ড তৈরি করুন।"
   },
   "performanceSettings": {
     "title": "পারফরম্যান্স সেটিংস",

@@ -35,6 +35,7 @@ export const AUDIT_AREAS = [
   "behaviour",
   "score",
   "performance",
+  "report_card",
 ] as const;
 
 export interface AuditChange {
