@@ -28,9 +28,9 @@ export class BehaviourController {
   constructor(private readonly behaviour: BehaviourService) {}
 
   @Get('criteria')
-  @ApiOperation({ summary: "The organisation's behaviour criteria, in order (the defaults the first time)" })
+  @ApiOperation({ summary: "The organisation's behaviour criteria, in order (the defaults the first time); staff only" })
   async criteria() {
-    return { message: 'Criteria retrieved successfully', payload: await this.behaviour.criteria(workspace()) };
+    return { message: 'Criteria retrieved successfully', payload: await this.behaviour.criteriaForStaff(workspace()) };
   }
 
   @Put('criteria')

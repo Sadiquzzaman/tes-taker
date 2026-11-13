@@ -97,6 +97,17 @@ const routePolicies: RoutePolicy[] = [
     match: "prefix",
     allowedRoles: ["TEACHER"],
   },
+  // Results pages belong to a workspace: teachers and students (platform admins go to Admin).
+  {
+    path: "/performance",
+    match: "exact",
+    allowedRoles: ["TEACHER", "STUDENT"],
+  },
+  {
+    path: "/marks",
+    match: "prefix",
+    allowedRoles: ["TEACHER", "STUDENT"],
+  },
   // A report card shared with guardians: the token in the link is the key (PRF-09).
   {
     path: "/r/",
