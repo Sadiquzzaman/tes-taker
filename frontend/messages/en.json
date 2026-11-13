@@ -2241,7 +2241,8 @@
       "Proctoring": "Proctoring",
       "Attendance": "Attendance",
       "Homework": "Homework",
-      "Calendar": "Calendar"
+      "Calendar": "Calendar",
+      "Communication": "Communication"
     },
     "catalog": {
       "allow_graded_questions": {
@@ -2371,6 +2372,10 @@
       "calendar": {
         "name": "Calendar",
         "description": "Weekly class routine with clash warnings; events and reminders next."
+      },
+      "chat": {
+        "name": "Chat",
+        "description": "Group chat for each subject class with comment threads, and private teacher–student chat."
       }
     },
     "limits": {
