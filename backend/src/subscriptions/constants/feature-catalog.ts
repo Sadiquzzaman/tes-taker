@@ -7,6 +7,7 @@ export enum FeatureGroup {
   ATTENDANCE = 'Attendance',
   HOMEWORK = 'Homework',
   CALENDAR = 'Calendar',
+  PERFORMANCE = 'Performance',
 }
 
 export enum LimitKey {
@@ -58,6 +59,8 @@ export enum FeatureKey {
   HOMEWORK = 'homework',
   /** Calendar: weekly class routine, events and reminders (Epic 9). */
   CALENDAR = 'calendar',
+  /** Epic 3 (P7): paper exam marks, behaviour ratings, weighted scores, dashboards and report cards. */
+  PERFORMANCE = 'performance',
 }
 
 export type PlanFeatures = Partial<Record<FeatureKey, boolean>>;
@@ -211,6 +214,12 @@ export const FEATURE_CATALOG: CatalogFeatureDefinition[] = [
     label: 'Calendar',
     description: 'Weekly class routine with clash warnings, events and reminders',
   },
+  {
+    key: FeatureKey.PERFORMANCE,
+    group: FeatureGroup.PERFORMANCE,
+    label: 'Performance & report cards',
+    description: 'Paper exam marks, behaviour ratings, weighted scores, class dashboards and report cards',
+  },
 ];
 
 export const LIMIT_CATALOG: CatalogLimitDefinition[] = [
@@ -322,6 +331,7 @@ export const SEED_PLAN_PRESETS = {
     features: {
       [FeatureKey.HOMEWORK]: true,
       [FeatureKey.CALENDAR]: true,
+      [FeatureKey.PERFORMANCE]: true,
       [FeatureKey.ALLOW_GRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_UNGRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_QUESTION_IMPORT_EXPORT]: true,
@@ -351,6 +361,7 @@ export const SEED_PLAN_PRESETS = {
     features: {
       [FeatureKey.HOMEWORK]: true,
       [FeatureKey.CALENDAR]: true,
+      [FeatureKey.PERFORMANCE]: true,
       [FeatureKey.ALLOW_GRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_UNGRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_QUESTION_IMPORT_EXPORT]: true,
@@ -388,6 +399,7 @@ export const SEED_PLAN_PRESETS = {
     features: {
       [FeatureKey.HOMEWORK]: true,
       [FeatureKey.CALENDAR]: true,
+      [FeatureKey.PERFORMANCE]: true,
       [FeatureKey.ALLOW_GRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_UNGRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_PASSAGE_QUESTIONS]: true,

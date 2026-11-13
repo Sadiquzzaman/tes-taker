@@ -914,28 +914,42 @@ Table proctoring_reviews {
 Table offline_exams {
   id uuid [pk]
   organization_id uuid [not null]
-  session_id uuid [ref: > academic_sessions.id]
-  term_id uuid [ref: > terms.id]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  term_id uuid [ref: > terms.id, note: 'FK ON DELETE SET NULL']
   offering_id uuid [not null, ref: > course_offerings.id]
-  name varchar(120)
-  exam_date date
-  total_marks numeric(6,2)
-  parts jsonb [note: '[{"name":"MCQ","marks":30},{"name":"Written","marks":70}]']
-  Note: 'NEW (PRF-03)'
+  name varchar(120) [not null]
+  exam_date date [not null]
+  total_marks numeric(6,2) [not null, note: 'check > 0']
+  parts jsonb [note: '[{"name":"MCQ","marks":30},{"name":"Written","marks":70}] adding up to the total']
+  published_at timestamptz [note: 'students see their marks from then on']
+  created_by uuid
+  created_at timestamptz [not null]
+  updated_by uuid
+  updated_at timestamptz
+  removed_at timestamptz [note: 'soft removal; never deleted']
+  removed_by uuid
+  Indexes {
+    (organization_id, offering_id, exam_date)
+    (organization_id, session_id)
+  }
+  Note: 'NEW (PRF-03), BUILT P7-01 (exams module, migration OfflineExams)'
 }
 
 Table offline_exam_marks {
   id uuid [pk]
+  organization_id uuid [not null]
   offline_exam_id uuid [not null, ref: > offline_exams.id]
   student_id uuid [not null, ref: > users.id]
-  marks numeric(6,2)
-  part_marks jsonb
-  is_absent boolean [default: false]
+  marks numeric(6,2) [note: 'check >= 0; with parts, their sum']
+  part_marks jsonb [note: 'marks per part name']
+  is_absent boolean [not null, default: false]
   entered_by uuid
+  entered_at timestamptz
   Indexes {
     (offline_exam_id, student_id) [unique]
+    (organization_id, student_id)
   }
-  Note: 'NEW'
+  Note: 'NEW, BUILT P7-01; every change is in audit_logs (offline_exam.marks)'
 }
 
 //////////////////////////////////////////////////////////////
