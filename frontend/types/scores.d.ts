@@ -91,3 +91,31 @@ interface StudentPerformance {
   weaknesses: SubjectScoreLine[];
   published_only: boolean;
 }
+
+/** Report cards (P7-04, PRF-09): `GET /report-cards`, `/report-cards/print`, `/report-cards/:id`. */
+interface ReportCardSummary {
+  id: string;
+  version: number;
+  locale: "bn" | "en";
+  term: { id: string; name: string } | null;
+  teacher_remark: string | null;
+  principal_remark: string | null;
+  generated_at: string;
+  shared_at: string | null;
+  share_expires_at: string | null;
+}
+
+interface ReportCardView extends ReportCardSummary {
+  snapshot: {
+    organization: { name: string };
+    show_position: boolean;
+    page: Omit<StudentPerformance, "sections" | "published_only" | "exams" | "homework_items" | "at_risk">;
+  };
+}
+
+interface ReportCardList {
+  section: { id: string; name: string; class_name: string; session: { id: string; name: string; closed: boolean } };
+  term: { id: string; name: string } | null;
+  can_write_principal_remark: boolean;
+  rows: { student: { id: string; full_name: string; roll_no: string | null }; latest: ReportCardSummary | null }[];
+}

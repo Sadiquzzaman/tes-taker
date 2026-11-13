@@ -11,7 +11,10 @@ import { BehaviourController } from './behaviour.controller';
 import { BehaviourService } from './behaviour.service';
 import { BehaviourCriterionEntity } from './entities/behaviour-criterion.entity';
 import { BehaviourRatingEntity } from './entities/behaviour-rating.entity';
+import { ReportCardEntity } from './entities/report-card.entity';
 import { ScoreWeightEntity } from './entities/score-weight.entity';
+import { ReportCardsController } from './report-cards.controller';
+import { ReportCardsService } from './report-cards.service';
 import { ScoreSettingsService } from './score-settings.service';
 import { ScoresController } from './scores.controller';
 import { ScoresService } from './scores.service';
@@ -23,7 +26,7 @@ import { ScoresService } from './scores.service';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([BehaviourCriterionEntity, BehaviourRatingEntity, ScoreWeightEntity]),
+    TypeOrmModule.forFeature([BehaviourCriterionEntity, BehaviourRatingEntity, ScoreWeightEntity, ReportCardEntity]),
     AcademicsModule,
     AttendanceModule,
     ExamModule,
@@ -32,8 +35,8 @@ import { ScoresService } from './scores.service';
     PerformanceModule,
     SubscriptionModule,
   ],
-  controllers: [BehaviourController, ScoresController],
-  providers: [BehaviourService, ScoresService, ScoreSettingsService],
+  controllers: [BehaviourController, ScoresController, ReportCardsController],
+  providers: [BehaviourService, ScoresService, ScoreSettingsService, ReportCardsService],
   exports: [BehaviourService, ScoresService],
 })
 export class ResultsModule {}

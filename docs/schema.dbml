@@ -1222,22 +1222,29 @@ Table student_term_scores {
 
 Table report_cards {
   id uuid [pk]
-  organization_id uuid [not null]
-  term_id uuid [not null, ref: > terms.id]
+  organization_id uuid [not null, ref: > organizations.id]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  term_id uuid [ref: > terms.id, note: 'null = the whole session; a removed term sets it null (the snapshot keeps its name)']
+  section_id uuid [not null, ref: > sections.id]
   student_id uuid [not null, ref: > users.id]
-  type varchar(20) [default: 'REPORT_CARD', note: 'REPORT_CARD | TRANSCRIPT (Tertiary, later)']
-  file_id uuid [ref: > file_objects.id]
-  teacher_remark text
-  principal_remark text
-  locale varchar(5)
-  share_token_hash varchar(128) [note: 'guardian link, no login']
+  version smallint [not null, default: 1, note: 'made again after a change = a new row, version + 1']
+  locale varchar(5) [not null, note: 'CHECK bn | en']
+  teacher_remark varchar(500)
+  principal_remark varchar(500) [note: 'owners and admins']
+  scores_snapshot jsonb [not null, note: 'frozen scores at generation (decided 22 Oct): organisation name, the student page without its item lists, show_position']
+  generated_by uuid
+  generated_at timestamptz [not null]
+  share_token_hash varchar(128) [note: 'guardian link, no login (P7-04 part 2); SHA-256 of the token']
   share_expires_at timestamptz [note: '30 days']
-  version smallint [not null, default: 1, note: 'regenerated card = new row, version + 1']
-  scores_snapshot jsonb [note: 'frozen term scores at generation (decided 22 Oct)']
-  generated_at timestamptz
+  shared_at timestamptz
+  shared_by uuid
   Indexes {
-    (term_id, student_id, version) [unique]
+    (student_id, section_id, `COALESCE(term_id, nil uuid)`, version) [unique, name: 'UQ_report_cards_version']
+    (organization_id, section_id, term_id)
+    share_token_hash [unique, note: 'where not null']
   }
+  Note: 'NEW (PRF-09), BUILT P7-04 (results module, migration ReportCards); type/file_id dropped: cards are printed by the browser, not stored as files; audit report_card.generate'
+}
   Note: 'NEW (PRF-09)'
 }
 

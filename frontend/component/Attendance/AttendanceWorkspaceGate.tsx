@@ -13,7 +13,7 @@ import { workspaceFromUser } from "@/lib/workspace";
  * chosen one yet (just signed in) sees their workspaces here instead of a load error; choosing one
  * reloads the same page inside it. Everyone else sees the page as it is.
  */
-const AttendanceWorkspaceGate = ({ page, children }: { page: "myAttendance" | "leave" | "homework" | "routine" | "calendar" | "marks" | "performance"; children: ReactNode }) => {
+const AttendanceWorkspaceGate = ({ page, children }: { page: "myAttendance" | "leave" | "homework" | "routine" | "calendar" | "marks" | "performance" | "reportCards"; children: ReactNode }) => {
   const t = useTranslations("attendanceWorkspace");
   const tPage = useTranslations(page);
   // undefined on the server and while hydrating; then the signed-in user as stored.

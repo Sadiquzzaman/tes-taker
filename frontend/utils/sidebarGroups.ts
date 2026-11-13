@@ -27,6 +27,7 @@ export const NAV_ITEM_ORDER: SideBarList["label"][] = [
   "performance",
   "marks",
   "behaviour",
+  "reportCards",
   "performanceSettings",
   "classAttendance",
   "myAttendance",

@@ -24,6 +24,7 @@ import { HomeworkScores1756290000000 } from '../../src/migrations/1756290000000-
 import { OfflineExams1756350000000 } from '../../src/migrations/1756350000000-OfflineExams';
 import { BehaviourRatings1756360000000 } from '../../src/migrations/1756360000000-BehaviourRatings';
 import { ScoreWeights1756370000000 } from '../../src/migrations/1756370000000-ScoreWeights';
+import { ReportCards1756380000000 } from '../../src/migrations/1756380000000-ReportCards';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
 import { factories } from '../support/factories';
@@ -136,7 +137,10 @@ describe('AcademicStructure migration', () => {
     const behaviour = new BehaviourRatings1756360000000();
     // Score weights (P7-02) point at sessions and classes and add columns to org_settings: down first, back last.
     const weights = new ScoreWeights1756370000000();
+    // Report cards (P7-04) point at sessions, terms and sections: down first, back last.
+    const reportCards = new ReportCards1756380000000();
     try {
+      await reportCards.down(runner);
       await weights.down(runner);
       await behaviour.down(runner);
       await offlineExams.down(runner);
@@ -184,6 +188,7 @@ describe('AcademicStructure migration', () => {
       await offlineExams.up(runner);
       await behaviour.up(runner);
       await weights.up(runner);
+      await reportCards.up(runner);
     } finally {
       await runner.release();
     }
