@@ -13,6 +13,7 @@ import useFormat from "@/i18n/useFormat";
 import { getStoredUser } from "@/lib/authSession";
 import axiosReq from "@/lib/axios";
 import type { ChatListener } from "./ChatPage";
+import ReportButton from "./ReportButton";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_URL;
 const PAGE = 30;
@@ -135,7 +136,7 @@ const GroupChat = ({ groupId, classId, onBack, listen }: { groupId: string; clas
       ) : null}
 
       {group.read_only ? (
-        <p className="text-body-sm text-ink-muted">{t("readOnly")}</p>
+        <p className="text-body-sm text-ink-muted">{group.closed ? t("closedBySchool") : t("readOnly")}</p>
       ) : canPost ? (
         <Composer
           path={path}
@@ -184,7 +185,7 @@ const GroupChat = ({ groupId, classId, onBack, listen }: { groupId: string; clas
 };
 
 /** One message: author, time, quoted reply, text, files and its actions. */
-const MessageBody = ({ message, actions }: { message: ChatMessage; actions?: React.ReactNode }) => {
+export const MessageBody = ({ message, actions }: { message: ChatMessage; actions?: React.ReactNode }) => {
   const t = useTranslations("chat");
   const format = useFormat();
   return (
@@ -287,6 +288,7 @@ const PostCard = ({
                 {t("delete")}
               </Button>
             ) : null}
+            {post.author.id !== me ? <ReportButton chatType="GROUP" chatId={group.id} message={post} /> : null}
           </>
         }
       />
@@ -345,11 +347,14 @@ const Thread = ({
               <MessageBody
                 message={comment}
                 actions={
-                  (group.role === "TEACHER" || comment.author.id === me) && !group.read_only ? (
-                    <Button variant="ghost" size="sm" className="text-danger" onClick={() => void onRemove(comment, () => setData(comments.map((c) => (c.id === comment.id ? { ...c, deleted: true, content: "", attachments: [] } : c))))}>
-                      {t("delete")}
-                    </Button>
-                  ) : null
+                  <>
+                    {(group.role === "TEACHER" || comment.author.id === me) && !group.read_only ? (
+                      <Button variant="ghost" size="sm" className="text-danger" onClick={() => void onRemove(comment, () => setData(comments.map((c) => (c.id === comment.id ? { ...c, deleted: true, content: "", attachments: [] } : c))))}>
+                        {t("delete")}
+                      </Button>
+                    ) : null}
+                    {comment.author.id !== me ? <ReportButton chatType="GROUP" chatId={group.id} message={comment} /> : null}
+                  </>
                 }
               />
             </li>
@@ -372,7 +377,7 @@ const Thread = ({
 };
 
 /** Text and files; a post, or a comment on `parentId`, optionally replying to a message. */
-const Composer = ({
+export const Composer = ({
   path,
   classId,
   label,
@@ -382,7 +387,8 @@ const Composer = ({
   onSent,
 }: {
   path: string;
-  classId: string;
+  /** The section's class, for file uploads; none = text only. */
+  classId?: string;
   label: string;
   parentId?: string;
   replyTo?: ChatMessage | null;
@@ -392,7 +398,7 @@ const Composer = ({
   const t = useTranslations("chat");
   const { triggerToast } = useToast();
   const { handleError } = useApiError();
-  const { upload, uploading, status } = useAttachmentUploads(classId);
+  const { upload, uploading, status } = useAttachmentUploads(classId ?? "");
   const [text, setText] = useState("");
   const [files, setFiles] = useState<DiscussionAttachment[]>([]);
   const [busy, setBusy] = useState(false);
@@ -448,10 +454,12 @@ const Composer = ({
       ) : null}
       {status ? <p className="text-caption text-ink-muted">{status}</p> : null}
       <div className="flex items-center justify-end gap-2">
-        <label className="cursor-pointer text-body-sm text-primary underline">
-          {t("attach")}
-          <input type="file" multiple className="sr-only" onChange={(event) => void attach(event.target.files)} disabled={uploading || files.length >= 5} />
-        </label>
+        {classId ? (
+          <label className="cursor-pointer text-body-sm text-primary underline">
+            {t("attach")}
+            <input type="file" multiple className="sr-only" onChange={(event) => void attach(event.target.files)} disabled={uploading || files.length >= 5} />
+          </label>
+        ) : null}
         <Button size="sm" loading={busy} disabled={uploading || (!text.trim() && files.length === 0)} onClick={() => void send()}>
           {t("send")}
         </Button>

@@ -4,12 +4,13 @@ import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import useApiData from "@/component/Homework/useApiData";
-import { Badge, Card, EmptyState, ErrorState, PageHeader, Skeleton } from "@/design/ui";
+import { Badge, Card, EmptyState, ErrorState, PageHeader, Skeleton, Tabs } from "@/design/ui";
 import { cn, focusRing } from "@/design/ui/cn";
 import useChatSocket from "@/hooks/chat/useChatSocket";
 import useFormat from "@/i18n/useFormat";
 import { getStoredUser } from "@/lib/authSession";
 import GroupChat from "./GroupChat";
+import PrivateChats from "./PrivateChats";
 
 export type ChatListener = (event: ChatSocketEvent) => void;
 
@@ -25,6 +26,7 @@ const ChatPage = () => {
   const me = getStoredUser()?.id ?? null;
   const { data: groups, failed, reload, setData } = useApiData<ChatGroupSummary[]>("/chat/groups");
   const [openId, setOpenId] = useState<string | null>(params.get("group"));
+  const [tab, setTab] = useState(params.get("direct") ? "private" : "classes");
   const listeners = useRef(new Set<ChatListener>());
 
   const listen = useCallback((listener: ChatListener) => {
@@ -67,9 +69,8 @@ const ChatPage = () => {
   };
   const current = groups?.find((g) => g.id === openId) ?? null;
 
-  return (
-    <div className="flex flex-col gap-6 pb-8">
-      <PageHeader title={t("title")} description={t("description")} />
+  const groupsPanel = (
+    <>
       {failed !== null ? (
         <ErrorState title={failed === 403 ? t("notAvailable") : t("loadFailed")} onRetry={reload} />
       ) : !groups ? (
@@ -117,6 +118,25 @@ const ChatPage = () => {
           )}
         </div>
       )}
+    </>
+  );
+
+  return (
+    <div className="flex flex-col gap-6 pb-8">
+      <PageHeader title={t("title")} description={t("description")} />
+      <Tabs
+        selectedKey={tab}
+        onChange={setTab}
+        tabs={[
+          {
+            key: "classes",
+            label: t("classChats"),
+            badge: groups?.some((g) => g.unread > 0) ? <Badge tone="info">{groups.reduce((n, g) => n + g.unread, 0)}</Badge> : undefined,
+            content: <div className="pt-4">{groupsPanel}</div>,
+          },
+          { key: "private", label: t("privateChats"), content: <div className="pt-4"><PrivateChats initialId={params.get("direct")} listen={listen} /></div> },
+        ]}
+      />
     </div>
   );
 };
