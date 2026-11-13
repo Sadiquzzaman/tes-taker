@@ -921,6 +921,7 @@
       "questionCount": "{count, plural, one {# question} other {# questions}}",
       "sessionClosed": "This test belongs to a closed session, so it cannot be changed or graded. The owner can reopen the session.",
       "monitor": "Live monitor",
+      "print": "Print paper",
       "integrity": "Integrity report"
     },
     "audience": {
@@ -959,6 +960,23 @@
       "private": "This test is only for students the teacher chose.",
       "public": "Any student can take this test.",
       "continue": "Continue"
+    },
+    "print": {
+      "title": "Print the paper",
+      "description": "A PDF ready to print, for a paper exam with the same questions.",
+      "set": "Set",
+      "setLabel": "Set {set}",
+      "setAHint": "Questions and options in your order.",
+      "setShuffledHint": "Questions and options in a different order.",
+      "paper": "Paper size",
+      "a4": "A4",
+      "legal": "Legal",
+      "answerKey": "Answer key too",
+      "answerKeyHint": "A separate PDF with this set's answers, for you.",
+      "download": "Download PDF",
+      "cancel": "Cancel",
+      "noQuestions": "This test has no questions yet.",
+      "failed": "Couldn't make the PDF. Try again."
     }
   },
   "createTest": {

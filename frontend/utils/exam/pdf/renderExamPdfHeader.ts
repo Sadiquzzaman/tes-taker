@@ -9,6 +9,10 @@ export interface RenderExamPdfHeaderOptions {
   durationMinutes: number;
   subject: StudentExamSubject;
   logoBase64: string;
+  /** The school's name, printed on top (QA-05). */
+  organizationName?: string | null;
+  /** The printed set, e.g. "B" (QA-05). */
+  setLabel?: string | null;
 }
 
 export const renderExamPdfHeader = async (
@@ -21,9 +25,18 @@ export const renderExamPdfHeader = async (
   const totalMarks = sumSubjectMarks(options.subject);
   let cursorY = y;
 
+  if (options.organizationName?.trim()) {
+    cursorY = await renderPdfTextBlock(doc, options.organizationName.trim(), pageWidth / 2, cursorY, contentWidth, PDF_LINE_HEIGHT + 1, {
+      fontSize: 13,
+      style: "bold",
+      align: "center",
+    });
+    cursorY += 4;
+  }
+
   doc.setFontSize(10);
   setPdfLatinFont(doc, "normal");
-  doc.text(`Time: ${options.durationMinutes} min`, PDF_PAGE_MARGIN, cursorY);
+  doc.text(options.setLabel ? `Set ${options.setLabel} · Time: ${options.durationMinutes} min` : `Time: ${options.durationMinutes} min`, PDF_PAGE_MARGIN, cursorY);
 
   const logoSize = 14;
   doc.addImage(options.logoBase64, "PNG", pageWidth / 2 - logoSize / 2, cursorY - 4, logoSize, logoSize);

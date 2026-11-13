@@ -150,7 +150,8 @@ export const renderQuestionBlock = async (
         cursorY,
         columnWidth,
         PDF_LINE_HEIGHT,
-        { prefix: `${i + 1}. ` },
+        // Letters on the right, so an answer reads "1-C" (QA-05).
+        { prefix: rightItems[i] ? `${PDF_OPTION_LABELS[i] ?? i + 1}. ` : "" },
       );
       cursorY = Math.max(leftEndY, rightEndY) + 1;
     }
