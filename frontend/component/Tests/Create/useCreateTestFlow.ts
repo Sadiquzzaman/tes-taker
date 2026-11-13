@@ -75,6 +75,12 @@ const useCreateTestFlow = (createTestState: CreateTestState) => {
         triggerToast({ description: t("negativeRequired"), type: "error" });
         return;
       }
+
+      const proctoring = formState.proctoring;
+      if (proctoring?.auto_disqualify && (!(proctoring.disqualify_threshold >= 1 && proctoring.disqualify_threshold <= 100) || proctoring.disqualify_checks?.length === 0)) {
+        triggerToast({ description: t("proctoringInvalid"), type: "error" });
+        return;
+      }
     }
 
     if (currentStep === "Questions") {

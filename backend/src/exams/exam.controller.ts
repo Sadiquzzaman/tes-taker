@@ -32,6 +32,7 @@ import { ExamService } from "./exam.service";
 import { CreateExamWizardDto } from "./dto/create-exam-wizard.dto";
 import { CREATE_EXAM_WIZARD_EXAMPLE } from "./dto/create-exam-wizard.swagger";
 import { OrganizationContextGuard } from "src/organizations/guards/organization-context.guard";
+import { TenantContext } from "src/common/tenancy/tenant-context";
 import { OrgContext } from "src/organizations/decorators/org-context.decorator";
 import { OrgContext as OrgContextType } from "src/organizations/interfaces/org-context.interface";
 
@@ -142,6 +143,19 @@ export class ExamController {
   ) {
     const payload = await this.examService.findAll(jwtPayload, orgContext);
     return { message: "Exams retrieved successfully", payload };
+  }
+
+  @Get("proctoring-options")
+  @ApiBearerAuth("jwt")
+  @UseGuards(AuthGuard("jwt"), RolesGuard, OrganizationContextGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({
+    summary: "Proctoring levels and checks your plan offers (P8-01)",
+    description: "Off, Light (browser checks) and Strict (plus camera, microphone, phone): which are available on the workspace's plan, the checks in each, and whether auto-disqualification may be turned on.",
+  })
+  async proctoringOptions(@OrgContext() orgContext: OrgContextType | null) {
+    const payload = await this.examService.proctoringOptionsFor(orgContext?.organizationId ?? TenantContext.requireOrganizationId());
+    return { message: "Proctoring options retrieved successfully", payload };
   }
 
   @Get("class/:classId")

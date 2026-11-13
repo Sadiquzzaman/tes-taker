@@ -24,6 +24,7 @@ import { RolesEnum } from 'src/common/enums/roles.enum';
 import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { StudentExamService } from './student-exam.service';
+import { ExamAccessReasonCodeEnum } from './enums/exam-access-reason.enum';
 import { ExamService } from './exam.service';
 import {
   StartExamDto,
@@ -184,6 +185,9 @@ export class StudentExamController {
         can_access: payload.canAccess,
         reason: payload.reason,
         reason_code: payload.reason_code,
+        // What runs during the exam (P8-01): shown before starting (also before it opens); the camera only when needed.
+        proctoring:
+          payload.canAccess || payload.reason_code === ExamAccessReasonCodeEnum.NOT_STARTED ? await this.studentExamService.proctoringForExam(examId) : null,
       },
     };
   }

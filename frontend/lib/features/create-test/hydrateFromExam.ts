@@ -237,6 +237,7 @@ const hydrateFromExam = (_state: CreateTestState, action: PayloadAction<TeacherE
       negativeMarking: toStringOrEmpty(exam.formState?.negativeMarking),
       isModelTest: examCategory === "ielts" ? false : Boolean(exam.formState?.isModelTest),
       examCategory,
+      proctoring: exam.formState?.proctoring ?? null,
     },
     subjects,
     questionOrder,

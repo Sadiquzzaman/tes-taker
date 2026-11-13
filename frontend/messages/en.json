@@ -343,11 +343,15 @@
         "tabs": "Do not open additional tabs.",
         "time": "Finish the test within the allotted time.",
         "flags": "Proctor can flag your activity.",
-        "limit": "If you receive {count, number} flags, the test will be terminated."
+        "limit": "If you receive {count, number} flags, the test will be terminated.",
+        "warn": "You will be warned at {count, number} flags.",
+        "review": "Flags are recorded for your teacher to review; you will not be removed automatically."
       },
       "accept": "I read and understand the rules.",
       "startTest": "Start Test",
-      "back": "Back"
+      "back": "Back",
+      "watchedTitle": "Watched during this test",
+      "watchedNone": "Nothing is watched during this test."
     },
     "retry": "Retry",
     "navigator": {
@@ -440,7 +444,8 @@
       "close": "Close"
     },
     "close": "Close",
-    "retry": "Retry"
+    "retry": "Retry",
+    "limitWarning": "You have {count, number} of {total, number} flags. At {total, number} the test ends."
   },
   "ui": {
     "close": "Close",
@@ -1009,7 +1014,8 @@
       "questionSubject": "Every question needs a subject.",
       "marksBelowPassing": "Total marks ({total, number}) are below the passing score ({passing, number}). Add questions or lower the passing score.",
       "fixQuestions": "Fix the highlighted questions before continuing.",
-      "scheduleRequired": "Choose both the start and the end date and time."
+      "scheduleRequired": "Choose both the start and the end date and time.",
+      "proctoringInvalid": "Check the proctoring: the number of flags is 1–100 and at least one check counts."
     },
     "categories": {
       "graded": "Graded",
@@ -1235,6 +1241,34 @@
       "cancel": "Cancel",
       "save": "Add subject",
       "saving": "Adding…"
+    },
+    "proctoring": {
+      "title": "Proctoring",
+      "intro": "What is watched while students take this test. A quick class quiz may need no camera.",
+      "level": "Proctoring level",
+      "levels": {
+        "OFF": "Off",
+        "LIGHT": "Light",
+        "STRICT": "Strict"
+      },
+      "levelHints": {
+        "OFF": "No checks.",
+        "LIGHT": "Browser checks only: tab switches, leaving full screen and the like. No camera.",
+        "STRICT": "Browser checks plus camera, microphone and phone detection."
+      },
+      "notOnPlan": "Not on your plan.",
+      "checks": "Checks (switch off any you don't need)",
+      "autoDisqualify": "Disqualify automatically",
+      "autoDisqualifyHint": "Off by default: false alarms in a noisy room should not fail a student. You can review flags after the test.",
+      "autoDisqualifyNotOnPlan": "Not on your plan.",
+      "threshold": "Disqualify after this many flags",
+      "thresholdInvalid": "Use a number from 1 to 100.",
+      "warnAt": "Students are warned at {count, plural, one {# flag} other {# flags}}.",
+      "counted": "Flags that count",
+      "countedNone": "Choose at least one check.",
+      "summaryOff": "Nothing is watched; students start without camera or microphone.",
+      "summaryBrowser": "{count, plural, one {# check runs} other {# checks run}} in the browser; no camera.",
+      "summaryCamera": "{count, plural, one {# check runs} other {# checks run}}; students turn on camera and microphone before starting."
     }
   },
   "grading": {

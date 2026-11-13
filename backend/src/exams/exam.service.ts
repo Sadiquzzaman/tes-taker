@@ -14,6 +14,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, DeepPartial, EntityManager, Repository, In, WhereExpressionBuilder } from 'typeorm';
 import { buildResponseOptionId } from './utils/exam-option-ids.util';
 import { ExamEntity, ExamTypeEnum } from './entities/exam.entity';
+import { DEFAULT_DISQUALIFY_THRESHOLD, ExamProctoringSettings, proctoringOptions, ProctoringOptions, settingsProblem } from './proctoring-settings';
 import {
   ExamQuestionEntity,
   QuestionTypeEnum,
@@ -29,6 +30,7 @@ import {
   WizardPassageQuestionDto,
   WizardUngradedQuestionDto,
   WizardIeltsQuestionDto,
+  WizardProctoringDto,
 } from './dto/create-exam-wizard.dto';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { UserEntity } from 'src/user/entities/user.entity';
@@ -251,6 +253,49 @@ export class ExamService {
   /**
    * Unified wizard create (graded / ungraded / passage questions)
    */
+  /** What a teacher may choose for proctoring on the workspace's plan (P8-01). */
+  async proctoringOptionsFor(organizationId: string): Promise<ProctoringOptions> {
+    return proctoringOptions((await this.entitlementsService.getEntitlements(organizationId)).features);
+  }
+
+  /**
+   * The proctoring columns to save: the form's choice, checked against the plan; left out, the
+   * exam keeps what it has (edit) or gets the plan's best level with auto-disqualify off (new).
+   */
+  private async resolveProctoring(accountId: string, input: WizardProctoringDto | undefined, existing: ExamEntity | null): Promise<ExamProctoringSettings> {
+    const features = (await this.entitlementsService.getEntitlements(accountId)).features;
+    if (!input) {
+      if (existing) {
+        return {
+          proctoring_level: existing.proctoring_level,
+          proctoring_checks_off: existing.proctoring_checks_off ?? [],
+          auto_disqualify: existing.auto_disqualify,
+          disqualify_threshold: existing.disqualify_threshold,
+          disqualify_checks: existing.disqualify_checks ?? null,
+        };
+      }
+      return { proctoring_level: proctoringOptions(features).default_level, proctoring_checks_off: [], auto_disqualify: false, disqualify_threshold: DEFAULT_DISQUALIFY_THRESHOLD, disqualify_checks: null };
+    }
+    const settings: ExamProctoringSettings = {
+      proctoring_level: input.level,
+      proctoring_checks_off: [...new Set(input.checks_off ?? [])],
+      auto_disqualify: input.auto_disqualify ?? false,
+      disqualify_threshold: input.disqualify_threshold ?? existing?.disqualify_threshold ?? DEFAULT_DISQUALIFY_THRESHOLD,
+      disqualify_checks: input.disqualify_checks?.length ? [...new Set(input.disqualify_checks)] : null,
+    };
+    const problem = settingsProblem(features, settings);
+    if (problem === 'CHECKS_INVALID') {
+      throw new BadRequestException({ message: 'Choose proctoring checks of this level', code: 'EXAM_PROCTORING_INVALID' });
+    }
+    if (problem) {
+      throw new ForbiddenException({
+        message: problem === 'LEVEL_NOT_IN_PLAN' ? 'This proctoring level is not on your plan. Please upgrade.' : 'Auto-disqualification is not on your plan. Please upgrade.',
+        code: problem === 'LEVEL_NOT_IN_PLAN' ? 'EXAM_PROCTORING_LEVEL_NOT_IN_PLAN' : 'EXAM_AUTO_DISQUALIFY_NOT_IN_PLAN',
+      });
+    }
+    return settings;
+  }
+
   async createFromWizard(
     dto: CreateExamWizardDto,
     jwtPayload: JwtPayloadInterface,
@@ -317,6 +362,7 @@ export class ExamService {
     if (publishState.scheduleAt >= publishState.endingAt) {
       throw new BadRequestException('Start time must be before end time');
     }
+    const proctoring = await this.resolveProctoring(accountId, formState.proctoring, null);
 
     if (formState.allowNegativeMarking) {
       const v = Number(formState.negativeMarking);
@@ -472,6 +518,7 @@ export class ExamService {
         exam_end_time: publishState.endingAt,
         is_negative_marking: formState.allowNegativeMarking,
         negative_mark_value: negativeVal ?? null,
+        ...proctoring,
         subject: examSubjectLabel,
         exam_category: examCategory,
         class_id:
@@ -1812,6 +1859,13 @@ export class ExamService {
         allowScreenShare: exam.allow_screen_share ?? false,
         screenShareDisqualifySeconds: exam.screen_share_disqualify_seconds ?? 15,
         examCategory: exam.exam_category ?? ExamCategoryEnum.ACADEMIC,
+        proctoring: {
+          level: exam.proctoring_level,
+          checks_off: exam.proctoring_checks_off ?? [],
+          auto_disqualify: exam.auto_disqualify,
+          disqualify_threshold: exam.disqualify_threshold,
+          disqualify_checks: exam.disqualify_checks ?? null,
+        },
       },
       publishState: {
         publishTiming: exam.publish_timing,
@@ -2351,6 +2405,7 @@ export class ExamService {
     if (publishState.scheduleAt >= publishState.endingAt) {
       throw new BadRequestException('Start time must be before end time');
     }
+    const proctoring = await this.resolveProctoring(accountId, formState.proctoring, existing);
 
     if (formState.allowNegativeMarking) {
       const v = Number(formState.negativeMarking);
@@ -2516,6 +2571,7 @@ export class ExamService {
       examRow.exam_start_time = publishState.scheduleAt;
       examRow.exam_end_time = publishState.endingAt;
       examRow.is_negative_marking = formState.allowNegativeMarking;
+      Object.assign(examRow, proctoring);
       examRow.negative_mark_value = negativeVal ?? null;
       examRow.subject = examSubjectLabel;
       examRow.exam_category = examCategory;

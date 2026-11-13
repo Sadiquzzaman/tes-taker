@@ -12,6 +12,7 @@ import { useTranslations } from "next-intl";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { EXAM_CATEGORIES, IELTS_MODULES } from "@/constants/examCategory";
 import UpgradeLink from "@/component/Subscription/UpgradeLink";
+import ProctoringSettingsCard from "./ProctoringSettingsCard";
 
 const assignedSubjectLabel = (subject: AssignedClassSubject) =>
   subject.code?.trim() ? `${subject.name} (${subject.code.trim()})` : subject.name;
@@ -428,6 +429,7 @@ const BasicInfoStep = memo(({ formState }: BasicInfoStepProps) => {
           </div>
         </div>
       </Card>
+      <ProctoringSettingsCard value={formState.proctoring} onChange={(next) => updateField("proctoring", next)} />
     </section>
   );
 });

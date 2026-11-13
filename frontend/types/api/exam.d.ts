@@ -209,6 +209,8 @@ interface StudentExamFormState {
   allowScreenShare: boolean;
   screenShareDisqualifySeconds: number;
   examCategory?: "academic" | "ielts";
+  /** Proctoring as saved (P8-01); for editing. */
+  proctoring?: ExamProctoringChoice;
 }
 
 interface StudentExamPublishState {
