@@ -5115,5 +5115,14 @@
     "removeFile": "সরান",
     "attach": "ফাইল যোগ করুন",
     "send": "পাঠান"
+  },
+  "breadcrumbs": {
+    "testDetails": "পরীক্ষার বিবরণ",
+    "homework": "হোমওয়ার্কের বিবরণ",
+    "marks": "নম্বর",
+    "student": "শিক্ষার্থী",
+    "assistants": "স্টাফ",
+    "pending": "অনুমোদনের অপেক্ষায়",
+    "setup": "সেটআপ"
   }
 }

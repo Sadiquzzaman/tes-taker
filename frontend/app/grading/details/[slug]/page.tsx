@@ -6,7 +6,7 @@ export default async function GradeDetailsPage({ params }: { params: Promise<{ s
   const { slug } = await params;
   const t = await getTranslations("grading.details");
   return (
-    <PageLayout route="/grading" subText={t("title")}>
+    <PageLayout route="/grading" crumbs={[]} subText={t("title")}>
       <GradeDetailsComponent classId={slug} />
     </PageLayout>
   );
