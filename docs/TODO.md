@@ -86,3 +86,4 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Multiple-response questions in the printed answer key (QA-05) — the teacher's exam payload carries one `correctOptionId`; send every correct option id to teachers so the key can list them all.
 - "Not started" tiles on the live monitor (PRO-03) — P8-03 shows students once they open the exam; for class and listed-student exams, add the students who have not opened it yet (the audience rules in `StudentExamService.validateExamAccess`), with status NOT_STARTED.
 - Typing indicators in private chats (COM-02 Should) — P9-02 has read receipts; typing needs a socket event relayed to the chat's room with a membership check.
+- Chat retention: delete chats N months after their session closes, set per organisation (COM-06, default never) — P9-02 keeps closed sessions' chats read-only; deletion needs an org setting and a job.

@@ -24,6 +24,13 @@ export class DirectChat {
 
   @Prop({ type: Date, default: null })
   lastMessageAt: Date | null;
+
+  /** Closed by an owner or admin (COM-04): read-only until reopened. */
+  @Prop({ type: Date, default: null })
+  closedAt: Date | null;
+
+  @Prop({ type: String, default: null })
+  closedBy: string | null;
 }
 
 export const DirectChatSchema = SchemaFactory.createForClass(DirectChat);

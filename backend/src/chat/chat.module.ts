@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AcademicsModule } from 'src/academics/academics.module';
 import { ChatMongoModule } from 'src/chat-mongo/chat-mongo.module';
 import { NotificationsModule } from 'src/notifications/notifications.module';
@@ -10,6 +11,10 @@ import { ChatMessagesService } from './chat-messages.service';
 import { ChatController } from './chat.controller';
 import { ChatDirectController } from './chat-direct.controller';
 import { ChatDirectService } from './chat-direct.service';
+import { ChatAdminController } from './chat-admin.controller';
+import { ChatModerationService } from './chat-moderation.service';
+import { ChatAccessLogEntity } from './entities/chat-access-log.entity';
+import { MessageReportEntity } from './entities/message-report.entity';
 import { ChatGateway } from './chat.gateway';
 
 /**
@@ -17,9 +22,9 @@ import { ChatGateway } from './chat.gateway';
  * chat_member_states (P9-01) and direct_chats (P9-02). Subject classes and their members come from academics.
  */
 @Module({
-  imports: [ChatMongoModule, AcademicsModule, OrganizationsModule, NotificationsModule, SubscriptionModule],
-  controllers: [ChatController, ChatDirectController],
-  providers: [ChatGroupsService, ChatDirectService, ChatMessagesService, ChatGateway, ChatBroadcaster],
+  imports: [TypeOrmModule.forFeature([ChatAccessLogEntity, MessageReportEntity]), ChatMongoModule, AcademicsModule, OrganizationsModule, NotificationsModule, SubscriptionModule],
+  controllers: [ChatController, ChatDirectController, ChatAdminController],
+  providers: [ChatGroupsService, ChatDirectService, ChatModerationService, ChatMessagesService, ChatGateway, ChatBroadcaster],
   exports: [ChatGroupsService],
 })
 export class ChatModule {}

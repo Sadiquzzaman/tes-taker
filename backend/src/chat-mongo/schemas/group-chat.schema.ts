@@ -29,6 +29,13 @@ export class GroupChat {
   /** Pinned posts, newest pin first (at most 3). */
   @Prop({ type: [String], default: [] })
   pinnedIds: string[];
+
+  /** Closed by an owner or admin (COM-04): read-only until reopened. */
+  @Prop({ type: Date, default: null })
+  closedAt: Date | null;
+
+  @Prop({ type: String, default: null })
+  closedBy: string | null;
 }
 
 export const GroupChatSchema = SchemaFactory.createForClass(GroupChat);

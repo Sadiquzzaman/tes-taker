@@ -92,7 +92,7 @@ export class ChatGroupsService {
           subject: { id: offering.subject_id, name: offering.subject?.name ?? '' },
           role: teachers.includes(userId) ? 'TEACHER' : 'STUDENT',
           announcement_only: group.announcementOnly,
-          read_only: false,
+          read_only: Boolean(group.closedAt),
           muted: state?.muted ?? false,
           unread,
           teachers: teachers.map((id) => ({ id, name: names.get(id) ?? '' })),
@@ -125,7 +125,8 @@ export class ChatGroupsService {
       class_id: access.classId,
       role: access.role,
       announcement_only: access.group.announcementOnly,
-      read_only: access.readOnly,
+      read_only: access.readOnly || Boolean(access.group.closedAt),
+      closed: Boolean(access.group.closedAt),
       muted: state?.muted ?? false,
       teachers: access.teacherIds.map((id) => ({ id, name: names.get(id) ?? '' })),
       pinned: access.group.pinnedIds.map((id) => pinnedViews.find((p) => p.id === id)).filter(Boolean),
@@ -156,6 +157,7 @@ export class ChatGroupsService {
   async send(tenant: Tenant, userId: string, groupId: string, dto: SendChatMessageDto): Promise<ChatMessageView> {
     const access = await this.access(tenant, userId, groupId);
     this.assertWritable(access);
+    await this.chatMessages.assertCanWrite(access.group, userId);
     const content = (dto.content ?? '').trim().slice(0, MAX_MESSAGE_LENGTH);
     const fileIds = [...new Set(dto.file_ids ?? [])];
     if (!content && fileIds.length === 0) {
@@ -284,6 +286,16 @@ export class ChatGroupsService {
   }
 
   /** A member of the group (a teacher of the subject class, or a student taking it), else 404. */
+  /** The students who take a subject class (its group's student members). */
+  async studentIdsOf(offering: Parameters<OfferingRosterService['students']>[0]): Promise<string[]> {
+    return (await this.roster.students(offering)).map((s) => s.student_id);
+  }
+
+  async memberAccess(tenant: Tenant, userId: string, groupId: string): Promise<{ label: string; teacherIds: string[] }> {
+    const access = await this.access(tenant, userId, groupId);
+    return { label: access.label, teacherIds: access.teacherIds };
+  }
+
   private async access(tenant: Tenant, userId: string, groupId: string): Promise<Access> {
     const group = await this.groups.findOne({ _id: groupId, organizationId: tenant.organizationId }).lean<GroupChat>();
     if (!group) this.notFound();
@@ -304,6 +316,9 @@ export class ChatGroupsService {
   }
 
   private assertWritable(access: Access): void {
+    if (access.group.closedAt) {
+      throw new ConflictException({ message: 'This chat was closed by the school', code: CHAT_ERRORS.CLOSED });
+    }
     if (access.readOnly) {
       throw new ConflictException({ message: "This class's session is closed; its chat is read-only", code: CHAT_ERRORS.READ_ONLY });
     }

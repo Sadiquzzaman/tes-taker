@@ -1260,25 +1260,38 @@ Table report_cards {
 
 Table chat_access_logs {
   id uuid [pk]
-  organization_id uuid [not null]
-  admin_id uuid [not null, ref: > users.id]
-  chat_type varchar(10) [note: 'GROUP | PRIVATE']
-  chat_id varchar(24) [note: 'Mongo ObjectId']
-  reason text [not null]
-  accessed_at timestamptz
-  Note: 'NEW (COM-04)'
+  organization_id uuid [not null, ref: > organizations.id]
+  actor_id uuid [not null, ref: > users.id, note: 'Owner or Org Admin']
+  chat_type varchar(10) [not null, note: 'GROUP | DIRECT (CHECK)']
+  chat_id uuid [not null, note: 'MongoDB group_chats or direct_chats id']
+  reason varchar(300) [not null]
+  opened_at timestamptz [not null, default: `now()`]
+  Indexes {
+    (organization_id, opened_at)
+    (actor_id, chat_id, opened_at) [note: 'admin actions need an opening in the last 2 hours']
+  }
+  Note: 'NEW (COM-04), BUILT P9-02 (chat module, migration ChatModeration): every opening kept; read by the Owner'
 }
 
 Table message_reports {
   id uuid [pk]
-  organization_id uuid [not null]
-  chat_type varchar(10)
-  message_id varchar(24)
-  reporter_id uuid [ref: > users.id]
-  reason text
-  context jsonb [note: '5 messages before and after']
-  status varchar(20) [note: 'OPEN | ACTIONED | DISMISSED']
-  Note: 'NEW (COM-05)'
+  organization_id uuid [not null, ref: > organizations.id]
+  chat_type varchar(10) [not null, note: 'GROUP | DIRECT (CHECK)']
+  chat_id uuid [not null]
+  message_id uuid [not null, note: 'MongoDB group_messages id']
+  reporter_id uuid [not null, ref: > users.id]
+  reason varchar(300) [not null]
+  context jsonb [not null, note: 'the message and up to 5 before and after, as they were']
+  status varchar(10) [not null, default: 'OPEN', note: 'OPEN | RESOLVED']
+  resolution varchar(10) [note: 'KEPT | DELETED']
+  resolved_by uuid [ref: > users.id]
+  resolved_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  Indexes {
+    (message_id, reporter_id) [unique, note: 'a person reports a message once']
+    (organization_id, status, created_at)
+  }
+  Note: 'NEW (COM-05), BUILT P9-02 (chat module, migration ChatModeration)'
 }
 
 //////////////////////////////////////////////////////////////
