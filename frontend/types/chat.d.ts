@@ -39,13 +39,34 @@ interface ChatGroupDetail {
   role: ChatRole;
   announcement_only: boolean;
   read_only: boolean;
+  closed?: boolean;
   muted: boolean;
   teachers: { id: string; name: string }[];
   pinned: ChatMessage[];
+}
+
+/** Private chats (P9-02, COM-02): `GET /chat/direct`. */
+interface DirectChatSummary {
+  id: string;
+  other: { id: string; name: string; is_teacher: boolean };
+  unread: number;
+  /** When the other person last read the chat (read receipts). */
+  other_read_at: string | null;
+  closed: boolean;
+  muted: boolean;
+  last_message: { author_name: string; preview: string; created_at: string } | null;
+}
+
+/** `GET /chat/direct/contacts`: who the person may message. */
+interface DirectContact {
+  id: string;
+  name: string;
+  via: string[];
 }
 
 /** Socket events on `/chat`. */
 type ChatSocketEvent =
   | { type: "message"; message: ChatMessage }
   | { type: "deleted"; group_id: string; id: string; parent_id: string | null }
-  | { type: "group"; group_id: string; pinned_ids: string[]; announcement_only: boolean };
+  | { type: "group"; group_id: string; pinned_ids: string[]; announcement_only: boolean }
+  | { type: "read"; chat_id: string; user_id: string; at: string };

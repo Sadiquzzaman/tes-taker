@@ -36,6 +36,7 @@ const useChatSocket = (onEvent: (event: ChatSocketEvent) => void, enabled = true
     socket.on("disconnect", () => setConnected(false));
     socket.on("chat:message", (message: ChatMessage) => handler.current({ type: "message", message }));
     socket.on("chat:deleted", (e: { group_id: string; id: string; parent_id: string | null }) => handler.current({ type: "deleted", ...e }));
+    socket.on("chat:read", (e: { chat_id: string; user_id: string; at: string }) => handler.current({ type: "read", ...e }));
     socket.on("chat:group", (e: { group_id: string; pinned_ids: string[]; announcement_only: boolean }) => handler.current({ type: "group", ...e }));
     socket.connect();
     return () => {
