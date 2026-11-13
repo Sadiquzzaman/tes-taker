@@ -501,6 +501,54 @@ export class SectionsService {
     }));
   }
 
+  /**
+   * Everyone who is or was in a section for its session (ACTIVE, or PROMOTED at its end), in roll
+   * order then name: a section's results, P7-03, including earlier sessions. No access check.
+   */
+  async sectionResultsRoster(organizationId: string, sectionId: string): Promise<{ student_id: string; full_name: string; roll_no: string | null }[]> {
+    const rows = await tenantScoped(this.enrolmentRepo)
+      .forOrganization(organizationId)
+      .createQueryBuilder('e')
+      .innerJoinAndSelect('e.student', 'student')
+      .andWhere('e.section_id = :sectionId', { sectionId })
+      .andWhere('e.status IN (:...statuses)', { statuses: [EnrolmentStatusEnum.ACTIVE, EnrolmentStatusEnum.PROMOTED] })
+      .orderBy('e.roll_no', 'ASC', 'NULLS LAST')
+      .addOrderBy('lower(student.full_name)', 'ASC')
+      .getMany();
+    return rows.filter((row) => row.student).map((row) => ({ student_id: row.student!.id, full_name: row.student!.full_name, roll_no: row.roll_no }));
+  }
+
+  /**
+   * A student's sections in every session (ACTIVE, or PROMOTED at the session's end), newest
+   * session first: the history on their performance page (PRF-05). No access check.
+   */
+  async sectionsOfStudent(organizationId: string, studentId: string): Promise<SectionEntity[]> {
+    const rows = await tenantScoped(this.enrolmentRepo)
+      .forOrganization(organizationId)
+      .createQueryBuilder('e')
+      .innerJoinAndSelect('e.section', 'section')
+      .innerJoinAndSelect('section.class', 'class')
+      .innerJoinAndSelect('section.session', 'session')
+      .andWhere('e.student_id = :studentId', { studentId })
+      .andWhere('e.status IN (:...statuses)', { statuses: [EnrolmentStatusEnum.ACTIVE, EnrolmentStatusEnum.PROMOTED] })
+      .orderBy('session.start_date', 'DESC')
+      .getMany();
+    return rows.map((row) => row.section!).filter(Boolean);
+  }
+
+  /**
+   * A section's subject classes with their subject, by subject name (the scores, P7-02). No access
+   * check: the caller checks.
+   */
+  async offeringsOfSection(organizationId: string, sectionId: string): Promise<{ id: string; subject: { id: string; name: string } }[]> {
+    const offerings = await tenantScoped(this.offeringRepo)
+      .forOrganization(organizationId)
+      .find({ where: { section_id: sectionId }, relations: ['subject'] });
+    return offerings
+      .map((offering) => ({ id: offering.id, subject: { id: offering.subject_id, name: offering.subject?.name ?? '' } }))
+      .sort((a, b) => a.subject.name.localeCompare(b.subject.name, 'en', { numeric: true, sensitivity: 'base' }));
+  }
+
   /** Every subject class of the organisation in sessions that are not closed. */
   async openOfferingIds(organizationId: string): Promise<string[]> {
     const rows: { id: string }[] = await this.offeringRepo.manager.query(

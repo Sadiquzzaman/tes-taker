@@ -25,6 +25,7 @@ const PAGES = [
   '/organization', '/organization/teachers', '/organization/assistants', '/organization/students', '/organization/classes',
   '/organization/assignments', '/organization/subjects', '/organization/setup',
   '/billing', '/features', '/activity-log', '/message-log', '/grading-scale',
+  '/performance', '/marks', '/behaviour', '/report-cards', '/performance-settings',
   '/admin', '/admin/organizations', '/admin/users', '/admin/plans', '/admin/payments', '/admin/teachers', '/admin/teacher-requests',
   '/admin/feature-requests', '/admin/audit-log', '/admin/subjects', '/dev/ui', '/test/permissions',
 ];
@@ -144,6 +145,13 @@ async function main() {
     ['GET', '/audit-logs', ['owner', 'admin']],
     ['GET', `/attendance/reports/teachers?from=${day(-7)}&to=${day(0)}`, ['owner', 'admin']],
     ['GET', `/events?from=${day(0)}&to=${day(30)}`, roles],
+    // Results (P7): staff see the scores and settings; students only their own.
+    ['GET', '/offline-exams/subject-classes', ['owner', 'admin', 'staff', 'teacher']],
+    ['GET', '/behaviour/criteria', ['owner', 'admin', 'staff', 'teacher']],
+    ['GET', '/scores/sections', ['owner', 'admin', 'staff', 'teacher']],
+    ['GET', '/scores/weights', ['owner', 'admin', 'staff', 'teacher']],
+    ['GET', '/scores/settings', ['owner', 'admin', 'staff', 'teacher']],
+    ['GET', '/report-cards/mine', ['student']],
   ];
   const refusedWrites = [
     ['POST', '/holidays', { date_from: day(40), name: 'Not allowed' }, ['staff', 'teacher', 'student']],
@@ -151,6 +159,10 @@ async function main() {
     ['POST', `/organizations/${sunrise}/members`, { query: 'sun.student60@yopmail.com', role: 'STUDENT' }, ['staff', 'teacher', 'student']],
     ['PATCH', `/organizations/${sunrise}/settings`, { class_teacher_enabled: true }, ['staff', 'teacher', 'student']],
     ['POST', '/routine/slots', { section_id: '00000000-0000-4000-8000-000000000000', day_of_week: 6, start_time: '07:00', end_time: '07:30' }, ['student']],
+    ['PUT', '/scores/settings', { show_rank: false }, ['staff', 'teacher', 'student']],
+    ['PUT', '/behaviour/criteria', { criteria: [{ name_en: 'Not allowed', name_bn: 'অনুমতি নেই' }] }, ['staff', 'teacher', 'student']],
+    ['POST', '/report-cards/share', { section_id: '00000000-0000-4000-8000-000000000000' }, ['student']],
+    ['POST', '/offline-exams', { offering_id: '00000000-0000-4000-8000-000000000000', name: 'Not allowed', exam_date: day(0), total_marks: 10 }, ['student']],
   ];
   const check = async (who, method, path, body, orgId) => (await api(method, path, people[who].access_token, body, orgId)).status;
   for (const [method, path, allowed] of reads) {
@@ -168,6 +180,12 @@ async function main() {
       if (status !== 403 && status !== 404) problems.push(`API ${who} ${method} ${path} → ${status}, expected 403/404`);
     }
   }
+  // A student's own performance page (P7-03), not another student's.
+  const ownPage = await check('student', 'GET', `/scores/students/${people.student.id}`);
+  const otherPage = await check('student', 'GET', `/scores/students/${people.teacher.id}`);
+  report.api.push(`student  own performance → ${ownPage}, someone else's → ${otherPage}`);
+  if (ownPage !== 200) problems.push(`API student's own performance page → ${ownPage}`);
+  if (otherPage !== 403 && otherPage !== 404) problems.push(`API student reads someone else's performance page (${otherPage})`);
   // Another organisation, by path and by header; and the platform's admin pages.
   for (const who of roles) {
     const byPath = await check(who, 'GET', `/organizations/${demo}/members`);

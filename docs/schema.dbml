@@ -76,10 +76,12 @@ Table org_settings {
   guardian_sms jsonb [not null, default: '{"late":true,"absent":true,"leave":true}', note: 'BUILT P3-01']
   sms_locale varchar(5) [note: "BUILT P2-05 (FND-10): guardian SMS language, CHECK bn | en; null = the organisation's default_locale"]
   homework_policy jsonb [note: '{"late":"ALLOW","penalty":{"type":"NONE"},"max_resubmissions":1,"max_files":5}']
-  at_risk_thresholds jsonb [note: '{"score_pct":40,"attendance_pct":75,"missing_homework":3}']
+  at_risk_score_pct smallint [not null, default: 40, note: 'BUILT P7-02 (PRF-07): CHECK 0..100']
+  at_risk_attendance_pct smallint [not null, default: 75, note: 'BUILT P7-02: CHECK 0..100']
+  at_risk_missing_homework smallint [not null, default: 3, note: 'BUILT P7-02: CHECK 1..50; columns rather than the planned at_risk_thresholds jsonb, like the homework settings']
   plagiarism_thresholds jsonb [note: '{"high":40,"medium":20,"min_words":50}']
   repeat_absence_days smallint [not null, default: 3, note: 'BUILT P3-01 (ATT-14): CHECK 2..30']
-  show_rank boolean [default: false]
+  show_rank boolean [not null, default: false, note: 'BUILT P7-02 (PRF-05, PRF-10): students see their position']
   chat_retention_months int [note: 'null = keep forever']
   Note: 'NEW — one row per org; all Epic settings tables in the spec live here. Created in P2-03 with class_teacher_enabled only; each epic adds its columns in its own migration. An org without a row uses the defaults for its kind'
 }
@@ -914,28 +916,42 @@ Table proctoring_reviews {
 Table offline_exams {
   id uuid [pk]
   organization_id uuid [not null]
-  session_id uuid [ref: > academic_sessions.id]
-  term_id uuid [ref: > terms.id]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  term_id uuid [ref: > terms.id, note: 'FK ON DELETE SET NULL']
   offering_id uuid [not null, ref: > course_offerings.id]
-  name varchar(120)
-  exam_date date
-  total_marks numeric(6,2)
-  parts jsonb [note: '[{"name":"MCQ","marks":30},{"name":"Written","marks":70}]']
-  Note: 'NEW (PRF-03)'
+  name varchar(120) [not null]
+  exam_date date [not null]
+  total_marks numeric(6,2) [not null, note: 'check > 0']
+  parts jsonb [note: '[{"name":"MCQ","marks":30},{"name":"Written","marks":70}] adding up to the total']
+  published_at timestamptz [note: 'students see their marks from then on']
+  created_by uuid
+  created_at timestamptz [not null]
+  updated_by uuid
+  updated_at timestamptz
+  removed_at timestamptz [note: 'soft removal; never deleted']
+  removed_by uuid
+  Indexes {
+    (organization_id, offering_id, exam_date)
+    (organization_id, session_id)
+  }
+  Note: 'NEW (PRF-03), BUILT P7-01 (exams module, migration OfflineExams)'
 }
 
 Table offline_exam_marks {
   id uuid [pk]
+  organization_id uuid [not null]
   offline_exam_id uuid [not null, ref: > offline_exams.id]
   student_id uuid [not null, ref: > users.id]
-  marks numeric(6,2)
-  part_marks jsonb
-  is_absent boolean [default: false]
+  marks numeric(6,2) [note: 'check >= 0; with parts, their sum']
+  part_marks jsonb [note: 'marks per part name']
+  is_absent boolean [not null, default: false]
   entered_by uuid
+  entered_at timestamptz
   Indexes {
     (offline_exam_id, student_id) [unique]
+    (organization_id, student_id)
   }
-  Note: 'NEW'
+  Note: 'NEW, BUILT P7-01; every change is in audit_logs (offline_exam.marks)'
 }
 
 //////////////////////////////////////////////////////////////
@@ -1130,39 +1146,57 @@ Table grading_bands {
 
 Table score_weights {
   id uuid [pk]
-  organization_id uuid [not null]
-  session_id uuid [ref: > academic_sessions.id]
-  class_id uuid [ref: > classes.id]
-  exams_pct smallint
-  homework_pct smallint
-  attendance_pct smallint
-  behaviour_pct smallint [note: 'check: sum = 100']
+  organization_id uuid [not null, ref: > organizations.id]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  class_id uuid [not null, ref: > classes.id]
+  exams_pct smallint [not null]
+  homework_pct smallint [not null]
+  attendance_pct smallint [not null]
+  behaviour_pct smallint [not null, note: 'check: each 0..100, sum = 100']
+  created_by uuid
+  created_at timestamptz [not null]
+  updated_by uuid
+  updated_at timestamptz
   Indexes {
     (session_id, class_id) [unique]
+    organization_id
   }
-  Note: 'NEW (PRF-01)'
+  Note: 'NEW (PRF-01), BUILT P7-02 (results module, migration ScoreWeights); no row = the default 50/20/20/10; changes in audit_logs (score.weights)'
 }
 
 Table behaviour_criteria {
   id uuid [pk]
-  organization_id uuid [not null]
-  name_bn varchar(80)
-  name_en varchar(80)
-  is_active boolean
-  Note: 'NEW (PRF-04)'
+  organization_id uuid [not null, ref: > organizations.id]
+  name_en varchar(80) [not null]
+  name_bn varchar(80) [not null]
+  sort_order smallint [not null, default: 0]
+  is_active boolean [not null, default: true]
+  created_by uuid
+  created_at timestamptz [not null]
+  retired_at timestamptz [note: 'taken off the list; past ratings still count']
+  retired_by uuid
+  Indexes {
+    (organization_id, is_active)
+  }
+  Note: 'NEW (PRF-04), BUILT P7-01 (results module, migration BehaviourRatings); defaults Participation, Discipline, Attentiveness'
 }
 
 Table behaviour_ratings {
   id uuid [pk]
   organization_id uuid [not null]
-  offering_id uuid [ref: > course_offerings.id]
+  offering_id uuid [not null, ref: > course_offerings.id]
   student_id uuid [not null, ref: > users.id]
   criterion_id uuid [not null, ref: > behaviour_criteria.id]
-  rating smallint [note: '1..5']
-  remark varchar(300)
-  rated_on date
+  rating smallint [not null, note: 'check 1..5']
+  remark varchar(300) [note: 'the day\'s remark, kept on each of that day\'s ratings']
+  rated_on date [not null, note: 'school day; today or earlier']
   rated_by uuid [ref: > users.id]
-  Note: 'NEW (PRF-04)'
+  rated_at timestamptz [not null]
+  Indexes {
+    (offering_id, student_id, criterion_id, rated_on) [unique]
+    (organization_id, student_id, rated_on)
+  }
+  Note: 'NEW (PRF-04), BUILT P7-01; every change is in audit_logs (behaviour.rate)'
 }
 
 Table student_term_scores {
@@ -1183,27 +1217,34 @@ Table student_term_scores {
   Indexes {
     (term_id, student_id, subject_id) [unique]
   }
-  Note: 'NEW — read model rebuilt by performance.recompute (PRF-05..07)'
+  Note: 'PLANNED, NOT BUILT (decided in P7-02): scores are worked out on request (results ScoresService) and report cards freeze a snapshot, so no read model is kept'
 }
 
 Table report_cards {
   id uuid [pk]
-  organization_id uuid [not null]
-  term_id uuid [not null, ref: > terms.id]
+  organization_id uuid [not null, ref: > organizations.id]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  term_id uuid [ref: > terms.id, note: 'null = the whole session; a removed term sets it null (the snapshot keeps its name)']
+  section_id uuid [not null, ref: > sections.id]
   student_id uuid [not null, ref: > users.id]
-  type varchar(20) [default: 'REPORT_CARD', note: 'REPORT_CARD | TRANSCRIPT (Tertiary, later)']
-  file_id uuid [ref: > file_objects.id]
-  teacher_remark text
-  principal_remark text
-  locale varchar(5)
-  share_token_hash varchar(128) [note: 'guardian link, no login']
+  version smallint [not null, default: 1, note: 'made again after a change = a new row, version + 1']
+  locale varchar(5) [not null, note: 'CHECK bn | en']
+  teacher_remark varchar(500)
+  principal_remark varchar(500) [note: 'owners and admins']
+  scores_snapshot jsonb [not null, note: 'frozen scores at generation (decided 22 Oct): organisation name, the student page without its item lists, show_position']
+  generated_by uuid
+  generated_at timestamptz [not null]
+  share_token_hash varchar(128) [note: 'guardian link, no login (P7-04 part 2); SHA-256 of the token']
   share_expires_at timestamptz [note: '30 days']
-  version smallint [not null, default: 1, note: 'regenerated card = new row, version + 1']
-  scores_snapshot jsonb [note: 'frozen term scores at generation (decided 22 Oct)']
-  generated_at timestamptz
+  shared_at timestamptz
+  shared_by uuid
   Indexes {
-    (term_id, student_id, version) [unique]
+    (student_id, section_id, `COALESCE(term_id, nil uuid)`, version) [unique, name: 'UQ_report_cards_version']
+    (organization_id, section_id, term_id)
+    share_token_hash [unique, note: 'where not null']
   }
+  Note: 'NEW (PRF-09), BUILT P7-04 (results module, migration ReportCards); type/file_id dropped: cards are printed by the browser, not stored as files; audit report_card.generate'
+}
   Note: 'NEW (PRF-09)'
 }
 

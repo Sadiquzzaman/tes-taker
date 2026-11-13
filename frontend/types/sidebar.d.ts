@@ -19,4 +19,4 @@ interface SideBarList {
 
 type RoleUserType = "STUDENT" | "TEACHER" | "ADMIN" | "SUPER_ADMIN";
 
-type NavGroup = "people" | "academics" | "tests" | "attendance" | "billing" | "logs" | "customers" | "plans";
+type NavGroup = "people" | "academics" | "tests" | "results" | "attendance" | "billing" | "logs" | "customers" | "plans";

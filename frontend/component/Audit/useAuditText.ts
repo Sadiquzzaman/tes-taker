@@ -31,6 +31,11 @@ export const AUDIT_AREAS = [
   "routine",
   "event",
   "reminders",
+  "offline_exam",
+  "behaviour",
+  "score",
+  "performance",
+  "report_card",
 ] as const;
 
 export interface AuditChange {

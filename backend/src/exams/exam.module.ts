@@ -23,6 +23,13 @@ import { RedisModule } from 'src/config/redis.module';
 import { ExamPaperCacheService } from './exam-paper-cache.service';
 import { PerformanceModule } from 'src/performance/performance.module';
 
+import { AcademicsModule } from 'src/academics/academics.module';
+import { OfflineExamMarkEntity } from './entities/offline-exam-mark.entity';
+import { OfflineExamEntity } from './entities/offline-exam.entity';
+import { OfflineExamsController } from './offline-exams.controller';
+import { OfflineExamsService } from './offline-exams.service';
+import { ExamResultsReadService } from './exam-results-read.service';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -38,6 +45,9 @@ import { PerformanceModule } from 'src/performance/performance.module';
       AcademicSessionEntity,
       StudentExamSubmissionEntity,
       StudentExamAnswerEntity,
+      // Paper exams and their marks (P7-01).
+      OfflineExamEntity,
+      OfflineExamMarkEntity,
     ]),
     SubjectModule,
     SubscriptionModule,
@@ -46,9 +56,11 @@ import { PerformanceModule } from 'src/performance/performance.module';
     RedisModule,
     // Grades next to marks (FND-11).
     PerformanceModule,
+    // Subject classes and their rosters for paper exams (P7-01).
+    AcademicsModule,
   ],
-  controllers: [ExamController, StudentExamController, ExamGradingController],
-  providers: [ExamService, StudentExamService, ExamPaperCacheService],
-  exports: [ExamService, StudentExamService, ExamPaperCacheService],
+  controllers: [ExamController, StudentExamController, ExamGradingController, OfflineExamsController],
+  providers: [ExamService, StudentExamService, ExamPaperCacheService, OfflineExamsService, ExamResultsReadService],
+  exports: [ExamService, StudentExamService, ExamPaperCacheService, OfflineExamsService, ExamResultsReadService],
 })
 export class ExamModule {}

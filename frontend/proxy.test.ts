@@ -31,13 +31,13 @@ const platform = { token: "t", role: "ADMIN", session_mode: "individual" };
 /** Found by the beta access check (13 Nov): staff pages opened for students with "could not be loaded". */
 describe("pages people cannot use send them home", () => {
   it("keeps students out of the staff pages", () => {
-    for (const path of ["/attendance", "/attendance-setup", "/attendance-settings", "/attendance-reports", "/attendance-register", "/attendance-branches", "/homework-settings", "/features"]) {
+    for (const path of ["/attendance", "/attendance-setup", "/attendance-settings", "/attendance-reports", "/attendance-register", "/attendance-branches", "/homework-settings", "/features", "/behaviour", "/performance-settings", "/performance/students/x", "/report-cards/print"]) {
       expect([path, visit(path, student)]).toEqual([path, "/today"]);
       expect([path, visit(path, school("TEACHER"))]).toEqual([path, "open"]);
       expect([path, visit(path, solo)]).toEqual([path, "open"]);
     }
     // Their own pages stay open.
-    for (const path of ["/my-attendance", "/homework", "/leave", "/calendar", "/routine", "/today"]) expect([path, visit(path, student)]).toEqual([path, "open"]);
+    for (const path of ["/my-attendance", "/homework", "/leave", "/calendar", "/routine", "/today", "/marks", "/performance", "/report-cards", "/report-cards/c1"]) expect([path, visit(path, student)]).toEqual([path, "open"]);
   });
 
   it("opens the activity and message logs to a school's owners and admins and to solo teachers only", () => {
@@ -59,5 +59,14 @@ describe("pages people cannot use send them home", () => {
     expect(visit("/today", platform)).toBe("/admin");
     expect(visit("/admin/organizations", school("OWNER"))).toBe("/today");
     expect(visit("/dashboard", platform)).toBe("/admin");
+    for (const path of ["/performance", "/marks", "/marks/x1", "/report-cards"]) expect([path, visit(path, platform)]).toEqual([path, "/admin"]);
+  });
+});
+
+describe("shared report cards", () => {
+  it("open without signing in", () => {
+    expect(visit("/r/abc123", {})).toBe("open");
+    // The staff pages are not public.
+    expect(visit("/report-cards", {})).toBe("/login");
   });
 });

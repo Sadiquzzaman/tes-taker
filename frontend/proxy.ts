@@ -83,6 +83,48 @@ const routePolicies: RoutePolicy[] = [
     allowedRoles: ["TEACHER"],
   },
   {
+    path: "/behaviour",
+    match: "exact",
+    allowedRoles: ["TEACHER"],
+  },
+  {
+    path: "/performance-settings",
+    match: "exact",
+    allowedRoles: ["TEACHER"],
+  },
+  {
+    path: "/performance/students",
+    match: "prefix",
+    allowedRoles: ["TEACHER"],
+  },
+  // Results pages belong to a workspace: teachers and students (platform admins go to Admin).
+  {
+    path: "/performance",
+    match: "exact",
+    allowedRoles: ["TEACHER", "STUDENT"],
+  },
+  {
+    path: "/marks",
+    match: "prefix",
+    allowedRoles: ["TEACHER", "STUDENT"],
+  },
+  // A report card shared with guardians: the token in the link is the key (PRF-09).
+  {
+    path: "/r/",
+    match: "prefix",
+    isPublic: true,
+  },
+  {
+    path: "/report-cards/print",
+    match: "exact",
+    allowedRoles: ["TEACHER"],
+  },
+  {
+    path: "/report-cards",
+    match: "prefix",
+    allowedRoles: ["TEACHER", "STUDENT"],
+  },
+  {
     path: "/features",
     match: "exact",
     allowedRoles: ["TEACHER"],
