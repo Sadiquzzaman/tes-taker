@@ -17,6 +17,9 @@ import {
 import { EntitlementsService } from 'src/subscriptions/entitlements.service';
 import { LimitKey } from 'src/subscriptions/constants/feature-catalog';
 import { ALL_PROCTORING_FEATURES, DEFAULT_DISQUALIFY_THRESHOLD, EffectiveProctoring, effectiveProctoring, ProctoringLevelEnum } from './proctoring-settings';
+import { ProctoringEventSourceEnum } from './entities/proctoring-event.entity';
+import { ProctoringEventsService } from './proctoring-events.service';
+import type { ProctoringEventRecord } from './utils/proctoring-events.util';
 import { ExamEntity } from './entities/exam.entity';
 import { TestAudienceEnum } from './enums/exam-wizard.enums';
 import {
@@ -161,6 +164,7 @@ export class StudentExamService {
     private readonly sessionRepo: Repository<AcademicSessionEntity>,
     private readonly audit: AuditService,
     private readonly gradingScales: GradingScaleService,
+    private readonly proctoringEvents: ProctoringEventsService,
   ) {}
 
   private static readonly UUID_V4_RE =
@@ -992,12 +996,13 @@ export class StudentExamService {
       toFinalize.disqualification_reason =
         options.disqualificationReason?.trim() || 'Exam session disqualified.';
     }
+    let incoming: ProctoringEventRecord[] = [];
     if (Array.isArray(options.proctoringEvents) && options.proctoringEvents.length) {
       const { serializeProctoringEvents, parseProctoringEvents } = await import(
         './utils/proctoring-events.util'
       );
       const existing = parseProctoringEvents(toFinalize.proctoring_events_json);
-      const incoming = options.proctoringEvents.map((event, index) => ({
+      incoming = options.proctoringEvents.map((event, index) => ({
         id: event.id || `client-${index}-${Date.now()}`,
         type: event.type,
         message: event.message || event.type,
@@ -1042,6 +1047,14 @@ export class StudentExamService {
         already_finalized: true,
       };
     }
+
+    // The flags as rows too (P8-02); those already sent live are kept once.
+    await this.proctoringEvents.record(
+      { id: exam.id, organization_id: exam.organization_id ?? null },
+      submission.student_id,
+      ProctoringEventSourceEnum.SUBMIT,
+      incoming.map((event) => ({ client_id: event.id, type: event.type, message: event.message, points: event.points, occurred_at: new Date(event.timestamp) })),
+    );
 
     const result = await this.submissionRepo.findOne({ where: { id: submission.id } });
 

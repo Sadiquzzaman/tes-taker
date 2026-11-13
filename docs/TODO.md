@@ -78,3 +78,4 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Organisation dashboard filters by branch and teacher (PRF-08) and syllabus coverage — needs the syllabus (Epic 6); P7 shows sections and subjects.
 - School logo on report cards (PRF-09 "the org logo and name") — organisations have no logo yet; P7-04 prints the name. Add a logo upload (file storage, FND) and print it.
 - Report cards as a ZIP of separate PDFs (PRF-09 "one PDF or a ZIP") — P7-04 prints a whole section as one PDF through the browser; a ZIP needs a server-side PDF renderer with Bangla shaping (a package; owner approval).
+- Socket.IO Redis adapter for more than one API server (design §6.2) — P8-02 keeps live proctoring state in Redis, but monitors only get events from the server their students are connected to; needs `@socket.io/redis-adapter` (owner approval) before running several API servers.

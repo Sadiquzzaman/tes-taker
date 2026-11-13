@@ -6,12 +6,23 @@ export interface ProctoringFlagEntry {
   timestamp: string;
 }
 
+/** What the monitor shows for a student (PRO-03, PRO-07). */
+export type ProctoringLiveStatus = 'WRITING' | 'SUBMITTED' | 'DISCONNECTED' | 'LOST';
+
 export interface ProctoringStudentSession {
   socketId: string;
   studentId: string;
   studentName: string;
   joinedAt: string;
+  /** When the student's browser was last heard from (heartbeat or flag). */
+  lastSeenAt: string;
+  status: Exclude<ProctoringLiveStatus, 'LOST'>;
+  /** Set once when monitoring was found lost; cleared when heard from again. */
+  lostSince: string | null;
   totalFlagPoints: number;
+  flagCount: number;
+  latestFlag: ProctoringFlagEntry | null;
+  /** The most recent flags, newest first. */
   flags: ProctoringFlagEntry[];
 }
 

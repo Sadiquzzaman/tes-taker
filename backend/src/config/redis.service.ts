@@ -77,6 +77,24 @@ export class RedisService implements OnApplicationShutdown {
     return await this.client.keys(pattern);
   }
 
+  /** Adds a member to a set and (re)starts the set's expiry. */
+  async sadd(key: string, member: string, expirationSeconds: number): Promise<void> {
+    await this.client.multi().sadd(key, member).expire(key, expirationSeconds).exec();
+  }
+
+  async smembers(key: string): Promise<string[]> {
+    return await this.client.smembers(key);
+  }
+
+  async srem(key: string, member: string): Promise<void> {
+    await this.client.srem(key, member);
+  }
+
+  /** Several values at once; null for each missing key. */
+  async mget(keys: string[]): Promise<(string | null)[]> {
+    return keys.length ? await this.client.mget(...keys) : [];
+  }
+
   async delMultiple(keys: string[]) {
     if (keys.length > 0) {
       return await this.client.del(...keys);

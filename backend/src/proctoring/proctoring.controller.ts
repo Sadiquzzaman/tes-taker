@@ -36,7 +36,7 @@ export class ProctoringController {
   @ApiOperation({
     summary: 'Live proctoring sessions for an exam',
     description:
-      'Returns in-memory live student sessions and flags for teacher monitoring. Also available via Socket.IO monitor:state on exam:join.',
+      'Returns the live student sessions (kept in Redis): status, when last heard from, flags so far; LOST after 60 seconds without a signal (P8-02). Also available via Socket.IO monitor:state on exam:join.',
   })
   @ApiParam({ name: 'examId', description: 'Exam UUID' })
   @ApiResponse({ status: 200, description: 'Active proctoring sessions' })
@@ -45,7 +45,7 @@ export class ProctoringController {
     @UserPayload() jwtPayload: JwtPayloadInterface,
   ) {
     await this.examService.assertTeacherCanMonitorExam(examId, jwtPayload);
-    const sessions = this.proctoringStore.getExamSessions(examId);
+    const sessions = await this.proctoringStore.getExamSessions(examId);
     return {
       message: 'Proctoring sessions retrieved successfully',
       payload: { examId, sessions },

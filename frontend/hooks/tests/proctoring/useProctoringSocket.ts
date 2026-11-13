@@ -4,6 +4,9 @@ import { getProctoringSocketUrl } from "@/utils/tests/proctoringSocket";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 
+/** How often the student's browser says it is still there (the server allows 60 seconds). */
+const HEARTBEAT_MS = 15_000;
+
 const useProctoringSocket = ({
   answerSheet,
   examId,
@@ -88,6 +91,9 @@ const useProctoringSocket = ({
 
       socket.emit("flag:report", {
         examId,
+        // The flag's own id and kind, so the server stores it once (also sent with the submit).
+        id: flag.id,
+        kind: flag.type,
         type: socketFlagType,
         message: flag.message,
         points: flag.points,
@@ -105,6 +111,19 @@ const useProctoringSocket = ({
       });
     });
   }, [examId, flags, isSessionReady, reportViolation, socket]);
+
+  // A sign of life every 15 seconds: the teacher sees "Monitoring lost" after 60 without one (P8-02).
+  useEffect(() => {
+    if (!socket || !isSessionReady) {
+      return;
+    }
+    const beat = () => {
+      if (socket.connected) socket.emit("heartbeat");
+    };
+    beat();
+    const intervalId = window.setInterval(beat, HEARTBEAT_MS);
+    return () => window.clearInterval(intervalId);
+  }, [isSessionReady, socket]);
 
   const connectToSocket = useCallback(() => {
     if (!isEnabled || !examId || !socketUrl) {
