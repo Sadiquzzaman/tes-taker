@@ -4717,7 +4717,9 @@
       "due": "Due",
       "students": "Students",
       "sections": "[[Sections]]",
-      "open": "Open"
+      "open": "Open",
+      "name": "Name",
+      "title": "Title"
     },
     "parts": {
       "exams": "Exams",

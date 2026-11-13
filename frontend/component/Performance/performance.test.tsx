@@ -166,6 +166,9 @@ describe("student performance page (PRF-05, PRF-06)", () => {
     expect(tile("Overall")).toContain("88% · A+");
     expect(tile("Position")).toContain("1 of 2");
     const exams = within(screen.getByRole("table", { name: "Exams" }));
+    // The card's title is not repeated as the first column; GPA has two decimals.
+    expect(exams.getByRole("columnheader", { name: /^Name/ })).toBeTruthy();
+    expect(screen.getByText("GPA").parentElement?.parentElement?.textContent).toContain("5.00");
     expect(exams.getByText("80/100 · 80%")).toBeTruthy();
     expect(exams.getByText("Absent")).toBeTruthy();
     const homework = within(screen.getByRole("table", { name: "Homework" }));

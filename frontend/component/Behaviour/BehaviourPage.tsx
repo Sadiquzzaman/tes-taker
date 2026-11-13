@@ -7,6 +7,7 @@ import useApiData from "@/component/Homework/useApiData";
 import { useToast } from "@/component/Toast/ToastContext";
 import { Button, Card, DatePicker, EmptyState, ErrorState, Input, PageHeader, Select, Skeleton } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
+import useFormat from "@/i18n/useFormat";
 import useWorkspace from "@/hooks/organization/useWorkspace";
 import axiosReq from "@/lib/axios";
 import { todayInSchool } from "@/utils/schoolDate";
@@ -91,6 +92,7 @@ const BehaviourPage = () => {
 /** One subject class on one day: students × criteria. Only changed students are sent. */
 const RatingsGrid = ({ offeringId, date }: { offeringId: string; date: string }) => {
   const t = useTranslations("behaviour");
+  const format = useFormat();
   const locale = useLocale();
   const { triggerToast } = useToast();
   const { handleError } = useApiError();
@@ -178,7 +180,7 @@ const RatingsGrid = ({ offeringId, date }: { offeringId: string; date: string })
                           placeholder={row.ratings[criterion.id] === undefined ? "—" : false}
                           disabled={!grid.can_edit}
                           value={draft.ratings[criterion.id] ?? ""}
-                          options={[1, 2, 3, 4, 5].map((value) => ({ value: String(value), label: String(value) }))}
+                          options={[1, 2, 3, 4, 5].map((value) => ({ value: String(value), label: format.number(value) }))}
                           onChange={(event) =>
                             setDrafts((all) => ({ ...all, [row.student.id]: { ...all[row.student.id], ratings: { ...all[row.student.id].ratings, [criterion.id]: event.target.value } } }))
                           }
