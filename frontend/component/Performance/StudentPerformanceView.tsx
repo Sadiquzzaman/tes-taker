@@ -124,7 +124,7 @@ const StudentPerformanceView = ({ studentId, initialSectionId, own = false }: { 
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile label={t("overall")} value={data.overall.score_pct === null ? "—" : `${pct(data.overall.score_pct)}${data.overall.grade ? ` · ${data.overall.grade.grade}` : ""}`} />
         <StatTile label={t("gpa")} value={data.overall.grade ? format.number(data.overall.grade.gpa) : "—"} />
-        <StatTile label={t("position")} value={data.position ? t("positionOf", { position: format.number(data.position), size: format.number(data.class_size) }) : "—"} />
+        <StatTile label={t("position")} value={data.position ? t("positionOf", { position: data.position, size: data.class_size }) : "—"} />
         <StatTile label={t("parts.attendance")} value={pct(data.attendance.attendance_pct)} />
         <StatTile label={t("onTime")} value={pct(data.homework.on_time_pct)} />
         <StatTile label={t("parts.behaviour")} value={pct(data.overall.behaviour_pct)} />

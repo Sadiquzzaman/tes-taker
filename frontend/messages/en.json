@@ -4727,7 +4727,7 @@
     "overall": "Overall",
     "gpa": "GPA",
     "position": "Position",
-    "positionOf": "{position} of {size}",
+    "positionOf": "{position, number} of {size, number}",
     "onTime": "Homework on time",
     "subjectsCaption": "Scores by subject",
     "noSubjects": "No subjects yet.",
