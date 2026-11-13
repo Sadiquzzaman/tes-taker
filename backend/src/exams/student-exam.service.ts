@@ -1208,15 +1208,17 @@ export class StudentExamService {
   }
 
   /**
-   * Save a full answersheet object (stringified JSON on submission + normalized answer rows).
+   * Save answers while writing (P8-05, PRO-09): the questions that changed since the browser's
+   * last save, merged into the saved sheet and its answer rows; an empty value clears that answer.
    * Keys are question UUIDs; MCQ values are option UUIDs; essay values are text (max 10000 chars).
+   * The abandoned-attempt job finalises with what was saved here.
    */
   async saveAnswerSheet(
     examId: string,
     studentId: string,
     jwtPayload: JwtPayloadInterface | undefined,
     dto: SubmitAnswerSheetDto,
-  ): Promise<{ submission_id: string; saved_count: number }> {
+  ): Promise<{ submission_id: string; saved_count: number; saved_at: string }> {
     if (dto.studentId && dto.studentId !== studentId) {
       throw new BadRequestException('studentId does not match the authenticated user');
     }
@@ -1254,12 +1256,13 @@ export class StudentExamService {
       submission,
       answersheet,
       studentId,
-      { strict: true },
+      { strict: false, merge: true },
     );
 
     return {
       submission_id: submission.id,
       saved_count: savedCount,
+      saved_at: new Date().toISOString(),
     };
   }
 
@@ -1268,7 +1271,7 @@ export class StudentExamService {
     submission: StudentExamSubmissionEntity,
     answersheet: Record<string, string>,
     studentId: string,
-    options: { strict: boolean },
+    options: { strict: boolean; merge?: boolean },
   ): Promise<number> {
     const ordered = this.getOrderedQuestions(exam);
     const questionById = new Map(ordered.map((q) => [q.id, q]));
@@ -1296,7 +1299,16 @@ export class StudentExamService {
       }
       assertSubmissionWritable(exam, subRow);
 
-      subRow.answersheet_json = JSON.stringify(answersheet);
+      // A draft carries only what changed: merge it into the sheet saved so far.
+      let saved: Record<string, unknown> = {};
+      if (options.merge && subRow.answersheet_json) {
+        try {
+          saved = JSON.parse(subRow.answersheet_json) as Record<string, unknown>;
+        } catch {
+          saved = {};
+        }
+      }
+      subRow.answersheet_json = JSON.stringify(options.merge ? { ...saved, ...answersheet } : answersheet);
       subRow.updated_at = new Date();
       await submissionRepo.save(subRow);
 
@@ -1398,6 +1410,12 @@ export class StudentExamService {
         if (!trimmed) {
           if (options.strict) {
             throw new BadRequestException(`Answer required for question ${questionId}`);
+          }
+          // Cleared by the student after an earlier save: clear the saved answer too.
+          const existing = existingByQuestion.get(questionId);
+          if (existing && (existing.selected_answer || existing.text_answer || existing.media_url)) {
+            Object.assign(existing, { selected_answer: null, text_answer: null, media_url: null, word_count: null, updated_at: now });
+            toSave.push(existing);
           }
           continue;
         }

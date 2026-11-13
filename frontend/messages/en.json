@@ -373,7 +373,17 @@
     "questionLabel": "Question {number, number}",
     "endedByTeacher": "Your teacher ended your test: {reason}",
     "teacherWarningTitle": "A message from your teacher",
-    "teacherWarningOk": "I understand"
+    "teacherWarningOk": "I understand",
+    "saveStatus": {
+      "device": "Saved on this device",
+      "saving": "Saving…",
+      "server": "Saved to server"
+    },
+    "saveStatusHint": "Your answers are kept on this device and sent when the connection is back.",
+    "submitWaitingTitle": "Waiting for the connection",
+    "submitWaitingDetail": "Your answers are saved on this device. We'll submit them as soon as the connection is back.",
+    "submitOfflineTitle": "Couldn't reach the server",
+    "submitOfflineDetail": "Try submitting again. Answers already saved to the server are submitted automatically when time is up."
   },
   "proctoring": {
     "title": "Proctoring",
