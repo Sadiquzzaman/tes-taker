@@ -377,6 +377,16 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Organization",
+    label: "resources",
+    route: "/resources",
+    group: "academics",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    feature: "resources",
+    image: <SidebarClassesIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
     label: "homework",
     route: "/homework",
     group: "academics",
@@ -384,6 +394,15 @@ const sidebarList: SideBarList[] = [
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
     feature: "homework",
     image: <SidebarGradingIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
+    label: "resources",
+    route: "/resources",
+    group: "academics",
+    role: ["STUDENT"],
+    feature: "resources",
+    image: <SidebarClassesIconSVG width={16} />,
   },
   {
     category: "Platform",

@@ -71,7 +71,8 @@
     "performance": "পারফরম্যান্স",
     "reportCards": "রিপোর্ট কার্ড",
     "chat": "চ্যাট",
-    "chatReview": "চ্যাট পর্যালোচনা"
+    "chatReview": "চ্যাট পর্যালোচনা",
+    "resources": "রিসোর্স"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -2244,7 +2245,8 @@
       "Attendance": "উপস্থিতি",
       "Homework": "হোমওয়ার্ক",
       "Calendar": "ক্যালেন্ডার",
-      "Communication": "যোগাযোগ"
+      "Communication": "যোগাযোগ",
+      "Resources": "রিসোর্স"
     },
     "catalog": {
       "allow_graded_questions": {
@@ -2378,6 +2380,10 @@
       "chat": {
         "name": "চ্যাট",
         "description": "প্রতিটি বিষয়-ক্লাসের জন্য গ্রুপ চ্যাট ও মন্তব্য, আর শিক্ষক–শিক্ষার্থী ব্যক্তিগত চ্যাট।"
+      },
+      "resources": {
+        "name": "রিসোর্স লাইব্রেরি",
+        "description": "বিষয়-ক্লাসের সাথে শেয়ার করা নোট, স্লাইড, PDF, অডিও ও লিংক।"
       }
     },
     "limits": {
@@ -5213,5 +5219,82 @@
     "who": "কে",
     "accessLogCaption": "কে কোন চ্যাট খুলেছেন",
     "noAccess": "এখনো কেউ কোনো চ্যাট খোলেননি"
+  },
+  "resources": {
+    "title": "রিসোর্স",
+    "staffDescription": "আপনার বিষয়-ক্লাসের জন্য নোট, স্লাইড, PDF, অডিও ও লিংক।",
+    "studentDescription": "আপনার শিক্ষকরা আপনার ক্লাসে যে নোট, স্লাইড ও লিংক দিয়েছেন।",
+    "add": "রিসোর্স যোগ করুন",
+    "addTitle": "একটি রিসোর্স যোগ করুন",
+    "editTitle": "রিসোর্স পরিবর্তন করুন",
+    "search": "খুঁজুন",
+    "searchPlaceholder": "শিরোনাম বা বিবরণ",
+    "folder": "ফোল্ডার",
+    "allFolders": "সব ফোল্ডার",
+    "noFolder": "ফোল্ডার ছাড়া",
+    "newFolder": "নতুন ফোল্ডার",
+    "deleteFolder": "এই ফোল্ডারটি মুছুন",
+    "folderName": "ফোল্ডারের নাম",
+    "folderAdded": "ফোল্ডার যোগ হয়েছে",
+    "folderDeleted": "ফোল্ডার মুছে ফেলা হয়েছে; এর রিসোর্সগুলো এখন ফোল্ডারের বাইরে",
+    "showArchived": "আর্কাইভ করা দেখান",
+    "notAvailable": "আপনার প্রতিষ্ঠানের প্ল্যানে রিসোর্স লাইব্রেরি নেই।",
+    "loadFailed": "রিসোর্স লোড করা যায়নি।",
+    "empty": "এখনো কোনো রিসোর্স নেই",
+    "emptyHint": "একটি ফাইল বা লিংক যোগ করে আপনার বিষয়-ক্লাসের সাথে শেয়ার করুন।",
+    "noArchived": "কিছু আর্কাইভ করা নেই",
+    "listLabel": "রিসোর্স",
+    "types": {
+      "FILE": "ফাইল",
+      "VIDEO": "ভিডিও",
+      "LINK": "লিংক"
+    },
+    "viewOnly": "শুধু দেখা যাবে",
+    "open": "খুলুন",
+    "whoOpened": "কে খুলেছে",
+    "edit": "সম্পাদনা",
+    "archive": "আর্কাইভ",
+    "archivedDone": "আর্কাইভ হয়েছে — শিক্ষার্থীরা আর দেখবে না",
+    "restore": "ফিরিয়ে আনুন",
+    "restored": "ফিরিয়ে আনা হয়েছে",
+    "delete": "মুছুন",
+    "deleteTitle": "{title} মুছবেন?",
+    "deleteDetail": "শিক্ষার্থীরা আর এটি দেখবে না। প্রতিষ্ঠান একটি রেকর্ড রাখে।",
+    "deleted": "মুছে ফেলা হয়েছে",
+    "sharedWith": "শেয়ার করা হয়েছে: {classes}",
+    "notShared": "এখনো কোনো ক্লাসের সাথে শেয়ার করা হয়নি",
+    "saved": "সংরক্ষিত",
+    "cancel": "বাতিল",
+    "save": "সংরক্ষণ",
+    "kind": "কী যোগ করছেন?",
+    "kindFile": "একটি ফাইল",
+    "kindFileHint": "PDF, Word, PowerPoint, ছবি বা অডিও, ২০ MB পর্যন্ত।",
+    "kindLink": "একটি লিংক",
+    "kindLinkHint": "YouTube, Google Drive বা যেকোনো ওয়েব পেজ।",
+    "file": "ফাইল",
+    "fileTypes": "PDF, Word, PowerPoint, ছবি বা অডিও",
+    "uploadFailed": "আপলোড হয়নি",
+    "url": "ওয়েব ঠিকানা",
+    "titleLabel": "শিরোনাম",
+    "descriptionLabel": "বিবরণ",
+    "subject": "বিষয়",
+    "noSubject": "কোনো বিষয় নয়",
+    "tags": "ট্যাগ",
+    "download": "শিক্ষার্থীরা ডাউনলোড করতে পারবে",
+    "downloadHint": "বন্ধ থাকলে শিক্ষার্থীরা শুধু দেখতে পারবে। এতে কপি করা কঠিন হয়, তবে স্ক্রিনশট আটকানো যায় না।",
+    "shareWith": "যাদের সাথে শেয়ার করবেন",
+    "noClasses": "খোলা সেশনে আপনি কোনো বিষয়-ক্লাস পড়ান না।",
+    "openedCount": "{total, number} জনের মধ্যে {opened, number} জন খুলেছে",
+    "opened": "খুলেছে",
+    "nobodyYet": "এখনো কেউ নয়",
+    "openedAt": "{time} · {count, plural, other {#বার}}",
+    "notOpened": "এখনো খোলেনি",
+    "type": "ধরন",
+    "allSubjects": "সব বিষয়",
+    "allTypes": "সব ধরন",
+    "studentEmpty": "এখনো কিছু শেয়ার করা হয়নি",
+    "studentEmptyHint": "শিক্ষকদের নোট ও লিংক এখানে দেখা যাবে।",
+    "new": "নতুন",
+    "viewOnlyNote": "শুধু দেখা যাবে: শিক্ষক এটি ডাউনলোড না করতে বলেছেন।"
   }
 }

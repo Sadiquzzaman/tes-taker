@@ -71,7 +71,8 @@
     "performance": "Performance",
     "reportCards": "Report cards",
     "chat": "Chat",
-    "chatReview": "Chat review"
+    "chatReview": "Chat review",
+    "resources": "Resources"
   },
   "shell": {
     "organization": "Organization",
@@ -2244,7 +2245,8 @@
       "Attendance": "Attendance",
       "Homework": "Homework",
       "Calendar": "Calendar",
-      "Communication": "Communication"
+      "Communication": "Communication",
+      "Resources": "Resources"
     },
     "catalog": {
       "allow_graded_questions": {
@@ -2378,6 +2380,10 @@
       "chat": {
         "name": "Chat",
         "description": "Group chat for each subject class with comment threads, and private teacher–student chat."
+      },
+      "resources": {
+        "name": "Resource library",
+        "description": "Notes, slides, PDFs, audio and links shared with subject classes."
       }
     },
     "limits": {
@@ -5213,5 +5219,82 @@
     "who": "Who",
     "accessLogCaption": "Who opened which chat",
     "noAccess": "Nobody has opened a chat yet"
+  },
+  "resources": {
+    "title": "Resources",
+    "staffDescription": "Notes, slides, PDFs, audio and links for your subject classes.",
+    "studentDescription": "Notes, slides and links your teachers shared with your classes.",
+    "add": "Add resource",
+    "addTitle": "Add a resource",
+    "editTitle": "Change the resource",
+    "search": "Search",
+    "searchPlaceholder": "Title or description",
+    "folder": "Folder",
+    "allFolders": "All folders",
+    "noFolder": "No folder",
+    "newFolder": "New folder",
+    "deleteFolder": "Delete this folder",
+    "folderName": "Folder name",
+    "folderAdded": "Folder added",
+    "folderDeleted": "Folder deleted; its resources are now outside folders",
+    "showArchived": "Show archived",
+    "notAvailable": "The resource library isn't part of your school's plan.",
+    "loadFailed": "Couldn't load the resources.",
+    "empty": "No resources yet",
+    "emptyHint": "Add a file or a link and share it with your subject classes.",
+    "noArchived": "Nothing archived",
+    "listLabel": "Resources",
+    "types": {
+      "FILE": "File",
+      "VIDEO": "Video",
+      "LINK": "Link"
+    },
+    "viewOnly": "View only",
+    "open": "Open",
+    "whoOpened": "Who opened it",
+    "edit": "Edit",
+    "archive": "Archive",
+    "archivedDone": "Archived — students no longer see it",
+    "restore": "Restore",
+    "restored": "Restored",
+    "delete": "Delete",
+    "deleteTitle": "Delete {title}?",
+    "deleteDetail": "Students will no longer see it. The school keeps a record.",
+    "deleted": "Deleted",
+    "sharedWith": "Shared with {classes}",
+    "notShared": "Not shared with any class yet",
+    "saved": "Saved",
+    "cancel": "Cancel",
+    "save": "Save",
+    "kind": "What are you adding?",
+    "kindFile": "A file",
+    "kindFileHint": "PDF, Word, PowerPoint, images or audio, up to 20 MB.",
+    "kindLink": "A link",
+    "kindLinkHint": "YouTube, Google Drive or any web page.",
+    "file": "File",
+    "fileTypes": "PDF, Word, PowerPoint, images or audio",
+    "uploadFailed": "Upload failed",
+    "url": "Web address",
+    "titleLabel": "Title",
+    "descriptionLabel": "Description",
+    "subject": "Subject",
+    "noSubject": "No subject",
+    "tags": "Tags",
+    "download": "Students may download it",
+    "downloadHint": "Off: students can only view it. This discourages copying but can't stop screenshots.",
+    "shareWith": "Share with",
+    "noClasses": "You don't teach any subject class in an open session.",
+    "openedCount": "{opened, number} of {total, number} students opened it",
+    "opened": "Opened",
+    "nobodyYet": "Nobody yet",
+    "openedAt": "{time} · {count, plural, one {# time} other {# times}}",
+    "notOpened": "Not opened yet",
+    "type": "Type",
+    "allSubjects": "All subjects",
+    "allTypes": "All types",
+    "studentEmpty": "Nothing shared yet",
+    "studentEmptyHint": "Your teachers' notes and links will appear here.",
+    "new": "New",
+    "viewOnlyNote": "View only: your teacher asked that this isn't downloaded."
   }
 }
