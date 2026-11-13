@@ -21,6 +21,23 @@ type Scores = {
   weights: { exams_pct: number; is_default: boolean };
   students: { student: { id: string; full_name: string }; overall: Line; subjects: (Line & { subject: { name: string } })[]; missing_homework: number; at_risk: string[]; position: number | null }[];
 };
+type Performance = {
+  student: { id: string };
+  sections: { id: string }[];
+  terms: { id: string; name: string }[];
+  overall: Line;
+  subjects: (Line & { subject: { name: string } })[];
+  position: number | null;
+  class_size: number;
+  at_risk: string[];
+  homework: { set: number; missing: number; late: number; on_time_pct: number | null };
+  exams: { name: string; kind: string; percent: number | null; is_absent: boolean }[];
+  homework_items: { title: string; percent: number }[];
+  trend: { term: { name: string }; score_pct: number | null }[];
+  strengths: { subject: { name: string } }[];
+  weaknesses: unknown[];
+  published_only: boolean;
+};
 type Weights = { session: { id: string }; classes: { class: { id: string; name: string }; weights: Record<string, number>; is_default: boolean }[] };
 
 /**
@@ -236,6 +253,57 @@ describe('scores API', () => {
     expect(rafi.at_risk).toEqual(['SCORE', 'ATTENDANCE', 'MISSING_HOMEWORK']);
     await t.app.get(AuditService).flush();
     expect(await t.dataSource.getRepository(AuditLogEntity).count({ where: { organization_id: s.organization.id, action: 'performance.settings' } })).toBe(1);
+  });
+
+  it("gives each exam's class average for the trend, and lists the sections each person sees", async () => {
+    const s = await school();
+    const scores = (await call<Scores & { exams: { name: string; kind: string; average_pct: number | null; taken: number }[] }>('GET', `/scores/sections/${s.sectionId}?term_id=${s.term.id}`, s.ownerToken)).body.payload;
+    expect(scores.exams.map((e) => [e.name, e.kind, e.average_pct, e.taken]).sort()).toEqual([
+      ['English class test', 'PAPER', 80, 2],
+      ['Math half-yearly', 'PAPER', 80, 1],
+      ['Math quiz', 'ONLINE', 75, 2],
+    ]);
+    type Visible = { terms: { id: string }[]; sections: { id: string; class_name: string }[] };
+    const rina = (await call<Visible>('GET', `/scores/sections?session_id=${s.sessionId}`, s.rinaToken)).body.payload;
+    expect([rina.sections.map((x) => [x.id, x.class_name]), rina.terms.map((x) => x.id)]).toEqual([[[s.sectionId, 'Class 6']], [s.term.id]]);
+    expect((await call<Visible>('GET', '/scores/sections', s.linaToken)).body.payload.sections).toEqual([]);
+    expect((await call('GET', '/scores/sections', s.mituToken)).status).toBe(403);
+  });
+
+  it("shows a student's page to staff with every item, the trend per term and their strongest subjects", async () => {
+    const s = await school();
+    const res = await call<Performance>('GET', `/scores/students/${s.mitu.id}?term_id=${s.term.id}`, s.rinaToken);
+    expect(res.status).toBe(200);
+    const page = res.body.payload;
+    expect(page).toMatchObject({ position: 1, class_size: 2, at_risk: [], published_only: false, overall: { score_pct: 88 } });
+    expect(page.sections.map((x) => x.id)).toEqual([s.sectionId]);
+    expect(page.exams.map((e) => [e.name, e.percent]).sort()).toEqual([
+      ['English class test', 70],
+      ['Math half-yearly', 80],
+      ['Math quiz', 90],
+    ]);
+    expect(page.homework_items.map((h) => [h.title, h.percent])).toEqual([['Fractions', 100]]);
+    expect(page.homework).toEqual({ set: 1, missing: 0, late: 0, on_time_pct: 100 });
+    expect(page.trend).toEqual([{ term: { id: s.term.id, name: 'Half-yearly' }, score_pct: 88 }]);
+    // Math has 3 scored items (2 exams, 1 homework); English only 1, so it is neither.
+    expect([page.strengths.map((x) => x.subject.name), page.weaknesses]).toEqual([['Math'], []]);
+    // Rafi missed the Math exam: listed as absent.
+    const rafi = (await call<Performance>('GET', `/scores/students/${s.rafi.id}?term_id=${s.term.id}`, s.ownerToken)).body.payload;
+    expect(rafi.exams.find((e) => e.name === 'Math half-yearly')).toMatchObject({ is_absent: true, percent: null });
+    expect(rafi.at_risk).toEqual(['ATTENDANCE']);
+    expect((await call('GET', `/scores/students/${s.mitu.id}`, s.linaToken)).status).toBe(404);
+  });
+
+  it('lets a student see only their own page, with published results and no position unless the school shows it', async () => {
+    const s = await school();
+    expect((await call('GET', `/scores/students/${s.rafi.id}`, s.mituToken)).status).toBe(403);
+    await call('POST', `/offline-exams/${s.englishTest}/publish`, s.karimToken);
+    const own = (await call<Performance>('GET', `/scores/students/${s.mitu.id}?term_id=${s.term.id}`, s.mituToken)).body.payload;
+    expect(own).toMatchObject({ published_only: true, position: null, at_risk: [] });
+    expect(own.exams.map((e) => e.name).sort()).toEqual(['English class test', 'Math quiz']);
+    expect(own.homework_items).toEqual([]);
+    await call('PUT', '/scores/settings', s.ownerToken, { show_rank: true });
+    expect((await call<Performance>('GET', `/scores/students/${s.mitu.id}`, s.mituToken)).body.payload.position).toBe(1);
   });
 
   it("shows a section's scores to its staff only, needs the performance feature, and keeps schools apart", async () => {

@@ -86,3 +86,15 @@ export class SectionScoresQueryDto {
   @IsUUID()
   term_id?: string;
 }
+
+export class StudentScoresQueryDto {
+  @ApiPropertyOptional({ description: 'One of the student’s sections (an earlier session for history); their current one if none is given' })
+  @IsOptional()
+  @IsUUID()
+  section_id?: string;
+
+  @ApiPropertyOptional({ description: 'A term of that section’s session; the whole session if none is given' })
+  @IsOptional()
+  @IsUUID()
+  term_id?: string;
+}
