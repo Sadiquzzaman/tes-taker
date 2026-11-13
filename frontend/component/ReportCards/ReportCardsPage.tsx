@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import useApiData from "@/component/Homework/useApiData";
 import useIsStudent from "@/component/Homework/useIsStudent";
 import { useToast } from "@/component/Toast/ToastContext";
-import { buttonClasses, Button, Card, EmptyState, ErrorState, PageHeader, Select, Skeleton, Textarea } from "@/design/ui";
+import { buttonClasses, Button, Card, ConfirmDialog, EmptyState, ErrorState, PageHeader, Select, Skeleton, Textarea } from "@/design/ui";
 import { cn, focusRing } from "@/design/ui/cn";
 import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
@@ -140,6 +140,8 @@ const SectionCards = ({ sectionId, termId, locale }: { sectionId: string; termId
   const { data, failed, reload, setData } = useApiData<ReportCardList>("/report-cards", { section_id: sectionId, term_id: termId || undefined });
   const [remarks, setRemarks] = useState<Record<string, Remarks>>({});
   const [making, setMaking] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [confirmShare, setConfirmShare] = useState(false);
 
   useEffect(() => {
     if (data) setRemarks(Object.fromEntries(data.rows.map((row) => [row.student.id, { teacher: row.latest?.teacher_remark ?? "", principal: row.latest?.principal_remark ?? "" }])));
@@ -169,6 +171,27 @@ const SectionCards = ({ sectionId, termId, locale }: { sectionId: string; termId
     }
   };
 
+  const share = async () => {
+    setSharing(true);
+    try {
+      const response = await axiosReq.post<ApiResponse<{ cards: number; guardian_sms: number }>>(`${process.env.NEXT_PUBLIC_BASE_URL}/report-cards/share`, {
+        section_id: sectionId,
+        term_id: termId || undefined,
+      });
+      triggerToast({
+        title: t("sharedToast", { count: response.data.payload.cards }),
+        description: t("sharedSms", { count: response.data.payload.guardian_sms }),
+        type: "success",
+      });
+      reload();
+    } catch (err) {
+      handleError(err as AxiosError<ApiError>);
+    } finally {
+      setSharing(false);
+      setConfirmShare(false);
+    }
+  };
+
   if (failed !== null) return <ErrorState title={t("loadFailed")} onRetry={reload} />;
   if (!data) {
     return (
@@ -192,6 +215,9 @@ const SectionCards = ({ sectionId, termId, locale }: { sectionId: string; termId
           <a href={`/report-cards/print?${query}`} target="_blank" rel="noreferrer" aria-disabled={made === 0} className={cn(buttonClasses({ variant: "secondary" }), made === 0 && "pointer-events-none opacity-50")}>
             {t("printAll")}
           </a>
+          <Button variant="secondary" loading={sharing} disabled={made === 0} onClick={() => setConfirmShare(true)}>
+            {t("share")}
+          </Button>
           <Button loading={making} onClick={() => void make()}>
             {t("make")}
           </Button>
@@ -213,6 +239,9 @@ const SectionCards = ({ sectionId, termId, locale }: { sectionId: string; termId
                     <NextLink href={`/report-cards/${row.latest.id}?locale=${row.latest.locale}`} target="_blank" className={cn("text-primary underline-offset-2 hover:underline", focusRing)}>
                       {t("openFor", { name: row.student.full_name })}
                     </NextLink>
+                    {row.latest.share_expires_at && new Date(row.latest.share_expires_at) > new Date() ? (
+                      <span className="block">{t("sharedUntil", { date: format.date(row.latest.share_expires_at, { day: "numeric", month: "short", year: "numeric" }) })}</span>
+                    ) : null}
                   </span>
                 ) : (
                   <span className="text-caption text-ink-muted">{t("notMade")}</span>
@@ -242,6 +271,14 @@ const SectionCards = ({ sectionId, termId, locale }: { sectionId: string; termId
           ))}
         </ul>
       </Card>
+      <ConfirmDialog
+        open={confirmShare}
+        title={t("shareTitle")}
+        description={t("shareDetail", { count: made })}
+        confirmLabel={t("share")}
+        onConfirm={() => void share()}
+        onCancel={() => setConfirmShare(false)}
+      />
     </>
   );
 };

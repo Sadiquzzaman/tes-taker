@@ -1,13 +1,19 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { createHash, randomBytes } from 'crypto';
+import { DataSource, MoreThan, Repository } from 'typeorm';
+import { GuardiansService } from 'src/academics/guardians.service';
 import { AcademicSessionStatusEnum } from 'src/academics/entities/academic-session.entity';
 import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
 import { AuditService } from 'src/audit/audit.service';
 import { Tenant } from 'src/common/tenancy/tenant-context';
+import { resolveFrontendUrl } from 'src/common/utils/frontend-url.util';
+import { NOTIFICATION_EVENTS, NotificationChannelEnum, RecipientTypeEnum } from 'src/notifications/notification.constants';
+import { NotificationsService, OutboxMessage } from 'src/notifications/notifications.service';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { OrgSettingsService } from 'src/organizations/org-settings.service';
-import { GenerateReportCardsDto } from './dto/report-card.dto';
+import { GenerateReportCardsDto, ShareReportCardsDto } from './dto/report-card.dto';
 import { ReportCardEntity } from './entities/report-card.entity';
 import { RESULTS_ERRORS } from './results-errors';
 import { ScoresService, SectionPage } from './scores.service';
@@ -47,6 +53,9 @@ export interface ReportCardList {
 type Actor = { id: string };
 
 const NO_TERM = '00000000-0000-0000-0000-000000000000';
+/** How long a guardian link works (PRF-09). */
+export const SHARE_DAYS = 30;
+const hashOf = (token: string) => createHash('sha256').update(token).digest('hex');
 
 /**
  * Report cards (P7-04, PRF-09): staff who see a section make the cards of its students for a term
@@ -64,6 +73,9 @@ export class ReportCardsService {
     private readonly scores: ScoresService,
     private readonly orgSettings: OrgSettingsService,
     private readonly audit: AuditService,
+    private readonly guardians: GuardiansService,
+    private readonly notifications: NotificationsService,
+    private readonly config: ConfigService,
   ) {}
 
   /** Every student of the section with their latest card for the term. */
@@ -191,6 +203,81 @@ export class ReportCardsService {
       .addOrderBy('c.version', 'DESC')
       .getMany();
     return cards.sort((a, b) => b.generated_at.getTime() - a.generated_at.getTime()).map((card) => this.summary(card));
+  }
+
+  /**
+   * Shares the latest cards of a section and term with the students' guardians (PRF-09): each card
+   * gets a new link that needs no login and works for 30 days (sharing again replaces it; only a
+   * hash is kept), and each guardian with a phone gets an SMS with a short summary and the link,
+   * through the outbox (on the organisation's SMS credits). Staff who see the section.
+   */
+  async share(tenant: Tenant, actor: Actor, dto: ShareReportCardsDto): Promise<{ cards: number; guardian_sms: number; links: { student_id: string; url: string }[] }> {
+    this.scores.staffOnly(tenant);
+    const section = await this.scores.staffSection(tenant, actor.id, dto.section_id);
+    const organizationId = tenant.organizationId;
+    const latest = [...(await this.latestCards(organizationId, section.id, dto.term_id ?? null)).values()].filter(
+      (card) => !dto.student_ids || dto.student_ids.includes(card.student_id),
+    );
+    const organizationName = await this.orgSettings.organizationName(organizationId);
+    const base = resolveFrontendUrl(this.config);
+    const now = new Date();
+    const expires = new Date(now.getTime() + SHARE_DAYS * 24 * 60 * 60 * 1000);
+    const links: { student_id: string; url: string }[] = [];
+    let sms = 0;
+    for (const card of latest) {
+      const token = randomBytes(18).toString('base64url');
+      await this.cardRepo.update({ id: card.id }, { share_token_hash: hashOf(token), share_expires_at: expires, shared_at: now, shared_by: actor.id });
+      const url = `${base}/r/${token}`;
+      links.push({ student_id: card.student_id, url });
+      const snapshot = card.scores_snapshot as unknown as ReportCardSnapshot;
+      const overall = snapshot.page.overall;
+      const contacts = await this.guardians.contactsForStudent(organizationId, card.student_id);
+      const ids = await this.notifications.enqueue(
+        contacts.map(
+          (guardian): OutboxMessage => ({
+            eventType: NOTIFICATION_EVENTS.REPORT_CARD_SHARED,
+            channel: NotificationChannelEnum.SMS,
+            organizationId,
+            address: guardian.phone,
+            recipientType: RecipientTypeEnum.GUARDIAN,
+            recipientId: guardian.id,
+            locale: guardian.locale,
+            variables: {
+              student_id: card.student_id,
+              student_name: snapshot.page.student.full_name,
+              term: snapshot.page.period.term?.name ?? snapshot.page.section.session.name,
+              score: overall.score_pct === null ? '-' : `${overall.score_pct}%${overall.grade ? ` (${overall.grade.grade})` : ''}`,
+              link: url,
+              organization_name: organizationName,
+            },
+            dedupeKey: `${NOTIFICATION_EVENTS.REPORT_CARD_SHARED}:${card.id}:${guardian.id}:${now.toISOString()}`,
+            createdBy: actor.id,
+          }),
+        ),
+      );
+      sms += ids.length;
+    }
+    if (latest.length) {
+      this.audit.recordMany(
+        latest.map((card) => ({
+          action: AUDIT_ACTIONS.REPORT_CARD_SHARE,
+          organizationId,
+          actorId: actor.id,
+          entityType: 'report_card',
+          entityId: card.id,
+          after: { student_id: card.student_id, version: card.version, expires_at: expires.toISOString() },
+        })),
+      );
+    }
+    return { cards: latest.length, guardian_sms: sms, links };
+  }
+
+  /** A shared card by its link, for a guardian without an account (404 when unknown or expired). */
+  async byLink(token: string): Promise<ReportCardView> {
+    if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) throw new NotFoundException({ message: 'This link is not valid', code: RESULTS_ERRORS.NOT_FOUND });
+    const card = await this.cardRepo.findOne({ where: { share_token_hash: hashOf(token), share_expires_at: MoreThan(new Date()) } });
+    if (!card) throw new NotFoundException({ message: 'This link has expired or is not valid', code: RESULTS_ERRORS.NOT_FOUND });
+    return this.view(card);
   }
 
   // ------------------------------------------------------------------ helpers

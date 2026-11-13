@@ -97,6 +97,12 @@ const routePolicies: RoutePolicy[] = [
     match: "prefix",
     allowedRoles: ["TEACHER"],
   },
+  // A report card shared with guardians: the token in the link is the key (PRF-09).
+  {
+    path: "/r/",
+    match: "prefix",
+    isPublic: true,
+  },
   {
     path: "/report-cards/print",
     match: "exact",

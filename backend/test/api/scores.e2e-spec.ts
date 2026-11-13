@@ -1,5 +1,6 @@
 import { DeepPartial } from 'typeorm';
 import { AcademicSessionEntity } from '../../src/academics/entities/academic-session.entity';
+import { GuardianEntity, GuardianRelationEnum } from '../../src/academics/entities/guardian.entity';
 import { AttendanceReportsService } from '../../src/attendance/attendance-reports.service';
 import { AuditService } from '../../src/audit/audit.service';
 import { AuditLogEntity } from '../../src/audit/entities/audit-log.entity';
@@ -7,6 +8,8 @@ import { RolesEnum } from '../../src/common/enums/roles.enum';
 import { ExamSubmissionStatusEnum, StudentExamSubmissionEntity } from '../../src/exams/entities/student-exam-answer.entity';
 import { HomeworkScoreEntity } from '../../src/homework/entities/homework-score.entity';
 import { HomeworkEntity, HomeworkStatusEnum, HomeworkTypeEnum } from '../../src/homework/entities/homework.entity';
+import { NotificationOutboxEntity } from '../../src/notifications/entities/notification-outbox.entity';
+import { ReportCardEntity } from '../../src/results/entities/report-card.entity';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { ScoresService } from '../../src/results/scores.service';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
@@ -358,6 +361,48 @@ describe('scores API', () => {
     expect((await call<Card>('GET', `/report-cards/${id(s.mitu.id)}`, s.mituToken)).status).toBe(200);
     expect((await call('GET', `/report-cards/${id(s.rafi.id)}`, s.mituToken)).status).toBe(404);
     expect((await call('GET', '/report-cards/mine', s.rinaToken)).status).toBe(403);
+  });
+
+  it("sends cards to guardians: an SMS with a 30-day link that opens the card without signing in", async () => {
+    const s = await school();
+    await call('POST', '/report-cards/generate', s.ownerToken, { section_id: s.sectionId, term_id: s.term.id, locale: 'bn', rows: [{ student_id: s.mitu.id }, { student_id: s.rafi.id }] });
+    await t.dataSource.getRepository(GuardianEntity).save({
+      organization_id: s.organization.id,
+      student_id: s.mitu.id,
+      name: 'Mitu Parent',
+      relation: GuardianRelationEnum.MOTHER,
+      phone: '01700000000',
+      is_primary: true,
+    } as DeepPartial<GuardianEntity>);
+
+    expect((await call('POST', '/report-cards/share', s.mituToken, { section_id: s.sectionId, term_id: s.term.id })).status).toBe(403);
+    const shared = await call<{ cards: number; guardian_sms: number; links: { student_id: string; url: string }[] }>('POST', '/report-cards/share', s.rinaToken, { section_id: s.sectionId, term_id: s.term.id });
+    expect(shared.status).toBe(200);
+    expect([shared.body.payload.cards, shared.body.payload.guardian_sms]).toEqual([2, 1]);
+    const link = shared.body.payload.links.find((l) => l.student_id === s.mitu.id)!.url;
+    expect(link).toMatch(/\/r\/[A-Za-z0-9_-]{24}$/);
+    const sms = await t.dataSource.getRepository(NotificationOutboxEntity).findOneByOrFail({ organization_id: s.organization.id, event_type: 'report_card.shared' });
+    expect(sms).toMatchObject({ channel: 'SMS', to_address: '01700000000' });
+    expect(sms.payload).toMatchObject({ student_name: 'Mitu', term: 'Half-yearly', score: '88% (A+)', link });
+
+    // Only a hash is kept; the link opens the card with no login.
+    const token = link.split('/r/')[1];
+    const stored = await t.dataSource.getRepository(ReportCardEntity).findOneByOrFail({ student_id: s.mitu.id });
+    expect(stored.share_token_hash).not.toContain(token);
+    const opened = await t.api.request<Body<Card>>('GET', `/public/report-cards/${token}`);
+    expect([opened.status, opened.body.payload.snapshot.page.student.id]).toEqual([200, s.mitu.id]);
+    expect((await t.api.request('GET', '/public/report-cards/not-a-real-link-at-all')).status).toBe(404);
+
+    // Sharing again replaces the link; an expired link stops working.
+    const again = await call<{ links: { student_id: string; url: string }[] }>('POST', '/report-cards/share', s.ownerToken, { section_id: s.sectionId, term_id: s.term.id, student_ids: [s.mitu.id] });
+    expect(again.body.payload.links).toHaveLength(1);
+    expect((await t.api.request('GET', `/public/report-cards/${token}`)).status).toBe(404);
+    const newToken = again.body.payload.links[0].url.split('/r/')[1];
+    await t.dataSource.getRepository(ReportCardEntity).update({ student_id: s.mitu.id }, { share_expires_at: new Date(Date.now() - 1000) });
+    expect((await t.api.request('GET', `/public/report-cards/${newToken}`)).status).toBe(404);
+
+    await t.app.get(AuditService).flush();
+    expect(await t.dataSource.getRepository(AuditLogEntity).count({ where: { organization_id: s.organization.id, action: 'report_card.share' } })).toBe(3);
   });
 
   it("shows a section's scores to its staff only, needs the performance feature, and keeps schools apart", async () => {

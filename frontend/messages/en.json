@@ -2947,7 +2947,8 @@
         "settings": "Performance settings changed"
       },
       "report_card": {
-        "generate": "Report card made"
+        "generate": "Report card made",
+        "share": "Report card sent to guardians"
       }
     },
     "fields": {
@@ -3157,6 +3158,9 @@
         "event_changed": "Event changed",
         "event_cancelled": "Event cancelled",
         "reminder": "Reminder"
+      },
+      "report_card": {
+        "shared": "Report card to guardians"
       }
     }
   },
@@ -4781,7 +4785,13 @@
     "myEmpty": "No report cards yet",
     "myEmptyHint": "Your report card appears here when your school makes it.",
     "madeOn": "Made on {date}",
-    "open": "Open"
+    "open": "Open",
+    "share": "Send to guardians",
+    "shareTitle": "Send these report cards to guardians?",
+    "shareDetail": "Each guardian with a phone number gets an SMS with a short summary and a link to the card ({count, number} cards). The link needs no login and works for 30 days; sending again replaces it. SMS uses your SMS credits.",
+    "sharedToast": "{count, plural, =0 {No cards to send} one {# card sent} other {# cards sent}}",
+    "sharedSms": "{count, plural, =0 {No guardian has a phone number.} one {# SMS on its way to a guardian.} other {# SMS on their way to guardians.}}",
+    "sharedUntil": "Link works until {date}."
   },
   "reportCard": {
     "title": "Report card",
@@ -4818,6 +4828,10 @@
     "loadFailed": "Couldn't load the report cards.",
     "none": "No report cards made yet",
     "noneHint": "Make the cards on the Report cards page first."
+  },
+  "sharedCard": {
+    "expiredTitle": "This link doesn't work any more",
+    "expiredDetail": "Report card links work for 30 days. Ask the school to send it again. / রিপোর্ট কার্ডের লিংক ৩০ দিন কাজ করে। স্কুলকে আবার পাঠাতে বলুন।"
   },
   "performanceSettings": {
     "title": "Performance settings",

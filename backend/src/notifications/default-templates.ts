@@ -348,6 +348,21 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
   { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: IN_APP, locale: 'bn', subject: 'মনে করিয়ে দেওয়া: {{title}}', body: 'শুরু {{starts_at}} {{place}}' },
   { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: SMS, locale: 'en', subject: null, body: 'Reminder: {{title}} starts {{starts_at}}. {{place}} - {{organization_name}}' },
   { event_type: NOTIFICATION_EVENTS.CALENDAR_REMINDER, channel: SMS, locale: 'bn', subject: null, body: 'মনে করিয়ে দেওয়া: {{title}} শুরু {{starts_at}}। {{place}} - {{organization_name}}' },
+  // Report cards (P7-04, PRF-09): to guardians, with the link that needs no login.
+  {
+    event_type: NOTIFICATION_EVENTS.REPORT_CARD_SHARED,
+    channel: SMS,
+    locale: 'en',
+    subject: null,
+    body: "{{student_name}}'s report card ({{term}}): {{score}}. See it here for 30 days: {{link}} - {{organization_name}}",
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.REPORT_CARD_SHARED,
+    channel: SMS,
+    locale: 'bn',
+    subject: null,
+    body: '{{student_name}}-এর রিপোর্ট কার্ড ({{term}}): {{score}}। ৩০ দিন দেখা যাবে: {{link}} - {{organization_name}}',
+  },
   {
     event_type: NOTIFICATION_EVENTS.HOMEWORK_MISSING,
     channel: SMS,

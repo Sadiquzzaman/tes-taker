@@ -61,3 +61,11 @@ describe("pages people cannot use send them home", () => {
     expect(visit("/dashboard", platform)).toBe("/admin");
   });
 });
+
+describe("shared report cards", () => {
+  it("open without signing in", () => {
+    expect(visit("/r/abc123", {})).toBe("open");
+    // The staff pages are not public.
+    expect(visit("/report-cards", {})).toBe("/login");
+  });
+});

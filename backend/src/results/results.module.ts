@@ -4,6 +4,7 @@ import { AcademicsModule } from 'src/academics/academics.module';
 import { AttendanceModule } from 'src/attendance/attendance.module';
 import { ExamModule } from 'src/exams/exam.module';
 import { HomeworkModule } from 'src/homework/homework.module';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 import { OrganizationsModule } from 'src/organizations/organization.module';
 import { PerformanceModule } from 'src/performance/performance.module';
 import { SubscriptionModule } from 'src/subscriptions/subscription.module';
@@ -13,7 +14,7 @@ import { BehaviourCriterionEntity } from './entities/behaviour-criterion.entity'
 import { BehaviourRatingEntity } from './entities/behaviour-rating.entity';
 import { ReportCardEntity } from './entities/report-card.entity';
 import { ScoreWeightEntity } from './entities/score-weight.entity';
-import { ReportCardsController } from './report-cards.controller';
+import { PublicReportCardsController, ReportCardsController } from './report-cards.controller';
 import { ReportCardsService } from './report-cards.service';
 import { ScoreSettingsService } from './score-settings.service';
 import { ScoresController } from './scores.controller';
@@ -31,11 +32,12 @@ import { ScoresService } from './scores.service';
     AttendanceModule,
     ExamModule,
     HomeworkModule,
+    NotificationsModule,
     OrganizationsModule,
     PerformanceModule,
     SubscriptionModule,
   ],
-  controllers: [BehaviourController, ScoresController, ReportCardsController],
+  controllers: [BehaviourController, ScoresController, ReportCardsController, PublicReportCardsController],
   providers: [BehaviourService, ScoresService, ScoreSettingsService, ReportCardsService],
   exports: [BehaviourService, ScoresService],
 })
