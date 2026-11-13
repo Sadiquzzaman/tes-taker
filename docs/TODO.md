@@ -87,3 +87,7 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - "Not started" tiles on the live monitor (PRO-03) — P8-03 shows students once they open the exam; for class and listed-student exams, add the students who have not opened it yet (the audience rules in `StudentExamService.validateExamAccess`), with status NOT_STARTED.
 - Typing indicators in private chats (COM-02 Should) — P9-02 has read receipts; typing needs a socket event relayed to the chat's room with a membership check.
 - Chat retention: delete chats N months after their session closes, set per organisation (COM-06, default never) — P9-02 keeps closed sessions' chats read-only; deletion needs an org setting and a job.
+- Watermark view-only PDFs with the student's name (RES-05) — P9-03 hides the download button for view-only resources; stamping the name on the PDF needs a PDF package (owner approval) and serving the file through the API.
+- Search inside PDFs (RES-04 Should) and library views by syllabus topic (RES-03) — P9-03 searches titles and descriptions and groups by subject and folder; topics need the syllabus (Epic 6).
+- Video upload to our storage (P9-04, RES-02) — links only for now (owner's choice, 14 Nov): needs resumable uploads, AWS MediaConvert to 720p HLS (a paid service), a per-plan size limit and watch % in resource_views.
+- Flutter screens for homework, chat, resources and results (P9-05) — the Flutter app is not in this repository; build them where the app lives, against the APIs already on beta.

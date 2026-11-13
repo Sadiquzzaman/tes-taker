@@ -1300,53 +1300,70 @@ Table message_reports {
 
 Table resource_folders {
   id uuid [pk]
-  organization_id uuid [not null]
-  parent_id uuid [ref: > resource_folders.id]
-  class_id uuid [ref: > classes.id]
-  subject_id uuid [ref: > subjects.id]
-  name varchar(120)
-  owner_id uuid [ref: > users.id]
-  Note: 'NEW (RES-03)'
+  organization_id uuid [not null, ref: > organizations.id]
+  owner_id uuid [not null, ref: > users.id, note: 'a teacher's own folders, one level']
+  name varchar(120) [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  deleted_at timestamptz [note: 'soft delete; its resources move out']
+  deleted_by uuid
+  Indexes {
+    (organization_id, owner_id)
+  }
+  Note: 'NEW (RES-03), BUILT P9-03 (resources module, migration ResourceLibrary)'
 }
 
 Enum resource_type { FILE VIDEO LINK }
 
 Table resources {
   id uuid [pk]
-  organization_id uuid [not null]
-  folder_id uuid [ref: > resource_folders.id]
-  subject_id uuid [ref: > subjects.id]
-  topic_id uuid [ref: > syllabus_topics.id]
-  type resource_type [not null]
-  title varchar(200)
+  organization_id uuid [not null, ref: > organizations.id]
+  type varchar(10) [not null, note: 'FILE | VIDEO (reserved, RES-02) | LINK (CHECK); LINK has url, others file_id']
+  title varchar(200) [not null]
   description text
-  file_id uuid [ref: > file_objects.id]
-  url varchar(1000)
-  download_allowed boolean [default: true, note: 'RES-05']
-  archived_at timestamptz
-  created_by uuid [ref: > users.id]
-  Note: 'NEW (RES-01, RES-02)'
+  subject_id uuid [ref: > subjects.id]
+  folder_id uuid [ref: > resource_folders.id]
+  file_id uuid [ref: > file_objects.id, note: 'purpose RESOURCE']
+  url varchar(1000) [note: 'LINK: http(s) only']
+  tags jsonb [not null, default: '[]']
+  download_allowed boolean [not null, default: true, note: 'RES-05']
+  archived_at timestamptz [note: 'hidden from students, kept']
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  deleted_at timestamptz
+  deleted_by uuid
+  Indexes {
+    (organization_id, created_at)
+    (organization_id, created_by)
+  }
+  Note: 'NEW (RES-01, RES-03), BUILT P9-03; topic_id waits for the syllabus (Epic 6)'
 }
 
 Table resource_shares {
   resource_id uuid [ref: > resources.id]
   offering_id uuid [ref: > course_offerings.id]
+  organization_id uuid [not null]
+  created_at timestamptz [not null]
   Indexes {
     (resource_id, offering_id) [pk]
+    offering_id
   }
-  Note: 'NEW'
+  Note: 'NEW, BUILT P9-03'
 }
 
 Table resource_views {
   resource_id uuid [ref: > resources.id]
   student_id uuid [ref: > users.id]
-  first_opened_at timestamptz
-  last_opened_at timestamptz
-  watch_pct smallint
+  organization_id uuid [not null]
+  first_opened_at timestamptz [not null]
+  last_opened_at timestamptz [not null]
+  opens int [not null, default: 1]
+  watch_pct smallint [note: 'comes with video upload']
   Indexes {
     (resource_id, student_id) [pk]
   }
-  Note: 'NEW (RES-06)'
+  Note: 'NEW (RES-04 New badges, RES-06), BUILT P9-03'
 }
 
 //////////////////////////////////////////////////////////////

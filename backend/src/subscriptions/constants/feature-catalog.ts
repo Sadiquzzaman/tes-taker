@@ -9,6 +9,7 @@ export enum FeatureGroup {
   CALENDAR = 'Calendar',
   PERFORMANCE = 'Performance',
   COMMUNICATION = 'Communication',
+  RESOURCES = 'Resources',
 }
 
 export enum LimitKey {
@@ -64,6 +65,8 @@ export enum FeatureKey {
   PERFORMANCE = 'performance',
   /** Epic 7 (P9): group chat per subject class and private teacher–student chat. */
   CHAT = 'chat',
+  /** Epic 8 (P9): the resource library — files and links shared with subject classes. */
+  RESOURCES = 'resources',
 }
 
 export type PlanFeatures = Partial<Record<FeatureKey, boolean>>;
@@ -229,6 +232,12 @@ export const FEATURE_CATALOG: CatalogFeatureDefinition[] = [
     label: 'Chat',
     description: 'Group chat for each subject class with comment threads, and private teacher–student chat',
   },
+  {
+    key: FeatureKey.RESOURCES,
+    group: FeatureGroup.RESOURCES,
+    label: 'Resource library',
+    description: 'Notes, slides, PDFs, audio and links shared with subject classes, with download control and who opened them',
+  },
 ];
 
 export const LIMIT_CATALOG: CatalogLimitDefinition[] = [
@@ -342,6 +351,7 @@ export const SEED_PLAN_PRESETS = {
       [FeatureKey.CALENDAR]: true,
       [FeatureKey.PERFORMANCE]: true,
       [FeatureKey.CHAT]: true,
+      [FeatureKey.RESOURCES]: true,
       [FeatureKey.ALLOW_GRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_UNGRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_QUESTION_IMPORT_EXPORT]: true,
@@ -373,6 +383,7 @@ export const SEED_PLAN_PRESETS = {
       [FeatureKey.CALENDAR]: true,
       [FeatureKey.PERFORMANCE]: true,
       [FeatureKey.CHAT]: true,
+      [FeatureKey.RESOURCES]: true,
       [FeatureKey.ALLOW_GRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_UNGRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_QUESTION_IMPORT_EXPORT]: true,
@@ -412,6 +423,7 @@ export const SEED_PLAN_PRESETS = {
       [FeatureKey.CALENDAR]: true,
       [FeatureKey.PERFORMANCE]: true,
       [FeatureKey.CHAT]: true,
+      [FeatureKey.RESOURCES]: true,
       [FeatureKey.ALLOW_GRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_UNGRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_PASSAGE_QUESTIONS]: true,
