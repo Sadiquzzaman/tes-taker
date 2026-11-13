@@ -119,3 +119,21 @@ interface ReportCardList {
   can_write_principal_remark: boolean;
   rows: { student: { id: string; full_name: string; roll_no: string | null }; latest: ReportCardSummary | null }[];
 }
+
+/** The whole school (P7-05, PRF-08): `GET /scores/overview`. */
+interface SchoolOverview {
+  session: { id: string; name: string; closed: boolean };
+  term: { id: string; name: string } | null;
+  terms: { id: string; name: string }[];
+  sections: {
+    section: { id: string; name: string; class_name: string };
+    students: number;
+    average_pct: number | null;
+    highest_pct: number | null;
+    lowest_pct: number | null;
+    attendance_pct: number | null;
+    homework_rate_pct: number | null;
+    at_risk: number;
+  }[];
+  subjects: { subject: { id: string; name: string }; average_pct: number | null; sections: number }[];
+}

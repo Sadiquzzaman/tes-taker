@@ -50,6 +50,24 @@ export interface StudentScore {
   position: number | null;
 }
 
+/** The whole school at a glance (PRF-08): each section, and each subject across the sections. */
+export interface SchoolOverview {
+  session: { id: string; name: string; closed: boolean };
+  term: { id: string; name: string } | null;
+  terms: { id: string; name: string }[];
+  sections: {
+    section: { id: string; name: string; class_name: string };
+    students: number;
+    average_pct: number | null;
+    highest_pct: number | null;
+    lowest_pct: number | null;
+    attendance_pct: number | null;
+    homework_rate_pct: number | null;
+    at_risk: number;
+  }[];
+  subjects: { subject: { id: string; name: string }; average_pct: number | null; sections: number }[];
+}
+
 /** One exam of the period with the section's average, for the trend across exams (PRF-07). */
 export interface ExamSummary {
   id: string;
@@ -204,6 +222,56 @@ export class ScoresService {
       session: { id: session.id, name: session.name, closed: session.status === AcademicSessionStatusEnum.CLOSED },
       terms: terms.map((term) => ({ id: term.id, name: term.name })),
       sections: sections.filter((section) => !mine || mine.has(section.id)).map((section) => ({ id: section.id, name: section.name, class_name: section.class?.class_name ?? '' })),
+    };
+  }
+
+  /**
+   * The whole school (PRF-08) for owners, admins and staff: every section of the session with its
+   * average, highest and lowest score, attendance, homework handed in and how many are at risk,
+   * and each subject's average across sections, for a term or the session.
+   */
+  async overview(tenant: Tenant, sessionId?: string, termId?: string): Promise<SchoolOverview> {
+    if (tenant.viaEnrolment || !MANAGERS.includes(tenant.memberRole)) {
+      throw new ForbiddenException({ message: 'Only owners, admins and staff see the whole school', code: RESULTS_ERRORS.NOT_ALLOWED });
+    }
+    const { session, sections } = await this.sections.listWithClasses(sessionId);
+    const terms = await this.sessions.termsOf(tenant.organizationId, session.id);
+    const term = termId ? terms.find((t) => t.id === termId) : undefined;
+    if (termId && !term) throw new NotFoundException({ message: 'Term not found', code: RESULTS_ERRORS.NOT_FOUND });
+    const bySubject = new Map<string, { subject: { id: string; name: string }; scores: number[]; sections: number }>();
+    const rows: SchoolOverview['sections'] = [];
+    for (const section of sections) {
+      const scores = await this.compute(tenant.organizationId, section.id, term?.id, false);
+      const overall = scores.students.map((s) => s.overall.score_pct).filter((v): v is number => v !== null);
+      const attendance = scores.students.map((s) => s.overall.attendance_pct).filter((v): v is number => v !== null);
+      const set = scores.students.reduce((sum, s) => sum + s.homework.set, 0);
+      const missing = scores.students.reduce((sum, s) => sum + s.homework.missing, 0);
+      rows.push({
+        section: { id: section.id, name: section.name, class_name: section.class?.class_name ?? '' },
+        students: scores.students.length,
+        average_pct: mean(overall),
+        highest_pct: overall.length ? Math.max(...overall) : null,
+        lowest_pct: overall.length ? Math.min(...overall) : null,
+        attendance_pct: mean(attendance),
+        homework_rate_pct: set ? round2(((set - missing) / set) * 100) : null,
+        at_risk: scores.students.filter((s) => s.at_risk.length > 0).length,
+      });
+      for (const subject of scores.subjects) {
+        const values = scores.students.map((s) => s.subjects.find((x) => x.subject.id === subject.id)?.score_pct).filter((v): v is number => v !== null && v !== undefined);
+        const entry = bySubject.get(subject.id) ?? { subject, scores: [], sections: 0 };
+        entry.scores.push(...values);
+        if (values.length) entry.sections += 1;
+        bySubject.set(subject.id, entry);
+      }
+    }
+    return {
+      session: { id: session.id, name: session.name, closed: session.status === AcademicSessionStatusEnum.CLOSED },
+      term: term ? { id: term.id, name: term.name } : null,
+      terms: terms.map((t) => ({ id: t.id, name: t.name })),
+      sections: rows,
+      subjects: [...bySubject.values()]
+        .map((entry) => ({ subject: entry.subject, average_pct: mean(entry.scores), sections: entry.sections }))
+        .sort((a, b) => a.subject.name.localeCompare(b.subject.name, 'en', { numeric: true, sensitivity: 'base' })),
     };
   }
 

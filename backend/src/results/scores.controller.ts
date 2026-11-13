@@ -8,7 +8,7 @@ import { OrganizationContextGuard } from 'src/organizations/guards/organization-
 import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.decorator';
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
-import { SaveScoreWeightsDto, ScoreWeightsQueryDto, SectionScoresQueryDto, StudentScoresQueryDto, UpdatePerformanceSettingsDto } from './dto/scores.dto';
+import { OverviewQueryDto, SaveScoreWeightsDto, ScoreWeightsQueryDto, SectionScoresQueryDto, StudentScoresQueryDto, UpdatePerformanceSettingsDto } from './dto/scores.dto';
 import { ScoreSettingsService } from './score-settings.service';
 import { ScoresService } from './scores.service';
 
@@ -53,6 +53,12 @@ export class ScoresController {
   @ApiOperation({ summary: 'Change the at-risk limits or the position setting (owners and admins)' })
   async saveSettings(@Body() dto: UpdatePerformanceSettingsDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Settings saved', payload: await this.settings.saveSettings(workspace(), user, dto) };
+  }
+
+  @Get('overview')
+  @ApiOperation({ summary: 'The whole school: each section and each subject for a term or the session (owners, admins and staff)' })
+  async overview(@Query() query: OverviewQueryDto) {
+    return { message: 'Overview retrieved successfully', payload: await this.scores.overview(workspace(), query.session_id, query.term_id) };
   }
 
   @Get('sections')

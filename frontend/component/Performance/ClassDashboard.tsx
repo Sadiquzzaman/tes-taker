@@ -7,8 +7,9 @@ import { Bar, BarChart, CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } 
 import ChartTooltip from "@/component/Dashboard/ChartTooltip";
 import { axisTick, chartColors } from "@/component/Dashboard/chartTheme";
 import useApiData from "@/component/Homework/useApiData";
-import { Card, EmptyState, ErrorState, PageHeader, Select, Skeleton, StatTile, StatusPill, Table, type TableColumn } from "@/design/ui";
+import { Button, Card, EmptyState, ErrorState, PageHeader, Select, Skeleton, StatTile, StatusPill, Table, Tabs, type TableColumn } from "@/design/ui";
 import { cn, focusRing } from "@/design/ui/cn";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 import useFormat from "@/i18n/useFormat";
 
 /** The line a row shows: overall, or one subject's. */
@@ -18,7 +19,8 @@ const lineOf = (row: StudentScoreRow, subjectId: string) => (subjectId ? row.sub
  * The class dashboard (PRF-07): for a section and a term (or the session), optionally one
  * subject, the average, highest and lowest score, how many got each grade, the class average in
  * each exam, homework and attendance rates, the students at risk, and every student's score with
- * their position; a name opens the student's page.
+ * their position; a name opens the student's page. Owners, admins and staff also see the whole
+ * school (PRF-08): every section and subject side by side.
  */
 const ClassDashboard = () => {
   const t = useTranslations("performance");
@@ -29,6 +31,10 @@ const ClassDashboard = () => {
   const [chosenSection, setChosenSection] = useState("");
   const [termId, setTermId] = useState("");
   const [subjectId, setSubjectId] = useState("");
+  const { memberRole } = useWorkspace();
+  const manager = memberRole === "OWNER" || memberRole === "ADMIN" || memberRole === "ASSISTANT";
+  const [view, setView] = useState<"school" | "section">("school");
+  const showSchool = manager && view === "school";
   const sectionId = visible?.sections.some((s) => s.id === chosenSection) ? chosenSection : (visible?.sections[0]?.id ?? "");
   const validTerm = visible?.terms.some((term) => term.id === termId) ? termId : "";
 
@@ -54,7 +60,7 @@ const ClassDashboard = () => {
                 options={sessions.map((session) => ({ value: session.id, label: session.name }))}
               />
             ) : null}
-            {visible.sections.length ? (
+            {visible.sections.length && !showSchool ? (
               <Select
                 label={t("section")}
                 fieldClassName="sm:w-56"
@@ -78,7 +84,33 @@ const ClassDashboard = () => {
               />
             ) : null}
           </div>
-          {sectionId ? (
+          {manager ? (
+            <Tabs
+              selectedKey={view}
+              onChange={(key) => setView(key as "school" | "section")}
+              tabs={[
+                {
+                  key: "school",
+                  label: t("wholeSchool"),
+                  content: (
+                    <SchoolView
+                      key={`${visible.session.id}:${validTerm}`}
+                      sessionId={visible.session.id}
+                      termId={validTerm}
+                      format={format}
+                      onOpen={(id) => {
+                        setChosenSection(id);
+                        setSubjectId("");
+                        setView("section");
+                      }}
+                    />
+                  ),
+                },
+                { key: "section", label: t("oneSection"), content: null },
+              ]}
+            />
+          ) : null}
+          {showSchool ? null : sectionId ? (
             <SectionView key={`${sectionId}:${validTerm}`} sectionId={sectionId} termId={validTerm} subjectId={subjectId} onSubject={setSubjectId} format={format} />
           ) : (
             <Card>
@@ -87,6 +119,64 @@ const ClassDashboard = () => {
           )}
         </>
       )}
+    </div>
+  );
+};
+
+/** The whole school (PRF-08): each section's numbers and each subject's average across sections. */
+const SchoolView = ({ sessionId, termId, format, onOpen }: { sessionId: string; termId: string; format: ReturnType<typeof useFormat>; onOpen: (sectionId: string) => void }) => {
+  const t = useTranslations("performance");
+  const { data, failed, reload } = useApiData<SchoolOverview>("/scores/overview", { session_id: sessionId, term_id: termId || undefined });
+  const pct = (value: number | null) => (value === null ? "—" : `${format.number(value)}%`);
+  if (failed !== null) return <ErrorState title={t("loadFailed")} onRetry={reload} />;
+  if (!data) {
+    return (
+      <Card aria-busy="true">
+        <Skeleton lines={6} />
+      </Card>
+    );
+  }
+  type Row = SchoolOverview["sections"][number];
+  const label = (row: Row) => `${row.section.class_name} ${row.section.name}`.trim();
+  const sectionColumns: TableColumn<Row>[] = [
+    { key: "section", header: t("section"), cell: (row) => label(row), sortValue: (row) => label(row) },
+    { key: "students", header: t("columns.students"), align: "right", cell: (row) => format.number(row.students), hideOnMobile: true },
+    { key: "average", header: t("average"), align: "right", cell: (row) => pct(row.average_pct), sortValue: (row) => row.average_pct ?? -1 },
+    { key: "highest", header: t("highest"), align: "right", cell: (row) => pct(row.highest_pct), hideOnMobile: true },
+    { key: "lowest", header: t("lowest"), align: "right", cell: (row) => pct(row.lowest_pct), hideOnMobile: true },
+    { key: "attendance", header: t("attendanceRate"), align: "right", cell: (row) => pct(row.attendance_pct), sortValue: (row) => row.attendance_pct ?? -1, hideOnMobile: true },
+    { key: "homework", header: t("homeworkRate"), align: "right", cell: (row) => pct(row.homework_rate_pct), hideOnMobile: true },
+    { key: "risk", header: t("atRiskTitle"), align: "right", cell: (row) => format.number(row.at_risk), sortValue: (row) => row.at_risk },
+    {
+      key: "open",
+      header: t("columns.open"),
+      cell: (row) => (
+        <Button size="sm" variant="ghost" onClick={() => onOpen(row.section.id)} aria-label={t("openSection", { section: label(row) })}>
+          {t("open")}
+        </Button>
+      ),
+    },
+  ];
+  const subjectColumns: TableColumn<SchoolOverview["subjects"][number]>[] = [
+    { key: "subject", header: t("columns.subject"), cell: (row) => row.subject.name, sortValue: (row) => row.subject.name },
+    { key: "average", header: t("average"), align: "right", cell: (row) => pct(row.average_pct), sortValue: (row) => row.average_pct ?? -1 },
+    { key: "sections", header: t("columns.sections"), align: "right", cell: (row) => format.number(row.sections) },
+  ];
+  return (
+    <div className="flex flex-col gap-4 pt-4">
+      <Card flush title={t("bySection")}>
+        <Table
+          caption={t("bySection")}
+          columns={sectionColumns}
+          rows={data.sections}
+          getRowId={(row) => row.section.id}
+          defaultSort={{ key: "section", direction: "asc" }}
+          empty={<EmptyState title={t("noSections")} />}
+        />
+      </Card>
+      <Card flush title={t("bySubject")}>
+        <Table caption={t("bySubject")} columns={subjectColumns} rows={data.subjects} getRowId={(row) => row.subject.id} defaultSort={{ key: "subject", direction: "asc" }} empty={<EmptyState title={t("noScores")} />} />
+      </Card>
     </div>
   );
 };

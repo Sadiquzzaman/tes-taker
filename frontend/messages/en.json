@@ -4714,7 +4714,10 @@
       "kind": "Kind",
       "marks": "Marks",
       "homework": "Homework",
-      "due": "Due"
+      "due": "Due",
+      "students": "Students",
+      "sections": "[[Sections]]",
+      "open": "Open"
     },
     "parts": {
       "exams": "Exams",
@@ -4751,7 +4754,13 @@
     "termTrendChart": "Score per term: {terms}",
     "examsTitle": "Exams",
     "homeworkTitle": "Homework",
-    "noHomework": "No marked homework yet."
+    "noHomework": "No marked homework yet.",
+    "wholeSchool": "Whole school",
+    "oneSection": "One [[section]]",
+    "bySection": "By [[section]]",
+    "bySubject": "By subject",
+    "open": "Open",
+    "openSection": "Open {section}"
   },
   "reportCards": {
     "title": "Report cards",
