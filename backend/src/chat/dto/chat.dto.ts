@@ -62,3 +62,9 @@ export class MuteChatDto {
   @IsBoolean()
   muted: boolean;
 }
+
+export class StartDirectChatDto {
+  @ApiProperty({ description: 'A teacher who teaches you (students), or one of your students (teachers)' })
+  @IsUUID()
+  user_id: string;
+}

@@ -357,6 +357,8 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
   // Group chat announcements (P9-01, COM-03): to the group's members, linked to the chat (`path`).
   { event_type: NOTIFICATION_EVENTS.CHAT_ANNOUNCEMENT, channel: IN_APP, locale: 'en', subject: '{{group}}: new announcement', body: '{{author}}: {{preview}}' },
   { event_type: NOTIFICATION_EVENTS.CHAT_ANNOUNCEMENT, channel: IN_APP, locale: 'bn', subject: '{{group}}: নতুন ঘোষণা', body: '{{author}}: {{preview}}' },
+  { event_type: NOTIFICATION_EVENTS.CHAT_DIRECT_MESSAGE, channel: IN_APP, locale: 'en', subject: 'Message from {{author}}', body: '{{preview}}' },
+  { event_type: NOTIFICATION_EVENTS.CHAT_DIRECT_MESSAGE, channel: IN_APP, locale: 'bn', subject: '{{author}}-এর বার্তা', body: '{{preview}}' },
   // Report cards (P7-04, PRF-09): to guardians, with the link that needs no login.
   {
     event_type: NOTIFICATION_EVENTS.REPORT_CARD_SHARED,

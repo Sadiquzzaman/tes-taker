@@ -14,4 +14,8 @@ export const CHAT_ERRORS = {
   FILE_INVALID: 'CHAT_FILE_INVALID',
   /** Only posts can be pinned or commented on. */
   NOT_A_POST: 'CHAT_NOT_A_POST',
+  /** A student may message only teachers who teach them, a teacher only their students (COM-02). */
+  NOT_YOUR_STUDENT_OR_TEACHER: 'CHAT_NOT_ALLOWED',
+  /** In a private chat each person deletes only their own messages. */
+  NOT_AUTHOR: 'CHAT_NOT_AUTHOR',
 } as const;

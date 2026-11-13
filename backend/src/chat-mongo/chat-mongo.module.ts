@@ -11,6 +11,7 @@ import { PrivateMessage, PrivateMessageSchema } from './schemas/private-message.
 import { GroupChat, GroupChatSchema } from './schemas/group-chat.schema';
 import { GroupMessage, GroupMessageSchema } from './schemas/group-message.schema';
 import { ChatMemberState, ChatMemberStateSchema } from './schemas/chat-member-state.schema';
+import { DirectChat, DirectChatSchema } from './schemas/direct-chat.schema';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ChatMemberState, ChatMemberStateSchema } from './schemas/chat-member-st
       { name: GroupChat.name, schema: GroupChatSchema },
       { name: GroupMessage.name, schema: GroupMessageSchema },
       { name: ChatMemberState.name, schema: ChatMemberStateSchema },
+      { name: DirectChat.name, schema: DirectChatSchema },
     ]),
   ],
   providers: [MongoChatHealthService],
