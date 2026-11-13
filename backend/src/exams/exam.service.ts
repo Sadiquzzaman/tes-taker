@@ -272,9 +272,17 @@ export class ExamService {
           auto_disqualify: existing.auto_disqualify,
           disqualify_threshold: existing.disqualify_threshold,
           disqualify_checks: existing.disqualify_checks ?? null,
+          alert_flags: existing.alert_flags ?? null,
         };
       }
-      return { proctoring_level: proctoringOptions(features).default_level, proctoring_checks_off: [], auto_disqualify: false, disqualify_threshold: DEFAULT_DISQUALIFY_THRESHOLD, disqualify_checks: null };
+      return {
+        proctoring_level: proctoringOptions(features).default_level,
+        proctoring_checks_off: [],
+        auto_disqualify: false,
+        disqualify_threshold: DEFAULT_DISQUALIFY_THRESHOLD,
+        disqualify_checks: null,
+        alert_flags: null,
+      };
     }
     const settings: ExamProctoringSettings = {
       proctoring_level: input.level,
@@ -282,6 +290,7 @@ export class ExamService {
       auto_disqualify: input.auto_disqualify ?? false,
       disqualify_threshold: input.disqualify_threshold ?? existing?.disqualify_threshold ?? DEFAULT_DISQUALIFY_THRESHOLD,
       disqualify_checks: input.disqualify_checks?.length ? [...new Set(input.disqualify_checks)] : null,
+      alert_flags: input.alert_flags ?? null,
     };
     const problem = settingsProblem(features, settings);
     if (problem === 'CHECKS_INVALID') {
@@ -289,8 +298,18 @@ export class ExamService {
     }
     if (problem) {
       throw new ForbiddenException({
-        message: problem === 'LEVEL_NOT_IN_PLAN' ? 'This proctoring level is not on your plan. Please upgrade.' : 'Auto-disqualification is not on your plan. Please upgrade.',
-        code: problem === 'LEVEL_NOT_IN_PLAN' ? 'EXAM_PROCTORING_LEVEL_NOT_IN_PLAN' : 'EXAM_AUTO_DISQUALIFY_NOT_IN_PLAN',
+        message:
+          problem === 'LEVEL_NOT_IN_PLAN'
+            ? 'This proctoring level is not on your plan. Please upgrade.'
+            : problem === 'ALERTS_NOT_IN_PLAN'
+              ? 'Live alerts are not on your plan. Please upgrade.'
+              : 'Auto-disqualification is not on your plan. Please upgrade.',
+        code:
+          problem === 'LEVEL_NOT_IN_PLAN'
+            ? 'EXAM_PROCTORING_LEVEL_NOT_IN_PLAN'
+            : problem === 'ALERTS_NOT_IN_PLAN'
+              ? 'EXAM_PROCTORING_ALERTS_NOT_IN_PLAN'
+              : 'EXAM_AUTO_DISQUALIFY_NOT_IN_PLAN',
       });
     }
     return settings;
@@ -1402,15 +1421,18 @@ export class ExamService {
   ): Promise<void> {
     const exam = await this.examRepo.findOne({
       where: { id: examId },
-      select: ['id', 'created_by'],
+      select: ['id', 'created_by', 'organization_id'],
     });
     if (!exam) {
       throw new NotFoundException('Exam not found');
     }
-    if (
-      jwtPayload.role === RolesEnum.TEACHER &&
-      exam.created_by !== jwtPayload.id
-    ) {
+    // The teacher who made it; an organisation's owners and admins any exam of it (P8-03, PRO-03).
+    const orgManager =
+      jwtPayload.session_mode === 'organization' &&
+      Boolean(exam.organization_id) &&
+      jwtPayload.organization_id === exam.organization_id &&
+      (jwtPayload.member_role === OrganizationMemberRoleEnum.OWNER || jwtPayload.member_role === OrganizationMemberRoleEnum.ADMIN);
+    if (jwtPayload.role === RolesEnum.TEACHER && exam.created_by !== jwtPayload.id && !orgManager) {
       throw new ForbiddenException('You do not have permission to monitor this exam');
     }
   }
@@ -1865,6 +1887,7 @@ export class ExamService {
           auto_disqualify: exam.auto_disqualify,
           disqualify_threshold: exam.disqualify_threshold,
           disqualify_checks: exam.disqualify_checks ?? null,
+          alert_flags: exam.alert_flags ?? null,
         },
       },
       publishState: {

@@ -32,6 +32,7 @@ export enum ExamTypeEnum {
 @Entity({ name: 'exams' })
 @Check('CHK_exams_proctoring_level', `"proctoring_level" IN ('OFF', 'LIGHT', 'STRICT')`)
 @Check('CHK_exams_disqualify_threshold', '"disqualify_threshold" BETWEEN 1 AND 100')
+@Check('CHK_exams_alert_flags', '"alert_flags" IS NULL OR "alert_flags" BETWEEN 1 AND 100')
 export class ExamEntity extends CustomBaseEntity {
   @ApiProperty({ description: 'Legacy coarse type (OBJECTIVE / SUBJECTIVE)', enum: ExamTypeEnum })
   @Column({ name: 'exam_type', type: 'enum', enum: ExamTypeEnum, default: ExamTypeEnum.OBJECTIVE })
@@ -139,6 +140,10 @@ export class ExamEntity extends CustomBaseEntity {
   @ApiPropertyOptional({ type: [String], description: 'Checks whose flags count; null = every active check' })
   @Column({ name: 'disqualify_checks', type: 'jsonb', nullable: true })
   disqualify_checks: string[] | null;
+
+  @ApiPropertyOptional({ description: 'Alert the teacher when a student reaches this many flags (P8-03, PRO-08); null = no alerts' })
+  @Column({ name: 'alert_flags', type: 'smallint', nullable: true })
+  alert_flags: number | null;
 
   @ApiPropertyOptional({ description: 'Deprecated: use test_name + subjects. Kept for legacy rows.' })
   @Column({ name: 'subject', type: 'varchar', length: 100, nullable: true })

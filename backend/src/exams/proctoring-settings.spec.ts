@@ -8,6 +8,7 @@ const settings = (extra: Partial<ExamProctoringSettings> = {}): ExamProctoringSe
   auto_disqualify: false,
   disqualify_threshold: 15,
   disqualify_checks: null,
+  alert_flags: null,
   ...extra,
 });
 
@@ -51,5 +52,7 @@ describe('proctoring level per exam (PRO-01, PRO-02)', () => {
     expect(settingsProblem(plan('pro'), settings({ proctoring_checks_off: ['nonsense'] }))).toBe('CHECKS_INVALID');
     expect(settingsProblem(plan('pro'), settings({ auto_disqualify: true, disqualify_checks: ['proctoring_voice'], proctoring_checks_off: ['proctoring_voice'] }))).toBe('CHECKS_INVALID');
     expect(settingsProblem(plan('free'), settings({ proctoring_level: ProctoringLevelEnum.LIGHT }))).toBeNull();
+    expect(settingsProblem(plan('premium'), settings({ alert_flags: 5 }))).toBe('ALERTS_NOT_IN_PLAN');
+    expect(settingsProblem(plan('pro'), settings({ alert_flags: 5 }))).toBeNull();
   });
 });

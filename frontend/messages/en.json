@@ -1268,7 +1268,10 @@
       "countedNone": "Choose at least one check.",
       "summaryOff": "Nothing is watched; students start without camera or microphone.",
       "summaryBrowser": "{count, plural, one {# check runs} other {# checks run}} in the browser; no camera.",
-      "summaryCamera": "{count, plural, one {# check runs} other {# checks run}}; students turn on camera and microphone before starting."
+      "summaryCamera": "{count, plural, one {# check runs} other {# checks run}}; students turn on camera and microphone before starting.",
+      "alerts": "Alert me during the test",
+      "alertsHint": "You get a notice when a student reaches this many flags (at most one per student every 5 minutes).",
+      "alertAt": "Alert at this many flags"
     }
   },
   "grading": {

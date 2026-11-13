@@ -12,6 +12,9 @@ import { Server, Socket } from 'socket.io';
 import { ProctoringStoreService } from './proctoring-store.service';
 import { FLAG_CHECK, ProctoringEventsService, SERVER_EVENTS } from '../exams/proctoring-events.service';
 import { ProctoringEventSourceEnum } from '../exams/entities/proctoring-event.entity';
+import { RedisService } from '../config/redis.service';
+import { NOTIFICATION_EVENTS } from '../notifications/notification.constants';
+import { NotificationsService } from '../notifications/notifications.service';
 import { ExamService } from '../exams/exam.service';
 import { JwtPayloadInterface } from '../auth/interfaces/jwt-payload.interface';
 import { RolesEnum } from '../common/enums/roles.enum';
@@ -41,6 +44,10 @@ const clientOrigin = process.env.CLIENT_ORIGIN ?? true;
 
 /** Room for teacher/admin live monitors only — students are not members. */
 const monitorsRoom = (examId: string) => `exam:${examId}:monitors`;
+/** One student's own sockets in an exam: the teacher's warnings and "exam ended" reach them (PRO-03). */
+const studentRoom = (examId: string, studentId: string) => `exam:${examId}:student:${studentId}`;
+/** At most one alert per student every 5 minutes (PRO-08). */
+const ALERT_EVERY_SECONDS = 300;
 
 @WebSocketGateway({
   cors: {
@@ -61,6 +68,8 @@ export class ProctoringGateway implements OnGatewayDisconnect, OnApplicationShut
     private readonly examService: ExamService,
     private readonly jwtService: JwtService,
     private readonly events: ProctoringEventsService,
+    private readonly redis: RedisService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   onModuleInit(): void {
@@ -187,8 +196,18 @@ export class ProctoringGateway implements OnGatewayDisconnect, OnApplicationShut
     }
 
     await client.join(examId);
-    const organizationId = await this.events.examOrganization(examId);
-    client.data = { ...(client.data ?? {}), examId, role: 'student', studentId: user.id, organizationId };
+    await client.join(studentRoom(examId, user.id));
+    const info = await this.events.examInfo(examId);
+    client.data = {
+      ...(client.data ?? {}),
+      examId,
+      role: 'student',
+      studentId: user.id,
+      organizationId: info?.organization_id ?? null,
+      examName: info?.name ?? '',
+      creatorId: info?.created_by ?? null,
+      alertFlags: info?.alert_flags ?? null,
+    };
 
     const previous = await this.proctoringStore.getSession(examId, user.id);
     const session = await this.proctoringStore.upsertStudentSession(examId, client.id, user.id, user.full_name ?? user.email ?? 'Student');
@@ -215,7 +234,15 @@ export class ProctoringGateway implements OnGatewayDisconnect, OnApplicationShut
   ) {
     const { examId, message, points, id, kind } = payload ?? {};
     const type = kind && FLAG_CHECK[kind] !== undefined ? kind : payload?.type;
-    const data = (client.data ?? {}) as { examId?: string; studentId?: string; role?: string; organizationId?: string | null };
+    const data = (client.data ?? {}) as {
+      examId?: string;
+      studentId?: string;
+      role?: string;
+      organizationId?: string | null;
+      examName?: string;
+      creatorId?: string | null;
+      alertFlags?: number | null;
+    };
     // Only a student who joined this exam reports flags, for themselves.
     if (!examId || !type || !message || typeof points !== 'number' || data.role !== 'student' || data.examId !== examId || !data.studentId) {
       return;
@@ -239,6 +266,40 @@ export class ProctoringGateway implements OnGatewayDisconnect, OnApplicationShut
       flagCount: result.session.flagCount,
       flag: result.flag,
     });
+    if (data.alertFlags && result.session.flagCount >= data.alertFlags) {
+      await this.alert(examId, data, result.session.studentName, result.session.flagCount);
+    }
+  }
+
+  /** A student reached the exam's alert level (PRO-08): the monitors and the teacher's inbox, at most every 5 minutes. */
+  private async alert(
+    examId: string,
+    data: { studentId?: string; organizationId?: string | null; examName?: string; creatorId?: string | null },
+    studentName: string,
+    flagCount: number,
+  ): Promise<void> {
+    if ((await this.redis.incrWithTtl(`proctor:alert:${examId}:${data.studentId}`, ALERT_EVERY_SECONDS)) !== 1) return;
+    this.emitToMonitors(examId, 'alert', { studentId: data.studentId, studentName, flagCount });
+    if (!data.creatorId) return;
+    await this.notifications.notifyUsers({
+      eventType: NOTIFICATION_EVENTS.PROCTORING_ALERT,
+      organizationId: data.organizationId ?? null,
+      userIds: [data.creatorId],
+      variables: { student_name: studentName, exam_name: data.examName ?? '', flags: String(flagCount), path: `/tests/${examId}/monitor` },
+      dedupeKey: `${NOTIFICATION_EVENTS.PROCTORING_ALERT}:${examId}:${data.studentId}:${Math.floor(Date.now() / (ALERT_EVERY_SECONDS * 1000))}`,
+    });
+  }
+
+  /** The teacher's warning to one student (PRO-03), shown on the student's screen. */
+  warnStudent(examId: string, studentId: string, message: string, from: string): void {
+    this.server.to(studentRoom(examId, studentId)).emit('proctor:warning', { message, from, at: new Date().toISOString() });
+  }
+
+  /** One student's exam was ended by the teacher (PRO-03): their screen closes it, the monitors update. */
+  async studentEnded(examId: string, studentId: string, reason: string): Promise<void> {
+    await this.proctoringStore.markSubmitted(examId, studentId, 'ENDED');
+    this.server.to(studentRoom(examId, studentId)).emit('exam:ended', { reason });
+    this.emitToMonitors(examId, 'session:ended', { studentId, reason, liveStatus: 'ENDED' });
   }
 
   @SubscribeMessage('exam:submit')

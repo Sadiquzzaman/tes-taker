@@ -45,10 +45,10 @@ export class ProctoringEventsService {
     private readonly dataSource: DataSource,
   ) {}
 
-  /** The exam's organisation (null for exams from before organisations). */
-  async examOrganization(examId: string): Promise<string | null> {
-    const [row] = await this.dataSource.query(`SELECT organization_id FROM exams WHERE id = $1`, [examId]);
-    return row?.organization_id ?? null;
+  /** What the live channel needs about an exam: its organisation, name, maker and alert level. */
+  async examInfo(examId: string): Promise<{ organization_id: string | null; name: string; created_by: string | null; alert_flags: number | null } | null> {
+    const [row] = await this.dataSource.query(`SELECT organization_id, test_name, created_by, alert_flags FROM exams WHERE id = $1`, [examId]);
+    return row ? { organization_id: row.organization_id ?? null, name: row.test_name ?? '', created_by: row.created_by ?? null, alert_flags: row.alert_flags ?? null } : null;
   }
 
   /** Something the server noticed itself (PRO-07), e.g. monitoring lost. */

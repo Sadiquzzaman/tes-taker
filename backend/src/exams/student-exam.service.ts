@@ -3,6 +3,7 @@ import { soloOrganizationOf } from 'src/organizations/organization-rules';
 import {
   Injectable,
   BadRequestException,
+  ConflictException,
   Logger,
   NotFoundException,
   ForbiddenException,
@@ -453,6 +454,31 @@ export class StudentExamService {
    * `forWrite` (answer saves) lets an IN_PROGRESS attempt through until its deadline + grace.
    */
   /**
+   * A teacher ends one student's exam from the live monitor (P8-03, PRO-03): the answers saved so
+   * far are kept and marked, and the attempt is disqualified with the reason. Reviewed (and
+   * possibly reinstated) later (PRO-05). The caller checks the teacher may monitor the exam.
+   */
+  async endByTeacher(examId: string, studentId: string, reason: string): Promise<FinalizeSubmissionResult> {
+    const exam = await this.examPaperCache.getExamGraph(examId);
+    if (!exam) throw new NotFoundException('Exam not found');
+    const submission = await this.submissionRepo.findOne({ where: { exam_id: examId, student_id: studentId } });
+    if (!submission || submission.status !== ExamSubmissionStatusEnum.IN_PROGRESS) {
+      throw new ConflictException({ message: 'The student is not writing this exam', code: 'EXAM_STUDENT_NOT_WRITING' });
+    }
+    return this.completeSubmission(exam, submission, {
+      status: ExamSubmissionStatusEnum.DISQUALIFIED,
+      savedCount: 0,
+      disqualificationReason: `Ended by the teacher: ${reason.trim()}`,
+    });
+  }
+
+  /** Each started student's attempt for the live monitor: status and deadline (time left, PRO-03). */
+  async liveAttempts(examId: string): Promise<Map<string, { status: ExamSubmissionStatusEnum; deadline: Date | null }>> {
+    const rows = await this.submissionRepo.find({ where: { exam_id: examId }, select: ['student_id', 'status', 'effective_deadline'] });
+    return new Map(rows.map((row) => [row.student_id, { status: row.status, deadline: row.effective_deadline ?? null }]));
+  }
+
+  /**
    * What the student's browser runs for this exam (P8-01): its level's checks that the exam's
    * organisation's plan has, minus those switched off, and whether it auto-disqualifies.
    */
@@ -465,6 +491,7 @@ export class StudentExamService {
       auto_disqualify: exam.auto_disqualify ?? false,
       disqualify_threshold: exam.disqualify_threshold ?? DEFAULT_DISQUALIFY_THRESHOLD,
       disqualify_checks: exam.disqualify_checks ?? null,
+      alert_flags: null,
     });
   }
 

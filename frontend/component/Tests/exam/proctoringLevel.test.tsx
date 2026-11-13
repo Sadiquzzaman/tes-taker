@@ -62,6 +62,21 @@ describe("proctoring settings on a test (PRO-01, PRO-02)", () => {
   });
 });
 
+describe("alerts (PRO-08)", () => {
+  it("lets the teacher ask for an alert at a number of flags, where the plan has alerts", async () => {
+    get.mockReturnValue(ok({ ...options(true), alerts_available: true }));
+    const onChange = vi.fn();
+    renderApp(<ProctoringSettingsCard value={{ level: "STRICT", checks_off: [], auto_disqualify: false, disqualify_threshold: 15, disqualify_checks: null, alert_flags: null }} onChange={onChange} />);
+    fireEvent.click(await screen.findByLabelText(/Alert me during the test/));
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ alert_flags: 5 }));
+    cleanup();
+    get.mockReturnValue(ok(options(true)));
+    renderApp(<ProctoringSettingsCard value={null} onChange={vi.fn()} />);
+    await screen.findByRole("radio", { name: /Strict/ });
+    expect(screen.queryByLabelText(/Alert me during the test/)).toBeNull();
+  });
+});
+
 describe("before the test (PRO-01: the student sees which checks are active)", () => {
   it("goes straight to the rules for a Light test, lists what is watched, and asks for no camera", async () => {
     const proctoring: EffectiveProctoring = { level: "LIGHT", checks: ["proctoring_tab_switch"], camera: false, auto_disqualify: null };

@@ -59,7 +59,7 @@ export class ProctoringStoreService {
       studentId,
       studentName,
       lastSeenAt: now,
-      status: existing?.status === 'SUBMITTED' ? 'SUBMITTED' : 'WRITING',
+      status: existing?.status === 'SUBMITTED' || existing?.status === 'ENDED' ? existing.status : 'WRITING',
       lostSince: null,
     };
     await this.save(examId, session);
@@ -97,10 +97,10 @@ export class ProctoringStoreService {
     return { session, flag: entry, wasLost };
   }
 
-  async markSubmitted(examId: string, studentId: string): Promise<ProctoringStudentSession | null> {
+  async markSubmitted(examId: string, studentId: string, status: 'SUBMITTED' | 'ENDED' = 'SUBMITTED'): Promise<ProctoringStudentSession | null> {
     const session = await this.getSession(examId, studentId);
     if (!session) return null;
-    session.status = 'SUBMITTED';
+    session.status = status;
     session.lostSince = null;
     await this.save(examId, session);
     return session;

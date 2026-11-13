@@ -172,12 +172,15 @@ interface ExamProctoringChoice {
   auto_disqualify: boolean;
   disqualify_threshold: number;
   disqualify_checks: string[] | null;
+  /** Alert the teacher when a student reaches this many flags (P8-03); null = no alerts. */
+  alert_flags?: number | null;
 }
 
 /** `GET /exams/proctoring-options`: what the workspace's plan offers. */
 interface ProctoringOptions {
   levels: { level: ProctoringLevel; available: boolean; checks: string[] }[];
   auto_disqualify_available: boolean;
+  alerts_available?: boolean;
   default_level: ProctoringLevel;
 }
 
