@@ -35,6 +35,6 @@ import { HomeworkService } from './homework.service';
   ],
   controllers: [HomeworkController],
   providers: [HomeworkService, HomeworkSubmissionsService, HomeworkScoresService, HomeworkSettingsService, HomeworkClock],
-  exports: [HomeworkService],
+  exports: [HomeworkService, HomeworkScoresService],
 })
 export class HomeworkModule {}

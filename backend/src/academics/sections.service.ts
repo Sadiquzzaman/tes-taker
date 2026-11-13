@@ -501,6 +501,19 @@ export class SectionsService {
     }));
   }
 
+  /**
+   * A section's subject classes with their subject, by subject name (the scores, P7-02). No access
+   * check: the caller checks.
+   */
+  async offeringsOfSection(organizationId: string, sectionId: string): Promise<{ id: string; subject: { id: string; name: string } }[]> {
+    const offerings = await tenantScoped(this.offeringRepo)
+      .forOrganization(organizationId)
+      .find({ where: { section_id: sectionId }, relations: ['subject'] });
+    return offerings
+      .map((offering) => ({ id: offering.id, subject: { id: offering.subject_id, name: offering.subject?.name ?? '' } }))
+      .sort((a, b) => a.subject.name.localeCompare(b.subject.name, 'en', { numeric: true, sensitivity: 'base' }));
+  }
+
   /** Every subject class of the organisation in sessions that are not closed. */
   async openOfferingIds(organizationId: string): Promise<string[]> {
     const rows: { id: string }[] = await this.offeringRepo.manager.query(

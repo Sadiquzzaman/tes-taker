@@ -28,6 +28,7 @@ import { OfflineExamMarkEntity } from './entities/offline-exam-mark.entity';
 import { OfflineExamEntity } from './entities/offline-exam.entity';
 import { OfflineExamsController } from './offline-exams.controller';
 import { OfflineExamsService } from './offline-exams.service';
+import { ExamResultsReadService } from './exam-results-read.service';
 
 @Module({
   imports: [
@@ -59,7 +60,7 @@ import { OfflineExamsService } from './offline-exams.service';
     AcademicsModule,
   ],
   controllers: [ExamController, StudentExamController, ExamGradingController, OfflineExamsController],
-  providers: [ExamService, StudentExamService, ExamPaperCacheService, OfflineExamsService],
-  exports: [ExamService, StudentExamService, ExamPaperCacheService, OfflineExamsService],
+  providers: [ExamService, StudentExamService, ExamPaperCacheService, OfflineExamsService, ExamResultsReadService],
+  exports: [ExamService, StudentExamService, ExamPaperCacheService, OfflineExamsService, ExamResultsReadService],
 })
 export class ExamModule {}

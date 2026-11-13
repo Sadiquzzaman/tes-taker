@@ -11,6 +11,8 @@ export const RESULTS_ERRORS = {
   RATING_INVALID: 'RESULTS_RATING_INVALID',
   /** A remark is kept with that day's ratings, so it needs at least one. */
   REMARK_NEEDS_RATING: 'RESULTS_REMARK_NEEDS_RATING',
+  /** Weights are whole percent from 0 to 100 adding up to 100. */
+  WEIGHTS_INVALID: 'RESULTS_WEIGHTS_INVALID',
   /** The student does not take the subject class. */
   STUDENT_NOT_IN_CLASS: 'RESULTS_STUDENT_NOT_IN_CLASS',
 } as const;

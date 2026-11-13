@@ -58,6 +58,18 @@ export const DEFAULT_HOMEWORK_SETTINGS: HomeworkSettings = {
   max_files: 5,
 };
 
+/** Organisation performance settings (Epic 3 settings table): when a student is at risk, and whether students see their position. */
+export interface PerformanceSettings {
+  at_risk: { score_pct: number; attendance_pct: number; missing_homework: number };
+  show_rank: boolean;
+}
+
+/** The spec's defaults (Epic 3 settings table), used while an organisation has no row. */
+export const DEFAULT_PERFORMANCE_SETTINGS: PerformanceSettings = {
+  at_risk: { score_pct: 40, attendance_pct: 75, missing_homework: 3 },
+  show_rank: false,
+};
+
 /** The spec's defaults (Epic 1 settings table), used while an organisation has no row. */
 export const DEFAULT_ATTENDANCE_SETTINGS: AttendanceSettings = {
   late_grace_minutes: 10,
@@ -258,6 +270,41 @@ export class OrgSettingsService {
     return { before, after: homeworkOf(saved) };
   }
 
+  async getPerformance(organizationId: string): Promise<PerformanceSettings> {
+    const row = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
+    return row ? performanceOf(row) : { ...DEFAULT_PERFORMANCE_SETTINGS, at_risk: { ...DEFAULT_PERFORMANCE_SETTINGS.at_risk } };
+  }
+
+  /** Saves performance settings the results module has already validated; creates the row on the first change. */
+  async savePerformance(
+    organizationId: string,
+    userId: string,
+    changes: Partial<PerformanceSettings>,
+  ): Promise<{ before: PerformanceSettings; after: PerformanceSettings }> {
+    const existing = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
+    const before = existing ? performanceOf(existing) : await this.getPerformance(organizationId);
+    const row =
+      existing ??
+      this.settingsRepo.create({
+        organization_id: organizationId,
+        ...OrgSettingsService.defaultsFor((await this.organization(organizationId)).kind),
+        created_by: userId,
+        created_at: new Date(),
+      });
+    if (changes.at_risk) {
+      row.at_risk_score_pct = changes.at_risk.score_pct;
+      row.at_risk_attendance_pct = changes.at_risk.attendance_pct;
+      row.at_risk_missing_homework = changes.at_risk.missing_homework;
+    }
+    if (changes.show_rank !== undefined) row.show_rank = changes.show_rank;
+    if (existing) {
+      row.updated_by = userId;
+      row.updated_at = new Date();
+    }
+    const saved = await this.settingsRepo.save(row);
+    return { before, after: performanceOf(saved) };
+  }
+
   /**
    * The level names of the request's workspace (FND-03). Anyone signed in may read them; without
    * a workspace (a student who has not chosen a teacher yet) they are Class / Section.
@@ -296,6 +343,18 @@ function attendanceOf(row: OrgSettingsEntity): AttendanceSettings {
     weekly_off_days: [...(row.weekly_off_days ?? DEFAULT_ATTENDANCE_SETTINGS.weekly_off_days)].map(Number).sort((a, b) => a - b),
     guardian_sms: { ...DEFAULT_GUARDIAN_SMS, ...(row.guardian_sms ?? {}) },
     repeat_absence_days: row.repeat_absence_days ?? DEFAULT_ATTENDANCE_SETTINGS.repeat_absence_days,
+  };
+}
+
+function performanceOf(row: OrgSettingsEntity): PerformanceSettings {
+  const defaults = DEFAULT_PERFORMANCE_SETTINGS.at_risk;
+  return {
+    at_risk: {
+      score_pct: row.at_risk_score_pct ?? defaults.score_pct,
+      attendance_pct: row.at_risk_attendance_pct ?? defaults.attendance_pct,
+      missing_homework: row.at_risk_missing_homework ?? defaults.missing_homework,
+    },
+    show_rank: row.show_rank ?? DEFAULT_PERFORMANCE_SETTINGS.show_rank,
   };
 }
 

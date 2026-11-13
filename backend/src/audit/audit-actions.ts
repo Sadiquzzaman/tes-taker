@@ -99,6 +99,8 @@ export const AUDIT_ACTIONS = {
   OFFLINE_EXAM_MARKS: 'offline_exam.marks',
   BEHAVIOUR_CRITERIA: 'behaviour.criteria',
   BEHAVIOUR_RATE: 'behaviour.rate',
+  SCORE_WEIGHTS: 'score.weights',
+  PERFORMANCE_SETTINGS: 'performance.settings',
   EVENT_CREATE: 'event.create',
   EVENT_UPDATE: 'event.update',
   EVENT_CANCEL: 'event.cancel',
