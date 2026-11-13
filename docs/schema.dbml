@@ -916,7 +916,7 @@ Table proctoring_reviews {
   reason text [not null]
   decided_by uuid [ref: > users.id]
   decided_at timestamptz
-  Note: 'NEW (PRO-05)'
+  Note: 'NEW (PRO-05) — BUILT P8-04 as exam_attempt_reviews (below)'
 }
 
 Table offline_exams {
@@ -1772,4 +1772,23 @@ Table proctoring_events {
     (exam_id, student_id, client_id) [unique, note: 'where client_id is not null']
   }
   Note: 'NEW, BUILT P8-02 (exams module, migration ProctoringEvents); live state itself is in Redis'
+}
+
+Table exam_attempt_reviews {
+  id uuid [pk]
+  organization_id uuid
+  exam_id uuid [not null, ref: > exams.id]
+  student_id uuid [not null, ref: > users.id]
+  submission_id uuid [not null, ref: > student_exam_submissions.id]
+  decision varchar(10) [not null, note: 'REINSTATE | RETAKE | CONFIRM (CHECK)']
+  reason varchar(500) [not null]
+  previous_status varchar(20) [not null, note: 'the attempt status before the decision']
+  previous_score numeric(10,2)
+  previous_attempt jsonb [note: 'RETAKE only: the earlier answers, score and times (the answer rows are cleared, not deleted)']
+  decided_by uuid [not null, ref: > users.id]
+  decided_at timestamptz [not null]
+  Indexes {
+    (exam_id, student_id, decided_at)
+  }
+  Note: 'NEW, BUILT P8-04 (PRO-05; exams module, migration ExamAttemptReviews); append-only history of decisions'
 }

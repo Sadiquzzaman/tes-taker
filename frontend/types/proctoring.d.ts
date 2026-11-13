@@ -221,3 +221,33 @@ interface MonitorTimelineEvent {
   source: "LIVE" | "SUBMIT" | "SERVER";
   occurred_at: string;
 }
+
+/** The integrity report (P8-04, PRO-04): `GET /exams/:id/proctoring/integrity`. */
+type AttemptReviewDecision = "REINSTATE" | "RETAKE" | "CONFIRM";
+
+interface IntegrityStudentRow {
+  student_id: string;
+  student_name: string;
+  status: string;
+  total_score: number | null;
+  max_score: number | null;
+  flags: number;
+  checks: { check: string; count: number }[];
+  disqualification_reason: string | null;
+  last_review: { decision: AttemptReviewDecision; reason: string; decided_at: string } | null;
+}
+
+interface IntegrityReport {
+  exam_id: string;
+  summary: { students: number; flagged: number; disqualified: number; reviewed: number };
+  by_check: { check: string; count: number; students: number }[];
+  students: IntegrityStudentRow[];
+}
+
+/** One student's report (PRO-04, PRO-05): `GET /exams/:id/proctoring/students/:studentId/report`. */
+interface StudentIntegrityReport {
+  attempt: { student_id: string; student_name: string; status: string; started_at: string | null; submitted_at: string | null; total_score: number | null; max_score: number | null; disqualification_reason: string | null };
+  checks: { check: string; count: number }[];
+  timeline: MonitorTimelineEvent[];
+  reviews: { id: string; decision: AttemptReviewDecision; reason: string; previous_status: string; previous_score: number | null; decided_at: string; decided_by_name: string | null }[];
+}

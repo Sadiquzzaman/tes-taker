@@ -68,6 +68,8 @@ export const NOTIFICATION_EVENTS = {
   REPORT_CARD_SHARED: 'report_card.shared',
   /** A student reached the exam's alert level of flags (P8-03, PRO-08): in-app to the teacher, at most every 5 minutes. */
   PROCTORING_ALERT: 'proctoring.alert',
+  /** A teacher reviewed a student's exam attempt (P8-04, PRO-05): in-app to the student, with the decision. */
+  EXAM_REVIEW_DECIDED: 'exam.review_decided',
 } as const;
 
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFICATION_EVENTS];

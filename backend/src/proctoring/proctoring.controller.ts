@@ -1,8 +1,8 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { RolesGuard } from '../common/guard/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesEnum } from '../common/enums/roles.enum';
@@ -15,6 +15,10 @@ import { StudentExamService } from '../exams/student-exam.service';
 import { ProctoringStoreService } from './proctoring-store.service';
 import { ProctoringGateway } from './proctoring.gateway';
 import { ExamService } from '../exams/exam.service';
+import { ExamIntegrityService } from '../exams/exam-integrity.service';
+import { AttemptReviewDecisionEnum } from '../exams/entities/exam-attempt-review.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NOTIFICATION_EVENTS } from '../notifications/notification.constants';
 
 export class WarnStudentDto {
   @ApiProperty({ example: 'Please keep your eyes on your own screen.' })
@@ -29,6 +33,18 @@ export class EndStudentExamDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(300)
+  reason: string;
+}
+
+export class ReviewAttemptDto {
+  @ApiProperty({ enum: AttemptReviewDecisionEnum, description: 'REINSTATE (a disqualified attempt counts as submitted), RETAKE (open it again inside the exam window) or CONFIRM' })
+  @IsEnum(AttemptReviewDecisionEnum)
+  decision: AttemptReviewDecisionEnum;
+
+  @ApiProperty({ example: 'The tab switches were the school network dropping; checked with the student.' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
   reason: string;
 }
 
@@ -48,6 +64,8 @@ export class ProctoringController {
     private readonly events: ProctoringEventsService,
     private readonly gateway: ProctoringGateway,
     private readonly audit: AuditService,
+    private readonly integrity: ExamIntegrityService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   @Get(':examId/proctoring/sessions')
@@ -136,5 +154,69 @@ export class ProctoringController {
       after: { student_id: studentId, reason, status: result.status },
     });
     return { message: 'Exam ended for the student', payload: result };
+  }
+
+  @Get(':examId/proctoring/integrity')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Integrity report for an exam (P8-04, PRO-04): flags by check, and every student with flags, result and latest review, most flagged first' })
+  async examIntegrity(@Param('examId', ParseUUIDPipe) examId: string, @UserPayload() jwtPayload: JwtPayloadInterface) {
+    await this.examService.assertTeacherCanMonitorExam(examId, jwtPayload);
+    return { message: 'Integrity report retrieved successfully', payload: await this.integrity.examReport(examId) };
+  }
+
+  @Get(':examId/proctoring/students/:studentId/report')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({ summary: "One student's integrity report (PRO-04): attempt, flags by check, timeline and every review" })
+  async studentReport(
+    @Param('examId', ParseUUIDPipe) examId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    await this.examService.assertTeacherCanMonitorExam(examId, jwtPayload);
+    const report = await this.integrity.studentReport(examId, studentId);
+    if (!report) throw new NotFoundException({ message: 'This student has not taken the exam', code: 'EXAM_ATTEMPT_NOT_FOUND' });
+    return { message: 'Student report retrieved successfully', payload: report };
+  }
+
+  @Post(':examId/proctoring/students/:studentId/review')
+  @HttpCode(200)
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(RolesEnum.TEACHER, RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+  @ApiOperation({
+    summary: 'Review a finished attempt (P8-04, PRO-05)',
+    description:
+      'REINSTATE a disqualified attempt (counts as submitted), RETAKE (reopened unstarted; the previous answers and score are kept in the review; only while the exam window is open) or CONFIRM. Recorded with the reason, audited, and the student is told in-app.',
+  })
+  async review(
+    @Param('examId', ParseUUIDPipe) examId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @Body() dto: ReviewAttemptDto,
+    @UserPayload() jwtPayload: JwtPayloadInterface,
+  ) {
+    await this.examService.assertTeacherCanMonitorExam(examId, jwtPayload);
+    const reason = dto.reason.trim();
+    const result = await this.studentExams.reviewAttempt(examId, studentId, jwtPayload.id, dto.decision, reason);
+    this.audit.record({
+      action: AUDIT_ACTIONS.EXAM_ATTEMPT_REVIEW,
+      organizationId: result.organizationId,
+      actorId: jwtPayload.id,
+      entityType: 'exam',
+      entityId: examId,
+      before: { student_id: studentId, status: result.review.previous_status, score: result.review.previous_score },
+      after: { student_id: studentId, decision: dto.decision, reason, status: result.status },
+    });
+    await this.notifications.notifyUsers({
+      eventType: NOTIFICATION_EVENTS.EXAM_REVIEW_DECIDED,
+      organizationId: result.organizationId,
+      userIds: [studentId],
+      variables: { exam_name: result.examName, decision: dto.decision, reason, path: dto.decision === AttemptReviewDecisionEnum.RETAKE ? '/tests' : `/tests/${examId}/results` },
+      dedupeKey: `${NOTIFICATION_EVENTS.EXAM_REVIEW_DECIDED}:${result.review.id}`,
+    });
+    return {
+      message: 'Review recorded',
+      payload: { id: result.review.id, decision: result.review.decision, status: result.status, decided_at: result.review.decided_at },
+    };
   }
 }

@@ -19,6 +19,7 @@ import { EntitlementsService } from 'src/subscriptions/entitlements.service';
 import { LimitKey } from 'src/subscriptions/constants/feature-catalog';
 import { ALL_PROCTORING_FEATURES, DEFAULT_DISQUALIFY_THRESHOLD, EffectiveProctoring, effectiveProctoring, ProctoringLevelEnum } from './proctoring-settings';
 import { ProctoringEventSourceEnum } from './entities/proctoring-event.entity';
+import { AttemptReviewDecisionEnum, ExamAttemptReviewEntity } from './entities/exam-attempt-review.entity';
 import { ProctoringEventsService } from './proctoring-events.service';
 import type { ProctoringEventRecord } from './utils/proctoring-events.util';
 import { ExamEntity } from './entities/exam.entity';
@@ -472,6 +473,111 @@ export class StudentExamService {
     });
   }
 
+  /**
+   * A teacher's decision on a finished attempt (P8-04, PRO-05): REINSTATE (a disqualified attempt
+   * counts as submitted), RETAKE (opened again for the full time; the previous answers and score
+   * are kept in the review) or CONFIRM. Recorded with the reason and who decided. The caller
+   * checks the teacher may watch the exam, audits and tells the student.
+   */
+  async reviewAttempt(
+    examId: string,
+    studentId: string,
+    teacherId: string,
+    decision: AttemptReviewDecisionEnum,
+    reason: string,
+  ): Promise<{ review: ExamAttemptReviewEntity; status: ExamSubmissionStatusEnum; organizationId: string | null; examName: string }> {
+    const exam = await this.examRepo.findOne({ where: { id: examId }, select: ['id', 'organization_id', 'test_name', 'exam_end_time'] });
+    if (!exam) throw new NotFoundException('Exam not found');
+    const submission = await this.submissionRepo.findOne({ where: { exam_id: examId, student_id: studentId } });
+    if (!submission || !FINALIZED_STATUSES.includes(submission.status)) {
+      throw new ConflictException({ message: 'Only a finished attempt can be reviewed', code: 'EXAM_ATTEMPT_NOT_FINISHED' });
+    }
+    if (decision === AttemptReviewDecisionEnum.REINSTATE && submission.status !== ExamSubmissionStatusEnum.DISQUALIFIED) {
+      throw new ConflictException({ message: 'Only a disqualified attempt can be reinstated', code: 'EXAM_ATTEMPT_NOT_DISQUALIFIED' });
+    }
+    // A retake is written inside the exam's window, like every attempt (deadlines stop at its end).
+    if (decision === AttemptReviewDecisionEnum.RETAKE && new Date(exam.exam_end_time).getTime() <= Date.now()) {
+      throw new ConflictException({ message: 'The exam has ended; move its end time to allow a retake', code: 'EXAM_RETAKE_WINDOW_CLOSED' });
+    }
+    const previousStatus = submission.status;
+    const previousScore = submission.total_score ?? null;
+    const nextStatus =
+      decision === AttemptReviewDecisionEnum.REINSTATE
+        ? ExamSubmissionStatusEnum.SUBMITTED
+        : decision === AttemptReviewDecisionEnum.RETAKE
+          ? ExamSubmissionStatusEnum.IN_PROGRESS
+          : submission.status;
+
+    const review = await this.dataSource.transaction(async (manager) => {
+      const submissions = manager.getRepository(StudentExamSubmissionEntity);
+      let previousAttempt: Record<string, unknown> | null = null;
+      if (decision === AttemptReviewDecisionEnum.RETAKE) {
+        // Keep what the student wrote and scored in the review, then clear the answers (rows stay)
+        // and reopen the attempt unstarted: the clock starts when the student presses Start again.
+        const answerRepo = manager.getRepository(StudentExamAnswerEntity);
+        const answers = await answerRepo.find({ where: { submission_id: submission.id } });
+        previousAttempt = {
+          status: previousStatus,
+          started_at: submission.started_at ?? null,
+          submitted_at: submission.submitted_at ?? null,
+          total_score: previousScore,
+          max_score: submission.max_score ?? null,
+          disqualification_reason: submission.disqualification_reason ?? null,
+          answers: answers.map((answer) => ({
+            question_id: answer.question_id,
+            selected_answer: answer.selected_answer ?? null,
+            text_answer: answer.text_answer ?? null,
+            media_url: answer.media_url ?? null,
+            is_correct: answer.is_correct ?? null,
+            marks_obtained: answer.marks_obtained ?? null,
+          })),
+        };
+        await answerRepo.update(
+          { submission_id: submission.id },
+          { selected_answer: null as never, text_answer: null as never, media_url: null, word_count: null as never, is_correct: null as never, marks_obtained: null as never, grader_explanation: null, answered_at: null as never },
+        );
+        await submissions.update(
+          { id: submission.id },
+          {
+            status: ExamSubmissionStatusEnum.IN_PROGRESS,
+            started_at: null as never,
+            effective_deadline: null,
+            submitted_at: null as never,
+            total_score: null as never,
+            correct_answers: 0,
+            wrong_answers: 0,
+            unanswered: 0,
+            browser_switch_count: 0,
+            tab_switch_count: 0,
+            disqualification_reason: null as never,
+            answersheet_json: null as never,
+            is_graded: false,
+            graded_at: null,
+            graded_by: null,
+          },
+        );
+      } else if (decision === AttemptReviewDecisionEnum.REINSTATE) {
+        await submissions.update({ id: submission.id }, { status: ExamSubmissionStatusEnum.SUBMITTED, disqualification_reason: null as never });
+      }
+      const repo = manager.getRepository(ExamAttemptReviewEntity);
+      return repo.save(
+        repo.create({
+          organization_id: exam.organization_id ?? null,
+          exam_id: examId,
+          student_id: studentId,
+          submission_id: submission.id,
+          decision,
+          reason: reason.trim(),
+          previous_status: previousStatus,
+          previous_score: previousScore === null ? null : String(previousScore),
+          previous_attempt: previousAttempt,
+          decided_by: teacherId,
+        }),
+      );
+    });
+    return { review, status: nextStatus, organizationId: exam.organization_id ?? null, examName: exam.test_name ?? '' };
+  }
+
   /** Each started student's attempt for the live monitor: status and deadline (time left, PRO-03). */
   async liveAttempts(examId: string): Promise<Map<string, { status: ExamSubmissionStatusEnum; deadline: Date | null }>> {
     const rows = await this.submissionRepo.find({ where: { exam_id: examId }, select: ['student_id', 'status', 'effective_deadline'] });
@@ -711,6 +817,13 @@ export class StudentExamService {
 
     if (submission) {
       if (submission.status === ExamSubmissionStatusEnum.IN_PROGRESS) {
+        if (!submission.started_at) {
+          // Reopened for a retake (P8-04): the clock starts now.
+          const startedAt = new Date();
+          submission.started_at = startedAt;
+          submission.effective_deadline = computeEffectiveDeadline(exam, { started_at: startedAt });
+          await this.submissionRepo.update({ id: submission.id }, { started_at: startedAt, effective_deadline: submission.effective_deadline });
+        }
         return submission;
       }
       throw new BadRequestException('You have already started or completed this exam');

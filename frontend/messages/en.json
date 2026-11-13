@@ -910,7 +910,8 @@
       "off": "Off",
       "questionCount": "{count, plural, one {# question} other {# questions}}",
       "sessionClosed": "This test belongs to a closed session, so it cannot be changed or graded. The owner can reopen the session.",
-      "monitor": "Live monitor"
+      "monitor": "Live monitor",
+      "integrity": "Integrity report"
     },
     "audience": {
       "anyone": "Anyone with the link",
@@ -4984,5 +4985,58 @@
     "cancel": "Cancel",
     "alertTitle": "Check {name}",
     "alertDetail": "{count, plural, one {# flag} other {# flags}} so far."
+  },
+  "integrity": {
+    "title": "Integrity report",
+    "print": "Print",
+    "notAllowed": "You can't see this test's integrity report.",
+    "loadFailed": "Couldn't load the integrity report.",
+    "students": "Students",
+    "flagged": "Flagged",
+    "disqualified": "Disqualified",
+    "reviewed": "Reviewed",
+    "byCheck": "Flags by check",
+    "checkCount": "{count, plural, one {# flag} other {# flags}} · {students, plural, one {# student} other {# students}}",
+    "noFlags": "No flags",
+    "otherCheck": "Other",
+    "tableCaption": "Students who took the test, most flagged first",
+    "empty": "Nobody has taken this test yet.",
+    "student": "Student",
+    "result": "Result",
+    "score": "Score",
+    "scoreOf": "{score, number} of {max, number}",
+    "flags": "Flags",
+    "mostFlagged": "Most flagged",
+    "review": "Review",
+    "actions": "Actions",
+    "open": "Open",
+    "openFor": "Open the report for {name}",
+    "status": {
+      "SUBMITTED": "Submitted",
+      "AUTO_SUBMITTED": "Submitted when time ran out",
+      "DISQUALIFIED": "Disqualified",
+      "IN_PROGRESS": "Writing"
+    },
+    "why": "Reason",
+    "timeline": "Timeline",
+    "history": "Earlier reviews",
+    "decidedBy": "{name} — reason: {reason}",
+    "decide": "Your decision",
+    "decisionLegend": "What happens to this attempt?",
+    "decision": {
+      "REINSTATE": "Reinstate",
+      "RETAKE": "Allow a retake",
+      "CONFIRM": "Confirm the result"
+    },
+    "decisionHint": {
+      "REINSTATE": "The attempt counts as submitted, with the marks it got.",
+      "RETAKE": "The student takes the test again before it closes. Their earlier answers are kept in this review.",
+      "CONFIRM": "The result stands as it is."
+    },
+    "reason": "Reason",
+    "reasonHint": "The student sees this reason.",
+    "save": "Save decision",
+    "saved": "Decision saved",
+    "writing": "The student is writing this test; review it once they finish."
   }
 }

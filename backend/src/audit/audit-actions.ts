@@ -43,6 +43,8 @@ export const AUDIT_ACTIONS = {
   EXAM_RESULTS_PUBLISH: 'exam.results_publish',
   /** A teacher ended one student's exam from the live monitor (P8-03, PRO-03). */
   EXAM_STUDENT_ENDED: 'exam.student_ended',
+  /** A teacher reviewed an attempt: reinstated, retake or confirmed (P8-04, PRO-05). */
+  EXAM_ATTEMPT_REVIEW: 'exam.attempt_review',
   GRADE_UPDATE: 'grade.update',
 
   // Grading scale (owner and admins, FND-11)
