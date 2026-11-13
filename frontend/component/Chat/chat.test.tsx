@@ -49,10 +49,32 @@ const message = (extra: Partial<ChatMessage>): ChatMessage => ({
 });
 const detail = (extra: Partial<ChatGroupDetail> = {}): ChatGroupDetail => ({ id: "g1", label: "Class 6 A · Math", class_id: "c1", role: "STUDENT", announcement_only: false, read_only: false, muted: false, teachers: [{ id: "t1", name: "Rina" }], pinned: [], ...extra });
 
-const serve = (groups: ChatGroupSummary[], group: ChatGroupDetail, posts: ChatMessage[]) =>
+const serve = (groups: ChatGroupSummary[], group: ChatGroupDetail, posts: ChatMessage[], direct: { chats?: DirectChatSummary[]; contacts?: DirectContact[]; messages?: ChatMessage[] } = {}) =>
   get.mockImplementation((url: string) =>
-    url.endsWith("/chat/groups") ? ok(groups) : url.endsWith("/messages") ? ok(posts) : url.endsWith("/comments") ? ok([]) : ok(group),
+    url.endsWith("/chat/direct")
+      ? ok(direct.chats ?? [])
+      : url.endsWith("/chat/direct/contacts")
+        ? ok(direct.contacts ?? [])
+        : url.includes("/chat/direct/") && url.endsWith("/messages")
+          ? ok(direct.messages ?? [])
+          : url.endsWith("/chat/groups")
+            ? ok(groups)
+            : url.endsWith("/messages")
+              ? ok(posts)
+              : url.endsWith("/comments")
+                ? ok([])
+                : ok(group),
   );
+const directChat = (extra: Partial<DirectChatSummary> = {}): DirectChatSummary => ({
+  id: "d1",
+  other: { id: "t1", name: "Rina", is_teacher: true },
+  unread: 0,
+  other_read_at: null,
+  closed: false,
+  muted: false,
+  last_message: null,
+  ...extra,
+});
 
 beforeEach(() => {
   localStorage.setItem("user", JSON.stringify({ id: "st1", access_token: "token" }));
@@ -112,6 +134,40 @@ describe("chat (COM-01, COM-03)", () => {
     renderApp(<ChatPage />);
     fireEvent.click(await screen.findByRole("switch", { name: /Only teachers can post/ }));
     await waitFor(() => expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "patch", data: { announcement_only: true } })));
+  });
+
+  it("private chats: start one with a teacher, see 'Seen' once they read, and report a message", async () => {
+    serve([], detail(), [], { chats: [], contacts: [{ id: "t1", name: "Rina", via: ["Class 6 A · Math"] }] });
+    post.mockImplementation((url: string) => (url.endsWith("/chat/direct") ? ok(directChat()) : ok(null)));
+    renderApp(<ChatPage />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Private" }));
+    fireEvent.click(await screen.findByRole("button", { name: "New message" }));
+    const to = screen.getByLabelText("Message to");
+    fireEvent.change(to, { target: { value: "Rin" } });
+    await screen.findByRole("option", { name: /Rina/ });
+    fireEvent.keyDown(to, { key: "ArrowDown" });
+    fireEvent.keyDown(to, { key: "Enter" });
+    await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/chat\/direct$/), { user_id: "t1" }));
+    expect(await screen.findByRole("heading", { name: "Rina" })).toBeTruthy();
+    cleanup();
+
+    query = "direct=d1";
+    const mine = message({ id: "m1", group_id: "d1", author: { id: "st1", name: "Picked", is_teacher: false }, content: "Can I submit tomorrow?", created_at: "2026-11-14T04:00:00Z" });
+    const theirs = message({ id: "m2", group_id: "d1", content: "Come to my room", created_at: "2026-11-14T03:00:00Z" });
+    serve([], detail(), [], { chats: [directChat({ other_read_at: "2026-11-14T04:05:00Z" })], messages: [mine, theirs] });
+    post.mockReturnValue(ok(null));
+    renderApp(<ChatPage />);
+    const chat = within(await screen.findByRole("list", { name: "Messages" }));
+    expect(await chat.findByText(/^Seen/)).toBeTruthy();
+    fireEvent.click(chat.getByRole("button", { name: "Report" }));
+    const dialog = within(await screen.findByRole("dialog", { name: "Report this message" }));
+    fireEvent.change(dialog.getByLabelText("Why are you reporting it?"), { target: { value: "Uncomfortable" } });
+    fireEvent.click(dialog.getByRole("button", { name: "Report" }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/chat\/reports$/), { chat_type: "DIRECT", chat_id: "d1", message_id: "m2", reason: "Uncomfortable" }),
+    );
+    // Your own messages are deleted, not reported.
+    expect(chat.getAllByRole("button", { name: "Report" })).toHaveLength(1);
   });
 
   it("says when there are no chats", async () => {
