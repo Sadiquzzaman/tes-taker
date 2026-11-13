@@ -358,6 +358,15 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Organization",
+    label: "chat",
+    route: "/chat",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    feature: "chat",
+    image: <SidebarClassesIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
     label: "homework",
     route: "/homework",
     group: "academics",
@@ -365,6 +374,14 @@ const sidebarList: SideBarList[] = [
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
     feature: "homework",
     image: <SidebarGradingIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
+    label: "chat",
+    route: "/chat",
+    role: ["STUDENT"],
+    feature: "chat",
+    image: <SidebarClassesIconSVG width={16} />,
   },
   {
     category: "Platform",
