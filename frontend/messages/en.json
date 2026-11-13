@@ -5136,5 +5136,14 @@
     "reportReason": "Why are you reporting it?",
     "reportSend": "Report",
     "reported": "Thanks — the school will review it."
+  },
+  "breadcrumbs": {
+    "testDetails": "Test details",
+    "homework": "Homework details",
+    "marks": "Marks",
+    "student": "Student",
+    "assistants": "Staff",
+    "pending": "Waiting for approval",
+    "setup": "Set up"
   }
 }
