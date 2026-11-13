@@ -18,4 +18,15 @@ export const CHAT_ERRORS = {
   NOT_YOUR_STUDENT_OR_TEACHER: 'CHAT_NOT_ALLOWED',
   /** In a private chat each person deletes only their own messages. */
   NOT_AUTHOR: 'CHAT_NOT_AUTHOR',
+  /** Closed by an owner or admin: read-only until reopened (COM-04). */
+  CLOSED: 'CHAT_CLOSED',
+  /** An owner or admin muted this person in this chat for a while (COM-04). */
+  MUTED: 'CHAT_MUTED',
+  /** Owners and admins only (COM-04). */
+  NOT_ADMIN: 'CHAT_NOT_ADMIN',
+  /** Admin actions on a chat need an opening with a reason in the last 2 hours (COM-04). */
+  REASON_REQUIRED: 'CHAT_REASON_REQUIRED',
+  /** You already reported this message (COM-05). */
+  ALREADY_REPORTED: 'CHAT_ALREADY_REPORTED',
+  REPORT_NOT_FOUND: 'CHAT_REPORT_NOT_FOUND',
 } as const;

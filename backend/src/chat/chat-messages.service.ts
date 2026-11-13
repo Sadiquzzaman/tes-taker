@@ -1,7 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { DataSource, In, IsNull, Not } from 'typeorm';
+import { ChatUserMute } from 'src/chat-mongo/schemas/chat-user-mute.schema';
 import { GroupMessage } from 'src/chat-mongo/schemas/group-message.schema';
 import { FileObjectEntity } from 'src/files/entities/file-object.entity';
 import { FilePurposeEnum, FileStatusEnum } from 'src/files/file-rules';
@@ -35,8 +36,20 @@ export interface ChatMessageView {
 export class ChatMessagesService {
   constructor(
     @InjectModel(GroupMessage.name) private readonly messages: Model<GroupMessage>,
+    @InjectModel(ChatUserMute.name) private readonly mutes: Model<ChatUserMute>,
     private readonly dataSource: DataSource,
   ) {}
+
+  /** A closed chat takes nothing new (409); a person muted in it can't write until the mute ends (403). */
+  async assertCanWrite(chat: { _id: string; closedAt?: Date | null }, userId: string): Promise<void> {
+    if (chat.closedAt) {
+      throw new ConflictException({ message: 'This chat was closed by the school', code: CHAT_ERRORS.CLOSED });
+    }
+    const mute = await this.mutes.findOne({ chatId: chat._id, userId, until: { $gt: new Date() } }).lean<ChatUserMute>();
+    if (mute) {
+      throw new ForbiddenException({ message: 'You were muted in this chat', code: CHAT_ERRORS.MUTED, until: mute.until });
+    }
+  }
 
   /** The sender's own chat uploads in this organisation. */
   async attachments(organizationId: string, userId: string, fileIds: string[]) {

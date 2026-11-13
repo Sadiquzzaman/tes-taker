@@ -31,6 +31,8 @@ export interface DirectChatView {
   unread: number;
   /** When the other person last read the chat (read receipts). */
   other_read_at: Date | null;
+  /** Closed by the school: read-only (COM-04). */
+  closed: boolean;
   muted: boolean;
   last_message: { author_name: string; preview: string; created_at: Date } | null;
 }
@@ -116,6 +118,7 @@ export class ChatDirectService {
 
   async send(tenant: Tenant, userId: string, chatId: string, dto: SendChatMessageDto): Promise<ChatMessageView> {
     const side = await this.side(tenant, userId, chatId);
+    await this.chatMessages.assertCanWrite(side.chat, userId);
     const content = (dto.content ?? '').trim().slice(0, MAX_MESSAGE_LENGTH);
     const fileIds = [...new Set(dto.file_ids ?? [])];
     if (!content && fileIds.length === 0) {
@@ -190,6 +193,12 @@ export class ChatDirectService {
     return taught.some((id) => taken.includes(id));
   }
 
+  /** One of the chat's two people (in this organisation), else 404: who the other is. */
+  async participant(tenant: Tenant, userId: string, chatId: string): Promise<{ otherId: string; teacherId: string }> {
+    const side = await this.side(tenant, userId, chatId);
+    return { otherId: side.otherId, teacherId: side.chat.teacherId };
+  }
+
   /** One of the chat's two people (in this organisation), else 404. */
   private async side(tenant: Tenant, userId: string, chatId: string): Promise<Side> {
     const chat = await this.chats.findOne({ _id: chatId, organizationId: tenant.organizationId }).lean<DirectChat>();
@@ -219,6 +228,7 @@ export class ChatDirectService {
       other: { id: otherId, name: names.get(otherId) ?? '', is_teacher: otherId === chat.teacherId },
       unread,
       other_read_at: theirs?.lastReadAt ?? null,
+      closed: Boolean(chat.closedAt),
       muted: mine?.muted ?? false,
       last_message: last ? { author_name: names.get(last.authorId) ?? '', preview: this.chatMessages.preview(last), created_at: last.createdAt } : null,
     };
