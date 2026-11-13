@@ -34,12 +34,20 @@ export const DOCUMENT_MIMES = [
   'text/plain',
 ] as const;
 
+export const SLIDE_MIMES = [
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+] as const;
+export const AUDIO_MIMES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/ogg', 'audio/wav'] as const;
+
 /** Purposes a client may upload for today, with their allowed types. */
 export const UPLOAD_RULES: Partial<Record<FilePurposeEnum, readonly string[]>> = {
   [FilePurposeEnum.EXAM]: IMAGE_MIMES,
   [FilePurposeEnum.IMAGE]: IMAGE_MIMES,
   [FilePurposeEnum.DISCUSSION]: [...IMAGE_MIMES, ...DOCUMENT_MIMES],
   [FilePurposeEnum.LEAVE]: [...IMAGE_MIMES, 'application/pdf'],
+  /** The resource library (RES-01): documents, slides, images and audio, up to 20 MB (video comes with RES-02). */
+  [FilePurposeEnum.RESOURCE]: [...IMAGE_MIMES, ...DOCUMENT_MIMES, ...SLIDE_MIMES, ...AUDIO_MIMES],
 };
 
 export const isImageMime = (mime: string): boolean => (IMAGE_MIMES as readonly string[]).includes(mime);

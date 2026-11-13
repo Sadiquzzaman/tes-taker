@@ -46,6 +46,14 @@ export const AUDIT_ACTIONS = {
   /** A teacher reviewed an attempt: reinstated, retake or confirmed (P8-04, PRO-05). */
   EXAM_ATTEMPT_REVIEW: 'exam.attempt_review',
 
+  // Resource library (Epic 8)
+  /** A resource was added (P9-03, RES-01). */
+  RESOURCE_CREATE: 'resource.create',
+  /** A resource was changed, archived or reshared (P9-03, RES-03). */
+  RESOURCE_UPDATE: 'resource.update',
+  /** A resource was deleted (kept as deleted, P9-03). */
+  RESOURCE_DELETE: 'resource.delete',
+
   // Chat (Epic 7)
   /** A teacher deleted someone else's message in their group chat (P9-01, COM-01). */
   CHAT_MESSAGE_DELETE: 'chat.message_delete',
