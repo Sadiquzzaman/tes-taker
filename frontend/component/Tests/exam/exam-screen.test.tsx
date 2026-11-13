@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, screen, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderApp, renderWithIntl } from "@/i18n/test-utils";
 import { addFlag, startProctoring } from "@/lib/features/proctoringSlice";
-import ProctoringWarningModal from "./ProctoringWarningModal";
+import ProctoringWarningModal, { WARNING_AUTO_CLOSE_MS } from "./ProctoringWarningModal";
 import QuestionNavigator, { isAnswered } from "./QuestionNavigator";
 
 afterEach(() => cleanup());
@@ -43,17 +43,44 @@ describe("question navigator", () => {
 });
 
 describe("proctoring warning", () => {
-  it("explains the flag in one sentence and closes with I understand", async () => {
+  const flag = (store: ReturnType<typeof renderApp>["store"], type: ProctoringFlagType = "tab-switch") =>
+    act(() => {
+      store.dispatch(addFlag({ type, message: "Switched tab at 10:02" }));
+    });
+
+  it("explains the flag in one sentence and closes at once with the ×", async () => {
     const { store } = renderApp(<ProctoringWarningModal />);
     act(() => {
       store.dispatch(startProctoring());
-      store.dispatch(addFlag({ type: "tab-switch", message: "Switched tab at 10:02" }));
     });
+    flag(store);
 
     const dialog = await screen.findByRole("dialog", { name: /Warning!/ });
     expect(within(dialog).getByText("You switched to another tab.")).toBeTruthy();
     expect(within(dialog).getByText("Current flag count: 1")).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "I Understand" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     expect(store.getState().proctoring.pendingWarning).toBeNull();
+  });
+
+  it("closes on its own after 1 second; a new flag shows for its own second", async () => {
+    vi.useFakeTimers();
+    try {
+      const { store } = renderApp(<ProctoringWarningModal />);
+      act(() => {
+        store.dispatch(startProctoring());
+      });
+      flag(store);
+      act(() => vi.advanceTimersByTime(WARNING_AUTO_CLOSE_MS - 100));
+      expect(store.getState().proctoring.pendingWarning).not.toBeNull();
+      // Another flag just before the second is up: shown again for a full second.
+      flag(store, "window-blur");
+      act(() => vi.advanceTimersByTime(WARNING_AUTO_CLOSE_MS - 100));
+      expect(store.getState().proctoring.pendingWarning).toMatchObject({ flagCount: 2 });
+      act(() => vi.advanceTimersByTime(100));
+      expect(store.getState().proctoring.pendingWarning).toBeNull();
+      expect(store.getState().proctoring.isWarningBlocking).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
