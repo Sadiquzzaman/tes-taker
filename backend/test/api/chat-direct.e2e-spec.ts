@@ -9,7 +9,6 @@ import { factories } from '../support/factories';
 import { createTestApp, TestApp } from '../support/test-app';
 
 type Body<T> = { payload: T; code?: string };
-type Group = { id: string; offering_id: string };
 type Contact = { id: string; name: string; via: string[] };
 type Chat = { id: string; other: { id: string; name: string; is_teacher: boolean }; unread: number; other_read_at: string | null; last_message: { preview: string } | null };
 type Message = { id: string; content: string; author: { id: string; is_teacher: boolean }; reply_to: { id: string } | null; deleted: boolean };
@@ -26,7 +25,6 @@ describe('private chat API', () => {
   let emitted: { room: string; event: string; payload: Record<string, unknown> }[];
 
   const call = <T>(method: string, path: string, token: string, body?: unknown) => t.api.request<Body<T>>(method, path, { token, body });
-  const groupsOf = async (token: string) => (await call<Group[]>('GET', '/chat/groups', token)).body.payload;
 
   /**
    * A school with Class 6 A: Math (taught by Rina; everyone takes it) and Religion (taught by
