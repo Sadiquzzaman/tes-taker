@@ -42,6 +42,8 @@ export interface ChatMessageView {
 export interface GroupChatView {
   id: string;
   offering_id: string;
+  /** The section's class: chat uploads are scoped to it (files module, DISCUSSION). */
+  class_id: string;
   section_label: string;
   subject: { id: string; name: string };
   role: ChatRole;
@@ -53,7 +55,7 @@ export interface GroupChatView {
   last_message: { author_name: string; preview: string; created_at: Date } | null;
 }
 
-type Access = { group: GroupChat; role: ChatRole; label: string; teacherIds: string[]; readOnly: boolean };
+type Access = { group: GroupChat; role: ChatRole; label: string; classId: string; teacherIds: string[]; readOnly: boolean };
 type Timestamped<T> = T & { createdAt: Date; updatedAt: Date };
 
 /**
@@ -104,6 +106,7 @@ export class ChatGroupsService {
         return {
           id: group._id,
           offering_id: offering.id,
+          class_id: offering.section?.class_id ?? '',
           section_label: this.sectionLabel(offering),
           subject: { id: offering.subject_id, name: offering.subject?.name ?? '' },
           role: teachers.includes(userId) ? 'TEACHER' : 'STUDENT',
@@ -138,6 +141,7 @@ export class ChatGroupsService {
     return {
       id: groupId,
       label: access.label,
+      class_id: access.classId,
       role: access.role,
       announcement_only: access.group.announcementOnly,
       read_only: access.readOnly,
@@ -312,6 +316,7 @@ export class ChatGroupsService {
       group,
       role: isTeacher ? 'TEACHER' : 'STUDENT',
       label: `${this.sectionLabel(entry.offering)} · ${entry.offering.subject?.name ?? ''}`,
+      classId: entry.offering.section?.class_id ?? '',
       teacherIds: entry.teacherIds,
       readOnly: entry.offering.session?.status !== AcademicSessionStatusEnum.ACTIVE,
     };
