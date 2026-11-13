@@ -85,9 +85,17 @@ jobs:
       - name: Schema matches the entities (no migration missing)
         run: pnpm migration:check
 
-  api-tests:
-    name: Backend — API tests (PostgreSQL, Redis, MongoDB)
+  api-tests-part:
+    name: Backend — API tests, part ${{ matrix.shard }} of 3
     runs-on: ubuntu-latest
+    # The API test files share one database, so within a run they go one at a time; three parts,
+    # each with its own databases, run side by side: a third of the time, and a third of the
+    # memory of one long process (each file starts the whole app, ~20 MB of which stays; one
+    # process ran out of heap at ~75 files, #266).
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     # Same images and host ports as docker-compose.test.yml, so backend/test/test.env works unchanged.
     services:
       postgres:
@@ -130,13 +138,19 @@ jobs:
         run: npm install -g pnpm@9
       - name: Install
         run: make backend-install
-      - name: API tests
+      - name: API tests (part ${{ matrix.shard }} of 3)
         working-directory: backend
-        # All API test files run one after another in one process (they share one database), and
-        # each starts the whole app; past ~120 files the default heap (about 2 GB) ran out (#266).
-        env:
-          NODE_OPTIONS: --max-old-space-size=4096
-        run: pnpm test:e2e
+        run: pnpm test:e2e --shard=${{ matrix.shard }}/3
+
+  # One check with the old name, for the branch rules: green only when every part passed.
+  api-tests:
+    name: Backend — API tests (PostgreSQL, Redis, MongoDB)
+    needs: api-tests-part
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All parts passed
+        run: test "${{ needs.api-tests-part.result }}" = "success"
 
   frontend:
     name: Frontend — install, lint, type-check, test, build
