@@ -76,10 +76,12 @@ Table org_settings {
   guardian_sms jsonb [not null, default: '{"late":true,"absent":true,"leave":true}', note: 'BUILT P3-01']
   sms_locale varchar(5) [note: "BUILT P2-05 (FND-10): guardian SMS language, CHECK bn | en; null = the organisation's default_locale"]
   homework_policy jsonb [note: '{"late":"ALLOW","penalty":{"type":"NONE"},"max_resubmissions":1,"max_files":5}']
-  at_risk_thresholds jsonb [note: '{"score_pct":40,"attendance_pct":75,"missing_homework":3}']
+  at_risk_score_pct smallint [not null, default: 40, note: 'BUILT P7-02 (PRF-07): CHECK 0..100']
+  at_risk_attendance_pct smallint [not null, default: 75, note: 'BUILT P7-02: CHECK 0..100']
+  at_risk_missing_homework smallint [not null, default: 3, note: 'BUILT P7-02: CHECK 1..50; columns rather than the planned at_risk_thresholds jsonb, like the homework settings']
   plagiarism_thresholds jsonb [note: '{"high":40,"medium":20,"min_words":50}']
   repeat_absence_days smallint [not null, default: 3, note: 'BUILT P3-01 (ATT-14): CHECK 2..30']
-  show_rank boolean [default: false]
+  show_rank boolean [not null, default: false, note: 'BUILT P7-02 (PRF-05, PRF-10): students see their position']
   chat_retention_months int [note: 'null = keep forever']
   Note: 'NEW — one row per org; all Epic settings tables in the spec live here. Created in P2-03 with class_teacher_enabled only; each epic adds its columns in its own migration. An org without a row uses the defaults for its kind'
 }
@@ -1144,17 +1146,22 @@ Table grading_bands {
 
 Table score_weights {
   id uuid [pk]
-  organization_id uuid [not null]
-  session_id uuid [ref: > academic_sessions.id]
-  class_id uuid [ref: > classes.id]
-  exams_pct smallint
-  homework_pct smallint
-  attendance_pct smallint
-  behaviour_pct smallint [note: 'check: sum = 100']
+  organization_id uuid [not null, ref: > organizations.id]
+  session_id uuid [not null, ref: > academic_sessions.id]
+  class_id uuid [not null, ref: > classes.id]
+  exams_pct smallint [not null]
+  homework_pct smallint [not null]
+  attendance_pct smallint [not null]
+  behaviour_pct smallint [not null, note: 'check: each 0..100, sum = 100']
+  created_by uuid
+  created_at timestamptz [not null]
+  updated_by uuid
+  updated_at timestamptz
   Indexes {
     (session_id, class_id) [unique]
+    organization_id
   }
-  Note: 'NEW (PRF-01)'
+  Note: 'NEW (PRF-01), BUILT P7-02 (results module, migration ScoreWeights); no row = the default 50/20/20/10; changes in audit_logs (score.weights)'
 }
 
 Table behaviour_criteria {
@@ -1210,7 +1217,7 @@ Table student_term_scores {
   Indexes {
     (term_id, student_id, subject_id) [unique]
   }
-  Note: 'NEW — read model rebuilt by performance.recompute (PRF-05..07)'
+  Note: 'PLANNED, NOT BUILT (decided in P7-02): scores are worked out on request (results ScoresService) and report cards freeze a snapshot, so no read model is kept'
 }
 
 Table report_cards {

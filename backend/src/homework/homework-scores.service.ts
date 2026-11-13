@@ -61,6 +61,24 @@ const num = (value: string | null | undefined) => (value === null || value === u
  * for redo, publishing the scores (students see them from then on), and reminding the students who
  * have not handed it in, in-app and optionally by SMS to their guardians (organisation credits).
  */
+/** One student's score on one homework, for the performance scores (P7-02). */
+export interface HomeworkScoreFact {
+  homework_id: string;
+  title: string;
+  subject_id: string;
+  session_id: string;
+  /** The school day it was due (or published, when it has no due time). */
+  due_date: string;
+  student_id: string;
+  is_missing: boolean;
+  /** Handed in late (the late penalty is already in the score). */
+  is_late: boolean;
+  final_score: number;
+  total_marks: number;
+  /** 0–100, two decimals; missing work is 0. */
+  percent: number;
+}
+
 @Injectable()
 export class HomeworkScoresService {
   constructor(
@@ -75,6 +93,37 @@ export class HomeworkScoresService {
     private readonly audit: AuditService,
     private readonly clock: HomeworkClock,
   ) {}
+
+  /**
+   * Scored homework of these students due between two school days, after late penalties; missing
+   * work counts as 0. Homework without marks, cancelled homework and unscored work are left out;
+   * `published` keeps only scores the students can see. No access check: the results module checks.
+   */
+  async scoresOf(organizationId: string, studentIds: string[], from: string, to: string, timeZone: string, published = false): Promise<HomeworkScoreFact[]> {
+    if (studentIds.length === 0) return [];
+    const rows: {
+      homework_id: string; title: string; subject_id: string; session_id: string; due_date: string; student_id: string;
+      is_missing: boolean; is_late: boolean | null; final_score: string | null; total_marks: string;
+    }[] = await this.dataSource.query(
+      `SELECT h.id AS homework_id, h.title, h.subject_id, h.session_id,
+              to_char((coalesce(h.due_at, h.published_at) AT TIME ZONE $5)::date, 'YYYY-MM-DD') AS due_date,
+              sc.student_id, sc.is_missing, sub.is_late, sc.final_score, h.total_marks
+         FROM homework_scores sc
+         JOIN homework h ON h.id = sc.homework_id
+         LEFT JOIN homework_submissions sub ON sub.id = sc.submission_id
+        WHERE sc.organization_id = $1 AND sc.student_id = ANY($2)
+          AND h.status = $6 AND h.cancelled_at IS NULL AND h.total_marks > 0
+          AND (sc.is_missing OR sc.final_score IS NOT NULL)
+          AND (coalesce(h.due_at, h.published_at) AT TIME ZONE $5)::date BETWEEN $3 AND $4
+          ${published ? 'AND h.scores_published_at IS NOT NULL' : ''}`,
+      [organizationId, studentIds, from, to, timeZone, HomeworkStatusEnum.PUBLISHED],
+    );
+    return rows.map((row) => {
+      const total = Number(row.total_marks);
+      const final = row.is_missing ? 0 : Number(row.final_score);
+      return { ...row, is_late: Boolean(row.is_late), final_score: final, total_marks: total, percent: Math.round((final / total) * 10_000) / 100 };
+    });
+  }
 
   /** Everyone the homework is set to (and anyone who handed it in) with their latest hand-in and score. */
   async grid(tenant: Tenant, userId: string, homeworkId: string): Promise<HomeworkGrid> {

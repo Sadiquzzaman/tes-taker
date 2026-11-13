@@ -112,6 +112,13 @@ export class AcademicSessionsService {
     return this.setStatus(await this.findOne(id), AcademicSessionStatusEnum.ACTIVE, actor);
   }
 
+  /** A session's terms in order, for other modules that pass the organisation (the scores, P7-02). No access check. */
+  async termsOf(organizationId: string, sessionId: string): Promise<TermEntity[]> {
+    return tenantScoped(this.termRepo)
+      .forOrganization(organizationId)
+      .find({ where: { session_id: sessionId }, order: { sort_order: 'ASC', created_at: 'ASC' } });
+  }
+
   async listTerms(sessionId: string): Promise<TermEntity[]> {
     await this.findOne(sessionId);
     return tenantScoped(this.termRepo).find({ where: { session_id: sessionId }, order: { sort_order: 'ASC', created_at: 'ASC' } });

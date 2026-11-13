@@ -66,7 +66,8 @@
     "calendar": "Calendar",
     "today": "Today",
     "marks": "Paper exams",
-    "behaviour": "Behaviour"
+    "behaviour": "Behaviour",
+    "performanceSettings": "Performance settings"
   },
   "shell": {
     "organization": "Organization",
@@ -2797,7 +2798,11 @@
       "homework": "Homework",
       "routine": "Routine",
       "event": "Events",
-      "reminders": "Reminders"
+      "reminders": "Reminders",
+      "offline_exam": "Paper exams",
+      "behaviour": "Behaviour",
+      "score": "Score weights",
+      "performance": "Performance settings"
     },
     "actions": {
       "plan": {
@@ -2920,6 +2925,23 @@
       },
       "reminders": {
         "defaults_update": "Default reminders changed"
+      },
+      "offline_exam": {
+        "create": "Paper exam added",
+        "update": "Paper exam changed",
+        "remove": "Paper exam removed",
+        "publish": "Paper exam marks published",
+        "marks": "Paper exam marks entered"
+      },
+      "behaviour": {
+        "criteria": "Behaviour criteria changed",
+        "rate": "Behaviour rated"
+      },
+      "score": {
+        "weights": "Score weights changed"
+      },
+      "performance": {
+        "settings": "Performance settings changed"
       }
     },
     "fields": {
@@ -3021,7 +3043,18 @@
       "source": "How",
       "from_section_id": "Copied from",
       "section": "[[Section]]",
-      "late_minutes": "Minutes late"
+      "late_minutes": "Minutes late",
+      "exams_pct": "Exams %",
+      "homework_pct": "Homework %",
+      "attendance_pct": "Attendance %",
+      "behaviour_pct": "Behaviour %",
+      "show_rank": "Show position to students",
+      "at_risk": "At-risk limits",
+      "part_marks": "Marks per part",
+      "is_absent": "Absent",
+      "ratings": "Ratings",
+      "criteria": "Criteria",
+      "remark": "Remark"
     }
   },
   "smsCredits": {
@@ -4624,5 +4657,47 @@
       "RESULTS_REMARK_NEEDS_RATING": "Give at least one rating with a remark.",
       "RESULTS_STUDENT_NOT_IN_CLASS": "A student no longer takes this subject class. Reload and try again."
     }
+  },
+  "performanceSettings": {
+    "title": "Performance settings",
+    "intro": "How each class's score is made up, and when a student needs attention.",
+    "readOnly": "You can see these settings; owners and admins change them.",
+    "weightsTitle": "Score weights",
+    "weightsIntro": "How much each part counts in a class's score. They must add up to 100%; a part can be 0%.",
+    "session": "Session",
+    "loadFailed": "Couldn't load the performance settings.",
+    "noClasses": "No classes in this session yet",
+    "noClassesHint": "Add classes and their [[sections]] first; their weights appear here.",
+    "sessionClosed": "This session is closed, so its weights can't change.",
+    "weightsCaption": "Score weights for {session}",
+    "class": "Class",
+    "parts": {
+      "exams_pct": "Exams %",
+      "homework_pct": "Homework %",
+      "attendance_pct": "Attendance %",
+      "behaviour_pct": "Behaviour %"
+    },
+    "total": "Total",
+    "actions": "Actions",
+    "default": "Default",
+    "partFor": "{part} for {name}",
+    "saveFor": "Save weights for {name}",
+    "save": "Save",
+    "weightsSaved": "Weights saved; scores now use them",
+    "mustAddUp": "Each class's weights must add up to 100%.",
+    "weightsHint": "A part with nothing to count yet is left out, and the others are scaled up to 100%.",
+    "atRiskTitle": "At risk",
+    "atRiskIntro": "A student is listed as at risk on the class dashboard when any of these is true.",
+    "scoreBelow": "Score below (%)",
+    "attendanceBelow": "Attendance below (%)",
+    "missingHomework": "Missing homework (or more)",
+    "limitsInvalid": "Use whole numbers: percentages 0–100, missing homework 1–50.",
+    "showRank": "Show students their position",
+    "showRankHint": "Students see their merit position in the [[section]] on their page and report card.",
+    "undo": "Undo changes",
+    "saveSettings": "Save settings",
+    "settingsSaved": "Settings saved",
+    "criteriaHint": "Behaviour criteria (what teachers rate) are on the Behaviour page.",
+    "criteriaLink": "Open Behaviour"
   }
 }

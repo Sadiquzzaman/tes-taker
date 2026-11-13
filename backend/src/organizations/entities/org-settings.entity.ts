@@ -28,6 +28,7 @@ export interface WeeklyOffDaysChange {
 @Check('CHK_org_settings_sms_locale', `"sms_locale" IS NULL OR "sms_locale" IN ('bn', 'en')`)
 @Check('CHK_org_settings_homework_resubmissions', `"homework_resubmissions" BETWEEN 0 AND 3`)
 @Check('CHK_org_settings_homework_max_files', `"homework_max_files" BETWEEN 1 AND 10`)
+@Check('CHK_org_settings_at_risk', `"at_risk_score_pct" BETWEEN 0 AND 100 AND "at_risk_attendance_pct" BETWEEN 0 AND 100 AND "at_risk_missing_homework" BETWEEN 1 AND 50`)
 @Check('CHK_org_settings_homework_late_penalty', `"homework_late_penalty_type" IN ('NONE', 'PER_DAY', 'FIXED') AND "homework_late_penalty_percent" BETWEEN 0 AND 100`)
 export class OrgSettingsEntity extends CustomBaseEntity {
   @ApiProperty()
@@ -94,4 +95,20 @@ export class OrgSettingsEntity extends CustomBaseEntity {
   @ApiProperty({ example: 5, description: 'Most files in one submission (1–10)' })
   @Column({ name: 'homework_max_files', type: 'smallint', default: 5 })
   homework_max_files: number;
+
+  @ApiProperty({ example: 40, description: 'At risk below this overall score % (PRF-07)' })
+  @Column({ name: 'at_risk_score_pct', type: 'smallint', default: 40 })
+  at_risk_score_pct: number;
+
+  @ApiProperty({ example: 75, description: 'At risk below this attendance % (PRF-07)' })
+  @Column({ name: 'at_risk_attendance_pct', type: 'smallint', default: 75 })
+  at_risk_attendance_pct: number;
+
+  @ApiProperty({ example: 3, description: 'At risk with this many missing homework or more (PRF-07)' })
+  @Column({ name: 'at_risk_missing_homework', type: 'smallint', default: 3 })
+  at_risk_missing_homework: number;
+
+  @ApiProperty({ description: 'Students see their merit position (PRF-05, PRF-10)' })
+  @Column({ name: 'show_rank', type: 'boolean', default: false })
+  show_rank: boolean;
 }

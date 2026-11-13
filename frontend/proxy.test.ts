@@ -31,7 +31,7 @@ const platform = { token: "t", role: "ADMIN", session_mode: "individual" };
 /** Found by the beta access check (13 Nov): staff pages opened for students with "could not be loaded". */
 describe("pages people cannot use send them home", () => {
   it("keeps students out of the staff pages", () => {
-    for (const path of ["/attendance", "/attendance-setup", "/attendance-settings", "/attendance-reports", "/attendance-register", "/attendance-branches", "/homework-settings", "/features", "/behaviour"]) {
+    for (const path of ["/attendance", "/attendance-setup", "/attendance-settings", "/attendance-reports", "/attendance-register", "/attendance-branches", "/homework-settings", "/features", "/behaviour", "/performance-settings"]) {
       expect([path, visit(path, student)]).toEqual([path, "/today"]);
       expect([path, visit(path, school("TEACHER"))]).toEqual([path, "open"]);
       expect([path, visit(path, solo)]).toEqual([path, "open"]);
