@@ -1,7 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { DataSource, In, IsNull, Not } from 'typeorm';
 import { AcademicSessionStatusEnum } from 'src/academics/entities/academic-session.entity';
 import { OfferingRosterService } from 'src/academics/offering-roster.service';
 import { SectionsService } from 'src/academics/sections.service';
@@ -11,33 +10,16 @@ import { ChatMemberState } from 'src/chat-mongo/schemas/chat-member-state.schema
 import { GroupChat } from 'src/chat-mongo/schemas/group-chat.schema';
 import { GroupMessage } from 'src/chat-mongo/schemas/group-message.schema';
 import { Tenant } from 'src/common/tenancy/tenant-context';
-import { FileObjectEntity } from 'src/files/entities/file-object.entity';
-import { FilePurposeEnum, FileStatusEnum } from 'src/files/file-rules';
 import { NOTIFICATION_EVENTS } from 'src/notifications/notification.constants';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { ChatBroadcaster } from './chat-broadcaster';
 import { CHAT_ERRORS } from './chat-errors';
+import { ChatMessagesService, ChatMessageView, Timestamped } from './chat-messages.service';
 import { ListChatMessagesQueryDto, MAX_MESSAGE_LENGTH, SendChatMessageDto } from './dto/chat.dto';
 
 export type ChatRole = 'TEACHER' | 'STUDENT';
 const MAX_PINS = 3;
-const PREVIEW_LENGTH = 120;
-
-export interface ChatMessageView {
-  id: string;
-  group_id: string;
-  parent_id: string | null;
-  author: { id: string; name: string; is_teacher: boolean };
-  content: string;
-  attachments: { file_id: string; name: string; mime: string; size: number; url: string }[];
-  reply_to: { id: string; author_name: string; content: string; deleted: boolean } | null;
-  comment_count: number;
-  last_comment_at: Date | null;
-  pinned: boolean;
-  deleted: boolean;
-  created_at: Date;
-}
 
 export interface GroupChatView {
   id: string;
@@ -56,7 +38,6 @@ export interface GroupChatView {
 }
 
 type Access = { group: GroupChat; role: ChatRole; label: string; classId: string; teacherIds: string[]; readOnly: boolean };
-type Timestamped<T> = T & { createdAt: Date; updatedAt: Date };
 
 /**
  * Group chats (Epic 7, COM-01, COM-03): one per subject class, for its students and teachers
@@ -73,10 +54,10 @@ export class ChatGroupsService {
     @InjectModel(ChatMemberState.name) private readonly states: Model<ChatMemberState>,
     private readonly sections: SectionsService,
     private readonly roster: OfferingRosterService,
-    private readonly dataSource: DataSource,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
     private readonly broadcaster: ChatBroadcaster,
+    private readonly chatMessages: ChatMessagesService,
   ) {}
 
   // ------------------------------------------------------------------ the list
@@ -91,7 +72,7 @@ export class ChatGroupsService {
     const states = new Map((await this.states.find({ chatId: { $in: groupIds }, userId }).lean()).map((s) => [s.chatId, s]));
     const teacherIds = [...new Set(offerings.flatMap((o) => o.teacherIds))];
     const lasts = await Promise.all(groupIds.map((id) => this.messages.findOne({ groupId: id, deletedAt: null }).sort({ createdAt: -1 }).lean<Timestamped<GroupMessage>>()));
-    const names = await this.userNames([...teacherIds, ...lasts.filter(Boolean).map((m) => m!.authorId)]);
+    const names = await this.chatMessages.userNames([...teacherIds, ...lasts.filter(Boolean).map((m) => m!.authorId)]);
     const views = await Promise.all(
       offerings.map(async ({ offering, teacherIds: teachers }) => {
         const group = groups.get(offering.id)!;
@@ -115,7 +96,7 @@ export class ChatGroupsService {
           muted: state?.muted ?? false,
           unread,
           teachers: teachers.map((id) => ({ id, name: names.get(id) ?? '' })),
-          last_message: last ? { author_name: names.get(last.authorId) ?? '', preview: this.preview(last), created_at: last.createdAt } : null,
+          last_message: last ? { author_name: names.get(last.authorId) ?? '', preview: this.chatMessages.preview(last), created_at: last.createdAt } : null,
         } satisfies GroupChatView;
       }),
     );
@@ -136,7 +117,7 @@ export class ChatGroupsService {
       this.states.findOne({ chatId: groupId, userId }).lean(),
       this.messages.find({ _id: { $in: access.group.pinnedIds }, deletedAt: null }).lean<Timestamped<GroupMessage>[]>(),
     ]);
-    const names = await this.userNames(access.teacherIds);
+    const names = await this.chatMessages.userNames(access.teacherIds);
     const pinnedViews = await this.toViews(access, pinned);
     return {
       id: groupId,
@@ -187,7 +168,7 @@ export class ChatGroupsService {
     if (dto.reply_to_id && !(await this.messages.exists({ _id: dto.reply_to_id, groupId }))) {
       throw new NotFoundException({ message: 'Message not found', code: CHAT_ERRORS.MESSAGE_NOT_FOUND });
     }
-    const attachments = await this.attachments(tenant.organizationId, userId, fileIds);
+    const attachments = await this.chatMessages.attachments(tenant.organizationId, userId, fileIds);
     const created = await this.messages.create({
       groupId,
       organizationId: tenant.organizationId,
@@ -341,22 +322,6 @@ export class ChatGroupsService {
     return post;
   }
 
-  /** The sender's own chat uploads in this organisation. */
-  private async attachments(organizationId: string, userId: string, fileIds: string[]) {
-    if (fileIds.length === 0) return [];
-    const files = await this.dataSource.getRepository(FileObjectEntity).find({
-      where: { id: In(fileIds), organization_id: organizationId, owner_id: userId, purpose: FilePurposeEnum.DISCUSSION, status: Not(FileStatusEnum.FAILED), deleted_at: IsNull() },
-    });
-    if (files.length !== fileIds.length) {
-      throw new BadRequestException({ message: 'Upload the files again', code: CHAT_ERRORS.FILE_INVALID });
-    }
-    const byId = new Map(files.map((f) => [f.id, f]));
-    return fileIds.map((id) => {
-      const file = byId.get(id)!;
-      return { fileId: file.id, name: file.original_name ?? 'file', mime: file.mime, size: Number(file.size_bytes ?? 0) };
-    });
-  }
-
   /** Members who did not mute the group get an in-app notice of a teacher's announcement. */
   private async announce(tenant: Tenant, access: Access, view: ChatMessageView): Promise<void> {
     const [entry] = await this.sections.offeringsWithTeachers(tenant.organizationId, [access.group.offeringId]);
@@ -367,53 +332,17 @@ export class ChatGroupsService {
       eventType: NOTIFICATION_EVENTS.CHAT_ANNOUNCEMENT,
       organizationId: tenant.organizationId,
       userIds: members.filter((id) => !muted.has(id)),
-      variables: { group: access.label, author: view.author.name, preview: this.preview({ content: view.content, attachments: view.attachments }), path: `/chat?group=${access.group._id}` },
+      variables: { group: access.label, author: view.author.name, preview: this.chatMessages.preview({ content: view.content, attachments: view.attachments }), path: `/chat?group=${access.group._id}` },
       dedupeKey: `${NOTIFICATION_EVENTS.CHAT_ANNOUNCEMENT}:${view.id}`,
     });
   }
 
-  private async toViews(access: Access, rows: Timestamped<GroupMessage>[]): Promise<ChatMessageView[]> {
-    const replyIds = [...new Set(rows.map((r) => r.replyToId).filter((id): id is string => Boolean(id)))];
-    const replies = replyIds.length ? await this.messages.find({ _id: { $in: replyIds } }).lean<Timestamped<GroupMessage>[]>() : [];
-    const names = await this.userNames([...rows.map((r) => r.authorId), ...replies.map((r) => r.authorId)]);
-    const replyById = new Map(replies.map((r) => [r._id, r]));
-    return rows.map((row) => {
-      const deleted = Boolean(row.deletedAt);
-      const reply = row.replyToId ? replyById.get(row.replyToId) : undefined;
-      return {
-        id: row._id,
-        group_id: row.groupId,
-        parent_id: row.parentId,
-        author: { id: row.authorId, name: names.get(row.authorId) ?? '', is_teacher: access.teacherIds.includes(row.authorId) },
-        content: deleted ? '' : row.content,
-        attachments: deleted ? [] : row.attachments.map((a) => ({ file_id: a.fileId, name: a.name, mime: a.mime, size: a.size, url: `/files/${a.fileId}/content` })),
-        reply_to: reply
-          ? { id: reply._id, author_name: names.get(reply.authorId) ?? '', content: reply.deletedAt ? '' : this.preview(reply), deleted: Boolean(reply.deletedAt) }
-          : null,
-        comment_count: row.commentCount,
-        last_comment_at: row.lastCommentAt,
-        pinned: access.group.pinnedIds.includes(row._id),
-        deleted,
-        created_at: row.createdAt,
-      };
-    });
-  }
-
-  private preview(message: { content: string; attachments: { name: string }[] }): string {
-    const text = message.content.replace(/\s+/g, ' ').trim();
-    if (text) return text.length > PREVIEW_LENGTH ? `${text.slice(0, PREVIEW_LENGTH - 1)}…` : text;
-    return message.attachments.map((a) => a.name).join(', ');
+  private toViews(access: Access, rows: Timestamped<GroupMessage>[]): Promise<ChatMessageView[]> {
+    return this.chatMessages.views(rows, { teacherIds: access.teacherIds, pinnedIds: access.group.pinnedIds });
   }
 
   private sectionLabel(offering: { section?: { name?: string; class?: { class_name?: string } | null } | null }): string {
     return `${offering.section?.class?.class_name ?? ''} ${offering.section?.name ?? ''}`.trim();
-  }
-
-  private async userNames(ids: string[]): Promise<Map<string, string>> {
-    const unique = [...new Set(ids)];
-    if (unique.length === 0) return new Map();
-    const rows: { id: string; full_name: string }[] = await this.dataSource.query(`SELECT id, full_name FROM users WHERE id = ANY($1)`, [unique]);
-    return new Map(rows.map((r) => [r.id, r.full_name ?? '']));
   }
 
   private notFound(): never {

@@ -85,3 +85,4 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Two-column papers and an OMR answer sheet (QA-05) — P8-05 prints one column on A4 or Legal with sets A/B/C and an answer key; two columns need a column-aware layout in the jsPDF paper builder, and the OMR sheet (Could) a fixed bubble grid.
 - Multiple-response questions in the printed answer key (QA-05) — the teacher's exam payload carries one `correctOptionId`; send every correct option id to teachers so the key can list them all.
 - "Not started" tiles on the live monitor (PRO-03) — P8-03 shows students once they open the exam; for class and listed-student exams, add the students who have not opened it yet (the audience rules in `StudentExamService.validateExamAccess`), with status NOT_STARTED.
+- Typing indicators in private chats (COM-02 Should) — P9-02 has read receipts; typing needs a socket event relayed to the chat's room with a membership check.

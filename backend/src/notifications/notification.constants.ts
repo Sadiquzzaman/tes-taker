@@ -72,6 +72,8 @@ export const NOTIFICATION_EVENTS = {
   EXAM_REVIEW_DECIDED: 'exam.review_decided',
   /** A teacher posted in a group chat that is in announcement mode (P9-01, COM-01, COM-03): in-app to the members who have not muted it. */
   CHAT_ANNOUNCEMENT: 'chat.announcement',
+  /** A private chat message (P9-02, COM-02, COM-03): in-app to the other person, at most one notice per chat every 10 minutes. */
+  CHAT_DIRECT_MESSAGE: 'chat.direct_message',
 } as const;
 
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFICATION_EVENTS];

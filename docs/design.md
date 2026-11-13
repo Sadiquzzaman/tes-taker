@@ -677,6 +677,8 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 
 **Built in P9-01 part 2 (chat screen, COM-01, COM-03):** "Chat" in the menu (students; staff in an organisation; `chat` feature) opens `/chat` (`?group=` opens one): the person's group chats with unread counts and the last message, and the open group beside the list (below it on phones). A group shows its teachers, the rule notice "Messages may be reviewed by [school] administrators.", pinned posts, a composer (text, up to 5 files uploaded as DISCUSSION files scoped to the section's class, which the group views now carry as `class_id`), and posts newest first with "Load older"; a post opens its comment thread with a comment box. Reply quotes a message; teachers pin and delete any message and switch "Only teachers can post" (students then see a note and comment only); everyone deletes their own and mutes the group. The `/chat` socket keeps the open group, its open threads and the unread counts current; opening a group, and every message heard while it is open, marks it read.
 
+**Built in P9-02 part 1 (private chat, COM-02, COM-03):** MongoDB `direct_chats` (one per student and teacher in an organisation, `lastMessageAt`); messages live in `group_messages` with `groupId` = the chat's id, and the message helpers (files, names, previews, views) are shared in `ChatMessagesService`. **Who:** a student may message a teacher who teaches them, a teacher a student they teach — a subject class in an open session in common (403 `CHAT_NOT_ALLOWED`); `GET /chat/direct/contacts` lists them with the subject classes that link them. API `/chat/direct` (needs `chat`): the caller's chats (most recent first, unread count, `other_read_at` for read receipts, last message), start (`user_id`; one chat per pair whoever starts it), messages newest first, send (text and/or files, `reply_to_id`), delete your own (403 `CHAT_NOT_AUTHOR` otherwise), read (sends `chat:read` to the chat's room), mute. The other person gets the in-app `chat.direct_message` at most once per chat every 10 minutes, none when they muted it. Sockets also join `direct:<id>` rooms. Typing indicators are not built (Should; TODO).
+
 ### 9.10 Notifications, files, AI, integrity, IELTS
 
 | Table | Status | Purpose and key columns |
@@ -697,7 +699,8 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 | --- | --- | --- |
 | group\_chats | New, built P9-01 | One per subject class (course offering); `announcementOnly`, `pinnedIds` |
 | group\_messages | New, built P9-01 | Index `{groupId, createdAt}`; soft delete |
-| chat\_member\_states | New, built P9-01 | Per person and chat: `lastReadAt` (unread counts), `muted` |
+| chat\_member\_states | New, built P9-01 | Per person and chat: `lastReadAt` (unread counts, read receipts), `muted` |
+| direct\_chats | New, built P9-02 | One per student and teacher in an organisation; messages in `group_messages` |
 | private\_conversations, private\_messages | Existing | + `orgId` index, `readAt` |
 | discussion\_posts, discussion\_comments, discussion\_attachments | Existing | Shown as the Discussions tab |
 | user\_mutes | New | Admin mutes (COM-04) |

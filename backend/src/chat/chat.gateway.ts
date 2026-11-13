@@ -6,7 +6,8 @@ import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
 import { Tenant } from 'src/common/tenancy/tenant-context';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { OrganizationAccessService } from 'src/organizations/organization-access.service';
-import { ChatBroadcaster, groupRoom, userRoom } from './chat-broadcaster';
+import { ChatBroadcaster, directRoom, groupRoom, userRoom } from './chat-broadcaster';
+import { ChatDirectService } from './chat-direct.service';
 import { ChatGroupsService } from './chat-groups.service';
 
 const clientOrigin = process.env.CLIENT_ORIGIN ?? true;
@@ -16,8 +17,8 @@ type Member = Pick<Tenant, 'organizationId' | 'memberRole'>;
 /**
  * The chat socket (design §6.2, namespace `/chat`): a signed-in member of an organisation
  * (token in the handshake, organisation from the token, membership checked) joins their own
- * room and the rooms of their group chats, and receives `chat:message`, `chat:deleted` and
- * `chat:group`. Sending goes through the REST API, which checks every rule.
+ * room and the rooms of their group and private chats, and receives `chat:message`,
+ * `chat:deleted`, `chat:group` and `chat:read`. Sending goes through the REST API, which checks every rule.
  */
 @WebSocketGateway({ namespace: '/chat', cors: { origin: clientOrigin, methods: ['GET', 'POST'], credentials: true } })
 export class ChatGateway implements OnGatewayInit, OnGatewayConnection {
@@ -26,6 +27,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection {
   constructor(
     private readonly jwtService: JwtService,
     private readonly groups: ChatGroupsService,
+    private readonly direct: ChatDirectService,
     private readonly access: OrganizationAccessService,
     private readonly broadcaster: ChatBroadcaster,
   ) {}
@@ -56,9 +58,12 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection {
 
   private async joinGroups(client: Socket): Promise<number> {
     try {
-      const ids = await this.groups.groupIdsOf(client.data.tenant as Member, client.data.userId as string);
-      if (ids.length) await client.join(ids.map(groupRoom));
-      return ids.length;
+      const member = client.data.tenant as Member;
+      const userId = client.data.userId as string;
+      const [groupIds, directIds] = await Promise.all([this.groups.groupIdsOf(member, userId), this.direct.chatIdsOf(member, userId)]);
+      const rooms = [...groupIds.map(groupRoom), ...directIds.map(directRoom)];
+      if (rooms.length) await client.join(rooms);
+      return rooms.length;
     } catch (err) {
       this.logger.warn(`Could not join chat rooms: ${(err as Error).message}`);
       return 0;
