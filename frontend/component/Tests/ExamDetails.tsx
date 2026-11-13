@@ -13,6 +13,7 @@ import { useApiError } from "@/hooks/api/useApiError";
 import { sumExamMarks } from "@/utils/exam/examMarks";
 import { getStoredUser } from "@/lib/authSession";
 import useWorkspace from "@/hooks/organization/useWorkspace";
+import PrintPaperDrawer from "./PrintPaperDrawer";
 
 const countQuestions = (subjects: StudentExamSubject[]) =>
   subjects.reduce(
@@ -31,10 +32,11 @@ const questionsIn = (subject: StudentExamSubject) =>
 /** A teacher's test: status, schedule, marks, subjects; edit, enable/disable and grade. */
 const ExamDetails = ({ examId }: { examId: string }) => {
   const t = useTranslations("tests");
-  const { memberRole } = useWorkspace();
+  const { memberRole, activeOrganization } = useWorkspace();
   const format = useFormat();
   const router = useRouter();
   const [confirmDisable, setConfirmDisable] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const { triggerToast } = useToast();
   const { handleError } = useApiError();
 
@@ -177,6 +179,11 @@ const ExamDetails = ({ examId }: { examId: string }) => {
                 {t("details.integrity")}
               </Link>
             ) : null}
+            {canMonitor ? (
+              <Button variant="secondary" onClick={() => setPrinting(true)}>
+                {t("details.print")}
+              </Button>
+            ) : null}
             {canGradeTest ? (
               <Link href={`/grading/details/${exam.id}`} className={buttonClasses({ variant: "secondary" })}>
                 {t("card.grade")}
@@ -226,6 +233,8 @@ const ExamDetails = ({ examId }: { examId: string }) => {
           ))}
         </ul>
       </Card>
+
+      <PrintPaperDrawer open={printing} onClose={() => setPrinting(false)} exam={{ ...exam, subjects }} organizationName={activeOrganization?.name ?? null} />
 
       <ConfirmDialog
         open={confirmDisable}
