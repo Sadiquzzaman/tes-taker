@@ -1752,3 +1752,23 @@ Table ielts_results {
 // private_messages      { _id, conversationId, senderId, body, attachments[], readAt, createdAt }  EXISTING (+readAt)
 // discussion_posts / discussion_comments / discussion_attachments  EXISTING (shown as the "Discussions" tab)
 // user_mutes         { groupId, userId, until, by }  NEW (COM-04)
+
+Table proctoring_events {
+  id uuid [pk]
+  organization_id uuid
+  exam_id uuid [not null, ref: > exams.id]
+  student_id uuid [not null, ref: > users.id]
+  client_id varchar(64) [note: 'the browser’s flag id: one row whether sent live or with the submit']
+  type varchar(40) [not null, note: 'tab-switch, phone-detected, …; monitoring-lost / monitoring-back from the server']
+  check_key varchar(60) [note: 'the check (plan feature key) it belongs to']
+  message varchar(300)
+  points smallint [not null, default: 0]
+  source varchar(10) [not null, note: 'LIVE | SUBMIT | SERVER']
+  occurred_at timestamptz [not null]
+  created_at timestamptz [not null]
+  Indexes {
+    (exam_id, student_id, occurred_at)
+    (exam_id, student_id, client_id) [unique, note: 'where client_id is not null']
+  }
+  Note: 'NEW, BUILT P8-02 (exams module, migration ProctoringEvents); live state itself is in Redis'
+}

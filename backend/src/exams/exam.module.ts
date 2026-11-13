@@ -29,10 +29,13 @@ import { OfflineExamEntity } from './entities/offline-exam.entity';
 import { OfflineExamsController } from './offline-exams.controller';
 import { OfflineExamsService } from './offline-exams.service';
 import { ExamResultsReadService } from './exam-results-read.service';
+import { ProctoringEventEntity } from './entities/proctoring-event.entity';
+import { ProctoringEventsService } from './proctoring-events.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
+      ProctoringEventEntity,
       ExamQuestionEntity,
       ExamQuestionSectionEntity,
       ExamEntity,
@@ -60,7 +63,7 @@ import { ExamResultsReadService } from './exam-results-read.service';
     AcademicsModule,
   ],
   controllers: [ExamController, StudentExamController, ExamGradingController, OfflineExamsController],
-  providers: [ExamService, StudentExamService, ExamPaperCacheService, OfflineExamsService, ExamResultsReadService],
-  exports: [ExamService, StudentExamService, ExamPaperCacheService, OfflineExamsService, ExamResultsReadService],
+  providers: [ExamService, StudentExamService, ExamPaperCacheService, OfflineExamsService, ExamResultsReadService, ProctoringEventsService],
+  exports: [ExamService, StudentExamService, ExamPaperCacheService, OfflineExamsService, ExamResultsReadService, ProctoringEventsService],
 })
 export class ExamModule {}
