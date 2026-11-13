@@ -118,6 +118,10 @@ interface UseProctoringSocketOptions {
   flags: ProctoringFlag[];
   isEnabled: boolean;
   totalFlagPoints: number;
+  /** A warning the teacher sent from the live monitor (P8-03). */
+  onTeacherWarning?: (warning: { message: string; from: string }) => void;
+  /** The teacher ended this student's exam (P8-03). */
+  onExamEnded?: (reason: string) => void;
 }
 
 interface UseProctoringSocketResult {
@@ -190,4 +194,30 @@ interface EffectiveProctoring {
   checks: string[];
   camera: boolean;
   auto_disqualify: { threshold: number; warn_at: number; checks: string[] } | null;
+}
+
+/** A student on the live monitor (P8-03, PRO-03): `GET /exams/:id/proctoring/sessions` and socket events. */
+type MonitorLiveStatus = "WRITING" | "SUBMITTED" | "ENDED" | "DISCONNECTED" | "LOST";
+
+interface MonitorSession {
+  studentId: string;
+  studentName: string;
+  liveStatus: MonitorLiveStatus;
+  lastSeenAt?: string;
+  lostSince?: string | null;
+  flagCount: number;
+  totalFlagPoints: number;
+  latestFlag: { id: string; type: string; message: string; points: number; timestamp: string } | null;
+  deadline?: string | null;
+  attemptStatus?: string | null;
+}
+
+interface MonitorTimelineEvent {
+  id: string;
+  type: string;
+  check: string | null;
+  message: string | null;
+  points: number;
+  source: "LIVE" | "SUBMIT" | "SERVER";
+  occurred_at: string;
 }

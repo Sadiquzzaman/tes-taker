@@ -370,7 +370,10 @@
     "submitDetail": "{open, plural, =0 {Every question is answered.} one {# question is not answered yet.} other {# questions are not answered yet.}} You cannot change your answers after submitting.",
     "submitConfirm": "Submit",
     "keepWorking": "Keep working",
-    "questionLabel": "Question {number, number}"
+    "questionLabel": "Question {number, number}",
+    "endedByTeacher": "Your teacher ended your test: {reason}",
+    "teacherWarningTitle": "A message from your teacher",
+    "teacherWarningOk": "I understand"
   },
   "proctoring": {
     "title": "Proctoring",
@@ -906,7 +909,8 @@
       "negativeMarking": "Negative marking",
       "off": "Off",
       "questionCount": "{count, plural, one {# question} other {# questions}}",
-      "sessionClosed": "This test belongs to a closed session, so it cannot be changed or graded. The owner can reopen the session."
+      "sessionClosed": "This test belongs to a closed session, so it cannot be changed or graded. The owner can reopen the session.",
+      "monitor": "Live monitor"
     },
     "audience": {
       "anyone": "Anyone with the link",
@@ -4922,5 +4926,63 @@
     "settingsSaved": "Settings saved",
     "criteriaHint": "Behaviour criteria (what teachers rate) are on the Behaviour page.",
     "criteriaLink": "Open Behaviour"
+  },
+  "monitor": {
+    "title": "Live monitor",
+    "live": "Live",
+    "connecting": "Connecting…",
+    "refresh": "Refresh",
+    "notAllowed": "You can't watch this test.",
+    "loadFailed": "Couldn't load the live monitor.",
+    "empty": "Nobody has started yet",
+    "emptyHint": "Students appear here as they open the test.",
+    "summary": "{writing, number} writing · {lost, number} monitoring lost · {done, number} finished",
+    "tilesLabel": "Students taking the test",
+    "tileLabel": "{name}: {status}, {count, plural, one {# flag} other {# flags}}",
+    "status": {
+      "WRITING": "Writing",
+      "SUBMITTED": "Submitted",
+      "ENDED": "Ended",
+      "DISCONNECTED": "Disconnected",
+      "LOST": "Monitoring lost"
+    },
+    "timeLeft": "{clock} left",
+    "flags": "{count, plural, one {# flag} other {# flags}}",
+    "noFlags": "No flags",
+    "events": {
+      "tab-switch": "Switched tab",
+      "window-blur": "Left the test window",
+      "fullscreen-exit": "Left full screen",
+      "no-face": "Face not visible",
+      "multiple-faces": "More than one face",
+      "looking-away": "Looked away",
+      "phone-detected": "Phone seen",
+      "paste-attempt": "Tried to paste",
+      "restricted-action": "Blocked action",
+      "voice-detected": "Voices heard",
+      "idle-too-long": "Idle for a while",
+      "devtools-open": "Opened developer tools",
+      "screen-sharing": "Screen sharing",
+      "camera-blocked": "Camera blocked",
+      "screen-share-stopped": "Screen sharing stopped",
+      "double-display": "Second display",
+      "monitoring-lost": "Monitoring lost",
+      "monitoring-back": "Monitoring back",
+      "teacher-warning": "Warning sent",
+      "teacher-ended": "Exam ended by the teacher"
+    },
+    "timeline": "Timeline",
+    "warnLabel": "Warning to this student",
+    "warnPlaceholder": "For example: please keep your eyes on your own screen.",
+    "warn": "Send warning",
+    "warned": "Warning sent",
+    "end": "End this student's exam",
+    "endReason": "Reason",
+    "endHint": "The student's answers so far are kept and marked; you can review the decision later.",
+    "endConfirm": "End exam",
+    "ended": "Exam ended for the student",
+    "cancel": "Cancel",
+    "alertTitle": "Check {name}",
+    "alertDetail": "{count, plural, one {# flag} other {# flags}} so far."
   }
 }

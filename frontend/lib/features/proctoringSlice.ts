@@ -138,6 +138,13 @@ export const proctoringSlice = createSlice({
         state.enableAutoDisqualification = action.payload.enableAutoDisqualification;
       }
     },
+    /** The teacher ended this student's exam from the live monitor (P8-03). */
+    endedByTeacher: (state, action: PayloadAction<string>) => {
+      state.isDisqualified = true;
+      state.disqualificationReason = action.payload;
+      state.isWarningBlocking = false;
+      state.pendingWarning = null;
+    },
     disqualifyExam: (state, action: PayloadAction<AddProctoringFlagPayload | undefined>) => {
       if (action.payload) {
         addPenaltyFlag(state, action.payload);
@@ -165,6 +172,7 @@ export const {
   resetProctoring,
   setProctoringFeatures,
   disqualifyExam,
+  endedByTeacher,
 } = proctoringSlice.actions;
 
 export const selectProctoringState = (state: RootState) => state.proctoring;

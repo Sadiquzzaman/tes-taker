@@ -13,8 +13,13 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: ()
 vi.mock("@/lib/axios", () => ({ default: { get: (...args: unknown[]) => get(...args), patch: (...args: unknown[]) => patch(...args) } }));
 vi.mock("@/lib/authSession", () => ({ getStoredUser: () => ({ id: "teacher-1" }) }));
 vi.mock("@/hooks/api/exam/useDownloadExamQuestions", () => ({ default: () => ({ download: vi.fn(), loading: false }) }));
+let memberRole: string | null = null;
+vi.mock("@/hooks/organization/useWorkspace", () => ({ default: () => ({ memberRole }) }));
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  memberRole = null;
+});
 afterEach(() => cleanup());
 
 const studentTest = (status: "ongoing" | "pending" | "completed") =>
@@ -100,6 +105,24 @@ describe("test details", () => {
     expect(patch).not.toHaveBeenCalled();
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Disable" }));
     await waitFor(() => expect(patch).toHaveBeenCalledWith(expect.stringContaining("/exams/e1/status"), { active: false }));
+  });
+
+  it("links the live monitor for the teacher who made the test and the school's owner, not other teachers", async () => {
+    const ongoing = { ...exam, status: "ongoing", publishState: { ...exam.publishState, scheduleAt: "2020-01-01T00:00:00Z" } };
+    get.mockResolvedValue({ data: { payload: ongoing } });
+    renderApp(<ExamDetails examId="e1" />);
+    expect((await screen.findByRole("link", { name: "Live monitor" })).getAttribute("href")).toBe("/tests/e1/monitor");
+    cleanup();
+
+    get.mockResolvedValue({ data: { payload: { ...ongoing, created_by: "teacher-2" } } });
+    renderApp(<ExamDetails examId="e1" />);
+    expect(await screen.findByRole("heading", { name: "Algebra quiz" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Live monitor" })).toBeNull();
+    cleanup();
+
+    memberRole = "OWNER";
+    renderApp(<ExamDetails examId="e1" />);
+    expect(await screen.findByRole("link", { name: "Live monitor" })).toBeTruthy();
   });
 
   it("explains that a started test is locked", async () => {

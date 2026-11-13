@@ -44,4 +44,20 @@ describe("live proctoring channel (P8-02)", () => {
     rerender({ flags: [flag] });
     expect(emit).toHaveBeenCalledWith("flag:report", { examId: "x1", id: "flag-1", kind: "tab-switch", type: "TAB_SWITCH", message: "Left the tab", points: 1 });
   });
+
+  it("passes on the teacher's warning and the end of the exam (P8-03)", () => {
+    const onTeacherWarning = vi.fn();
+    const onExamEnded = vi.fn();
+    const { result } = renderHook(() =>
+      useProctoringSocket({ answerSheet: {}, examId: "x1", flags: [], isEnabled: true, totalFlagPoints: 0, onTeacherWarning, onExamEnded }),
+    );
+    act(() => {
+      vi.advanceTimersByTime(1);
+      result.current.connectToSocket();
+    });
+    act(() => handlers.get("proctor:warning")?.({ message: "Eyes on your screen.", from: "Rina" }));
+    act(() => handlers.get("exam:ended")?.({ reason: "Talking off camera" }));
+    expect(onTeacherWarning).toHaveBeenCalledWith({ message: "Eyes on your screen.", from: "Rina" });
+    expect(onExamEnded).toHaveBeenCalledWith("Talking off camera");
+  });
 });

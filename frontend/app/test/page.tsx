@@ -1,7 +1,7 @@
 "use client";
 
 import ExamDialog from "@/component/Tests/exam/ExamDialog";
-import { Button, Card, ErrorState, Spinner } from "@/design/ui";
+import { Button, Card, ErrorState, Modal, Spinner } from "@/design/ui";
 import ExamHeader from "@/component/Tests/exam/ExamHeader";
 import ProctoringCountdownModal from "@/component/Tests/exam/ProctoringCountdownModal";
 import ProctoringDisqualificationScreen from "@/component/Tests/exam/ProctoringDisqualificationScreen";
@@ -26,7 +26,7 @@ import {
   selectExamAnswerState,
   setExamAnswerValue,
 } from "@/lib/features/studentExamAnswerSlice";
-import { selectIsExamInteractionBlocked, selectIsProctoringReady } from "@/lib/features/proctoringSlice";
+import { endedByTeacher, selectIsExamInteractionBlocked, selectIsProctoringReady } from "@/lib/features/proctoringSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { PROCTORING_CONFIG } from "@/utils/tests/proctoringConfig";
 import {
@@ -130,12 +130,16 @@ export default function ParticipateTest() {
     needsCamera,
   });
 
+  // The teacher's warning from the live monitor, shown until the student closes it (P8-03).
+  const [teacherWarning, setTeacherWarning] = useState<{ message: string; from: string } | null>(null);
   const { connectToSocket, emitExamSubmit, connectionError } = useProctoringSocket({
     answerSheet: answerState,
     examId: test?.id,
     flags: proctoringState.flags,
     isEnabled: isProctoringReady && hasStartedExam && Boolean(test?.id),
     totalFlagPoints: proctoringState.totalPenaltyPoints,
+    onTeacherWarning: setTeacherWarning,
+    onExamEnded: (reason) => dispatch(endedByTeacher(t("endedByTeacher", { reason }))),
   });
 
   const isInteractionDisabled =
@@ -347,6 +351,16 @@ export default function ParticipateTest() {
       <ProctoringMobileFab mediaStream={mediaStream} />
       <ProctoringWarningModal />
       <ProctoringCountdownModal />
+      <Modal
+        open={teacherWarning !== null && !proctoringState.isDisqualified}
+        onClose={() => setTeacherWarning(null)}
+        title={t("teacherWarningTitle")}
+        footer={<Button onClick={() => setTeacherWarning(null)}>{t("teacherWarningOk")}</Button>}
+      >
+        <p role="alert" className="text-body text-ink">
+          {teacherWarning?.message}
+        </p>
+      </Modal>
       <ProctoringDisqualificationScreen
         open={proctoringState.isDisqualified}
         reason={proctoringState.disqualificationReason}
