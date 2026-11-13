@@ -4,7 +4,8 @@
  * everything goes through the app's own rules: five classes with two sections (morning and day
  * shift), six subjects with their teachers, sixty students, a full weekly routine, the school's
  * pin and one online section, holidays, events, homework and leave for the next three months,
- * a few exams, and links to the Demo School and a solo teacher (people in more than one workspace).
+ * a few exams, results (terms, paper exams with marks, behaviour ratings, score weights and report
+ * cards; P7), and links to the Demo School and a solo teacher (people in more than one workspace).
  *
  *   API_BASE=https://api-beta.instructor.academy/api/v1 TEST_PASSWORD=… node scripts/beta-sunrise-data.mjs
  *
@@ -352,6 +353,107 @@ async function main() {
       await post(admin, `/attendance/leave/${leave.id}/approve`, {});
       tally('leave approved');
     }
+  }
+
+  // Results (P7): two terms; per section a half-yearly paper exam in Bangla and Mathematics
+  // (MCQ 30 + Written 70, published) and a monthly Mathematics test (out of 20, one absent, not
+  // published); behaviour in Mathematics on three days; weights for Classes 9 and 10; positions
+  // shown to students; report cards for Class 6 A. Cards are made, not sent: sending texts
+  // guardians on the school's SMS credits. Marks are made up but steady from run to run.
+  const session = (await get(owner, '/sessions')).find((s) => s.is_default) ?? (await get(owner, '/sessions'))[0];
+  const year = session.start_date.slice(0, 4);
+  let terms = await get(owner, `/sessions/${session.id}/terms`);
+  for (const [name, start, end] of [
+    ['Half-yearly', session.start_date, `${year}-06-30`],
+    ['Annual', `${year}-07-01`, session.end_date],
+  ]) {
+    if (terms.some((t) => t.name === name)) continue;
+    await post(owner, `/sessions/${session.id}/terms`, { name, start_date: start, end_date: end });
+    tally('terms');
+  }
+  terms = await get(owner, `/sessions/${session.id}/terms`);
+  const halfYearly = terms.find((t) => t.name === 'Half-yearly');
+  const paperExams = await get(owner, '/offline-exams');
+  const markFor = (seed, out) => Math.round(((35 + ((seed * 37) % 61)) / 100) * out * 2) / 2;
+  for (const [i, section] of sections.entries()) {
+    for (const [subject, name, date, total, parts, termId, publish] of [
+      ['Bangla', 'Half-yearly Bangla', `${year}-06-15`, 100, true, halfYearly.id, true],
+      ['Mathematics', 'Half-yearly Mathematics', `${year}-06-17`, 100, true, halfYearly.id, true],
+      ['Mathematics', 'Monthly test Mathematics', addDays(today, -10), 20, false, null, false],
+    ]) {
+      const offering = section.offerings.find((o) => o.subject.name === subject);
+      let exam = paperExams.find((e) => e.offering.id === offering.id && e.name === name);
+      if (!exam) {
+        exam = await post(owner, '/offline-exams', {
+          offering_id: offering.id,
+          name,
+          exam_date: date,
+          total_marks: total,
+          parts: parts ? [{ name: 'MCQ', marks: 30 }, { name: 'Written', marks: 70 }] : null,
+          term_id: termId,
+        });
+        tally('paper exams');
+      }
+      const grid = await get(owner, `/offline-exams/${exam.id}/marks`);
+      const rows = grid.rows
+        .filter((row) => row.marks === null && !row.is_absent)
+        .map((row, k) => {
+          const seed = i * 7 + k * 3 + subject.length + total;
+          if (!parts && Number(row.student.roll_no) === 6) return { student_id: row.student.id, is_absent: true };
+          return parts
+            ? { student_id: row.student.id, part_marks: { MCQ: markFor(seed, 30), Written: markFor(seed + 5, 70) }, is_absent: false }
+            : { student_id: row.student.id, marks: markFor(seed, total), is_absent: false };
+        });
+      if (rows.length) {
+        await must('PUT', `/offline-exams/${exam.id}/marks`, owner.token, { rows }, orgId);
+        tally('paper exam marks', rows.length);
+      }
+      if (publish && !exam.published_at) {
+        await post(owner, `/offline-exams/${exam.id}/publish`, {});
+        tally('paper exams published');
+      }
+    }
+    // Behaviour in Mathematics, three days back.
+    const maths = section.offerings.find((o) => o.subject.name === 'Mathematics');
+    for (const back of [2, 9, 16]) {
+      const day = addDays(today, -back);
+      const grid = await get(owner, `/behaviour/grid?offering_id=${maths.id}&date=${day}`);
+      const rows = grid.rows
+        .filter((row) => Object.keys(row.ratings).length === 0)
+        .map((row, k) => ({
+          student_id: row.student.id,
+          ratings: Object.fromEntries(grid.criteria.map((c, ci) => [c.id, 2 + ((i + k + ci + back) % 4)])),
+          remark: k === 0 && back === 2 ? 'Helps others in group work.' : undefined,
+        }));
+      if (rows.length) {
+        await must('PUT', '/behaviour/grid', owner.token, { offering_id: maths.id, date: day, rows }, orgId);
+        tally('behaviour ratings', rows.length);
+      }
+    }
+  }
+  const weights = await get(owner, `/scores/weights?session_id=${session.id}`);
+  for (const row of weights.classes.filter((c) => ['Class 9', 'Class 10'].includes(c.class.name) && c.is_default)) {
+    await must('PUT', '/scores/weights', owner.token, { session_id: session.id, class_id: row.class.id, exams_pct: 60, homework_pct: 15, attendance_pct: 15, behaviour_pct: 10 }, orgId);
+    tally('score weights');
+  }
+  if (!(await get(owner, '/scores/settings')).show_rank) {
+    await must('PUT', '/scores/settings', owner.token, { show_rank: true }, orgId);
+    tally('show positions');
+  }
+  const class6A = sections.find((s) => s.className === 'Class 6' && s.name === 'A');
+  const cards = await get(owner, `/report-cards?section_id=${class6A.id}&term_id=${halfYearly.id}`);
+  if (cards.rows.some((r) => !r.latest)) {
+    await post(owner, '/report-cards/generate', {
+      section_id: class6A.id,
+      term_id: halfYearly.id,
+      locale: 'bn',
+      rows: cards.rows.map((r, k) => ({
+        student_id: r.student.id,
+        teacher_remark: k % 2 ? 'নিয়মিত অনুশীলন করলে আরও ভালো করবে।' : 'মনোযোগী ও পরিশ্রমী।',
+        principal_remark: 'শুভকামনা রইল।',
+      })),
+    });
+    tally('report cards');
   }
 
   // People in more than one workspace: a Sunrise teacher also teaches at Demo School, and a
