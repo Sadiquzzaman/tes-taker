@@ -354,6 +354,13 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
   // Attempt reviews (P8-04, PRO-05): to the student; the decision code is shown by its label below.
   { event_type: NOTIFICATION_EVENTS.EXAM_REVIEW_DECIDED, channel: IN_APP, locale: 'en', subject: '{{exam_name}}: your attempt was reviewed', body: '{{decision}}. {{reason}}' },
   { event_type: NOTIFICATION_EVENTS.EXAM_REVIEW_DECIDED, channel: IN_APP, locale: 'bn', subject: '{{exam_name}}: আপনার পরীক্ষা পর্যালোচনা করা হয়েছে', body: '{{decision}}। {{reason}}' },
+  // Group chat announcements (P9-01, COM-03): to the group's members, linked to the chat (`path`).
+  { event_type: NOTIFICATION_EVENTS.CHAT_ANNOUNCEMENT, channel: IN_APP, locale: 'en', subject: '{{group}}: new announcement', body: '{{author}}: {{preview}}' },
+  { event_type: NOTIFICATION_EVENTS.CHAT_ANNOUNCEMENT, channel: IN_APP, locale: 'bn', subject: '{{group}}: নতুন ঘোষণা', body: '{{author}}: {{preview}}' },
+  { event_type: NOTIFICATION_EVENTS.CHAT_DIRECT_MESSAGE, channel: IN_APP, locale: 'en', subject: 'Message from {{author}}', body: '{{preview}}' },
+  { event_type: NOTIFICATION_EVENTS.CHAT_DIRECT_MESSAGE, channel: IN_APP, locale: 'bn', subject: '{{author}}-এর বার্তা', body: '{{preview}}' },
+  { event_type: NOTIFICATION_EVENTS.CHAT_MESSAGE_REPORTED, channel: IN_APP, locale: 'en', subject: 'A chat message was reported', body: '{{reporter}}: {{reason}}' },
+  { event_type: NOTIFICATION_EVENTS.CHAT_MESSAGE_REPORTED, channel: IN_APP, locale: 'bn', subject: 'একটি চ্যাট বার্তা রিপোর্ট করা হয়েছে', body: '{{reporter}}: {{reason}}' },
   // Report cards (P7-04, PRF-09): to guardians, with the link that needs no login.
   {
     event_type: NOTIFICATION_EVENTS.REPORT_CARD_SHARED,

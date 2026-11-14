@@ -8,7 +8,7 @@ export default async function CreateTestsPage({ searchParams }: { searchParams: 
   const t = await getTranslations("createTest");
 
   return (
-    <PageLayout route="/tests" subText={examId ? t("editTitle") : t("title")}>
+    <PageLayout route="/tests" crumbs={[]} subText={examId ? t("editTitle") : t("title")}>
       <div className="mx-auto w-full max-w-6xl">
         <Suspense fallback={null}>
           <CreateTestForm />

@@ -13,8 +13,8 @@ const TONES = {
 } as const;
 
 /**
- * A dialog the student must act on during the exam (it cannot be dismissed with Esc or a click
- * outside): an icon in the tone's colour, a title, a short explanation and the action.
+ * A dialog during the exam (it cannot be dismissed with Esc or a click outside): an icon in the
+ * tone's colour, a title, a short explanation and the action. With `onClose` it also has a ×.
  */
 const ExamDialog = ({
   open,
@@ -24,6 +24,7 @@ const ExamDialog = ({
   children,
   footer,
   icon,
+  onClose,
 }: {
   open: boolean;
   tone?: keyof typeof TONES;
@@ -32,12 +33,14 @@ const ExamDialog = ({
   children?: ReactNode;
   footer?: ReactNode;
   icon?: ReactNode;
+  /** Shows a × that closes the dialog. */
+  onClose?: () => void;
 }) => (
   <Modal
     open={open}
-    onClose={() => {}}
+    onClose={onClose ?? (() => {})}
     dismissible={false}
-    hideClose
+    hideClose={!onClose}
     size="sm"
     title={
       <span className="flex items-center gap-3">

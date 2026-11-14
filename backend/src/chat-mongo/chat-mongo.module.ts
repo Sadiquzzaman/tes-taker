@@ -8,6 +8,11 @@ import {
   PrivateConversationSchema,
 } from './schemas/private-conversation.schema';
 import { PrivateMessage, PrivateMessageSchema } from './schemas/private-message.schema';
+import { GroupChat, GroupChatSchema } from './schemas/group-chat.schema';
+import { GroupMessage, GroupMessageSchema } from './schemas/group-message.schema';
+import { ChatMemberState, ChatMemberStateSchema } from './schemas/chat-member-state.schema';
+import { DirectChat, DirectChatSchema } from './schemas/direct-chat.schema';
+import { ChatUserMute, ChatUserMuteSchema } from './schemas/chat-user-mute.schema';
 
 @Module({
   imports: [
@@ -16,6 +21,11 @@ import { PrivateMessage, PrivateMessageSchema } from './schemas/private-message.
       { name: DiscussionComment.name, schema: DiscussionCommentSchema },
       { name: PrivateConversation.name, schema: PrivateConversationSchema },
       { name: PrivateMessage.name, schema: PrivateMessageSchema },
+      { name: GroupChat.name, schema: GroupChatSchema },
+      { name: GroupMessage.name, schema: GroupMessageSchema },
+      { name: ChatMemberState.name, schema: ChatMemberStateSchema },
+      { name: DirectChat.name, schema: DirectChatSchema },
+      { name: ChatUserMute.name, schema: ChatUserMuteSchema },
     ]),
   ],
   providers: [MongoChatHealthService],

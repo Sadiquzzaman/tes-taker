@@ -1,16 +1,29 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Button } from "@/design/ui";
+import { useEffect } from "react";
 import { dismissProctoringWarning } from "@/lib/features/proctoringSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import ExamDialog from "./ExamDialog";
 
-/** One plain sentence about what was flagged, the flag count, and "I understand" (review §4.6). */
+/** The warning closes on its own after this long, so it never holds up the exam. */
+export const WARNING_AUTO_CLOSE_MS = 1000;
+
+/**
+ * One plain sentence about what was flagged and the flag count (review §4.6). It closes with the
+ * × at once, or on its own after 1 second; a new flag shows again for its own second.
+ */
 const ProctoringWarningModal = () => {
   const t = useTranslations("proctoring");
   const dispatch = useAppDispatch();
   const pendingWarning = useAppSelector((state) => state.proctoring.pendingWarning);
+  const flagCount = pendingWarning?.flagCount ?? 0;
+
+  useEffect(() => {
+    if (!flagCount) return;
+    const timer = window.setTimeout(() => dispatch(dismissProctoringWarning()), WARNING_AUTO_CLOSE_MS);
+    return () => window.clearTimeout(timer);
+  }, [dispatch, flagCount]);
 
   if (!pendingWarning) {
     return null;
@@ -22,7 +35,7 @@ const ProctoringWarningModal = () => {
       tone="warning"
       title={t("warningTitle")}
       description={t(`flags.${pendingWarning.type}`)}
-      footer={<Button onClick={() => dispatch(dismissProctoringWarning())}>{t("understand")}</Button>}
+      onClose={() => dispatch(dismissProctoringWarning())}
     >
       <div className="flex flex-col gap-1 text-body-sm">
         <p className="font-medium text-warning">{t("currentFlagCount", { count: pendingWarning.flagCount })}</p>

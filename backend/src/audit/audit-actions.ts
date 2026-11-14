@@ -45,6 +45,28 @@ export const AUDIT_ACTIONS = {
   EXAM_STUDENT_ENDED: 'exam.student_ended',
   /** A teacher reviewed an attempt: reinstated, retake or confirmed (P8-04, PRO-05). */
   EXAM_ATTEMPT_REVIEW: 'exam.attempt_review',
+
+  // Resource library (Epic 8)
+  /** A resource was added (P9-03, RES-01). */
+  RESOURCE_CREATE: 'resource.create',
+  /** A resource was changed, archived or reshared (P9-03, RES-03). */
+  RESOURCE_UPDATE: 'resource.update',
+  /** A resource was deleted (kept as deleted, P9-03). */
+  RESOURCE_DELETE: 'resource.delete',
+
+  // Chat (Epic 7)
+  /** A teacher deleted someone else's message in their group chat (P9-01, COM-01). */
+  CHAT_MESSAGE_DELETE: 'chat.message_delete',
+  /** A teacher turned announcement mode on or off (P9-01, COM-01). */
+  CHAT_GROUP_UPDATE: 'chat.group_update',
+  /** An owner or admin deleted a message they reviewed (P9-02, COM-04, COM-05). */
+  CHAT_ADMIN_DELETE: 'chat.admin_delete',
+  /** An owner or admin muted a person in a chat for a while (P9-02, COM-04). */
+  CHAT_USER_MUTE: 'chat.user_mute',
+  /** An owner or admin closed or reopened a chat (P9-02, COM-04). */
+  CHAT_CLOSE: 'chat.close',
+  /** An owner or admin resolved a reported message (P9-02, COM-05). */
+  CHAT_REPORT_RESOLVE: 'chat.report_resolve',
   GRADE_UPDATE: 'grade.update',
 
   // Grading scale (owner and admins, FND-11)

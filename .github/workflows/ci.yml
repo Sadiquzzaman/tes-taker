@@ -86,7 +86,7 @@ jobs:
         run: pnpm migration:check
 
   api-tests-part:
-    name: Backend — API tests, part ${{ matrix.shard }} of 3
+    name: Backend — API tests, part ${{ matrix.shard }} of 4
     runs-on: ubuntu-latest
     # The API test files share one database, so within a run they go one at a time; three parts,
     # each with its own databases, run side by side: a third of the time, and a third of the
@@ -95,7 +95,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     # Same images and host ports as docker-compose.test.yml, so backend/test/test.env works unchanged.
     services:
       postgres:
@@ -138,9 +138,13 @@ jobs:
         run: npm install -g pnpm@9
       - name: Install
         run: make backend-install
-      - name: API tests (part ${{ matrix.shard }} of 3)
+      - name: API tests (part ${{ matrix.shard }} of 4)
         working-directory: backend
-        run: pnpm test:e2e --shard=${{ matrix.shard }}/3
+        # Each test file starts the whole app and memory grows ~20 MB per file (docs/TODO.md);
+        # four parts of ~22 files with a 4 GB heap leave room as files are added.
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: pnpm test:e2e --shard=${{ matrix.shard }}/4
 
   # One check with the old name, for the branch rules: green only when every part passed.
   api-tests:

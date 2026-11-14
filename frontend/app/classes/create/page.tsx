@@ -11,7 +11,7 @@ export default async function CreateClassesPage() {
   const backHref = isOrganization ? "/organization/classes" : "/classes";
 
   return (
-    <PageLayout route={backHref} subText={t("form.title")}>
+    <PageLayout route={backHref} crumbs={[]} subText={t("form.title")}>
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 pb-8">
         <PageHeader breadcrumb={<Breadcrumb items={[{ label: t("title"), href: backHref }, { label: t("form.title") }]} />} title={t("form.title")} />
         <CreateClassForm />

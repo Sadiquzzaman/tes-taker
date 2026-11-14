@@ -3,6 +3,7 @@ import { Homework1756270000000 } from '../../src/migrations/1756270000000-Homewo
 import { HomeworkSubmissions1756280000000 } from '../../src/migrations/1756280000000-HomeworkSubmissions';
 import { HomeworkScores1756290000000 } from '../../src/migrations/1756290000000-HomeworkScores';
 import { LeaveRequests1756250000000 } from '../../src/migrations/1756250000000-LeaveRequests';
+import { ResourceLibrary1756440000000 } from '../../src/migrations/1756440000000-ResourceLibrary';
 import { createTestApp, TestApp } from '../support/test-app';
 
 /**
@@ -17,6 +18,8 @@ describe('FileObjects migration', () => {
   const homework = new Homework1756270000000();
   const submissions = new HomeworkSubmissions1756280000000();
   const scores = new HomeworkScores1756290000000();
+  // Library files (P9-03) point at file_objects too.
+  const resources = new ResourceLibrary1756440000000();
 
   beforeAll(async () => {
     t = await createTestApp();
@@ -32,7 +35,8 @@ describe('FileObjects migration', () => {
   it('reverts, then runs twice without errors or duplicates', async () => {
     const runner = t.dataSource.createQueryRunner();
     try {
-      // Homework attachments point at file_objects: down first, back last.
+      // Homework attachments and library files point at file_objects: down first, back last.
+      await resources.down(runner);
       await scores.down(runner);
       await submissions.down(runner);
       await homework.down(runner);
@@ -53,6 +57,7 @@ describe('FileObjects migration', () => {
       await homework.up(runner);
       await submissions.up(runner);
       await scores.up(runner);
+      await resources.up(runner);
     } finally {
       await runner.release();
     }

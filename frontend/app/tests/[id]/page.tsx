@@ -7,7 +7,7 @@ export default async function ExamDetailsPage({ params }: { params: Promise<{ id
   const t = await getTranslations("tests");
 
   return (
-    <PageLayout route="/tests" subText={t("details.title")}>
+    <PageLayout route="/tests" crumbs={[]} subText={t("details.title")}>
       <ExamDetails examId={id} />
     </PageLayout>
   );

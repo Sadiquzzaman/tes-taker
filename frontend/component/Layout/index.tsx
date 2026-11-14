@@ -1,4 +1,5 @@
 import AppShell from "@/design/ui/AppShell";
+import type { BreadcrumbItem } from "@/design/ui";
 import Header, { HeaderActions } from "../Dashboard/Header";
 import Sidebar from "../Dashboard/Sidebar";
 import SidebarLogout from "../Dashboard/SidebarLogout";
@@ -17,10 +18,13 @@ const PageLayout = ({
   children,
   route = "",
   subText,
+  crumbs,
 }: {
   children: React.ReactNode;
   route?: string;
   subText?: string;
+  /** On a sub-page: the pages between the menu section and this one (often none). The top bar then links back. */
+  crumbs?: BreadcrumbItem[];
 }) => {
   return (
     <WorkspaceClientProvider>
@@ -28,7 +32,7 @@ const PageLayout = ({
         brand={<Brand />}
         nav={<Sidebar activeRoute={route} />}
         navFooter={<SidebarLogout />}
-        title={<Header activeRoute={route} subText={subText} />}
+        title={<Header activeRoute={route} subText={subText} crumbs={crumbs} />}
         actions={<HeaderActions />}
       >
         <div className="min-w-0 px-4 py-3 sm:px-8">{children}</div>

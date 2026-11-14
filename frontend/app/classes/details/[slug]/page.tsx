@@ -10,7 +10,7 @@ export default async function ClassDetailsPage({ params }: { params: Promise<{ s
   const { slug } = await params;
 
   return (
-    <PageLayout route="/classes" subText={t("details")}>
+    <PageLayout route="/classes" crumbs={[]} subText={t("details")}>
       <ClassDetailsComponent classId={slug} role={role} />
     </PageLayout>
   );

@@ -7,7 +7,7 @@ export default async function StudentExamResultsPage({ params }: { params: Promi
   const t = await getTranslations("tests");
 
   return (
-    <PageLayout route="/tests" subText={t("results.title")}>
+    <PageLayout route="/tests" crumbs={[]} subText={t("results.title")}>
       <StudentExamResults examId={id} />
     </PageLayout>
   );
