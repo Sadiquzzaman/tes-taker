@@ -20,10 +20,10 @@ type Listen = (listener: ChatListener) => () => void;
 
 /**
  * Private chats (P9-02, COM-02): a student with the teachers who teach them, a teacher with their
- * students. The list with unread counts, "New message" to pick a contact, and the open chat with
+ * students; each sees only the words for their own side (`as`). The list with unread counts, "New message" to pick a contact, and the open chat with
  * read receipts ("Seen").
  */
-const PrivateChats = ({ initialId, listen }: { initialId: string | null; listen: Listen }) => {
+const PrivateChats = ({ initialId, listen, as }: { initialId: string | null; listen: Listen; as: "student" | "teacher" }) => {
   const t = useTranslations("chat");
   const format = useFormat();
   const { handleError } = useApiError();
@@ -93,8 +93,8 @@ const PrivateChats = ({ initialId, listen }: { initialId: string | null; listen:
         {picking ? (
           <Card>
             <Combobox
-              label={t("newMessageTo")}
-              placeholder={t("pickPerson")}
+              label={t(`newMessageTo.${as}`)}
+              placeholder={t(`pickPerson.${as}`)}
               options={(contacts ?? []).map((c) => ({ value: c.id, label: c.name, detail: c.via.join(", ") }))}
               value={null}
               onChange={(value) => void start(value)}
@@ -110,7 +110,7 @@ const PrivateChats = ({ initialId, listen }: { initialId: string | null; listen:
         )}
         {chats.length === 0 ? (
           <Card>
-            <EmptyState title={t("noPrivate")} description={t("noPrivateHint")} />
+            <EmptyState title={t("noPrivate")} description={t(`noPrivateHint.${as}`)} />
           </Card>
         ) : (
           <nav aria-label={t("privateListLabel")} className="flex flex-col gap-2">

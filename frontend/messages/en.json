@@ -5082,11 +5082,17 @@
   },
   "chat": {
     "title": "Chat",
-    "description": "A group chat for each subject class you teach or take.",
+    "description": {
+      "student": "A group chat for each of your subject classes.",
+      "teacher": "A group chat for each subject class you teach."
+    },
     "notAvailable": "Chat isn't part of your school's plan.",
     "loadFailed": "Couldn't load the chats.",
     "empty": "No chats yet",
-    "emptyHint": "You'll find a chat here for each subject class you teach or take.",
+    "emptyHint": {
+      "student": "You'll find a chat here for each of your subject classes.",
+      "teacher": "You'll find a chat here for each subject class you teach."
+    },
     "listLabel": "Your chats",
     "unread": "{count, plural, one {# new} other {# new}}",
     "noMessages": "No messages yet",
@@ -5126,10 +5132,19 @@
     "privateChats": "Private",
     "closedBySchool": "The school closed this chat; it is read-only.",
     "newMessage": "New message",
-    "newMessageTo": "Message to",
-    "pickPerson": "Choose a teacher or student",
+    "newMessageTo": {
+      "student": "Message a teacher",
+      "teacher": "Message a student"
+    },
+    "pickPerson": {
+      "student": "Choose one of your teachers",
+      "teacher": "Choose one of your students"
+    },
     "noPrivate": "No private chats yet",
-    "noPrivateHint": "Students can message the teachers who teach them; teachers can message their students.",
+    "noPrivateHint": {
+      "student": "You can message the teachers who teach you.",
+      "teacher": "You can message the students you teach."
+    },
     "privateListLabel": "Your private chats",
     "choosePrivate": "Choose a chat",
     "choosePrivateHint": "Pick a chat on the left, or start a new message.",

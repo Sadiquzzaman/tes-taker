@@ -14,7 +14,8 @@ const request = vi.fn();
 vi.mock("@/lib/axios", () => ({ default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a), request: (...a: unknown[]) => request(...a), put: vi.fn(), delete: vi.fn() } }));
 let query = "";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => "/chat", useSearchParams: () => new URLSearchParams(query) }));
-vi.mock("@/hooks/organization/useWorkspace", () => ({ default: () => ({ activeOrganization: { name: "Sunrise School" }, memberRole: "TEACHER" }) }));
+let memberRole = "TEACHER";
+vi.mock("@/hooks/organization/useWorkspace", () => ({ default: () => ({ activeOrganization: { name: "Sunrise School" }, memberRole }) }));
 
 const ok = <T,>(payload: T) => Promise.resolve({ data: { payload } });
 const summary = (extra: Partial<ChatGroupSummary>): ChatGroupSummary => ({
@@ -77,6 +78,7 @@ const directChat = (extra: Partial<DirectChatSummary> = {}): DirectChatSummary =
 });
 
 beforeEach(() => {
+  memberRole = "TEACHER";
   localStorage.setItem("user", JSON.stringify({ id: "st1", access_token: "token" }));
   handlers.clear();
   query = "";
@@ -137,12 +139,13 @@ describe("chat (COM-01, COM-03)", () => {
   });
 
   it("private chats: start one with a teacher, see 'Seen' once they read, and report a message", async () => {
+    memberRole = "STUDENT";
     serve([], detail(), [], { chats: [], contacts: [{ id: "t1", name: "Rina", via: ["Class 6 A · Math"] }] });
     post.mockImplementation((url: string) => (url.endsWith("/chat/direct") ? ok(directChat()) : ok(null)));
     renderApp(<ChatPage />);
     fireEvent.click(await screen.findByRole("tab", { name: "Private" }));
     fireEvent.click(await screen.findByRole("button", { name: "New message" }));
-    const to = screen.getByLabelText("Message to");
+    const to = screen.getByLabelText("Message a teacher");
     fireEvent.change(to, { target: { value: "Rin" } });
     await screen.findByRole("option", { name: /Rina/ });
     fireEvent.keyDown(to, { key: "ArrowDown" });
@@ -168,6 +171,27 @@ describe("chat (COM-01, COM-03)", () => {
     );
     // Your own messages are deleted, not reported.
     expect(chat.getAllByRole("button", { name: "Report" })).toHaveLength(1);
+  });
+
+  it("tells each side only about its own side: students their teachers, teachers their students", async () => {
+    serve([], detail(), [], { chats: [], contacts: [{ id: "t1", name: "Rina", via: ["Class 6 A · Math"] }] });
+    memberRole = "STUDENT";
+    renderApp(<ChatPage />);
+    expect(await screen.findByText("A group chat for each of your subject classes.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Private" }));
+    expect(await screen.findByText("You can message the teachers who teach you.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "New message" }));
+    expect(screen.getByLabelText("Message a teacher").getAttribute("placeholder")).toBe("Choose one of your teachers");
+    expect(screen.queryByText(/teacher or student|students they teach|message their students/)).toBeNull();
+    cleanup();
+
+    memberRole = "TEACHER";
+    renderApp(<ChatPage />);
+    expect(await screen.findByText("A group chat for each subject class you teach.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Private" }));
+    expect(await screen.findByText("You can message the students you teach.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "New message" }));
+    expect(screen.getByLabelText("Message a student").getAttribute("placeholder")).toBe("Choose one of your students");
   });
 
   it("says when there are no chats", async () => {
