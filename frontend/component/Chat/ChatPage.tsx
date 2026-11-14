@@ -7,6 +7,7 @@ import useApiData from "@/component/Homework/useApiData";
 import { Badge, Card, EmptyState, ErrorState, PageHeader, Skeleton, Tabs } from "@/design/ui";
 import { cn, focusRing } from "@/design/ui/cn";
 import useChatSocket from "@/hooks/chat/useChatSocket";
+import useWorkspace from "@/hooks/organization/useWorkspace";
 import useFormat from "@/i18n/useFormat";
 import { getStoredUser } from "@/lib/authSession";
 import GroupChat from "./GroupChat";
@@ -24,6 +25,8 @@ const ChatPage = () => {
   const format = useFormat();
   const params = useSearchParams();
   const me = getStoredUser()?.id ?? null;
+  // Students and teachers each read about their own side (a student never messages a student).
+  const as = useWorkspace().memberRole === "STUDENT" ? "student" : "teacher";
   const { data: groups, failed, reload, setData } = useApiData<ChatGroupSummary[]>("/chat/groups");
   const [openId, setOpenId] = useState<string | null>(params.get("group"));
   const [tab, setTab] = useState(params.get("direct") ? "private" : "classes");
@@ -79,7 +82,7 @@ const ChatPage = () => {
         </Card>
       ) : groups.length === 0 ? (
         <Card>
-          <EmptyState title={t("empty")} description={t("emptyHint")} />
+          <EmptyState title={t("empty")} description={t(`emptyHint.${as}`)} />
         </Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
@@ -123,7 +126,7 @@ const ChatPage = () => {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
-      <PageHeader title={t("title")} description={t("description")} />
+      <PageHeader title={t("title")} description={t(`description.${as}`)} />
       <Tabs
         selectedKey={tab}
         onChange={setTab}
@@ -134,7 +137,7 @@ const ChatPage = () => {
             badge: groups?.some((g) => g.unread > 0) ? <Badge tone="info">{groups.reduce((n, g) => n + g.unread, 0)}</Badge> : undefined,
             content: <div className="pt-4">{groupsPanel}</div>,
           },
-          { key: "private", label: t("privateChats"), content: <div className="pt-4"><PrivateChats initialId={params.get("direct")} listen={listen} /></div> },
+          { key: "private", label: t("privateChats"), content: <div className="pt-4"><PrivateChats initialId={params.get("direct")} listen={listen} as={as} /></div> },
         ]}
       />
     </div>

@@ -31,11 +31,14 @@ const Header = async ({ activeRoute, subText = "", crumbs }: { activeRoute: stri
     );
   }
 
+  // A page named like its menu section ("Chat") is said once, not "Chat / Chat".
+  const section = t(`nav.${matched.label}`);
+  const page = subText && subText !== section ? subText : "";
   return (
     <span className="flex min-w-0 items-center gap-2">
       <span className="shrink-0 text-ink-muted">{matched.image}</span>
-      <span className={subText ? "text-ink-muted" : "text-ink"}>{t(`nav.${matched.label}`)}</span>
-      {subText ? <span className="truncate text-ink">/ {subText}</span> : null}
+      <span className={page ? "text-ink-muted" : "text-ink"}>{section}</span>
+      {page ? <span className="truncate text-ink">/ {page}</span> : null}
     </span>
   );
 };
