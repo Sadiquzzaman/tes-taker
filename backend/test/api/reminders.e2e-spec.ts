@@ -13,8 +13,18 @@ type Body<T> = { payload: T; code?: string; message?: string };
 type Offset = { minutes: number; channel: 'IN_APP' | 'SMS' };
 type Settings = { defaults: Record<string, Offset[]>; mine: Record<string, { offsets: Offset[]; own: boolean }>; can_manage: boolean };
 
-// Class 6 A meets Saturdays 10:00–10:45 in Dhaka: Saturday 14 November 2026 at 04:00 UTC.
-const CLASS_START = Date.parse('2026-11-14T04:00:00.000Z');
+const DAY = 24 * 3_600_000;
+/**
+ * Class 6 A meets Saturdays 10:00–10:45 in Dhaka (04:00 UTC). The class used here is a Saturday one to
+ * two weeks ahead of the real clock: the test runs the reminder job with its own times, but cancelling
+ * a class and adding an event need them still ahead (a fixed date stopped working once it passed).
+ */
+const CLASS_START = (() => {
+  const day = new Date();
+  day.setUTCHours(4, 0, 0, 0);
+  return day.getTime() + (((6 - day.getUTCDay() + 7) % 7) + 7) * DAY;
+})();
+const CLASS_DATE = new Date(CLASS_START).toISOString().slice(0, 10);
 const minutesBefore = (start: number, minutes: number) => new Date(start - minutes * 60_000);
 
 /**
@@ -140,12 +150,12 @@ describe('reminders API', () => {
 
   it('reminds attendees of events and students of exams, never of a cancelled class, and only with the calendar feature', async () => {
     const s = await school();
-    // The class next week is cancelled.
-    expect((await call('POST', `/attendance/sessions/${(await t.dataSource.query(`SELECT id FROM routine_slots WHERE section_id = $1`, [s.sectionId]))[0].id}/2026-11-14/cancel`, s.ownerToken, {})).status).toBe(200);
-    const eventStart = Date.parse('2026-11-15T05:00:00.000Z');
+    // That Saturday's class is cancelled; an event the next day, an exam the day after.
+    expect((await call('POST', `/attendance/sessions/${(await t.dataSource.query(`SELECT id FROM routine_slots WHERE section_id = $1`, [s.sectionId]))[0].id}/${CLASS_DATE}/cancel`, s.ownerToken, {})).status).toBe(200);
+    const eventStart = CLASS_START + DAY + 3_600_000;
     const event = await call<{ id: string }>('POST', '/events', s.ownerToken, { type: 'MEETING', title: 'Parents', starts_at: new Date(eventStart).toISOString(), ends_at: new Date(eventStart + 3_600_000).toISOString(), user_ids: [s.rina.id] });
     expect(event.status).toBe(201);
-    const examStart = Date.parse('2026-11-16T04:00:00.000Z');
+    const examStart = CLASS_START + 2 * DAY;
     await make.openExam(s.owner, { organization_id: s.organization.id, class_id: s.classId, test_audience: 'selected_class' as never, test_name: 'Unit test', exam_start_time: new Date(examStart), exam_end_time: new Date(examStart + 3_600_000) });
 
     await reminders.sweep(minutesBefore(CLASS_START, 30));
@@ -156,7 +166,7 @@ describe('reminders API', () => {
     expect(await sent(s.organization.id)).toEqual([s.mitu.id, s.rafi.id, s.rina.id].sort());
 
     const off = await school({ calendarOn: false });
-    await reminders.sweep(minutesBefore(CLASS_START + 7 * 24 * 3_600_000, 30));
+    await reminders.sweep(minutesBefore(CLASS_START + 7 * DAY, 30));
     expect(await sent(off.organization.id)).toEqual([]);
     expect((await call('GET', '/reminders', off.ownerToken)).status).toBe(403);
   });
