@@ -15,10 +15,12 @@ import { IeltsAttemptsService } from './ielts-attempts.service';
 import { IELTS_ERRORS } from './ielts-errors';
 import { IeltsProfilesService } from './ielts-profiles.service';
 import { IeltsTestsService } from './ielts-tests.service';
-import { wordCount } from './question-groups';
 
 /** The four official Writing criteria; Task 1 is judged on Task Achievement, Task 2 on Task Response. */
 export const WRITING_CRITERIA: Record<1 | 2, readonly string[]> = { 1: ['TA', 'CC', 'LR', 'GRA'], 2: ['TR', 'CC', 'LR', 'GRA'] };
+
+/** Words in an essay, numbers included (unlike short-answer word limits). */
+export const essayWords = (text: string): number => (text.trim() ? text.trim().split(/\s+/).length : 0);
 
 /** Words Task 1 and Task 2 ask for; fewer is shown, not blocked. */
 export const MIN_WORDS: Record<number, number> = { 1: 150, 2: 250 };
@@ -191,7 +193,7 @@ export class IeltsMarkingService {
       band: attempt.band === null ? null : Number(attempt.band),
       tasks: parts.map((p) => {
         const script = scripts.find((s) => s.part_id === p.id && !s.question_id)?.answer ?? '';
-        return { part_id: p.id, part_no: p.part_no, title: p.title, content: p.content, image_file_id: p.image_file_id, script, words: wordCount(script), min_words: MIN_WORDS[p.part_no] ?? 0 };
+        return { part_id: p.id, part_no: p.part_no, title: p.title, content: p.content, image_file_id: p.image_file_id, script, words: essayWords(script), min_words: MIN_WORDS[p.part_no] ?? 0 };
       }),
       marks: criteria.tasks ?? [],
       feedback: attempt.feedback,
