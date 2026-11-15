@@ -13,6 +13,8 @@ export enum FilePurposeEnum {
   VIDEO = 'VIDEO',
   /** A leave request's attachment, e.g. a doctor's note (ATT-09). */
   LEAVE = 'LEAVE',
+  /** IELTS tests (IEL-03): Listening recordings (one per part) and pictures (charts, maps, diagrams). */
+  IELTS = 'IELTS',
 }
 
 export enum FileStatusEnum {
@@ -48,7 +50,11 @@ export const UPLOAD_RULES: Partial<Record<FilePurposeEnum, readonly string[]>> =
   [FilePurposeEnum.LEAVE]: [...IMAGE_MIMES, 'application/pdf'],
   /** The resource library (RES-01): documents, slides, images and audio, up to 20 MB (video comes with RES-02). */
   [FilePurposeEnum.RESOURCE]: [...IMAGE_MIMES, ...DOCUMENT_MIMES, ...SLIDE_MIMES, ...AUDIO_MIMES],
+  /** IELTS tests (IEL-03): one recording per Listening part (up to 20 MB) and pictures. */
+  [FilePurposeEnum.IELTS]: [...IMAGE_MIMES, ...AUDIO_MIMES],
 };
+
+export const isAudioMime = (mime: string): boolean => (AUDIO_MIMES as readonly string[]).includes(mime);
 
 export const isImageMime = (mime: string): boolean => (IMAGE_MIMES as readonly string[]).includes(mime);
 

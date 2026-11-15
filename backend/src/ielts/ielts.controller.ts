@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
@@ -10,8 +10,10 @@ import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.d
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
 import { IeltsBandTableScopeDto, UpdateIeltsBandTableDto } from './dto/ielts-band-table.dto';
 import { ListIeltsProfilesQueryDto, UpdateIeltsProfileDto } from './dto/ielts-profile.dto';
+import { CreateIeltsTestDto, ListIeltsTestsQueryDto, UpdateIeltsTestDto, UpdateIeltsTestPartDto } from './dto/ielts-test.dto';
 import { IeltsBandTablesService } from './ielts-band-tables.service';
 import { IeltsProfilesService } from './ielts-profiles.service';
+import { IeltsTestsService } from './ielts-tests.service';
 
 const workspace = (): Tenant => {
   const tenant = TenantContext.current();
@@ -20,8 +22,8 @@ const workspace = (): Tenant => {
 };
 
 /**
- * The IELTS workspace (Epic 11, P10): IELTS centres only. Student profiles (IEL-02) and band
- * tables (IEL-04, IEL-05) so far.
+ * The IELTS workspace (Epic 11, P10): IELTS centres only. Student profiles (IEL-02), band tables
+ * (IEL-04, IEL-05) and IELTS tests (IEL-03) so far.
  * Errors carry a `code` (IELTS_*). Needs `ielts`.
  */
 @ApiTags('IELTS')
@@ -34,6 +36,7 @@ export class IeltsController {
   constructor(
     private readonly profiles: IeltsProfilesService,
     private readonly bandTables: IeltsBandTablesService,
+    private readonly tests: IeltsTestsService,
   ) {}
 
   @Get('profiles')
@@ -77,5 +80,42 @@ export class IeltsController {
   @ApiOperation({ summary: 'Owners and admins: put one band table back to the default' })
   async bandTablesReset(@Body() dto: IeltsBandTableScopeDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Band table reset', payload: await this.bandTables.reset(workspace(), user.id, dto) };
+  }
+
+  @Get('tests')
+  @ApiOperation({ summary: 'Staff: the centre’s IELTS tests (mocks and practice sets), with question counts per module' })
+  async testsList(@Query() query: ListIeltsTestsQueryDto) {
+    return { message: 'Tests retrieved successfully', payload: await this.tests.list(workspace(), query) };
+  }
+
+  @Post('tests')
+  @ApiOperation({ summary: 'Staff: a new draft test; a mock gets every part of its modules, a practice set the chosen parts of one module' })
+  async testsCreate(@Body() dto: CreateIeltsTestDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Test created', payload: await this.tests.create(workspace(), user.id, dto) };
+  }
+
+  @Get('tests/:id')
+  @ApiOperation({ summary: 'Staff: one test with its parts, question groups and questions (with answers)' })
+  async testsGet(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Test retrieved successfully', payload: await this.tests.get(workspace(), user.id, id) };
+  }
+
+  @Patch('tests/:id')
+  @ApiOperation({ summary: 'The maker, owners and admins: the title; while a draft, the test type and time per module' })
+  async testsUpdate(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateIeltsTestDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Test saved', payload: await this.tests.update(workspace(), user.id, id, dto) };
+  }
+
+  @Delete('tests/:id')
+  @ApiOperation({ summary: 'The maker, owners and admins: delete a test (kept, hidden)' })
+  async testsRemove(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
+    await this.tests.remove(workspace(), user.id, id);
+    return { message: 'Test deleted', payload: null };
+  }
+
+  @Put('tests/:id/parts/:partId')
+  @ApiOperation({ summary: 'Drafts: a part’s title, text (passage, task, questions), Listening recording or picture' })
+  async testsUpdatePart(@Param('id', ParseUUIDPipe) id: string, @Param('partId', ParseUUIDPipe) partId: string, @Body() dto: UpdateIeltsTestPartDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Part saved', payload: await this.tests.updatePart(workspace(), user.id, id, partId, dto) };
   }
 }
