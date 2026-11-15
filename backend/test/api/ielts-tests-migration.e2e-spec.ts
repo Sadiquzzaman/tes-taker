@@ -1,3 +1,4 @@
+import { IeltsAttempts1756480000000 } from '../../src/migrations/1756480000000-IeltsAttempts';
 import { IeltsTests1756470000000 } from '../../src/migrations/1756470000000-IeltsTests';
 import { createTestApp, TestApp } from '../support/test-app';
 
@@ -16,10 +17,13 @@ describe('IeltsTests migration', () => {
 
   it('creates ielts_tests, ielts_test_parts, ielts_question_groups and ielts_questions, safely twice, and reverts', async () => {
     const migration = new IeltsTests1756470000000();
+    // Attempts (P10-04) point at tests, parts and questions: down first, back last.
+    const attempts = new IeltsAttempts1756480000000();
     const runner = t.dataSource.createQueryRunner();
     const tables = ['ielts_tests', 'ielts_test_parts', 'ielts_question_groups', 'ielts_questions'];
     const existing = async () => (await Promise.all(tables.map((name) => runner.hasTable(name)))).filter(Boolean).length;
     try {
+      await attempts.down(runner);
       await migration.down(runner);
       expect(await existing()).toBe(0);
       const log = jest.spyOn(console, 'log');
@@ -29,6 +33,7 @@ describe('IeltsTests migration', () => {
       expect(log).toHaveBeenCalledWith('[IeltsTests] tests: 0, parts: 0, groups: 0, questions: 0');
       const fks = await runner.query(`SELECT count(*)::int AS n FROM pg_constraint WHERE contype = 'f' AND conname LIKE 'FK_ielts_test%' OR conname LIKE 'FK_ielts_question%'`);
       expect(fks[0].n).toBe(9);
+      await attempts.up(runner);
     } finally {
       await runner.release();
     }
