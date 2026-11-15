@@ -96,3 +96,86 @@ interface IeltsBandTable {
   customised: boolean;
   updated_at: string | null;
 }
+
+type IeltsAttemptStatus = "IN_PROGRESS" | "SUBMITTED" | "MARKED";
+
+/** `GET /ielts/my/assignments` */
+interface IeltsMyAssignment {
+  id: string;
+  test: { id: string; title: string; purpose: IeltsTestPurpose; test_type: IeltsTestType; modules: IeltsModule[]; durations: Partial<Record<IeltsModule, number>> };
+  opens_at: string;
+  closes_at: string;
+  is_open: boolean;
+  attempts: Partial<Record<IeltsModule, { id: string; status: IeltsAttemptStatus; deadline: string; raw_score: number | null; band: number | null }>>;
+}
+
+/** A question as a student sees it; `key` and `marks` only after hand-in when answers may be shown. */
+interface IeltsPaperQuestion {
+  id: string;
+  number_from: number;
+  number_to: number;
+  prompt: string | null;
+  options: IeltsOption[] | null;
+  key?: IeltsAnswerKey;
+  marks?: number;
+}
+
+interface IeltsPaperGroup {
+  id: string;
+  type: string;
+  instruction: string;
+  word_limit: number | null;
+  shared: { options?: IeltsOption[]; text?: string } | null;
+  image_file_id: string | null;
+  number_from: number | null;
+  number_to: number | null;
+  questions: IeltsPaperQuestion[];
+}
+
+interface IeltsPaperPart {
+  id: string;
+  module: IeltsModule;
+  part_no: number;
+  title: string | null;
+  content: string | null;
+  audio_file_id: string | null;
+  image_file_id: string | null;
+  groups: IeltsPaperGroup[];
+}
+
+/** `POST /ielts/my/assignments/:id/modules/:module/start`, `GET /ielts/my/attempts/:id` */
+interface IeltsAttemptView {
+  attempt: {
+    id: string;
+    assignment_id: string;
+    module: IeltsModule;
+    status: IeltsAttemptStatus;
+    started_at: string;
+    deadline: string;
+    submitted_at: string | null;
+    raw_score: number | null;
+    band: number | null;
+    now: string;
+    review_seconds: number;
+  };
+  test: { id: string; title: string; test_type: IeltsTestType; purpose: IeltsTestPurpose };
+  parts: IeltsPaperPart[] | null;
+  answers: Record<string, string>;
+}
+
+/** `GET /ielts/tests/:id/assignments` */
+interface IeltsAssignment {
+  id: string;
+  test_id: string;
+  section: { id: string; name: string };
+  opens_at: string;
+  closes_at: string;
+  students: number;
+  submitted: Partial<Record<IeltsModule, number>>;
+}
+
+/** `GET /ielts/assignments/:id/results` */
+interface IeltsResultRow {
+  student: { id: string; full_name: string };
+  modules: Partial<Record<IeltsModule, { status: IeltsAttemptStatus; raw_score: number | null; band: number | null; submitted_at: string | null }>>;
+}
