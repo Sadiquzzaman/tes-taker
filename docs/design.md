@@ -726,6 +726,8 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 
 **Built in P10-04 part 3 (openings screen, IEL-08):** `/ielts/tests/[id]/openings` (from the builder's Openings button on published tests): each batch the test is open for, with its window and hand-ins per module; open for another batch (batch, dates and times in the centre's time zone), change the window, remove after a confirmation; Results shows each student's band and score out of 40 per module (not started, taking it now, waiting for marks).
 
+**Built in P10-05 part 2 (Writing screens, IEL-06):** in the test screen, Writing shows the task (and its chart) on the left and the answer box on the right with a live word count (numbers count as words; under 150 / 250 is shown in amber, not blocked); scripts save per task. After hand-in the student sees "waiting for marks", then the Writing band, each task's band, the four criteria, comments and feedback, beside their scripts. Staff get **Marking** in the side menu (`/ielts/marking`: Waiting / Marked tabs, oldest first) and `/ielts/marking/[attemptId]`: each task with the script and word count, a band per criterion, the task band worked out as they choose, a comment per task, feedback; Save is enabled once every criterion has a band.
+
 ### 9.11 MongoDB (chat)
 
 | Collection | Status | Notes |

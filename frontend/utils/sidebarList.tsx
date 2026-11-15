@@ -412,6 +412,17 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Organization",
+    label: "ieltsMarking",
+    route: "/ielts/marking",
+    group: "tests",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    workspaces: ["IELTS"],
+    feature: "ielts",
+    image: <SidebarGradingIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
     label: "ieltsBandTables",
     route: "/ielts/band-tables",
     group: "tests",

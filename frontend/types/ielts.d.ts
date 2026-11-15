@@ -155,6 +155,9 @@ interface IeltsAttemptView {
     submitted_at: string | null;
     raw_score: number | null;
     band: number | null;
+    /** Writing, once marked: `{ tasks: [{ part_id, part_no, criteria, band, comment }] }`. */
+    criteria?: Record<string, unknown> | null;
+    feedback?: string | null;
     now: string;
     review_seconds: number;
   };
@@ -178,4 +181,26 @@ interface IeltsAssignment {
 interface IeltsResultRow {
   student: { id: string; full_name: string };
   modules: Partial<Record<IeltsModule, { status: IeltsAttemptStatus; raw_score: number | null; band: number | null; submitted_at: string | null }>>;
+}
+
+/** `GET /ielts/marking` */
+interface IeltsMarkingRow {
+  attempt_id: string;
+  module: IeltsModule;
+  status: IeltsAttemptStatus;
+  student: { id: string; full_name: string };
+  test: { id: string; title: string };
+  batch: string;
+  submitted_at: string | null;
+  band: number | null;
+}
+
+/** `GET /ielts/marking/:attemptId` */
+interface IeltsMarkingView extends IeltsMarkingRow {
+  test_type: IeltsTestType;
+  tasks: { part_id: string; part_no: number; title: string | null; content: string | null; image_file_id: string | null; script: string; words: number; min_words: number }[];
+  marks: { part_id: string; part_no: number; criteria: Record<string, number>; band: number; comment: string | null }[];
+  feedback: string | null;
+  marked_by: string | null;
+  marked_at: string | null;
 }

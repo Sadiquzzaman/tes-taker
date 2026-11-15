@@ -77,7 +77,8 @@
     "ieltsProfile": "My IELTS profile",
     "ieltsTests": "IELTS tests",
     "ieltsBandTables": "Band tables",
-    "ieltsMyTests": "IELTS tests"
+    "ieltsMyTests": "IELTS tests",
+    "ieltsMarking": "Marking"
   },
   "shell": {
     "organization": "Organization",
@@ -5634,7 +5635,24 @@
     "highlight": "Highlight",
     "clearHighlights": "Clear highlights",
     "notes": "Notes",
-    "notesHint": "Kept on this device while you take the test."
+    "notesHint": "Kept on this device while you take the test.",
+    "task": "Task",
+    "yourAnswer": "Your answer",
+    "answerFor": "Your answer to Task {no, number}",
+    "writeAtLeast": "Write at least {count, number} words.",
+    "wordCount": "{count, plural, one {# word} other {# words}}",
+    "underMinimum": "fewer than {count, number}",
+    "handInEmptyTasks": "{count, plural, one {# task is} other {# tasks are}} empty. You cannot change your answers after handing in.",
+    "waitingForTeacher": "Handed in. Your teacher will mark it against the four criteria.",
+    "feedback": "Feedback",
+    "taskBand": "Task band {band}",
+    "criteria": {
+      "TA": "Task Achievement",
+      "TR": "Task Response",
+      "CC": "Coherence and Cohesion",
+      "LR": "Lexical Resource",
+      "GRA": "Grammatical Range and Accuracy"
+    }
   },
   "ieltsOpenings": {
     "crumb": "Openings",
@@ -5677,5 +5695,34 @@
     "inProgress": "Taking it now",
     "waitingForMarks": "Waiting for marks",
     "noStudents": "No students in this batch"
+  },
+  "ieltsMarking": {
+    "title": "Marking",
+    "crumb": "Mark Writing",
+    "description": "IELTS Writing handed in by students. Give a band for each criterion; a task's band is their average to the nearest half band, and Task 2 counts double.",
+    "waiting": "Waiting",
+    "marked": "Marked",
+    "student": "Student",
+    "batch": "Batch",
+    "test": "Test",
+    "handedIn": "Handed in",
+    "band": "Band",
+    "actions": "Actions",
+    "mark": "Mark",
+    "change": "Change marks",
+    "markFor": "Mark {name}'s Writing",
+    "caption": "Writing to mark",
+    "noneWaiting": "Nothing waiting to be marked",
+    "noneMarked": "Nothing marked yet",
+    "loadFailed": "The Writing could not be loaded.",
+    "notHandedIn": "This Writing has not been handed in yet.",
+    "markTitle": "Writing by {name}",
+    "writingBand": "Writing band",
+    "taskN": "Task {no, number}",
+    "taskBandPending": "Give all four criteria to see the task band.",
+    "comment": "Comment on this task",
+    "rule": "Writing band = (Task 1 + 2 × Task 2) ÷ 3, to the nearest half band.",
+    "saveMarks": "Save marks",
+    "saved": "Marks saved"
   }
 }
