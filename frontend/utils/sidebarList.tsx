@@ -228,6 +228,17 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Organization",
+    label: "plagiarismSettings",
+    route: "/plagiarism-settings",
+    group: "results",
+    setup: true,
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN"],
+    feature: "integrity",
+    image: <SidebarGradingIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
     label: "performanceSettings",
     workspaces: ["ACADEMIC"],
     route: "/performance-settings",

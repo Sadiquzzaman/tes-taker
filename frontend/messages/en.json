@@ -79,7 +79,8 @@
     "ieltsBandTables": "Band tables",
     "ieltsMyTests": "IELTS tests",
     "ieltsMarking": "Marking",
-    "ieltsOverview": "IELTS overview"
+    "ieltsOverview": "IELTS overview",
+    "plagiarismSettings": "Plagiarism settings"
   },
   "shell": {
     "organization": "Organization",
@@ -4187,7 +4188,8 @@
       "scheduleTime": "Time",
       "withdraw": "Withdraw",
       "withdrawTitle": "Withdraw this homework?",
-      "withdrawDetail": "Students will no longer see it. It is kept, with everything about it, for staff."
+      "withdrawDetail": "Students will no longer see it. It is kept, with everything about it, for staff.",
+      "plagiarism": "Plagiarism check"
     },
     "editor": {
       "newTitle": "New homework",
@@ -5716,7 +5718,9 @@
     "examineFor": "Examine {name}'s Speaking",
     "markNow": "Mark",
     "reportFor": "Band report of {name}",
-    "overall": "Overall"
+    "overall": "Overall",
+    "plagiarism": "Plagiarism",
+    "plagiarismFor": "Plagiarism check of {batch}"
   },
   "ieltsMarking": {
     "title": "Marking",
@@ -5872,5 +5876,67 @@
     "skippedList": "Questions left out",
     "nothingSkipped": "Every question was copied.",
     "close": "Close"
+  },
+  "plagiarism": {
+    "title": "Plagiarism check: {name}",
+    "titlePlain": "Plagiarism check: IELTS Writing",
+    "crumb": "Plagiarism check",
+    "matchCrumb": "Side by side",
+    "backToHomework": "Back to the homework",
+    "backToTests": "Back to IELTS tests",
+    "staffOnly": "Only teachers and admins see these results. A decision never changes a score by itself.",
+    "runNow": "Run check now",
+    "ran": "Check finished",
+    "notAvailable": "Plagiarism checks are not in your plan.",
+    "loadFailed": "The results could not be loaded.",
+    "lastRun": "Last checked {when} ({count, plural, one {# text} other {# texts}} compared)",
+    "notRunYet": "Not checked yet. It runs by itself after the due date, or now with Run check now.",
+    "thresholds": "High from {high, number}%, Medium from {medium, number}%, texts under {words, number} words not checked",
+    "student": "Student",
+    "task": "Task",
+    "taskN": "Task {no, number}",
+    "words": "Words",
+    "similarity": "Similarity",
+    "mostSimilar": "Most similar to",
+    "compareWith": "Compare {a} with {b}",
+    "levels": {
+      "HIGH": "High",
+      "MEDIUM": "Medium",
+      "LOW": "Low"
+    },
+    "notChecked": {
+      "TOO_SHORT": "Not checked: too short",
+      "NO_TEXT": "Not checked: no text",
+      "HANDWRITTEN_IMAGE": "Not checked: handwritten image",
+      "FILE_NOT_READ": "Not checked: file (Word and PDF are not read yet)"
+    },
+    "submissionsCaption": "Submissions and their similarity",
+    "noSubmissions": "No submissions yet",
+    "pairsTitle": "Similar pairs",
+    "pairsDescription": "Pairs at Medium or High, and any already reviewed.",
+    "pair": "Pair",
+    "review": "Review",
+    "notReviewed": "Not reviewed",
+    "noPairs": "No similar pairs",
+    "decisions": {
+      "OK": "Reviewed — OK",
+      "COPIED": "Copied"
+    },
+    "matchTitle": "{a} and {b}",
+    "sharePercent": "{percent, number}% of this text is in shared passages",
+    "textOf": "Text of {name}",
+    "decision": "Decision",
+    "note": "Note",
+    "noScoreChange": "The decision is recorded; change the score yourself if needed.",
+    "saveReview": "Save review",
+    "reviewSaved": "Review saved",
+    "reviewedAt": "Reviewed {when}",
+    "settingsTitle": "Plagiarism settings",
+    "settingsDescription": "When a similarity counts as High or Medium, and the fewest words a text needs to be checked.",
+    "highFrom": "High from (%)",
+    "mediumFrom": "Medium from (%)",
+    "minWords": "Fewest words checked",
+    "save": "Save",
+    "settingsSaved": "Settings saved"
   }
 }
