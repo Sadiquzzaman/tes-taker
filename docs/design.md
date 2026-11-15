@@ -726,6 +726,8 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 
 **Built in P10-04 part 3 (openings screen, IEL-08):** `/ielts/tests/[id]/openings` (from the builder's Openings button on published tests): each batch the test is open for, with its window and hand-ins per module; open for another batch (batch, dates and times in the centre's time zone), change the window, remove after a confirmation; Results shows each student's band and score out of 40 per module (not started, taking it now, waiting for marks).
 
+**Built in P10-05 part 1 (Writing, IEL-06):** Writing is taken on screen: scripts are saved per task (`PUT /ielts/my/attempts/:id/answers` with `part_id`, up to 20 000 characters) and handing in leaves the attempt SUBMITTED for marking (a mock still runs Listening → Reading → Writing). Staff list what waits (`GET /ielts/marking`, `state=MARKED` for marked ones; oldest first, with batch), open one with each task, the script and its word count against 150 / 250 (`GET /ielts/marking/:attemptId`), and mark it (`PUT /ielts/marking/:attemptId/writing`): every task once, Task 1 on TA, CC, LR, GRA and Task 2 on TR, CC, LR, GRA, each 0–9 in half bands (400 `IELTS_MARKS_INVALID`), with a comment per task and feedback. A task's band is its criteria averaged to the nearest half band; the Writing band counts Task 2 double (one task: that task's band). Marks are stored in `ielts_attempts.criteria` (`{tasks: [...]}`), can be changed later and are audited (`ielts.mark`). The student sees the band, the criteria and the feedback with their scripts.
+
 ### 9.11 MongoDB (chat)
 
 | Collection | Status | Notes |
