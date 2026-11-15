@@ -111,4 +111,8 @@ export class OrgSettingsEntity extends CustomBaseEntity {
   @ApiProperty({ description: 'Students see their merit position (PRF-05, PRF-10)' })
   @Column({ name: 'show_rank', type: 'boolean', default: false })
   show_rank: boolean;
+
+  @ApiProperty({ description: 'Plagiarism: similarity % for High and Medium, and the fewest words checked (PLG-03); null = 40 / 20 / 50' })
+  @Column({ name: 'plagiarism_thresholds', type: 'jsonb', nullable: true })
+  plagiarism_thresholds: { high: number; medium: number; min_words: number } | null;
 }

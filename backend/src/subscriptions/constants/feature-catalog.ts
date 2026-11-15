@@ -11,6 +11,7 @@ export enum FeatureGroup {
   COMMUNICATION = 'Communication',
   RESOURCES = 'Resources',
   IELTS = 'IELTS',
+  INTEGRITY = 'Integrity',
 }
 
 export enum LimitKey {
@@ -70,6 +71,8 @@ export enum FeatureKey {
   RESOURCES = 'resources',
   /** Epic 11 (P10): the IELTS workspace — profiles, IELTS tests in the computer-delivered format, bands. IELTS centres only. */
   IELTS = 'ielts',
+  /** Epic 10 (P10-09): plagiarism checks between classmates' homework and IELTS Writing, with teacher review. */
+  INTEGRITY = 'integrity',
 }
 
 export type PlanFeatures = Partial<Record<FeatureKey, boolean>>;
@@ -247,6 +250,12 @@ export const FEATURE_CATALOG: CatalogFeatureDefinition[] = [
     label: 'IELTS workspace',
     description: 'IELTS centres: student profiles, IELTS tests in the computer-delivered format, Writing and Speaking marking, bands',
   },
+  {
+    key: FeatureKey.INTEGRITY,
+    group: FeatureGroup.INTEGRITY,
+    label: 'Plagiarism checker',
+    description: 'Compares classmates’ typed homework and IELTS Writing (Bangla and English), with matching passages side by side and teacher review',
+  },
 ];
 
 export const LIMIT_CATALOG: CatalogLimitDefinition[] = [
@@ -395,6 +404,7 @@ export const SEED_PLAN_PRESETS = {
       [FeatureKey.CHAT]: true,
       [FeatureKey.RESOURCES]: true,
       [FeatureKey.IELTS]: true,
+      [FeatureKey.INTEGRITY]: true,
       [FeatureKey.ALLOW_GRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_UNGRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_QUESTION_IMPORT_EXPORT]: true,
@@ -436,6 +446,7 @@ export const SEED_PLAN_PRESETS = {
       [FeatureKey.CHAT]: true,
       [FeatureKey.RESOURCES]: true,
       [FeatureKey.IELTS]: true,
+      [FeatureKey.INTEGRITY]: true,
       [FeatureKey.ALLOW_GRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_UNGRADED_QUESTIONS]: true,
       [FeatureKey.ALLOW_PASSAGE_QUESTIONS]: true,
