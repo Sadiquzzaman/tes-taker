@@ -5651,8 +5651,15 @@
       "TR": "Task Response",
       "CC": "Coherence and Cohesion",
       "LR": "Lexical Resource",
-      "GRA": "Grammatical Range and Accuracy"
-    }
+      "GRA": "Grammatical Range and Accuracy",
+      "FC": "Fluency and Coherence",
+      "P": "Pronunciation"
+    },
+    "speakingPracticeHint": "Record your answer to each part. You can record a part again before handing in.",
+    "handInNoRecording": "{count, plural, one {# part has} other {# parts have}} no recording. You cannot change your recordings after handing in.",
+    "waitingForTeacherSpeaking": "Handed in. Your teacher will mark your Speaking.",
+    "withTeacher": "With your teacher",
+    "startSpeaking": "Record your answers to Parts 1 to 3. Part 2 gives you 1 minute to prepare and 2 minutes to talk."
   },
   "ieltsOpenings": {
     "crumb": "Openings",
@@ -5694,7 +5701,11 @@
     "notStarted": "Not started",
     "inProgress": "Taking it now",
     "waitingForMarks": "Waiting for marks",
-    "noStudents": "No students in this batch"
+    "noStudents": "No students in this batch",
+    "examine": "Examine",
+    "continueExam": "Continue",
+    "examineFor": "Examine {name}'s Speaking",
+    "markNow": "Mark"
   },
   "ieltsMarking": {
     "title": "Marking",
@@ -5723,6 +5734,48 @@
     "comment": "Comment on this task",
     "rule": "Writing band = (Task 1 + 2 × Task 2) ÷ 3, to the nearest half band.",
     "saveMarks": "Save marks",
-    "saved": "Marks saved"
+    "saved": "Marks saved",
+    "module": "Module",
+    "modules": {
+      "WRITING": "Writing",
+      "SPEAKING": "Speaking"
+    },
+    "markSpeakingFor": "Mark {name}'s Speaking",
+    "captionSpeaking": "Speaking to mark"
+  },
+  "ieltsSpeaking": {
+    "crumb": "Speaking",
+    "partN": "Part {no, number}",
+    "partHint": {
+      "1": "Introduction and interview: 4–5 minutes of questions on familiar topics.",
+      "2": "Long turn: 1 minute to prepare, then up to 2 minutes on the cue card.",
+      "3": "Discussion: 4–5 minutes of deeper questions linked to Part 2."
+    },
+    "startPreparation": "Start 1 minute to prepare",
+    "startTalking": "Start 2 minutes to talk",
+    "prepare": "Prepare",
+    "talk": "Talk",
+    "preparationTime": "Preparation time",
+    "talkTime": "Talking time",
+    "record": "Record",
+    "recordAgain": "Record again",
+    "stopRecording": "Stop recording",
+    "noRecording": "Not recorded",
+    "recordingOf": "Recording of Part {no, number}",
+    "noMicrophoneSupport": "This browser cannot record. Try Chrome, Edge or Firefox.",
+    "microphoneDenied": "The microphone is blocked. Allow it in the browser to record.",
+    "examinerTitle": "Speaking with {name}",
+    "live": "Live session",
+    "practice": "Practice recordings",
+    "speakingBand": "Speaking band",
+    "marks": "Marks",
+    "bandPending": "Give all four criteria to see the band.",
+    "bandPreview": "Speaking band {band}",
+    "notes": "Notes for the student",
+    "saveAndEnd": "Save marks and end the session",
+    "saveMarks": "Save marks",
+    "saved": "Marks saved",
+    "loadFailed": "The Speaking could not be loaded.",
+    "notHandedIn": "The student has not handed this in yet."
   }
 }

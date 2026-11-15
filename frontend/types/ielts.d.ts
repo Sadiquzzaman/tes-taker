@@ -106,7 +106,7 @@ interface IeltsMyAssignment {
   opens_at: string;
   closes_at: string;
   is_open: boolean;
-  attempts: Partial<Record<IeltsModule, { id: string; status: IeltsAttemptStatus; deadline: string; raw_score: number | null; band: number | null }>>;
+  attempts: Partial<Record<IeltsModule, { id: string; status: IeltsAttemptStatus; mode?: string | null; deadline: string; raw_score: number | null; band: number | null }>>;
 }
 
 /** A question as a student sees it; `key` and `marks` only after hand-in when answers may be shown. */
@@ -158,6 +158,10 @@ interface IeltsAttemptView {
     /** Writing, once marked: `{ tasks: [{ part_id, part_no, criteria, band, comment }] }`. */
     criteria?: Record<string, unknown> | null;
     feedback?: string | null;
+    /** Speaking: LIVE (with the teacher) or RECORDED (practice). */
+    mode?: string | null;
+    /** Speaking: part id → recording file id. */
+    recordings?: Record<string, string>;
     now: string;
     review_seconds: number;
   };
@@ -180,7 +184,7 @@ interface IeltsAssignment {
 /** `GET /ielts/assignments/:id/results` */
 interface IeltsResultRow {
   student: { id: string; full_name: string };
-  modules: Partial<Record<IeltsModule, { status: IeltsAttemptStatus; raw_score: number | null; band: number | null; submitted_at: string | null }>>;
+  modules: Partial<Record<IeltsModule, { attempt_id: string; status: IeltsAttemptStatus; mode?: string | null; raw_score: number | null; band: number | null; submitted_at: string | null }>>;
 }
 
 /** `GET /ielts/marking` */
@@ -198,8 +202,12 @@ interface IeltsMarkingRow {
 /** `GET /ielts/marking/:attemptId` */
 interface IeltsMarkingView extends IeltsMarkingRow {
   test_type: IeltsTestType;
-  tasks: { part_id: string; part_no: number; title: string | null; content: string | null; image_file_id: string | null; script: string; words: number; min_words: number }[];
+  /** Speaking: LIVE or RECORDED. */
+  mode?: string | null;
+  tasks: { part_id: string; part_no: number; title: string | null; content: string | null; image_file_id: string | null; script: string; words: number; min_words: number; recording_file_id?: string | null }[];
   marks: { part_id: string; part_no: number; criteria: Record<string, number>; band: number; comment: string | null }[];
+  /** Speaking: FC, LR, GRA, P once marked. */
+  speaking?: Record<string, number> | null;
   feedback: string | null;
   marked_by: string | null;
   marked_at: string | null;
