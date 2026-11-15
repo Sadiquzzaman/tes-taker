@@ -209,6 +209,7 @@ describe('IELTS openings and attempts', () => {
 
     const reading = await call<Attempt>('POST', `/ielts/my/assignments/${opening.id}/modules/READING/start`, s.mituToken);
     expect(reading.status).toBe(200);
-    expect((await call('POST', `/ielts/my/assignments/${opening.id}/modules/WRITING/start`, s.mituToken)).body.code).toBe('IELTS_MODULE_NOT_READY');
+    // Writing waits until Reading is handed in.
+    expect((await call('POST', `/ielts/my/assignments/${opening.id}/modules/WRITING/start`, s.mituToken)).body.code).toBe('IELTS_MODULE_ORDER');
   });
 });

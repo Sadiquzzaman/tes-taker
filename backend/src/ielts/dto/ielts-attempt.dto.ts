@@ -29,14 +29,20 @@ export class UpdateIeltsAssignmentDto {
 }
 
 export class IeltsAnswerInputDto {
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'Listening / Reading: the question' })
+  @IsOptional()
   @IsUUID()
-  question_id: string;
+  question_id?: string;
 
-  @ApiProperty({ nullable: true, example: 'Sea Road', description: 'The text written, or the chosen key(s): "B" or "B,D"; empty clears it' })
+  @ApiPropertyOptional({ description: 'Writing: the task (part) the script is for' })
+  @IsOptional()
+  @IsUUID()
+  part_id?: string;
+
+  @ApiProperty({ nullable: true, example: 'Sea Road', description: 'The text written, the chosen key(s) "B" or "B,D", or a Writing script; empty clears it' })
   @IsOptional()
   @IsString()
-  @MaxLength(500)
+  @MaxLength(20_000)
   answer: string | null;
 }
 

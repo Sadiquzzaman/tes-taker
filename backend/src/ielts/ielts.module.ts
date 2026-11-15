@@ -16,6 +16,7 @@ import { IeltsAttemptsService } from './ielts-attempts.service';
 import { IeltsBandTablesService } from './ielts-band-tables.service';
 import { IeltsController } from './ielts.controller';
 import { IeltsGroupsService } from './ielts-groups.service';
+import { IeltsMarkingService } from './ielts-marking.service';
 import { IeltsProfilesService } from './ielts-profiles.service';
 import { IeltsTestsService } from './ielts-tests.service';
 
@@ -27,7 +28,7 @@ import { IeltsTestsService } from './ielts-tests.service';
 @Module({
   imports: [TypeOrmModule.forFeature([IeltsProfileEntity, IeltsBandTableEntity, IeltsTestEntity, IeltsTestPartEntity, IeltsQuestionGroupEntity, IeltsQuestionEntity, IeltsAssignmentEntity, IeltsAttemptEntity, IeltsAnswerEntity]), OrganizationsModule, SubscriptionModule],
   controllers: [IeltsController],
-  providers: [IeltsProfilesService, IeltsBandTablesService, IeltsTestsService, IeltsGroupsService, IeltsAttemptsService, IeltsAssignmentsService],
+  providers: [IeltsProfilesService, IeltsBandTablesService, IeltsTestsService, IeltsGroupsService, IeltsAttemptsService, IeltsAssignmentsService, IeltsMarkingService],
   exports: [IeltsProfilesService, IeltsBandTablesService, IeltsTestsService],
 })
 export class IeltsModule {}
