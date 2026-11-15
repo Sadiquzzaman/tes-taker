@@ -50,6 +50,7 @@ export const AUDIT_ACTIONS = {
   /** A student's IELTS profile was set or changed (P10-01, IEL-02). */
   IELTS_PROFILE_UPDATE: 'ielts.profile_update',
   IELTS_BAND_TABLE_UPDATE: 'ielts.band_table_update',
+  IELTS_TEST_DELETE: 'ielts.test_delete',
 
   // Resource library (Epic 8)
   /** A resource was added (P9-03, RES-01). */
