@@ -10,8 +10,8 @@ import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
 
-/** Modules taken on screen so far (Writing comes with P10-05, Speaking with P10-06). */
-const ON_SCREEN: IeltsModule[] = ["LISTENING", "READING"];
+/** Modules taken on screen (Speaking is a session with the examiner, P10-06). */
+const ON_SCREEN: IeltsModule[] = ["LISTENING", "READING", "WRITING"];
 /** A mock's modules run in this order. */
 const SEQUENCE: IeltsModule[] = ["LISTENING", "READING", "WRITING"];
 

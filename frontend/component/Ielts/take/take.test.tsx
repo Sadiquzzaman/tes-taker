@@ -93,8 +93,7 @@ describe("My IELTS tests (P10-04)", () => {
   it("shows each module's state and starts Listening after a reminder of the time", async () => {
     renderApp(<MyIeltsTests />);
     const card = within(await screen.findByRole("region", { name: "Mock 3" }));
-    expect(card.getByText("After the module before")).toBeTruthy(); // Reading waits for Listening
-    expect(card.getByText("Not on screen yet")).toBeTruthy(); // Writing comes with P10-05
+    expect(card.getAllByText("After the module before")).toHaveLength(2); // Reading and Writing wait for Listening
     fireEvent.click(card.getByRole("button", { name: "Start" }));
     const dialog = within(await screen.findByRole("dialog", { name: "Start Listening?" }));
     expect(dialog.getByText(/32 minutes/)).toBeTruthy();
@@ -195,5 +194,37 @@ describe("Taking an IELTS module (P10-04)", () => {
     renderApp(<IeltsAttemptScreen attemptId="at1" />);
     expect(await screen.findByText(/Mock tests are taken on a computer or a tablet/)).toBeTruthy();
     Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+  });
+
+  it("takes Writing with a live word count and sends scripts by task", async () => {
+    const task: IeltsPaperPart = { ...readingPart, id: "w1", module: "WRITING", content: "<p>The chart shows…</p>", groups: [] };
+    get.mockReturnValue(ok(attempt({ module: "WRITING" }, { parts: [task] })));
+    post.mockReturnValue(ok(attempt({ module: "WRITING", status: "SUBMITTED" }, { parts: [task], answers: { w1: "Sales rose by 20 percent in 2020." } })));
+    renderApp(<IeltsAttemptScreen attemptId="at1" />);
+    const box = await screen.findByLabelText("Your answer to Task 1");
+    fireEvent.change(box, { target: { value: "Sales rose by 20 percent in 2020." } });
+    expect(screen.getByText(/7 words · fewer than 150/)).toBeTruthy();
+    await waitFor(() => expect(put).toHaveBeenCalledWith(expect.stringMatching(/\/answers$/), { answers: [{ part_id: "w1", answer: "Sales rose by 20 percent in 2020." }] }), { timeout: 4000 });
+    fireEvent.click(screen.getByRole("button", { name: "Hand in" }));
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Hand in this module?" })).getByRole("button", { name: "Hand in" }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/submit$/), { answers: [{ part_id: "w1", answer: "Sales rose by 20 percent in 2020." }] }));
+    expect(await screen.findByText(/Your teacher will mark it/)).toBeTruthy();
+  });
+
+  it("shows Writing marks per criterion with comments and feedback", async () => {
+    const task: IeltsPaperPart = { ...readingPart, id: "w1", module: "WRITING", groups: [] };
+    get.mockReturnValue(
+      ok(
+        attempt(
+          { module: "WRITING", status: "MARKED", band: 6.5, criteria: { tasks: [{ part_id: "w1", part_no: 1, criteria: { TA: 6, CC: 6.5, LR: 6, GRA: 6 }, band: 6, comment: "Add an overview." }] }, feedback: "Good progress." },
+          { parts: [task], answers: { w1: "My essay" } },
+        ),
+      ),
+    );
+    renderApp(<IeltsAttemptScreen attemptId="at1" />);
+    expect(await screen.findByText("Task band 6.0")).toBeTruthy();
+    expect(screen.getByText("Coherence and Cohesion")).toBeTruthy();
+    expect(screen.getByText("Add an overview.")).toBeTruthy();
+    expect(screen.getByText("Good progress.")).toBeTruthy();
   });
 });
