@@ -732,6 +732,8 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 
 **Built in P10-07 part 2 (overview, progress and band report screens):** **IELTS overview** in the side menu (`/ielts/overview`): staff see batches, students, Writing and Speaking to mark (with a link to marking), mock tests open now or in the next 7 days, and the average band per module per batch (90 days); students see their target overall band, days to their test, tests open now, their next test and a table of target against latest band per module ("Reached" / "0.5 to go"). **Progress** (`/ielts/progress`, and `/ielts/progress/[studentId]` from the IELTS students table): one small line chart per module (bands in order, 0–9, the target as a dashed line, hover for the test and date), complete mocks with the overall band, and question types weakest first. **Band report** (`/ielts/report/[assignmentId]/[studentId]`, from a student's name in an opening's results; students from My IELTS tests once a band is in): module bands with Listening/Reading scores, targets, the overall band, Writing task bands with criteria and comments, Speaking criteria, feedback and the test date, with a Print button. Opening results show the overall band for four-module tests.
 
+**Built in P10-08 part 2 (copying screen):** the IELTS tests page shows "IELTS exams from the old test builder" when the centre has any: each with its date and either "Copy into the new format" or "Open the copy"; after copying, a dialog says how many questions were copied and lists the ones left out with the reason, and opens the copy (marked "Converted — check before use").
+
 ### 9.11 MongoDB (chat)
 
 | Collection | Status | Notes |

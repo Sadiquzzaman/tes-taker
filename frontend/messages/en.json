@@ -5854,5 +5854,18 @@
     "overall": "Overall band",
     "notMarked": "not marked yet",
     "testDate": "Booked test date: {date}"
+  },
+  "ieltsConvert": {
+    "title": "IELTS exams from the old test builder",
+    "description": "Copy each into the new format. The copy is a draft marked \"Converted — check before use\"; the old exam stays as it is.",
+    "convert": "Copy into the new format",
+    "convertFor": "Copy {title} into the new format",
+    "openCopy": "Open the copy",
+    "doneTitle": "Copied into the new format",
+    "doneDescription": "{count, plural, one {# question was copied.} other {# questions were copied.}} Check the copy, add recordings and publish it.",
+    "skipped": "{count, plural, one {# question did not fit and was left out:} other {# questions did not fit and were left out:}}",
+    "skippedList": "Questions left out",
+    "nothingSkipped": "Every question was copied.",
+    "close": "Close"
   }
 }
