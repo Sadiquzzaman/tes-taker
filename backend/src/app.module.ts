@@ -25,6 +25,7 @@ import { ProctoringModule } from './proctoring/proctoring.module';
 import { ChatModule } from './chat/chat.module';
 import { ResourcesModule } from './resources/resources.module';
 import { IeltsModule } from './ielts/ielts.module';
+import { IntegrityModule } from './integrity/integrity.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
@@ -104,6 +105,7 @@ import { CalendarFeedModule } from './calendar-feed/calendar-feed.module';
     ChatModule,
     ResourcesModule,
     IeltsModule,
+    IntegrityModule,
     PaymentModule,
     DashboardModule,
     HealthModule,

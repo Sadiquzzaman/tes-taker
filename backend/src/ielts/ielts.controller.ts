@@ -10,6 +10,8 @@ import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.d
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
 import { CreateIeltsAssignmentDto, SaveIeltsAnswersDto, SubmitIeltsAttemptDto, UpdateIeltsAssignmentDto } from './dto/ielts-attempt.dto';
 import { IeltsBandTableScopeDto, UpdateIeltsBandTableDto } from './dto/ielts-band-table.dto';
+import { IeltsRecordingDto, ListIeltsMarkingQueryDto, MarkIeltsSpeakingDto, MarkIeltsWritingDto, StartIeltsSpeakingDto } from './dto/ielts-marking.dto';
+import { IeltsMarkingService } from './ielts-marking.service';
 import { IeltsModuleEnum } from './entities/ielts-profile.entity';
 import { IeltsAssignmentsService } from './ielts-assignments.service';
 import { IeltsAttemptsService } from './ielts-attempts.service';
@@ -17,8 +19,10 @@ import { OrderIeltsGroupsDto, SaveIeltsGroupDto } from './dto/ielts-group.dto';
 import { ListIeltsProfilesQueryDto, UpdateIeltsProfileDto } from './dto/ielts-profile.dto';
 import { CreateIeltsTestDto, ListIeltsTestsQueryDto, UpdateIeltsTestDto, UpdateIeltsTestPartDto } from './dto/ielts-test.dto';
 import { IeltsBandTablesService } from './ielts-band-tables.service';
+import { IeltsConvertService } from './ielts-convert.service';
 import { IeltsGroupsService } from './ielts-groups.service';
 import { IeltsProfilesService } from './ielts-profiles.service';
+import { IeltsProgressService } from './ielts-progress.service';
 import { IeltsTestsService } from './ielts-tests.service';
 
 const workspace = (): Tenant => {
@@ -46,6 +50,9 @@ export class IeltsController {
     private readonly groups: IeltsGroupsService,
     private readonly assignments: IeltsAssignmentsService,
     private readonly attempts: IeltsAttemptsService,
+    private readonly marking: IeltsMarkingService,
+    private readonly progress: IeltsProgressService,
+    private readonly convertService: IeltsConvertService,
   ) {}
 
   @Get('profiles')
@@ -240,5 +247,96 @@ export class IeltsController {
   @ApiOperation({ summary: 'Students: hand in a module; Listening and Reading are marked out of 40 with their band' })
   async mySubmit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SubmitIeltsAttemptDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Module handed in', payload: await this.attempts.submit(workspace(), user.id, id, dto.answers) };
+  }
+
+  @Get('marking')
+  @ApiOperation({ summary: 'Staff: handed-in Writing waiting for marks (state=MARKED for marked ones), oldest first' })
+  async markingList(@Query() query: ListIeltsMarkingQueryDto) {
+    return { message: 'Attempts retrieved successfully', payload: await this.marking.list(workspace(), query) };
+  }
+
+  @Get('marking/:attemptId')
+  @ApiOperation({ summary: 'Staff: a handed-in Writing attempt with tasks, scripts, word counts and marks' })
+  async markingGet(@Param('attemptId', ParseUUIDPipe) attemptId: string) {
+    return { message: 'Attempt retrieved successfully', payload: await this.marking.get(workspace(), attemptId) };
+  }
+
+  @Put('marking/:attemptId/writing')
+  @ApiOperation({ summary: 'Staff: bands for TA/TR, CC, LR, GRA per task, comments and feedback; Task 2 counts double' })
+  async markingWriting(@Param('attemptId', ParseUUIDPipe) attemptId: string, @Body() dto: MarkIeltsWritingDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Marks saved', payload: await this.marking.markWriting(workspace(), user.id, attemptId, dto) };
+  }
+
+  @Post('assignments/:id/speaking')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Staff: start (or resume) a live Speaking session with a student of the batch' })
+  async speakingStart(@Param('id', ParseUUIDPipe) id: string, @Body() dto: StartIeltsSpeakingDto) {
+    return { message: 'Speaking session started', payload: await this.marking.startLive(workspace(), id, dto.student_id) };
+  }
+
+  @Put('marking/:attemptId/recordings')
+  @ApiOperation({ summary: 'Staff: keep a part’s recording in a live Speaking session' })
+  async speakingRecording(@Param('attemptId', ParseUUIDPipe) attemptId: string, @Body() dto: IeltsRecordingDto) {
+    return { message: 'Recording saved', payload: await this.marking.liveRecording(workspace(), attemptId, dto.part_id, dto.file_id) };
+  }
+
+  @Put('marking/:attemptId/speaking')
+  @ApiOperation({ summary: 'Staff: bands for FC, LR, GRA, P with notes (ends a live session)' })
+  async markingSpeaking(@Param('attemptId', ParseUUIDPipe) attemptId: string, @Body() dto: MarkIeltsSpeakingDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Marks saved', payload: await this.marking.markSpeaking(workspace(), user.id, attemptId, dto) };
+  }
+
+  @Put('my/attempts/:id/recordings')
+  @ApiOperation({ summary: 'Students: keep a Speaking part’s practice recording (your IELTS audio upload)' })
+  async myRecording(@Param('id', ParseUUIDPipe) id: string, @Body() dto: IeltsRecordingDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Recording saved', payload: await this.attempts.record(workspace(), user.id, id, dto.part_id, dto.file_id) };
+  }
+
+  @Get('progress/me')
+  @ApiOperation({ summary: 'Students: your bands over time per module, complete mocks with the overall band, weakest question types' })
+  async progressMine(@UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Progress retrieved successfully', payload: await this.progress.progress(workspace(), user.id, user.id) };
+  }
+
+  @Get('progress/:studentId')
+  @ApiOperation({ summary: 'Staff: a student’s bands over time against the target, overall bands, weakest question types' })
+  async progressOf(@Param('studentId', ParseUUIDPipe) studentId: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Progress retrieved successfully', payload: await this.progress.progress(workspace(), user.id, studentId) };
+  }
+
+  @Get('dashboard/me')
+  @ApiOperation({ summary: 'Students: targets against the latest band per module, the countdown, the next test' })
+  async dashboardMine(@UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Dashboard retrieved successfully', payload: await this.progress.studentDashboard(workspace(), user.id) };
+  }
+
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Staff: batches, upcoming mocks, Writing and Speaking waiting, average band per module per batch' })
+  async dashboardStaff() {
+    return { message: 'Dashboard retrieved successfully', payload: await this.progress.staffDashboard(workspace()) };
+  }
+
+  @Get('report/:assignmentId/me')
+  @ApiOperation({ summary: 'Students: your band report for an opening' })
+  async reportMine(@Param('assignmentId', ParseUUIDPipe) assignmentId: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Report retrieved successfully', payload: await this.progress.report(workspace(), user.id, assignmentId, user.id) };
+  }
+
+  @Get('report/:assignmentId/:studentId')
+  @ApiOperation({ summary: 'The band report of a student for an opening (staff; a student their own)' })
+  async report(@Param('assignmentId', ParseUUIDPipe) assignmentId: string, @Param('studentId', ParseUUIDPipe) studentId: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Report retrieved successfully', payload: await this.progress.report(workspace(), user.id, assignmentId, studentId) };
+  }
+
+  @Get('old-exams')
+  @ApiOperation({ summary: 'Staff: IELTS exams made in the academic builder, and whether each was copied into the new format' })
+  async oldExams() {
+    return { message: 'Exams retrieved successfully', payload: await this.convertService.list(workspace()) };
+  }
+
+  @Post('old-exams/:examId/convert')
+  @ApiOperation({ summary: 'Staff: copy one into a draft IELTS test marked "check before use"; lists questions that did not fit' })
+  async convertOld(@Param('examId', ParseUUIDPipe) examId: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Exam copied', payload: await this.convertService.convert(workspace(), user.id, examId) };
   }
 }

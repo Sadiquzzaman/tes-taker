@@ -79,7 +79,7 @@ Table org_settings {
   at_risk_score_pct smallint [not null, default: 40, note: 'BUILT P7-02 (PRF-07): CHECK 0..100']
   at_risk_attendance_pct smallint [not null, default: 75, note: 'BUILT P7-02: CHECK 0..100']
   at_risk_missing_homework smallint [not null, default: 3, note: 'BUILT P7-02: CHECK 1..50; columns rather than the planned at_risk_thresholds jsonb, like the homework settings']
-  plagiarism_thresholds jsonb [note: '{"high":40,"medium":20,"min_words":50}']
+  plagiarism_thresholds jsonb [note: 'BUILT P10-09 (PLG-03): {"high":40,"medium":20,"min_words":50}; null = these defaults']
   repeat_absence_days smallint [not null, default: 3, note: 'BUILT P3-01 (ATT-14): CHECK 2..30']
   show_rank boolean [not null, default: false, note: 'BUILT P7-02 (PRF-05, PRF-10): students see their position']
   chat_retention_months int [note: 'null = keep forever']
@@ -1671,25 +1671,37 @@ Table ai_requests {
 
 Table similarity_checks {
   id uuid [pk]
-  organization_id uuid [not null]
-  scope_type varchar(20) [note: 'HOMEWORK | EXAM']
-  scope_id uuid
-  status varchar(20)
-  ran_at timestamptz
-  Note: 'NEW (PLG-01)'
+  organization_id uuid [not null, ref: > organizations.id]
+  scope_type varchar(20) [not null, note: 'HOMEWORK | IELTS_WRITING (exam essays later)']
+  scope_id uuid [not null, note: 'the homework, or the IELTS opening']
+  status varchar(20) [not null, default: 'DONE']
+  submissions int [not null, default: 0, note: 'texts compared']
+  ran_at timestamptz [not null]
+  ran_by uuid [note: 'null = ran by itself after the due date']
+  Indexes {
+    (organization_id, scope_type, scope_id, ran_at)
+  }
+  Note: 'NEW (PLG-01), BUILT P10-09 (integrity module, migration Integrity)'
 }
 
 Table similarity_matches {
   id uuid [pk]
   check_id uuid [not null, ref: > similarity_checks.id]
-  submission_a uuid
-  submission_b uuid
-  score numeric(5,2)
-  spans jsonb [note: 'matching passages for side-by-side view']
-  review_decision varchar(20) [note: 'OK | COPIED (PLG-02)']
+  organization_id uuid [not null]
+  submission_a uuid [not null, note: 'homework_submissions.id or ielts_answers.id']
+  submission_b uuid [not null]
+  student_a uuid [not null]
+  student_b uuid [not null]
+  score numeric(5,2) [not null, note: 'the larger share of the two texts in matching passages']
+  spans jsonb [not null, note: '{a, b: [{start,end}], a_percent, b_percent, part_no?}']
+  review_decision varchar(10) [note: 'OK | COPIED (PLG-02)']
   review_note text
   reviewed_by uuid
-  Note: 'NEW'
+  reviewed_at timestamptz
+  Indexes {
+    (check_id, score)
+  }
+  Note: 'NEW, BUILT P10-09; only pairs that share a passage of 5+ words'
 }
 
 Table ai_writing_scores {
@@ -1844,7 +1856,7 @@ Table ielts_attempts {
   band numeric(2,1)
   criteria jsonb [note: 'WRITING per task: TA/TR, CC, LR, GRA; SPEAKING: FC, LR, GRA, P']
   feedback text
-  recording_file_ids jsonb [note: 'SPEAKING recordings per part']
+  recording_file_ids jsonb [note: 'SPEAKING recordings: {part_id: file_id} (P10-06)']
   marked_by uuid
   marked_at timestamptz
   Indexes {
