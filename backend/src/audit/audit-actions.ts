@@ -51,6 +51,7 @@ export const AUDIT_ACTIONS = {
   IELTS_PROFILE_UPDATE: 'ielts.profile_update',
   IELTS_BAND_TABLE_UPDATE: 'ielts.band_table_update',
   IELTS_TEST_DELETE: 'ielts.test_delete',
+  IELTS_TEST_STATUS: 'ielts.test_status',
 
   // Resource library (Epic 8)
   /** A resource was added (P9-03, RES-01). */

@@ -19,4 +19,9 @@ export const IELTS_ERRORS = {
   TEST_INVALID: 'IELTS_TEST_INVALID',
   /** The file is not this centre's IELTS upload of the right kind. */
   FILE_INVALID: 'IELTS_FILE_INVALID',
+  GROUP_NOT_FOUND: 'IELTS_GROUP_NOT_FOUND',
+  /** The question group breaks a rule of the paper (type, list, answers, word limit, 40 numbers). */
+  GROUP_INVALID: 'IELTS_GROUP_INVALID',
+  /** Something is missing before a test can be published; `details.problems` lists it. */
+  TEST_INCOMPLETE: 'IELTS_TEST_INCOMPLETE',
 } as const;
