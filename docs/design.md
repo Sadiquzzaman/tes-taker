@@ -71,7 +71,7 @@ This keeps every table with one owner, so a module can later become a separate s
 | `resources` | resource\_folders, resources, resource\_shares, resource\_views | academic, files, syllabus | Epic 8 |
 | `calendar` | routine\_slots, routine\_exceptions, events, event\_attendees, holidays, reminder\_rules | academic, notifications | Epic 9 |
 | `integrity` | similarity\_checks, similarity\_matches, ai\_writing\_scores | homework, exams, ai | Epic 10 |
-| `ielts` | ielts\_profiles, ielts\_band\_tables, ielts\_criteria\_scores, ielts\_mock\_tests, speaking\_recordings | exams, files | Epic 11 |
+| `ielts` | ielts\_profiles, ielts\_band\_tables, ielts\_tests, ielts\_test\_parts, ielts\_question\_groups, ielts\_questions, ielts\_assignments, ielts\_attempts, ielts\_answers | academics, files, notifications | Epic 11 (re-designed 15 Nov 2026) |
 | `notifications` | notifications (inbox), notification\_outbox, sms\_credit\_ledger, push tokens (in user\_devices), message templates | external SMS, email, FCM | FND-12–14 |
 | `files` | file\_objects | S3, MediaConvert | FND-15, FND-16 |
 | `billing` | subscription\_plans, payments, payment\_history | SSLCommerz | existing, fixed |
@@ -702,7 +702,9 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 | file\_objects | New | Every file in S3: purpose, size, status, `delete_after` |
 | ai\_task\_configs, ai\_requests | New | Model per task; every call's tokens and cost |
 | similarity\_checks, similarity\_matches, ai\_writing\_scores | New | Plagiarism runs, pairs and review decisions |
-| ielts\_profiles, ielts\_band\_tables, ielts\_mock\_tests, ielts\_results | New | Target bands, raw → band tables, mocks, module bands with criteria |
+| ielts\_profiles, ielts\_band\_tables, ielts\_tests, ielts\_test\_parts, ielts\_question\_groups, ielts\_questions, ielts\_assignments, ielts\_attempts, ielts\_answers | New (P10) | Target bands; raw → band tables; IELTS tests in the computer-delivered format (parts, question groups numbered 1–40, accepted answers); mocks for batches; attempts per module with raw score, band and Writing/Speaking criteria |
+
+**IELTS re-design (P10, decided 15 Nov 2026):** IELTS is for **IELTS centres only** (organisation `kind` IELTS\_CENTRE, `workspace_type` IELTS, Course / Batch labels, feature key `ielts`); schools keep the academic product. IELTS tests no longer live in academic `exams`: the `ielts` module owns its own tables because the real format is built from **parts** (Listening 1–4 with one recording each, Reading passages 1–3, Writing tasks 1–2, Speaking parts 1–3) and **question groups** (one instruction, a word limit, a shared list such as headings or options A–H, numbers 1–40 in order), answers have several accepted spellings, each module has its own timer, and results are **bands**: Listening and Reading raw scores (out of 40) go through editable `ielts_band_tables` (platform defaults, a centre's own copy; Reading has Academic and General tables); Writing has four criteria per task (Task 2 counts double) and Speaking four criteria; the overall band is the four module bands averaged and rounded to the nearest half band (.25 up to .5, .75 up to the next whole band). Attempts are per student, test and module (`ielts_attempts`, answers in `ielts_answers`); a mock opens for a batch (section) in a window (`ielts_assignments`). Speaking is a live session with the teacher as examiner (timers, optional recording, criteria) or a practice recording by the student. The test screen follows the computer-delivered IELTS (split Reading screen with highlight and notes, Listening played once with 2 minutes to review, 1–40 navigator, flag for review, per-module timer); mocks need a computer or tablet. IELTS tests made in the academic builder are **copied** into the new tables (`source_exam_id`, `needs_review`); the old exams stay. No official Cambridge content ships with the product.
 
 ### 9.11 MongoDB (chat)
 

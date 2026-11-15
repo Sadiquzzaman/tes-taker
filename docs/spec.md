@@ -855,73 +855,81 @@ The syllabus is the topic list that question tags (QA-01), homework (HW-01) and 
 
 ## Epic 11 — IELTS workspace
 
-**Goal:** give IELTS centres and trainers their own workspace built around the four modules and band scores, instead of classes and GPA. Each centre can still add a course path based on its own course curriculum.
+**Goal:** give IELTS centres their own workspace built around the four modules and band scores, where students practise in the **same format as the computer-delivered IELTS** and teachers mark Writing and Speaking the way examiners do.
 
-**Built today:** an IELTS exam category with Reading, Writing, Listening and Speaking module keys in the backend, and an IELTS option in the exam builder. There is no IELTS dashboard, no audio, no band conversion and no speaking flow.
+**Built today:** an IELTS test category inside the academic test builder (modules as subjects, IELTS question types, marks instead of bands). There is no IELTS workspace, no band conversion, no Writing or Speaking criteria, no per-module timing and no Speaking flow. The redesign below replaces it (owner's decisions, 15 Nov 2026).
+
+**Decisions (15 Nov 2026):**
+
+- **For IELTS centres only.** A centre chooses "IELTS centre" at sign-up and gets an IELTS workspace. Schools and coaching centres do not run IELTS.
+- **Computer-delivered format.** Tests look and behave like the computer-delivered IELTS, so students practise the real thing. Mock tests need a computer or tablet; phones are told to use one.
+- **Speaking as in the real test:** face to face (in person or by video call) with the teacher as examiner, who marks the four criteria in the app. Students can also record practice answers in the app between mocks.
+- **Templates for mocks, free practice sets:** a mock follows the real shape (Listening 4 parts and 40 questions, Reading 3 passages and 40 questions, Writing 2 tasks, Speaking 3 parts); a practice set can be one part or passage.
+- **No official Cambridge content** ships with the product. Centres add their own tests. Band conversion tables are editable defaults.
+- **Existing IELTS tests** made in the academic builder are copied into the new format and marked "Converted — check before use"; nothing is deleted.
 
 **How it differs from Academic:**
 
-- Courses and batches instead of classes and sections (fixed labels).
-- Band scores (0–9 in half bands) instead of marks and GPA.
-- The course path follows each centre's course curriculum. It reuses Epic 6 under that name, with an IELTS topic template as an optional starting point.
-- Attendance, homework, resources, calendar, chat and plagiarism work exactly as in Academic.
+- Courses and batches instead of classes and sections (the "Course / Batch" labels; same engine underneath, so attendance, homework, resources, calendar, chat and plagiarism work as in Academic).
+- Band scores (0–9 in half bands) instead of marks, GPA and report cards. The academic Results pages (performance, report cards, paper exams, behaviour) are hidden in IELTS workspaces.
+- The course path follows each centre's own curriculum (Epic 6 under that name).
 
-**IEL-01 · IELTS sign-up and dashboard (Must)** As an IELTS centre owner, I want to choose "IELTS" at sign-up and land on an IELTS dashboard so that the product speaks my language.
+**IEL-01 · IELTS centre sign-up and dashboard (Must)** As an IELTS centre owner, I want to choose "IELTS centre" at sign-up and land on an IELTS dashboard so that the product speaks my language.
 
-- **Owner/teacher dashboard:** today's batches, upcoming mock tests, Writing and Speaking scripts waiting to be marked, and the average band per module per batch.
-- **Student dashboard:** target band vs latest band per module, next mock test, and pending homework.
+- Sign-up asks "School" or "IELTS centre". An IELTS centre starts with Course / Batch labels and the IELTS menu.
+- **Owner/teacher dashboard:** today's batches, upcoming mock tests, Writing and Speaking waiting to be marked, and the average band per module per batch.
+- **Student dashboard:** target band vs latest band per module, the countdown to the test date, the next mock and pending homework.
 
 **IEL-02 · Student IELTS profile (Must)** As a teacher, I want each student's test type, target band and test date recorded so that coaching is focused.
 
-- Fields:
-  - test type: Academic or General Training
-  - target overall band and target per module
-  - booked test date (optional)
-- A countdown to the test date is shown on the student dashboard.
+- Test type (Academic or General Training), target overall band and target per module, booked test date (optional).
 
-**IEL-03 · Listening tests (Must)** As a teacher, I want to build Listening tests with audio and the standard question types so that students practise realistically.
+**IEL-03 · IELTS test builder (Must)** As a teacher, I want to build IELTS tests the way real papers are laid out so that students practise realistically.
 
-- Audio upload per part (MP3), with an option to play only once like the real test. A transfer-time screen appears at the end.
-- **Question types:** multiple choice, form/note/table/summary completion, matching, map/plan labelling, short answer.
-- Answers are auto-scored, with an option to accept alternative spellings.
-- The raw score out of 40 is converted to a band using an editable conversion table.
+- A test has the modules it includes. A **mock** uses the real template: Listening Parts 1–4, Reading Passages 1–3, Writing Tasks 1–2, Speaking Parts 1–3. A **practice set** can have any one part, passage or task.
+- **Question groups** are the unit, as on the real paper: one instruction ("Questions 1–5. Write NO MORE THAN TWO WORDS AND/OR A NUMBER."), a range of question numbers, and, where the type needs it, a shared list (a list of headings, options A–H, a word box) or a picture (map, plan, diagram).
+- **Group types:** multiple choice (one or more answers), True/False/Not Given, Yes/No/Not Given, matching headings, matching information, matching features, matching sentence endings, sentence completion, summary/note/table/flow-chart/form completion (with or without a word box), diagram/map/plan labelling, short answer.
+- Questions are numbered 1–40 straight through each module, automatically.
+- **Answers:** one or more accepted answers per question (for example "colour / color"), checked without regard to case and extra spaces; the word limit is checked.
+- Timing per module: Listening about 30 minutes plus 2 minutes to review, Reading 60 minutes, Writing 60 minutes (Task 1 at least 150 words, Task 2 at least 250).
 
-**IEL-04 · Reading tests (Must)** As a teacher, I want to build Reading tests with passages and the standard question types so that students practise realistically.
+**IEL-04 · Listening (Must)** As a student, I want Listening to play like the real test so that I am ready for it.
 
-- Passages appear side by side with questions, with a 60-minute timer.
-- **Question types:** True/False/Not Given, Yes/No/Not Given, matching headings, matching information, sentence and summary completion, multiple choice, short answer.
-- Auto-scored. Raw score out of 40 → band, with separate conversion tables for Academic and General Training.
+- One recording per part, played once without pause or rewind, with the questions of that part on screen while it plays; 2 minutes at the end to check answers.
+- Auto-scored out of 40, converted to a band with an editable table.
 
-**IEL-05 · Writing tests and marking (Must)** As a teacher, I want to set Task 1 and Task 2 and mark them against the four official criteria so that students get a real band and useful feedback.
+**IEL-05 · Reading (Must)** As a student, I want Reading laid out like the real test.
 
-- Task 1 can include a chart or image (Academic) or a letter prompt (General Training).
-- The student sees a live word count and a warning under 150 or 250 words.
-- The teacher gives a band for each of Task Achievement/Response, Coherence & Cohesion, Lexical Resource and Grammatical Range & Accuracy, and can add comments on highlighted text.
-- The Writing band is calculated with Task 2 counting double, rounded to the nearest half band.
+- The passage on the left and its questions on the right, each scrolling on its own; highlight text and add notes; 60 minutes for the three passages.
+- Auto-scored out of 40, converted to a band with separate editable tables for Academic and General Training.
+
+**IEL-06 · Writing and marking (Must)** As a teacher, I want to mark Writing against the four official criteria.
+
+- Task 1 shows a chart or diagram (Academic) or a letter situation (General Training); Task 2 an essay question. A live word count; under 150 / 250 words is shown, not blocked.
+- The teacher gives a band (0–9 in half bands) for Task Achievement (Task 1) / Task Response (Task 2), Coherence & Cohesion, Lexical Resource, and Grammatical Range & Accuracy, per task, with comments.
+- Writing band = Task 1 and Task 2 bands with Task 2 counting double, rounded to the nearest half band.
 - Plagiarism checks (Epic 10) run on Writing scripts.
 
-**IEL-06 · Speaking practice and marking (Should)** As a student, I want to record answers to Speaking Part 1, 2 and 3 prompts in the app so that my teacher can mark them.
+**IEL-07 · Speaking (Must)** As a teacher, I want to examine Speaking the way the real test does.
 
-- **Part 2:** 1-minute preparation timer, then up to 2 minutes of recording.
-- Recordings are compressed and stored (counts toward storage).
-- The teacher listens and gives bands for Fluency & Coherence, Lexical Resource, Grammatical Range & Accuracy and Pronunciation, with optional voice or text feedback.
-- **Alternative:** the teacher runs a live speaking session (in person or video call outside the app) and enters the bands.
+- **Examiner screen** for a live session (in person or by video call outside the app): Part 1 questions, Part 2 cue card with a 1-minute preparation timer and a 2-minute talk timer, Part 3 questions; the session can be recorded in the app; the teacher gives bands for Fluency & Coherence, Lexical Resource, Grammatical Range & Accuracy and Pronunciation, with notes.
+- **Practice (Should):** students record their own answers to Parts 1–3 in the app (same timers) and the teacher marks them later.
+- Recordings count toward storage.
 
-**IEL-07 · Full mock tests (Must)** As a teacher, I want to combine Listening, Reading, Writing and Speaking into one mock test so that students get an overall band.
+**IEL-08 · Full mock tests (Must)** As a teacher, I want a mock with all four modules so that students get an overall band.
 
-- Modules can run on the same day or on different days.
-- **Overall band:** the average of the four module bands, rounded to the nearest half band (.25 rounds up to .5, .75 rounds up to the next whole band).
-- Optional proctoring from Epic 5.
+- Listening, Reading and Writing run one after another on the computer, as in the real test; Speaking is a separate session.
+- **Overall band:** the average of the four module bands rounded to the nearest half band (.25 rounds up to .5, .75 up to the next whole band).
+- A mock opens for a batch in a window the teacher sets.
 
-**IEL-08 · Band progress (Must)** As a student or teacher, I want a chart of bands per module over time against the target so that progress and gaps are obvious.
+**IEL-09 · Band progress (Must)** As a student or teacher, I want bands over time against the target.
 
-- The chart covers each mock and sectional test.
-- The weakest question types are listed (for example "Matching headings: 45% correct").
+- A chart per module across mocks and practice sets, against the target.
+- The weakest question types (for example "Matching headings: 45% correct").
 
-**IEL-09 · Band report (Should)** As a teacher, I want a one-page band report per student per mock so that I can share it with the student or guardian.
+**IEL-10 · Band report (Should)** As a teacher, I want a one-page band report per student per mock.
 
-- The report has the module bands, overall band, criteria bands for Writing and Speaking, teacher comments, and progress vs target.
-- It is a PDF, optionally sent by SMS link (same rules as PRF-09).
+- Module bands, overall band, Writing and Speaking criteria bands, teacher comments and progress vs target; printed by the browser and optionally sent by SMS link (same rules as PRF-09).
 
 ## Feature-to-module map
 
@@ -940,7 +948,7 @@ Features are grouped into three sellable modules plus add-ons. Any account can b
 | 8 · Resource hub | Management (video storage add-on) | Yes | Yes | Yes |
 | 9 · Calendar & reminders | Management (exam dates also shown with Exams only) | Yes | Yes | Yes |
 | 10 · Plagiarism checker | Add-on | Yes | Yes (Writing) | Yes |
-| 11 · IELTS workspace | IELTS workspace type | No | Yes | Yes (IELTS trainer) |
+| 11 · IELTS workspace | IELTS workspace type | No | Yes | No (IELTS centres only, 15 Nov 2026) |
 
 **Usage-based add-ons:** SMS credit packs, extra storage, video storage, AI question drafting (QA-04), AI-writing indicator (PLG-04).
 
