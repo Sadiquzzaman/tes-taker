@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import useApiData from "@/component/Homework/useApiData";
 import { useToast } from "@/component/Toast/ToastContext";
-import { Button, Card, DatePicker, Drawer, EmptyState, ErrorState, PageHeader, RadioGroup, Select, Skeleton, Table, type TableColumn } from "@/design/ui";
+import { Button, Card, DatePicker, Drawer, EmptyState, ErrorState, Link, PageHeader, RadioGroup, Select, Skeleton, Table, type TableColumn } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
@@ -43,9 +43,14 @@ const IeltsStudents = () => {
       header: t("actions"),
       align: "right",
       cell: (r) => (
-        <Button size="sm" variant="secondary" onClick={() => setEditing(r)} aria-label={t("editFor", { name: r.student.full_name })}>
-          {t("edit")}
-        </Button>
+        <span className="flex justify-end gap-2">
+          <Link href={`/ielts/progress/${r.student.id}`} aria-label={t("progressFor", { name: r.student.full_name })}>
+            {t("progress")}
+          </Link>
+          <Button size="sm" variant="secondary" onClick={() => setEditing(r)} aria-label={t("editFor", { name: r.student.full_name })}>
+            {t("edit")}
+          </Button>
+        </span>
       ),
     },
   ];

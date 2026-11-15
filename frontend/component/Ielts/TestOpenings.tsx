@@ -2,10 +2,11 @@
 
 import { AxiosError } from "axios";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useApiData from "@/component/Homework/useApiData";
 import { useToast } from "@/component/Toast/ToastContext";
-import { Button, Card, ConfirmDialog, DatePicker, Drawer, EmptyState, ErrorState, PageHeader, Select, Skeleton, Table, TimePicker, type TableColumn } from "@/design/ui";
+import { Button, Card, ConfirmDialog, DatePicker, Drawer, EmptyState, ErrorState, Link, PageHeader, Select, Skeleton, Table, TimePicker, type TableColumn } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import { fromZonedParts, toZonedParts } from "@/i18n/zonedTime";
@@ -198,17 +199,53 @@ const ResultsDrawer = ({ opening, modules, onClose }: { opening: IeltsAssignment
   const t = useTranslations("ieltsOpenings");
   const tt = useTranslations("ieltsTests");
   const format = useFormat();
+  const router = useRouter();
+  const { handleError } = useApiError();
+  /** Starts (or resumes) a live Speaking session and opens the examiner screen. */
+  const examine = async (studentId: string) => {
+    try {
+      const res = await axiosReq.post<{ payload: IeltsMarkingView }>(`${BASE}/ielts/assignments/${opening.id}/speaking`, { student_id: studentId });
+      router.push(`/ielts/speaking/${res.data.payload.attempt_id}`);
+    } catch (err) {
+      handleError(err as AxiosError<ApiError>);
+    }
+  };
   const { data: rows, failed, reload } = useApiData<IeltsResultRow[]>(`/ielts/assignments/${opening.id}/results`);
   const cell = (r: IeltsResultRow, m: IeltsModule) => {
     const a = r.modules[m];
-    if (!a) return <span className="text-ink-muted">{t("notStarted")}</span>;
-    if (a.status === "IN_PROGRESS") return <span className="text-ink-muted">{t("inProgress")}</span>;
-    if (a.band === null) return t("waitingForMarks");
+    const examineButton = (label: string) => (
+      <Button size="sm" variant="secondary" onClick={() => void examine(r.student.id)} aria-label={t("examineFor", { name: r.student.full_name })}>
+        {label}
+      </Button>
+    );
+    if (!a) return m === "SPEAKING" ? examineButton(t("examine")) : <span className="text-ink-muted">{t("notStarted")}</span>;
+    if (a.status === "IN_PROGRESS") return m === "SPEAKING" && a.mode === "LIVE" ? examineButton(t("continueExam")) : <span className="text-ink-muted">{t("inProgress")}</span>;
+    if (a.band === null) {
+      return m === "SPEAKING" || m === "WRITING" ? (
+        <Button size="sm" variant="ghost" onClick={() => router.push(m === "SPEAKING" ? `/ielts/speaking/${a.attempt_id}` : `/ielts/marking/${a.attempt_id}`)}>
+          {t("markNow")}
+        </Button>
+      ) : (
+        t("waitingForMarks")
+      );
+    }
     return `${format.number(a.band, { minimumFractionDigits: 1 })}${a.raw_score === null ? "" : ` (${format.number(a.raw_score)}/40)`}`;
   };
   const columns: TableColumn<IeltsResultRow>[] = [
-    { key: "name", header: t("student"), cell: (r) => r.student.full_name, sortValue: (r) => r.student.full_name },
+    {
+      key: "name",
+      header: t("student"),
+      cell: (r) => (
+        <Link href={`/ielts/report/${opening.id}/${r.student.id}`} aria-label={t("reportFor", { name: r.student.full_name })}>
+          {r.student.full_name}
+        </Link>
+      ),
+      sortValue: (r) => r.student.full_name,
+    },
     ...modules.map((m) => ({ key: m, header: tt(`modulesShort.${m}`), cell: (r: IeltsResultRow) => cell(r, m), sortValue: (r: IeltsResultRow) => r.modules[m]?.band ?? -1 })),
+    ...(modules.length === 4
+      ? [{ key: "overall", header: t("overall"), align: "right" as const, cell: (r: IeltsResultRow) => (r.overall === null || r.overall === undefined ? "—" : <strong>{format.number(r.overall, { minimumFractionDigits: 1 })}</strong>), sortValue: (r: IeltsResultRow) => r.overall ?? -1 }]
+      : []),
   ];
   return (
     <Drawer open onClose={onClose} title={t("resultsTitle", { batch: opening.section.name })}>

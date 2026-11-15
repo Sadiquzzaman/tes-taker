@@ -5,13 +5,13 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useApiData from "@/component/Homework/useApiData";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, PageHeader, Skeleton } from "@/design/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, Link, PageHeader, Skeleton } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
 
-/** Modules taken on screen so far (Writing comes with P10-05, Speaking with P10-06). */
-const ON_SCREEN: IeltsModule[] = ["LISTENING", "READING"];
+/** Modules a student can start (Speaking as practice recordings; a live session is run by the teacher). */
+const ON_SCREEN: IeltsModule[] = ["LISTENING", "READING", "WRITING", "SPEAKING"];
 /** A mock's modules run in this order. */
 const SEQUENCE: IeltsModule[] = ["LISTENING", "READING", "WRITING"];
 
@@ -48,6 +48,7 @@ const MyIeltsTests = () => {
 
   const action = (row: IeltsMyAssignment, module: IeltsModule) => {
     const attempt = row.attempts[module];
+    if (attempt?.status === "IN_PROGRESS" && attempt.mode === "LIVE") return <span className="text-body-sm text-ink-muted">{t("withTeacher")}</span>;
     if (attempt?.status === "IN_PROGRESS") {
       return (
         <Button size="sm" onClick={() => router.push(`/ielts/attempts/${attempt.id}`)}>
@@ -101,6 +102,11 @@ const MyIeltsTests = () => {
               <p className="text-body-sm text-ink-muted">
                 {t("window", { from: format.dateTime(row.opens_at), to: format.dateTime(row.closes_at) })}
               </p>
+              {Object.values(row.attempts).some((a) => a?.band !== null && a?.band !== undefined) ? (
+                <Link href={`/ielts/report/${row.id}/me`} className="self-start">
+                  {t("bandReport")}
+                </Link>
+              ) : null}
               <ul className="flex flex-col divide-y divide-border">
                 {row.test.modules.map((module) => (
                   <li key={module} className="flex flex-wrap items-center justify-between gap-2 py-2">
@@ -119,7 +125,7 @@ const MyIeltsTests = () => {
       <ConfirmDialog
         open={starting !== null}
         title={starting ? t("startTitle", { module: tt(`modulesShort.${starting.module}`) }) : ""}
-        description={starting ? (starting.module === "LISTENING" ? t("startListening", { minutes }) : t("startOther", { minutes })) : ""}
+        description={starting ? (starting.module === "LISTENING" ? t("startListening", { minutes }) : starting.module === "SPEAKING" ? t("startSpeaking") : t("startOther", { minutes })) : ""}
         confirmLabel={t("start")}
         cancelLabel={t("notYet")}
         loading={busy}

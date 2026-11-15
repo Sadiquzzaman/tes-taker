@@ -26,9 +26,13 @@ const useIeltsAttempt = (attemptId: string) => {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const offset = useRef(0);
   const handingIn = useRef(false);
+  // Writing answers are scripts per task (part); the others answer questions.
+  const writing = useRef(false);
+  const entry = (id: string, answer: string | null) => (writing.current ? { part_id: id, answer } : { question_id: id, answer });
 
   const take = useCallback((next: IeltsAttemptView) => {
     offset.current = Date.parse(next.attempt.now) - Date.now();
+    writing.current = next.attempt.module === "WRITING";
     answersRef.current = { ...next.answers };
     setAnswers(answersRef.current);
     setView(next);
@@ -51,7 +55,7 @@ const useIeltsAttempt = (attemptId: string) => {
     dirty.current.clear();
     setSaveStatus("saving");
     try {
-      await axiosReq.put(`${base}/ielts/my/attempts/${attemptId}/answers`, { answers: ids.map((id) => ({ question_id: id, answer: answersRef.current[id] ?? null })) });
+      await axiosReq.put(`${base}/ielts/my/attempts/${attemptId}/answers`, { answers: ids.map((id) => entry(id, answersRef.current[id] ?? null)) });
       setSaveStatus(dirty.current.size ? "saving" : "saved");
     } catch (error) {
       if ((error as AxiosError).response?.status === 409) {
@@ -81,7 +85,7 @@ const useIeltsAttempt = (attemptId: string) => {
     if (timer.current) clearTimeout(timer.current);
     setSubmitting(true);
     try {
-      const all = Object.entries(answersRef.current).map(([question_id, answer]) => ({ question_id, answer: answer || null }));
+      const all = Object.entries(answersRef.current).map(([id, answer]) => entry(id, answer || null));
       const res = await axiosReq.post<{ payload: IeltsAttemptView }>(`${base}/ielts/my/attempts/${attemptId}/submit`, { answers: all });
       dirty.current.clear();
       take(res.data.payload);
@@ -113,7 +117,7 @@ const useIeltsAttempt = (attemptId: string) => {
     return () => window.removeEventListener("online", save);
   }, [flush]);
 
-  return { view, failed, reload: load, answers, setAnswer, saveStatus, remaining, submit, submitting };
+  return { view, failed, reload: load, replace: take, answers, setAnswer, saveStatus, remaining, submit, submitting };
 };
 
 export default useIeltsAttempt;
