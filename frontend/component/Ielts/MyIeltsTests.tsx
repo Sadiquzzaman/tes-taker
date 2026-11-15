@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useApiData from "@/component/Homework/useApiData";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, PageHeader, Skeleton } from "@/design/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, Link, PageHeader, Skeleton } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
@@ -102,6 +102,11 @@ const MyIeltsTests = () => {
               <p className="text-body-sm text-ink-muted">
                 {t("window", { from: format.dateTime(row.opens_at), to: format.dateTime(row.closes_at) })}
               </p>
+              {Object.values(row.attempts).some((a) => a?.band !== null && a?.band !== undefined) ? (
+                <Link href={`/ielts/report/${row.id}/me`} className="self-start">
+                  {t("bandReport")}
+                </Link>
+              ) : null}
               <ul className="flex flex-col divide-y divide-border">
                 {row.test.modules.map((module) => (
                   <li key={module} className="flex flex-wrap items-center justify-between gap-2 py-2">

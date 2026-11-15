@@ -401,6 +401,16 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Organization",
+    label: "ieltsOverview",
+    route: "/ielts/overview",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    workspaces: ["IELTS"],
+    feature: "ielts",
+    image: <SidebarDashboardIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
     label: "ieltsTests",
     route: "/ielts/tests",
     group: "tests",
@@ -451,6 +461,15 @@ const sidebarList: SideBarList[] = [
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
     feature: "homework",
     image: <SidebarGradingIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
+    label: "ieltsOverview",
+    route: "/ielts/overview",
+    role: ["STUDENT"],
+    workspaces: ["IELTS"],
+    feature: "ielts",
+    image: <SidebarDashboardIconSVG width={16} />,
   },
   {
     category: "Platform",
