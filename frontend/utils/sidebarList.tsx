@@ -443,6 +443,16 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Platform",
+    label: "ieltsMyTests",
+    route: "/ielts/my",
+    group: "tests",
+    role: ["STUDENT"],
+    workspaces: ["IELTS"],
+    feature: "ielts",
+    image: <SidebarTestsIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
     label: "ieltsProfile",
     route: "/ielts/me",
     role: ["STUDENT"],
