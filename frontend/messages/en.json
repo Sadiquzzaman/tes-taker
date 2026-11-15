@@ -74,7 +74,9 @@
     "chatReview": "Chat review",
     "resources": "Resources",
     "ieltsStudents": "IELTS students",
-    "ieltsProfile": "My IELTS profile"
+    "ieltsProfile": "My IELTS profile",
+    "ieltsTests": "IELTS tests",
+    "ieltsBandTables": "Band tables"
   },
   "shell": {
     "organization": "Organization",
@@ -5362,5 +5364,95 @@
     "noProfile": "Your profile isn't set yet",
     "noProfileHint": "Your teacher will add your test type, target bands and test date.",
     "daysToTest": "Days to the test"
+  },
+  "ieltsTests": {
+    "pageTitle": "IELTS tests",
+    "pageDescription": "Mock tests in the real format and practice sets of single parts. Publish a test when every part is ready.",
+    "newTest": "New test",
+    "newTestDescription": "A mock gets every part of the modules you choose. A practice set gets the parts you pick from one module.",
+    "create": "Create",
+    "cancel": "Cancel",
+    "title": "Title",
+    "purpose": "Kind",
+    "purposes": {
+      "MOCK": "Mock test",
+      "PRACTICE": "Practice set"
+    },
+    "purposeHints": {
+      "MOCK": "The real template: Listening parts 1–4, Reading passages 1–3, Writing tasks 1–2, Speaking parts 1–3.",
+      "PRACTICE": "Any parts, passages or tasks of one module."
+    },
+    "testType": "Test type",
+    "types": {
+      "ACADEMIC": "Academic",
+      "GENERAL": "General Training"
+    },
+    "modules": "Modules",
+    "module": "Module",
+    "modulesShort": {
+      "LISTENING": "Listening",
+      "READING": "Reading",
+      "WRITING": "Writing",
+      "SPEAKING": "Speaking"
+    },
+    "parts": "Parts",
+    "partNames": {
+      "LISTENING": "Part {no, number}",
+      "READING": "Passage {no, number}",
+      "WRITING": "Task {no, number}",
+      "SPEAKING": "Part {no, number}"
+    },
+    "questions": "Questions",
+    "status": "Status",
+    "statuses": {
+      "DRAFT": "Draft",
+      "PUBLISHED": "Published",
+      "ARCHIVED": "Archived"
+    },
+    "allPurposes": "All kinds",
+    "allStatuses": "All statuses",
+    "updated": "Last changed",
+    "actions": "Actions",
+    "copy": "Copy",
+    "copyFor": "Copy {title}",
+    "copied": "Copy made. It is your draft.",
+    "archive": "Archive",
+    "archiveFor": "Archive {title}",
+    "archived": "Test archived",
+    "delete": "Delete",
+    "deleteFor": "Delete {title}",
+    "deleteTitle": "Delete this test?",
+    "deleteDescription": "“{title}” will be removed from the list. Results already given are kept.",
+    "deleted": "Test deleted",
+    "needsReview": "Converted — check before use",
+    "caption": "IELTS tests",
+    "empty": "No IELTS tests yet",
+    "emptyHint": "Start with a mock test or a practice set.",
+    "notAvailable": "IELTS tests are for IELTS centres with the IELTS feature.",
+    "loadFailed": "The tests could not be loaded."
+  },
+  "ieltsBands": {
+    "pageTitle": "Band tables",
+    "pageDescription": "How a Listening or Reading raw score out of 40 becomes a band. Each centre starts on the default tables and can change its own copy.",
+    "tables": {
+      "LISTENING": "Listening",
+      "READING_ACADEMIC": "Academic Reading",
+      "READING_GENERAL": "General Training Reading"
+    },
+    "customised": "Changed by your centre",
+    "default": "Default",
+    "minRaw": "Raw score from",
+    "band": "Band",
+    "addRow": "Add a row",
+    "removeRow": "Remove row {index, number}",
+    "save": "Save",
+    "reset": "Back to default",
+    "saved": "Band table saved",
+    "resetDone": "Band table back to the default",
+    "rule": "Raw scores go down from 40 to 0; the last row starts at 0 and bands never go up.",
+    "readOnly": "Only owners and admins can change band tables.",
+    "notAvailable": "Band tables are for IELTS centres with the IELTS feature.",
+    "loadFailed": "The band tables could not be loaded.",
+    "remove": "Remove"
   }
 }
