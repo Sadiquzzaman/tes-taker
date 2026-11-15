@@ -114,6 +114,21 @@ describe('IELTS band tables', () => {
     expect(await t.dataSource.getRepository(AuditLogEntity).count({ where: { organization_id: s.organization.id, action: 'ielts.band_table_update' } })).toBe(3);
   });
 
+  it('falls back to the built-in defaults when the platform rows are missing', async () => {
+    const s = await centre();
+    const service = t.app.get(IeltsBandTablesService);
+    await t.dataSource.query(`DELETE FROM ielts_band_tables WHERE organization_id IS NULL`);
+    try {
+      const tables = (await call<Table[]>('GET', '/ielts/band-tables', s.teacherToken)).body.payload;
+      expect(tables.every((x) => x.rows.length > 0 && !x.customised)).toBe(true);
+      expect(await service.bandFor(s.organization.id, IeltsModuleEnum.LISTENING, IeltsTestTypeEnum.ACADEMIC, 30)).toBe(7);
+      const reset = await call<Table>('POST', '/ielts/band-tables/reset', s.ownerToken, { module: 'LISTENING' });
+      expect(reset.body.payload).toMatchObject({ customised: false, rows: listening(tables).rows });
+    } finally {
+      await service.seedDefaults();
+    }
+  });
+
   it('refuses tables that do not run from 40 down to 0 in half bands', async () => {
     const s = await centre();
     for (const bad of [

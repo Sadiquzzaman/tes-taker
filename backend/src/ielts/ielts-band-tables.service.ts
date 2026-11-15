@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
@@ -38,6 +38,8 @@ const MANAGERS = [OrganizationMemberRoleEnum.OWNER, OrganizationMemberRoleEnum.A
  */
 @Injectable()
 export class IeltsBandTablesService implements OnModuleInit {
+  private readonly logger = new Logger(IeltsBandTablesService.name);
+
   constructor(
     @InjectRepository(IeltsBandTableEntity) private readonly tables: Repository<IeltsBandTableEntity>,
     private readonly profiles: IeltsProfilesService,
@@ -47,7 +49,13 @@ export class IeltsBandTablesService implements OnModuleInit {
   async onModuleInit() {
     // Seeding runs in the API process only; the worker boots at the same time (worker.ts).
     if (process.env.APP_ROLE === 'worker') return;
-    await this.seedDefaults();
+    // The API starts before a deploy's migrations run: without the table yet, the built-in
+    // defaults are used until the next start. Never stop the API over this.
+    try {
+      await this.seedDefaults();
+    } catch (error) {
+      this.logger.warn(`IELTS default band tables not added yet: ${(error as Error).message}`);
+    }
   }
 
   /** Adds the platform default tables that do not exist yet; existing ones are never changed. */
@@ -81,8 +89,8 @@ export class IeltsBandTablesService implements OnModuleInit {
   /** Owners and admins: put one table back to the platform default (audited; the row is kept). */
   async reset(tenant: Tenant, userId: string, dto: IeltsBandTableScopeDto): Promise<IeltsBandTableView> {
     const scope = await this.prepare(tenant, dto);
-    const platform = await this.tables.findOneOrFail({ where: { organization_id: IsNull(), ...this.where(scope) } });
-    return this.save(tenant, userId, scope, platform.rows);
+    const platform = await this.tables.findOne({ where: { organization_id: IsNull(), ...this.where(scope) } });
+    return this.save(tenant, userId, scope, platform?.rows ?? this.builtIn(scope));
   }
 
   /** The band for a raw Listening / Reading score in a centre (its own table, else the default). */
@@ -90,7 +98,7 @@ export class IeltsBandTablesService implements OnModuleInit {
     const scope: Scope = { module, test_type: module === IeltsModuleEnum.READING ? testType : null };
     const rows = await this.tables.find({ where: [{ organization_id: organizationId, ...this.where(scope) }, { organization_id: IsNull(), ...this.where(scope) }] });
     const table = rows.find((r) => r.organization_id === organizationId) ?? rows[0];
-    return bandFromRaw(table?.rows ?? [], raw);
+    return bandFromRaw(table?.rows ?? this.builtIn(scope), raw);
   }
 
   // ------------------------------------------------------------------ helpers
@@ -130,6 +138,11 @@ export class IeltsBandTablesService implements OnModuleInit {
     return this.view(scope, [saved, ...platform]);
   }
 
+  /** The built-in default, for when the platform row is not there (yet). */
+  private builtIn(scope: Scope): BandRow[] {
+    return IELTS_DEFAULT_BAND_TABLES.find((t) => t.module === scope.module && t.test_type === scope.test_type)?.rows ?? [];
+  }
+
   private where(scope: Scope) {
     return { module: scope.module, test_type: scope.test_type ?? IsNull() };
   }
@@ -138,11 +151,11 @@ export class IeltsBandTablesService implements OnModuleInit {
     const matches = rows.filter((r) => r.module === scope.module && (r.test_type ?? null) === scope.test_type);
     const own = matches.find((r) => r.organization_id !== null);
     const platform = matches.find((r) => r.organization_id === null);
-    const table = own ?? platform;
+    const defaults = platform?.rows ?? this.builtIn(scope);
     return {
       ...scope,
-      rows: table?.rows ?? [],
-      customised: !!own && JSON.stringify(own.rows) !== JSON.stringify(platform?.rows),
+      rows: own?.rows ?? defaults,
+      customised: !!own && JSON.stringify(own.rows) !== JSON.stringify(defaults),
       updated_at: own?.updated_at ?? null,
     };
   }
