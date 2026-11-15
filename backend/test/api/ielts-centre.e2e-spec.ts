@@ -90,6 +90,11 @@ describe('IELTS centre and profiles', () => {
     expect((await call<{ kind: string; workspace_type: string }>('GET', '/workspace/type', s.ownerToken)).body.payload).toEqual({ kind: 'IELTS_CENTRE', workspace_type: 'IELTS' });
     const school = await centre({ ielts: false });
     expect((await call<{ workspace_type: string }>('GET', '/workspace/type', school.ownerToken)).body.payload.workspace_type).toBe('ACADEMIC');
+
+    // The session sent when a member opens the organisation carries it too, so the menu can follow.
+    const open = async (organizationId: string) =>
+      (await call<{ organization: { workspace_type: string } }>('POST', '/auth/select-context', t.tokenFor(s.mitu), { type: 'organization', organization_id: organizationId })).body.payload.organization.workspace_type;
+    expect(await open(s.organization.id)).toBe('IELTS');
   });
 
   it('keeps each student’s test type, target bands and test date; students see only their own', async () => {

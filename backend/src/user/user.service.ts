@@ -389,6 +389,8 @@ export class UserService implements OnModuleInit {
       organization_status: string;
       /** Language for members who have not chosen one (organizations.default_locale). */
       organization_default_locale?: string;
+      /** ACADEMIC or IELTS (P10-01): the web shows the IELTS menu in IELTS centres. */
+      organization_workspace_type?: string;
     } | null,
     options?: {
       context_type?:
@@ -437,6 +439,7 @@ export class UserService implements OnModuleInit {
             role: orgSession.member_role,
             status: orgSession.organization_status,
             default_locale: orgSession.organization_default_locale ?? null,
+            workspace_type: orgSession.organization_workspace_type ?? 'ACADEMIC',
           }
         : null,
       access_token,
@@ -722,6 +725,8 @@ export class UserService implements OnModuleInit {
       organization_name: string;
       organization_status: string;
       organization_default_locale?: string;
+      /** ACADEMIC or IELTS (P10-01): the web shows the IELTS menu in IELTS centres. */
+      organization_workspace_type?: string;
     },
   ): Promise<UserReponseDto> {
     const verification = this.refreshTokenUtil.verify(refreshToken);
