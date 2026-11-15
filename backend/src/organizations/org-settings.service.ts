@@ -70,6 +70,16 @@ export const DEFAULT_PERFORMANCE_SETTINGS: PerformanceSettings = {
   show_rank: false,
 };
 
+/** Plagiarism thresholds (PLG-03): similarity % for High and Medium; shorter texts are not flagged. */
+export interface PlagiarismThresholds {
+  high: number;
+  medium: number;
+  min_words: number;
+}
+
+/** The spec's defaults (PLG-03): High at 40% and above, Medium at 20–39%, under 50 words not flagged. */
+export const DEFAULT_PLAGIARISM_THRESHOLDS: PlagiarismThresholds = { high: 40, medium: 20, min_words: 50 };
+
 /** The spec's defaults (Epic 1 settings table), used while an organisation has no row. */
 export const DEFAULT_ATTENDANCE_SETTINGS: AttendanceSettings = {
   late_grace_minutes: 10,
@@ -303,6 +313,33 @@ export class OrgSettingsService {
     }
     const saved = await this.settingsRepo.save(row);
     return { before, after: performanceOf(saved) };
+  }
+
+  /** An organisation's plagiarism thresholds (defaults without a row or value). */
+  async getPlagiarism(organizationId: string): Promise<PlagiarismThresholds> {
+    const row = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
+    return { ...DEFAULT_PLAGIARISM_THRESHOLDS, ...(row?.plagiarism_thresholds ?? {}) };
+  }
+
+  /** Saves the plagiarism thresholds, creating the settings row with the kind's defaults if needed. */
+  async updatePlagiarism(organizationId: string, userId: string, thresholds: PlagiarismThresholds): Promise<{ before: PlagiarismThresholds; after: PlagiarismThresholds }> {
+    const existing = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
+    const before = await this.getPlagiarism(organizationId);
+    const row =
+      existing ??
+      this.settingsRepo.create({
+        organization_id: organizationId,
+        ...OrgSettingsService.defaultsFor((await this.organization(organizationId)).kind),
+        created_by: userId,
+        created_at: new Date(),
+      });
+    row.plagiarism_thresholds = thresholds;
+    if (existing) {
+      row.updated_by = userId;
+      row.updated_at = new Date();
+    }
+    await this.settingsRepo.save(row);
+    return { before, after: thresholds };
   }
 
   /**

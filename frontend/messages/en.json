@@ -2257,7 +2257,8 @@
       "Calendar": "Calendar",
       "Communication": "Communication",
       "Resources": "Resources",
-      "IELTS": "IELTS"
+      "IELTS": "IELTS",
+      "Integrity": "Integrity"
     },
     "catalog": {
       "allow_graded_questions": {
@@ -2399,6 +2400,10 @@
       "ielts": {
         "name": "IELTS workspace",
         "description": "IELTS centres: student profiles, IELTS tests in the computer-delivered format, Writing and Speaking marking, bands."
+      },
+      "integrity": {
+        "label": "Plagiarism checker",
+        "description": "Compares classmates’ typed homework and IELTS Writing (Bangla and English), with matching passages side by side and teacher review"
       }
     },
     "limits": {

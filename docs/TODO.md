@@ -94,3 +94,6 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Tests with fixed dates that also use the real clock (14 Nov: reminders.e2e cancelled a class on 2026-11-14 and broke that day; fixed to a Saturday one to two weeks ahead) — check the other API tests with fixed dates (attendance, leave, calendar feed) for steps that use the real clock, and make those dates relative.
 - IELTS band report by SMS link (IEL-10 optional): needs a share token like report cards (PRF-09); printed by the browser for now (P10-07, 16 Nov 2026).
 - IELTS: hand in expired attempts with a job instead of on the next read, so dashboards are exact without anyone opening them (P10-04).
+- Plagiarism: read Word and PDF homework files (needs new packages, e.g. `pdf-parse` and `mammoth`; ask the owner first, CLAUDE.md rule 6) and handwriting recognition for photos; until then they show "not checked" (P10-09, 16 Nov 2026).
+- Plagiarism: check essay answers in academic exams, and earlier homework of the same subject (PLG-01 optional) (P10-09).
+- Plagiarism: run the check with a job right after the due date instead of the first time results are opened (P10-09).
