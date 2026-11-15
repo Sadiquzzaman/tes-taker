@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useApiData from "@/component/Homework/useApiData";
 import { useToast } from "@/component/Toast/ToastContext";
-import { Button, Card, ConfirmDialog, DatePicker, Drawer, EmptyState, ErrorState, PageHeader, Select, Skeleton, Table, TimePicker, type TableColumn } from "@/design/ui";
+import { Button, Card, ConfirmDialog, DatePicker, Drawer, EmptyState, ErrorState, Link, PageHeader, Select, Skeleton, Table, TimePicker, type TableColumn } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import { fromZonedParts, toZonedParts } from "@/i18n/zonedTime";
@@ -232,8 +232,20 @@ const ResultsDrawer = ({ opening, modules, onClose }: { opening: IeltsAssignment
     return `${format.number(a.band, { minimumFractionDigits: 1 })}${a.raw_score === null ? "" : ` (${format.number(a.raw_score)}/40)`}`;
   };
   const columns: TableColumn<IeltsResultRow>[] = [
-    { key: "name", header: t("student"), cell: (r) => r.student.full_name, sortValue: (r) => r.student.full_name },
+    {
+      key: "name",
+      header: t("student"),
+      cell: (r) => (
+        <Link href={`/ielts/report/${opening.id}/${r.student.id}`} aria-label={t("reportFor", { name: r.student.full_name })}>
+          {r.student.full_name}
+        </Link>
+      ),
+      sortValue: (r) => r.student.full_name,
+    },
     ...modules.map((m) => ({ key: m, header: tt(`modulesShort.${m}`), cell: (r: IeltsResultRow) => cell(r, m), sortValue: (r: IeltsResultRow) => r.modules[m]?.band ?? -1 })),
+    ...(modules.length === 4
+      ? [{ key: "overall", header: t("overall"), align: "right" as const, cell: (r: IeltsResultRow) => (r.overall === null || r.overall === undefined ? "—" : <strong>{format.number(r.overall, { minimumFractionDigits: 1 })}</strong>), sortValue: (r: IeltsResultRow) => r.overall ?? -1 }]
+      : []),
   ];
   return (
     <Drawer open onClose={onClose} title={t("resultsTitle", { batch: opening.section.name })}>

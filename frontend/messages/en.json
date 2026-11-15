@@ -78,7 +78,8 @@
     "ieltsTests": "IELTS tests",
     "ieltsBandTables": "Band tables",
     "ieltsMyTests": "IELTS tests",
-    "ieltsMarking": "Marking"
+    "ieltsMarking": "Marking",
+    "ieltsOverview": "IELTS overview"
   },
   "shell": {
     "organization": "Organization",
@@ -5365,7 +5366,9 @@
     "moduleTargets": "Target band per module",
     "noProfile": "Your profile isn't set yet",
     "noProfileHint": "Your teacher will add your test type, target bands and test date.",
-    "daysToTest": "Days to the test"
+    "daysToTest": "Days to the test",
+    "progress": "Progress",
+    "progressFor": "Progress of {name}"
   },
   "ieltsTests": {
     "pageTitle": "IELTS tests",
@@ -5659,7 +5662,8 @@
     "handInNoRecording": "{count, plural, one {# part has} other {# parts have}} no recording. You cannot change your recordings after handing in.",
     "waitingForTeacherSpeaking": "Handed in. Your teacher will mark your Speaking.",
     "withTeacher": "With your teacher",
-    "startSpeaking": "Record your answers to Parts 1 to 3. Part 2 gives you 1 minute to prepare and 2 minutes to talk."
+    "startSpeaking": "Record your answers to Parts 1 to 3. Part 2 gives you 1 minute to prepare and 2 minutes to talk.",
+    "bandReport": "Band report"
   },
   "ieltsOpenings": {
     "crumb": "Openings",
@@ -5705,7 +5709,9 @@
     "examine": "Examine",
     "continueExam": "Continue",
     "examineFor": "Examine {name}'s Speaking",
-    "markNow": "Mark"
+    "markNow": "Mark",
+    "reportFor": "Band report of {name}",
+    "overall": "Overall"
   },
   "ieltsMarking": {
     "title": "Marking",
@@ -5777,5 +5783,76 @@
     "saved": "Marks saved",
     "loadFailed": "The Speaking could not be loaded.",
     "notHandedIn": "The student has not handed this in yet."
+  },
+  "ieltsOverview": {
+    "title": "IELTS overview",
+    "staffDescription": "Batches, mock tests coming up, Writing and Speaking to mark, and average bands per batch.",
+    "studentDescription": "Your targets, your latest bands and your next test.",
+    "loadFailed": "The overview could not be loaded.",
+    "batches": "Batches",
+    "students": "Students",
+    "writingWaiting": "Writing to mark",
+    "speakingWaiting": "Speaking to mark",
+    "goToMarking": "Go to marking",
+    "upcomingTitle": "Mock tests now and in the next 7 days",
+    "upcomingDescription": "Openings of mock tests for your batches.",
+    "noUpcoming": "No mock tests coming up",
+    "batchBandsTitle": "Average band per module",
+    "batchBandsDescription": "Marked attempts in the last 90 days.",
+    "batch": "Batch",
+    "noBands": "No bands yet",
+    "targetOverall": "Target overall band",
+    "daysToTest": "Days to your test",
+    "openNow": "Tests open now",
+    "nextTitle": "Your next test",
+    "noNext": "Nothing to take right now",
+    "goToTests": "Go to my IELTS tests",
+    "targetsTitle": "Targets and latest bands",
+    "seeProgress": "See my progress",
+    "module": "Module",
+    "target": "Target",
+    "latest": "Latest",
+    "gap": "To go",
+    "reached": "Reached",
+    "toGo": "{gap} to go"
+  },
+  "ieltsProgress": {
+    "title": "My IELTS progress",
+    "titleFor": "IELTS progress of {name}",
+    "crumb": "Progress",
+    "target": "Target overall band {band}",
+    "noTarget": "No target band set yet",
+    "notFound": "This student was not found.",
+    "loadFailed": "The progress could not be loaded.",
+    "noBands": "No marked bands yet",
+    "chartLabel": "{module} bands in order: {bands}",
+    "targetShort": "Target {band}",
+    "bandShort": "Band {band}",
+    "mocksTitle": "Mock tests",
+    "mocksDescription": "Mock tests with all four modules marked, with the overall band.",
+    "test": "Test",
+    "date": "Date",
+    "overall": "Overall",
+    "noMocks": "No complete mock tests yet",
+    "typesTitle": "Question types",
+    "typesDescription": "Listening and Reading answers by question type, weakest first.",
+    "questionType": "Question type",
+    "right": "Right",
+    "rightOf": "{right, number} of {total, number}",
+    "percent": "Right %",
+    "noTypes": "No Listening or Reading answers yet"
+  },
+  "ieltsReport": {
+    "title": "IELTS band report",
+    "print": "Print",
+    "notFound": "This report was not found.",
+    "loadFailed": "The report could not be loaded.",
+    "bandsCaption": "Bands per module",
+    "module": "Module",
+    "band": "Band",
+    "target": "Target",
+    "overall": "Overall band",
+    "notMarked": "not marked yet",
+    "testDate": "Booked test date: {date}"
   }
 }
