@@ -1,8 +1,11 @@
 import {
   ApiProperty,
+  ApiPropertyOptional,
 } from '@nestjs/swagger';
 import {
   IsEmail,
+  IsIn,
+  IsOptional,
   IsNotEmpty,
   IsString,
   Matches,
@@ -10,8 +13,17 @@ import {
 } from 'class-validator';
 import { Exclude, Transform } from 'class-transformer';
 import { IsStrongPassword } from 'src/common/decorators/is-strong-password.decorator';
+import { OrganizationKindEnum } from 'src/organizations/enums/organization-kind.enum';
+
+/** What a new organisation is (P10-01, IEL-01): a school, or an IELTS centre with the IELTS workspace. */
+export const SIGN_UP_KINDS = [OrganizationKindEnum.SCHOOL, OrganizationKindEnum.IELTS_CENTRE] as const;
 
 export class RegisterOrganizationDto {
+  @ApiPropertyOptional({ enum: SIGN_UP_KINDS, default: OrganizationKindEnum.SCHOOL, description: 'SCHOOL, or IELTS_CENTRE for the IELTS workspace' })
+  @IsOptional()
+  @IsIn(SIGN_UP_KINDS)
+  kind?: (typeof SIGN_UP_KINDS)[number];
+
   @ApiProperty({
     description: 'Organization / school name',
     example: 'ABC School',

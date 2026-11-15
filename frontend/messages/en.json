@@ -2246,7 +2246,8 @@
       "Homework": "Homework",
       "Calendar": "Calendar",
       "Communication": "Communication",
-      "Resources": "Resources"
+      "Resources": "Resources",
+      "IELTS": "IELTS"
     },
     "catalog": {
       "allow_graded_questions": {
@@ -2384,6 +2385,10 @@
       "resources": {
         "name": "Resource library",
         "description": "Notes, slides, PDFs, audio and links shared with subject classes."
+      },
+      "ielts": {
+        "name": "IELTS workspace",
+        "description": "IELTS centres: student profiles, IELTS tests in the computer-delivered format, Writing and Speaking marking, bands."
       }
     },
     "limits": {
