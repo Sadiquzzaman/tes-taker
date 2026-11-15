@@ -1844,7 +1844,7 @@ Table ielts_attempts {
   band numeric(2,1)
   criteria jsonb [note: 'WRITING per task: TA/TR, CC, LR, GRA; SPEAKING: FC, LR, GRA, P']
   feedback text
-  recording_file_ids jsonb [note: 'SPEAKING recordings per part']
+  recording_file_ids jsonb [note: 'SPEAKING recordings: {part_id: file_id} (P10-06)']
   marked_by uuid
   marked_at timestamptz
   Indexes {

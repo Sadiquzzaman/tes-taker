@@ -92,3 +92,5 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Video upload to our storage (P9-04, RES-02) — links only for now (owner's choice, 14 Nov): needs resumable uploads, AWS MediaConvert to 720p HLS (a paid service), a per-plan size limit and watch % in resource_views.
 - Flutter screens for homework, chat, resources and results (P9-05) — the Flutter app is not in this repository; build them where the app lives, against the APIs already on beta.
 - Tests with fixed dates that also use the real clock (14 Nov: reminders.e2e cancelled a class on 2026-11-14 and broke that day; fixed to a Saturday one to two weeks ahead) — check the other API tests with fixed dates (attendance, leave, calendar feed) for steps that use the real clock, and make those dates relative.
+- IELTS band report by SMS link (IEL-10 optional): needs a share token like report cards (PRF-09); printed by the browser for now (P10-07, 16 Nov 2026).
+- IELTS: hand in expired attempts with a job instead of on the next read, so dashboards are exact without anyone opening them (P10-04).
