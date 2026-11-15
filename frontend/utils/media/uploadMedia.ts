@@ -2,7 +2,7 @@ import axios from "axios";
 import axiosReq from "@/lib/axios";
 import { compressImageFile, IMAGE_COMPRESS, isCompressibleImage } from "@/utils/media/compressImage";
 
-export type MediaUploadPurpose = "discussion" | "exam" | "image" | "leave" | "homework" | "resource";
+export type MediaUploadPurpose = "discussion" | "exam" | "image" | "leave" | "homework" | "resource" | "ielts";
 
 export type UploadedMedia = {
   id: string;
