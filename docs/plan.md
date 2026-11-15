@@ -304,7 +304,7 @@ Re-planned on 15 Nov 2026 (owner): IELTS centres only, the computer-delivered fo
 | P10-04 | Taking tests in the computer-delivered format: Listening (play once, review time) and Reading (split screen, highlight, notes), timers, 1–40 navigator, auto-scoring and bands | IEL-04, IEL-05 | 4 |
 | P10-05 | Writing in the test screen and criteria marking | IEL-06 | 2 |
 | P10-06 | Speaking: examiner screen with timers, recording and criteria; student practice recordings | IEL-07 | 3 |
-| P10-07 | Mocks (assigned to batches with a window, overall band), band progress, IELTS dashboards, band report | IEL-01 (dashboards), IEL-08, IEL-09, IEL-10 | 3 |
+| P10-07 | Mocks (overall band; openings for batches were built in P10-04), band progress, IELTS dashboards, band report | IEL-01 (dashboards), IEL-08, IEL-09, IEL-10 | 3 |
 | P10-08 | Copy existing IELTS tests from the academic builder into the new format ("Converted — check before use") | Epic 11 decisions | 1 |
 | P10-09 | Plagiarism: similarity between classmates (bn/en), side-by-side review, thresholds | PLG-01–03 | 3 |
 

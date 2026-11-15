@@ -24,4 +24,18 @@ export const IELTS_ERRORS = {
   GROUP_INVALID: 'IELTS_GROUP_INVALID',
   /** Something is missing before a test can be published; `details.problems` lists it. */
   TEST_INCOMPLETE: 'IELTS_TEST_INCOMPLETE',
+  ASSIGNMENT_NOT_FOUND: 'IELTS_ASSIGNMENT_NOT_FOUND',
+  /** Only published tests are opened, for a batch of the centre, with the window's end after its start. */
+  ASSIGNMENT_INVALID: 'IELTS_ASSIGNMENT_INVALID',
+  /** The test is not open now (before or after its window). */
+  NOT_OPEN: 'IELTS_NOT_OPEN',
+  /** A mock runs Listening, Reading, Writing in that order. */
+  MODULE_ORDER: 'IELTS_MODULE_ORDER',
+  /** This module is not taken on screen yet. */
+  MODULE_NOT_READY: 'IELTS_MODULE_NOT_READY',
+  ATTEMPT_NOT_FOUND: 'IELTS_ATTEMPT_NOT_FOUND',
+  /** The module was handed in (or its time ran out). */
+  ATTEMPT_DONE: 'IELTS_ATTEMPT_DONE',
+  /** An answer is for a question that is not in the attempt's module. */
+  ANSWER_INVALID: 'IELTS_ANSWER_INVALID',
 } as const;
