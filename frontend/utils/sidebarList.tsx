@@ -131,6 +131,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Platform",
     label: "performance",
+    workspaces: ["ACADEMIC"],
     route: "/performance",
     group: "results",
     role: ["STUDENT"],
@@ -140,6 +141,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Platform",
     label: "performance",
+    workspaces: ["ACADEMIC"],
     route: "/performance",
     group: "results",
     role: ["TEACHER"],
@@ -150,6 +152,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Organization",
     label: "performance",
+    workspaces: ["ACADEMIC"],
     route: "/performance",
     group: "results",
     role: ["TEACHER"],
@@ -160,6 +163,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Platform",
     label: "marks",
+    workspaces: ["ACADEMIC"],
     route: "/marks",
     group: "results",
     role: ["STUDENT"],
@@ -169,6 +173,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Platform",
     label: "marks",
+    workspaces: ["ACADEMIC"],
     route: "/marks",
     group: "results",
     role: ["TEACHER"],
@@ -179,6 +184,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Organization",
     label: "marks",
+    workspaces: ["ACADEMIC"],
     route: "/marks",
     group: "results",
     role: ["TEACHER"],
@@ -189,6 +195,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Platform",
     label: "behaviour",
+    workspaces: ["ACADEMIC"],
     route: "/behaviour",
     group: "results",
     role: ["TEACHER"],
@@ -199,6 +206,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Organization",
     label: "behaviour",
+    workspaces: ["ACADEMIC"],
     route: "/behaviour",
     group: "results",
     role: ["TEACHER"],
@@ -209,6 +217,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Platform",
     label: "performanceSettings",
+    workspaces: ["ACADEMIC"],
     route: "/performance-settings",
     group: "results",
     setup: true,
@@ -220,6 +229,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Organization",
     label: "performanceSettings",
+    workspaces: ["ACADEMIC"],
     route: "/performance-settings",
     group: "results",
     setup: true,
@@ -231,6 +241,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Platform",
     label: "reportCards",
+    workspaces: ["ACADEMIC"],
     route: "/report-cards",
     group: "results",
     role: ["STUDENT"],
@@ -240,6 +251,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Platform",
     label: "reportCards",
+    workspaces: ["ACADEMIC"],
     route: "/report-cards",
     group: "results",
     role: ["TEACHER"],
@@ -250,6 +262,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Organization",
     label: "reportCards",
+    workspaces: ["ACADEMIC"],
     route: "/report-cards",
     group: "results",
     role: ["TEACHER"],
@@ -377,6 +390,17 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Organization",
+    label: "ieltsStudents",
+    route: "/ielts/students",
+    group: "people",
+    role: ["TEACHER"],
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    workspaces: ["IELTS"],
+    feature: "ielts",
+    image: <SidebarDashboardIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
     label: "resources",
     route: "/resources",
     group: "academics",
@@ -394,6 +418,15 @@ const sidebarList: SideBarList[] = [
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
     feature: "homework",
     image: <SidebarGradingIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
+    label: "ieltsProfile",
+    route: "/ielts/me",
+    role: ["STUDENT"],
+    workspaces: ["IELTS"],
+    feature: "ielts",
+    image: <SidebarDashboardIconSVG width={16} />,
   },
   {
     category: "Platform",
@@ -467,6 +500,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Platform",
     label: "gradingScale",
+    workspaces: ["ACADEMIC"],
     route: "/grading-scale",
     group: "academics",
     role: ["TEACHER"],
@@ -635,6 +669,7 @@ const sidebarList: SideBarList[] = [
   {
     category: "Organization",
     label: "gradingScale",
+    workspaces: ["ACADEMIC"],
     route: "/grading-scale",
     group: "academics",
     role: ["TEACHER"],

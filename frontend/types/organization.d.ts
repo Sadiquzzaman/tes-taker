@@ -57,6 +57,8 @@ interface OrganizationDetail extends OrganizationSummary {
 }
 
 interface OrganizationRegisterInfo {
+  /** SCHOOL, or IELTS_CENTRE for the IELTS workspace (P10-01). */
+  kind: "SCHOOL" | "IELTS_CENTRE";
   organization_name: string;
   full_name: string;
   phone: string;

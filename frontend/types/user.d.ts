@@ -10,6 +10,8 @@ interface LoginOrganizationSession {
   public_id?: string | null;
   /** The organisation's language, for members who have not chosen one (FND-18). */
   default_locale?: "bn" | "en" | null;
+  /** IELTS for IELTS centres (P10-01): the IELTS menu and pages. */
+  workspace_type?: "ACADEMIC" | "IELTS";
 }
 
 interface UserContextItem {

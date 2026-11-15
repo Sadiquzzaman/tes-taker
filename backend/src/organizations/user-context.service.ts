@@ -268,6 +268,7 @@ export class UserContextService {
           organization_name: org.name,
           organization_status: org.status,
           organization_default_locale: org.default_locale,
+          organization_workspace_type: org.workspace_type,
         },
         {
           context_type: 'organization',

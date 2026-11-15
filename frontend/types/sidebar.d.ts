@@ -11,6 +11,8 @@ interface SideBarList {
   feature?: string | string[];
   /** The folding menu group the item sits in (utils/sidebarGroups.ts); none = a link of its own. */
   group?: NavGroup;
+  /** Only in these workspace types (P10-01): ACADEMIC for school-only pages (GPA, report cards), IELTS for IELTS pages. */
+  workspaces?: WorkspaceType[];
   /** Attendance setup pages, shown after a small "Setup" heading inside the Attendance group. */
   setup?: boolean;
   image: React.ReactNode;
@@ -18,5 +20,7 @@ interface SideBarList {
 }
 
 type RoleUserType = "STUDENT" | "TEACHER" | "ADMIN" | "SUPER_ADMIN";
+
+type WorkspaceType = "ACADEMIC" | "IELTS";
 
 type NavGroup = "people" | "academics" | "tests" | "results" | "attendance" | "billing" | "logs" | "customers" | "plans";

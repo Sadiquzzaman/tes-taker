@@ -23,6 +23,8 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
   const memberRoleValue = cookieStore.get("member_role")?.value;
   const memberRole = isOrgMemberRole(memberRoleValue) ? memberRoleValue : undefined;
   const personalTeacher = cookieStore.get("personal_teacher")?.value === "1";
+  // IELTS centres (P10-01) see IELTS pages and not the school-only ones; no cookie = academic.
+  const workspaceType: WorkspaceType = sessionMode === "organization" && cookieStore.get("workspace_type")?.value === "IELTS" ? "IELTS" : "ACADEMIC";
 
   const isOrgStudent = sessionMode === "organization" && memberRole === "STUDENT";
 
@@ -43,6 +45,9 @@ const Sidebar = async ({ activeRoute }: { activeRoute: string }) => {
             return false;
           }
           if (element.personalWorkspaceOnly && sessionMode !== "organization" && !personalTeacher) {
+            return false;
+          }
+          if (element.workspaces && !element.workspaces.includes(workspaceType)) {
             return false;
           }
           if (element.memberRoles) {

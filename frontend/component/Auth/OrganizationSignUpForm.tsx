@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Button, Input, Link, PasswordInput } from "@/design/ui";
+import { Button, Input, Link, PasswordInput, RadioGroup } from "@/design/ui";
 import useOrganizationSignUpForm from "@/hooks/auth/useOrganizationSignUpForm";
 import AuthFooterLink from "./AuthFooterLink";
 import AuthHeading from "./AuthHeading";
@@ -42,6 +42,16 @@ const OrganizationSignUpForm = () => {
           void handleSignUp();
         }}
       >
+        <RadioGroup
+          legend={t("signup.kind")}
+          name="organization-kind"
+          value={form.kind}
+          onChange={(value) => handleFieldChange("kind", value as OrganizationRegisterInfo["kind"])}
+          options={[
+            { value: "SCHOOL", label: t("signup.kindSchool"), hint: t("signup.kindSchoolHint") },
+            { value: "IELTS_CENTRE", label: t("signup.kindIelts"), hint: t("signup.kindIeltsHint") },
+          ]}
+        />
         <Input
           label={t("fields.organizationName")}
           autoComplete="organization"

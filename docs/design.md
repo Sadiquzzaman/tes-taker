@@ -708,6 +708,8 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 
 **Built in P10-01 part 1 (IELTS centre and profiles, IEL-01, IEL-02):** organisation sign-up takes `kind` (SCHOOL, the default, or IELTS\_CENTRE), kept in Redis beside the pending name until the phone is verified; an IELTS centre is created with `workspace_type` IELTS and the Course / Batch labels. `GET /workspace/type` tells the web the workspace's `kind` and `workspace_type`. New feature key `ielts` (Basic, Premium, Pro). The new `ielts` module owns `ielts_profiles` (migration `1756450000000-IeltsProfiles`): test type, target overall and per module (0–9 in half bands, 400 `IELTS_BAND_INVALID` otherwise), booked test date and days to it. Staff list the centre's students (or one batch) with their profiles and change them (audit `ielts.profile_update`); a student reads their own (`/ielts/profiles/me`). Every IELTS route answers only in IELTS centres (403 `IELTS_ONLY_CENTRES`).
 
+**Built in P10-01 part 2 (IELTS screens):** the sign-up form asks "School" or "IELTS centre". The organisation session (`select-context`, login) carries `organization.workspace_type`; the web keeps it in the `workspace_type` cookie, and the side menu hides school-only items (marks, behaviour, report cards, grading, performance) in an IELTS workspace and shows IELTS items only there. New pages: `/ielts/students` (staff: batch filter, each student's test type, targets and test date in a drawer) and `/ielts/me` (student: their targets and days to the test).
+
 ### 9.11 MongoDB (chat)
 
 | Collection | Status | Notes |
