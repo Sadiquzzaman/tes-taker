@@ -314,6 +314,12 @@ export class IeltsController {
     return { message: 'Dashboard retrieved successfully', payload: await this.progress.staffDashboard(workspace()) };
   }
 
+  @Get('report/:assignmentId/me')
+  @ApiOperation({ summary: 'Students: your band report for an opening' })
+  async reportMine(@Param('assignmentId', ParseUUIDPipe) assignmentId: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Report retrieved successfully', payload: await this.progress.report(workspace(), user.id, assignmentId, user.id) };
+  }
+
   @Get('report/:assignmentId/:studentId')
   @ApiOperation({ summary: 'The band report of a student for an opening (staff; a student their own)' })
   async report(@Param('assignmentId', ParseUUIDPipe) assignmentId: string, @Param('studentId', ParseUUIDPipe) studentId: string, @UserPayload() user: JwtPayloadInterface) {

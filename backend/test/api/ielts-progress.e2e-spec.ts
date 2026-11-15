@@ -120,6 +120,7 @@ describe('IELTS progress, dashboards and band report', () => {
     expect(report).toMatchObject({ overall: 6.5, targets: { overall: 7 } });
     expect(report.modules.WRITING).toMatchObject({ band: 6, feedback: 'Plan your essay.' });
     expect((await call('GET', `/ielts/report/${opening.id}/${mitu.id}`, mituToken)).status).toBe(200);
+    expect((await call<{ overall: number }>('GET', `/ielts/report/${opening.id}/me`, mituToken)).body.payload.overall).toBe(6.5);
     expect((await call('GET', `/ielts/report/${opening.id}/${rafi.id}`, mituToken)).status).toBe(404);
     const rafiReport = (await call<{ overall: number | null; modules: Record<string, { status: string; band: number | null }> }>('GET', `/ielts/report/${opening.id}/${rafi.id}`, ownerToken)).body.payload;
     expect(rafiReport.overall).toBeNull();
