@@ -151,7 +151,7 @@ export class AuthService {
       throw new BadRequestException(`Failed to send OTP: ${smsResult.message}`);
     }
 
-    await this.organizationsService.storePendingOrgName(dto.phone, organizationName);
+    await this.organizationsService.storePendingOrgName(dto.phone, organizationName, dto.kind);
 
     await this.userService.create({
       full_name: dto.full_name,
@@ -202,6 +202,7 @@ export class AuthService {
     }
 
     const pendingOrgName = await this.organizationsService.consumePendingOrgName(phone);
+    const pendingOrgKind = await this.organizationsService.consumePendingOrgKind(phone);
 
     await this.userService.verifyUserByPhone(phone);
 
@@ -217,6 +218,7 @@ export class AuthService {
           organizationName: pendingOrgName,
           ownerUserId: user.id,
           ownerFullName: user.full_name,
+          kind: pendingOrgKind,
         });
         organizationCreated = {
           id: organization.id,

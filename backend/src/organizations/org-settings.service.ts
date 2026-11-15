@@ -309,6 +309,14 @@ export class OrgSettingsService {
    * The level names of the request's workspace (FND-03). Anyone signed in may read them; without
    * a workspace (a student who has not chosen a teacher yet) they are Class / Section.
    */
+  /** What the request's workspace is (P10-01): an IELTS centre gets the IELTS menu and pages. */
+  async currentWorkspaceType(): Promise<{ kind: string | null; workspace_type: string }> {
+    const tenant = TenantContext.current();
+    if (!tenant) return { kind: null, workspace_type: 'ACADEMIC' };
+    const organization = await this.organization(tenant.organizationId);
+    return { kind: organization.kind, workspace_type: organization.workspace_type };
+  }
+
   async currentLevelLabels(): Promise<LevelLabels> {
     const tenant = TenantContext.current();
     if (!tenant) return DEFAULT_LEVEL_LABELS;

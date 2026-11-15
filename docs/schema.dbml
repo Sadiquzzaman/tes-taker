@@ -1725,7 +1725,7 @@ Table ielts_profiles {
   Indexes {
     (organization_id, student_id) [unique]
   }
-  Note: 'NEW (IEL-02), P10-01'
+  Note: 'NEW (IEL-02), BUILT P10-01 (ielts module, migration IeltsProfiles)'
 }
 
 Table ielts_band_tables {
