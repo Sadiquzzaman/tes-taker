@@ -1,6 +1,7 @@
 import { FileObjects1755800000000 } from '../../src/migrations/1755800000000-FileObjects';
 import { Homework1756270000000 } from '../../src/migrations/1756270000000-Homework';
 import { HomeworkSubmissions1756280000000 } from '../../src/migrations/1756280000000-HomeworkSubmissions';
+import { IeltsAttempts1756480000000 } from '../../src/migrations/1756480000000-IeltsAttempts';
 import { IeltsTests1756470000000 } from '../../src/migrations/1756470000000-IeltsTests';
 import { HomeworkScores1756290000000 } from '../../src/migrations/1756290000000-HomeworkScores';
 import { LeaveRequests1756250000000 } from '../../src/migrations/1756250000000-LeaveRequests';
@@ -23,6 +24,7 @@ describe('FileObjects migration', () => {
   const resources = new ResourceLibrary1756440000000();
   // IELTS recordings and pictures (P10-02) too.
   const ielts = new IeltsTests1756470000000();
+  const ieltsAttempts = new IeltsAttempts1756480000000();
 
   beforeAll(async () => {
     t = await createTestApp();
@@ -39,6 +41,7 @@ describe('FileObjects migration', () => {
     const runner = t.dataSource.createQueryRunner();
     try {
       // Homework attachments, library files and IELTS tests point at file_objects: down first, back last.
+      await ieltsAttempts.down(runner);
       await ielts.down(runner);
       await resources.down(runner);
       await scores.down(runner);
@@ -63,6 +66,7 @@ describe('FileObjects migration', () => {
       await scores.up(runner);
       await resources.up(runner);
       await ielts.up(runner);
+      await ieltsAttempts.up(runner);
     } finally {
       await runner.release();
     }

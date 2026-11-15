@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, Param, ParseEnumPipe, ParseUUIDPipe, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
@@ -8,7 +8,11 @@ import { OrganizationContextGuard } from 'src/organizations/guards/organization-
 import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.decorator';
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
+import { CreateIeltsAssignmentDto, SaveIeltsAnswersDto, SubmitIeltsAttemptDto, UpdateIeltsAssignmentDto } from './dto/ielts-attempt.dto';
 import { IeltsBandTableScopeDto, UpdateIeltsBandTableDto } from './dto/ielts-band-table.dto';
+import { IeltsModuleEnum } from './entities/ielts-profile.entity';
+import { IeltsAssignmentsService } from './ielts-assignments.service';
+import { IeltsAttemptsService } from './ielts-attempts.service';
 import { OrderIeltsGroupsDto, SaveIeltsGroupDto } from './dto/ielts-group.dto';
 import { ListIeltsProfilesQueryDto, UpdateIeltsProfileDto } from './dto/ielts-profile.dto';
 import { CreateIeltsTestDto, ListIeltsTestsQueryDto, UpdateIeltsTestDto, UpdateIeltsTestPartDto } from './dto/ielts-test.dto';
@@ -25,7 +29,7 @@ const workspace = (): Tenant => {
 
 /**
  * The IELTS workspace (Epic 11, P10): IELTS centres only. Student profiles (IEL-02), band tables
- * (IEL-04, IEL-05) and IELTS tests (IEL-03) so far.
+ * (IEL-04, IEL-05), IELTS tests (IEL-03), openings for batches and attempts (IEL-04, IEL-05, IEL-08).
  * Errors carry a `code` (IELTS_*). Needs `ielts`.
  */
 @ApiTags('IELTS')
@@ -40,6 +44,8 @@ export class IeltsController {
     private readonly bandTables: IeltsBandTablesService,
     private readonly tests: IeltsTestsService,
     private readonly groups: IeltsGroupsService,
+    private readonly assignments: IeltsAssignmentsService,
+    private readonly attempts: IeltsAttemptsService,
   ) {}
 
   @Get('profiles')
@@ -171,5 +177,68 @@ export class IeltsController {
   @ApiOperation({ summary: 'Drafts: remove a question group (hidden with its questions)' })
   async groupsRemove(@Param('id', ParseUUIDPipe) id: string, @Param('groupId', ParseUUIDPipe) groupId: string, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Question group removed', payload: await this.groups.remove(workspace(), user.id, id, groupId) };
+  }
+
+  @Post('tests/:id/assignments')
+  @ApiOperation({ summary: 'Staff: open a published test for a batch between two times' })
+  async assignmentsCreate(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateIeltsAssignmentDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Test opened for the batch', payload: await this.assignments.create(workspace(), user.id, id, dto) };
+  }
+
+  @Get('tests/:id/assignments')
+  @ApiOperation({ summary: 'Staff: a test’s openings with batch size and hand-ins per module' })
+  async assignmentsList(@Param('id', ParseUUIDPipe) id: string) {
+    return { message: 'Openings retrieved successfully', payload: await this.assignments.list(workspace(), id) };
+  }
+
+  @Patch('assignments/:id')
+  @ApiOperation({ summary: 'Staff: change an opening’s window' })
+  async assignmentsUpdate(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateIeltsAssignmentDto) {
+    return { message: 'Opening saved', payload: await this.assignments.update(workspace(), id, dto) };
+  }
+
+  @Delete('assignments/:id')
+  @ApiOperation({ summary: 'Staff: remove an opening (hidden from students; attempts kept)' })
+  async assignmentsRemove(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
+    await this.assignments.remove(workspace(), user.id, id);
+    return { message: 'Opening removed', payload: null };
+  }
+
+  @Get('assignments/:id/results')
+  @ApiOperation({ summary: 'Staff: each student of the batch with raw score and band per module' })
+  async assignmentsResults(@Param('id', ParseUUIDPipe) id: string) {
+    return { message: 'Results retrieved successfully', payload: await this.assignments.results(workspace(), id) };
+  }
+
+  @Get('my/assignments')
+  @ApiOperation({ summary: 'Students: IELTS tests opened for your batches, with your attempts per module' })
+  async myAssignments(@UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Tests retrieved successfully', payload: await this.attempts.listMine(workspace(), user.id) };
+  }
+
+  @Post('my/assignments/:id/modules/:module/start')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Students: start a module (or resume it while its time lasts); the paper without answers' })
+  async myStart(@Param('id', ParseUUIDPipe) id: string, @Param('module', new ParseEnumPipe(IeltsModuleEnum)) module: IeltsModuleEnum, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Module started', payload: await this.attempts.start(workspace(), user.id, id, module) };
+  }
+
+  @Get('my/attempts/:id')
+  @ApiOperation({ summary: 'Students: the paper while in progress, or the result (with answers when they may be shown)' })
+  async myAttempt(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Attempt retrieved successfully', payload: await this.attempts.get(workspace(), user.id, id) };
+  }
+
+  @Put('my/attempts/:id/answers')
+  @ApiOperation({ summary: 'Students: save answers while the time lasts' })
+  async mySave(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SaveIeltsAnswersDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Answers saved', payload: await this.attempts.save(workspace(), user.id, id, dto.answers) };
+  }
+
+  @Post('my/attempts/:id/submit')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Students: hand in a module; Listening and Reading are marked out of 40 with their band' })
+  async mySubmit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SubmitIeltsAttemptDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Module handed in', payload: await this.attempts.submit(workspace(), user.id, id, dto.answers) };
   }
 }
