@@ -42,4 +42,10 @@ export const IELTS_ERRORS = {
   MARKS_INVALID: 'IELTS_MARKS_INVALID',
   /** Only handed-in attempts are marked. */
   NOT_HANDED_IN: 'IELTS_NOT_HANDED_IN',
+  /** The academic-builder exam is not this centre's IELTS exam. */
+  OLD_EXAM_NOT_FOUND: 'IELTS_OLD_EXAM_NOT_FOUND',
+  /** It was converted already; `details.test_id` is the copy. */
+  ALREADY_CONVERTED: 'IELTS_ALREADY_CONVERTED',
+  /** Nothing in the old exam fits the new format. */
+  NOTHING_TO_CONVERT: 'IELTS_NOTHING_TO_CONVERT',
 } as const;

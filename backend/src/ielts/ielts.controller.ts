@@ -19,6 +19,7 @@ import { OrderIeltsGroupsDto, SaveIeltsGroupDto } from './dto/ielts-group.dto';
 import { ListIeltsProfilesQueryDto, UpdateIeltsProfileDto } from './dto/ielts-profile.dto';
 import { CreateIeltsTestDto, ListIeltsTestsQueryDto, UpdateIeltsTestDto, UpdateIeltsTestPartDto } from './dto/ielts-test.dto';
 import { IeltsBandTablesService } from './ielts-band-tables.service';
+import { IeltsConvertService } from './ielts-convert.service';
 import { IeltsGroupsService } from './ielts-groups.service';
 import { IeltsProfilesService } from './ielts-profiles.service';
 import { IeltsProgressService } from './ielts-progress.service';
@@ -51,6 +52,7 @@ export class IeltsController {
     private readonly attempts: IeltsAttemptsService,
     private readonly marking: IeltsMarkingService,
     private readonly progress: IeltsProgressService,
+    private readonly convertService: IeltsConvertService,
   ) {}
 
   @Get('profiles')
@@ -324,5 +326,17 @@ export class IeltsController {
   @ApiOperation({ summary: 'The band report of a student for an opening (staff; a student their own)' })
   async report(@Param('assignmentId', ParseUUIDPipe) assignmentId: string, @Param('studentId', ParseUUIDPipe) studentId: string, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Report retrieved successfully', payload: await this.progress.report(workspace(), user.id, assignmentId, studentId) };
+  }
+
+  @Get('old-exams')
+  @ApiOperation({ summary: 'Staff: IELTS exams made in the academic builder, and whether each was copied into the new format' })
+  async oldExams() {
+    return { message: 'Exams retrieved successfully', payload: await this.convertService.list(workspace()) };
+  }
+
+  @Post('old-exams/:examId/convert')
+  @ApiOperation({ summary: 'Staff: copy one into a draft IELTS test marked "check before use"; lists questions that did not fit' })
+  async convertOld(@Param('examId', ParseUUIDPipe) examId: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Exam copied', payload: await this.convertService.convert(workspace(), user.id, examId) };
   }
 }
