@@ -38,4 +38,8 @@ export const IELTS_ERRORS = {
   ATTEMPT_DONE: 'IELTS_ATTEMPT_DONE',
   /** An answer is for a question that is not in the attempt's module. */
   ANSWER_INVALID: 'IELTS_ANSWER_INVALID',
+  /** Marks need every task, each criterion 0–9 in half bands. */
+  MARKS_INVALID: 'IELTS_MARKS_INVALID',
+  /** Only handed-in attempts are marked. */
+  NOT_HANDED_IN: 'IELTS_NOT_HANDED_IN',
 } as const;

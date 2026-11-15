@@ -40,7 +40,8 @@ export const SLIDE_MIMES = [
   'application/vnd.ms-powerpoint',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 ] as const;
-export const AUDIO_MIMES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/ogg', 'audio/wav'] as const;
+/** audio/webm is what browsers record (IELTS Speaking, P10-06). */
+export const AUDIO_MIMES = ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/ogg', 'audio/wav', 'audio/webm'] as const;
 
 /** Purposes a client may upload for today, with their allowed types. */
 export const UPLOAD_RULES: Partial<Record<FilePurposeEnum, readonly string[]>> = {
