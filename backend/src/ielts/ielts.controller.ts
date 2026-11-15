@@ -10,7 +10,7 @@ import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.d
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
 import { CreateIeltsAssignmentDto, SaveIeltsAnswersDto, SubmitIeltsAttemptDto, UpdateIeltsAssignmentDto } from './dto/ielts-attempt.dto';
 import { IeltsBandTableScopeDto, UpdateIeltsBandTableDto } from './dto/ielts-band-table.dto';
-import { ListIeltsMarkingQueryDto, MarkIeltsWritingDto } from './dto/ielts-marking.dto';
+import { IeltsRecordingDto, ListIeltsMarkingQueryDto, MarkIeltsSpeakingDto, MarkIeltsWritingDto, StartIeltsSpeakingDto } from './dto/ielts-marking.dto';
 import { IeltsMarkingService } from './ielts-marking.service';
 import { IeltsModuleEnum } from './entities/ielts-profile.entity';
 import { IeltsAssignmentsService } from './ielts-assignments.service';
@@ -261,5 +261,30 @@ export class IeltsController {
   @ApiOperation({ summary: 'Staff: bands for TA/TR, CC, LR, GRA per task, comments and feedback; Task 2 counts double' })
   async markingWriting(@Param('attemptId', ParseUUIDPipe) attemptId: string, @Body() dto: MarkIeltsWritingDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Marks saved', payload: await this.marking.markWriting(workspace(), user.id, attemptId, dto) };
+  }
+
+  @Post('assignments/:id/speaking')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Staff: start (or resume) a live Speaking session with a student of the batch' })
+  async speakingStart(@Param('id', ParseUUIDPipe) id: string, @Body() dto: StartIeltsSpeakingDto) {
+    return { message: 'Speaking session started', payload: await this.marking.startLive(workspace(), id, dto.student_id) };
+  }
+
+  @Put('marking/:attemptId/recordings')
+  @ApiOperation({ summary: 'Staff: keep a part’s recording in a live Speaking session' })
+  async speakingRecording(@Param('attemptId', ParseUUIDPipe) attemptId: string, @Body() dto: IeltsRecordingDto) {
+    return { message: 'Recording saved', payload: await this.marking.liveRecording(workspace(), attemptId, dto.part_id, dto.file_id) };
+  }
+
+  @Put('marking/:attemptId/speaking')
+  @ApiOperation({ summary: 'Staff: bands for FC, LR, GRA, P with notes (ends a live session)' })
+  async markingSpeaking(@Param('attemptId', ParseUUIDPipe) attemptId: string, @Body() dto: MarkIeltsSpeakingDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Marks saved', payload: await this.marking.markSpeaking(workspace(), user.id, attemptId, dto) };
+  }
+
+  @Put('my/attempts/:id/recordings')
+  @ApiOperation({ summary: 'Students: keep a Speaking part’s practice recording (your IELTS audio upload)' })
+  async myRecording(@Param('id', ParseUUIDPipe) id: string, @Body() dto: IeltsRecordingDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Recording saved', payload: await this.attempts.record(workspace(), user.id, id, dto.part_id, dto.file_id) };
   }
 }

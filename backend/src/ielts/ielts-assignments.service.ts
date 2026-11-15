@@ -25,7 +25,7 @@ export interface IeltsAssignmentView {
 
 export interface IeltsResultRow {
   student: { id: string; full_name: string };
-  modules: Partial<Record<IeltsModuleEnum, { status: string; raw_score: number | null; band: number | null; submitted_at: Date | null }>>;
+  modules: Partial<Record<IeltsModuleEnum, { attempt_id: string; status: string; mode: string | null; raw_score: number | null; band: number | null; submitted_at: Date | null }>>;
 }
 
 /**
@@ -93,7 +93,7 @@ export class IeltsAssignmentsService {
       modules: Object.fromEntries(
         attempts
           .filter((a) => a.student_id === student.id)
-          .map((a) => [a.module, { status: a.status, raw_score: a.raw_score, band: a.band === null ? null : Number(a.band), submitted_at: a.submitted_at }]),
+          .map((a) => [a.module, { attempt_id: a.id, status: a.status, mode: a.mode, raw_score: a.raw_score, band: a.band === null ? null : Number(a.band), submitted_at: a.submitted_at }]),
       ),
     }));
   }

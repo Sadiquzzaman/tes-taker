@@ -21,8 +21,16 @@ import { marksFor } from './scoring';
 /** Answers sent this long after the time runs out still count (a slow network at the end). */
 export const GRACE_SECONDS = 30;
 
-/** Modules taken on screen; Speaking (P10-06) is a session with the examiner or a recording. */
-const ON_SCREEN: readonly IeltsModuleEnum[] = [IeltsModuleEnum.LISTENING, IeltsModuleEnum.READING, IeltsModuleEnum.WRITING];
+/** Modules a student starts; Speaking started by a student is practice recordings (a live session is started by the examiner). */
+const ON_SCREEN: readonly IeltsModuleEnum[] = [IeltsModuleEnum.LISTENING, IeltsModuleEnum.READING, IeltsModuleEnum.WRITING, IeltsModuleEnum.SPEAKING];
+
+/** Speaking practice: extra time on top of the module's to record and send each part. */
+const SPEAKING_EXTRA_SECONDS = 10 * 60;
+
+export enum IeltsSpeakingModeEnum {
+  LIVE = 'LIVE',
+  RECORDED = 'RECORDED',
+}
 
 /** A Writing script's longest length (about 3000 words), and a question answer's. */
 export const SCRIPT_MAX = 20_000;
@@ -34,6 +42,8 @@ const MOCK_SEQUENCE: readonly IeltsModuleEnum[] = [IeltsModuleEnum.LISTENING, Ie
 export interface IeltsMyAttempt {
   id: string;
   status: IeltsAttemptStatusEnum;
+  /** Speaking: LIVE (with the teacher) or RECORDED (practice). */
+  mode: string | null;
   deadline: Date;
   raw_score: number | null;
   band: number | null;
@@ -90,8 +100,12 @@ export interface IeltsAttemptView {
     submitted_at: Date | null;
     raw_score: number | null;
     band: number | null;
-    /** Writing: bands per task and criterion, with comments, once marked. */
+    /** Writing: bands per task and criterion, with comments; Speaking: the four criteria; once marked. */
     criteria: Record<string, unknown> | null;
+    /** Speaking: LIVE or RECORDED. */
+    mode: string | null;
+    /** Speaking: part id → recording file id. */
+    recordings: Record<string, string>;
     feedback: string | null;
     /** The server's clock, so the screen's timer does not trust the device's. */
     now: Date;
@@ -147,7 +161,7 @@ export class IeltsAttemptsService {
       attempts: Object.fromEntries(
         mine
           .filter((a) => a.assignment_id === r.id)
-          .map((a) => [a.module, { id: a.id, status: a.status, deadline: a.deadline, raw_score: a.raw_score, band: a.band === null ? null : Number(a.band) }]),
+          .map((a) => [a.module, { id: a.id, status: a.status, mode: a.mode, deadline: a.deadline, raw_score: a.raw_score, band: a.band === null ? null : Number(a.band) }]),
       ),
     }));
   }
@@ -162,6 +176,9 @@ export class IeltsAttemptsService {
 
     const existing = await this.attempts.findOne({ where: { assignment_id: assignment.id, student_id: userId, module } });
     if (existing) {
+      if (existing.mode === IeltsSpeakingModeEnum.LIVE) {
+        throw new ConflictException({ message: 'Your teacher runs this Speaking session', code: IELTS_ERRORS.ATTEMPT_DONE });
+      }
       if (existing.status === IeltsAttemptStatusEnum.IN_PROGRESS && !this.expired(existing)) return this.view(existing, test, assignment);
       await this.finish(existing.id);
       throw new ConflictException({ message: 'You have handed in this module', code: IELTS_ERRORS.ATTEMPT_DONE });
@@ -173,7 +190,8 @@ export class IeltsAttemptsService {
       const done = await this.attempts.count({ where: { assignment_id: assignment.id, student_id: userId, module: In(before), status: In([IeltsAttemptStatusEnum.SUBMITTED, IeltsAttemptStatusEnum.MARKED]) } });
       if (done < before.length) throw new ConflictException({ message: 'A mock runs Listening, Reading, then Writing', code: IELTS_ERRORS.MODULE_ORDER });
     }
-    const seconds = (test.durations[module] ?? 0) + (module === IeltsModuleEnum.LISTENING ? LISTENING_REVIEW_SECONDS : 0);
+    const seconds =
+      (test.durations[module] ?? 0) + (module === IeltsModuleEnum.LISTENING ? LISTENING_REVIEW_SECONDS : 0) + (module === IeltsModuleEnum.SPEAKING ? SPEAKING_EXTRA_SECONDS : 0);
     try {
       const attempt = await this.attempts.save(
         this.attempts.create({
@@ -182,6 +200,7 @@ export class IeltsAttemptsService {
           assignment_id: assignment.id,
           student_id: userId,
           module,
+          mode: module === IeltsModuleEnum.SPEAKING ? IeltsSpeakingModeEnum.RECORDED : null,
           status: IeltsAttemptStatusEnum.IN_PROGRESS,
           started_at: now,
           deadline: new Date(now.getTime() + seconds * 1000),
@@ -223,6 +242,41 @@ export class IeltsAttemptsService {
     return this.view(await this.finish(attempt.id));
   }
 
+  /** Speaking practice: the student's recording of one part (an IELTS audio upload of their own). */
+  async record(tenant: Tenant, userId: string, attemptId: string, partId: string, fileId: string | null): Promise<IeltsAttemptView> {
+    await this.profiles.assertIeltsCentre(tenant);
+    const attempt = await this.mine(tenant, userId, attemptId);
+    if (attempt.module !== IeltsModuleEnum.SPEAKING || attempt.mode !== IeltsSpeakingModeEnum.RECORDED) {
+      throw new BadRequestException({ message: 'Only Speaking practice has your recordings', code: IELTS_ERRORS.ANSWER_INVALID });
+    }
+    if (attempt.status !== IeltsAttemptStatusEnum.IN_PROGRESS || this.expired(attempt)) {
+      throw new ConflictException({ message: 'You have handed in this module', code: IELTS_ERRORS.ATTEMPT_DONE });
+    }
+    await this.setRecording(tenant, attempt, partId, fileId, userId);
+    return this.view(await this.attempts.findOneOrFail({ where: { id: attempt.id } }));
+  }
+
+  /**
+   * Keeps a part's recording on a Speaking attempt: an audio file uploaded for IELTS in the centre
+   * (by `ownerId` when given). Null removes it.
+   */
+  async setRecording(tenant: Tenant, attempt: IeltsAttemptEntity, partId: string, fileId: string | null, ownerId?: string): Promise<void> {
+    const parts = await this.tests.tree(attempt.test_id, IeltsModuleEnum.SPEAKING);
+    if (!parts.some((p) => p.id === partId)) throw new BadRequestException({ message: 'That part is not in this Speaking test', code: IELTS_ERRORS.ANSWER_INVALID });
+    if (fileId) {
+      const [file] = await this.dataSource.query(
+        `SELECT id FROM file_objects WHERE id = $1 AND organization_id = $2 AND purpose = 'IELTS' AND mime LIKE 'audio/%' AND status <> 'FAILED' AND deleted_at IS NULL AND ($3::uuid IS NULL OR owner_id = $3)`,
+        [fileId, tenant.organizationId, ownerId ?? null],
+      );
+      if (!file) throw new BadRequestException({ message: 'Upload the recording for IELTS first', code: IELTS_ERRORS.FILE_INVALID });
+    }
+    const recordings = { ...(attempt.recording_file_ids ?? {}) };
+    if (fileId) recordings[partId] = fileId;
+    else delete recordings[partId];
+    await this.attempts.update({ id: attempt.id }, { recording_file_ids: recordings });
+    attempt.recording_file_ids = recordings;
+  }
+
   /** Hands in attempts whose time ran out (a student's, or one opening's). */
   async finishExpired(filter: { studentId?: string; assignmentId?: string; organizationId?: string }): Promise<void> {
     const cutoff = new Date(Date.now() - GRACE_SECONDS * 1000);
@@ -253,8 +307,8 @@ export class IeltsAttemptsService {
       const [locked] = await manager.query(`SELECT id FROM ielts_attempts WHERE id = $1 AND status = 'IN_PROGRESS' FOR UPDATE`, [attemptId]);
       if (!locked) return null;
       const attempt = await manager.getRepository(IeltsAttemptEntity).findOneOrFail({ where: { id: attemptId } });
-      if (attempt.module === IeltsModuleEnum.WRITING) {
-        // Writing waits for a teacher to mark it against the four criteria (IEL-06).
+      if (attempt.module === IeltsModuleEnum.WRITING || attempt.module === IeltsModuleEnum.SPEAKING) {
+        // Writing and Speaking wait for a teacher to mark them against their four criteria (IEL-06, IEL-07).
         await manager.getRepository(IeltsAttemptEntity).update({ id: attempt.id }, { status: IeltsAttemptStatusEnum.SUBMITTED, submitted_at: new Date() });
         return attempt.id;
       }
@@ -337,8 +391,8 @@ export class IeltsAttemptsService {
     const t = test ?? (await this.dataSource.getRepository(IeltsTestEntity).findOneOrFail({ where: { id: attempt.test_id } }));
     const a = assignment ?? (await this.dataSource.getRepository(IeltsAssignmentEntity).findOneOrFail({ where: { id: attempt.assignment_id } }));
     const inProgress = attempt.status === IeltsAttemptStatusEnum.IN_PROGRESS;
-    // Writing has no right answers to hide: the tasks and scripts show after hand-in.
-    const review = !inProgress && (attempt.module === IeltsModuleEnum.WRITING || t.purpose === IeltsTestPurposeEnum.PRACTICE || Date.now() > a.closes_at.getTime());
+    // Writing and Speaking have no right answers to hide: the tasks show after hand-in.
+    const review = !inProgress && (attempt.module === IeltsModuleEnum.WRITING || attempt.module === IeltsModuleEnum.SPEAKING || t.purpose === IeltsTestPurposeEnum.PRACTICE || Date.now() > a.closes_at.getTime());
     const marked = attempt.status === IeltsAttemptStatusEnum.MARKED;
     const rows = await this.dataSource.getRepository(IeltsAnswerEntity).find({ where: { attempt_id: attempt.id } });
     const marks = new Map(rows.filter((r) => r.question_id).map((r) => [r.question_id as string, r.marks]));
@@ -354,6 +408,8 @@ export class IeltsAttemptsService {
         raw_score: attempt.raw_score,
         band: attempt.band === null ? null : Number(attempt.band),
         criteria: marked ? attempt.criteria : null,
+        mode: attempt.mode,
+        recordings: attempt.recording_file_ids ?? {},
         feedback: marked ? attempt.feedback : null,
         now: new Date(),
         review_seconds: attempt.module === IeltsModuleEnum.LISTENING ? LISTENING_REVIEW_SECONDS : 0,
