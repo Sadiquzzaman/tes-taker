@@ -99,6 +99,11 @@ const IeltsTestBuilder = ({ testId }: { testId: string }) => {
                 {t("moveToDrafts")}
               </Button>
             ) : null}
+            {test.status === "PUBLISHED" ? (
+              <Button variant="secondary" onClick={() => router.push(`/ielts/tests/${test.id}/openings`)}>
+                {t("openings")}
+              </Button>
+            ) : null}
             <Button variant="ghost" disabled={busy} onClick={() => void run("duplicate", tt("copied"), (copy) => router.push(`/ielts/tests/${copy.id}`))}>
               {tt("copy")}
             </Button>
