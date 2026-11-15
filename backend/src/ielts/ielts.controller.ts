@@ -10,6 +10,8 @@ import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.d
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
 import { CreateIeltsAssignmentDto, SaveIeltsAnswersDto, SubmitIeltsAttemptDto, UpdateIeltsAssignmentDto } from './dto/ielts-attempt.dto';
 import { IeltsBandTableScopeDto, UpdateIeltsBandTableDto } from './dto/ielts-band-table.dto';
+import { ListIeltsMarkingQueryDto, MarkIeltsWritingDto } from './dto/ielts-marking.dto';
+import { IeltsMarkingService } from './ielts-marking.service';
 import { IeltsModuleEnum } from './entities/ielts-profile.entity';
 import { IeltsAssignmentsService } from './ielts-assignments.service';
 import { IeltsAttemptsService } from './ielts-attempts.service';
@@ -46,6 +48,7 @@ export class IeltsController {
     private readonly groups: IeltsGroupsService,
     private readonly assignments: IeltsAssignmentsService,
     private readonly attempts: IeltsAttemptsService,
+    private readonly marking: IeltsMarkingService,
   ) {}
 
   @Get('profiles')
@@ -240,5 +243,23 @@ export class IeltsController {
   @ApiOperation({ summary: 'Students: hand in a module; Listening and Reading are marked out of 40 with their band' })
   async mySubmit(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SubmitIeltsAttemptDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Module handed in', payload: await this.attempts.submit(workspace(), user.id, id, dto.answers) };
+  }
+
+  @Get('marking')
+  @ApiOperation({ summary: 'Staff: handed-in Writing waiting for marks (state=MARKED for marked ones), oldest first' })
+  async markingList(@Query() query: ListIeltsMarkingQueryDto) {
+    return { message: 'Attempts retrieved successfully', payload: await this.marking.list(workspace(), query) };
+  }
+
+  @Get('marking/:attemptId')
+  @ApiOperation({ summary: 'Staff: a handed-in Writing attempt with tasks, scripts, word counts and marks' })
+  async markingGet(@Param('attemptId', ParseUUIDPipe) attemptId: string) {
+    return { message: 'Attempt retrieved successfully', payload: await this.marking.get(workspace(), attemptId) };
+  }
+
+  @Put('marking/:attemptId/writing')
+  @ApiOperation({ summary: 'Staff: bands for TA/TR, CC, LR, GRA per task, comments and feedback; Task 2 counts double' })
+  async markingWriting(@Param('attemptId', ParseUUIDPipe) attemptId: string, @Body() dto: MarkIeltsWritingDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Marks saved', payload: await this.marking.markWriting(workspace(), user.id, attemptId, dto) };
   }
 }

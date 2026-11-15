@@ -21,8 +21,12 @@ import { marksFor } from './scoring';
 /** Answers sent this long after the time runs out still count (a slow network at the end). */
 export const GRACE_SECONDS = 30;
 
-/** Modules taken on screen so far; Writing comes with P10-05, Speaking with P10-06. */
-const ON_SCREEN: readonly IeltsModuleEnum[] = [IeltsModuleEnum.LISTENING, IeltsModuleEnum.READING];
+/** Modules taken on screen; Speaking (P10-06) is a session with the examiner or a recording. */
+const ON_SCREEN: readonly IeltsModuleEnum[] = [IeltsModuleEnum.LISTENING, IeltsModuleEnum.READING, IeltsModuleEnum.WRITING];
+
+/** A Writing script's longest length (about 3000 words), and a question answer's. */
+export const SCRIPT_MAX = 20_000;
+const ANSWER_MAX = 500;
 
 /** A mock's modules run in this order on the computer; Speaking is separate. */
 const MOCK_SEQUENCE: readonly IeltsModuleEnum[] = [IeltsModuleEnum.LISTENING, IeltsModuleEnum.READING, IeltsModuleEnum.WRITING];
@@ -86,6 +90,9 @@ export interface IeltsAttemptView {
     submitted_at: Date | null;
     raw_score: number | null;
     band: number | null;
+    /** Writing: bands per task and criterion, with comments, once marked. */
+    criteria: Record<string, unknown> | null;
+    feedback: string | null;
     /** The server's clock, so the screen's timer does not trust the device's. */
     now: Date;
     review_seconds: number;
@@ -217,7 +224,7 @@ export class IeltsAttemptsService {
   }
 
   /** Hands in attempts whose time ran out (a student's, or one opening's). */
-  async finishExpired(filter: { studentId?: string; assignmentId?: string }): Promise<void> {
+  async finishExpired(filter: { studentId?: string; assignmentId?: string; organizationId?: string }): Promise<void> {
     const cutoff = new Date(Date.now() - GRACE_SECONDS * 1000);
     const expired = await this.attempts.find({
       where: {
@@ -225,6 +232,7 @@ export class IeltsAttemptsService {
         deadline: LessThan(cutoff),
         ...(filter.studentId ? { student_id: filter.studentId } : {}),
         ...(filter.assignmentId ? { assignment_id: filter.assignmentId } : {}),
+        ...(filter.organizationId ? { organization_id: filter.organizationId } : {}),
       },
     });
     for (const attempt of expired) await this.finish(attempt.id);
@@ -236,12 +244,20 @@ export class IeltsAttemptsService {
     return Date.now() > attempt.deadline.getTime() + GRACE_SECONDS * 1000;
   }
 
-  /** Marks an attempt once (row locked): each answer against its key, the raw score out of 40 and the band. */
+  /**
+   * Hands an attempt in once (row locked). Listening and Reading are marked: each answer against
+   * its key, the raw score out of 40 and the band. Writing waits for its marks.
+   */
   private async finish(attemptId: string): Promise<IeltsAttemptEntity> {
     const marked = await this.dataSource.transaction(async (manager) => {
       const [locked] = await manager.query(`SELECT id FROM ielts_attempts WHERE id = $1 AND status = 'IN_PROGRESS' FOR UPDATE`, [attemptId]);
       if (!locked) return null;
       const attempt = await manager.getRepository(IeltsAttemptEntity).findOneOrFail({ where: { id: attemptId } });
+      if (attempt.module === IeltsModuleEnum.WRITING) {
+        // Writing waits for a teacher to mark it against the four criteria (IEL-06).
+        await manager.getRepository(IeltsAttemptEntity).update({ id: attempt.id }, { status: IeltsAttemptStatusEnum.SUBMITTED, submitted_at: new Date() });
+        return attempt.id;
+      }
       const test = await manager.getRepository(IeltsTestEntity).findOneOrFail({ where: { id: attempt.test_id } });
       const parts = await this.tests.tree(test.id, attempt.module);
       const answers = await manager.getRepository(IeltsAnswerEntity).find({ where: { attempt_id: attempt.id } });
@@ -269,18 +285,32 @@ export class IeltsAttemptsService {
     return this.attempts.findOneOrFail({ where: { id: marked ?? attemptId } });
   }
 
-  /** Upserts answers to questions of the attempt's module. */
+  /** Upserts answers to questions of the attempt's module, or Writing scripts per task. */
   private async write(attempt: IeltsAttemptEntity, answers: IeltsAnswerInputDto[]): Promise<void> {
     const parts = await this.tests.tree(attempt.test_id, attempt.module);
+    if (attempt.module === IeltsModuleEnum.WRITING) {
+      const tasks = new Set(parts.map((p) => p.id));
+      if (answers.some((a) => !a.part_id || a.question_id || !tasks.has(a.part_id) || (a.answer?.length ?? 0) > SCRIPT_MAX)) {
+        throw new BadRequestException({ message: 'A script is for a task not in this module, or too long', code: IELTS_ERRORS.ANSWER_INVALID });
+      }
+      for (const a of answers) {
+        await this.dataSource.query(
+          `INSERT INTO ielts_answers (attempt_id, question_id, part_id, answer, updated_at) VALUES ($1, NULL, $2, $3, now())
+           ON CONFLICT (attempt_id, part_id) WHERE question_id IS NULL DO UPDATE SET answer = EXCLUDED.answer, updated_at = now()`,
+          [attempt.id, a.part_id, a.answer?.trim() ? a.answer : null],
+        );
+      }
+      return;
+    }
     const partOf = new Map(parts.flatMap((p) => p.groups.flatMap((g) => g.questions.map((q) => [q.id, p.id] as const))));
-    if (answers.some((a) => !partOf.has(a.question_id))) {
+    if (answers.some((a) => !a.question_id || !partOf.has(a.question_id) || (a.answer?.length ?? 0) > ANSWER_MAX)) {
       throw new BadRequestException({ message: 'An answer is for a question not in this module', code: IELTS_ERRORS.ANSWER_INVALID });
     }
     for (const a of answers) {
       await this.dataSource.query(
         `INSERT INTO ielts_answers (attempt_id, question_id, part_id, answer, updated_at) VALUES ($1, $2, $3, $4, now())
          ON CONFLICT (attempt_id, question_id) WHERE question_id IS NOT NULL DO UPDATE SET answer = EXCLUDED.answer, updated_at = now()`,
-        [attempt.id, a.question_id, partOf.get(a.question_id), a.answer?.trim() ? a.answer.trim() : null],
+        [attempt.id, a.question_id, partOf.get(a.question_id as string), a.answer?.trim() ? a.answer.trim() : null],
       );
     }
   }
@@ -307,7 +337,9 @@ export class IeltsAttemptsService {
     const t = test ?? (await this.dataSource.getRepository(IeltsTestEntity).findOneOrFail({ where: { id: attempt.test_id } }));
     const a = assignment ?? (await this.dataSource.getRepository(IeltsAssignmentEntity).findOneOrFail({ where: { id: attempt.assignment_id } }));
     const inProgress = attempt.status === IeltsAttemptStatusEnum.IN_PROGRESS;
-    const review = !inProgress && (t.purpose === IeltsTestPurposeEnum.PRACTICE || Date.now() > a.closes_at.getTime());
+    // Writing has no right answers to hide: the tasks and scripts show after hand-in.
+    const review = !inProgress && (attempt.module === IeltsModuleEnum.WRITING || t.purpose === IeltsTestPurposeEnum.PRACTICE || Date.now() > a.closes_at.getTime());
+    const marked = attempt.status === IeltsAttemptStatusEnum.MARKED;
     const rows = await this.dataSource.getRepository(IeltsAnswerEntity).find({ where: { attempt_id: attempt.id } });
     const marks = new Map(rows.filter((r) => r.question_id).map((r) => [r.question_id as string, r.marks]));
     return {
@@ -321,12 +353,15 @@ export class IeltsAttemptsService {
         submitted_at: attempt.submitted_at,
         raw_score: attempt.raw_score,
         band: attempt.band === null ? null : Number(attempt.band),
+        criteria: marked ? attempt.criteria : null,
+        feedback: marked ? attempt.feedback : null,
         now: new Date(),
         review_seconds: attempt.module === IeltsModuleEnum.LISTENING ? LISTENING_REVIEW_SECONDS : 0,
       },
       test: { id: t.id, title: t.title, test_type: t.test_type, purpose: t.purpose },
       parts: inProgress || review ? this.paper(await this.tests.tree(t.id, attempt.module), review ? marks : null) : null,
-      answers: Object.fromEntries(rows.filter((r) => r.question_id && r.answer !== null).map((r) => [r.question_id as string, r.answer as string])),
+      // Question answers by question id; Writing scripts by task (part) id.
+      answers: Object.fromEntries(rows.filter((r) => r.answer !== null).map((r) => [r.question_id ?? r.part_id, r.answer as string])),
     };
   }
 
