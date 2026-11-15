@@ -11,6 +11,7 @@ import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
 import { IELTS_MODULES, PART_COUNT } from "./bands";
+import OldExams from "./OldExams";
 
 const STATUS_TONE: Record<IeltsTestStatus, BadgeTone> = { DRAFT: "neutral", PUBLISHED: "success", ARCHIVED: "warning" };
 
@@ -144,6 +145,7 @@ const IeltsTests = () => {
           empty={<EmptyState title={t("empty")} description={t("emptyHint")} action={<Button onClick={() => setCreating(true)}>{t("newTest")}</Button>} />}
         />
       )}
+      <OldExams />
       {creating ? <CreateTestModal onClose={() => setCreating(false)} onCreated={(id) => router.push(`/ielts/tests/${id}`)} /> : null}
       <ConfirmDialog
         open={deleting !== null}

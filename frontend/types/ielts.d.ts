@@ -106,7 +106,7 @@ interface IeltsMyAssignment {
   opens_at: string;
   closes_at: string;
   is_open: boolean;
-  attempts: Partial<Record<IeltsModule, { id: string; status: IeltsAttemptStatus; deadline: string; raw_score: number | null; band: number | null }>>;
+  attempts: Partial<Record<IeltsModule, { id: string; status: IeltsAttemptStatus; mode?: string | null; deadline: string; raw_score: number | null; band: number | null }>>;
 }
 
 /** A question as a student sees it; `key` and `marks` only after hand-in when answers may be shown. */
@@ -155,6 +155,13 @@ interface IeltsAttemptView {
     submitted_at: string | null;
     raw_score: number | null;
     band: number | null;
+    /** Writing, once marked: `{ tasks: [{ part_id, part_no, criteria, band, comment }] }`. */
+    criteria?: Record<string, unknown> | null;
+    feedback?: string | null;
+    /** Speaking: LIVE (with the teacher) or RECORDED (practice). */
+    mode?: string | null;
+    /** Speaking: part id → recording file id. */
+    recordings?: Record<string, string>;
     now: string;
     review_seconds: number;
   };
@@ -177,5 +184,79 @@ interface IeltsAssignment {
 /** `GET /ielts/assignments/:id/results` */
 interface IeltsResultRow {
   student: { id: string; full_name: string };
-  modules: Partial<Record<IeltsModule, { status: IeltsAttemptStatus; raw_score: number | null; band: number | null; submitted_at: string | null }>>;
+  /** All four modules marked. */
+  overall?: number | null;
+  modules: Partial<Record<IeltsModule, { attempt_id: string; status: IeltsAttemptStatus; mode?: string | null; raw_score: number | null; band: number | null; submitted_at: string | null }>>;
+}
+
+/** `GET /ielts/marking` */
+interface IeltsMarkingRow {
+  attempt_id: string;
+  module: IeltsModule;
+  status: IeltsAttemptStatus;
+  student: { id: string; full_name: string };
+  test: { id: string; title: string };
+  batch: string;
+  submitted_at: string | null;
+  band: number | null;
+}
+
+/** `GET /ielts/marking/:attemptId` */
+interface IeltsMarkingView extends IeltsMarkingRow {
+  test_type: IeltsTestType;
+  /** Speaking: LIVE or RECORDED. */
+  mode?: string | null;
+  tasks: { part_id: string; part_no: number; title: string | null; content: string | null; image_file_id: string | null; script: string; words: number; min_words: number; recording_file_id?: string | null }[];
+  marks: { part_id: string; part_no: number; criteria: Record<string, number>; band: number; comment: string | null }[];
+  /** Speaking: FC, LR, GRA, P once marked. */
+  speaking?: Record<string, number> | null;
+  feedback: string | null;
+  marked_by: string | null;
+  marked_at: string | null;
+}
+
+interface IeltsBandPoint {
+  attempt_id: string;
+  assignment_id: string;
+  test_title: string;
+  purpose: IeltsTestPurpose;
+  band: number;
+  raw_score: number | null;
+  at: string;
+}
+
+/** `GET /ielts/progress/:studentId`, `/ielts/progress/me` */
+interface IeltsProgressView {
+  profile: IeltsProfile;
+  modules: Record<IeltsModule, IeltsBandPoint[]>;
+  mocks: { assignment_id: string; test_title: string; bands: Record<IeltsModule, number>; overall: number; at: string }[];
+  question_types: { type: string; right: number; total: number; percent: number }[];
+}
+
+/** `GET /ielts/dashboard` */
+interface IeltsStaffDashboard {
+  batches: number;
+  students: number;
+  upcoming: { assignment_id: string; test_title: string; batch: string; opens_at: string; closes_at: string }[];
+  waiting: { writing: number; speaking: number };
+  batch_bands: { section_id: string; batch: string; bands: Partial<Record<IeltsModule, number>> }[];
+}
+
+/** `GET /ielts/dashboard/me` */
+interface IeltsStudentDashboard {
+  profile: IeltsProfile;
+  latest: Partial<Record<IeltsModule, number>>;
+  next: { assignment_id: string; test_title: string; purpose: IeltsTestPurpose; opens_at: string; closes_at: string } | null;
+  open_now: number;
+}
+
+/** `GET /ielts/report/:assignmentId/:studentId` */
+interface IeltsBandReport {
+  student: { id: string; full_name: string; batch: string | null };
+  test: { id: string; title: string; test_type: IeltsTestType; purpose: IeltsTestPurpose };
+  window: { opens_at: string; closes_at: string };
+  modules: Partial<Record<IeltsModule, { band: number | null; raw_score: number | null; status: string; criteria: Record<string, unknown> | null; feedback: string | null }>>;
+  overall: number | null;
+  targets: { overall: number | null; bands: Partial<Record<IeltsModule, number>> };
+  test_date: string | null;
 }
