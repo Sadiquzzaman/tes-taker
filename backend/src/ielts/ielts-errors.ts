@@ -6,4 +6,8 @@ export const IELTS_ERRORS = {
   STUDENT_NOT_FOUND: 'IELTS_STUDENT_NOT_FOUND',
   /** A band is 0–9 in half bands. */
   BAND_INVALID: 'IELTS_BAND_INVALID',
+  /** Only owners and admins change centre-wide IELTS settings (band tables). */
+  MANAGERS_ONLY: 'IELTS_MANAGERS_ONLY',
+  /** A band table runs from 40 down to 0, with bands 0–9 in half bands that never go up. */
+  BAND_TABLE_INVALID: 'IELTS_BAND_TABLE_INVALID',
 } as const;

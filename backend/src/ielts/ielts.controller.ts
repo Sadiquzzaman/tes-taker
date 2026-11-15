@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Param, ParseUUIDPipe, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
@@ -8,7 +8,9 @@ import { OrganizationContextGuard } from 'src/organizations/guards/organization-
 import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.decorator';
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
+import { IeltsBandTableScopeDto, UpdateIeltsBandTableDto } from './dto/ielts-band-table.dto';
 import { ListIeltsProfilesQueryDto, UpdateIeltsProfileDto } from './dto/ielts-profile.dto';
+import { IeltsBandTablesService } from './ielts-band-tables.service';
 import { IeltsProfilesService } from './ielts-profiles.service';
 
 const workspace = (): Tenant => {
@@ -18,7 +20,8 @@ const workspace = (): Tenant => {
 };
 
 /**
- * The IELTS workspace (Epic 11, P10): IELTS centres only. Student profiles (IEL-02) so far.
+ * The IELTS workspace (Epic 11, P10): IELTS centres only. Student profiles (IEL-02) and band
+ * tables (IEL-04, IEL-05) so far.
  * Errors carry a `code` (IELTS_*). Needs `ielts`.
  */
 @ApiTags('IELTS')
@@ -28,7 +31,10 @@ const workspace = (): Tenant => {
 @RequiresFeature(FeatureKey.IELTS)
 @Controller({ path: 'ielts', version: '1' })
 export class IeltsController {
-  constructor(private readonly profiles: IeltsProfilesService) {}
+  constructor(
+    private readonly profiles: IeltsProfilesService,
+    private readonly bandTables: IeltsBandTablesService,
+  ) {}
 
   @Get('profiles')
   @ApiOperation({ summary: 'Staff: every student of the centre (or one batch: section_id) with test type, targets and test date' })
@@ -52,5 +58,24 @@ export class IeltsController {
   @ApiOperation({ summary: "Set a student's test type, target bands (0–9 in half bands) and test date (staff)" })
   async update(@Param('studentId', ParseUUIDPipe) studentId: string, @Body() dto: UpdateIeltsProfileDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Profile saved', payload: await this.profiles.update(workspace(), user.id, studentId, dto) };
+  }
+
+  @Get('band-tables')
+  @ApiOperation({ summary: 'Staff: the raw → band tables for Listening and Reading (Academic, General Training): the centre’s own or the default' })
+  async bandTablesList() {
+    return { message: 'Band tables retrieved successfully', payload: await this.bandTables.list(workspace()) };
+  }
+
+  @Put('band-tables')
+  @ApiOperation({ summary: 'Owners and admins: save the centre’s own copy of one band table' })
+  async bandTablesUpdate(@Body() dto: UpdateIeltsBandTableDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Band table saved', payload: await this.bandTables.update(workspace(), user.id, dto) };
+  }
+
+  @Post('band-tables/reset')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Owners and admins: put one band table back to the default' })
+  async bandTablesReset(@Body() dto: IeltsBandTableScopeDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Band table reset', payload: await this.bandTables.reset(workspace(), user.id, dto) };
   }
 }

@@ -1739,7 +1739,7 @@ Table ielts_band_tables {
   Indexes {
     (organization_id, module, test_type) [unique]
   }
-  Note: 'NEW (IEL-04, IEL-05), P10-02 — editable raw → band'
+  Note: 'NEW (IEL-04, IEL-05), BUILT P10-02 part 1 (ielts module, migration IeltsBandTables) — editable raw → band; the API adds the three platform defaults at boot when missing; unique by COALESCE(organization_id), module, COALESCE(test_type)'
 }
 
 Table ielts_tests {

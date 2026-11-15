@@ -710,6 +710,8 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 
 **Built in P10-01 part 2 (IELTS screens):** the sign-up form asks "School" or "IELTS centre". The organisation session (`select-context`, login) carries `organization.workspace_type`; the web keeps it in the `workspace_type` cookie, and the side menu hides school-only items (marks, behaviour, report cards, grading, performance) in an IELTS workspace and shows IELTS items only there. New pages: `/ielts/students` (staff: batch filter, each student's test type, targets and test date in a drawer) and `/ielts/me` (student: their targets and days to the test).
 
+**Built in P10-02 part 1 (band tables, IEL-04, IEL-05):** `ielts_band_tables` (migration `1756460000000-IeltsBandTables`). The platform defaults (Listening, Academic Reading, General Training Reading; commonly used approximate conversions, in `ielts/band-table-defaults.ts`) are rows without an organisation, added by the API at boot when missing, as the plans are. Staff read the centre's three tables (`GET /ielts/band-tables`, with `customised`); owners and admins save the centre's own copy (`PUT /ielts/band-tables`: raw scores whole 0–40 going down to 0, bands in half bands never going up; 400 `IELTS_BAND_TABLE_INVALID`, 403 `IELTS_MANAGERS_ONLY`) or put it back to the default (`POST /ielts/band-tables/reset`, the row is kept); both audited `ielts.band_table_update`. `IeltsBandTablesService.bandFor` gives the band for a raw score (the centre's table, else the default). `ielts/bands.ts` holds the rounding rules: nearest half band (.25 up to .5, .75 up to the next band), overall = the four bands averaged, Writing = Task 1 + 2 × Task 2 over 3.
+
 ### 9.11 MongoDB (chat)
 
 | Collection | Status | Notes |
