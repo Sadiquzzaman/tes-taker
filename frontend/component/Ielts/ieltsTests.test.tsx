@@ -55,7 +55,9 @@ beforeEach(() => {
       ? ok([summary(), summary({ id: "t2", title: "Task 2 practice", purpose: "PRACTICE", modules: ["WRITING"], status: "PUBLISHED", question_counts: {}, needs_review: true })])
       : url.endsWith("/ielts/band-tables")
         ? ok([table({}), table({ module: "READING", test_type: "ACADEMIC", customised: true }), table({ module: "READING", test_type: "GENERAL" })])
-        : ok([]),
+        : url.endsWith("/ielts/old-exams")
+          ? ok([{ id: "e1", title: "Old mock", created_at: "2026-01-10T00:00:00Z", converted_test_id: null }])
+          : ok([]),
   );
 });
 afterEach(() => cleanup());
@@ -124,5 +126,19 @@ describe("IELTS band tables (IEL-04, IEL-05)", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Back to default" }));
     await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/ielts\/band-tables\/reset$/), { module: "READING", test_type: "ACADEMIC" }));
+  });
+});
+
+describe("Copying old IELTS exams (P10-08)", () => {
+  it("copies an old exam and lists the questions left out", async () => {
+    post.mockReturnValue(ok({ test_id: "new9", converted: 12, skipped: [{ question_id: "q1", reason: '"essay" questions have no IELTS type' }] }));
+    renderApp(<IeltsTests />);
+    fireEvent.click(await screen.findByRole("button", { name: "Copy Old mock into the new format" }));
+    await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/ielts\/old-exams\/e1\/convert$/)));
+    const dialog = within(await screen.findByRole("dialog", { name: "Copied into the new format" }));
+    expect(dialog.getByText(/12 questions were copied/)).toBeTruthy();
+    expect(within(dialog.getByRole("list", { name: "Questions left out" })).getByText('"essay" questions have no IELTS type')).toBeTruthy();
+    fireEvent.click(dialog.getByRole("button", { name: "Open the copy" }));
+    expect(push).toHaveBeenCalledWith("/ielts/tests/new9");
   });
 });
