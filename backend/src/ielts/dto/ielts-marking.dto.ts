@@ -46,3 +46,32 @@ export class ListIeltsMarkingQueryDto {
   @IsIn(['WAITING', 'MARKED'])
   state?: 'WAITING' | 'MARKED';
 }
+
+export class MarkIeltsSpeakingDto {
+  @ApiProperty({ example: { FC: 6, LR: 6.5, GRA: 6, P: 7 }, description: 'Fluency and Coherence, Lexical Resource, Grammatical Range and Accuracy, Pronunciation; 0–9 in half bands' })
+  @IsObject()
+  criteria: Record<string, number>;
+
+  @ApiPropertyOptional({ description: "The examiner's notes for the student" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  feedback?: string;
+}
+
+export class StartIeltsSpeakingDto {
+  @ApiProperty({ description: 'The student of the batch to examine' })
+  @IsUUID()
+  student_id: string;
+}
+
+export class IeltsRecordingDto {
+  @ApiProperty({ description: 'The Speaking part' })
+  @IsUUID()
+  part_id: string;
+
+  @ApiProperty({ nullable: true, description: 'An IELTS audio upload; null removes the recording' })
+  @IsOptional()
+  @IsUUID()
+  file_id: string | null;
+}

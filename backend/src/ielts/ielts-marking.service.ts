@@ -6,18 +6,25 @@ import { AuditService } from 'src/audit/audit.service';
 import { Tenant } from 'src/common/tenancy/tenant-context';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { isBand, roundBand, writingBand } from './bands';
-import { ListIeltsMarkingQueryDto, MarkIeltsWritingDto } from './dto/ielts-marking.dto';
+import { ListIeltsMarkingQueryDto, MarkIeltsSpeakingDto, MarkIeltsWritingDto } from './dto/ielts-marking.dto';
 import { IeltsAnswerEntity } from './entities/ielts-answer.entity';
 import { IeltsAttemptEntity, IeltsAttemptStatusEnum } from './entities/ielts-attempt.entity';
 import { IeltsModuleEnum, IeltsTestTypeEnum } from './entities/ielts-profile.entity';
 import { IeltsTestEntity } from './entities/ielts-test.entity';
-import { IeltsAttemptsService } from './ielts-attempts.service';
+import { IeltsAssignmentEntity } from './entities/ielts-assignment.entity';
+import { IeltsAttemptsService, IeltsSpeakingModeEnum } from './ielts-attempts.service';
 import { IELTS_ERRORS } from './ielts-errors';
 import { IeltsProfilesService } from './ielts-profiles.service';
 import { IeltsTestsService } from './ielts-tests.service';
 
 /** The four official Writing criteria; Task 1 is judged on Task Achievement, Task 2 on Task Response. */
 export const WRITING_CRITERIA: Record<1 | 2, readonly string[]> = { 1: ['TA', 'CC', 'LR', 'GRA'], 2: ['TR', 'CC', 'LR', 'GRA'] };
+
+/** The four Speaking criteria: Fluency and Coherence, Lexical Resource, Grammatical Range and Accuracy, Pronunciation. */
+export const SPEAKING_CRITERIA: readonly string[] = ['FC', 'LR', 'GRA', 'P'];
+
+/** A live Speaking session stays open this long for the examiner to finish and mark. */
+const LIVE_SESSION_SECONDS = 2 * 60 * 60;
 
 /** Words in an essay, numbers included (unlike short-answer word limits). */
 export const essayWords = (text: string): number => (text.trim() ? text.trim().split(/\s+/).length : 0);
@@ -46,8 +53,23 @@ export interface IeltsMarkingRow {
 
 export interface IeltsMarkingView extends IeltsMarkingRow {
   test_type: IeltsTestTypeEnum;
-  tasks: { part_id: string; part_no: number; title: string | null; content: string | null; image_file_id: string | null; script: string; words: number; min_words: number }[];
+  /** Speaking: LIVE (with the examiner) or RECORDED (practice). */
+  mode: string | null;
+  /** Writing tasks with scripts, or Speaking parts with recordings. */
+  tasks: {
+    part_id: string;
+    part_no: number;
+    title: string | null;
+    content: string | null;
+    image_file_id: string | null;
+    script: string;
+    words: number;
+    min_words: number;
+    recording_file_id: string | null;
+  }[];
   marks: IeltsTaskMarks[];
+  /** Speaking: FC, LR, GRA, P once marked. */
+  speaking: Record<string, number> | null;
   feedback: string | null;
   marked_by: string | null;
   marked_at: Date | null;
@@ -152,6 +174,86 @@ export class IeltsMarkingService {
     return this.view(await this.attempts.findOneOrFail({ where: { id: attempt.id } }));
   }
 
+  /**
+   * Staff: a live Speaking session with a student of the opening's batch (IEL-07). Resumes the
+   * session while it is open; a student's own practice recording or a marked session is not
+   * replaced.
+   */
+  async startLive(tenant: Tenant, assignmentId: string, studentId: string): Promise<IeltsMarkingView> {
+    await this.assertStaff(tenant);
+    const assignment = await this.dataSource.getRepository(IeltsAssignmentEntity).findOne({ where: { id: assignmentId, organization_id: tenant.organizationId } });
+    if (!assignment || assignment.deleted_at) throw new NotFoundException({ message: 'Opening not found', code: IELTS_ERRORS.ASSIGNMENT_NOT_FOUND });
+    const test = await this.dataSource.getRepository(IeltsTestEntity).findOneOrFail({ where: { id: assignment.test_id } });
+    if (!test.modules.includes(IeltsModuleEnum.SPEAKING)) throw new BadRequestException({ message: 'This test has no Speaking', code: IELTS_ERRORS.MODULE_NOT_READY });
+    const [enrolled] = await this.dataSource.query(`SELECT 1 FROM enrolments WHERE section_id = $1 AND student_id = $2 AND status = 'ACTIVE'`, [assignment.section_id, studentId]);
+    if (!enrolled) throw new NotFoundException({ message: 'Student not found', code: IELTS_ERRORS.STUDENT_NOT_FOUND });
+    const existing = await this.attempts.findOne({ where: { assignment_id: assignment.id, student_id: studentId, module: IeltsModuleEnum.SPEAKING } });
+    if (existing) {
+      if (existing.mode === IeltsSpeakingModeEnum.LIVE && existing.status === IeltsAttemptStatusEnum.IN_PROGRESS) return this.view(existing);
+      throw new ConflictException({ message: 'This student already has Speaking for this test', code: IELTS_ERRORS.ATTEMPT_DONE });
+    }
+    const now = new Date();
+    const attempt = await this.attempts.save(
+      this.attempts.create({
+        organization_id: tenant.organizationId,
+        test_id: test.id,
+        assignment_id: assignment.id,
+        student_id: studentId,
+        module: IeltsModuleEnum.SPEAKING,
+        mode: IeltsSpeakingModeEnum.LIVE,
+        status: IeltsAttemptStatusEnum.IN_PROGRESS,
+        started_at: now,
+        deadline: new Date(now.getTime() + LIVE_SESSION_SECONDS * 1000),
+      }),
+    );
+    return this.view(attempt);
+  }
+
+  /** Staff: a part's recording in a live session (an IELTS audio upload); null removes it. */
+  async liveRecording(tenant: Tenant, attemptId: string, partId: string, fileId: string | null): Promise<IeltsMarkingView> {
+    await this.assertStaff(tenant);
+    const attempt = await this.find(tenant, attemptId);
+    if (attempt.module !== IeltsModuleEnum.SPEAKING || attempt.mode !== IeltsSpeakingModeEnum.LIVE) this.invalid('Only live Speaking sessions are recorded by the examiner');
+    await this.attemptsService.setRecording(tenant, attempt, partId, fileId);
+    return this.view(await this.attempts.findOneOrFail({ where: { id: attempt.id } }));
+  }
+
+  /** Staff: bands for FC, LR, GRA and P with notes; the Speaking band is their average to the nearest half band. Ends a live session. */
+  async markSpeaking(tenant: Tenant, userId: string, attemptId: string, dto: MarkIeltsSpeakingDto): Promise<IeltsMarkingView> {
+    await this.assertStaff(tenant);
+    const attempt = await this.find(tenant, attemptId);
+    if (attempt.module !== IeltsModuleEnum.SPEAKING) this.invalid('Only Speaking is marked here');
+    const given = dto.criteria ?? {};
+    if (Object.keys(given).length !== SPEAKING_CRITERIA.length || !SPEAKING_CRITERIA.every((k) => isBand(given[k]))) {
+      this.invalid(`Give ${SPEAKING_CRITERIA.join(', ')}, each 0 to 9 in half bands`);
+    }
+    const criteria = Object.fromEntries(SPEAKING_CRITERIA.map((k) => [k, given[k]]));
+    const band = roundBand(SPEAKING_CRITERIA.reduce((sum, k) => sum + given[k], 0) / SPEAKING_CRITERIA.length);
+    const before = { status: attempt.status, band: attempt.band === null ? null : Number(attempt.band), criteria: attempt.criteria };
+    await this.attempts.update(
+      { id: attempt.id },
+      {
+        status: IeltsAttemptStatusEnum.MARKED,
+        submitted_at: attempt.submitted_at ?? new Date(),
+        band: band.toFixed(1),
+        criteria: { speaking: criteria },
+        feedback: dto.feedback?.trim() || null,
+        marked_by: userId,
+        marked_at: new Date(),
+      },
+    );
+    this.audit.record({
+      action: AUDIT_ACTIONS.IELTS_MARK,
+      organizationId: tenant.organizationId,
+      actorId: userId,
+      entityType: 'ielts_attempt',
+      entityId: attempt.id,
+      before,
+      after: { status: IeltsAttemptStatusEnum.MARKED, band, criteria: { speaking: criteria } },
+    });
+    return this.view(await this.attempts.findOneOrFail({ where: { id: attempt.id } }));
+  }
+
   // ------------------------------------------------------------------ helpers
 
   private async assertStaff(tenant: Tenant): Promise<void> {
@@ -164,7 +266,8 @@ export class IeltsMarkingService {
   private async find(tenant: Tenant, attemptId: string): Promise<IeltsAttemptEntity> {
     const attempt = await this.attempts.findOne({ where: { id: attemptId, organization_id: tenant.organizationId } });
     if (!attempt) throw new NotFoundException({ message: 'Attempt not found', code: IELTS_ERRORS.ATTEMPT_NOT_FOUND });
-    if (attempt.status === IeltsAttemptStatusEnum.IN_PROGRESS) {
+    const live = attempt.module === IeltsModuleEnum.SPEAKING && attempt.mode === IeltsSpeakingModeEnum.LIVE;
+    if (attempt.status === IeltsAttemptStatusEnum.IN_PROGRESS && !live) {
       throw new ConflictException({ message: 'The student has not handed this in yet', code: IELTS_ERRORS.NOT_HANDED_IN });
     }
     return attempt;
@@ -180,7 +283,7 @@ export class IeltsMarkingService {
     );
     const parts = await this.tests.tree(attempt.test_id, attempt.module);
     const scripts = await this.dataSource.getRepository(IeltsAnswerEntity).find({ where: { attempt_id: attempt.id } });
-    const criteria = (attempt.criteria ?? {}) as { tasks?: IeltsTaskMarks[] };
+    const criteria = (attempt.criteria ?? {}) as { tasks?: IeltsTaskMarks[]; speaking?: Record<string, number> };
     return {
       attempt_id: attempt.id,
       module: attempt.module,
@@ -191,11 +294,24 @@ export class IeltsMarkingService {
       batch: info?.batch ?? '',
       submitted_at: attempt.submitted_at,
       band: attempt.band === null ? null : Number(attempt.band),
+      mode: attempt.mode,
       tasks: parts.map((p) => {
         const script = scripts.find((s) => s.part_id === p.id && !s.question_id)?.answer ?? '';
-        return { part_id: p.id, part_no: p.part_no, title: p.title, content: p.content, image_file_id: p.image_file_id, script, words: essayWords(script), min_words: MIN_WORDS[p.part_no] ?? 0 };
+        const writing = attempt.module === IeltsModuleEnum.WRITING;
+        return {
+          part_id: p.id,
+          part_no: p.part_no,
+          title: p.title,
+          content: p.content,
+          image_file_id: p.image_file_id,
+          script,
+          words: essayWords(script),
+          min_words: writing ? (MIN_WORDS[p.part_no] ?? 0) : 0,
+          recording_file_id: attempt.recording_file_ids?.[p.id] ?? null,
+        };
       }),
       marks: criteria.tasks ?? [],
+      speaking: criteria.speaking ?? null,
       feedback: attempt.feedback,
       marked_by: attempt.marked_by,
       marked_at: attempt.marked_at,
