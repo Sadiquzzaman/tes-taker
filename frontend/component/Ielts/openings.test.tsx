@@ -57,7 +57,10 @@ describe("IELTS openings (P10-04, IEL-08)", () => {
 
   it("opens the test for a batch in the centre's time", async () => {
     renderApp(<TestOpenings testId="t1" />);
-    fireEvent.click(await screen.findByRole("button", { name: "Open for a batch" }));
+    // The button is enabled once the test (published) has loaded.
+    const open = (await screen.findByRole("button", { name: "Open for a batch" })) as HTMLButtonElement;
+    await waitFor(() => expect(open.disabled).toBe(false));
+    fireEvent.click(open);
     const drawer = within(await screen.findByRole("dialog", { name: "Open for a batch" }));
     fireEvent.change(await drawer.findByLabelText("Batch"), { target: { value: "s2" } });
     fireEvent.change(drawer.getByLabelText("Opens on"), { target: { value: "2026-11-20" } });
