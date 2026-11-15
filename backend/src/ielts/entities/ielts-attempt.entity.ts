@@ -57,7 +57,7 @@ export class IeltsAttemptEntity {
   @Column({ name: 'module', type: 'varchar', length: 10 })
   module: IeltsModuleEnum;
 
-  /** Speaking: LIVE (examiner) or RECORDED (practice), from P10-06. */
+  /** Speaking: LIVE (a session with the examiner) or RECORDED (the student's practice recordings). */
   @Column({ name: 'mode', type: 'varchar', length: 10, nullable: true })
   mode: string | null;
 
@@ -88,8 +88,9 @@ export class IeltsAttemptEntity {
   @Column({ name: 'feedback', type: 'text', nullable: true })
   feedback: string | null;
 
+  /** Speaking: the recording of each part, part id → file id. */
   @Column({ name: 'recording_file_ids', type: 'jsonb', nullable: true })
-  recording_file_ids: string[] | null;
+  recording_file_ids: Record<string, string> | null;
 
   @Column({ name: 'marked_by', type: 'uuid', nullable: true })
   marked_by: string | null;
