@@ -28,13 +28,15 @@ export const MarkingList = () => {
   const format = useFormat();
   const router = useRouter();
   const [state, setState] = useState<"WAITING" | "MARKED">("WAITING");
-  const { data: rows, failed, reload } = useApiData<IeltsMarkingRow[]>("/ielts/marking", { state });
+  const [module, setModule] = useState<"WRITING" | "SPEAKING">("WRITING");
+  const { data: rows, failed, reload } = useApiData<IeltsMarkingRow[]>("/ielts/marking", { state, module });
+  const pageOf = (r: IeltsMarkingRow) => (r.module === "SPEAKING" ? `/ielts/speaking/${r.attempt_id}` : `/ielts/marking/${r.attempt_id}`);
   const columns: TableColumn<IeltsMarkingRow>[] = [
     {
       key: "student",
       header: t("student"),
       cell: (r) => (
-        <Link href={`/ielts/marking/${r.attempt_id}`} className="font-medium">
+        <Link href={pageOf(r)} className="font-medium">
           {r.student.full_name}
         </Link>
       ),
@@ -49,14 +51,20 @@ export const MarkingList = () => {
       header: t("actions"),
       align: "right",
       cell: (r) => (
-        <Button size="sm" variant="secondary" onClick={() => router.push(`/ielts/marking/${r.attempt_id}`)} aria-label={t("markFor", { name: r.student.full_name })}>
+        <Button size="sm" variant="secondary" onClick={() => router.push(pageOf(r))} aria-label={t(module === "SPEAKING" ? "markSpeakingFor" : "markFor", { name: r.student.full_name })}>
           {r.status === "MARKED" ? t("change") : t("mark")}
         </Button>
       ),
     },
   ];
   const table = rows ? (
-    <Table caption={t("caption")} columns={columns} rows={rows} getRowId={(r) => r.attempt_id} empty={<EmptyState title={state === "WAITING" ? t("noneWaiting") : t("noneMarked")} />} />
+    <Table
+      caption={module === "SPEAKING" ? t("captionSpeaking") : t("caption")}
+      columns={columns}
+      rows={rows}
+      getRowId={(r) => r.attempt_id}
+      empty={<EmptyState title={state === "WAITING" ? t("noneWaiting") : t("noneMarked")} />}
+    />
   ) : (
     <Card aria-busy="true">
       <Skeleton lines={4} />
@@ -65,6 +73,13 @@ export const MarkingList = () => {
   return (
     <div className="flex flex-col gap-6 pb-8">
       <PageHeader title={t("title")} description={t("description")} />
+      <Select
+        label={t("module")}
+        value={module}
+        onChange={(e) => setModule(e.target.value as "WRITING" | "SPEAKING")}
+        options={(["WRITING", "SPEAKING"] as const).map((m) => ({ value: m, label: t(`modules.${m}`) }))}
+        fieldClassName="max-w-xs"
+      />
       {failed !== null ? (
         <ErrorState title={t("loadFailed")} onRetry={reload} />
       ) : (

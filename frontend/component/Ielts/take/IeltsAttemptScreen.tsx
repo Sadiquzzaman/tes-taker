@@ -8,6 +8,8 @@ import ListeningPlayer from "./ListeningPlayer";
 import PaperGroup, { questionAnchor } from "./PaperGroup";
 import ReadingPassage from "./ReadingPassage";
 import WritingTask, { essayWords } from "./WritingTask";
+import SpeakingPart from "../speaking/SpeakingPart";
+import axiosReq from "@/lib/axios";
 import useIeltsAttempt from "./useIeltsAttempt";
 
 /** Mocks need a computer or a tablet (the owner's decision, 15 Nov 2026). */
@@ -31,7 +33,7 @@ const IeltsAttemptScreen = ({ attemptId }: { attemptId: string }) => {
   const t = useTranslations("ieltsTake");
   const tt = useTranslations("ieltsTests");
   const format = useFormat();
-  const { view, failed, reload, answers, setAnswer, saveStatus, remaining, submit, submitting } = useIeltsAttempt(attemptId);
+  const { view, failed, reload, replace, answers, setAnswer, saveStatus, remaining, submit, submitting } = useIeltsAttempt(attemptId);
   const [partIndex, setPartIndex] = useState(0);
   const [flagged, setFlagged] = useState<Set<string>>(() => new Set());
   const [confirm, setConfirm] = useState(false);
@@ -71,7 +73,11 @@ const IeltsAttemptScreen = ({ attemptId }: { attemptId: string }) => {
   const part = parts[Math.min(partIndex, parts.length - 1)];
   const answered = (q: IeltsPaperQuestion) => !!answers[q.id];
   const writing = view.attempt.module === "WRITING";
-  const unanswered = writing
+  const speaking = view.attempt.module === "SPEAKING";
+  const recordings = view.attempt.recordings ?? {};
+  const unanswered = speaking
+    ? parts.filter((p) => !recordings[p.id]).length
+    : writing
     ? parts.filter((p) => !essayWords(answers[p.id] ?? "")).length
     : questions.filter((q) => !answered(q)).reduce((n, q) => n + (q.number_to - q.number_from + 1), 0);
   const toggleFlag = (id: string) => setFlagged((current) => {
@@ -110,7 +116,24 @@ const IeltsAttemptScreen = ({ attemptId }: { attemptId: string }) => {
       </header>
 
       <main className="min-h-0 flex-1">
-        {part && writing ? (
+        {speaking ? (
+          <div className="h-full overflow-y-auto p-4">
+            <div className="mx-auto flex max-w-3xl flex-col gap-6">
+              <p className="text-body-sm text-ink-muted">{t("speakingPracticeHint")}</p>
+              {parts.map((p) => (
+                <SpeakingPart
+                  key={p.id}
+                  part={p}
+                  recordingId={recordings[p.id] ?? null}
+                  onRecorded={async (fileId) => {
+                    const res = await axiosReq.put<{ payload: IeltsAttemptView }>(`${process.env.NEXT_PUBLIC_BASE_URL}/ielts/my/attempts/${view.attempt.id}/recordings`, { part_id: p.id, file_id: fileId });
+                    replace(res.data.payload);
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : part && writing ? (
           <WritingTask part={part} value={answers[part.id] ?? ""} onChange={(value) => setAnswer(part.id, value)} />
         ) : part ? (
           view.attempt.module === "READING" ? (
@@ -173,7 +196,7 @@ const IeltsAttemptScreen = ({ attemptId }: { attemptId: string }) => {
       <ConfirmDialog
         open={confirm}
         title={t("handInTitle")}
-        description={unanswered ? (writing ? t("handInEmptyTasks", { count: unanswered }) : t("handInUnanswered", { count: unanswered })) : t("handInAll")}
+        description={unanswered ? (speaking ? t("handInNoRecording", { count: unanswered }) : writing ? t("handInEmptyTasks", { count: unanswered }) : t("handInUnanswered", { count: unanswered })) : t("handInAll")}
         confirmLabel={t("handIn")}
         cancelLabel={t("keepWorking")}
         loading={submitting}
@@ -199,7 +222,9 @@ const ResultView = ({ view, answers }: { view: IeltsAttemptView; answers: Record
         <span className="text-body-sm text-ink-muted">{view.test.title}</span>
         <h1 className="text-title font-semibold text-ink">{t("resultTitle", { module: tt(`modulesShort.${view.attempt.module}`) })}</h1>
       </div>
-      {view.attempt.module === "WRITING" ? (
+      {view.attempt.module === "SPEAKING" ? (
+        <SpeakingResult view={view} />
+      ) : view.attempt.module === "WRITING" ? (
         <WritingResult view={view} answers={answers} />
       ) : (
         <>
@@ -274,6 +299,40 @@ const WritingResult = ({ view, answers }: { view: IeltsAttemptView; answers: Rec
           </Card>
         );
       })}
+    </>
+  );
+};
+
+/** Speaking after hand-in (or after the live session): waiting, or the band with the four criteria, notes and recordings. */
+const SpeakingResult = ({ view }: { view: IeltsAttemptView }) => {
+  const t = useTranslations("ieltsTake");
+  const format = useFormat();
+  const band = (value: number) => format.number(value, { minimumFractionDigits: 1 });
+  const criteria = (view.attempt.criteria as { speaking?: Record<string, number> } | null)?.speaking ?? null;
+  return (
+    <>
+      {view.attempt.band === null ? <p className="text-body text-ink">{t("waitingForTeacherSpeaking")}</p> : <StatTile label={t("band")} value={band(view.attempt.band)} />}
+      {criteria ? (
+        <Card>
+          <dl className="grid grid-cols-2 gap-3 text-body-sm sm:grid-cols-4">
+            {Object.entries(criteria).map(([key, value]) => (
+              <div key={key}>
+                <dt className="text-ink-muted">{t(`criteria.${key}` as "criteria.CC")}</dt>
+                <dd className="font-medium text-ink">{band(value)}</dd>
+              </div>
+            ))}
+          </dl>
+        </Card>
+      ) : null}
+      {view.attempt.feedback ? (
+        <Card>
+          <h2 className="mb-2 text-body font-semibold text-ink">{t("feedback")}</h2>
+          <p className="whitespace-pre-line text-body-sm text-ink">{view.attempt.feedback}</p>
+        </Card>
+      ) : null}
+      {(view.parts ?? []).map((p) => (
+        <SpeakingPart key={p.id} part={p} recordingId={view.attempt.recordings?.[p.id] ?? null} readOnly onRecorded={async () => undefined} />
+      ))}
     </>
   );
 };

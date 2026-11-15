@@ -117,7 +117,7 @@ const useIeltsAttempt = (attemptId: string) => {
     return () => window.removeEventListener("online", save);
   }, [flush]);
 
-  return { view, failed, reload: load, answers, setAnswer, saveStatus, remaining, submit, submitting };
+  return { view, failed, reload: load, replace: take, answers, setAnswer, saveStatus, remaining, submit, submitting };
 };
 
 export default useIeltsAttempt;

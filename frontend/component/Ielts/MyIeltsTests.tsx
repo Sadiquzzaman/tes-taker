@@ -10,8 +10,8 @@ import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
 
-/** Modules taken on screen (Speaking is a session with the examiner, P10-06). */
-const ON_SCREEN: IeltsModule[] = ["LISTENING", "READING", "WRITING"];
+/** Modules a student can start (Speaking as practice recordings; a live session is run by the teacher). */
+const ON_SCREEN: IeltsModule[] = ["LISTENING", "READING", "WRITING", "SPEAKING"];
 /** A mock's modules run in this order. */
 const SEQUENCE: IeltsModule[] = ["LISTENING", "READING", "WRITING"];
 
@@ -48,6 +48,7 @@ const MyIeltsTests = () => {
 
   const action = (row: IeltsMyAssignment, module: IeltsModule) => {
     const attempt = row.attempts[module];
+    if (attempt?.status === "IN_PROGRESS" && attempt.mode === "LIVE") return <span className="text-body-sm text-ink-muted">{t("withTeacher")}</span>;
     if (attempt?.status === "IN_PROGRESS") {
       return (
         <Button size="sm" onClick={() => router.push(`/ielts/attempts/${attempt.id}`)}>
@@ -119,7 +120,7 @@ const MyIeltsTests = () => {
       <ConfirmDialog
         open={starting !== null}
         title={starting ? t("startTitle", { module: tt(`modulesShort.${starting.module}`) }) : ""}
-        description={starting ? (starting.module === "LISTENING" ? t("startListening", { minutes }) : t("startOther", { minutes })) : ""}
+        description={starting ? (starting.module === "LISTENING" ? t("startListening", { minutes }) : starting.module === "SPEAKING" ? t("startSpeaking") : t("startOther", { minutes })) : ""}
         confirmLabel={t("start")}
         cancelLabel={t("notYet")}
         loading={busy}
