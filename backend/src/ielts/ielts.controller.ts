@@ -21,6 +21,7 @@ import { CreateIeltsTestDto, ListIeltsTestsQueryDto, UpdateIeltsTestDto, UpdateI
 import { IeltsBandTablesService } from './ielts-band-tables.service';
 import { IeltsGroupsService } from './ielts-groups.service';
 import { IeltsProfilesService } from './ielts-profiles.service';
+import { IeltsProgressService } from './ielts-progress.service';
 import { IeltsTestsService } from './ielts-tests.service';
 
 const workspace = (): Tenant => {
@@ -49,6 +50,7 @@ export class IeltsController {
     private readonly assignments: IeltsAssignmentsService,
     private readonly attempts: IeltsAttemptsService,
     private readonly marking: IeltsMarkingService,
+    private readonly progress: IeltsProgressService,
   ) {}
 
   @Get('profiles')
@@ -286,5 +288,35 @@ export class IeltsController {
   @ApiOperation({ summary: 'Students: keep a Speaking part’s practice recording (your IELTS audio upload)' })
   async myRecording(@Param('id', ParseUUIDPipe) id: string, @Body() dto: IeltsRecordingDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Recording saved', payload: await this.attempts.record(workspace(), user.id, id, dto.part_id, dto.file_id) };
+  }
+
+  @Get('progress/me')
+  @ApiOperation({ summary: 'Students: your bands over time per module, complete mocks with the overall band, weakest question types' })
+  async progressMine(@UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Progress retrieved successfully', payload: await this.progress.progress(workspace(), user.id, user.id) };
+  }
+
+  @Get('progress/:studentId')
+  @ApiOperation({ summary: 'Staff: a student’s bands over time against the target, overall bands, weakest question types' })
+  async progressOf(@Param('studentId', ParseUUIDPipe) studentId: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Progress retrieved successfully', payload: await this.progress.progress(workspace(), user.id, studentId) };
+  }
+
+  @Get('dashboard/me')
+  @ApiOperation({ summary: 'Students: targets against the latest band per module, the countdown, the next test' })
+  async dashboardMine(@UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Dashboard retrieved successfully', payload: await this.progress.studentDashboard(workspace(), user.id) };
+  }
+
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Staff: batches, upcoming mocks, Writing and Speaking waiting, average band per module per batch' })
+  async dashboardStaff() {
+    return { message: 'Dashboard retrieved successfully', payload: await this.progress.staffDashboard(workspace()) };
+  }
+
+  @Get('report/:assignmentId/:studentId')
+  @ApiOperation({ summary: 'The band report of a student for an opening (staff; a student their own)' })
+  async report(@Param('assignmentId', ParseUUIDPipe) assignmentId: string, @Param('studentId', ParseUUIDPipe) studentId: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Report retrieved successfully', payload: await this.progress.report(workspace(), user.id, assignmentId, studentId) };
   }
 }
