@@ -718,6 +718,8 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 
 **Built in P10-03 part 1 (IELTS tests list and band tables, IEL-03–05):** web pages `/ielts/tests` (staff of IELTS centres: mocks and practice sets with kind, test type, modules, question numbers used per module — "/40" for mocks — and status; filters by kind and status; a new test starts from a template in a dialog (mock: modules; practice: one module and its parts) and opens in the builder; copy, archive, delete after a confirmation) and `/ielts/band-tables` (the three tables; owners and admins edit rows and save or put a table back to the default; others read). Both are in the side menu's tests group in IELTS workspaces only.
 
+**Built in P10-03 part 2 (IELTS test builder, IEL-03):** `/ielts/tests/[id]`: one tab per module and a card per part (title; rich text for passages, tasks and Speaking questions; a Listening part's recording with a player; a Reading or Writing picture; uploads with purpose `ielts`). Listening and Reading parts list their question groups as "Questions 1–5" with type, instruction and each question's answer; groups are added or edited in a drawer (type for the module, instruction, word limit or a word box, the shared list, the text with gaps, a picture, questions with their own options for multiple choice, the right key(s) or accepted spellings), moved up or down, and removed after a confirmation. Details (title; test type and minutes per module while a draft), Publish (a failed publish lists what is missing per part in bn/en), Move to drafts and Copy sit in the header. Tests are read-only when published or archived, or for teachers who did not make them.
+
 ### 9.11 MongoDB (chat)
 
 | Collection | Status | Notes |
