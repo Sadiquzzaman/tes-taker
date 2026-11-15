@@ -10,6 +10,7 @@ import { IeltsTestPartEntity } from './entities/ielts-test-part.entity';
 import { IeltsTestEntity } from './entities/ielts-test.entity';
 import { IeltsBandTablesService } from './ielts-band-tables.service';
 import { IeltsController } from './ielts.controller';
+import { IeltsGroupsService } from './ielts-groups.service';
 import { IeltsProfilesService } from './ielts-profiles.service';
 import { IeltsTestsService } from './ielts-tests.service';
 
@@ -21,7 +22,7 @@ import { IeltsTestsService } from './ielts-tests.service';
 @Module({
   imports: [TypeOrmModule.forFeature([IeltsProfileEntity, IeltsBandTableEntity, IeltsTestEntity, IeltsTestPartEntity, IeltsQuestionGroupEntity, IeltsQuestionEntity]), OrganizationsModule, SubscriptionModule],
   controllers: [IeltsController],
-  providers: [IeltsProfilesService, IeltsBandTablesService, IeltsTestsService],
+  providers: [IeltsProfilesService, IeltsBandTablesService, IeltsTestsService, IeltsGroupsService],
   exports: [IeltsProfilesService, IeltsBandTablesService, IeltsTestsService],
 })
 export class IeltsModule {}

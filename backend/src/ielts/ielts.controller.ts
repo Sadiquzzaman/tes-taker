@@ -9,9 +9,11 @@ import { FeatureKey } from 'src/subscriptions/constants/feature-catalog';
 import { RequiresFeature } from 'src/subscriptions/decorators/requires-feature.decorator';
 import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
 import { IeltsBandTableScopeDto, UpdateIeltsBandTableDto } from './dto/ielts-band-table.dto';
+import { OrderIeltsGroupsDto, SaveIeltsGroupDto } from './dto/ielts-group.dto';
 import { ListIeltsProfilesQueryDto, UpdateIeltsProfileDto } from './dto/ielts-profile.dto';
 import { CreateIeltsTestDto, ListIeltsTestsQueryDto, UpdateIeltsTestDto, UpdateIeltsTestPartDto } from './dto/ielts-test.dto';
 import { IeltsBandTablesService } from './ielts-band-tables.service';
+import { IeltsGroupsService } from './ielts-groups.service';
 import { IeltsProfilesService } from './ielts-profiles.service';
 import { IeltsTestsService } from './ielts-tests.service';
 
@@ -37,6 +39,7 @@ export class IeltsController {
     private readonly profiles: IeltsProfilesService,
     private readonly bandTables: IeltsBandTablesService,
     private readonly tests: IeltsTestsService,
+    private readonly groups: IeltsGroupsService,
   ) {}
 
   @Get('profiles')
@@ -117,5 +120,56 @@ export class IeltsController {
   @ApiOperation({ summary: 'Drafts: a part’s title, text (passage, task, questions), Listening recording or picture' })
   async testsUpdatePart(@Param('id', ParseUUIDPipe) id: string, @Param('partId', ParseUUIDPipe) partId: string, @Body() dto: UpdateIeltsTestPartDto, @UserPayload() user: JwtPayloadInterface) {
     return { message: 'Part saved', payload: await this.tests.updatePart(workspace(), user.id, id, partId, dto) };
+  }
+
+  @Post('tests/:id/publish')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Publish a complete draft (422 IELTS_TEST_INCOMPLETE with details.problems otherwise)' })
+  async testsPublish(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Test published', payload: await this.tests.publish(workspace(), user.id, id) };
+  }
+
+  @Post('tests/:id/unpublish')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Back to a draft, to change it' })
+  async testsUnpublish(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Test moved to drafts', payload: await this.tests.unpublish(workspace(), user.id, id) };
+  }
+
+  @Post('tests/:id/archive')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Archive a test (kept, no longer offered)' })
+  async testsArchive(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Test archived', payload: await this.tests.archive(workspace(), user.id, id) };
+  }
+
+  @Post('tests/:id/duplicate')
+  @ApiOperation({ summary: 'Staff: a draft copy of a test, made yours' })
+  async testsDuplicate(@Param('id', ParseUUIDPipe) id: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Test copied', payload: await this.tests.duplicate(workspace(), user.id, id) };
+  }
+
+  @Post('tests/:id/parts/:partId/groups')
+  @ApiOperation({ summary: 'Drafts: add a question group (with its questions and answers) to a Listening part or Reading passage' })
+  async groupsCreate(@Param('id', ParseUUIDPipe) id: string, @Param('partId', ParseUUIDPipe) partId: string, @Body() dto: SaveIeltsGroupDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Question group added', payload: await this.groups.create(workspace(), user.id, id, partId, dto) };
+  }
+
+  @Put('tests/:id/parts/:partId/groups/order')
+  @ApiOperation({ summary: 'Drafts: put a part’s question groups in a new order' })
+  async groupsOrder(@Param('id', ParseUUIDPipe) id: string, @Param('partId', ParseUUIDPipe) partId: string, @Body() dto: OrderIeltsGroupsDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Order saved', payload: await this.groups.reorder(workspace(), user.id, id, partId, dto) };
+  }
+
+  @Put('tests/:id/groups/:groupId')
+  @ApiOperation({ summary: 'Drafts: save a question group; questions sent with their id are kept, the rest hidden' })
+  async groupsUpdate(@Param('id', ParseUUIDPipe) id: string, @Param('groupId', ParseUUIDPipe) groupId: string, @Body() dto: SaveIeltsGroupDto, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Question group saved', payload: await this.groups.update(workspace(), user.id, id, groupId, dto) };
+  }
+
+  @Delete('tests/:id/groups/:groupId')
+  @ApiOperation({ summary: 'Drafts: remove a question group (hidden with its questions)' })
+  async groupsRemove(@Param('id', ParseUUIDPipe) id: string, @Param('groupId', ParseUUIDPipe) groupId: string, @UserPayload() user: JwtPayloadInterface) {
+    return { message: 'Question group removed', payload: await this.groups.remove(workspace(), user.id, id, groupId) };
   }
 }
