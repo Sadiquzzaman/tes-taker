@@ -42,6 +42,8 @@ const MOCK_SEQUENCE: readonly IeltsModuleEnum[] = [IeltsModuleEnum.LISTENING, Ie
 export interface IeltsMyAttempt {
   id: string;
   status: IeltsAttemptStatusEnum;
+  /** Speaking: LIVE (with the teacher) or RECORDED (practice). */
+  mode: string | null;
   deadline: Date;
   raw_score: number | null;
   band: number | null;
@@ -159,7 +161,7 @@ export class IeltsAttemptsService {
       attempts: Object.fromEntries(
         mine
           .filter((a) => a.assignment_id === r.id)
-          .map((a) => [a.module, { id: a.id, status: a.status, deadline: a.deadline, raw_score: a.raw_score, band: a.band === null ? null : Number(a.band) }]),
+          .map((a) => [a.module, { id: a.id, status: a.status, mode: a.mode, deadline: a.deadline, raw_score: a.raw_score, band: a.band === null ? null : Number(a.band) }]),
       ),
     }));
   }
