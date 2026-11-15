@@ -734,6 +734,8 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 
 **Built in P10-08 part 2 (copying screen):** the IELTS tests page shows "IELTS exams from the old test builder" when the centre has any: each with its date and either "Copy into the new format" or "Open the copy"; after copying, a dialog says how many questions were copied and lists the ones left out with the reason, and opens the copy (marked "Converted — check before use").
 
+**Built in P10-09 part 2 (plagiarism screens):** a published homework's page has **Plagiarism check** for staff who manage it (`/homework/[id]/similarity`), and an IELTS opening of a test with Writing has **Plagiarism** (`/ielts/assignments/[id]/similarity`): when it last ran and the thresholds, each submission's similarity (High / Medium / Low with %, or why it was not checked) with its most similar classmates linked, the similar pairs (Medium and above, or reviewed) with their review, and Run check now; a note says only staff see it and decisions never change a score. `/integrity/matches/[id]` shows both texts side by side with the shared passages marked, and the review (Reviewed — OK / Copied, a note). **Plagiarism settings** (`/plagiarism-settings`, owners and admins, menu Results) sets High, Medium and the fewest words.
+
 ### 9.11 MongoDB (chat)
 
 | Collection | Status | Notes |

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { RichTextContent } from "@/component/RichTextEditor";
 import { useToast } from "@/component/Toast/ToastContext";
-import { Button, Card, ConfirmDialog, DatePicker, ErrorState, Link, Modal, PageHeader, Skeleton, StatusPill, TimePicker } from "@/design/ui";
+import { Button, buttonClasses, Card, ConfirmDialog, DatePicker, ErrorState, Link, Modal, PageHeader, Skeleton, StatusPill, TimePicker } from "@/design/ui";
 import { useApiError } from "@/hooks/api/useApiError";
 import useFormat from "@/i18n/useFormat";
 import { fromZonedParts } from "@/i18n/zonedTime";
@@ -89,6 +89,11 @@ const HomeworkDetail = ({ id }: { id: string }) => {
         actions={
           homework.can_edit ? (
             <div className="flex flex-wrap gap-2">
+              {homework.status === "PUBLISHED" ? (
+                <Link href={`/homework/${homework.id}/similarity`} variant="plain" className={buttonClasses({ variant: "secondary" })}>
+                  {t("detail.plagiarism")}
+                </Link>
+              ) : null}
               <Button variant="secondary" onClick={() => setEditing(true)}>
                 {t("detail.edit")}
               </Button>

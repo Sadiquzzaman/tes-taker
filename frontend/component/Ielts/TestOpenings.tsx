@@ -60,6 +60,11 @@ const TestOpenings = ({ testId }: { testId: string }) => {
           <Button size="sm" variant="secondary" onClick={() => setResults(r)} aria-label={t("resultsFor", { batch: r.section.name })}>
             {t("results")}
           </Button>
+          {modules.includes("WRITING") ? (
+            <Link href={`/ielts/assignments/${r.id}/similarity`} aria-label={t("plagiarismFor", { batch: r.section.name })}>
+              {t("plagiarism")}
+            </Link>
+          ) : null}
           <Button size="sm" variant="ghost" onClick={() => setEditing(r)} aria-label={t("changeFor", { batch: r.section.name })}>
             {t("change")}
           </Button>
