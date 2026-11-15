@@ -1812,47 +1812,63 @@ Table ielts_questions {
 
 Table ielts_assignments {
   id uuid [pk]
+  organization_id uuid [not null, ref: > organizations.id]
   test_id uuid [not null, ref: > ielts_tests.id]
   section_id uuid [not null, ref: > sections.id, note: 'a batch']
   opens_at timestamptz [not null]
-  closes_at timestamptz [not null]
-  created_by uuid
-  Note: 'NEW (IEL-08), P10-07'
+  closes_at timestamptz [not null, note: 'CHECK closes_at > opens_at']
+  created_by uuid [not null]
+  created_at timestamptz
+  deleted_at timestamptz
+  deleted_by uuid
+  Indexes {
+    (section_id, opens_at)
+    (test_id)
+  }
+  Note: 'NEW (IEL-08), BUILT P10-04 part 1 (migration IeltsAttempts; moved forward from P10-07 because students reach tests through it); published tests only; soft-deleted'
 }
 
 Table ielts_attempts {
   id uuid [pk]
   organization_id uuid [not null]
   test_id uuid [not null, ref: > ielts_tests.id]
+  assignment_id uuid [not null, ref: > ielts_assignments.id]
   student_id uuid [not null, ref: > users.id]
   module ielts_module [not null]
   mode varchar(10) [note: 'SPEAKING: LIVE (examiner) | RECORDED (practice)']
   status varchar(15) [not null, note: 'IN_PROGRESS | SUBMITTED | MARKED']
-  started_at timestamptz
-  deadline timestamptz
+  started_at timestamptz [not null]
+  deadline timestamptz [not null, note: 'started + module time (+120 s Listening review); 30 s grace for the last save']
   submitted_at timestamptz
   raw_score smallint [note: 'LISTENING / READING out of 40']
   band numeric(2,1)
   criteria jsonb [note: 'WRITING per task: TA/TR, CC, LR, GRA; SPEAKING: FC, LR, GRA, P']
   feedback text
   recording_file_ids jsonb [note: 'SPEAKING recordings per part']
-  marked_by uuid [ref: > users.id]
+  marked_by uuid
   marked_at timestamptz
   Indexes {
+    (assignment_id, student_id, module) [unique]
     (test_id, student_id, module)
   }
-  Note: 'NEW (IEL-04..08), P10-04'
+  Note: 'NEW (IEL-04..08), BUILT P10-04 part 1'
 }
 
 Table ielts_answers {
-  attempt_id uuid [ref: > ielts_attempts.id]
+  id uuid [pk]
+  attempt_id uuid [not null, ref: > ielts_attempts.id]
   question_id uuid [ref: > ielts_questions.id, note: 'null for a Writing task']
-  part_id uuid [ref: > ielts_test_parts.id]
-  answer text
+  part_id uuid [not null, ref: > ielts_test_parts.id]
+  answer text [note: 'text, or chosen key(s) "B" / "B,D"']
   correct boolean
+  marks smallint [not null, default: 0, note: '"Choose TWO letters" can give 2']
+  updated_at timestamptz
   Indexes {
-    (attempt_id, question_id) [unique]
+    (attempt_id, question_id) [unique, note: 'where question_id is not null']
+    (attempt_id, part_id) [unique, note: 'where question_id is null']
   }
+  Note: 'NEW, BUILT P10-04 part 1; Writing scripts are the answer of their part'
+}
   Note: 'NEW, P10-04; Writing scripts are the answer of their part'
 }
 

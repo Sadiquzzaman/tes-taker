@@ -153,7 +153,17 @@ export class IeltsTestsService {
   async get(tenant: Tenant, userId: string, testId: string): Promise<IeltsTestView> {
     await this.assertStaff(tenant);
     const test = await this.find(tenant, testId);
-    const parts = await this.parts.find({ where: { test_id: test.id } });
+    const names = await this.names([test.created_by]);
+    return {
+      ...this.summary(test, names),
+      can_edit: this.canEdit(tenant, userId, test),
+      parts: await this.tree(test.id),
+    };
+  }
+
+  /** A test's parts in test order with live groups and questions, numbered 1–40 per module. */
+  async tree(testId: string, module?: IeltsModuleEnum): Promise<IeltsPartView[]> {
+    const parts = await this.parts.find({ where: { test_id: testId, ...(module ? { module } : {}) } });
     parts.sort((a, b) => MODULE_ORDER.indexOf(a.module) - MODULE_ORDER.indexOf(b.module) || a.part_no - b.part_no);
     const groups = parts.length
       ? await this.dataSource.getRepository(IeltsQuestionGroupEntity).find({ where: { part_id: In(parts.map((p) => p.id)), deleted_at: IsNull() }, order: { sort_order: 'ASC' } })
@@ -161,45 +171,40 @@ export class IeltsTestsService {
     const questions = groups.length
       ? await this.dataSource.getRepository(IeltsQuestionEntity).find({ where: { group_id: In(groups.map((g) => g.id)), deleted_at: IsNull() }, order: { sort_order: 'ASC' } })
       : [];
-    const names = await this.names([test.created_by]);
     const next: Partial<Record<IeltsModuleEnum, number>> = {};
-    return {
-      ...this.summary(test, names),
-      can_edit: this.canEdit(tenant, userId, test),
-      parts: parts.map((p) => ({
-        id: p.id,
-        module: p.module,
-        part_no: p.part_no,
-        title: p.title,
-        content: p.content,
-        audio_file_id: p.audio_file_id,
-        image_file_id: p.image_file_id,
-        groups: groups
-          .filter((g) => g.part_id === p.id)
-          .map((g) => {
-            // Numbers run 1–40 through each module: parts in order, groups in order, questions in order.
-            const numbered = questions
-              .filter((q) => q.group_id === g.id)
-              .map((q) => {
-                const from = next[p.module] ?? 1;
-                next[p.module] = from + numbersTaken(g.type, q.answer);
-                return { id: q.id, sort_order: q.sort_order, number_from: from, number_to: from + numbersTaken(g.type, q.answer) - 1, prompt: q.prompt, options: q.options, answer: q.answer };
-              });
-            return {
-              id: g.id,
-              type: g.type,
-              instruction: g.instruction,
-              word_limit: g.word_limit,
-              shared: g.shared,
-              image_file_id: g.image_file_id,
-              sort_order: g.sort_order,
-              number_from: numbered[0]?.number_from ?? null,
-              number_to: numbered[numbered.length - 1]?.number_to ?? null,
-              questions: numbered,
-            };
-          }),
-      })),
-    };
+    return parts.map((p) => ({
+      id: p.id,
+      module: p.module,
+      part_no: p.part_no,
+      title: p.title,
+      content: p.content,
+      audio_file_id: p.audio_file_id,
+      image_file_id: p.image_file_id,
+      groups: groups
+        .filter((g) => g.part_id === p.id)
+        .map((g) => {
+          // Numbers run 1–40 through each module: parts in order, groups in order, questions in order.
+          const numbered = questions
+            .filter((q) => q.group_id === g.id)
+            .map((q) => {
+              const from = next[p.module] ?? 1;
+              next[p.module] = from + numbersTaken(g.type, q.answer);
+              return { id: q.id, sort_order: q.sort_order, number_from: from, number_to: from + numbersTaken(g.type, q.answer) - 1, prompt: q.prompt, options: q.options, answer: q.answer };
+            });
+          return {
+            id: g.id,
+            type: g.type,
+            instruction: g.instruction,
+            word_limit: g.word_limit,
+            shared: g.shared,
+            image_file_id: g.image_file_id,
+            sort_order: g.sort_order,
+            number_from: numbered[0]?.number_from ?? null,
+            number_to: numbered[numbered.length - 1]?.number_to ?? null,
+            questions: numbered,
+          };
+        }),
+    }));
   }
 
   /** The maker, owners and admins: the title any time; test type and times while it is a draft. */
