@@ -9,8 +9,11 @@ import { CryptoUtil } from 'src/common/utils/crypto.util';
 import { RefreshTokenUtil } from 'src/common/utils/refresh-token.util';
 import { OrganizationEntity } from 'src/organizations/entities/organization.entity';
 import { OrganizationMemberEntity } from 'src/organizations/entities/organization-member.entity';
+import { OrganizationKindEnum } from 'src/organizations/enums/organization-kind.enum';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { OrganizationStatusEnum } from 'src/organizations/enums/organization-status.enum';
+import { WorkspaceTypeEnum } from 'src/organizations/enums/workspace-type.enum';
+import { LEVEL_LABEL_PRESETS, LevelLabelPresetEnum } from 'src/organizations/level-labels';
 import { FeatureOverrideEntity } from 'src/subscriptions/entities/feature-override.entity';
 import { UserEntity } from './entities/user.entity';
 
@@ -90,6 +93,8 @@ interface SeedSchool {
   /** Solo teachers with their own workspace. */
   soloTeachers: SeedPerson[];
   features: string[];
+  /** An IELTS centre (IELTS workspace, Course / Batch labels) instead of a school. */
+  ieltsCentre?: boolean;
 }
 
 /**
@@ -124,6 +129,31 @@ const SUNRISE: SeedSchool = {
   soloTeachers: [{ phone: '01111130201', fullName: 'Kamrul Hasan', email: 'sun.solo@yopmail.com' }],
   features: ['attendance', 'homework', 'calendar'],
 };
+/**
+ * An IELTS centre for testing the IELTS workspace (P10, owner's request 16 Nov): owner, admin,
+ * three teachers and twelve students. Its batches, tests and results are added through the API
+ * (scripts/beta-ielts-data.mjs).
+ */
+const IELTS_FIRST = ['Mitu', 'Rafi', 'Sumaiya', 'Tanvir', 'Nabila', 'Arif', 'Priya', 'Shuvo', 'Jannat', 'Rifat', 'Lubna', 'Sajid'];
+const IELTS_CENTRE: SeedSchool = {
+  name: 'Bright Path IELTS',
+  staff: [
+    { phone: '01111150001', fullName: 'Nusrat Karim', email: 'ielts.owner@yopmail.com', role: OrganizationMemberRoleEnum.OWNER },
+    { phone: '01111150002', fullName: 'Asif Mahmud', email: 'ielts.admin@yopmail.com', role: OrganizationMemberRoleEnum.ADMIN },
+    { phone: '01111150011', fullName: 'Sharmin Sultana', email: 'ielts.teacher1@yopmail.com', role: OrganizationMemberRoleEnum.TEACHER },
+    { phone: '01111150012', fullName: 'David Gomes', email: 'ielts.teacher2@yopmail.com', role: OrganizationMemberRoleEnum.TEACHER },
+    { phone: '01111150013', fullName: 'Farzana Haque', email: 'ielts.teacher3@yopmail.com', role: OrganizationMemberRoleEnum.TEACHER },
+  ],
+  students: IELTS_FIRST.map((first, i) => ({
+    phone: `0111115${pad(i + 101, 4)}`,
+    fullName: `${first} ${SUNRISE_LAST[(i * 7) % SUNRISE_LAST.length]}`,
+    email: `ielts.student${pad(i + 1, 2)}@yopmail.com`,
+  })),
+  soloTeachers: [],
+  features: ['ielts', 'integrity', 'homework'],
+  ieltsCentre: true,
+};
+
 /** A platform admin account for testing the admin pages on beta. */
 const TEST_PLATFORM_ADMIN: SeedPerson = { phone: '01111139999', fullName: 'Test Platform Admin', email: 'test.platform@yopmail.com' };
 
@@ -265,6 +295,8 @@ export class TestUsersSeedService {
     this.logger.log(`Demo school: created ${demo.users} users, ${demo.members} memberships, ${demo.features} feature switches.`);
     const sunrise = await this.seedSchool(SUNRISE, hashedPassword);
     this.logger.log(`Sunrise school: created ${sunrise.users} users, ${sunrise.members} memberships, ${sunrise.features} feature switches.`);
+    const ielts = await this.seedSchool(IELTS_CENTRE, hashedPassword);
+    this.logger.log(`IELTS centre: created ${ielts.users} users, ${ielts.members} memberships, ${ielts.features} feature switches.`);
     const admin = await this.userOf(TEST_PLATFORM_ADMIN, RolesEnum.ADMIN, false, hashedPassword);
     this.logger.log(`Test platform admin: ${admin.created ? 'created' : 'already present'}.`);
     this.logger.log(
@@ -322,6 +354,9 @@ export class TestUsersSeedService {
           public_id: organizationNumber,
           organization_number: organizationNumber,
           status: OrganizationStatusEnum.APPROVED,
+          ...(school.ieltsCentre
+            ? { kind: OrganizationKindEnum.IELTS_CENTRE, workspace_type: WorkspaceTypeEnum.IELTS, level_labels: LEVEL_LABEL_PRESETS[LevelLabelPresetEnum.COURSE_BATCH] }
+            : {}),
           created_by: owner.id,
           created_user_name: owner.full_name,
           created_at: new Date(),
