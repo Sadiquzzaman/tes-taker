@@ -183,6 +183,17 @@ describe("IELTS centres (P10-01)", () => {
   });
 });
 
+describe("sidebar for solo IELTS trainers (P12-03)", () => {
+  it("shows a solo IELTS trainer the IELTS staff pages in their own workspace, and an academic solo teacher none", async () => {
+    features = { attendance: true, ielts: true };
+    await renderSidebar({ role: "TEACHER", personal_teacher: "1", workspace_type: "IELTS" });
+    expect(links()).toEqual(expect.arrayContaining(["IELTS tests", "Marking"]));
+    expect(links()).not.toContain("Marks");
+    cleanup();
+    await renderSidebar({ role: "TEACHER", personal_teacher: "1" });
+    expect(links()).not.toContain("IELTS tests");
+  });
+});
 
 describe("sidebar for branch managers (P12-01)", () => {
   it("shows a branch manager Today only from the organisation's pages, until branch tools are opened to them", async () => {

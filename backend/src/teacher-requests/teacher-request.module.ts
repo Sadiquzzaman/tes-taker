@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from 'src/user/user.module';
+import { OrganizationsModule } from 'src/organizations/organization.module';
 import { TeacherRoleRequestEntity } from './entities/teacher-role-request.entity';
 import { TeacherRequestController } from './teacher-request.controller';
 import { TeacherRequestService } from './teacher-request.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TeacherRoleRequestEntity]), UserModule],
+  imports: [TypeOrmModule.forFeature([TeacherRoleRequestEntity]), UserModule, OrganizationsModule],
   controllers: [TeacherRequestController],
   providers: [TeacherRequestService],
   exports: [TeacherRequestService],

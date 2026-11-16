@@ -44,19 +44,19 @@ export const useSignUpForm = () => {
   const handleFieldChange = <K extends keyof SignUpInfo>(field: K, value: SignUpInfo[K]) => {
     if (field === "agreed") {
       setCheckboxError("");
-    } else if (field !== "role" && field !== "request_teacher") {
+    } else if (field !== "role" && field !== "request_teacher" && field !== "workspace_type") {
       setFormError((prev) => ({ ...prev, [field]: "" }));
     }
     setSignUpInfo((prev) => ({ ...prev, [field]: value }));
   };
 
   const startStudentSignup = () => {
-    setSignUpInfo((prev) => ({ ...prev, request_teacher: false, role: UserRoleEnum.STUDENT }));
+    setSignUpInfo((prev) => ({ ...prev, request_teacher: false, workspace_type: undefined, role: UserRoleEnum.STUDENT }));
     setView("signup");
   };
 
   const startTeacherSignup = () => {
-    setSignUpInfo((prev) => ({ ...prev, request_teacher: true, role: UserRoleEnum.STUDENT }));
+    setSignUpInfo((prev) => ({ ...prev, request_teacher: true, workspace_type: "ACADEMIC", role: UserRoleEnum.STUDENT }));
     setView("signup");
   };
 

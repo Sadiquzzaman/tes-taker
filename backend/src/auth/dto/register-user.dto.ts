@@ -10,8 +10,7 @@ import {
   Matches, 
   IsEnum, 
   IsOptional,
-  IsBoolean
-} from 'class-validator';
+  IsBoolean, IsIn } from 'class-validator';
 import { Exclude, Transform } from 'class-transformer';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { IsStrongPassword } from 'src/common/decorators/is-strong-password.decorator';
@@ -88,4 +87,12 @@ export class RegisterUserDto {
   @Transform(({ value }) => value === true || value === 'true' || value === 1 || value === '1')
   @IsBoolean()
   request_teacher?: boolean;
+
+  @ApiPropertyOptional({
+    enum: ['ACADEMIC', 'IELTS'],
+    description: "With request_teacher: the teacher's own workspace, Academic (default) or IELTS for a solo IELTS trainer (P12-03)",
+  })
+  @IsOptional()
+  @IsIn(['ACADEMIC', 'IELTS'])
+  workspace_type?: 'ACADEMIC' | 'IELTS';
 }

@@ -11,6 +11,8 @@ interface SignUpInfo {
   agreed: boolean;
   role: UserRoleEnum;
   request_teacher?: boolean;
+  /** A teacher's own workspace: Academic or IELTS (solo IELTS trainer, P12-03). */
+  workspace_type?: "ACADEMIC" | "IELTS";
 }
 
 interface LoginInfo {
@@ -71,6 +73,8 @@ interface AuthInputProps {
 
 type LoginResponsePayload = User & {
   message?: string;
+  /** The workspace's type (P12-03): the organisation's, or the solo workspace's for personal sessions. */
+  workspace_type?: "ACADEMIC" | "IELTS";
   /** The language the user chose ("bn" | "en"); null or missing until they choose one. */
   locale?: "bn" | "en" | null;
 };

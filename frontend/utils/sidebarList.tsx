@@ -903,4 +903,12 @@ const sidebarList: SideBarList[] = [
   },
 ];
 
+/**
+ * A solo IELTS trainer (P12-03) works in their own workspace: the IELTS staff pages, in the
+ * personal menu, once the workspace is IELTS.
+ */
+for (const item of sidebarList.filter((entry) => entry.category === "Organization" && entry.workspaces?.includes("IELTS"))) {
+  sidebarList.push({ ...item, category: "Platform", memberRoles: undefined, personalWorkspaceOnly: true });
+}
+
 export default sidebarList;

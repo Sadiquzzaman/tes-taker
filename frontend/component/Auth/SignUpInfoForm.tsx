@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Button, Input, PasswordInput } from "@/design/ui";
+import { Button, Input, PasswordInput, RadioGroup } from "@/design/ui";
 import AuthDivider from "./AuthDivider";
 import AuthHeading from "./AuthHeading";
 import ContinueWithGoogle from "./ContinueWithGoogle";
@@ -38,6 +38,18 @@ const SignUpInfoForm = ({
           handleSignUp();
         }}
       >
+        {signUpInfo.request_teacher ? (
+          <RadioGroup
+            legend={t("signup.teachKind")}
+            name="teacher-workspace"
+            value={signUpInfo.workspace_type ?? "ACADEMIC"}
+            onChange={(value) => handleFieldChange("workspace_type", value as "ACADEMIC" | "IELTS")}
+            options={[
+              { value: "ACADEMIC", label: t("signup.teachAcademic"), hint: t("signup.teachAcademicHint") },
+              { value: "IELTS", label: t("signup.teachIelts"), hint: t("signup.teachIeltsHint") },
+            ]}
+          />
+        ) : null}
         <Input
           label={t("fields.fullName")}
           autoComplete="name"
