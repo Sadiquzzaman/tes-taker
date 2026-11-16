@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Get, HttpCode, HttpStatus, Query, Res } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, HttpCode, HttpStatus, Query, Res, Headers, Delete, Param, ParseUUIDPipe } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { GoogleAuthService } from './google-auth.service';
@@ -18,6 +18,21 @@ import { UserPayload } from 'src/common/decorators/user-payload.decorator';
 import { JwtPayloadInterface } from './interfaces/jwt-payload.interface';
 import { VerifyOtpDto } from 'src/sms/dto/sms.dto';
 import { AuthThrottle } from 'src/common/decorators/auth-throttle.decorator';
+import { LogoutDto } from './dto/logout.dto';
+import { DeviceInfoDto } from './dto/device-info.dto';
+import { DeviceInfo } from 'src/user/refresh-tokens.service';
+import { DevicePlatformEnum } from 'src/user/entities/refresh-token.entity';
+import { deviceNameFromUserAgent } from 'src/user/device-name';
+
+/** The app describes itself; the web is named from its browser ("Chrome on Windows"). */
+function deviceFrom(dto: DeviceInfoDto | undefined, userAgent: string | undefined): DeviceInfo {
+  const platform = dto?.platform ?? DevicePlatformEnum.WEB;
+  return {
+    platform,
+    name: dto?.name ?? (platform === DevicePlatformEnum.WEB ? deviceNameFromUserAgent(userAgent) : null),
+    app_version: dto?.app_version ?? null,
+  };
+}
 
 @ApiTags('Authentication')
 @Controller({
@@ -241,8 +256,8 @@ export class AuthController {
       }
     }
   })
-  async login(@Body() loginDto: LoginDto) {
-    const payload = await this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Headers('user-agent') userAgent?: string) {
+    const payload = await this.authService.login(loginDto, deviceFrom(loginDto.device, userAgent));
     return { message: 'Login successful!', payload };
   }
 
@@ -257,8 +272,8 @@ export class AuthController {
   @ApiBody({ type: LoginOrganizationDto })
   @ApiResponse({ status: 200, description: 'Organization login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials or not a member' })
-  async loginOrganization(@Body() dto: LoginOrganizationDto) {
-    const payload = await this.authService.loginOrganization(dto);
+  async loginOrganization(@Body() dto: LoginOrganizationDto, @Headers('user-agent') userAgent?: string) {
+    const payload = await this.authService.loginOrganization(dto, deviceFrom(dto.device, userAgent));
     return { message: 'Organization login successful!', payload };
   }
 
@@ -276,8 +291,54 @@ export class AuthController {
     const payload = await this.authService.refreshToken(
       refreshAuthUserDto.refreshToken,
       refreshAuthUserDto.organization_id,
+      refreshAuthUserDto.device,
     );
     return { message: 'Token refreshed successfully', payload };
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Sign out this device (PM-01)',
+    description: "Ends the device that holds this refresh token. Answers 200 even for an unknown token. The access token keeps working until it expires (at most 30 minutes).",
+  })
+  @ApiBody({ type: LogoutDto })
+  async logout(@Body() dto: LogoutDto) {
+    await this.authService.logout(dto.refreshToken);
+    return { message: 'Signed out', payload: { signed_out: true } };
+  }
+
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard)
+  @Get('sessions')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'My signed-in devices (PM-01)',
+    description: 'Devices still signed in, most recently used first; `current` marks the one asking.',
+  })
+  async listSessions(@UserPayload() jwtPayload: JwtPayloadInterface) {
+    const payload = await this.authService.listDevices(jwtPayload.id, jwtPayload.sid);
+    return { message: 'Signed-in devices', payload };
+  }
+
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard)
+  @Post('sessions/revoke-others')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sign out all other devices (PM-01)', description: 'Keeps the device asking signed in.' })
+  async revokeOtherSessions(@UserPayload() jwtPayload: JwtPayloadInterface) {
+    const payload = await this.authService.signOutOtherDevices(jwtPayload.id, jwtPayload.sid);
+    return { message: 'Other devices signed out', payload };
+  }
+
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard)
+  @Delete('sessions/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sign out one of my devices (PM-01)', description: '404 for a device that is not yours or is already signed out.' })
+  async revokeSession(@UserPayload() jwtPayload: JwtPayloadInterface, @Param('id', ParseUUIDPipe) id: string) {
+    await this.authService.signOutDevice(jwtPayload.id, id);
+    return { message: 'Device signed out', payload: { signed_out: true } };
   }
 
   @Get('google')
@@ -302,6 +363,7 @@ export class AuthController {
     @Query('state') state: string,
     @Query('error') error: string,
     @Res() res: Response,
+    @Headers('user-agent') userAgent?: string,
   ) {
     if (error) {
       return res.redirect(
@@ -310,7 +372,7 @@ export class AuthController {
     }
 
     try {
-      const payload = await this.googleAuthService.handleCallback(code, state);
+      const payload = await this.googleAuthService.handleCallback(code, state, userAgent);
       return res.redirect(this.googleAuthService.buildFrontendSuccessRedirect(payload));
     } catch (callbackError) {
       const message =
@@ -414,7 +476,7 @@ export class AuthController {
     @UserPayload() jwtPayload: JwtPayloadInterface,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
-    const payload = await this.authService.changePassword(jwtPayload.id, changePasswordDto);
+    const payload = await this.authService.changePassword(jwtPayload.id, changePasswordDto, jwtPayload.sid);
     return { message: payload.message, payload };
   }
 
@@ -452,6 +514,7 @@ export class AuthController {
       dto.type,
       dto.organization_id,
       dto.teacher_id,
+      jwtPayload.sid,
     );
     return { message: 'Context selected successfully', payload };
   }

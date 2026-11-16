@@ -2943,7 +2943,8 @@
         "reject": "Teacher request rejected"
       },
       "user": {
-        "role_change": "Account role changed"
+        "role_change": "Account role changed",
+        "sign_out_devices": "Signed out of devices"
       },
       "teacher": {
         "status_change": "Teacher enabled or disabled"

@@ -19,6 +19,7 @@ import { normalizeEmail, normalizePhone } from 'src/common/utils/contact.util';
 import { TestUsersSeedService } from './test-users.seed';
 import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
 import { AuditService } from 'src/audit/audit.service';
+import { DeviceInfo, RefreshTokensService } from './refresh-tokens.service';
 
 type AdminUserListMeta = {
   page: number;
@@ -64,6 +65,7 @@ export class UserService implements OnModuleInit {
     private readonly publicIdService: PublicIdService,
     private readonly testUsersSeedService: TestUsersSeedService,
     private readonly audit: AuditService,
+    private readonly refreshTokens: RefreshTokensService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -399,22 +401,23 @@ export class UserService implements OnModuleInit {
         | 'individual_teacher'
         | 'individual';
       teacher_id?: string;
+      /** The signed-in device whose token rotates (refresh, workspace switch); none = a new sign-in (PM-01). */
+      session_id?: string | null;
+      device?: DeviceInfo;
     },
   ): Promise<UserReponseDto> {
     const contextType =
       options?.context_type ??
       (orgSession ? 'organization' : 'individual');
 
+    const { token, sessionId } = await this.refreshTokens.issue(user.id, options?.session_id, options?.device);
     const access_token = this.generateJwtToken(
       user,
       orgSession ?? null,
       contextType,
       options?.teacher_id,
+      sessionId,
     );
-
-    const { token, hash } = this.refreshTokenUtil.generate();
-    user.refresh_token = hash;
-    await user.save();
 
     const base: UserReponseDto = {
       id: user.id,
@@ -533,6 +536,7 @@ export class UserService implements OnModuleInit {
       | 'individual_teacher'
       | 'individual' = 'individual',
     teacherId?: string,
+    sessionId?: string,
   ): string {
     const payload: Record<string, unknown> = {
       id: user.id,
@@ -553,6 +557,11 @@ export class UserService implements OnModuleInit {
 
     if (teacherId) {
       payload.teacher_id = teacherId;
+    }
+
+    // The signed-in device (PM-01): "this device" in the device list, kept when signing out the others.
+    if (sessionId) {
+      payload.sid = sessionId;
     }
 
     const token = this.jwtService.sign(payload, {
@@ -660,93 +669,16 @@ export class UserService implements OnModuleInit {
     await this.userRepository.save(user);
   }
 
-  async getUserFromValidRefreshToken(refreshToken: string): Promise<UserEntity> {
-    const verification = this.refreshTokenUtil.verify(refreshToken);
-    if (!verification.valid || verification.expired) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
-    }
-
-    const user = await this.userRepository.findOne({
-      where: { refresh_token: this.refreshTokenUtil.hash(refreshToken) },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
-    }
-
-    if (user.is_active === ActiveStatusEnum.INACTIVE) {
-      throw new UnauthorizedException('Your account has been disabled. Please contact support.');
-    }
-
-    return user;
-  }
-
-  async refreshAccessToken(
-    refreshToken: string,
-    organizationId?: string | null,
-  ): Promise<UserReponseDto> {
-    // Validate the signature/expiry before touching the database.
-    const verification = this.refreshTokenUtil.verify(refreshToken);
-    if (!verification.valid || verification.expired) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
-    }
-
-    // Look up by the stored hash — plaintext tokens are never persisted.
-    const user = await this.userRepository.findOne({
-      where: { refresh_token: this.refreshTokenUtil.hash(refreshToken) },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
-    }
-
-    if (user.is_active === ActiveStatusEnum.INACTIVE) {
-      throw new UnauthorizedException('Your account has been disabled. Please contact support.');
-    }
-
-    if (!organizationId) {
-      return this.generateTokenForUser(user, null);
-    }
-
-    // Organization session refresh is handled by AuthService (needs OrganizationsService).
-    // Fallback: individual token if caller forgot org context.
-    return this.generateTokenForUser(user, null);
-  }
-
   /**
-   * Refresh while preserving an organization session (membership re-checked by AuthService).
+   * The user and signed-in device a refresh token belongs to (PM-01); the caller issues the device's
+   * next token with generateTokenForUser(…, { session_id }).
    */
-  async refreshAccessTokenWithOrg(
-    refreshToken: string,
-    orgSession: {
-      organization_id: string;
-      organization_number: number;
-      member_role: string;
-      organization_name: string;
-      organization_status: string;
-      organization_default_locale?: string;
-      /** ACADEMIC or IELTS (P10-01): the web shows the IELTS menu in IELTS centres. */
-      organization_workspace_type?: string;
-    },
-  ): Promise<UserReponseDto> {
-    const verification = this.refreshTokenUtil.verify(refreshToken);
-    if (!verification.valid || verification.expired) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
-    }
-
-    const user = await this.userRepository.findOne({
-      where: { refresh_token: this.refreshTokenUtil.hash(refreshToken) },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
-    }
-
+  async consumeRefreshToken(refreshToken: string, device?: DeviceInfo): Promise<{ user: UserEntity; sessionId: string }> {
+    const { user, sessionId } = await this.refreshTokens.consume(refreshToken, device);
     if (user.is_active === ActiveStatusEnum.INACTIVE) {
       throw new UnauthorizedException('Your account has been disabled. Please contact support.');
     }
-
-    return this.generateTokenForUser(user, orgSession);
+    return { user, sessionId };
   }
 
   /** Saves the user's app language (FND-18). */

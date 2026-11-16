@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Exclude } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString, MaxLength, Matches, ValidateIf } from 'class-validator';
+import { Exclude, Type } from 'class-transformer';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength, Matches, ValidateIf, ValidateNested } from 'class-validator';
+import { DeviceInfoDto } from './device-info.dto';
 
 export class LoginDto {
   @ApiPropertyOptional({
@@ -35,4 +36,10 @@ export class LoginDto {
   @IsString({ message: 'Password must be a string' })
   @MaxLength(100, { message: 'Maximum 100 characters supported' })
   password: string;
+
+  @ApiPropertyOptional({ type: DeviceInfoDto, description: 'The mobile app describes the phone (PM-01); the web leaves it out' })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DeviceInfoDto)
+  device?: DeviceInfoDto;
 }

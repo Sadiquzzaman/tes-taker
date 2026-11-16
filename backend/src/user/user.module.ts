@@ -8,13 +8,15 @@ import { CryptoUtil } from 'src/common/utils/crypto.util';
 import { JwtService } from '@nestjs/jwt';
 import { UserFilterUtil } from 'src/common/utils/user-filter.util';
 import { RefreshTokenUtil } from 'src/common/utils/refresh-token.util';
+import { RefreshTokenEntity } from './entities/refresh-token.entity';
+import { RefreshTokensService } from './refresh-tokens.service';
 import { OrganizationEntity } from 'src/organizations/entities/organization.entity';
 import { OrganizationMemberEntity } from 'src/organizations/entities/organization-member.entity';
 import { TestUsersSeedService } from './test-users.seed';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity, OrganizationEntity, OrganizationMemberEntity, FeatureOverrideEntity]),
+    TypeOrmModule.forFeature([UserEntity, OrganizationEntity, OrganizationMemberEntity, FeatureOverrideEntity, RefreshTokenEntity]),
   ],
   controllers: [UserController],
   providers: [
@@ -24,7 +26,8 @@ import { TestUsersSeedService } from './test-users.seed';
     JwtService,
     UserFilterUtil,
     RefreshTokenUtil,
+    RefreshTokensService,
   ],
-  exports: [UserService],
+  exports: [UserService, RefreshTokensService],
 })
 export class UserModule {}
