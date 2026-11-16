@@ -9,6 +9,7 @@ const orgMemberRoles: OrganizationMemberRole[] = [
   "ASSISTANT",
   "TEACHER",
   "STUDENT",
+  "BRANCH_MANAGER",
 ];
 
 const isOrgMemberRole = (value: string | undefined): value is OrganizationMemberRole =>

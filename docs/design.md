@@ -769,6 +769,12 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 - **The sweep:** `branch-managers.e2e-spec.ts` calls every GET endpoint as a branch manager and fails when anything outside its hand-checked list answers. That list is their own account and notifications, platform catalogues, the organisation's name and settings, and the exams they made themselves.
 - **Later parts:** each opens endpoints with `@BranchScoped()` only once their data is limited to `Tenant.branchId`.
 
+**Built in P12-02 (branch managers on the web, 17 Nov 2026):**
+- **Teachers screen:** owners and admins see branch managers there and change a staff member's role (Admin, Teacher, Branch manager) in a drawer. A branch manager also needs a branch, picked from the branches list.
+- **Organisation settings:** a **Branches** switch. Switching off is refused while other branches exist.
+- **Branch managers' menu:** Today only, as their branch tools are not opened yet.
+- **Personal calendar:** `UserContextService.workspaces` (the calendar across all of a person's workspaces) leaves out an organisation where the person is a branch manager, because that feed is not limited to a branch yet.
+
 **Built in P12-03 part 1 (solo IELTS trainers, IEL-11, 17 Nov 2026):**
 - **Sign-up:** teacher sign-up takes `workspace_type` (ACADEMIC by default, or IELTS). It is kept on the teacher request (`teacher_role_requests.workspace_type`, migration `1756530000000-SoloIelts`).
 - **Approval:** approving an IELTS request makes the teacher's SOLO organisation at once, with workspace type IELTS and the Course / Batch labels (`SoloOrganizationService.ensureForTeacher(user, IELTS)`). Others are made on first use as before; an existing one keeps its type.

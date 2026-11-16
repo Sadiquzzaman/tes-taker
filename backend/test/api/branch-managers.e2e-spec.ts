@@ -136,6 +136,19 @@ describe('branch managers (P12-01)', () => {
     expect((await t.api.request('PATCH', '/workspace/level-labels', { body: { preset: 'COURSE_BATCH' }, token: managerToken })).status).toBe(403);
   });
 
+  it("leaves the organisation they manage out of their personal calendar (it is not limited to a branch yet)", async () => {
+    const { organization, managerUser } = await schoolWithManager();
+    const calendarOn = await t.api.request('PUT', `/subscriptions/admin/organizations/${organization.id}/overrides/calendar`, {
+      body: { value: true, reason: 'P12-01 test' },
+      token: t.tokenFor(platformAdmin),
+    });
+    expect(calendarOn.status).toBe(200);
+    const today = new Date().toISOString().slice(0, 10);
+    const feed = await t.api.get<Body<{ workspaces: { key: string; label: string }[] }>>(`/calendar/me?from=${today}&to=${today}`, t.tokenFor(managerUser));
+    expect(feed.status).toBe(200);
+    expect(feed.body.payload.workspaces.map((w) => w.label)).not.toContain(organization.name);
+  });
+
   it('refuses a branch manager whose branch was taken away', async () => {
     const { managerToken, membership } = await schoolWithManager();
     await t.dataSource.getRepository(OrganizationMemberEntity).update({ id: membership.id }, { branch_id: null });
