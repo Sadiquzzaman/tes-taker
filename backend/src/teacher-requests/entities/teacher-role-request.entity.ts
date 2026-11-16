@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Check, Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { TeacherRequestStatusEnum } from '../enums/teacher-request-status.enum';
@@ -10,6 +10,7 @@ import { TeacherRequestStatusEnum } from '../enums/teacher-request-status.enum';
   where: `"status" = 'pending'`,
 })
 @Entity('teacher_role_requests')
+@Check('CHK_teacher_role_requests_workspace_type', `"workspace_type" IN ('ACADEMIC', 'IELTS')`)
 export class TeacherRoleRequestEntity extends CustomBaseEntity {
   @ApiProperty({ description: 'Requesting student user id' })
   @Index()
@@ -41,4 +42,8 @@ export class TeacherRoleRequestEntity extends CustomBaseEntity {
   @ApiPropertyOptional({ description: 'Optional admin note' })
   @Column({ name: 'note', type: 'varchar', length: 500, nullable: true })
   note: string | null;
+
+  @ApiProperty({ enum: ['ACADEMIC', 'IELTS'], description: 'The workspace the teacher chose at sign-up (P12-03); their solo workspace is made with it on approval' })
+  @Column({ name: 'workspace_type', type: 'varchar', length: 10, default: 'ACADEMIC' })
+  workspace_type: 'ACADEMIC' | 'IELTS';
 }

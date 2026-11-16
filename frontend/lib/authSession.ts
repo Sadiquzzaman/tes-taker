@@ -64,7 +64,7 @@ const persistAuthSession = async (payload: LoginResponsePayload): Promise<boolea
     sessionMode: payload.session_mode === "organization" ? "organization" : "individual",
     memberRole: payload.organization?.role ?? "",
     organizationId: payload.organization?.id ?? "",
-    workspaceType: payload.organization?.workspace_type ?? "ACADEMIC",
+    workspaceType: payload.organization?.workspace_type ?? payload.workspace_type ?? "ACADEMIC",
     personalTeacherEnabled: payload.personal_teacher_enabled === true,
   });
 

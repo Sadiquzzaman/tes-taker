@@ -7,6 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
 import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
 import { AuditService } from 'src/audit/audit.service';
+import { SoloOrganizationService } from 'src/organizations/solo-organization.service';
+import { WorkspaceTypeEnum } from 'src/organizations/enums/workspace-type.enum';
 import { RolesEnum } from 'src/common/enums/roles.enum';
 import { isUniqueViolation } from 'src/common/utils/db-error.util';
 import { UserService } from 'src/user/user.service';
@@ -22,6 +24,7 @@ export class TeacherRequestService {
     private readonly requestRepo: Repository<TeacherRoleRequestEntity>,
     private readonly userService: UserService,
     private readonly audit: AuditService,
+    private readonly soloOrganizations: SoloOrganizationService,
   ) {}
 
   async getMyRequest(userId: string) {
@@ -35,7 +38,7 @@ export class TeacherRequestService {
       : null;
   }
 
-  async createRequest(userId: string, options?: { note?: string }) {
+  async createRequest(userId: string, options?: { note?: string; workspace_type?: 'ACADEMIC' | 'IELTS' }) {
     const user = await this.userService.findById(userId);
 
     if (user.role !== RolesEnum.STUDENT) {
@@ -56,6 +59,7 @@ export class TeacherRequestService {
     const request = this.requestRepo.create({
       user_id: userId,
       status: TeacherRequestStatusEnum.PENDING,
+      workspace_type: options?.workspace_type === 'IELTS' ? 'IELTS' : 'ACADEMIC',
       note: options?.note?.trim() || null,
       created_by: userId,
       created_user_name: user.full_name,
@@ -120,6 +124,11 @@ export class TeacherRequestService {
     const request = await this.findPendingOrThrow(requestId);
 
     await this.userService.updateUserRole(adminId, request.user_id, RolesEnum.TEACHER);
+    // A solo IELTS trainer's own workspace is made now, as IELTS (P12-03); others are made on first use.
+    if (request.workspace_type === 'IELTS') {
+      const teacher = await this.userService.findById(request.user_id);
+      await this.soloOrganizations.ensureForTeacher(teacher, WorkspaceTypeEnum.IELTS);
+    }
 
     request.status = TeacherRequestStatusEnum.APPROVED;
     request.reviewed_by = adminId;

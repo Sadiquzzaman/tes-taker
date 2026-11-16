@@ -7,6 +7,8 @@ import { OrganizationEntity } from './entities/organization.entity';
 import { OrganizationKindEnum } from './enums/organization-kind.enum';
 import { OrganizationMemberRoleEnum } from './enums/organization-member-role.enum';
 import { OrganizationStatusEnum } from './enums/organization-status.enum';
+import { WorkspaceTypeEnum } from './enums/workspace-type.enum';
+import { LEVEL_LABEL_PRESETS, LevelLabelPresetEnum } from './level-labels';
 
 /**
  * A teacher's own workspace (design §8.1): an approved organisation with kind = SOLO and the
@@ -35,8 +37,12 @@ export class SoloOrganizationService {
     return row?.organization_id ?? null;
   }
 
-  /** The teacher's SOLO organisation id, creating it (once, even under parallel requests) if missing. */
-  async ensureForTeacher(user: { id: string; full_name?: string | null }): Promise<string> {
+  /**
+   * The teacher's SOLO organisation id, creating it (once, even under parallel requests) if missing.
+   * A solo IELTS trainer's (P12-03) is made with the IELTS workspace and the Course / Batch labels;
+   * an existing one keeps its type.
+   */
+  async ensureForTeacher(user: { id: string; full_name?: string | null }, workspaceType: WorkspaceTypeEnum = WorkspaceTypeEnum.ACADEMIC): Promise<string> {
     const existing = await this.findIdForOwner(user.id);
     if (existing) return existing;
 
@@ -52,6 +58,9 @@ export class SoloOrganizationService {
           name,
           kind: OrganizationKindEnum.SOLO,
           status: OrganizationStatusEnum.APPROVED,
+          ...(workspaceType === WorkspaceTypeEnum.IELTS
+            ? { workspace_type: WorkspaceTypeEnum.IELTS, level_labels: LEVEL_LABEL_PRESETS[LevelLabelPresetEnum.COURSE_BATCH] }
+            : {}),
           created_by: user.id,
           created_user_name: name.slice(0, 100),
           created_at: new Date(),

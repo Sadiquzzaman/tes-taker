@@ -6,6 +6,7 @@ import LoginForm from "./LoginForm";
 import OtpInput from "./OtpInput";
 import ResendCode from "./ResendCode";
 import SignUpChoice from "./SignUpChoice";
+import SignUpInfoForm from "./SignUpInfoForm";
 
 const loginUser = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => "/login", useSearchParams: () => new URLSearchParams() }));
@@ -64,5 +65,27 @@ describe("verification code", () => {
   it("tells screen readers which step this is", () => {
     renderApp(<AuthHeading title="Verify code" step={2} steps={3} />);
     expect(screen.getByRole("img", { name: "Step 2 of 3" })).toBeTruthy();
+  });
+});
+
+/** P12-03: a teacher chooses Academic or IELTS (a solo IELTS trainer) when signing up; students are not asked. */
+describe("teacher sign-up workspace", () => {
+  const info = (overrides: Partial<SignUpInfo>) =>
+    ({ full_name: "", email: "", phone: "", password: "", confirm_password: "", agreed: false, role: "STUDENT", ...overrides }) as SignUpInfo;
+  const errors = { full_name: "", email: "", phone: "", password: "", confirm_password: "" };
+
+  it("asks a teacher what they teach and passes the choice on", () => {
+    const change = vi.fn();
+    renderApp(
+      <SignUpInfoForm signUpInfo={info({ request_teacher: true, workspace_type: "ACADEMIC" })} formError={errors} checkboxError="" loading={false} handleFieldChange={change} handleSignUp={vi.fn()} />,
+    );
+    expect(screen.getByRole("group", { name: "What do you teach?" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: /IELTS/ }));
+    expect(change).toHaveBeenCalledWith("workspace_type", "IELTS");
+  });
+
+  it("does not ask students", () => {
+    renderApp(<SignUpInfoForm signUpInfo={info({})} formError={errors} checkboxError="" loading={false} handleFieldChange={vi.fn()} handleSignUp={vi.fn()} />, { locale: "bn" });
+    expect(screen.queryByRole("group", { name: "আপনি কী পড়ান?" })).toBeNull();
   });
 });

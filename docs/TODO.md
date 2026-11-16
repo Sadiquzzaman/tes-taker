@@ -98,3 +98,5 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - Plagiarism: check essay answers in academic exams, and earlier homework of the same subject (PLG-01 optional) (P10-09).
 - Plagiarism: run the check with a job right after the due date instead of the first time results are opened (P10-09).
 - `GET /classes/search-students` lets any teacher account search every student account on the platform by name, email or phone; limit it to students of the caller's classes or organisation (found by the P12-01 branch-manager sweep, 17 Nov 2026).
+- A solo teacher with both an Academic and an IELTS workspace (design says one SOLO organisation per type); today a teacher's solo workspace has the type chosen at sign-up (P12-03, 17 Nov 2026).
+- Account → Become a teacher: ask Academic or IELTS there too (only sign-up asks today) (P12-03).

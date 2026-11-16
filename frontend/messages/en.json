@@ -164,7 +164,12 @@
       "kindSchool": "School, college or coaching centre",
       "kindSchoolHint": "Classes and sections, GPA, report cards.",
       "kindIelts": "IELTS centre",
-      "kindIeltsHint": "Courses and batches, IELTS tests in the computer-delivered format, band scores."
+      "kindIeltsHint": "Courses and batches, IELTS tests in the computer-delivered format, band scores.",
+      "teachKind": "What do you teach?",
+      "teachAcademic": "Academic subjects",
+      "teachAcademicHint": "Classes and subjects, marks and report cards.",
+      "teachIelts": "IELTS",
+      "teachIeltsHint": "Courses, IELTS tests in the computer-delivered format, band scores."
     },
     "otp": {
       "title": "Verify code",
