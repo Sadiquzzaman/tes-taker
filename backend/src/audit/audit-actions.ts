@@ -46,6 +46,17 @@ export const AUDIT_ACTIONS = {
   /** A teacher reviewed an attempt: reinstated, retake or confirmed (P8-04, PRO-05). */
   EXAM_ATTEMPT_REVIEW: 'exam.attempt_review',
 
+  // IELTS (Epic 11)
+  /** A student's IELTS profile was set or changed (P10-01, IEL-02). */
+  IELTS_PROFILE_UPDATE: 'ielts.profile_update',
+  IELTS_BAND_TABLE_UPDATE: 'ielts.band_table_update',
+  IELTS_TEST_DELETE: 'ielts.test_delete',
+  IELTS_TEST_STATUS: 'ielts.test_status',
+  IELTS_MARK: 'ielts.mark',
+  IELTS_CONVERT: 'ielts.convert',
+  INTEGRITY_REVIEW: 'integrity.review',
+  INTEGRITY_SETTINGS: 'integrity.settings',
+
   // Resource library (Epic 8)
   /** A resource was added (P9-03, RES-01). */
   RESOURCE_CREATE: 'resource.create',

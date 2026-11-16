@@ -7,7 +7,7 @@ import { cookies } from "next/headers";
  * proxies that forward /api to the Nest backend cannot intercept it.
  */
 export async function POST(req: Request) {
-  const { token, refreshToken, role, sessionMode, memberRole, organizationId, personalTeacherEnabled } = await req.json();
+  const { token, refreshToken, role, sessionMode, memberRole, organizationId, workspaceType, personalTeacherEnabled } = await req.json();
 
   if (!token || !role) {
     return Response.json({ success: false, message: "token and role are required" }, { status: 400 });
@@ -36,6 +36,8 @@ export async function POST(req: Request) {
     typeof organizationId === "string" ? organizationId : "",
     cookieOptions,
   );
+  // An IELTS centre's members get the IELTS menu (P10-01); anything else is the academic one.
+  cookieStore.set("workspace_type", workspaceType === "IELTS" ? "IELTS" : "ACADEMIC", cookieOptions);
   // A teacher with personal teaching on has their own workspace (P2-01); the sidebar shows its menus.
   cookieStore.set("personal_teacher", personalTeacherEnabled === true ? "1" : "", cookieOptions);
 

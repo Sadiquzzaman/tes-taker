@@ -160,3 +160,26 @@ describe("grouped menu", () => {
     expect(screen.getByRole("button", { name: "সদস্য" })).toBeTruthy();
   });
 });
+
+describe("IELTS centres (P10-01)", () => {
+  it("shows an IELTS centre's staff IELTS students and none of the school-only results pages", async () => {
+    features = { attendance: true, performance: true, ielts: true };
+    await renderSidebar({ ...OWNER, workspace_type: "IELTS" });
+    expect(links()).toContain("IELTS students");
+    for (const schoolOnly of ["Performance", "Report cards", "Paper exams", "Behaviour", "Grading scale"]) expect(links()).not.toContain(schoolOnly);
+  });
+
+  it("keeps a school's menu as it was, without IELTS pages", async () => {
+    features = { attendance: true, performance: true, ielts: true };
+    await renderSidebar(OWNER);
+    expect(links()).not.toContain("IELTS students");
+    expect(links()).toEqual(expect.arrayContaining(["Performance", "Report cards"]));
+  });
+
+  it("shows an IELTS centre's student their IELTS profile", async () => {
+    features = { ielts: true };
+    await renderSidebar({ role: "STUDENT", session_mode: "organization", member_role: "STUDENT", workspace_type: "IELTS" });
+    expect(links()).toContain("My IELTS profile");
+  });
+});
+

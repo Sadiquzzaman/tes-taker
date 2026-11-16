@@ -25,6 +25,8 @@ import { OfflineExams1756350000000 } from '../../src/migrations/1756350000000-Of
 import { BehaviourRatings1756360000000 } from '../../src/migrations/1756360000000-BehaviourRatings';
 import { ScoreWeights1756370000000 } from '../../src/migrations/1756370000000-ScoreWeights';
 import { ReportCards1756380000000 } from '../../src/migrations/1756380000000-ReportCards';
+import { Integrity1756490000000 } from '../../src/migrations/1756490000000-Integrity';
+import { IeltsAttempts1756480000000 } from '../../src/migrations/1756480000000-IeltsAttempts';
 import { ResourceLibrary1756440000000 } from '../../src/migrations/1756440000000-ResourceLibrary';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
 import { SubjectEntity } from '../../src/subjects/entities/subject.entity';
@@ -142,7 +144,13 @@ describe('AcademicStructure migration', () => {
     const reportCards = new ReportCards1756380000000();
     // The resource library (P9-03) shares resources with subject classes: down first, back last.
     const resources = new ResourceLibrary1756440000000();
+    // IELTS openings (P10-04) point at sections.
+    const ieltsAttempts = new IeltsAttempts1756480000000();
+    // Plagiarism thresholds (P10-09) are an org_settings column.
+    const integrity = new Integrity1756490000000();
     try {
+      await integrity.down(runner);
+      await ieltsAttempts.down(runner);
       await resources.down(runner);
       await reportCards.down(runner);
       await weights.down(runner);
@@ -194,6 +202,8 @@ describe('AcademicStructure migration', () => {
       await weights.up(runner);
       await reportCards.up(runner);
       await resources.up(runner);
+      await ieltsAttempts.up(runner);
+      await integrity.up(runner);
     } finally {
       await runner.release();
     }

@@ -20,6 +20,7 @@ export async function POST() {
   cookieStore.set("role", "", expireOptions);
   cookieStore.set("session_mode", "", expireOptions);
   cookieStore.set("member_role", "", expireOptions);
+  cookieStore.set("workspace_type", "", expireOptions);
   cookieStore.set("organization_id", "", expireOptions);
   cookieStore.set("personal_teacher", "", expireOptions);
 

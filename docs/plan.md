@@ -292,15 +292,21 @@ Order: P3-02 → P3-03 → P3-04; P3-05 and P3-06 after P3-03; P3-07 last. **P3 
 | P9-04 | Video upload → MediaConvert HLS | RES-02 | 2 |
 | P9-05 | Flutter: homework, chat, resources, results screens | — | 4 |
 
-### P10 — Plagiarism and IELTS (weeks 37–40)
+### P10 — IELTS workspace and plagiarism (weeks 37–40)
+
+Re-planned on 15 Nov 2026 (owner): IELTS centres only, the computer-delivered format, Speaking as in the real test, templates for mocks and free practice sets, existing IELTS tests converted. IELTS first, then plagiarism. Each package is shipped as small PRs (server, then screen).
 
 | ID | Work package | Stories / design | Days |
 | --- | --- | --- | --- |
-| P10-01 | Similarity engine (bn/en), side-by-side review, thresholds | PLG-01–03 | 3 |
-| P10-02 | IELTS workspace, dashboards, profiles, course path label | IEL-01, 02 | 3 |
-| P10-03 | Listening (audio) and Reading builders, band tables | IEL-03, 04 | 4 |
-| P10-04 | Writing and Speaking: recording, criteria marking | IEL-05, 06 | 4 |
-| P10-05 | Mock tests, band progress chart, band report | IEL-07, 08, 09 | 3 |
+| P10-01 | IELTS centre: sign-up choice, workspace type, Course/Batch labels, IELTS menu (academic Results hidden), feature key `ielts`; student IELTS profile | IEL-01 (sign-up), IEL-02 | 2 |
+| P10-02 | IELTS tests: tables for tests, parts, question groups and questions, band tables with defaults, builder API with mock templates and practice sets | IEL-03, design §9.10 | 3 |
+| P10-03 | The IELTS builder screen (parts, passages, audio, groups, shared lists, accepted answers) | IEL-03 | 3 |
+| P10-04 | Taking tests in the computer-delivered format: Listening (play once, review time) and Reading (split screen, highlight, notes), timers, 1–40 navigator, auto-scoring and bands | IEL-04, IEL-05 | 4 |
+| P10-05 | Writing in the test screen and criteria marking | IEL-06 | 2 |
+| P10-06 | Speaking: examiner screen with timers, recording and criteria; student practice recordings | IEL-07 | 3 |
+| P10-07 | Mocks (overall band; openings for batches were built in P10-04), band progress, IELTS dashboards, band report | IEL-01 (dashboards), IEL-08, IEL-09, IEL-10 | 3 |
+| P10-08 | Copy existing IELTS tests from the academic builder into the new format ("Converted — check before use") | Epic 11 decisions | 1 |
+| P10-09 | Plagiarism: similarity between classmates (bn/en), side-by-side review, thresholds | PLG-01–03 | 3 |
 
 ### P11 — Hardening and launch (weeks 41–42)
 

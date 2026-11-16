@@ -20,6 +20,12 @@ import { OrgSettingsService } from './org-settings.service';
 export class WorkspaceController {
   constructor(private readonly orgSettingsService: OrgSettingsService) {}
 
+  @Get('type')
+  @ApiOperation({ summary: 'What this workspace is: kind (SCHOOL, IELTS_CENTRE, SOLO…) and workspace_type (ACADEMIC or IELTS)' })
+  async workspaceType() {
+    return { message: 'Workspace type retrieved successfully', payload: await this.orgSettingsService.currentWorkspaceType() };
+  }
+
   @Get('level-labels')
   @ApiOperation({ summary: 'What this workspace calls its classes and sections, in English and Bangla (FND-03)' })
   async levelLabels() {

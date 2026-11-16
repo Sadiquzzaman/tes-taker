@@ -1,4 +1,6 @@
 import { OrganizationKindEnum } from './enums/organization-kind.enum';
+import { WorkspaceTypeEnum } from './enums/workspace-type.enum';
+import { LEVEL_LABEL_PRESETS, LevelLabelPresetEnum } from './level-labels';
 import {
   BadRequestException,
   ConflictException,
@@ -78,12 +80,22 @@ export class OrganizationsService {
     return `${ORG_REG_REDIS_PREFIX}${phone}`;
   }
 
-  async storePendingOrgName(phone: string, organizationName: string): Promise<void> {
+  async storePendingOrgName(phone: string, organizationName: string, kind: OrganizationKindEnum = OrganizationKindEnum.SCHOOL): Promise<void> {
     await this.redisService.set(
       this.orgRegRedisKey(phone),
       organizationName.trim(),
       ORG_REG_TTL_SECONDS,
     );
+    // Kept beside the name (P10-01), so sign-ups started before it existed still read as schools.
+    await this.redisService.set(`${this.orgRegRedisKey(phone)}:kind`, kind, ORG_REG_TTL_SECONDS);
+  }
+
+  /** The kind chosen at sign-up (SCHOOL when none was stored), removed once read. */
+  async consumePendingOrgKind(phone: string): Promise<OrganizationKindEnum> {
+    const key = `${this.orgRegRedisKey(phone)}:kind`;
+    const kind = await this.redisService.get(key);
+    if (kind) await this.redisService.del(key);
+    return kind === OrganizationKindEnum.IELTS_CENTRE ? OrganizationKindEnum.IELTS_CENTRE : OrganizationKindEnum.SCHOOL;
   }
 
   async peekPendingOrgName(phone: string): Promise<string | null> {
@@ -101,6 +113,7 @@ export class OrganizationsService {
 
   async clearPendingOrgName(phone: string): Promise<void> {
     await this.redisService.del(this.orgRegRedisKey(phone));
+    await this.redisService.del(`${this.orgRegRedisKey(phone)}:kind`);
   }
 
   /**
@@ -111,7 +124,10 @@ export class OrganizationsService {
     organizationName: string;
     ownerUserId: string;
     ownerFullName?: string | null;
+    /** IELTS_CENTRE gets the IELTS workspace and Course / Batch labels (P10-01, IEL-01). */
+    kind?: OrganizationKindEnum;
   }): Promise<OrganizationEntity> {
+    const ielts = params.kind === OrganizationKindEnum.IELTS_CENTRE;
     // Outside the org transaction: avoids mixing connections and keeps
     // personal_teacher_enabled = false for org-only owners.
     await this.userService.ensureTeacherCapability(params.ownerUserId, { enablePersonal: false });
@@ -128,6 +144,9 @@ export class OrganizationsService {
         public_id: organizationNumber,
         organization_number: organizationNumber,
         status: OrganizationStatusEnum.PENDING,
+        ...(ielts
+          ? { kind: OrganizationKindEnum.IELTS_CENTRE, workspace_type: WorkspaceTypeEnum.IELTS, level_labels: LEVEL_LABEL_PRESETS[LevelLabelPresetEnum.COURSE_BATCH] }
+          : {}),
         created_by: params.ownerUserId,
         created_user_name: params.ownerFullName ?? undefined,
         created_at: new Date(),

@@ -79,7 +79,7 @@ Table org_settings {
   at_risk_score_pct smallint [not null, default: 40, note: 'BUILT P7-02 (PRF-07): CHECK 0..100']
   at_risk_attendance_pct smallint [not null, default: 75, note: 'BUILT P7-02: CHECK 0..100']
   at_risk_missing_homework smallint [not null, default: 3, note: 'BUILT P7-02: CHECK 1..50; columns rather than the planned at_risk_thresholds jsonb, like the homework settings']
-  plagiarism_thresholds jsonb [note: '{"high":40,"medium":20,"min_words":50}']
+  plagiarism_thresholds jsonb [note: 'BUILT P10-09 (PLG-03): {"high":40,"medium":20,"min_words":50}; null = these defaults']
   repeat_absence_days smallint [not null, default: 3, note: 'BUILT P3-01 (ATT-14): CHECK 2..30']
   show_rank boolean [not null, default: false, note: 'BUILT P7-02 (PRF-05, PRF-10): students see their position']
   chat_retention_months int [note: 'null = keep forever']
@@ -1671,25 +1671,37 @@ Table ai_requests {
 
 Table similarity_checks {
   id uuid [pk]
-  organization_id uuid [not null]
-  scope_type varchar(20) [note: 'HOMEWORK | EXAM']
-  scope_id uuid
-  status varchar(20)
-  ran_at timestamptz
-  Note: 'NEW (PLG-01)'
+  organization_id uuid [not null, ref: > organizations.id]
+  scope_type varchar(20) [not null, note: 'HOMEWORK | IELTS_WRITING (exam essays later)']
+  scope_id uuid [not null, note: 'the homework, or the IELTS opening']
+  status varchar(20) [not null, default: 'DONE']
+  submissions int [not null, default: 0, note: 'texts compared']
+  ran_at timestamptz [not null]
+  ran_by uuid [note: 'null = ran by itself after the due date']
+  Indexes {
+    (organization_id, scope_type, scope_id, ran_at)
+  }
+  Note: 'NEW (PLG-01), BUILT P10-09 (integrity module, migration Integrity)'
 }
 
 Table similarity_matches {
   id uuid [pk]
   check_id uuid [not null, ref: > similarity_checks.id]
-  submission_a uuid
-  submission_b uuid
-  score numeric(5,2)
-  spans jsonb [note: 'matching passages for side-by-side view']
-  review_decision varchar(20) [note: 'OK | COPIED (PLG-02)']
+  organization_id uuid [not null]
+  submission_a uuid [not null, note: 'homework_submissions.id or ielts_answers.id']
+  submission_b uuid [not null]
+  student_a uuid [not null]
+  student_b uuid [not null]
+  score numeric(5,2) [not null, note: 'the larger share of the two texts in matching passages']
+  spans jsonb [not null, note: '{a, b: [{start,end}], a_percent, b_percent, part_no?}']
+  review_decision varchar(10) [note: 'OK | COPIED (PLG-02)']
   review_note text
   reviewed_by uuid
-  Note: 'NEW'
+  reviewed_at timestamptz
+  Indexes {
+    (check_id, score)
+  }
+  Note: 'NEW, BUILT P10-09; only pairs that share a passage of 5+ words'
 }
 
 Table ai_writing_scores {
@@ -1709,54 +1721,167 @@ Table ai_writing_scores {
 Enum ielts_test_type { ACADEMIC GENERAL }
 Enum ielts_module { LISTENING READING WRITING SPEAKING }
 
+// Re-designed 15 Nov 2026 (P10): IELTS tests have their own tables (not academic exams), in the
+// computer-delivered format. Owned by the ielts module.
+
 Table ielts_profiles {
   id uuid [pk]
-  organization_id uuid [not null]
+  organization_id uuid [not null, ref: > organizations.id]
   student_id uuid [not null, ref: > users.id]
   test_type ielts_test_type
   target_overall numeric(2,1)
-  target_bands jsonb [note: '{"L":7,"R":7,"W":6.5,"S":6.5}']
+  target_bands jsonb [note: '{"LISTENING":7,"READING":7,"WRITING":6.5,"SPEAKING":6.5}']
   test_date date
+  updated_by uuid
+  updated_at timestamptz
   Indexes {
     (organization_id, student_id) [unique]
   }
-  Note: 'NEW (IEL-02)'
+  Note: 'NEW (IEL-02), BUILT P10-01 (ielts module, migration IeltsProfiles)'
 }
 
 Table ielts_band_tables {
   id uuid [pk]
-  organization_id uuid [note: 'null = platform default']
+  organization_id uuid [ref: > organizations.id, note: 'null = the platform default']
   module ielts_module [note: 'LISTENING | READING']
-  test_type ielts_test_type
-  raw_min smallint
-  raw_max smallint
-  band numeric(2,1)
-  Note: 'NEW (IEL-03, IEL-04) — editable conversion'
+  test_type ielts_test_type [note: 'READING only; LISTENING has one table']
+  rows jsonb [not null, note: '[{"min_raw":39,"band":9}, …] highest first']
+  updated_by uuid
+  updated_at timestamptz
+  Indexes {
+    (organization_id, module, test_type) [unique]
+  }
+  Note: 'NEW (IEL-04, IEL-05), BUILT P10-02 part 1 (ielts module, migration IeltsBandTables) — editable raw → band; the API adds the three platform defaults at boot when missing; unique by COALESCE(organization_id), module, COALESCE(test_type)'
 }
 
-Table ielts_mock_tests {
+Table ielts_tests {
   id uuid [pk]
-  organization_id uuid [not null]
-  name varchar(120)
-  listening_exam_id uuid [ref: > exams.id]
-  reading_exam_id uuid [ref: > exams.id]
-  writing_exam_id uuid [ref: > exams.id]
-  speaking_exam_id uuid [ref: > exams.id]
-  Note: 'NEW (IEL-07)'
+  organization_id uuid [not null, ref: > organizations.id]
+  title varchar(200) [not null]
+  test_type ielts_test_type [not null]
+  purpose varchar(10) [not null, note: 'MOCK (real template) | PRACTICE (any part)']
+  modules jsonb [not null, note: 'modules included, e.g. ["LISTENING","READING","WRITING","SPEAKING"]']
+  durations jsonb [not null, note: 'seconds per module; defaults L 1800 (+120 review), R 3600, W 3600']
+  status varchar(10) [not null, note: 'DRAFT | PUBLISHED | ARCHIVED']
+  source_exam_id uuid [ref: > exams.id, note: 'copied from an academic-builder IELTS exam (P10-08)']
+  needs_review boolean [not null, default: false]
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz
+  updated_at timestamptz
+  deleted_at timestamptz
+  deleted_by uuid
+  Indexes {
+    (organization_id, status)
+  }
+  Note: 'NEW (IEL-03), BUILT P10-02 part 2 (migration IeltsTests); soft-deleted'
 }
 
-Table ielts_results {
+Table ielts_test_parts {
+  id uuid [pk]
+  test_id uuid [not null, ref: > ielts_tests.id]
+  module ielts_module [not null]
+  part_no smallint [not null, note: 'Listening 1–4, Reading 1–3, Writing 1–2, Speaking 1–3']
+  title varchar(200)
+  content text [note: 'Reading passage, Writing task, Speaking questions / cue card (rich text)']
+  audio_file_id uuid [ref: > file_objects.id, note: 'Listening: one recording per part']
+  image_file_id uuid [ref: > file_objects.id, note: 'Writing Task 1 chart, map, diagram']
+  Indexes {
+    (test_id, module, part_no) [unique]
+  }
+  Note: 'NEW, BUILT P10-02 part 2; CHECK part_no per module (L 1–4, R 1–3, W 1–2, S 1–3); image only for Reading and Writing'
+}
+
+Table ielts_question_groups {
+  id uuid [pk]
+  part_id uuid [not null, ref: > ielts_test_parts.id]
+  type varchar(30) [not null, note: 'MCQ_SINGLE, MCQ_MULTI, TFNG, YNNG, MATCH_HEADINGS, MATCH_INFO, MATCH_FEATURES, MATCH_ENDINGS, SENTENCE_COMPLETION, SUMMARY_COMPLETION, NOTE_COMPLETION, TABLE_COMPLETION, FLOWCHART_COMPLETION, FORM_COMPLETION, DIAGRAM_LABEL, SHORT_ANSWER']
+  instruction text [not null]
+  word_limit smallint [note: 'e.g. 2 for NO MORE THAN TWO WORDS']
+  shared jsonb [note: 'list of headings / options A–H / word box']
+  image_file_id uuid [ref: > file_objects.id, note: 'map, plan, diagram']
+  sort_order smallint [not null]
+  deleted_at timestamptz
+  deleted_by uuid
+  Indexes {
+    (part_id, sort_order)
+  }
+  Note: 'NEW (IEL-03), BUILT P10-02 part 2; numbers 1–40 follow the order; soft-deleted; shared = {options:[{key,text}], text (gaps [[n]])}; word_limit 1–5'
+}
+
+Table ielts_questions {
+  id uuid [pk]
+  group_id uuid [not null, ref: > ielts_question_groups.id]
+  sort_order smallint [not null]
+  prompt text
+  options jsonb [note: 'own options for multiple choice']
+  answer jsonb [not null, note: '{"accepted":["colour","color"]} or {"keys":["B","D"]}']
+  deleted_at timestamptz
+  Indexes {
+    (group_id, sort_order)
+  }
+  Note: 'NEW (IEL-03), BUILT P10-02 part 2; the number (1–40) is worked out from the order; soft-deleted'
+}
+
+Table ielts_assignments {
+  id uuid [pk]
+  organization_id uuid [not null, ref: > organizations.id]
+  test_id uuid [not null, ref: > ielts_tests.id]
+  section_id uuid [not null, ref: > sections.id, note: 'a batch']
+  opens_at timestamptz [not null]
+  closes_at timestamptz [not null, note: 'CHECK closes_at > opens_at']
+  created_by uuid [not null]
+  created_at timestamptz
+  deleted_at timestamptz
+  deleted_by uuid
+  Indexes {
+    (section_id, opens_at)
+    (test_id)
+  }
+  Note: 'NEW (IEL-08), BUILT P10-04 part 1 (migration IeltsAttempts; moved forward from P10-07 because students reach tests through it); published tests only; soft-deleted'
+}
+
+Table ielts_attempts {
   id uuid [pk]
   organization_id uuid [not null]
+  test_id uuid [not null, ref: > ielts_tests.id]
+  assignment_id uuid [not null, ref: > ielts_assignments.id]
   student_id uuid [not null, ref: > users.id]
-  submission_id uuid [ref: > student_exam_submissions.id]
-  mock_test_id uuid [ref: > ielts_mock_tests.id]
-  module ielts_module
-  raw_score smallint
+  module ielts_module [not null]
+  mode varchar(10) [note: 'SPEAKING: LIVE (examiner) | RECORDED (practice)']
+  status varchar(15) [not null, note: 'IN_PROGRESS | SUBMITTED | MARKED']
+  started_at timestamptz [not null]
+  deadline timestamptz [not null, note: 'started + module time (+120 s Listening review); 30 s grace for the last save']
+  submitted_at timestamptz
+  raw_score smallint [note: 'LISTENING / READING out of 40']
   band numeric(2,1)
-  criteria jsonb [note: 'W: TA/TR, CC, LR, GRA; S: FC, LR, GRA, P']
+  criteria jsonb [note: 'WRITING per task: TA/TR, CC, LR, GRA; SPEAKING: FC, LR, GRA, P']
+  feedback text
+  recording_file_ids jsonb [note: 'SPEAKING recordings: {part_id: file_id} (P10-06)']
   marked_by uuid
-  Note: 'NEW (IEL-05..08); overall band computed per mock'
+  marked_at timestamptz
+  Indexes {
+    (assignment_id, student_id, module) [unique]
+    (test_id, student_id, module)
+  }
+  Note: 'NEW (IEL-04..08), BUILT P10-04 part 1'
+}
+
+Table ielts_answers {
+  id uuid [pk]
+  attempt_id uuid [not null, ref: > ielts_attempts.id]
+  question_id uuid [ref: > ielts_questions.id, note: 'null for a Writing task']
+  part_id uuid [not null, ref: > ielts_test_parts.id]
+  answer text [note: 'text, or chosen key(s) "B" / "B,D"']
+  correct boolean
+  marks smallint [not null, default: 0, note: '"Choose TWO letters" can give 2']
+  updated_at timestamptz
+  Indexes {
+    (attempt_id, question_id) [unique, note: 'where question_id is not null']
+    (attempt_id, part_id) [unique, note: 'where question_id is null']
+  }
+  Note: 'NEW, BUILT P10-04 part 1; Writing scripts are the answer of their part'
+}
+  Note: 'NEW, P10-04; Writing scripts are the answer of their part'
 }
 
 //////////////////////////////////////////////////////////////

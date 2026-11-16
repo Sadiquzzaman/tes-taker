@@ -12,6 +12,7 @@ export const useOrganizationSignUpForm = () => {
   const [view, setView] = useState<"signup" | "otp">("signup");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<OrganizationRegisterInfo>({
+    kind: "SCHOOL",
     organization_name: "",
     full_name: "",
     phone: "",
@@ -60,6 +61,7 @@ export const useOrganizationSignUpForm = () => {
     }
 
     const requestData: Record<string, string> = {
+      kind: form.kind,
       organization_name: form.organization_name.trim(),
       full_name: form.full_name.trim(),
       phone: form.phone,
