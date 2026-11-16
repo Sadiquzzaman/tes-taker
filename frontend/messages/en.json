@@ -1491,6 +1491,28 @@
       "approvedNote": "Approved. If you don't see the teacher menus yet, log out and log in again.",
       "doneTitle": "Request sent",
       "doneDetail": "An admin will review your request to become a teacher."
+    },
+    "devices": {
+      "title": "Signed-in devices",
+      "intro": "Where your account is signed in. Sign out a device you don't recognise or no longer use.",
+      "loadFailed": "Couldn't load your devices.",
+      "thisDevice": "This device",
+      "platform": {
+        "WEB": "Web browser",
+        "ANDROID": "Android app",
+        "IOS": "iPhone app"
+      },
+      "appVersion": "version {version}",
+      "lastUsed": "last used {when}",
+      "signOut": "Sign out",
+      "signOutOthers": "Sign out all other devices",
+      "onlyThisOne": "You're signed in on this device only.",
+      "oneConfirmTitle": "Sign out of {name}?",
+      "othersConfirmTitle": "Sign out of {count, plural, one {# other device} other {# other devices}}?",
+      "confirmDetail": "That device will need your password to sign in again. It may keep working for up to 30 minutes.",
+      "doneTitle": "Signed out",
+      "oneDone": "The device was signed out.",
+      "othersDone": "{count, plural, =0 {No other device was signed in.} one {# device was signed out.} other {# devices were signed out.}}"
     }
   },
   "billing": {
