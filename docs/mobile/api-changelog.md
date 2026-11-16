@@ -2,6 +2,17 @@
 
 Newest first. Each entry: the date it reached beta, the PR, what changed, and what the app should do. Only additions; nothing here removes or renames a field (see [api.md](api.md) §10).
 
+## 2026-11-17 — answers to the app's first questions
+
+No API change. [api.md](api.md) now states:
+- the access token lasts 30 minutes;
+- the organisation is in the token, and the header must match it;
+- students may call `/me/entitlements`;
+- proctoring uses the default namespace;
+- check-in is one endpoint, with no selfie and no offline check-in (§6a).
+
+design.md marks its older plan lines as superseded.
+
 ## 2026-11-17 — signed-in devices (PM-01)
 
 - Every login is its own device: the web and the app no longer sign each other out.

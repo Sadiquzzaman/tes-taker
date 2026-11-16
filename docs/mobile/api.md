@@ -1,6 +1,6 @@
 # Instructor API — guide for the mobile app
 
-For the Flutter app in [Sadiquzzaman/instructor-app](https://github.com/Sadiquzzaman/instructor-app). This file is the contract between the two repositories: the backend keeps it true, and every change is listed in [api-changelog.md](api-changelog.md). Story IDs (ATT-03, IEL-07, …) refer to [docs/spec.md](../spec.md); the architecture is in [docs/design.md](../design.md).
+For the Flutter app in [Sadiquzzaman/instructor-app](https://github.com/Sadiquzzaman/instructor-app). This file is the contract between the two repositories: the backend keeps it true, and every change is listed in [api-changelog.md](api-changelog.md). Story IDs (ATT-03, IEL-07, …) refer to [docs/spec.md](../spec.md); the architecture is in [docs/design.md](../design.md). **Where design.md and this guide differ, this guide follows the code.**
 
 ## 1. Where the API is
 
@@ -27,7 +27,7 @@ For the Flutter app in [Sadiquzzaman/instructor-app](https://github.com/Sadiquzz
 1. **Sign up** (students and teachers): `POST /auth/register`, then `POST /auth/register/verify-otp` with the SMS code. Organisations: `POST /auth/register/organization`, then the same OTP step.
 2. **Log in:** `POST /auth/login` with `{ phone | email, password, device }`, where `device` is `{ platform: "ANDROID" | "IOS", name: "Pixel 8", app_version: "1.0.0" }` (the web leaves it out). The answer's `payload` is the user with `access_token` (a JWT, **30 minutes**) and `refresh_token` (**30 days**). Each login is a new **signed-in device** with its own refresh token; signing in on the phone never signs the web out. Organisation login (`POST /auth/login/organization`) takes `device` too.
 3. **Choose a workspace:** `GET /auth/contexts` lists where the user can work (organisations they belong to, their own teaching workspace, the teachers they learn from). `POST /auth/select-context` with `{ type: "organization", organization_id }` (or `personal_teacher`, or `individual_teacher` with `teacher_id`) returns new tokens for that workspace; the JWT then carries `organization_id`, `member_role` and `session_mode`. The web's `/select-context` page is the model.
-4. **Every request:** `Authorization: Bearer <access_token>`, and in an organisation workspace also `X-Organization-Id: <organization id>` (the web does both; see `frontend/lib/axios.ts`).
+4. **Every request:** `Authorization: Bearer <access_token>`, and in an organisation workspace also `X-Organization-Id: <organization id>` (the web does both; see `frontend/lib/axios.ts`). The organisation is **in the token** after select-context; the header must match it, or the API answers 403 "Organization context does not match this session". Personal (non-organisation) sessions ignore the header.
 5. **Refresh:** on a 401, call `POST /auth/refresh` with `{ refreshToken, organization_id?, device? }` once (pass `organization_id` to stay in the organisation workspace; `device.app_version` updates the version shown), store the new pair, and retry. If refresh fails, sign out.
    - **The refresh token changes every time** (refresh and workspace switch). Always store the new one.
    - The token it replaced still works for **60 seconds** (two requests refreshing at once). After that, using it again is treated as a stolen token: the device is signed out and the user must log in again. So refresh once, from one place in the app, and never keep old tokens.
@@ -50,7 +50,7 @@ For the Flutter app in [Sadiquzzaman/instructor-app](https://github.com/Sadiquzz
 
 - `GET /workspace/type` → `kind` (SCHOOL, COACHING, IELTS_CENTRE, SOLO) and `workspace_type` (ACADEMIC or IELTS). Build the menu from it: IELTS workspaces never show academic pages (spec Epic 11, IEL-12).
 - `GET /workspace/level-labels` → the organisation's words for class and section (for example Course / Batch) in Bangla and English (FND-03). Use them wherever the web does.
-- `GET /me/entitlements` → the plan's features and limits for this workspace. Hide what is switched off. When an action still answers 403 with `code: FEATURE_NOT_IN_PLAN` or `PLAN_LIMIT_REACHED`, show the locked-feature message: owners and admins "This feature is one upgrade away — unlock it today!", everyone else "Ask your admin to unlock this." (design §8.3).
+- `GET /me/entitlements` → the plan's features and limits for this workspace. Any signed-in user may call it, students included, once a workspace is chosen (403 without one); the web only calls it for teachers because only their menus have locked items. Hide what is switched off. When an action still answers 403 with `code: FEATURE_NOT_IN_PLAN` or `PLAN_LIMIT_REACHED`, show the locked-feature message: owners and admins "This feature is one upgrade away — unlock it today!", everyone else "Ask your admin to unlock this." (design §8.3).
 - **Roles:** the user's `role` (STUDENT, TEACHER, ADMIN, SUPER_ADMIN) and, in an organisation, `member_role` (OWNER, ADMIN, ASSISTANT, TEACHER, STUDENT; BRANCH_MANAGER comes with P12). The web's side menu (`frontend/utils/sidebarList.tsx`) lists which role sees which page.
 
 ## 5. Language
@@ -66,12 +66,21 @@ All user-facing text is in Bangla and English, chosen by the user. The web's wor
 
 Over the storage quota answers 403 `PLAN_LIMIT_REACHED` (`limit: max_storage_mb`).
 
+## 6a. Attendance check-in
+
+The same endpoint and rules on the web and in the app (spec ATT-15, ATT-16; redesigned 5 Nov 2026):
+
+- `GET /attendance/me/today`: the caller's classes today with each check-in window and their own record.
+- `POST /attendance/check-in`: for an in-person class, `latitude`, `longitude` and `accuracy_m` (100 m or better, inside the branch radius); for an online class, nothing.
+- Check-in is open from 15 minutes before the start to the end. It counts as late after the start plus the grace minutes. Once per class.
+- **No selfie** and **no offline check-in**: a check-in must happen at the class time and place. `GET /attendance/me/calendar?month=YYYY-MM` gives the student's month.
+
 ## 7. Real time
 
 Socket.IO on the API host:
 
 - `/chat`: group and private chat (P9).
-- The default namespace: live proctoring of tests (P8).
+- The default namespace: live proctoring of tests (P8). (design.md's `/proctoring` namespace was the plan; the built one is the default namespace.)
 
 Authenticate in the handshake with `auth: { token: <access_token> }`. Reconnect with a fresh token after a refresh. The web's `frontend/component/Chat` shows the events.
 
