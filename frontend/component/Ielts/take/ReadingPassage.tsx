@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { RichTextContent } from "@/component/RichTextEditor";
 import { Button, Textarea } from "@/design/ui";
 import { useStorageItem } from "@/hooks/useBrowserStorage";
@@ -9,9 +9,18 @@ import { useStorageItem } from "@/hooks/useBrowserStorage";
 const notesKey = (attemptId: string, partId: string) => `ielts-notes:${attemptId}:${partId}`;
 
 /**
+ * The passage text, rendered once: highlights live in its DOM, so it must not re-render while the
+ * timer ticks or notes change (a re-render puts the HTML back and drops them).
+ */
+const PassageText = memo(function PassageText({ html }: { html: string }) {
+  return <RichTextContent html={html} />;
+});
+
+/**
  * A Reading passage as on the computer-delivered test (IEL-05): select text to highlight it, clear
  * highlights, and keep notes beside it. Highlights stay while the page is open; notes are kept on
- * this device for the attempt.
+ * this device for the attempt. Passages stay mounted while another is shown, so highlights
+ * survive switching passages.
  */
 const ReadingPassage = ({ attemptId, part }: { attemptId: string; part: IeltsPaperPart }) => {
   const t = useTranslations("ieltsTake");
@@ -66,7 +75,7 @@ const ReadingPassage = ({ attemptId, part }: { attemptId: string; part: IeltsPap
       </div>
       {part.title ? <h2 className="text-title-sm font-semibold text-ink">{part.title}</h2> : null}
       <div ref={box} onMouseUp={select} onKeyUp={select} data-testid="passage">
-        <RichTextContent html={part.content ?? ""} />
+        <PassageText html={part.content ?? ""} />
       </div>
       <Textarea label={t("notes")} hint={t("notesHint")} value={notes} onChange={(e) => keepNotes(e.target.value)} rows={4} />
     </div>
