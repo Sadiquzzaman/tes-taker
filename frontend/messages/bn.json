@@ -5621,7 +5621,6 @@
     "keepWorking": "আরও কাজ করি",
     "resultTitle": "{module}-এর ফলাফল",
     "rawScore": "স্কোর",
-    "outOf40": "{score, number} / ৪০",
     "band": "ব্যান্ড",
     "answersLater": "টেস্ট বন্ধ হওয়ার পর সঠিক উত্তর দেখানো হবে।",
     "questionLabel": "প্রশ্ন {number}",
@@ -5670,7 +5669,8 @@
     "waitingForTeacherSpeaking": "জমা হয়েছে। শিক্ষক আপনার স্পিকিংয়ে নম্বর দেবেন।",
     "withTeacher": "শিক্ষকের সঙ্গে",
     "startSpeaking": "পার্ট ১ থেকে ৩-এর উত্তর রেকর্ড করুন। পার্ট ২-এ প্রস্তুতির ১ মিনিট ও বলার ২ মিনিট।",
-    "bandReport": "ব্যান্ড রিপোর্ট"
+    "bandReport": "ব্যান্ড রিপোর্ট",
+    "scoreOutOf": "{total, number}-এর মধ্যে {score, number}"
   },
   "ieltsOpenings": {
     "crumb": "ওপেনিং",

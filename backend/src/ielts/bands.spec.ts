@@ -1,5 +1,5 @@
 import { IELTS_DEFAULT_BAND_TABLES } from './band-table-defaults';
-import { bandFromRaw, isValidBandTable, overallBand, roundBand, writingBand } from './bands';
+import { bandFromRaw, scaledRaw, isValidBandTable, overallBand, roundBand, writingBand } from './bands';
 
 describe('IELTS bands', () => {
   const table = [
@@ -43,5 +43,13 @@ describe('IELTS bands', () => {
       expect(bandFromRaw(table.rows, 40)).toBe(9);
       expect(bandFromRaw(table.rows, 30)).toBeLessThan(9);
     }
+  });
+
+  it('scales a short practice set to 40 before banding', () => {
+    expect(scaledRaw(12, 13)).toBe(37);
+    expect(scaledRaw(3, 5)).toBe(24);
+    expect(scaledRaw(30, 40)).toBe(30);
+    expect(scaledRaw(0, 13)).toBe(0);
+    expect(scaledRaw(5, 0)).toBe(5);
   });
 });

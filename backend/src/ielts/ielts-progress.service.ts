@@ -4,7 +4,8 @@ import { Tenant } from 'src/common/tenancy/tenant-context';
 import { OrganizationMemberRoleEnum } from 'src/organizations/enums/organization-member-role.enum';
 import { overallBand } from './bands';
 import { IeltsModuleEnum } from './entities/ielts-profile.entity';
-import { IeltsAttemptsService } from './ielts-attempts.service';
+import { IeltsAttemptsService, totalOf } from './ielts-attempts.service';
+import { IeltsTestsService } from './ielts-tests.service';
 import { IELTS_ERRORS } from './ielts-errors';
 import { IeltsProfilesService, IeltsProfileView } from './ielts-profiles.service';
 import { MODULE_ORDER } from './ielts-templates';
@@ -18,6 +19,8 @@ export interface IeltsBandPoint {
   purpose: string;
   band: number;
   raw_score: number | null;
+  /** What the score is out of (40 in a full test); null for Writing and Speaking. */
+  raw_total: number | null;
   at: Date;
 }
 
@@ -52,7 +55,7 @@ export interface IeltsBandReport {
   student: { id: string; full_name: string; batch: string | null };
   test: { id: string; title: string; test_type: string; purpose: string };
   window: { opens_at: Date; closes_at: Date };
-  modules: Partial<Record<IeltsModuleEnum, { band: number | null; raw_score: number | null; status: string; criteria: Record<string, unknown> | null; feedback: string | null }>>;
+  modules: Partial<Record<IeltsModuleEnum, { band: number | null; raw_score: number | null; raw_total: number | null; status: string; criteria: Record<string, unknown> | null; feedback: string | null }>>;
   overall: number | null;
   targets: { overall: number | null; bands: Partial<Record<IeltsModuleEnum, number>> };
   test_date: string | null;
@@ -69,21 +72,25 @@ export class IeltsProgressService {
     private readonly dataSource: DataSource,
     private readonly profiles: IeltsProfilesService,
     private readonly attempts: IeltsAttemptsService,
+    private readonly tests: IeltsTestsService,
   ) {}
 
   /** A student's progress: staff for any student of the centre, a student for themselves. */
   async progress(tenant: Tenant, userId: string, studentId: string): Promise<IeltsProgress> {
     const profile = await this.profiles.get(tenant, userId, studentId);
     await this.attempts.finishExpired({ studentId });
-    const rows: { id: string; assignment_id: string; module: IeltsModuleEnum; band: number; raw_score: number | null; at: Date; title: string; purpose: string }[] = await this.dataSource.query(
-      `SELECT a.id, a.assignment_id, a.module, a.band::float AS band, a.raw_score, COALESCE(a.submitted_at, a.marked_at) AS at, t.title, t.purpose
+    const rows: { id: string; test_id: string; assignment_id: string; module: IeltsModuleEnum; band: number; raw_score: number | null; at: Date; title: string; purpose: string }[] = await this.dataSource.query(
+      `SELECT a.id, a.test_id, a.assignment_id, a.module, a.band::float AS band, a.raw_score, COALESCE(a.submitted_at, a.marked_at) AS at, t.title, t.purpose
          FROM ielts_attempts a JOIN ielts_tests t ON t.id = a.test_id
         WHERE a.organization_id = $1 AND a.student_id = $2 AND a.status = 'MARKED' AND a.band IS NOT NULL
         ORDER BY at ASC`,
       [tenant.organizationId, studentId],
     );
     const modules = Object.fromEntries(FOUR.map((m) => [m, [] as IeltsBandPoint[]])) as Record<IeltsModuleEnum, IeltsBandPoint[]>;
-    for (const r of rows) modules[r.module].push({ attempt_id: r.id, assignment_id: r.assignment_id, test_title: r.title, purpose: r.purpose, band: r.band, raw_score: r.raw_score, at: r.at });
+    const totals = await this.tests.numberTotals(rows.map((r) => r.test_id));
+    for (const r of rows) {
+      modules[r.module].push({ attempt_id: r.id, assignment_id: r.assignment_id, test_title: r.title, purpose: r.purpose, band: r.band, raw_score: r.raw_score, raw_total: totalOf(totals, r), at: r.at });
+    }
     const byOpening = new Map<string, typeof rows>();
     for (const r of rows.filter((x) => x.purpose === 'MOCK')) byOpening.set(r.assignment_id, [...(byOpening.get(r.assignment_id) ?? []), r]);
     const mocks = [...byOpening.entries()]
@@ -197,12 +204,23 @@ export class IeltsProgressService {
       `SELECT module, band::float AS band, raw_score, status, criteria, feedback FROM ielts_attempts WHERE assignment_id = $1 AND student_id = $2`,
       [assignmentId, studentId],
     );
+    const totals = await this.tests.numberTotals([opening.test_id]);
     const modules = Object.fromEntries(
       opening.modules.map((m) => {
         const a = attempts.find((x) => x.module === m);
         // Bands only once marked; criteria and comments with them.
         const marked = a?.status === 'MARKED';
-        return [m, { band: marked ? a.band : null, raw_score: marked ? a.raw_score : null, status: a?.status ?? 'NOT_STARTED', criteria: marked ? a.criteria : null, feedback: marked ? a.feedback : null }];
+        return [
+          m,
+          {
+            band: marked ? a.band : null,
+            raw_score: marked ? a.raw_score : null,
+            raw_total: totalOf(totals, { test_id: opening.test_id, module: m }),
+            status: a?.status ?? 'NOT_STARTED',
+            criteria: marked ? a.criteria : null,
+            feedback: marked ? a.feedback : null,
+          },
+        ];
       }),
     ) as IeltsBandReport['modules'];
     const all = FOUR.map((m) => modules[m]?.band);

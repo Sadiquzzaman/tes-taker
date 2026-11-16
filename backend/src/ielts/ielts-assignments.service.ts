@@ -9,7 +9,8 @@ import { overallBand } from './bands';
 import { IeltsAttemptEntity, IeltsAttemptStatusEnum } from './entities/ielts-attempt.entity';
 import { IeltsModuleEnum } from './entities/ielts-profile.entity';
 import { IeltsTestEntity, IeltsTestStatusEnum } from './entities/ielts-test.entity';
-import { IeltsAttemptsService } from './ielts-attempts.service';
+import { IeltsAttemptsService, totalOf } from './ielts-attempts.service';
+import { IeltsTestsService } from './ielts-tests.service';
 import { IELTS_ERRORS } from './ielts-errors';
 import { IeltsProfilesService } from './ielts-profiles.service';
 import { MODULE_ORDER } from './ielts-templates';
@@ -29,7 +30,7 @@ export interface IeltsResultRow {
   student: { id: string; full_name: string };
   /** All four modules marked: their average to the nearest half band (IEL-08). */
   overall: number | null;
-  modules: Partial<Record<IeltsModuleEnum, { attempt_id: string; status: string; mode: string | null; raw_score: number | null; band: number | null; submitted_at: Date | null }>>;
+  modules: Partial<Record<IeltsModuleEnum, { attempt_id: string; status: string; mode: string | null; raw_score: number | null; raw_total: number | null; band: number | null; submitted_at: Date | null }>>;
 }
 
 /**
@@ -43,6 +44,7 @@ export class IeltsAssignmentsService {
     private readonly dataSource: DataSource,
     private readonly profiles: IeltsProfilesService,
     private readonly attempts: IeltsAttemptsService,
+    private readonly tests: IeltsTestsService,
   ) {}
 
   async create(tenant: Tenant, userId: string, testId: string, dto: CreateIeltsAssignmentDto): Promise<IeltsAssignmentView> {
@@ -92,6 +94,7 @@ export class IeltsAssignmentsService {
       [row.section_id, tenant.organizationId],
     );
     const attempts = await this.dataSource.getRepository(IeltsAttemptEntity).find({ where: { assignment_id: row.id } });
+    const totals = await this.tests.numberTotals([row.test_id]);
     return students.map((student) => {
       const mine = attempts.filter((a) => a.student_id === student.id);
       const bands = MODULE_ORDER.map((m) => mine.find((a) => a.module === m && a.status === IeltsAttemptStatusEnum.MARKED)?.band ?? null);
@@ -101,7 +104,7 @@ export class IeltsAssignmentsService {
       modules: Object.fromEntries(
         attempts
           .filter((a) => a.student_id === student.id)
-          .map((a) => [a.module, { attempt_id: a.id, status: a.status, mode: a.mode, raw_score: a.raw_score, band: a.band === null ? null : Number(a.band), submitted_at: a.submitted_at }]),
+          .map((a) => [a.module, { attempt_id: a.id, status: a.status, mode: a.mode, raw_score: a.raw_score, raw_total: totalOf(totals, a), band: a.band === null ? null : Number(a.band), submitted_at: a.submitted_at }]),
       ),
       };
     });
