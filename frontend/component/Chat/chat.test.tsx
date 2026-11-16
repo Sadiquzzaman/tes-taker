@@ -160,9 +160,10 @@ describe("chat (COM-01, COM-03)", () => {
     serve([], detail(), [], { chats: [directChat({ other_read_at: "2026-11-14T04:05:00Z" })], messages: [mine, theirs] });
     post.mockReturnValue(ok(null));
     renderApp(<ChatPage />);
-    const chat = within(await screen.findByRole("list", { name: "Messages" }));
-    expect(await chat.findByText(/^Seen/)).toBeTruthy();
-    fireEvent.click(chat.getByRole("button", { name: "Report" }));
+    // The list can be rebuilt when the chat reloads (after marking it read), so look it up each time.
+    const messageList = async () => within(await screen.findByRole("list", { name: "Messages" }));
+    expect(await (await messageList()).findByText(/^Seen/)).toBeTruthy();
+    fireEvent.click(await (await messageList()).findByRole("button", { name: "Report" }));
     const dialog = within(await screen.findByRole("dialog", { name: "Report this message" }));
     fireEvent.change(dialog.getByLabelText("Why are you reporting it?"), { target: { value: "Uncomfortable" } });
     fireEvent.click(dialog.getByRole("button", { name: "Report" }));
@@ -170,7 +171,7 @@ describe("chat (COM-01, COM-03)", () => {
       expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/chat\/reports$/), { chat_type: "DIRECT", chat_id: "d1", message_id: "m2", reason: "Uncomfortable" }),
     );
     // Your own messages are deleted, not reported.
-    expect(chat.getAllByRole("button", { name: "Report" })).toHaveLength(1);
+    expect((await messageList()).getAllByRole("button", { name: "Report" })).toHaveLength(1);
   });
 
   it("tells each side only about its own side: students their teachers, teachers their students", async () => {
