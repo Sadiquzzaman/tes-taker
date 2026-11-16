@@ -178,6 +178,8 @@ export class UserContextService {
         if (context.organization_status !== OrganizationStatusEnum.APPROVED || !context.organization_id) continue;
         const membership = await this.memberRepo.findOne({ where: { organization_id: context.organization_id, user_id: userId }, relations: ['organization'] });
         if (!membership?.organization) continue;
+        // Branch managers' data must stay inside their branch (P12-01); the cross-workspace calendar is not limited yet.
+        if (membership.role === OrganizationMemberRoleEnum.BRANCH_MANAGER) continue;
         result.push({ key: context.key, label: context.label, tenant: { organizationId: context.organization_id, kind: membership.organization.kind, memberRole: membership.role } });
       } else if (context.teacher_id) {
         const organizationId = await this.soloOrganizations.findIdForOwner(context.teacher_id);

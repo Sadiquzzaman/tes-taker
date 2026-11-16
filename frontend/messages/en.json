@@ -1597,7 +1597,8 @@
       "ADMIN": "Admin",
       "ASSISTANT": "Staff",
       "TEACHER": "Teacher",
-      "STUDENT": "Student"
+      "STUDENT": "Student",
+      "BRANCH_MANAGER": "Branch manager"
     },
     "statuses": {
       "pending": "Waiting for approval",
@@ -1730,7 +1731,21 @@
       "addToSection": "Add to {section}",
       "addedToSection": "Added to {section}",
       "invitedToSection": "They join {section} after they sign up or log in.",
-      "pendingInSection": "They join once their account is verified."
+      "pendingInSection": "They join once their account is verified.",
+      "changeRole": {
+        "action": "Change role",
+        "title": "Change the role of {name}",
+        "intro": "A branch manager runs one branch and sees only that branch.",
+        "role": "Role",
+        "branch": "Branch",
+        "chooseBranch": "Choose a branch",
+        "mainBranch": "Main branch",
+        "branchManagerHint": "Branch managers see only what is open to them; more branch tools are coming.",
+        "cancel": "Cancel",
+        "save": "Save",
+        "doneTitle": "Role changed",
+        "done": "The role is now {role}."
+      }
     },
     "subjects": {
       "title": "Subjects",
@@ -2507,7 +2522,9 @@
         "en": "English"
       },
       "smsLanguage": "Guardian SMS language",
-      "smsLanguageHint": "Students can have their own. One SMS holds 160 English or 70 Bangla characters, so Bangla SMS use more credits."
+      "smsLanguageHint": "Students can have their own. One SMS holds 160 English or 70 Bangla characters, so Bangla SMS use more credits.",
+      "branches": "Branches",
+      "branchesHint": "Several campuses, each with its own check-in location and a branch manager. To switch this off, remove every branch except the main one."
     },
     "sections": {
       "title": "[[Sections]]",

@@ -11,7 +11,8 @@ import axiosReq from "@/lib/axios";
 const LANGUAGES: OrganizationLocale[] = ["bn", "en"];
 
 /**
- * Organisation settings (owners and admins): whether sections have a class teacher (FND-02), the
+ * Organisation settings (owners and admins): whether sections have a class teacher (FND-02), whether
+ * it uses branches (P12-01; switching off needs the other branches removed first), the
  * language for members who have not chosen one (FND-18) and the guardian SMS language (FND-10).
  */
 const OrganizationSettingsCard = ({ organizationId }: { organizationId: string }) => {
@@ -35,7 +36,7 @@ const OrganizationSettingsCard = ({ organizationId }: { organizationId: string }
     void load();
   }, [load]);
 
-  const update = async (change: Partial<Pick<OrganizationSettings, "class_teacher_enabled" | "default_locale" | "sms_locale">>) => {
+  const update = async (change: Partial<Pick<OrganizationSettings, "class_teacher_enabled" | "default_locale" | "sms_locale" | "branches_enabled">>) => {
     setSaving(true);
     try {
       const res = await axiosReq.patch<ApiResponse<OrganizationSettings>>(`${baseUrl}/organizations/${organizationId}/settings`, change);
@@ -58,6 +59,13 @@ const OrganizationSettingsCard = ({ organizationId }: { organizationId: string }
             checked={settings.class_teacher_enabled}
             disabled={saving}
             onChange={(checked) => void update({ class_teacher_enabled: checked })}
+          />
+          <Switch
+            label={t("branches")}
+            hint={t("branchesHint")}
+            checked={settings.branches_enabled}
+            disabled={saving}
+            onChange={(checked) => void update({ branches_enabled: checked })}
           />
           <Select
             label={t("language")}
