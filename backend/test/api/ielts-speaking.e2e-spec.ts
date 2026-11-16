@@ -126,4 +126,17 @@ describe('IELTS Speaking', () => {
     const marked = await call<Marking>('PUT', `/ielts/marking/${id}/speaking`, s.ownerToken, { criteria: { FC: 5, LR: 5.5, GRA: 5, P: 5 } });
     expect(marked.body.payload.band).toBe(5); // 5.125 → 5
   });
+
+  it('keeps a mock’s Speaking for the examiner: students cannot start it', async () => {
+    const s = await centre();
+    const mock = (await call<Test>('POST', '/ielts/tests', s.ownerToken, { title: 'Speaking mock', test_type: 'ACADEMIC', purpose: 'MOCK', modules: ['SPEAKING'] })).body.payload;
+    for (const p of mock.parts) await call('PUT', `/ielts/tests/${mock.id}/parts/${p.id}`, s.ownerToken, { content: `<p>Part ${p.part_no}</p>` });
+    expect((await call('POST', `/ielts/tests/${mock.id}/publish`, s.ownerToken)).status).toBe(200);
+    const [{ section_id }] = await t.dataSource.query(`SELECT section_id FROM ielts_assignments WHERE id = $1`, [s.opening.id]);
+    const opening = (await call<{ id: string }>('POST', `/ielts/tests/${mock.id}/assignments`, s.ownerToken, { section_id, opens_at: new Date(Date.now() - hour).toISOString(), closes_at: new Date(Date.now() + hour).toISOString() })).body.payload;
+    const refused = await call('POST', `/ielts/my/assignments/${opening.id}/modules/SPEAKING/start`, s.mituToken);
+    expect([refused.status, refused.body.code]).toEqual([409, 'IELTS_SPEAKING_WITH_EXAMINER']);
+    // The examiner runs it.
+    expect((await call<Marking>('POST', `/ielts/assignments/${opening.id}/speaking`, s.ownerToken, { student_id: s.mitu.id })).body.payload).toMatchObject({ mode: 'LIVE' });
+  });
 });

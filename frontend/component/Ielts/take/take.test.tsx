@@ -17,7 +17,7 @@ const later = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISO
 
 const opening = (extra: Partial<IeltsMyAssignment> = {}): IeltsMyAssignment => ({
   id: "as1",
-  test: { id: "t1", title: "Mock 3", purpose: "MOCK", test_type: "ACADEMIC", modules: ["LISTENING", "READING", "WRITING"], durations: { LISTENING: 1800, READING: 3600, WRITING: 3600 } },
+  test: { id: "t1", title: "Mock 3", purpose: "MOCK", test_type: "ACADEMIC", modules: ["LISTENING", "READING", "WRITING", "SPEAKING"], durations: { LISTENING: 1800, READING: 3600, WRITING: 3600, SPEAKING: 840 } },
   opens_at: later(-60),
   closes_at: later(60),
   is_open: true,
@@ -94,6 +94,7 @@ describe("My IELTS tests (P10-04)", () => {
     renderApp(<MyIeltsTests />);
     const card = within(await screen.findByRole("region", { name: "Mock 3" }));
     expect(card.getAllByText("After the module before")).toHaveLength(2); // Reading and Writing wait for Listening
+    expect(card.getByText("With your teacher")).toBeTruthy(); // a mock's Speaking is the examiner's live session
     fireEvent.click(card.getByRole("button", { name: "Start" }));
     const dialog = within(await screen.findByRole("dialog", { name: "Start Listening?" }));
     expect(dialog.getByText(/32 minutes/)).toBeTruthy();
@@ -167,6 +168,7 @@ describe("Taking an IELTS module (P10-04)", () => {
     get.mockReturnValue(ok(attempt({ module: "LISTENING", review_seconds: 120 }, { parts: [listening] })));
     renderApp(<IeltsAttemptScreen attemptId="at1" />);
     fireEvent.click(await screen.findByRole("button", { name: "Play the Part 1 recording" }));
+    expect(screen.getByRole("slider", { name: "Volume" })).toBeTruthy();
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
     expect(screen.getByText("Playing…")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Play the Part 1 recording" })).toBeNull();
@@ -185,6 +187,8 @@ describe("Taking an IELTS module (P10-04)", () => {
     get.mockReturnValue(ok(attempt({ status: "MARKED", raw_score: 0, band: 0 }, { parts: [reviewed], answers: { q2: "TRUE" } })));
     renderApp(<IeltsAttemptScreen attemptId="at1" />);
     expect(await screen.findByText(/Not right · right answer: FALSE/)).toBeTruthy();
+    // A right answer just says so.
+    expect(screen.queryByText(/^Right · /)).toBeNull();
   });
 
   it("asks for a computer or tablet for mocks on a phone", async () => {
@@ -226,5 +230,17 @@ describe("Taking an IELTS module (P10-04)", () => {
     expect(screen.getByText("Coherence and Cohesion")).toBeTruthy();
     expect(screen.getByText("Add an overview.")).toBeTruthy();
     expect(screen.getByText("Good progress.")).toBeTruthy();
+  });
+
+  it("keeps every Reading passage on the page while another is shown (so highlights survive)", async () => {
+    const second: IeltsPaperPart = { ...readingPart, id: "p2", part_no: 2, title: "Second passage", content: "<p>Another.</p>", groups: [] };
+    get.mockReturnValue(ok(attempt({}, { parts: [readingPart, second] })));
+    renderApp(<IeltsAttemptScreen attemptId="at1" />);
+    await screen.findByRole("region", { name: "Passage" });
+    fireEvent.click(screen.getByRole("button", { name: "Passage 2" }));
+    const passages = document.querySelectorAll("[data-testid=passage]");
+    expect(passages).toHaveLength(2);
+    expect((passages[0].closest("[hidden]") as HTMLElement | null)?.hidden).toBe(true);
+    expect(passages[1].closest("[hidden]")).toBeNull();
   });
 });

@@ -67,7 +67,7 @@ const SimilarityReport = ({ scopeType, scopeId, title, back }: { scopeType: Simi
         r.most_similar.length ? (
           <span className="flex flex-wrap gap-x-3 gap-y-1">
             {r.most_similar.map((m) => (
-              <Link key={m.match_id} href={`/integrity/matches/${m.match_id}`} aria-label={t("compareWith", { a: r.student.full_name, b: m.student.full_name })}>
+              <Link key={m.match_id} href={`/integrity/matches/${m.match_id}${ielts ? "?from=ielts" : ""}`} aria-label={t("compareWith", { a: r.student.full_name, b: m.student.full_name })}>
                 {m.student.full_name} ({pct(m.percent)})
               </Link>
             ))}
@@ -82,7 +82,7 @@ const SimilarityReport = ({ scopeType, scopeId, title, back }: { scopeType: Simi
       key: "pair",
       header: t("pair"),
       cell: (m) => (
-        <Link href={`/integrity/matches/${m.id}`}>
+        <Link href={`/integrity/matches/${m.id}${ielts ? "?from=ielts" : ""}`}>
           {m.a.student.full_name} · {m.b.student.full_name}
           {m.part_no ? ` · ${t("taskN", { no: m.part_no })}` : ""}
         </Link>

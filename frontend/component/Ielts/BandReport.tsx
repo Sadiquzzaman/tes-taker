@@ -5,6 +5,7 @@ import useApiData from "@/component/Homework/useApiData";
 import { Button, Card, ErrorState, Skeleton } from "@/design/ui";
 import useFormat from "@/i18n/useFormat";
 import { IELTS_MODULES } from "./bands";
+import { orderedCriteria } from "./groupTypes";
 
 type TaskMarks = { part_no: number; band: number; criteria?: Record<string, number>; comment?: string | null };
 
@@ -30,7 +31,7 @@ const BandReport = ({ assignmentId, studentId }: { assignmentId: string; student
   const band = (value: number | null | undefined) => (value === null || value === undefined ? "—" : format.number(value, { minimumFractionDigits: 1 }));
   const modules = IELTS_MODULES.filter((m) => data.modules[m]);
   const criteriaRow = (criteria: Record<string, number>) =>
-    Object.entries(criteria)
+    orderedCriteria(criteria)
       .map(([k, v]) => `${tk(`criteria.${k}` as "criteria.CC")} ${band(v)}`)
       .join(" · ");
 
