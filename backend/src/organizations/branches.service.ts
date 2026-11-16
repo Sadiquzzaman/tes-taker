@@ -4,6 +4,9 @@ import { EntityManager, Repository } from 'typeorm';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { tenantScoped } from 'src/common/tenancy/tenant-repository';
 import { BranchEntity } from './entities/branch.entity';
+import { OrganizationMemberEntity } from './entities/organization-member.entity';
+import { OrganizationMemberRoleEnum } from './enums/organization-member-role.enum';
+import { OrgSettingsService } from './org-settings.service';
 
 /** Fields of a branch another module may set; the attendance module validates them first. */
 export type BranchFields = Partial<Pick<BranchEntity, 'name' | 'address' | 'geo_lat' | 'geo_lng' | 'checkin_radius_m'>>;
@@ -19,6 +22,7 @@ export class BranchesService {
   constructor(
     @InjectRepository(BranchEntity)
     private readonly branchRepo: Repository<BranchEntity>,
+    private readonly orgSettings: OrgSettingsService,
   ) {}
 
   /** The organisation's default branch, created if it does not exist yet (safe when two requests race). */
@@ -55,10 +59,20 @@ export class BranchesService {
       .findOne({ where: { id, is_active: ActiveStatusEnum.ACTIVE } });
   }
 
+  /** A new branch; adding one switches branches on for the organisation (P12-01). */
   async create(organizationId: string, fields: BranchFields, userId: string): Promise<BranchEntity> {
-    return this.branchRepo.save(
+    const saved = await this.branchRepo.save(
       this.branchRepo.create({ ...fields, organization_id: organizationId, is_default: false, created_by: userId, created_at: new Date() }),
     );
+    await this.orgSettings.enableBranches(organizationId, userId);
+    return saved;
+  }
+
+  /** Active branch managers of a branch (P12-01): a branch with one cannot be removed. */
+  async countManagers(organizationId: string, branchId: string): Promise<number> {
+    return this.branchRepo.manager.getRepository(OrganizationMemberEntity).count({
+      where: { organization_id: organizationId, branch_id: branchId, role: OrganizationMemberRoleEnum.BRANCH_MANAGER, is_active: ActiveStatusEnum.ACTIVE },
+    });
   }
 
   async update(branch: BranchEntity, fields: BranchFields, userId: string): Promise<BranchEntity> {

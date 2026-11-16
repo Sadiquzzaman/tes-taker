@@ -83,7 +83,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection {
     }
     if (payload.session_mode !== 'organization' || !payload.organization_id) return null;
     const membership = await this.access.getMembership(payload.organization_id, payload.id);
-    if (!membership) return null;
+    // Branch managers have no chat until it is limited to their branch (P12-01).
+    if (!membership || membership.role === OrganizationMemberRoleEnum.BRANCH_MANAGER) return null;
     return {
       userId: payload.id,
       tenant: { organizationId: payload.organization_id, memberRole: membership.role as OrganizationMemberRoleEnum },

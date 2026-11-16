@@ -13,6 +13,8 @@ export interface Tenant {
    */
   memberRole: OrganizationMemberRoleEnum;
   viaEnrolment?: boolean;
+  /** A branch manager's branch (P12-01): their data is limited to it. Unset for every other role. */
+  branchId?: string;
 }
 
 interface TenantStore {

@@ -302,6 +302,7 @@ export class OrganizationController {
       memberId,
       jwtPayload.id,
       dto.role,
+      dto.branch_id,
     );
     return { message: 'Member role updated successfully', payload };
   }

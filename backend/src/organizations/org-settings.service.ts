@@ -1,10 +1,12 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { TenantContext } from 'src/common/tenancy/tenant-context';
+import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { schoolDateIn } from 'src/common/utils/school-date.util';
 import { DEFAULT_GUARDIAN_SMS, GuardianSmsSwitches, OrgSettingsEntity, WeeklyOffDaysChange } from './entities/org-settings.entity';
 import { OrganizationEntity } from './entities/organization.entity';
+import { BranchEntity } from './entities/branch.entity';
 import { OrganizationKindEnum } from './enums/organization-kind.enum';
 import { OrganizationMemberRoleEnum } from './enums/organization-member-role.enum';
 import { OrganizationAccessService } from './organization-access.service';
@@ -27,6 +29,8 @@ export interface OrgSettingsView {
   setup_completed_at: Date | null;
   /** Guardian SMS language (FND-10): the organisation's choice, else its default language. */
   sms_locale: OrganizationLocale;
+  /** The organisation uses branches (P12-01, FND-06); off = only the hidden main branch. */
+  branches_enabled: boolean;
 }
 
 /**
@@ -121,7 +125,16 @@ export class OrgSettingsService {
         { default_locale: dto.default_locale, updated_by: userId, updated_at: new Date() },
       );
     }
-    if (dto.class_teacher_enabled !== undefined || dto.sms_locale !== undefined) {
+    if (dto.branches_enabled === false) {
+      // Branches can be switched off only once no branch besides the main one is in use (P12-01).
+      const extra = await this.settingsRepo.manager.getRepository(BranchEntity).count({
+        where: { organization_id: organizationId, is_default: false, is_active: ActiveStatusEnum.ACTIVE },
+      });
+      if (extra > 0) {
+        throw new ConflictException({ message: 'Remove the other branches first', code: 'BRANCHES_IN_USE', details: { branches: extra } });
+      }
+    }
+    if (dto.class_teacher_enabled !== undefined || dto.sms_locale !== undefined || dto.branches_enabled !== undefined) {
       const existing = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
       const row =
         existing ??
@@ -133,6 +146,7 @@ export class OrgSettingsService {
         });
       if (dto.class_teacher_enabled !== undefined) row.class_teacher_enabled = dto.class_teacher_enabled;
       if (dto.sms_locale !== undefined) row.sms_locale = dto.sms_locale;
+      if (dto.branches_enabled !== undefined) row.branches_enabled = dto.branches_enabled;
       if (existing) {
         row.updated_by = userId;
         row.updated_at = new Date();
@@ -140,6 +154,26 @@ export class OrgSettingsService {
       await this.settingsRepo.save(row);
     }
     return this.get(organizationId);
+  }
+
+  /** Switches branches on (P12-01: adding a branch does it); creates the settings row if needed. */
+  async enableBranches(organizationId: string, userId: string): Promise<void> {
+    const existing = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
+    if (existing) {
+      if (!existing.branches_enabled) {
+        await this.settingsRepo.update({ id: existing.id }, { branches_enabled: true, updated_by: userId, updated_at: new Date() });
+      }
+      return;
+    }
+    await this.settingsRepo.save(
+      this.settingsRepo.create({
+        organization_id: organizationId,
+        ...OrgSettingsService.defaultsFor((await this.organization(organizationId)).kind),
+        branches_enabled: true,
+        created_by: userId,
+        created_at: new Date(),
+      }),
+    );
   }
 
   /** The organisation's settings (no access check; callers have already checked). */
@@ -154,6 +188,7 @@ export class OrgSettingsService {
       default_locale: defaultLocale,
       setup_completed_at: row?.setup_completed_at ?? null,
       sms_locale: row?.sms_locale === 'bn' || row?.sms_locale === 'en' ? row.sms_locale : defaultLocale,
+      branches_enabled: row?.branches_enabled ?? false,
     };
   }
 

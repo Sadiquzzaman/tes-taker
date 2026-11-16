@@ -83,7 +83,7 @@ Table org_settings {
   repeat_absence_days smallint [not null, default: 3, note: 'BUILT P3-01 (ATT-14): CHECK 2..30']
   show_rank boolean [not null, default: false, note: 'BUILT P7-02 (PRF-05, PRF-10): students see their position']
   chat_retention_months int [note: 'null = keep forever']
-  branches_enabled boolean [not null, default: false, note: 'P12 (FND-06): off = only the hidden main branch; migration: true where an organisation already has another branch']
+  branches_enabled boolean [not null, default: false, note: 'BUILT P12-01 (FND-06): off = only the hidden main branch; adding a branch switches it on; off only once no other branch is active (409 BRANCHES_IN_USE); migration BranchManagers: true where an organisation already had another branch']
   guardians_enabled boolean [not null, default: true, note: 'P12 (IEL-12): false for new IELTS workspaces (and IELTS ones in the migration)']
   ended_course_visible_days smallint [not null, default: 0, note: 'P12 (IEL-13): students still see an ended course this many days; capped by the plan']
   recording_retention_days smallint [not null, default: 30, note: 'P12 (IEL-15): capped by the plan limit recording_retention_days']
@@ -243,7 +243,7 @@ Table organization_members {
   organization_id uuid [not null, ref: > organizations.id]
   user_id uuid [not null, ref: > users.id]
   role member_role [not null]
-  branch_id uuid [ref: > branches.id, note: 'NEW column (P12, FND-06): the one branch of a BRANCH_MANAGER; null for every other role']
+  branch_id uuid [ref: > branches.id, note: 'BUILT P12-01 (FND-06): the one branch of a BRANCH_MANAGER (set by a role change with branch_id); null for every other role; FK ON DELETE SET NULL; a branch with a manager cannot be removed']
   employee_code varchar(40) [note: 'NEW — teacher id for ZKTeco mapping']
   removed_at timestamptz
   removed_by uuid

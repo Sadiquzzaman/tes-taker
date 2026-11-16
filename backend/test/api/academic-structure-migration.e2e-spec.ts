@@ -26,6 +26,7 @@ import { BehaviourRatings1756360000000 } from '../../src/migrations/175636000000
 import { ScoreWeights1756370000000 } from '../../src/migrations/1756370000000-ScoreWeights';
 import { ReportCards1756380000000 } from '../../src/migrations/1756380000000-ReportCards';
 import { Integrity1756490000000 } from '../../src/migrations/1756490000000-Integrity';
+import { BranchManagers1756520000000 } from '../../src/migrations/1756520000000-BranchManagers';
 import { IeltsAttempts1756480000000 } from '../../src/migrations/1756480000000-IeltsAttempts';
 import { ResourceLibrary1756440000000 } from '../../src/migrations/1756440000000-ResourceLibrary';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
@@ -148,7 +149,10 @@ describe('AcademicStructure migration', () => {
     const ieltsAttempts = new IeltsAttempts1756480000000();
     // Plagiarism thresholds (P10-09) are an org_settings column.
     const integrity = new Integrity1756490000000();
+    // Branches on/off (P12-01) is an org_settings column, and branch managers point at branches.
+    const branchManagers = new BranchManagers1756520000000();
     try {
+      await branchManagers.down(runner);
       await integrity.down(runner);
       await ieltsAttempts.down(runner);
       await resources.down(runner);
@@ -204,6 +208,7 @@ describe('AcademicStructure migration', () => {
       await resources.up(runner);
       await ieltsAttempts.up(runner);
       await integrity.up(runner);
+      await branchManagers.up(runner);
     } finally {
       await runner.release();
     }

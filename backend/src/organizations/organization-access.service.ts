@@ -292,7 +292,8 @@ export class OrganizationAccessService {
     if (
       role === OrganizationMemberRoleEnum.TEACHER ||
       role === OrganizationMemberRoleEnum.ASSISTANT ||
-      role === OrganizationMemberRoleEnum.ADMIN
+      role === OrganizationMemberRoleEnum.ADMIN ||
+      role === OrganizationMemberRoleEnum.BRANCH_MANAGER
     ) {
       return this.requireStaffManager(organizationId, userId);
     }
