@@ -319,6 +319,30 @@ Re-planned on 15 Nov 2026 (owner): IELTS centres only, the computer-delivered fo
 
 The AI-writing indicator (PLG-04, Could) is not scheduled. Add it only if customers ask for it.
 
+### P12 — IELTS reformation: branches, courses and live classes (planned 16 Nov 2026)
+
+Decided by the owner on 16 Nov 2026 (spec Epic 11 "Decisions (16 Nov 2026)", FND-06, IEL-11–16; design §9.10 "IELTS reformation"). **Built before P11**, which waits for the partnership deed and the live SSLCommerz credentials. Each package ships as small PRs (server, then screen); the order puts what everything else needs first and video last.
+
+| ID | Work package | Stories / design | Days |
+| --- | --- | --- | --- |
+| P12-01 | Branches on or off, branch management for both workspaces, `BRANCH_MANAGER` role, `BranchScope` on every staff list, report and write, with an API test per endpoint | FND-06 | 4 |
+| P12-02 | Branch screens (Organisation → Branches), inviting a branch manager, the branch manager's menu | FND-06 | 2 |
+| P12-03 | Academic or IELTS at solo sign-up, the IELTS menu for solo trainers too, academic routes refused in IELTS workspaces, guardians off and no attendance SMS or leave in IELTS | IEL-11, IEL-12 | 2 |
+| P12-04 | Courses (server): `ielts_courses` with its class, session and section, modules and teachers per module, timetable with in person / online per class, seat limit, end of course and visibility after it, data migration of the test batches | IEL-13 | 4 |
+| P12-05 | Course screens: course list per branch, create and edit (dates, timetable, modules, teachers, seat limit), students; the student's My courses | IEL-13 | 4 |
+| P12-06 | Plan keys and usage metering (`usage_counters`), owner's Usage page, platform admin usage and cost report, add-on packs as overrides | IEL-16 | 3 |
+| P12-07 | Media server on beta: LiveKit and Egress (Docker), TLS on a `live.` sub-domain, firewall, webhook to the API; a runbook for production (P11-03) | Design §9.10 hosting | 2 |
+| P12-08 | Live classes (server): start, short-lived join tokens for the course only, webhooks, attendance from joining, plan limits, meeting links on cheaper plans | IEL-14 | 3 |
+| P12-09 | Live classroom screen: join from the course and Today, video, audio, screen share, raise hand, mute and remove, class chat, low-bandwidth mode, bn/en | IEL-14 | 4 |
+| P12-10 | Recordings: Egress to S3 as HLS, watch-only player, watched time, retention job, hide | IEL-15 | 4 |
+
+**Needs from the owner before the packages that use them:**
+
+- P12-07: a server for the media server (provider and size; outgoing traffic included or cheap) and the DNS record for the `live.` sub-domain on beta.
+- P12-08–10: approval of the packages, named with versions in each PR (`livekit-server-sdk`, `livekit-client`, `@livekit/components-react`, `@livekit/components-styles`, `hls.js`; Docker images `livekit/livekit-server`, `livekit/egress`; all Apache 2.0).
+- P12-10: approval that expired recordings' video files are removed from storage (the rows stay), as check-in selfies are after 90 days.
+- P12-06: prices and allowances per plan, once the usage report has real numbers (the code ships with allowances unset = not sold).
+
 ## 5. Definition of done, testing and release
 
 **A work package is done when:**

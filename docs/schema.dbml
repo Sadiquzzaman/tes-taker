@@ -83,6 +83,10 @@ Table org_settings {
   repeat_absence_days smallint [not null, default: 3, note: 'BUILT P3-01 (ATT-14): CHECK 2..30']
   show_rank boolean [not null, default: false, note: 'BUILT P7-02 (PRF-05, PRF-10): students see their position']
   chat_retention_months int [note: 'null = keep forever']
+  branches_enabled boolean [not null, default: false, note: 'P12 (FND-06): off = only the hidden main branch; migration: true where an organisation already has another branch']
+  guardians_enabled boolean [not null, default: true, note: 'P12 (IEL-12): false for new IELTS workspaces (and IELTS ones in the migration)']
+  ended_course_visible_days smallint [not null, default: 0, note: 'P12 (IEL-13): students still see an ended course this many days; capped by the plan']
+  recording_retention_days smallint [not null, default: 30, note: 'P12 (IEL-15): capped by the plan limit recording_retention_days']
   Note: 'NEW — one row per org; all Epic settings tables in the spec live here. Created in P2-03 with class_teacher_enabled only; each epic adds its columns in its own migration. An org without a row uses the defaults for its kind'
 }
 
@@ -222,14 +226,14 @@ Table refresh_tokens {
   Note: 'NEW'
 }
 
-Enum member_role { OWNER ADMIN ASSISTANT TEACHER STUDENT }
+Enum member_role { OWNER ADMIN ASSISTANT TEACHER STUDENT BRANCH_MANAGER } // BRANCH_MANAGER: P12 (FND-06, 16 Nov 2026)
 
 Table organization_members {
   id uuid [pk]
   organization_id uuid [not null, ref: > organizations.id]
   user_id uuid [not null, ref: > users.id]
   role member_role [not null]
-  branch_id uuid [ref: > branches.id, note: 'NEW column — branch admin scope']
+  branch_id uuid [ref: > branches.id, note: 'NEW column (P12, FND-06): the one branch of a BRANCH_MANAGER; null for every other role']
   employee_code varchar(40) [note: 'NEW — teacher id for ZKTeco mapping']
   removed_at timestamptz
   removed_by uuid
@@ -574,6 +578,7 @@ Table class_attendance {
   cancelled_at timestamptz [note: 'BUILT P3-04 (ATT-19); cleared on restore (the audit log keeps the history)']
   cancelled_by uuid [ref: > users.id, note: 'BUILT P3-04; FK ON DELETE SET NULL']
   cancel_note varchar(300) [note: "BUILT P3-04: the teacher's note to students (optional)"]
+  delivery slot_delivery [note: 'P12: copied from the slot (null on rows made before P12 = the section setting)']
   substitute_teacher_id uuid [ref: > users.id, note: 'BUILT P5-04: teaches this one class instead of the routine teacher; FK ON DELETE SET NULL; partial index (substitute_teacher_id, date)']
   changed_at timestamptz [note: 'BUILT P5-04: one-day change of times and/or teacher (CAL-01); null = as the routine']
   changed_by uuid [ref: > users.id]
@@ -1370,6 +1375,8 @@ Table resource_views {
 // K. Calendar (Epic 9)
 //////////////////////////////////////////////////////////////
 
+Enum slot_delivery { IN_PERSON ONLINE } // P12
+
 Table routine_slots {
   id uuid [pk]
   organization_id uuid [not null]
@@ -1378,6 +1385,8 @@ Table routine_slots {
   offering_id uuid [ref: > course_offerings.id, note: 'null = whole-section class (P3-02 schedules) or a non-subject slot (assembly, break)']
   teacher_id uuid [ref: > users.id, note: 'optional (P3-02); a teacher is never in two overlapping slots of a session']
   room varchar(40)
+  delivery slot_delivery [not null, default: 'IN_PERSON', note: 'P12 (IEL-14): each timetable class is in person or online, so a course can be mixed']
+  meeting_url varchar(500) [note: 'P12: a Zoom or Google Meet link for an ONLINE slot when the plan has only live_classes.links; https only']
   day_of_week smallint [not null, note: 'ISO 1..7, CHECK']
   start_time time [not null, note: "organisation's time zone"]
   end_time time [not null, note: 'CHECK end_time > start_time (no overnight slots)']
@@ -1882,6 +1891,129 @@ Table ielts_answers {
   Note: 'NEW, BUILT P10-04 part 1; Writing scripts are the answer of their part'
 }
   Note: 'NEW, P10-04; Writing scripts are the answer of their part'
+}
+
+// IELTS reformation (decided 16 Nov 2026, IEL-13–16) — P12, NOT BUILT
+
+Enum ielts_course_status { ACTIVE ENDED }
+
+Table ielts_courses {
+  id uuid [pk]
+  organization_id uuid [not null]
+  title varchar(150) [not null, note: 'says what the course is (single module, crash course, full prep); no course type column']
+  branch_id uuid [not null, ref: > branches.id, note: 'the main branch when branches are off; copied to sections.branch_id']
+  class_id uuid [not null, ref: > classes.id, note: 'made through AcademicsService; hidden in IELTS workspaces']
+  session_id uuid [not null, ref: > academic_sessions.id, note: 'one session per course, with the course dates; closing it makes the course read-only']
+  section_id uuid [not null, unique, ref: - sections.id, note: 'the only section: enrolments, timetable (routine_slots), attendance, homework, chat, IELTS openings']
+  modules ielts_module[] [not null, note: 'one or more; each is a course_offering whose offering_teachers are the module teachers']
+  start_date date [not null]
+  end_date date [not null, note: 'CHECK end_date >= start_date; ENDED from the next day (daily job, also checked on read)']
+  seat_limit smallint [note: 'null = no limit; CHECK > 0; enrolment refused with 409 COURSE_FULL when reached']
+  record_live_classes boolean [not null, default: true, note: 'teacher can still switch off one class']
+  status ielts_course_status [not null, default: 'ACTIVE']
+  ended_at timestamptz
+  is_active varchar [note: "'1' in force, '0' removed (soft delete)"]
+  removed_at timestamptz
+  removed_by uuid
+  Indexes {
+    (organization_id, branch_id, status)
+    (organization_id, start_date)
+  }
+  Note: 'NEW (IEL-13), ielts module. The data migration makes one course per existing IELTS section (test accounts only)'
+}
+
+Enum live_class_status { LIVE ENDED }
+Enum live_class_kind { BUILT_IN LINK }
+
+Table live_classes {
+  id uuid [pk]
+  organization_id uuid [not null]
+  section_id uuid [not null, ref: > sections.id]
+  class_attendance_id uuid [ref: > class_attendance.id, note: 'the timetable class this live class is for']
+  routine_slot_id uuid [ref: > routine_slots.id]
+  kind live_class_kind [not null, note: 'LINK = meeting link opened from the course; no room, no recording']
+  room_name varchar(80) [unique, note: 'LiveKit room; BUILT_IN only']
+  status live_class_status [not null, default: 'LIVE']
+  started_at timestamptz [not null]
+  started_by uuid [not null, ref: > users.id]
+  ended_at timestamptz
+  recording boolean [not null, note: 'from ielts_courses.record_live_classes unless switched off for this class']
+  peak_participants smallint [not null, default: 0]
+  Indexes {
+    (organization_id, started_at)
+    (section_id, started_at)
+  }
+  Note: 'NEW (IEL-14), live module'
+}
+
+Table live_participants {
+  id uuid [pk]
+  organization_id uuid [not null]
+  live_class_id uuid [not null, ref: > live_classes.id]
+  user_id uuid [not null, ref: > users.id]
+  is_staff boolean [not null]
+  joined_at timestamptz [not null]
+  left_at timestamptz
+  seconds int [not null, default: 0, note: 'filled from LiveKit webhooks; a rejoin adds a row']
+  Indexes {
+    (live_class_id, user_id)
+  }
+  Note: 'NEW (IEL-14): drives attendance (joined = present or late) and live_participant_minutes'
+}
+
+Enum live_recording_status { RECORDING PROCESSING READY FAILED EXPIRED HIDDEN }
+
+Table live_recordings {
+  id uuid [pk]
+  organization_id uuid [not null]
+  live_class_id uuid [not null, ref: > live_classes.id]
+  egress_id varchar(80) [unique, note: 'LiveKit Egress job']
+  s3_prefix varchar(300) [not null, note: 'org/{orgId}/live/{classId}/ (HLS playlist and segments)']
+  duration_seconds int
+  size_bytes bigint [note: 'counts toward the storage quota until EXPIRED']
+  status live_recording_status [not null, default: 'RECORDING']
+  expires_at timestamptz [note: "class end + org_settings.recording_retention_days (capped by the plan)"]
+  expired_at timestamptz [note: 'video segments removed from S3; the row stays ("Expired on …")']
+  hidden_at timestamptz
+  hidden_by uuid
+  Indexes {
+    (organization_id, status, expires_at)
+  }
+  Note: 'NEW (IEL-15), live module; watch-only through short-lived signed segment links'
+}
+
+Table recording_views {
+  id uuid [pk]
+  organization_id uuid [not null]
+  recording_id uuid [not null, ref: > live_recordings.id]
+  user_id uuid [not null, ref: > users.id]
+  seconds_watched int [not null, default: 0]
+  last_position_seconds int [not null, default: 0]
+  updated_at timestamptz
+  Indexes {
+    (recording_id, user_id) [unique]
+  }
+  Note: 'NEW (IEL-15): how much each student watched; replay_minutes'
+}
+
+Table usage_counters {
+  id uuid [pk]
+  organization_id uuid [not null]
+  month date [not null, note: 'first day of the month, organisation time zone']
+  metric varchar(40) [not null, note: 'live_class_minutes | live_participant_minutes | recorded_minutes | recording_storage_gb_days | replay_minutes']
+  quantity numeric(14,2) [not null, default: 0]
+  Indexes {
+    (organization_id, month, metric) [unique]
+  }
+  Note: 'NEW (IEL-16), billing module; added to with an upsert by BillingUsageService.add()'
+}
+
+Table usage_cost_rates {
+  id uuid [pk]
+  metric varchar(40) [not null, unique]
+  cost_per_unit_bdt numeric(10,4) [not null, note: 'set by the platform admin; estimates for the admin report only']
+  updated_at timestamptz
+  Note: 'NEW (IEL-16), platform table (no organisation)'
 }
 
 //////////////////////////////////////////////////////////////

@@ -44,6 +44,7 @@ Tertiary is a planned third type for when the product expands to colleges and un
 | --- | --- | --- |
 | Org Owner | Founder or principal | Everything, including billing and feature settings |
 | Org Admin | Office or academic admin | Manage people, structure, settings, approvals and reports; review chats |
+| Branch Manager | Runs one branch (16 Nov 2026) | What an admin can do, but only for their own branch: its classes or courses, the students and teachers in them, attendance, approvals and reports. No billing, plan or organisation-wide settings |
 | Assistant | Office staff | Data entry (students, guardians, attendance corrections) as granted by the admin |
 | Teacher | Teaching staff | Their own sections and subjects: attendance, homework, exams, marks, resources, chat |
 | Class/Batch Teacher | A teacher responsible for one section | Everything a teacher can do, plus approving that section's student leave |
@@ -91,10 +92,13 @@ Every attendance record, mark, homework and report belongs to a student's enrolm
 - The admin chooses the target session, class and section, and can untick students who are held back or leaving.
 - Old enrolments and their data are kept and stay viewable.
 
-**FND-06 · Branches (Could)** As an org owner with several campuses, I want branches so that each branch admin sees only their own students and reports.
+**FND-06 · Branches and branch managers (Must, re-planned 16 Nov 2026)** As an org owner with several campuses, I want to switch branches on, manage them, and give each branch a manager who sees only that branch.
 
-- A branch admin's lists and reports are filtered to their branch.
-- The Owner sees all branches and a combined report.
+- **Configurable.** An organisation chooses whether it uses branches. Without branches it keeps one hidden main branch and nothing about branches is shown. With branches the owner and admins add, edit and remove them (Organisation → Branches), for Academic and IELTS alike.
+- **Soft delete only.** Removing a branch hides it and keeps its history (who removed it and when). A branch with classes or courses still running cannot be removed; they have to end or move first.
+- **Branch manager** (a new staff role): one branch each. Their lists, screens and reports are filtered to that branch (classes or courses, their students and teachers, attendance, homework, tests, approvals). They cannot see billing, plans, features or organisation-wide settings.
+- **Teachers and students across branches.** A teacher can teach at several branches and a student can be enrolled in classes or courses at several branches; each sees only what they teach or are enrolled in.
+- The Owner and admins see all branches and a combined report.
 
 **FND-19 · Subject classes and electives (Must)** As an org admin, I want each subject taught to a section to be its own subject class, with a choice of which students take optional subjects, so that electives and religion subjects work.
 
@@ -861,22 +865,35 @@ The syllabus is the topic list that question tags (QA-01), homework (HW-01) and 
 
 **Decisions (15 Nov 2026):**
 
-- **For IELTS centres only.** A centre chooses "IELTS centre" at sign-up and gets an IELTS workspace. Schools and coaching centres do not run IELTS.
+- **For IELTS centres only.** A centre chooses "IELTS centre" at sign-up and gets an IELTS workspace. Schools and coaching centres do not run IELTS. *(Changed 16 Nov 2026: solo IELTS trainers too, see below.)*
 - **Computer-delivered format.** Tests look and behave like the computer-delivered IELTS, so students practise the real thing. Mock tests need a computer or tablet; phones are told to use one.
 - **Speaking as in the real test:** face to face (in person or by video call) with the teacher as examiner, who marks the four criteria in the app. Students can also record practice answers in the app between mocks.
 - **Templates for mocks, free practice sets:** a mock follows the real shape (Listening 4 parts and 40 questions, Reading 3 passages and 40 questions, Writing 2 tasks, Speaking 3 parts); a practice set can be one part or passage.
 - **No official Cambridge content** ships with the product. Centres add their own tests. Band conversion tables are editable defaults.
 - **Existing IELTS tests** made in the academic builder are copied into the new format and marked "Converted — check before use"; nothing is deleted.
 
+**Decisions (16 Nov 2026, owner), the IELTS reformation:**
+
+- **Two separate products.** Academic and IELTS share nothing on screen: each has its own menu, and IELTS users never see academic pages (sessions, classes, sections, subjects, subject assignments, academic tests, marks, report cards).
+- **Who:** IELTS centres (organisations, with or without branches) **and solo IELTS trainers**. Sign-up asks Academic or IELTS for organisations and solo teachers alike. The type is fixed; an organisation that runs both makes a second workspace.
+- **Courses, not sessions or sections.** A course belongs to one branch, has a start and an end date and a fully configurable weekly timetable (for example Sunday, Tuesday and Wednesday, 2–5 PM). It covers one or more of the four modules; the title says whether it is, say, a Writing course, a crash course or full preparation (there is no course type). Each module of a course has one or more teachers. A seat limit is set per course. When a course ends it simply ends; nobody is moved anywhere.
+- **Only enrolled students see a course's content**, not other courses of the same branch or other branches. A student can take several courses at once, at different branches.
+- **No guardians and no absence SMS.** IELTS students are mostly adults: guardians are hidden (an organisation may switch them on), and attendance sends no SMS.
+- **Branch managers** (FND-06) for both Academic and IELTS.
+- **Online, in person or mixed.** Each class in a course's timetable is in person or online. Online classes are **live classes inside the app with recording** (a self-hosted open-source video server; IELTS only for now), or, on cheaper plans, a Zoom or Google Meet link pasted by the teacher.
+- **Recordings are watch-only.** How long recordings are kept and how long an ended course stays visible are chosen by the organisation within its plan; plans are priced on that.
+- **Pricing model:** plans by number of active students, each with allowances for live-class hours, class size, recording retention and ended-course visibility, plus add-on packs for more. No live classes on free or trial plans. Video use is metered per organisation so prices can be set from real cost.
+- **Live data:** only test accounts use IELTS today, so existing IELTS batches can be converted to courses without a careful production migration.
+
 **How it differs from Academic:**
 
-- Courses and batches instead of classes and sections (the "Course / Batch" labels; same engine underneath, so attendance, homework, resources, calendar, chat and plagiarism work as in Academic).
+- **Courses** instead of sessions, classes, sections and subjects (re-planned 16 Nov 2026, IEL-13). The same engine runs underneath, so attendance, homework, resources, calendar, chat and plagiarism work as in Academic, but none of it is shown as sessions or sections.
 - Band scores (0–9 in half bands) instead of marks, GPA and report cards. The academic Results pages (performance, report cards, paper exams, behaviour) are hidden in IELTS workspaces.
 - The course path follows each centre's own curriculum (Epic 6 under that name).
 
 **IEL-01 · IELTS centre sign-up and dashboard (Must)** As an IELTS centre owner, I want to choose "IELTS centre" at sign-up and land on an IELTS dashboard so that the product speaks my language.
 
-- Sign-up asks "School" or "IELTS centre". An IELTS centre starts with Course / Batch labels and the IELTS menu.
+- Sign-up asks "School" or "IELTS centre". An IELTS centre starts with Course / Batch labels and the IELTS menu. *(16 Nov 2026: solo teachers choose too, and courses replace batches, IEL-11 and IEL-13.)*
 - **Owner/teacher dashboard:** today's batches, upcoming mock tests, Writing and Speaking waiting to be marked, and the average band per module per batch.
 - **Student dashboard:** target band vs latest band per module, the countdown to the test date, the next mock and pending homework.
 
@@ -931,6 +948,49 @@ The syllabus is the topic list that question tags (QA-01), homework (HW-01) and 
 
 - Module bands, overall band, Writing and Speaking criteria bands, teacher comments and progress vs target; printed by the browser and optionally sent by SMS link (same rules as PRF-09).
 
+**IEL-11 · Academic or IELTS at sign-up (Must, 16 Nov 2026)** As a centre owner or a solo trainer, I want to choose Academic or IELTS when I sign up so that I get the right product from the start.
+
+- Organisation sign-up asks "School / coaching centre" or "IELTS centre" (as today). Solo teacher sign-up now asks "Academic" or "IELTS" too.
+- The type cannot be changed later. A centre that runs both makes a second workspace; a solo teacher can have one Academic and one IELTS workspace and switch between them like any other workspace.
+
+**IEL-12 · IELTS menu and settings (Must, 16 Nov 2026)** As an IELTS centre or trainer, I want a menu made for IELTS so that nothing from schools gets in the way.
+
+- **Staff menu:** Overview, Courses, Students, Teachers, Branches (when branches are on), IELTS tests, Marking, Band tables, Homework, Resources, Chat, Calendar, Attendance, Plagiarism, Usage, Billing and Settings. Branch managers and teachers see the subset their role allows; solo trainers have no Teachers or Branches.
+- **Student menu:** Overview, My courses (timetable, live classes, recordings), My IELTS tests, My IELTS profile, Progress, Homework, Resources, Chat, Calendar and My attendance.
+- **Hidden in IELTS:** sessions, classes, sections, subjects, subject assignments, the academic test builder, grading, marks, behaviour, performance, report cards, guardians and leave requests. A page reached by its address answers "not in this workspace".
+- **Guardians** are off for IELTS; an owner can switch them on in Settings (some students are 17–18 and their parents pay). **Attendance sends no SMS** in IELTS (no late, absent or leave messages).
+
+**IEL-13 · Courses (Must, 16 Nov 2026)** As an IELTS centre owner, admin, branch manager or solo trainer, I want to create courses that match how we sell them so that students, teachers and timetables are organised the way we work.
+
+- **A course has:** a title (for example "Band 7 Academic — Jan 2027, evening" or "Writing crash course"); a branch (hidden when branches are off); a start and an end date; a weekly timetable of any days and times, each class in person or online (online: live in the app, or a meeting link where the plan has no live classes); the modules it covers (one or more of Listening, Reading, Writing, Speaking); one or more teachers per module; an optional seat limit; and its students.
+- A branch manager creates and runs courses in their own branch only. A teacher sees the courses they teach.
+- **Students:** added one by one or by CSV, or invited by phone or email. When the seat limit is reached nobody else can be added ("This course is full"). A student can be in several courses at once, also at different branches.
+- **Only enrolled students see a course:** its timetable, IELTS test openings, homework, resources, chat, live classes and recordings. Other courses, in the same branch or another, are invisible to them.
+- **When a course ends** (the day after its end date) it becomes read-only. Students keep seeing it for as many days as the organisation has chosen (0 = it disappears at the end), within the plan's allowance; staff always keep it. Nobody is moved to another course. Changing the end date re-opens it.
+- Courses replace "batches": IELTS test openings, attendance, homework, chat and plagiarism checks work per course.
+
+**IEL-14 · Live classes (Must, 16 Nov 2026)** As an IELTS teacher, I want to teach my online classes inside the app so that students join from one place and attendance is taken by itself.
+
+- An online class in the timetable shows **Start live class** to its teachers from 15 minutes before it starts. Enrolled students and the course's staff see **Join** once it has started; nobody else can join, even with the link.
+- **In the class:** video and audio, screen sharing (slides, the test screen), raise hand, the teacher can mute students or remove one from the class, and a chat for the class. Phones and slow connections can join with audio and the shared screen only.
+- **Attendance:** a student who joins is marked present (late after the grace minutes); a student who never joins is absent when the class ends. No SMS is sent.
+- **Mixed courses:** each timetable class is in person or online, so a course can meet on Sunday at the branch and on Tuesday online.
+- **Meeting link instead (cheaper plans):** the teacher pastes a Zoom or Google Meet link for an online class; students open it from the course, and attendance works as for other online classes (self check-in). No recording is made by the app.
+- **Limits:** live-class hours per month and the largest class size come from the plan. The owner sees a warning at 80% of the hours; at 100% no new live class starts until next month or a pack is bought. A class already running is never cut off.
+
+**IEL-15 · Recordings (Must, 16 Nov 2026)** As a student, I want to watch recordings of my course's live classes so that I can catch up or revise.
+
+- Live classes are recorded unless the teacher switches recording off for the course or one class. The recording appears in the course a few minutes after the class ends.
+- **Only the course's enrolled students and staff** can watch. **Watch-only:** no download button and short-lived streaming links. (No website can stop screen recording; this stops easy copying.)
+- **How long recordings are kept** is chosen by the organisation within its plan's allowance (for example 30, 90 or 180 days). When the time is up the video is removed from storage and the list says "Expired on …"; the entry stays. Staff can hide a recording.
+- Students and staff see how much of a recording each student watched.
+
+**IEL-16 · Usage and plan limits (Must, 16 Nov 2026)** As an owner, I want to see what my centre has used against my plan; as the platform admin, I want to see each organisation's usage and cost so that prices stay profitable.
+
+- **Owner's Usage page:** this month's live-class hours, students in live classes, hours recorded, recording storage, recording hours watched and active students, each against the plan's allowance, with a link to buy an add-on pack.
+- **Platform admin report:** the same figures per organisation and month, with an estimated cost per organisation (from cost rates the admin sets) beside what it pays.
+- Plans carry the allowances: active students, live-class hours per month, the largest live class, recording retention days, ended-course visibility days, number of branches, and whether live classes or only meeting links are included. Add-on packs raise an allowance for a month or for good.
+
 ## Feature-to-module map
 
 Features are grouped into three sellable modules plus add-ons. Any account can buy Management only, Exams (with or without Proctoring), or both. Within a module, platform admins can still switch individual features on or off (FND-07).
@@ -948,7 +1008,8 @@ Features are grouped into three sellable modules plus add-ons. Any account can b
 | 8 · Resource hub | Management (video storage add-on) | Yes | Yes | Yes |
 | 9 · Calendar & reminders | Management (exam dates also shown with Exams only) | Yes | Yes | Yes |
 | 10 · Plagiarism checker | Add-on | Yes | Yes (Writing) | Yes |
-| 11 · IELTS workspace | IELTS workspace type | No | Yes | No (IELTS centres only, 15 Nov 2026) |
+| 11 · IELTS workspace | IELTS workspace type | No | Yes | Yes, as a solo IELTS trainer (16 Nov 2026) |
+| Live classes and recordings (IEL-14, IEL-15) | IELTS plans (meeting links on cheaper plans) | Not yet | Yes | Yes |
 
 **Usage-based add-ons:** SMS credit packs, extra storage, video storage, AI question drafting (QA-04), AI-writing indicator (PLG-04).
 
@@ -962,5 +1023,5 @@ These came up while defining the features above and are deliberately left out of
 | Guardian login / parent app | v1 uses SMS and secure PDF links only. |
 | Automatic face recognition for attendance | v1 photos are proof only (ATT-08); recognition needs accuracy testing and consent rules. |
 | Internet plagiarism comparison | Needs a paid third-party service (PLG scope). |
-| Live online classes (video) | Not requested; recorded classes are covered by Epic 8. |
+| Live online classes (video) for Academic | Built for IELTS first (IEL-14, 16 Nov 2026); Academic may follow on the same engine. |
 | Data model and API notes | Requested later, once the stories are agreed. |
