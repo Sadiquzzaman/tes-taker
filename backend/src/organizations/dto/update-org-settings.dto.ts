@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsIn, IsOptional } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 import { ORGANIZATION_LOCALES, OrganizationLocale } from '../org-settings.service';
 
 export class UpdateOrgSettingsDto {
@@ -27,4 +27,11 @@ export class UpdateOrgSettingsDto {
   @IsOptional()
   @IsBoolean()
   guardians_enabled?: boolean;
+
+  @ApiPropertyOptional({ description: 'Students still see an ended IELTS course this many days (P12-04); 0–365' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(365)
+  ended_course_visible_days?: number;
 }

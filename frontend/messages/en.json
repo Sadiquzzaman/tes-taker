@@ -3102,6 +3102,11 @@
       "report_card": {
         "generate": "Report card made",
         "share": "Report card sent to guardians"
+      },
+      "ielts": {
+        "course_create": "IELTS course created",
+        "course_update": "IELTS course changed",
+        "course_remove": "IELTS course removed"
       }
     },
     "fields": {

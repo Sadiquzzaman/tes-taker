@@ -346,8 +346,18 @@ export class EnrolmentsService {
    * Puts a row in a section: one section per class per session. A LEFT or PROMOTED row of the same
    * student in that session is reused, so the history stays one row per student per session.
    */
+  /** A section with a seat limit (P12-04: an IELTS course) takes no one once it is full: 409 SECTION_FULL. */
+  private async assertSeatFree(section: SectionEntity): Promise<void> {
+    if (!section.seat_limit) return;
+    const taken = await this.enrolmentRepo.count({ where: { section_id: section.id, status: In(CURRENT_ENROLMENT_STATUSES) } });
+    if (taken >= section.seat_limit) {
+      throw new ConflictException({ message: 'This course is full', code: 'SECTION_FULL', details: { seat_limit: section.seat_limit } });
+    }
+  }
+
   private async place(section: SectionEntity, fields: EnrolmentFields, actor: Actor): Promise<EnrolmentEntity> {
     this.sessions.assertSessionOpen(await this.sessionOf(section));
+    await this.assertSeatFree(section);
 
     if (fields.student_id) {
       const existing = await this.enrolmentRepo.findOne({

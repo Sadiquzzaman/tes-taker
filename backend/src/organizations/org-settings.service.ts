@@ -34,6 +34,8 @@ export interface OrgSettingsView {
   branches_enabled: boolean;
   /** Guardians are kept and shown (P12-03): the organisation's choice, else on for Academic and off for IELTS. */
   guardians_enabled: boolean;
+  /** Students still see an ended IELTS course this many days (P12-04). */
+  ended_course_visible_days: number;
 }
 
 /**
@@ -137,7 +139,7 @@ export class OrgSettingsService {
         throw new ConflictException({ message: 'Remove the other branches first', code: 'BRANCHES_IN_USE', details: { branches: extra } });
       }
     }
-    if (dto.class_teacher_enabled !== undefined || dto.sms_locale !== undefined || dto.branches_enabled !== undefined || dto.guardians_enabled !== undefined) {
+    if (dto.class_teacher_enabled !== undefined || dto.sms_locale !== undefined || dto.branches_enabled !== undefined || dto.guardians_enabled !== undefined || dto.ended_course_visible_days !== undefined) {
       const existing = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
       const row =
         existing ??
@@ -151,6 +153,7 @@ export class OrgSettingsService {
       if (dto.sms_locale !== undefined) row.sms_locale = dto.sms_locale;
       if (dto.branches_enabled !== undefined) row.branches_enabled = dto.branches_enabled;
       if (dto.guardians_enabled !== undefined) row.guardians_enabled = dto.guardians_enabled;
+      if (dto.ended_course_visible_days !== undefined) row.ended_course_visible_days = dto.ended_course_visible_days;
       if (existing) {
         row.updated_by = userId;
         row.updated_at = new Date();
@@ -194,6 +197,7 @@ export class OrgSettingsService {
       sms_locale: row?.sms_locale === 'bn' || row?.sms_locale === 'en' ? row.sms_locale : defaultLocale,
       branches_enabled: row?.branches_enabled ?? false,
       guardians_enabled: row?.guardians_enabled ?? organization.workspace_type !== WorkspaceTypeEnum.IELTS,
+      ended_course_visible_days: row?.ended_course_visible_days ?? 0,
     };
   }
 
