@@ -16,4 +16,6 @@ export interface JwtPayloadInterface {
   personal_teacher_enabled?: boolean;
   /** Personal teacher UUID when viewing as student under an individual teacher */
   teacher_id?: string;
+  /** The signed-in device (refresh_tokens.id, PM-01); missing on tokens issued before it. */
+  sid?: string;
 }

@@ -10,6 +10,7 @@ import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { UserService } from 'src/user/user.service';
 import { UserReponseDto } from 'src/user/dto/user-response.dto';
+import { DeviceInfo } from 'src/user/refresh-tokens.service';
 import { EnrolmentEntity } from 'src/academics/entities/enrolment.entity';
 import { activeEnrolmentCondition } from 'src/academics/enrolment-queries';
 import { OrganizationMemberEntity } from './entities/organization-member.entity';
@@ -196,6 +197,8 @@ export class UserContextService {
     type: SelectableContextTypeEnum,
     organizationId?: string,
     teacherId?: string,
+    /** The signed-in device to keep (a workspace switch), or the device signing in (PM-01). */
+    session?: { session_id?: string | null; device?: DeviceInfo },
   ): Promise<UserReponseDto & { contexts: UserContextItem[] }> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) {
@@ -210,6 +213,7 @@ export class UserContextService {
       }
       const token = await this.userService.generateTokenForUser(user, null, {
         context_type: 'personal_teacher',
+        ...session,
       });
       return { ...token, contexts };
     }
@@ -227,6 +231,7 @@ export class UserContextService {
       const token = await this.userService.generateTokenForUser(user, null, {
         context_type: 'individual_teacher',
         teacher_id: teacherId,
+        ...session,
       });
       return { ...token, contexts };
     }
@@ -272,6 +277,7 @@ export class UserContextService {
         },
         {
           context_type: 'organization',
+          ...session,
         },
       );
       return { ...token, contexts };

@@ -10,6 +10,7 @@ describe('AuthService password-reset OTP', () => {
   let userService: { findByPhoneOrEmail: jest.Mock; updatePassword: jest.Mock };
   let smsService: { generateOtp: jest.Mock };
   let notifications: { enqueue: jest.Mock };
+  let refreshTokens: { revokeAll: jest.Mock };
   let service: AuthService;
 
   beforeEach(() => {
@@ -24,6 +25,7 @@ describe('AuthService password-reset OTP', () => {
       generateOtp: jest.fn().mockReturnValue('482913'),
     };
     notifications = { enqueue: jest.fn().mockResolvedValue(['outbox-1']) };
+    refreshTokens = { revokeAll: jest.fn().mockResolvedValue(2) };
     service = new AuthService(
       userService as never,
       smsService as never,
@@ -33,6 +35,8 @@ describe('AuthService password-reset OTP', () => {
       {} as never,
       {} as never,
       {} as never,
+      refreshTokens as never,
+      { record: jest.fn() } as never,
     );
   });
 
@@ -62,6 +66,8 @@ describe('AuthService password-reset OTP', () => {
       service.resetPassword({ identifier, otp: '482913', password: 'NewPass123!', confirm_password: 'NewPass123!' }),
     ).resolves.toMatchObject({ success: true });
     expect(userService.updatePassword).toHaveBeenCalledWith('user-1', 'NewPass123!');
+    // A reset signs every device out (PM-01).
+    expect(refreshTokens.revokeAll).toHaveBeenCalledWith('user-1', 'PASSWORD_RESET');
   });
 
   it('returns "Invalid OTP" for a wrong code below the limit', async () => {
