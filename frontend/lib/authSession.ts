@@ -12,6 +12,16 @@ const clearAuthSession = async () => {
     return;
   }
 
+  // Sign this device out on the server too (PM-01), so its refresh token stops working.
+  const refreshToken = getStoredUser()?.refresh_token;
+  if (refreshToken) {
+    try {
+      await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/logout`, { refreshToken });
+    } catch {
+      // Already signed out or offline: clearing this browser is what matters.
+    }
+  }
+
   localStorage.removeItem("user");
   clearStoredWorkspace();
   writeLevelLabelsCookie(DEFAULT_LEVEL_LABELS);
