@@ -24,6 +24,8 @@ export const AUDIT_ACTIONS = {
   TEACHER_REQUEST_APPROVE: 'teacher_request.approve',
   TEACHER_REQUEST_REJECT: 'teacher_request.reject',
   USER_ROLE_CHANGE: 'user.role_change',
+  /** Devices signed out: "all other devices", or after a password change or reset (PM-01). */
+  USER_SIGN_OUT_DEVICES: 'user.sign_out_devices',
   TEACHER_STATUS_CHANGE: 'teacher.status_change',
 
   // Organisation members (owner and admins)

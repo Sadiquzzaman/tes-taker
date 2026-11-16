@@ -20,6 +20,10 @@ import { SelectableContextTypeEnum } from 'src/organizations/dto/select-context.
 import { UserReponseDto } from 'src/user/dto/user-response.dto';
 import { VerifyOtpDto } from 'src/sms/dto/sms.dto';
 import { RolesEnum } from 'src/common/enums/roles.enum';
+import { DeviceInfo, RefreshTokensService, SignedInDevice } from 'src/user/refresh-tokens.service';
+import { RefreshTokenRevokeReasonEnum } from 'src/user/entities/refresh-token.entity';
+import { AuditService } from 'src/audit/audit.service';
+import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
 
 @Injectable()
 export class AuthService {
@@ -34,6 +38,8 @@ export class AuthService {
     private readonly organizationsService: OrganizationsService,
     private readonly userContextService: UserContextService,
     private readonly teacherRequestService: TeacherRequestService,
+    private readonly refreshTokens: RefreshTokensService,
+    private readonly audit: AuditService,
   ) {}
 
   async signUp(registerUserDto: RegisterUserDto) {
@@ -280,7 +286,7 @@ export class AuthService {
     };
   }
 
-  async login(loginDto: LoginDto): Promise<UserReponseDto & { contexts: unknown[]; requires_context_selection: boolean }> {
+  async login(loginDto: LoginDto, device?: DeviceInfo): Promise<UserReponseDto & { contexts: unknown[]; requires_context_selection: boolean }> {
     const user = await this.userService.assertLoginCredentials(loginDto);
 
     try {
@@ -306,6 +312,8 @@ export class AuthService {
           user.id,
           SelectableContextTypeEnum.ORGANIZATION,
           only.organization_id,
+          undefined,
+          { device },
         );
         return { ...selected, requires_context_selection: false };
       }
@@ -313,6 +321,9 @@ export class AuthService {
         const selected = await this.userContextService.selectContext(
           user.id,
           SelectableContextTypeEnum.PERSONAL_TEACHER,
+          undefined,
+          undefined,
+          { device },
         );
         return { ...selected, requires_context_selection: false };
       }
@@ -322,6 +333,7 @@ export class AuthService {
           SelectableContextTypeEnum.INDIVIDUAL_TEACHER,
           undefined,
           only.teacher_id,
+          { device },
         );
         return { ...selected, requires_context_selection: false };
       }
@@ -330,6 +342,7 @@ export class AuthService {
     // Multiple (or zero) contexts: land on dashboard; pick from dashboard/header.
     const token = await this.userService.generateTokenForUser(user, null, {
       context_type: 'individual',
+      device,
     });
     return {
       ...token,
@@ -342,16 +355,18 @@ export class AuthService {
     return this.userContextService.listContexts(userId);
   }
 
+  /** Switching workspace keeps the same signed-in device (`sessionId`, the JWT's sid). */
   async selectContext(
     userId: string,
     type: SelectableContextTypeEnum,
     organizationId?: string,
     teacherId?: string,
+    sessionId?: string,
   ) {
-    return this.userContextService.selectContext(userId, type, organizationId, teacherId);
+    return this.userContextService.selectContext(userId, type, organizationId, teacherId, { session_id: sessionId });
   }
 
-  async loginOrganization(dto: LoginOrganizationDto): Promise<UserReponseDto & { contexts: unknown[] }> {
+  async loginOrganization(dto: LoginOrganizationDto, device?: DeviceInfo): Promise<UserReponseDto & { contexts: unknown[] }> {
     const user = await this.userService.assertLoginCredentials({
       phone: dto.phone,
       password: dto.password,
@@ -373,29 +388,65 @@ export class AuthService {
       organization_workspace_type: organization.workspace_type,
     }, {
       context_type: 'organization',
+      device,
     });
 
     const contexts = await this.userContextService.listContexts(user.id);
     return { ...token, contexts };
   }
 
-  async refreshToken(refreshToken: string, organizationId?: string): Promise<UserReponseDto> {
+  /** The device's next token pair (PM-01: the token rotates; the device stays the same). */
+  async refreshToken(refreshToken: string, organizationId?: string, device?: DeviceInfo): Promise<UserReponseDto> {
+    const { user, sessionId } = await this.userService.consumeRefreshToken(refreshToken, device);
     if (!organizationId) {
-      return this.userService.refreshAccessToken(refreshToken);
+      return this.userService.generateTokenForUser(user, null, { session_id: sessionId, device });
     }
-
-    const user = await this.userService.getUserFromValidRefreshToken(refreshToken);
     const { organization, membership } =
       await this.organizationsService.findMembershipByOrgId(organizationId, user.id);
+    return this.userService.generateTokenForUser(
+      user,
+      {
+        organization_id: organization.id,
+        organization_number: Number(organization.organization_number),
+        member_role: membership.role,
+        organization_name: organization.name,
+        organization_status: organization.status,
+        organization_default_locale: organization.default_locale,
+        organization_workspace_type: organization.workspace_type,
+      },
+      { session_id: sessionId, device },
+    );
+  }
 
-    return this.userService.refreshAccessTokenWithOrg(refreshToken, {
-      organization_id: organization.id,
-      organization_number: Number(organization.organization_number),
-      member_role: membership.role,
-      organization_name: organization.name,
-      organization_status: organization.status,
-      organization_default_locale: organization.default_locale,
-      organization_workspace_type: organization.workspace_type,
+  /** Signs out the device that holds this refresh token (PM-01). Always succeeds. */
+  async logout(refreshToken: string): Promise<void> {
+    await this.refreshTokens.revokeByToken(refreshToken);
+  }
+
+  /** The user's signed-in devices; `current` is the one asking. */
+  async listDevices(userId: string, sessionId?: string): Promise<SignedInDevice[]> {
+    return this.refreshTokens.list(userId, sessionId);
+  }
+
+  async signOutDevice(userId: string, deviceId: string): Promise<void> {
+    await this.refreshTokens.revokeOne(userId, deviceId);
+  }
+
+  /** "Sign out all other devices": keeps the one asking. */
+  async signOutOtherDevices(userId: string, sessionId?: string): Promise<{ signed_out: number }> {
+    const count = await this.refreshTokens.revokeAll(userId, RefreshTokenRevokeReasonEnum.SIGNED_OUT_ELSEWHERE, sessionId ?? null);
+    this.recordSignOut(userId, count, RefreshTokenRevokeReasonEnum.SIGNED_OUT_ELSEWHERE);
+    return { signed_out: count };
+  }
+
+  private recordSignOut(userId: string, count: number, reason: RefreshTokenRevokeReasonEnum): void {
+    this.audit.record({
+      action: AUDIT_ACTIONS.USER_SIGN_OUT_DEVICES,
+      actorId: userId,
+      entityType: 'user',
+      entityId: userId,
+      after: { devices: count },
+      reason,
     });
   }
 
@@ -403,7 +454,8 @@ export class AuthService {
     return await this.userService.getProfile(userId);
   }
 
-  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+  /** A new password signs every other device out (PM-01); the one changing it stays signed in. */
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto, sessionId?: string) {
     if (changePasswordDto.new_password !== changePasswordDto.confirm_password) {
       throw new BadRequestException('New password and confirm password do not match');
     }
@@ -413,6 +465,8 @@ export class AuthService {
       changePasswordDto.current_password,
       changePasswordDto.new_password,
     );
+    const signedOut = await this.refreshTokens.revokeAll(userId, RefreshTokenRevokeReasonEnum.PASSWORD_CHANGED, sessionId ?? null);
+    this.recordSignOut(userId, signedOut, RefreshTokenRevokeReasonEnum.PASSWORD_CHANGED);
 
     return {
       success: true,
@@ -508,6 +562,9 @@ export class AuthService {
     }
 
     await this.userService.updatePassword(user.id, resetPasswordDto.password);
+    // A reset (forgotten password) signs every device out (PM-01).
+    const signedOut = await this.refreshTokens.revokeAll(user.id, RefreshTokenRevokeReasonEnum.PASSWORD_RESET);
+    this.recordSignOut(user.id, signedOut, RefreshTokenRevokeReasonEnum.PASSWORD_RESET);
     await this.smsRateLimitService.removePasswordResetOtp(identifier);
 
     return {

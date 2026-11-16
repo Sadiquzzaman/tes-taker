@@ -8,6 +8,8 @@ import axios from 'axios';
 import { randomBytes } from 'crypto';
 import { UserService } from 'src/user/user.service';
 import { resolveFrontendUrl } from 'src/common/utils/frontend-url.util';
+import { DevicePlatformEnum } from 'src/user/entities/refresh-token.entity';
+import { deviceNameFromUserAgent } from 'src/user/device-name';
 
 type GoogleTokenResponse = {
   access_token?: string;
@@ -105,7 +107,8 @@ export class GoogleAuthService {
     );
   }
 
-  async handleCallback(code: string, state: string) {
+  /** `userAgent` names the browser in the signed-in devices list (PM-01). */
+  async handleCallback(code: string, state: string, userAgent?: string) {
     if (!code?.trim()) {
       throw new BadRequestException('Missing Google authorization code');
     }
@@ -156,7 +159,9 @@ export class GoogleAuthService {
         profile.email.split('@')[0],
     });
 
-    return this.userService.generateTokenForUser(user);
+    return this.userService.generateTokenForUser(user, null, {
+      device: { platform: DevicePlatformEnum.WEB, name: deviceNameFromUserAgent(userAgent) },
+    });
   }
 
   buildFrontendSuccessRedirect(payload: Awaited<ReturnType<UserService['generateTokenForUser']>>): string {
