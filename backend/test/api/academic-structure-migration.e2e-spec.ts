@@ -27,6 +27,7 @@ import { ScoreWeights1756370000000 } from '../../src/migrations/1756370000000-Sc
 import { ReportCards1756380000000 } from '../../src/migrations/1756380000000-ReportCards';
 import { Integrity1756490000000 } from '../../src/migrations/1756490000000-Integrity';
 import { BranchManagers1756520000000 } from '../../src/migrations/1756520000000-BranchManagers';
+import { IeltsGuardians1756540000000 } from '../../src/migrations/1756540000000-IeltsGuardians';
 import { IeltsAttempts1756480000000 } from '../../src/migrations/1756480000000-IeltsAttempts';
 import { ResourceLibrary1756440000000 } from '../../src/migrations/1756440000000-ResourceLibrary';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
@@ -151,7 +152,10 @@ describe('AcademicStructure migration', () => {
     const integrity = new Integrity1756490000000();
     // Branches on/off (P12-01) is an org_settings column, and branch managers point at branches.
     const branchManagers = new BranchManagers1756520000000();
+    // Guardians on/off (P12-03) is an org_settings column.
+    const ieltsGuardians = new IeltsGuardians1756540000000();
     try {
+      await ieltsGuardians.down(runner);
       await branchManagers.down(runner);
       await integrity.down(runner);
       await ieltsAttempts.down(runner);
@@ -209,6 +213,7 @@ describe('AcademicStructure migration', () => {
       await ieltsAttempts.up(runner);
       await integrity.up(runner);
       await branchManagers.up(runner);
+      await ieltsGuardians.up(runner);
     } finally {
       await runner.release();
     }

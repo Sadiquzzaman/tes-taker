@@ -85,6 +85,8 @@ interface OrganizationSettings {
   sms_locale: OrganizationLocale;
   /** The organisation uses branches (P12-01). */
   branches_enabled: boolean;
+  /** Guardians are kept and shown (P12-03): on for Academic, off for IELTS unless switched. */
+  guardians_enabled: boolean;
 }
 
 type GuardianRelation = "FATHER" | "MOTHER" | "OTHER";

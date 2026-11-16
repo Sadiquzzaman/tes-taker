@@ -10,6 +10,7 @@ import { FeatureGuard } from 'src/subscriptions/guards/feature.guard';
 import { requireWorkspace } from './attendance-access';
 import { ApplyLeaveDto, ApproveLeaveDto, LeaveApprovalsQueryDto, LeavePeopleQueryDto, RejectLeaveDto } from './dto/leave.dto';
 import { LeaveService } from './leave.service';
+import { NotInIeltsGuard } from 'src/common/tenancy/not-in-ielts.guard';
 
 /**
  * Leave requests and approvals (ATT-09, ATT-11) for students and teachers of the workspace: apply
@@ -20,7 +21,8 @@ import { LeaveService } from './leave.service';
 @ApiTags('Attendance')
 @ApiBearerAuth('jwt')
 @ApiHeader({ name: 'X-Organization-Id', required: false, description: 'Organisation workspace; empty = your own workspace' })
-@UseGuards(AuthGuard('jwt'), OrganizationContextGuard, FeatureGuard)
+// Leave requests are not part of IELTS workspaces (P12-03).
+@UseGuards(AuthGuard('jwt'), OrganizationContextGuard, NotInIeltsGuard, FeatureGuard)
 @RequiresFeature(FeatureKey.ATTENDANCE)
 @Controller({ path: 'attendance/leave', version: '1' })
 export class LeaveController {

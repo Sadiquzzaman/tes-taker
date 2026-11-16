@@ -45,12 +45,15 @@ const SectionStudents = ({
   section,
   sections,
   editable,
+  guardiansEnabled = true,
   onChanged,
 }: {
   section: ClassSection;
   /** The class's sections in the same session (move targets). */
   sections: ClassSection[];
   editable: boolean;
+  /** Guardians switched off (P12-03: IELTS by default): no Guardians button. */
+  guardiansEnabled?: boolean;
   onChanged: () => void;
 }) => {
   const t = useTranslations("academics.enrolments");
@@ -145,9 +148,11 @@ const SectionStudents = ({
       cell: (row: SectionEnrolment) =>
         isCurrent(row) ? (
           <div className="flex justify-end gap-1">
-            <Button variant="ghost" size="sm" aria-label={tGuardians("openFor", { name: nameOf(row) })} onClick={() => setGuardiansOf(row)}>
-              {tGuardians("open")}
-            </Button>
+            {guardiansEnabled ? (
+              <Button variant="ghost" size="sm" aria-label={tGuardians("openFor", { name: nameOf(row) })} onClick={() => setGuardiansOf(row)}>
+                {tGuardians("open")}
+              </Button>
+            ) : null}
             {editable ? (
               <>
                 <IconButton

@@ -106,6 +106,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "sessions",
     route: "/sessions",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "academics",
     role: ["TEACHER"],
     // A teacher with personal teaching off has no workspace of their own, so no sessions there.
@@ -116,6 +118,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "tests",
     route: "/tests",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "tests",
     role: ["STUDENT", "TEACHER"],
     image: <SidebarTestsIconSVG width={16} />,
@@ -124,6 +128,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "grading",
     route: "/grading",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "tests",
     role: ["TEACHER"],
     image: <SidebarGradingIconSVG width={16} />,
@@ -531,6 +537,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "leave",
     route: "/leave",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "attendance",
     role: ["STUDENT"],
     feature: "attendance",
@@ -671,6 +679,8 @@ const sidebarList: SideBarList[] = [
     category: "Organization",
     label: "sessions",
     route: "/sessions",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "academics",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN"],
@@ -680,6 +690,8 @@ const sidebarList: SideBarList[] = [
     category: "Organization",
     label: "assignments",
     route: "/organization/assignments",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "academics",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT"],
@@ -689,6 +701,8 @@ const sidebarList: SideBarList[] = [
     category: "Organization",
     label: "subjects",
     route: "/organization/subjects",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "academics",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT"],
@@ -698,6 +712,8 @@ const sidebarList: SideBarList[] = [
     category: "Organization",
     label: "tests",
     route: "/tests",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "tests",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "TEACHER"],
@@ -814,6 +830,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "leave",
     route: "/leave",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "attendance",
     role: ["TEACHER"],
     // A solo teacher approves their students' leave (they have no teacher leave of their own).
@@ -836,6 +854,8 @@ const sidebarList: SideBarList[] = [
     category: "Organization",
     label: "leave",
     route: "/leave",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "attendance",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],

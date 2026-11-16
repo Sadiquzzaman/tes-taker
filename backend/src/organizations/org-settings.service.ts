@@ -8,6 +8,7 @@ import { DEFAULT_GUARDIAN_SMS, GuardianSmsSwitches, OrgSettingsEntity, WeeklyOff
 import { OrganizationEntity } from './entities/organization.entity';
 import { BranchEntity } from './entities/branch.entity';
 import { OrganizationKindEnum } from './enums/organization-kind.enum';
+import { WorkspaceTypeEnum } from './enums/workspace-type.enum';
 import { OrganizationMemberRoleEnum } from './enums/organization-member-role.enum';
 import { OrganizationAccessService } from './organization-access.service';
 import { UpdateOrgSettingsDto } from './dto/update-org-settings.dto';
@@ -31,6 +32,8 @@ export interface OrgSettingsView {
   sms_locale: OrganizationLocale;
   /** The organisation uses branches (P12-01, FND-06); off = only the hidden main branch. */
   branches_enabled: boolean;
+  /** Guardians are kept and shown (P12-03): the organisation's choice, else on for Academic and off for IELTS. */
+  guardians_enabled: boolean;
 }
 
 /**
@@ -134,7 +137,7 @@ export class OrgSettingsService {
         throw new ConflictException({ message: 'Remove the other branches first', code: 'BRANCHES_IN_USE', details: { branches: extra } });
       }
     }
-    if (dto.class_teacher_enabled !== undefined || dto.sms_locale !== undefined || dto.branches_enabled !== undefined) {
+    if (dto.class_teacher_enabled !== undefined || dto.sms_locale !== undefined || dto.branches_enabled !== undefined || dto.guardians_enabled !== undefined) {
       const existing = await this.settingsRepo.findOne({ where: { organization_id: organizationId } });
       const row =
         existing ??
@@ -147,6 +150,7 @@ export class OrgSettingsService {
       if (dto.class_teacher_enabled !== undefined) row.class_teacher_enabled = dto.class_teacher_enabled;
       if (dto.sms_locale !== undefined) row.sms_locale = dto.sms_locale;
       if (dto.branches_enabled !== undefined) row.branches_enabled = dto.branches_enabled;
+      if (dto.guardians_enabled !== undefined) row.guardians_enabled = dto.guardians_enabled;
       if (existing) {
         row.updated_by = userId;
         row.updated_at = new Date();
@@ -189,6 +193,7 @@ export class OrgSettingsService {
       setup_completed_at: row?.setup_completed_at ?? null,
       sms_locale: row?.sms_locale === 'bn' || row?.sms_locale === 'en' ? row.sms_locale : defaultLocale,
       branches_enabled: row?.branches_enabled ?? false,
+      guardians_enabled: row?.guardians_enabled ?? organization.workspace_type !== WorkspaceTypeEnum.IELTS,
     };
   }
 
@@ -242,7 +247,27 @@ export class OrgSettingsService {
   async getAttendance(organizationId: string, manager?: EntityManager): Promise<AttendanceSettings> {
     const em = manager ?? this.settingsRepo.manager;
     const row = await em.getRepository(OrgSettingsEntity).findOne({ where: { organization_id: organizationId } });
-    return row ? attendanceOf(row) : { ...DEFAULT_ATTENDANCE_SETTINGS, guardian_sms: { ...DEFAULT_GUARDIAN_SMS } };
+    const settings = row ? attendanceOf(row) : { ...DEFAULT_ATTENDANCE_SETTINGS, guardian_sms: { ...DEFAULT_GUARDIAN_SMS } };
+    // IELTS sends no attendance SMS (P12-03, owner decision 16 Nov 2026): no late, absent or leave messages.
+    if (await this.isIelts(organizationId, em)) {
+      settings.guardian_sms = { late: false, absent: false, leave: false };
+    }
+    return settings;
+  }
+
+  /** Whether the organisation is an IELTS workspace (a centre or a solo IELTS trainer, P12-03). */
+  async isIelts(organizationId: string, manager?: EntityManager): Promise<boolean> {
+    const em = manager ?? this.settingsRepo.manager;
+    const [row] = await em.query(`SELECT workspace_type FROM organizations WHERE id = $1`, [organizationId]);
+    return row?.workspace_type === WorkspaceTypeEnum.IELTS;
+  }
+
+  /** Whether the organisation keeps guardians (P12-03): its switch, else on for Academic and off for IELTS. */
+  async guardiansEnabled(organizationId: string, manager?: EntityManager): Promise<boolean> {
+    const em = manager ?? this.settingsRepo.manager;
+    const row = await em.getRepository(OrgSettingsEntity).findOne({ where: { organization_id: organizationId } });
+    if (row?.guardians_enabled !== null && row?.guardians_enabled !== undefined) return row.guardians_enabled;
+    return !(await this.isIelts(organizationId, em));
   }
 
   /**
