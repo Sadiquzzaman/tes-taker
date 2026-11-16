@@ -2529,7 +2529,9 @@
       "smsLanguage": "Guardian SMS language",
       "smsLanguageHint": "Students can have their own. One SMS holds 160 English or 70 Bangla characters, so Bangla SMS use more credits.",
       "branches": "Branches",
-      "branchesHint": "Several campuses, each with its own check-in location and a branch manager. To switch this off, remove every branch except the main one."
+      "branchesHint": "Several campuses, each with its own check-in location and a branch manager. To switch this off, remove every branch except the main one.",
+      "guardians": "Guardians",
+      "guardiansHint": "Keep guardians' names and phone numbers for each student. Off by default for IELTS, where most students are adults."
     },
     "sections": {
       "title": "[[Sections]]",

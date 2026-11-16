@@ -82,12 +82,21 @@ export class GuardiansService {
 
   async listForEnrolment(enrolmentId: string, actor: Actor): Promise<StudentGuardiansView> {
     const enrolment = await this.accessibleEnrolment(enrolmentId, actor);
+    await this.assertGuardiansOn(enrolment.organization_id);
     return this.view(enrolment);
+  }
+
+  /** Guardians switched off (P12-03: off by default in IELTS): 403 GUARDIANS_OFF. */
+  private async assertGuardiansOn(organizationId: string): Promise<void> {
+    if (!(await this.orgSettings.guardiansEnabled(organizationId))) {
+      throw new ForbiddenException({ message: 'Guardians are switched off for this organisation', code: 'GUARDIANS_OFF' });
+    }
   }
 
   /** Saves the student's guardians as a whole: adds, changes and removes to match `dto`, in one transaction. */
   async saveForEnrolment(enrolmentId: string, dto: SaveGuardiansDto, actor: Actor): Promise<StudentGuardiansView> {
     const enrolment = await this.accessibleEnrolment(enrolmentId, actor);
+    await this.assertGuardiansOn(enrolment.organization_id);
     const entries = await this.enrolmentRepo.manager.transaction((manager) => this.replace(enrolment.id, dto, actor, manager));
     this.audit.recordMany(entries);
     return this.view(enrolment);

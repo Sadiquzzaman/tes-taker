@@ -48,6 +48,10 @@ export class OrgSettingsEntity extends CustomBaseEntity {
   @Column({ name: 'branches_enabled', type: 'boolean', default: false })
   branches_enabled: boolean;
 
+  @ApiPropertyOptional({ description: 'Guardians on or off (P12-03); null = on for Academic, off for IELTS' })
+  @Column({ name: 'guardians_enabled', type: 'boolean', nullable: true })
+  guardians_enabled: boolean | null;
+
   @ApiPropertyOptional({ description: 'When the academic setup wizard was finished (P2-04); null = not yet' })
   @Column({ name: 'setup_completed_at', type: 'timestamptz', nullable: true })
   setup_completed_at: Date | null;

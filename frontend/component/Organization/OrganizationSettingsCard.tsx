@@ -36,7 +36,7 @@ const OrganizationSettingsCard = ({ organizationId }: { organizationId: string }
     void load();
   }, [load]);
 
-  const update = async (change: Partial<Pick<OrganizationSettings, "class_teacher_enabled" | "default_locale" | "sms_locale" | "branches_enabled">>) => {
+  const update = async (change: Partial<Pick<OrganizationSettings, "class_teacher_enabled" | "default_locale" | "sms_locale" | "branches_enabled" | "guardians_enabled">>) => {
     setSaving(true);
     try {
       const res = await axiosReq.patch<ApiResponse<OrganizationSettings>>(`${baseUrl}/organizations/${organizationId}/settings`, change);
@@ -66,6 +66,13 @@ const OrganizationSettingsCard = ({ organizationId }: { organizationId: string }
             checked={settings.branches_enabled}
             disabled={saving}
             onChange={(checked) => void update({ branches_enabled: checked })}
+          />
+          <Switch
+            label={t("guardians")}
+            hint={t("guardiansHint")}
+            checked={settings.guardians_enabled}
+            disabled={saving}
+            onChange={(checked) => void update({ guardians_enabled: checked })}
           />
           <Select
             label={t("language")}

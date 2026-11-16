@@ -22,4 +22,9 @@ export class UpdateOrgSettingsDto {
   @IsOptional()
   @IsBoolean()
   branches_enabled?: boolean;
+
+  @ApiPropertyOptional({ description: 'Keep and show guardians (P12-03); default on for Academic, off for IELTS' })
+  @IsOptional()
+  @IsBoolean()
+  guardians_enabled?: boolean;
 }

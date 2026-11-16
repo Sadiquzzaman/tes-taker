@@ -204,3 +204,15 @@ describe("sidebar for branch managers (P12-01)", () => {
     expect(links()).not.toContain("Students");
   });
 });
+
+describe("sidebar in IELTS workspaces (P12-03)", () => {
+  it("hides sessions, subjects, subject teachers, academic tests, grading and leave from an IELTS centre, and keeps them for a school", async () => {
+    features = { attendance: true, ielts: true };
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "OWNER", workspace_type: "IELTS" });
+    for (const page of ["Sessions", "Subjects", "Subject teachers", "Tests", "Grading", "Leave"]) expect(links()).not.toContain(page);
+    expect(links()).toContain("IELTS tests");
+    cleanup();
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "OWNER" });
+    expect(links()).toEqual(expect.arrayContaining(["Sessions", "Subjects", "Subject teachers", "Leave"]));
+  });
+});
