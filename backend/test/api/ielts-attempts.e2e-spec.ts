@@ -192,6 +192,7 @@ describe('IELTS openings and attempts', () => {
 
     const opening = (await open(s, mock.id)).body.payload;
     expect((await call('POST', `/ielts/my/assignments/${opening.id}/modules/READING/start`, s.mituToken)).body.code).toBe('IELTS_MODULE_ORDER');
+    // Not in this mock; and a mock's Speaking is never started by the student.
     expect((await call('POST', `/ielts/my/assignments/${opening.id}/modules/SPEAKING/start`, s.mituToken)).body.code).toBe('IELTS_MODULE_NOT_READY');
     const listening = (await call<Attempt>('POST', `/ielts/my/assignments/${opening.id}/modules/LISTENING/start`, s.mituToken)).body.payload;
     expect(listening.attempt.review_seconds).toBe(120);

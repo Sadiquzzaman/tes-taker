@@ -173,6 +173,10 @@ export class IeltsAttemptsService {
     const test = await this.dataSource.getRepository(IeltsTestEntity).findOneOrFail({ where: { id: assignment.test_id } });
     if (!test.modules.includes(module)) throw new BadRequestException({ message: 'This test does not have that module', code: IELTS_ERRORS.MODULE_NOT_READY });
     if (!ON_SCREEN.includes(module)) throw new BadRequestException({ message: 'This module is not taken on screen yet', code: IELTS_ERRORS.MODULE_NOT_READY });
+    if (module === IeltsModuleEnum.SPEAKING && test.purpose === IeltsTestPurposeEnum.MOCK) {
+      // A mock's Speaking is the live session with the examiner, as in the real test.
+      throw new ConflictException({ message: 'Speaking in a mock is with your teacher', code: IELTS_ERRORS.SPEAKING_WITH_EXAMINER });
+    }
 
     const existing = await this.attempts.findOne({ where: { assignment_id: assignment.id, student_id: userId, module } });
     if (existing) {
