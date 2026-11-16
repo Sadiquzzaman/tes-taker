@@ -39,3 +39,9 @@ export const isValidBandTable = (rows: unknown): rows is BandRow[] => {
     return !previous || (minRaw < previous.min_raw && (row.band as number) <= previous.band);
   });
 };
+
+/**
+ * A Listening / Reading score scaled to 40 for the band tables: a practice set with fewer
+ * questions (12 of 13) reads like the same share of a full test (37 of 40). Full tests are as is.
+ */
+export const scaledRaw = (raw: number, total: number): number => (total <= 0 || total >= 40 ? Math.min(raw, 40) : Math.round((raw * 40) / total));

@@ -234,7 +234,7 @@ const ResultView = ({ view, answers }: { view: IeltsAttemptView; answers: Record
       ) : (
         <>
       <div className="grid grid-cols-2 gap-4">
-        <StatTile label={t("rawScore")} value={view.attempt.raw_score === null ? "—" : t("outOf40", { score: view.attempt.raw_score })} />
+        <StatTile label={t("rawScore")} value={view.attempt.raw_score === null ? "—" : t("scoreOutOf", { score: view.attempt.raw_score, total: view.attempt.raw_total ?? 40 })} />
         <StatTile label={t("band")} value={view.attempt.band === null ? "—" : format.number(view.attempt.band, { minimumFractionDigits: 1 })} />
       </div>
       {view.parts ? (

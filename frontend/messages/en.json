@@ -5621,7 +5621,6 @@
     "keepWorking": "Keep working",
     "resultTitle": "{module} result",
     "rawScore": "Score",
-    "outOf40": "{score, number} / 40",
     "band": "Band",
     "answersLater": "Right answers are shown after the test closes.",
     "questionLabel": "Question {number}",
@@ -5670,7 +5669,8 @@
     "waitingForTeacherSpeaking": "Handed in. Your teacher will mark your Speaking.",
     "withTeacher": "With your teacher",
     "startSpeaking": "Record your answers to Parts 1 to 3. Part 2 gives you 1 minute to prepare and 2 minutes to talk.",
-    "bandReport": "Band report"
+    "bandReport": "Band report",
+    "scoreOutOf": "{score, number} / {total, number}"
   },
   "ieltsOpenings": {
     "crumb": "Openings",
