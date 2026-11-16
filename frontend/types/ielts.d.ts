@@ -106,7 +106,7 @@ interface IeltsMyAssignment {
   opens_at: string;
   closes_at: string;
   is_open: boolean;
-  attempts: Partial<Record<IeltsModule, { id: string; status: IeltsAttemptStatus; mode?: string | null; deadline: string; raw_score: number | null; band: number | null }>>;
+  attempts: Partial<Record<IeltsModule, { id: string; status: IeltsAttemptStatus; mode?: string | null; deadline: string; raw_score: number | null; raw_total?: number | null; band: number | null }>>;
 }
 
 /** A question as a student sees it; `key` and `marks` only after hand-in when answers may be shown. */
@@ -154,6 +154,8 @@ interface IeltsAttemptView {
     deadline: string;
     submitted_at: string | null;
     raw_score: number | null;
+    /** What the score is out of (40 in a full test). */
+    raw_total?: number | null;
     band: number | null;
     /** Writing, once marked: `{ tasks: [{ part_id, part_no, criteria, band, comment }] }`. */
     criteria?: Record<string, unknown> | null;
@@ -186,7 +188,7 @@ interface IeltsResultRow {
   student: { id: string; full_name: string };
   /** All four modules marked. */
   overall?: number | null;
-  modules: Partial<Record<IeltsModule, { attempt_id: string; status: IeltsAttemptStatus; mode?: string | null; raw_score: number | null; band: number | null; submitted_at: string | null }>>;
+  modules: Partial<Record<IeltsModule, { attempt_id: string; status: IeltsAttemptStatus; mode?: string | null; raw_score: number | null; raw_total?: number | null; band: number | null; submitted_at: string | null }>>;
 }
 
 /** `GET /ielts/marking` */
@@ -222,6 +224,7 @@ interface IeltsBandPoint {
   purpose: IeltsTestPurpose;
   band: number;
   raw_score: number | null;
+  raw_total?: number | null;
   at: string;
 }
 
@@ -255,7 +258,7 @@ interface IeltsBandReport {
   student: { id: string; full_name: string; batch: string | null };
   test: { id: string; title: string; test_type: IeltsTestType; purpose: IeltsTestPurpose };
   window: { opens_at: string; closes_at: string };
-  modules: Partial<Record<IeltsModule, { band: number | null; raw_score: number | null; status: string; criteria: Record<string, unknown> | null; feedback: string | null }>>;
+  modules: Partial<Record<IeltsModule, { band: number | null; raw_score: number | null; raw_total?: number | null; status: string; criteria: Record<string, unknown> | null; feedback: string | null }>>;
   overall: number | null;
   targets: { overall: number | null; bands: Partial<Record<IeltsModule, number>> };
   test_date: string | null;

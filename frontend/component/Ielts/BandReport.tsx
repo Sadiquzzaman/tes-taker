@@ -67,7 +67,7 @@ const BandReport = ({ assignmentId, studentId }: { assignmentId: string; student
               <tr key={m} className="border-b border-border">
                 <td className="py-2 text-ink">
                   {tt(`modulesShort.${m}`)}
-                  {row?.raw_score !== null && row?.raw_score !== undefined ? <span className="ms-2 text-ink-muted">{tk("outOf40", { score: row.raw_score })}</span> : null}
+                  {row?.raw_score !== null && row?.raw_score !== undefined ? <span className="ms-2 text-ink-muted">{tk("scoreOutOf", { score: row.raw_score, total: row.raw_total ?? 40 })}</span> : null}
                   {row && row.band === null ? <span className="ms-2 text-ink-muted">{t("notMarked")}</span> : null}
                 </td>
                 <td className="py-2 text-right font-semibold text-ink">{band(row?.band)}</td>

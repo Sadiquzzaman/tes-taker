@@ -234,7 +234,7 @@ const ResultsDrawer = ({ opening, modules, onClose }: { opening: IeltsAssignment
         t("waitingForMarks")
       );
     }
-    return `${format.number(a.band, { minimumFractionDigits: 1 })}${a.raw_score === null ? "" : ` (${format.number(a.raw_score)}/40)`}`;
+    return `${format.number(a.band, { minimumFractionDigits: 1 })}${a.raw_score === null ? "" : ` (${format.number(a.raw_score)}/${format.number(a.raw_total ?? 40)})`}`;
   };
   const columns: TableColumn<IeltsResultRow>[] = [
     {
