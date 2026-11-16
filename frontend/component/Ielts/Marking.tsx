@@ -72,7 +72,7 @@ export const MarkingList = () => {
   );
   return (
     <div className="flex flex-col gap-6 pb-8">
-      <PageHeader title={t("title")} description={t("description")} />
+      <PageHeader title={t("title")} description={module === "SPEAKING" ? t("descriptionSpeaking") : t("description")} />
       <Select
         label={t("module")}
         value={module}

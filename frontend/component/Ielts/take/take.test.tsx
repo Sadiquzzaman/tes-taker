@@ -168,6 +168,7 @@ describe("Taking an IELTS module (P10-04)", () => {
     get.mockReturnValue(ok(attempt({ module: "LISTENING", review_seconds: 120 }, { parts: [listening] })));
     renderApp(<IeltsAttemptScreen attemptId="at1" />);
     fireEvent.click(await screen.findByRole("button", { name: "Play the Part 1 recording" }));
+    expect(screen.getByRole("slider", { name: "Volume" })).toBeTruthy();
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
     expect(screen.getByText("Playing…")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Play the Part 1 recording" })).toBeNull();
@@ -186,6 +187,8 @@ describe("Taking an IELTS module (P10-04)", () => {
     get.mockReturnValue(ok(attempt({ status: "MARKED", raw_score: 0, band: 0 }, { parts: [reviewed], answers: { q2: "TRUE" } })));
     renderApp(<IeltsAttemptScreen attemptId="at1" />);
     expect(await screen.findByText(/Not right · right answer: FALSE/)).toBeTruthy();
+    // A right answer just says so.
+    expect(screen.queryByText(/^Right · /)).toBeNull();
   });
 
   it("asks for a computer or tablet for mocks on a phone", async () => {

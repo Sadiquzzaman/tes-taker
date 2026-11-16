@@ -5375,7 +5375,8 @@
     "noProfileHint": "Your teacher will add your test type, target bands and test date.",
     "daysToTest": "Days to the test",
     "progress": "Progress",
-    "progressFor": "Progress of {name}"
+    "progressFor": "Progress of {name}",
+    "targetsByModule": "Targets (L / R / W / S)"
   },
   "ieltsTests": {
     "pageTitle": "IELTS tests",
@@ -5648,7 +5649,6 @@
     "task": "Task",
     "yourAnswer": "Your answer",
     "answerFor": "Your answer to Task {no, number}",
-    "writeAtLeast": "Write at least {count, number} words.",
     "wordCount": "{count, plural, one {# word} other {# words}}",
     "underMinimum": "fewer than {count, number}",
     "handInEmptyTasks": "{count, plural, one {# task is} other {# tasks are}} empty. You cannot change your answers after handing in.",
@@ -5756,7 +5756,8 @@
       "SPEAKING": "Speaking"
     },
     "markSpeakingFor": "Mark {name}'s Speaking",
-    "captionSpeaking": "Speaking to mark"
+    "captionSpeaking": "Speaking to mark",
+    "descriptionSpeaking": "IELTS Speaking to mark: practice recordings handed in by students and live sessions. Give a band for each of the four criteria; the Speaking band is their average to the nearest half band."
   },
   "ieltsSpeaking": {
     "crumb": "Speaking",

@@ -5375,7 +5375,8 @@
     "noProfileHint": "আপনার শিক্ষক পরীক্ষার ধরন, লক্ষ্য ব্যান্ড ও তারিখ যোগ করবেন।",
     "daysToTest": "পরীক্ষার বাকি দিন",
     "progress": "অগ্রগতি",
-    "progressFor": "{name}-এর অগ্রগতি"
+    "progressFor": "{name}-এর অগ্রগতি",
+    "targetsByModule": "লক্ষ্য (লি / রি / রা / স্পি)"
   },
   "ieltsTests": {
     "pageTitle": "আইইএলটিএস টেস্ট",
@@ -5648,7 +5649,6 @@
     "task": "টাস্ক",
     "yourAnswer": "আপনার উত্তর",
     "answerFor": "টাস্ক {no, number}-এর উত্তর",
-    "writeAtLeast": "অন্তত {count, number}টি শব্দ লিখুন।",
     "wordCount": "{count, plural, other {#টি শব্দ}}",
     "underMinimum": "{count, number}টির কম",
     "handInEmptyTasks": "{count, plural, other {#টি টাস্ক}} খালি। জমা দেওয়ার পর উত্তর বদলানো যাবে না।",
@@ -5756,7 +5756,8 @@
       "SPEAKING": "স্পিকিং"
     },
     "markSpeakingFor": "{name}-এর স্পিকিংয়ে নম্বর দিন",
-    "captionSpeaking": "নম্বর দেওয়ার স্পিকিং"
+    "captionSpeaking": "নম্বর দেওয়ার স্পিকিং",
+    "descriptionSpeaking": "নম্বর দেওয়ার আইইএলটিএস স্পিকিং: শিক্ষার্থীদের জমা দেওয়া প্র্যাকটিস রেকর্ডিং ও সরাসরি সেশন। চারটি মানদণ্ডে ব্যান্ড দিন; স্পিকিং ব্যান্ড হলো এদের গড়, নিকটতম অর্ধ ব্যান্ডে।"
   },
   "ieltsSpeaking": {
     "crumb": "স্পিকিং",

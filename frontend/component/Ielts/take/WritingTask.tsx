@@ -32,7 +32,6 @@ const WritingTask = ({ part, value, onChange, readOnly = false }: { part: IeltsP
         {part.image_file_id ? (
           <Image src={`${BASE}/files/${part.image_file_id}/content`} alt={t("picture")} width={0} height={0} sizes="100vw" unoptimized className="h-auto max-h-96 w-auto self-start rounded-card border border-border" />
         ) : null}
-        <p className="text-body-sm text-ink-muted">{t("writeAtLeast", { count: min })}</p>
       </section>
       <section aria-label={t("yourAnswer")} className="flex min-h-0 flex-col gap-2 p-4">
         <textarea
