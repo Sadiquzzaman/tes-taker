@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LOCALE_COOKIE } from "@/i18n/config";
 import { readLocaleCookie } from "@/i18n/localeCookie";
-import { persistAuthSession } from "./authSession";
+import { clearAuthSession, persistAuthSession } from "./authSession";
 
 const post = vi.fn();
 const patch = vi.fn();
@@ -52,5 +52,39 @@ describe("language after sign-in", () => {
     await persistAuthSession(session("bn", "en"));
     await persistAuthSession(session(null, "en"));
     expect(patch).not.toHaveBeenCalled();
+  });
+});
+
+/** PM-01: logging out ends this device on the server, then clears the browser. */
+describe("logout", () => {
+  beforeEach(() => {
+    post.mockReset().mockResolvedValue({ status: 200 });
+    // jsdom cannot follow the redirect to /login and says so on the console.
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  it("signs this device out with its refresh token before clearing the session", async () => {
+    localStorage.setItem("user", JSON.stringify(session(null, null)));
+    await clearAuthSession();
+    expect(post).toHaveBeenNthCalledWith(1, expect.stringMatching(/\/auth\/logout$/), { refreshToken: "refresh" });
+    expect(post).toHaveBeenNthCalledWith(2, "/session/logout");
+    expect(localStorage.getItem("user")).toBeNull();
+  });
+
+  it("still clears the browser when the server cannot be reached or there is no token", async () => {
+    localStorage.setItem("user", JSON.stringify(session(null, null)));
+    post.mockRejectedValueOnce(new Error("offline"));
+    await clearAuthSession();
+    expect(localStorage.getItem("user")).toBeNull();
+
+    post.mockClear();
+    await clearAuthSession();
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenCalledWith("/session/logout");
   });
 });

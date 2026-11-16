@@ -11,6 +11,7 @@ import useFormat from "@/i18n/useFormat";
 import AccountBilling from "./AccountBilling";
 import NotificationPrefs from "@/component/Notifications/NotificationPrefs";
 import ChangePasswordForm from "./ChangePasswordForm";
+import SignedInDevices from "./SignedInDevices";
 import TeacherRequestPanel from "./TeacherRequestPanel";
 
 const InfoRow = ({ label, value }: { label: string; value: ReactNode }) => (
@@ -20,7 +21,7 @@ const InfoRow = ({ label, value }: { label: string; value: ReactNode }) => (
   </div>
 );
 
-/** The signed-in user's profile, teacher request or billing, level names (own workspace), and password. */
+/** The signed-in user's profile, teacher request or billing, level names (own workspace), password and signed-in devices. */
 const ProfileView = () => {
   const t = useTranslations("account");
   const format = useFormat();
@@ -98,6 +99,8 @@ const ProfileView = () => {
       <NotificationPrefs />
 
       <ChangePasswordForm />
+
+      <SignedInDevices />
     </div>
   );
 };
