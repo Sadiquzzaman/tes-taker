@@ -10,7 +10,7 @@ This document is the technical design for the [Feature Specification v1](https:/
 | --- | --- | --- |
 | Architecture | **Modular monolith** (one NestJS API) + **one worker process** + **ZKTeco sync agent** | Small team; module boundaries give the option to split later without the cost of microservices now |
 | Web | Next.js (existing), App Router | Already built |
-| Mobile | **Flutter** app on the same REST API, token login | Team decision. Device-only features: GPS + selfie check-in, push, offline class attendance |
+| Mobile | **Flutter** app on the same REST API, token login | Team decision. Device-only features: GPS check-in and push. *(Superseded 5 Nov / 17 Nov 2026: check-in is the same class-based endpoint on web and app, with no selfie; no offline attendance; see `docs/mobile/api.md`.)* |
 | API | NestJS 11, REST `/api/v1`, Socket.IO for real-time | Existing |
 | Background jobs | **BullMQ** queues on Redis, run by a separate worker process (same codebase, different entry point) | Scheduled jobs (11:59 PM absence, reminders) and heavy jobs (AI, PDFs, video) must not block the API |
 | Main database | **PostgreSQL** (RDS) | Source of truth for everything except chat |
@@ -216,11 +216,11 @@ All jobs run in the worker on BullMQ.
 | Client | Login | Session |
 | --- | --- | --- |
 | Web | Phone/email + password, OTP, Google (existing) | httpOnly cookies set by the Next.js `/session/*` proxy (existing) |
-| Flutter | Same endpoints | Access JWT for 15 min + rotating refresh token for 30 days, one per device, stored hashed in `refresh_tokens` and in secure storage on the phone |
+| Flutter | Same endpoints | Access JWT for 30 min (as the web; the 15 min planned here was not built) + rotating refresh token for 30 days, one per device, stored hashed in `refresh_tokens` (built in PM-01) and in secure storage on the phone |
 | ZKTeco agent | Device API key | `Authorization: Device <key>`; only hashes are stored |
 
 - **JWT claims:** `sub`, `role`, `sid` (session id), `ver` (token version, bumped to log out everywhere).
-- **Organisation is not in the JWT.** It comes from the header, so switching workspace needs no new token.
+- **Organisation is not in the JWT.** It comes from the header, so switching workspace needs no new token. *(Superseded: as built, `POST /auth/select-context` issues a new token carrying `organization_id`, `member_role` and `session_mode`; `X-Organization-Id` must match it or the API answers 403, and personal sessions ignore the header. See `OrganizationContextGuard` and `docs/mobile/api.md` §4.)*
 - **Built in PM-01 (decided 17 Nov 2026, signed-in devices):** `refresh_tokens` (user module, migration `1756510000000-RefreshTokens`) has a row per signed-in device: SHA-256 of its refresh token, the token it replaced and when, platform (WEB, ANDROID, IOS; the app sends `device` at login and refresh, the web is named from its User-Agent), last use, expiry (30 days from the last refresh) and when and why it was signed out; rows are never deleted. Login (password, organisation, Google) adds a device; refresh and select-context rotate the same row (`RefreshTokensService.issue` with the JWT's new `sid` claim). A replaced token is accepted for 60 s (two tabs refreshing at once); used later it signs that device out (`REUSED`). `POST /auth/logout`, `GET /auth/sessions`, `DELETE /auth/sessions/:id`, `POST /auth/sessions/revoke-others`; a password change signs out the other devices and a reset all of them (audit `user.sign_out_devices`). A token still in `users.refresh_token` (before PM-01) works once and moves into a device row; the column is no longer written and is dropped only with the owner's approval (P11-04). Owner decisions: the access token is not checked per request, so it keeps working up to 30 minutes after a sign-out; revoked and expired rows are kept. `ver` (token version) is not used.
 - **Fixes from the review:**
   - The rate limiter keys on the **verified** user id, or on IP + identifier for login, OTP and reset.
@@ -249,7 +249,7 @@ All jobs run in the worker on BullMQ.
 
 - Socket.IO with `@socket.io/redis-adapter`, authenticated with the JWT in the handshake. The ALB uses sticky sessions for the WebSocket upgrade.
 - **Namespaces:**
-  - `/proctoring`: rooms `exam:{id}:monitors` and `exam:{id}:student:{sid}`.
+  - `/proctoring`: rooms `exam:{id}:monitors` and `exam:{id}:student:{sid}`. *(As built in P8, proctoring uses the default namespace with these rooms.)*
   - `/chat`: rooms `group:{id}` and `dm:{conversationId}`.
   - `/notify`: room `user:{id}`, used for the bell and live dashboard counters.
 - Push (FCM) is used when the user has no open socket.
