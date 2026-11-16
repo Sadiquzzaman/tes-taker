@@ -29,6 +29,7 @@ import { IntegrityModule } from './integrity/integrity.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
+import { AppVersionModule } from './app-version/app-version.module';
 import { StorageModule } from './storage/storage.module';
 import { TeacherRequestModule } from './teacher-requests/teacher-request.module';
 import { OrganizationsModule } from './organizations/organization.module';
@@ -109,6 +110,7 @@ import { CalendarFeedModule } from './calendar-feed/calendar-feed.module';
     PaymentModule,
     DashboardModule,
     HealthModule,
+    AppVersionModule,
     StorageModule,
     TeacherRequestModule,
     OrganizationsModule,

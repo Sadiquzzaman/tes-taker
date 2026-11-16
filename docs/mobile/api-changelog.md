@@ -2,6 +2,11 @@
 
 Newest first. Each entry: the date it reached beta, the PR, what changed, and what the app should do. Only additions; nothing here removes or renames a field (see [api.md](api.md) §10).
 
+## 2026-11-17 — version check and API description (PM-03, PM-05)
+
+- `GET /app/version?platform=ANDROID|IOS&current=<version>` (no sign-in). Call it at start-up: `update: REQUIRED` means show an "Update the app" screen and stop; `OPTIONAL` means suggest it. Nothing is set on beta yet, so every version is fine.
+- [openapi.json](openapi.json): every endpoint, request and answer as OpenAPI 3. It is refreshed with every release.
+
 ## 2026-11-17 — answers to the app's first questions
 
 No API change. [api.md](api.md) now states:

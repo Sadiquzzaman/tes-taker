@@ -334,6 +334,8 @@ The Flutter app (Android and iOS, one codebase) is built by a separate Claude Co
 
 **Needs from the owner:** a Firebase project (free) for push, made with the company's Google account, before PM-04.
 
+**Status (17 Nov 2026):** PM-01 built (#324–#326), PM-03 and PM-05 built. PM-02 (Google sign-in from the app) and PM-04 (push) wait until the app work resumes (owner, 17 Nov).
+
 ### P12 — IELTS reformation: branches, courses and live classes (planned 16 Nov 2026)
 
 Decided by the owner on 16 Nov 2026 (spec Epic 11 "Decisions (16 Nov 2026)", FND-06, IEL-11–16; design §9.10 "IELTS reformation"). **Built before P11**, which waits for the partnership deed and the live SSLCommerz credentials. Each package ships as small PRs (server, then screen); the order puts what everything else needs first and video last.
