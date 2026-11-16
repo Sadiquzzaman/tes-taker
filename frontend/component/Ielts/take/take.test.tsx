@@ -17,7 +17,7 @@ const later = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISO
 
 const opening = (extra: Partial<IeltsMyAssignment> = {}): IeltsMyAssignment => ({
   id: "as1",
-  test: { id: "t1", title: "Mock 3", purpose: "MOCK", test_type: "ACADEMIC", modules: ["LISTENING", "READING", "WRITING"], durations: { LISTENING: 1800, READING: 3600, WRITING: 3600 } },
+  test: { id: "t1", title: "Mock 3", purpose: "MOCK", test_type: "ACADEMIC", modules: ["LISTENING", "READING", "WRITING", "SPEAKING"], durations: { LISTENING: 1800, READING: 3600, WRITING: 3600, SPEAKING: 840 } },
   opens_at: later(-60),
   closes_at: later(60),
   is_open: true,
@@ -94,6 +94,7 @@ describe("My IELTS tests (P10-04)", () => {
     renderApp(<MyIeltsTests />);
     const card = within(await screen.findByRole("region", { name: "Mock 3" }));
     expect(card.getAllByText("After the module before")).toHaveLength(2); // Reading and Writing wait for Listening
+    expect(card.getByText("With your teacher")).toBeTruthy(); // a mock's Speaking is the examiner's live session
     fireEvent.click(card.getByRole("button", { name: "Start" }));
     const dialog = within(await screen.findByRole("dialog", { name: "Start Listening?" }));
     expect(dialog.getByText(/32 minutes/)).toBeTruthy();

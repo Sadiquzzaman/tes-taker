@@ -36,6 +36,8 @@ export const IELTS_ERRORS = {
   ATTEMPT_NOT_FOUND: 'IELTS_ATTEMPT_NOT_FOUND',
   /** The module was handed in (or its time ran out). */
   ATTEMPT_DONE: 'IELTS_ATTEMPT_DONE',
+  /** A mock's Speaking is the live session with the examiner; students do not start it. */
+  SPEAKING_WITH_EXAMINER: 'IELTS_SPEAKING_WITH_EXAMINER',
   /** An answer is for a question that is not in the attempt's module. */
   ANSWER_INVALID: 'IELTS_ANSWER_INVALID',
   /** Marks need every task, each criterion 0–9 in half bands. */

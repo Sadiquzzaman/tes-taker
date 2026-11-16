@@ -69,6 +69,8 @@ const MyIeltsTests = () => {
       );
     }
     if (!ON_SCREEN.includes(module)) return <span className="text-body-sm text-ink-muted">{t("notOnScreenYet")}</span>;
+    // A mock's Speaking is the live session with the examiner, not on screen.
+    if (module === "SPEAKING" && row.test.purpose === "MOCK") return <span className="text-body-sm text-ink-muted">{t("withTeacher")}</span>;
     if (!row.is_open) return <span className="text-body-sm text-ink-muted">{t("notOpen")}</span>;
     if (waiting(row, module)) return <span className="text-body-sm text-ink-muted">{t("afterPrevious")}</span>;
     return (
