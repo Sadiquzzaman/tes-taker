@@ -1,0 +1,98 @@
+# Instructor API — guide for the mobile app
+
+For the Flutter app in [Sadiquzzaman/instructor-app](https://github.com/Sadiquzzaman/instructor-app). This file is the contract between the two repositories: the backend keeps it true, and every change is listed in [api-changelog.md](api-changelog.md). Story IDs (ATT-03, IEL-07, …) refer to [docs/spec.md](../spec.md); the architecture is in [docs/design.md](../design.md).
+
+## 1. Where the API is
+
+| Environment | Base URL | Notes |
+| --- | --- | --- |
+| Beta | `https://api-beta.instructor.academy/api/v1` | Deployed from `develop`. Test accounts are created by `backend/src/user/test-users.seed.ts`. Use them only; never real people's data |
+| Production | not live yet | Comes with P11 |
+| Local | `http://localhost:<PORT>/api/v1` | Run the backend from this repository; Swagger UI is at `/apidoc` there (it is off on beta and production) |
+
+**Every endpoint** is a NestJS controller in `backend/src/**/**.controller.ts`, with its request DTOs in the module's `dto/` folder and Swagger decorators describing bodies and answers. Read the controller before using an endpoint; the web app's use of it (`frontend/`) is a working example.
+
+## 2. Requests and answers
+
+- JSON in and out (`Content-Type: application/json`), except file uploads (§6).
+- **Success:** `{ "statusCode": 200, "message": "…", "payload": …, "meta": …, "error": false }`. The data is always in `payload`; lists that page carry `meta: { page, limit, total, total_pages }` and take `?page=&limit=`.
+- **Error:** `{ "statusCode": 4xx, "error": true, "timestamp": "…", "path": "…", "message": "…" | ["…"], "code"?: "…", "feature"?: "…", "limit"?: "…", "details"?: … }`.
+  - `message` is English and meant for logs; it is an array for validation errors.
+  - **Act on `code`, not on `message`.** Codes are stable (for example `FEATURE_NOT_IN_PLAN`, `PLAN_LIMIT_REACHED`, `IELTS_NOT_OPEN`, `COURSE_FULL`); the app shows its own Bangla or English text for each.
+- **Times** are ISO 8601 in UTC (`timestamptz`). **School days** are plain dates (`YYYY-MM-DD`) in the organisation's time zone (default `Asia/Dhaka`). Show times in the organisation's time zone, not the phone's.
+- **IDs** are UUIDs.
+
+## 3. Signing in
+
+1. **Sign up** (students and teachers): `POST /auth/register`, then `POST /auth/register/verify-otp` with the SMS code. Organisations: `POST /auth/register/organization`, then the same OTP step.
+2. **Log in:** `POST /auth/login` with `{ phone | email, password }`. The answer's `payload` is the user with `access_token` (a JWT, **30 minutes**) and `refresh_token` (**30 days**).
+3. **Choose a workspace:** `GET /auth/contexts` lists where the user can work (organisations they belong to, their own teaching workspace, the teachers they learn from). `POST /auth/select-context` with `{ type: "organization", organization_id }` (or `personal_teacher`, or `individual_teacher` with `teacher_id`) returns new tokens for that workspace; the JWT then carries `organization_id`, `member_role` and `session_mode`. The web's `/select-context` page is the model.
+4. **Every request:** `Authorization: Bearer <access_token>`, and in an organisation workspace also `X-Organization-Id: <organization id>` (the web does both; see `frontend/lib/axios.ts`).
+5. **Refresh:** on a 401, call `POST /auth/refresh` with `{ refreshToken, organization_id? }` once (pass `organization_id` to stay in the organisation workspace), store the new pair, and retry. If refresh fails, sign out.
+6. **Other:** `POST /auth/forgot-password` → `reset-password/verify-otp` → `reset-password`; `POST /auth/change-password`; `GET /auth/profile`.
+
+**Store tokens in secure storage** (Keychain / Keystore), never in plain preferences or logs.
+
+**Known limits until the mobile server work ships (see §9):**
+
+- A user has **one** refresh token, so logging in on the phone ends the web's refresh and the other way round (each still works until its access token expires).
+- **Google sign-in** works only as the web redirect flow; the app needs a native flow (an ID-token endpoint).
+- There is no push and no app version check yet.
+
+## 4. Workspace, plan and labels
+
+- `GET /workspace/type` → `kind` (SCHOOL, COACHING, IELTS_CENTRE, SOLO) and `workspace_type` (ACADEMIC or IELTS). Build the menu from it: IELTS workspaces never show academic pages (spec Epic 11, IEL-12).
+- `GET /workspace/level-labels` → the organisation's words for class and section (for example Course / Batch) in Bangla and English (FND-03). Use them wherever the web does.
+- `GET /me/entitlements` → the plan's features and limits for this workspace. Hide what is switched off. When an action still answers 403 with `code: FEATURE_NOT_IN_PLAN` or `PLAN_LIMIT_REACHED`, show the locked-feature message: owners and admins "This feature is one upgrade away — unlock it today!", everyone else "Ask your admin to unlock this." (design §8.3).
+- **Roles:** the user's `role` (STUDENT, TEACHER, ADMIN, SUPER_ADMIN) and, in an organisation, `member_role` (OWNER, ADMIN, ASSISTANT, TEACHER, STUDENT; BRANCH_MANAGER comes with P12). The web's side menu (`frontend/utils/sidebarList.tsx`) lists which role sees which page.
+
+## 5. Language
+
+All user-facing text is in Bangla and English, chosen by the user. The web's wording is in `frontend/messages/en.json` and `bn.json`; reuse it so both apps say the same thing. Server-made text (SMS, PDFs) follows the organisation's settings, not the app.
+
+## 6. Files
+
+1. `POST /files/presign` with `{ purpose, mime, size, name?, scope_id? }` (`backend/src/files/dto`). Purposes: `IMAGE`, `DISCUSSION`, `HOMEWORK`, `RESOURCE`, `LEAVE`, `IELTS`, `EXAM` (`backend/src/files/file-rules.ts` lists the types and sizes; up to 20 MB). The answer has the file `id`, the link to `PUT` the bytes to, and `storage.warning` (true from 90% of the quota).
+2. `PUT` the file there with its `Content-Type`.
+3. `POST /files/:id/complete`. Then send the file `id` to the feature that uses it (homework hand-in, chat message, leave request…).
+4. **Showing a file:** `GET /files/:id/content` redirects to a link valid for 1 hour. Do not cache the redirect target.
+
+Over the storage quota answers 403 `PLAN_LIMIT_REACHED` (`limit: max_storage_mb`).
+
+## 7. Real time
+
+Socket.IO on the API host:
+
+- `/chat`: group and private chat (P9).
+- The default namespace: live proctoring of tests (P8).
+
+Authenticate in the handshake with `auth: { token: <access_token> }`. Reconnect with a fresh token after a refresh. The web's `frontend/component/Chat` shows the events.
+
+## 8. Rules the app must keep
+
+- Never trust or invent an organisation id: use only ids the API gave you, and send `X-Organization-Id` only in an organisation workspace.
+- Never cache another workspace's data after switching; clear it.
+- Never log tokens, passwords, OTPs or phone numbers.
+- Do not call endpoints the web does not use without asking first (§10). Some are old and are being removed.
+
+## 9. Server work planned for the app (Mobile support, plan.md)
+
+| Item | What the app gets |
+| --- | --- |
+| Device sign-in | A refresh token per device (30 days, rotating), sign out this device, sign out everywhere; the web and the app stop logging each other out |
+| Google sign-in for apps | `POST /auth/google/token` with the Google ID token from the native sign-in |
+| Push notifications | `POST /me/devices` (FCM token, platform, app version) and `DELETE /me/devices/:id`; the notification outbox sends push as a channel |
+| App version check | `GET /app/version?platform=android|ios` → minimum and latest version; below the minimum the app asks to update |
+| API description | `docs/mobile/openapi.json`, generated from the Swagger decorators on every release |
+
+Each item is listed in [api-changelog.md](api-changelog.md) when it reaches beta.
+
+## 10. Asking for a change
+
+The mobile app never changes this repository. When it needs something the API does not have, or finds a server bug:
+
+1. Open an issue in [Sadiquzzaman/tes-taker](https://github.com/Sadiquzzaman/tes-taker/issues) with the label **`mobile-api`**.
+2. Say which screen needs it, what the app sends, what it expects back (field names and types), and any error codes it must handle.
+3. The backend builds it as a normal PR into `develop`, comments on the issue with the PR and the changelog entry, and closes the issue once it is on beta.
+
+**Changes never break the app:** fields are added, not renamed or removed. A breaking change would need a new path (`/api/v2/…`) and a deprecation period, agreed with the owner first.
