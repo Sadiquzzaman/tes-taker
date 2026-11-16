@@ -60,6 +60,12 @@ describe("Plagiarism checks (PLG-01–03)", () => {
     await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/integrity\/checks$/), { scope_type: "HOMEWORK", scope_id: "h1" }));
   });
 
+  it("links IELTS matches back to the IELTS menu", async () => {
+    renderApp(<SimilarityReport scopeType="IELTS_WRITING" scopeId="a1" back={{ href: "/ielts/tests", label: "Back" }} />);
+    const table = within(await screen.findByRole("table", { name: "Submissions and their similarity" }));
+    expect(table.getAllByRole("link", { name: "Compare Ana with Bina" })[0].getAttribute("href")).toBe("/integrity/matches/m1?from=ielts");
+  });
+
   it("shows both texts with the shared passages marked and saves the review", async () => {
     renderApp(<MatchReview matchId="m1" />);
     const ana = within(await screen.findByRole("region", { name: "Text of Ana" }));

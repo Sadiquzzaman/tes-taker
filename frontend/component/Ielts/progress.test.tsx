@@ -38,8 +38,8 @@ beforeEach(() => {
         modules: {
           LISTENING: { band: 7.5, raw_score: 32, status: "MARKED", criteria: null, feedback: null },
           READING: { band: 7, raw_score: 30, status: "MARKED", criteria: null, feedback: null },
-          WRITING: { band: 6, raw_score: null, status: "MARKED", criteria: { tasks: [{ part_no: 2, band: 6, criteria: { TR: 6, CC: 6, LR: 6, GRA: 6 }, comment: "Plan first." }] }, feedback: "Good work." },
-          SPEAKING: { band: 6.5, raw_score: null, status: "MARKED", criteria: { speaking: { FC: 6.5, LR: 6.5, GRA: 6, P: 7 } }, feedback: null },
+          WRITING: { band: 6, raw_score: null, status: "MARKED", criteria: { tasks: [{ part_no: 2, band: 6, criteria: { CC: 6, LR: 6, TR: 6, GRA: 6 }, comment: "Plan first." }] }, feedback: "Good work." },
+          SPEAKING: { band: 6.5, raw_score: null, status: "MARKED", criteria: { speaking: { P: 7, FC: 6.5, LR: 6.5, GRA: 6 } }, feedback: null },
         },
         overall: 7,
         targets: { overall: 7, bands: { WRITING: 6.5 } },
@@ -88,6 +88,9 @@ describe("IELTS overview, progress and band report (P10-07)", () => {
     expect(report.getByText("Plan first.")).toBeTruthy();
     expect(report.getByText("Good work.")).toBeTruthy();
     expect(report.getByText(/Pronunciation 7.0/)).toBeTruthy();
+    // Criteria in the official order, whatever order they were stored in.
+    expect(report.getByText(/^Task Response 6.0 · Coherence and Cohesion/)).toBeTruthy();
+    expect(report.getByText(/^Fluency and Coherence 6.5 ·.*Pronunciation 7.0$/)).toBeTruthy();
     fireEvent.click(report.getByRole("button", { name: "Print" }));
     expect(print).toHaveBeenCalled();
   });

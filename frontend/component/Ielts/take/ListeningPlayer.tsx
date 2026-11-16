@@ -82,7 +82,7 @@ const ListeningPlayer = ({ attemptId, part }: { attemptId: string; part: IeltsPa
       <progress className="h-2 flex-1" max={100} value={state === "done" ? 100 : progress} aria-label={t("recordingProgress")} />
       <label className="flex items-center gap-2 text-body-sm text-ink">
         {t("volume")}
-        <input type="range" min={0} max={1} step={0.1} value={volume} onChange={(e) => setVolume(Number(e.target.value))} />
+        <input type="range" aria-label={t("volume")} min={0} max={1} step={0.1} value={volume} onChange={(e) => setVolume(Number(e.target.value))} />
       </label>
     </div>
   );

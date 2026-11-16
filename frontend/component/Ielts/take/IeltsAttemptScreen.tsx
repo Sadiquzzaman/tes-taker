@@ -11,6 +11,7 @@ import WritingTask, { essayWords } from "./WritingTask";
 import SpeakingPart from "../speaking/SpeakingPart";
 import axiosReq from "@/lib/axios";
 import useIeltsAttempt from "./useIeltsAttempt";
+import { orderedCriteria } from "../groupTypes";
 
 /** Mocks need a computer or a tablet (the owner's decision, 15 Nov 2026). */
 const MIN_MOCK_WIDTH = 768;
@@ -284,7 +285,7 @@ const WritingResult = ({ view, answers }: { view: IeltsAttemptView; answers: Rec
               <div className="mb-3 flex flex-col gap-1">
                 <p className="text-body-sm font-medium text-ink">{t("taskBand", { band: band(m.band) })}</p>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-body-sm sm:grid-cols-4">
-                  {Object.entries(m.criteria).map(([key, value]) => (
+                  {orderedCriteria(m.criteria).map(([key, value]) => (
                     <div key={key}>
                       <dt className="text-ink-muted">{t(`criteria.${key}` as "criteria.CC")}</dt>
                       <dd className="font-medium text-ink">{band(value)}</dd>
@@ -315,7 +316,7 @@ const SpeakingResult = ({ view }: { view: IeltsAttemptView }) => {
       {criteria ? (
         <Card>
           <dl className="grid grid-cols-2 gap-3 text-body-sm sm:grid-cols-4">
-            {Object.entries(criteria).map(([key, value]) => (
+            {orderedCriteria(criteria).map(([key, value]) => (
               <div key={key}>
                 <dt className="text-ink-muted">{t(`criteria.${key}` as "criteria.CC")}</dt>
                 <dd className="font-medium text-ink">{band(value)}</dd>
