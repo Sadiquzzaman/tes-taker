@@ -5,6 +5,7 @@ import useApiData from "@/component/Homework/useApiData";
 import { Button, Card, ErrorState, Skeleton } from "@/design/ui";
 import useFormat from "@/i18n/useFormat";
 import { IELTS_MODULES } from "./bands";
+import { orderedCriteria } from "./groupTypes";
 
 type TaskMarks = { part_no: number; band: number; criteria?: Record<string, number>; comment?: string | null };
 
@@ -30,7 +31,7 @@ const BandReport = ({ assignmentId, studentId }: { assignmentId: string; student
   const band = (value: number | null | undefined) => (value === null || value === undefined ? "—" : format.number(value, { minimumFractionDigits: 1 }));
   const modules = IELTS_MODULES.filter((m) => data.modules[m]);
   const criteriaRow = (criteria: Record<string, number>) =>
-    Object.entries(criteria)
+    orderedCriteria(criteria)
       .map(([k, v]) => `${tk(`criteria.${k}` as "criteria.CC")} ${band(v)}`)
       .join(" · ");
 
@@ -67,7 +68,7 @@ const BandReport = ({ assignmentId, studentId }: { assignmentId: string; student
               <tr key={m} className="border-b border-border">
                 <td className="py-2 text-ink">
                   {tt(`modulesShort.${m}`)}
-                  {row?.raw_score !== null && row?.raw_score !== undefined ? <span className="ms-2 text-ink-muted">{tk("outOf40", { score: row.raw_score })}</span> : null}
+                  {row?.raw_score !== null && row?.raw_score !== undefined ? <span className="ms-2 text-ink-muted">{tk("scoreOutOf", { score: row.raw_score, total: row.raw_total ?? 40 })}</span> : null}
                   {row && row.band === null ? <span className="ms-2 text-ink-muted">{t("notMarked")}</span> : null}
                 </td>
                 <td className="py-2 text-right font-semibold text-ink">{band(row?.band)}</td>

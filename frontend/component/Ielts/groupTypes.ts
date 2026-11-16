@@ -46,3 +46,10 @@ export const nextKey = (keys: string[]) => {
   }
   return "";
 };
+
+/** The official order of the marking criteria (Writing: TA or TR, CC, LR, GRA; Speaking: FC, LR, GRA, P). */
+const CRITERIA_ORDER = ["TA", "TR", "FC", "CC", "LR", "GRA", "P"];
+
+/** Criteria in the official order (the database may keep them in any order). */
+export const orderedCriteria = (criteria: Record<string, number>): [string, number][] =>
+  Object.entries(criteria).sort(([a], [b]) => CRITERIA_ORDER.indexOf(a) - CRITERIA_ORDER.indexOf(b));

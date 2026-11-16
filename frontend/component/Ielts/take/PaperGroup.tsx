@@ -43,7 +43,7 @@ const PaperGroup = ({ group, answers, onAnswer, readOnly, flagged, onFlag }: Pap
   const review = (q: IeltsPaperQuestion) =>
     q.key ? (
       <span className={cn("text-body-sm", (q.marks ?? 0) > 0 ? "text-success" : "text-danger")}>
-        {(q.marks ?? 0) > 0 ? t("right") : t("wrong")} · {t("rightAnswer", { answer: "keys" in q.key ? q.key.keys.join(", ") : q.key.accepted.join(" / ") })}
+        {(q.marks ?? 0) > 0 ? t("right") : `${t("wrong")} · ${t("rightAnswer", { answer: "keys" in q.key ? q.key.keys.join(", ") : q.key.accepted.join(" / ") })}`}
       </span>
     ) : null;
 
@@ -122,7 +122,8 @@ const PaperGroup = ({ group, answers, onAnswer, readOnly, flagged, onFlag }: Pap
     );
   };
 
-  const flag = (q: IeltsPaperQuestion) =>
+  /** The flag for review; inside a sentence (a gap) it is a small ⚑ so the sentence still reads. */
+  const flag = (q: IeltsPaperQuestion, inline = false) =>
     readOnly ? null : (
       <button
         type="button"
@@ -131,7 +132,7 @@ const PaperGroup = ({ group, answers, onAnswer, readOnly, flagged, onFlag }: Pap
         aria-label={t("flagLabel", { number: numberLabel(q) })}
         onClick={() => onFlag(q.id)}
       >
-        {flagged.has(q.id) ? t("flagged") : t("flag")}
+        {inline ? "⚑" : flagged.has(q.id) ? t("flagged") : t("flag")}
       </button>
     );
 
@@ -165,7 +166,7 @@ const PaperGroup = ({ group, answers, onAnswer, readOnly, flagged, onFlag }: Pap
               <span key={i} id={questionAnchor(q.number_from)} className="inline-flex items-center">
                 <strong className="text-xs">{format.number(q.number_from)}</strong>
                 {control(q, true)}
-                {flag(q)}
+                {flag(q, true)}
               </span>
             );
           })}

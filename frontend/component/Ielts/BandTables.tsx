@@ -39,7 +39,7 @@ const BandTables = () => {
       ) : tables.length === 0 ? (
         <EmptyState title={t("loadFailed")} />
       ) : (
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 2xl:grid-cols-3">
           {tables.map((table) => (
             <BandTableCard key={tableKey(table)} table={table} canEdit={canEdit} onChanged={reload} />
           ))}

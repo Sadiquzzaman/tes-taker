@@ -3,6 +3,7 @@ import { RolesEnum } from '../../src/common/enums/roles.enum';
 import { FileObjectEntity } from '../../src/files/entities/file-object.entity';
 import { FilePurposeEnum, FileStatusEnum } from '../../src/files/file-rules';
 import { IeltsAttemptEntity } from '../../src/ielts/entities/ielts-attempt.entity';
+import { IeltsPracticeBands1756500000000 } from '../../src/migrations/1756500000000-IeltsPracticeBands';
 import { OrganizationEntity } from '../../src/organizations/entities/organization.entity';
 import { OrganizationKindEnum } from '../../src/organizations/enums/organization-kind.enum';
 import { OrganizationMemberRoleEnum } from '../../src/organizations/enums/organization-member-role.enum';
@@ -15,7 +16,7 @@ type Body<T> = { payload: T; code?: string; message?: string };
 type Question = { id: string; number_from: number; prompt: string | null; answer?: unknown; key?: unknown; marks?: number };
 type Part = { id: string; module: string; part_no: number; groups: { type: string; questions: Question[] }[] };
 type Test = { id: string; parts: Part[] };
-type Attempt = { attempt: { id: string; status: string; raw_score: number | null; band: number | null; deadline: string; review_seconds: number }; parts: Part[] | null; answers: Record<string, string> };
+type Attempt = { attempt: { id: string; status: string; raw_score: number | null; raw_total?: number | null; band: number | null; deadline: string; review_seconds: number }; parts: Part[] | null; answers: Record<string, string> };
 type Mine = { id: string; is_open: boolean; test: { title: string }; attempts: Record<string, { status: string; band: number | null }> };
 
 /**
@@ -157,8 +158,8 @@ describe('IELTS openings and attempts', () => {
     expect((await call('PUT', `/ielts/my/attempts/${attempt.id}/answers`, s.rafiToken, { answers: [] })).body.code).toBe('IELTS_ATTEMPT_NOT_FOUND');
 
     const submitted = await call<Attempt>('POST', `/ielts/my/attempts/${attempt.id}/submit`, s.mituToken, { answers: [{ question_id: multi.id, answer: 'D,B' }, { question_id: tfng.id, answer: 'TRUE' }] });
-    // a1 right, a2 wrong, B and D right (2), TFNG wrong: 3 of 40 → the default Academic table gives 2.
-    expect(submitted.body.payload.attempt).toMatchObject({ status: 'MARKED', raw_score: 3, band: 2 });
+    // a1 right, a2 wrong, B and D right (2), TFNG wrong: 3 of the set's 5 numbers, scaled to 24 of 40 → band 6.
+    expect(submitted.body.payload.attempt).toMatchObject({ status: 'MARKED', raw_score: 3, raw_total: 5, band: 6 });
     // A practice set shows the right answers after hand-in.
     const reviewed = (submitted.body.payload.parts ?? []).flatMap((p) => p.groups.flatMap((g) => g.questions));
     expect(reviewed.map((q) => q.marks)).toEqual([1, 0, 2, 0]);
@@ -167,10 +168,18 @@ describe('IELTS openings and attempts', () => {
     expect((await call('POST', `/ielts/my/assignments/${opening.id}/modules/READING/start`, s.mituToken)).body.code).toBe('IELTS_ATTEMPT_DONE');
     expect((await call('PUT', `/ielts/my/attempts/${attempt.id}/answers`, s.mituToken, { answers: [] })).body.code).toBe('IELTS_ATTEMPT_DONE');
 
-    const results = (await call<{ student: { full_name: string }; modules: Record<string, { band: number; raw_score: number }> }[]>('GET', `/ielts/assignments/${opening.id}/results`, s.ownerToken)).body.payload;
+    const results = (await call<{ student: { full_name: string }; modules: Record<string, { band: number; raw_score: number; raw_total: number }> }[]>('GET', `/ielts/assignments/${opening.id}/results`, s.ownerToken)).body.payload;
     expect(results.map((r) => [r.student.full_name, r.modules.READING?.raw_score ?? null])).toEqual([['Mitu', 3], ['Rafi', null]]);
+    expect(results[0].modules.READING).toMatchObject({ raw_total: 5, band: 6 });
+
+    // Bands marked before this fix (as if out of 40) are corrected by the IeltsPracticeBands migration.
+    await t.dataSource.query(`UPDATE ielts_attempts SET band = 2 WHERE id = $1`, [attempt.id]);
+    const runner = t.dataSource.createQueryRunner();
+    await new IeltsPracticeBands1756500000000().up(runner);
+    await runner.release();
+    expect((await t.dataSource.getRepository(IeltsAttemptEntity).findOneByOrFail({ id: attempt.id })).band).toBe('6.0');
     const listed = (await call<Mine[]>('GET', '/ielts/my/assignments', s.mituToken)).body.payload;
-    expect(listed[0].attempts.READING).toMatchObject({ status: 'MARKED', band: 2 });
+    expect(listed[0].attempts.READING).toMatchObject({ status: 'MARKED', raw_total: 5, band: 6 });
   });
 
   it('runs a mock in order, only while open, and hands in when time runs out', async () => {
@@ -192,6 +201,7 @@ describe('IELTS openings and attempts', () => {
 
     const opening = (await open(s, mock.id)).body.payload;
     expect((await call('POST', `/ielts/my/assignments/${opening.id}/modules/READING/start`, s.mituToken)).body.code).toBe('IELTS_MODULE_ORDER');
+    // Not in this mock; and a mock's Speaking is never started by the student.
     expect((await call('POST', `/ielts/my/assignments/${opening.id}/modules/SPEAKING/start`, s.mituToken)).body.code).toBe('IELTS_MODULE_NOT_READY');
     const listening = (await call<Attempt>('POST', `/ielts/my/assignments/${opening.id}/modules/LISTENING/start`, s.mituToken)).body.payload;
     expect(listening.attempt.review_seconds).toBe(120);

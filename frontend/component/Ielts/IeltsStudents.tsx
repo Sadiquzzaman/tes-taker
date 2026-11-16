@@ -31,11 +31,25 @@ const IeltsStudents = () => {
     { key: "batch", header: t("batch"), cell: (r) => r.student.batch ?? "—", sortValue: (r) => r.student.batch ?? "" },
     { key: "type", header: t("testType"), cell: (r) => (r.test_type ? t(`types.${r.test_type}`) : "—") },
     { key: "overall", header: t("targetOverall"), align: "right", cell: (r) => band(r.target_overall), sortValue: (r) => r.target_overall },
-    ...IELTS_MODULES.map((m) => ({ key: m, header: t(`modules.${m}`), align: "right" as const, hideOnMobile: true, cell: (r: IeltsProfile) => band(r.target_bands[m]) })),
+    {
+      key: "modules",
+      header: t("targetsByModule"),
+      hideOnMobile: true,
+      // One compact column (Listening / Reading / Writing / Speaking) keeps the table readable.
+      cell: (r) => <span className="whitespace-nowrap">{IELTS_MODULES.map((m) => band(r.target_bands[m])).join(" / ")}</span>,
+    },
     {
       key: "date",
       header: t("testDate"),
-      cell: (r) => (r.test_date ? `${format.date(`${r.test_date}T00:00:00`, { dateStyle: "medium" })}${r.days_to_test !== null && r.days_to_test >= 0 ? ` · ${t("daysLeft", { count: r.days_to_test })}` : ""}` : "—"),
+      cell: (r) =>
+        r.test_date ? (
+          <span className="flex flex-col">
+            <span className="whitespace-nowrap">{format.date(`${r.test_date}T00:00:00`, { dateStyle: "medium" })}</span>
+            {r.days_to_test !== null && r.days_to_test >= 0 ? <span className="whitespace-nowrap text-xs text-ink-muted">{t("daysLeft", { count: r.days_to_test })}</span> : null}
+          </span>
+        ) : (
+          "—"
+        ),
       sortValue: (r) => r.test_date,
     },
     {

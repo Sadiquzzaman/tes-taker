@@ -11,6 +11,7 @@ import WritingTask, { essayWords } from "./WritingTask";
 import SpeakingPart from "../speaking/SpeakingPart";
 import axiosReq from "@/lib/axios";
 import useIeltsAttempt from "./useIeltsAttempt";
+import { orderedCriteria } from "../groupTypes";
 
 /** Mocks need a computer or a tablet (the owner's decision, 15 Nov 2026). */
 const MIN_MOCK_WIDTH = 768;
@@ -139,7 +140,12 @@ const IeltsAttemptScreen = ({ attemptId }: { attemptId: string }) => {
           view.attempt.module === "READING" ? (
             <div className="grid h-full grid-cols-1 md:grid-cols-2">
               <section aria-label={t("passage")} className="overflow-y-auto border-border p-4 md:border-e">
-                <ReadingPassage attemptId={view.attempt.id} part={part} />
+                {/* Every passage stays mounted (hidden when not shown), so its highlights survive switching. */}
+                {parts.map((p) => (
+                  <div key={p.id} hidden={p.id !== part.id}>
+                    <ReadingPassage attemptId={view.attempt.id} part={p} />
+                  </div>
+                ))}
               </section>
               <section aria-label={t("questions")} className="overflow-y-auto p-4">
                 {groups}
@@ -229,7 +235,7 @@ const ResultView = ({ view, answers }: { view: IeltsAttemptView; answers: Record
       ) : (
         <>
       <div className="grid grid-cols-2 gap-4">
-        <StatTile label={t("rawScore")} value={view.attempt.raw_score === null ? "—" : t("outOf40", { score: view.attempt.raw_score })} />
+        <StatTile label={t("rawScore")} value={view.attempt.raw_score === null ? "—" : t("scoreOutOf", { score: view.attempt.raw_score, total: view.attempt.raw_total ?? 40 })} />
         <StatTile label={t("band")} value={view.attempt.band === null ? "—" : format.number(view.attempt.band, { minimumFractionDigits: 1 })} />
       </div>
       {view.parts ? (
@@ -284,7 +290,7 @@ const WritingResult = ({ view, answers }: { view: IeltsAttemptView; answers: Rec
               <div className="mb-3 flex flex-col gap-1">
                 <p className="text-body-sm font-medium text-ink">{t("taskBand", { band: band(m.band) })}</p>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-body-sm sm:grid-cols-4">
-                  {Object.entries(m.criteria).map(([key, value]) => (
+                  {orderedCriteria(m.criteria).map(([key, value]) => (
                     <div key={key}>
                       <dt className="text-ink-muted">{t(`criteria.${key}` as "criteria.CC")}</dt>
                       <dd className="font-medium text-ink">{band(value)}</dd>
@@ -315,7 +321,7 @@ const SpeakingResult = ({ view }: { view: IeltsAttemptView }) => {
       {criteria ? (
         <Card>
           <dl className="grid grid-cols-2 gap-3 text-body-sm sm:grid-cols-4">
-            {Object.entries(criteria).map(([key, value]) => (
+            {orderedCriteria(criteria).map(([key, value]) => (
               <div key={key}>
                 <dt className="text-ink-muted">{t(`criteria.${key}` as "criteria.CC")}</dt>
                 <dd className="font-medium text-ink">{band(value)}</dd>

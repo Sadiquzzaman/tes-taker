@@ -17,6 +17,11 @@ import { LISTENING_REVIEW_SECONDS } from './ielts-templates';
 import { IeltsPartView, IeltsTestsService } from './ielts-tests.service';
 import { numbersTaken } from './question-groups';
 import { marksFor } from './scoring';
+import { scaledRaw } from './bands';
+
+/** What a Listening / Reading score is out of; null for Writing and Speaking. */
+export const totalOf = (totals: Map<string, number>, a: { test_id: string; module: string }): number | null =>
+  a.module === IeltsModuleEnum.LISTENING || a.module === IeltsModuleEnum.READING ? (totals.get(`${a.test_id}:${a.module}`) ?? null) : null;
 
 /** Answers sent this long after the time runs out still count (a slow network at the end). */
 export const GRACE_SECONDS = 30;
@@ -46,6 +51,8 @@ export interface IeltsMyAttempt {
   mode: string | null;
   deadline: Date;
   raw_score: number | null;
+  /** Listening / Reading: what the score is out of (40 in a full test). */
+  raw_total: number | null;
   band: number | null;
 }
 
@@ -99,6 +106,8 @@ export interface IeltsAttemptView {
     deadline: Date;
     submitted_at: Date | null;
     raw_score: number | null;
+    /** Listening / Reading: what the score is out of (40 in a full test). */
+    raw_total: number | null;
     band: number | null;
     /** Writing: bands per task and criterion, with comments; Speaking: the four criteria; once marked. */
     criteria: Record<string, unknown> | null;
@@ -152,6 +161,7 @@ export class IeltsAttemptsService {
     if (!rows.length) return [];
     const mine = await this.attempts.find({ where: { student_id: userId, assignment_id: In(rows.map((r) => r.id)) } });
     const now = new Date();
+    const totals = await this.tests.numberTotals(rows.map((r) => r.test_id));
     return rows.map((r) => ({
       id: r.id,
       test: { id: r.test_id, title: r.title, purpose: r.purpose, test_type: r.test_type, modules: r.modules, durations: r.durations },
@@ -161,7 +171,10 @@ export class IeltsAttemptsService {
       attempts: Object.fromEntries(
         mine
           .filter((a) => a.assignment_id === r.id)
-          .map((a) => [a.module, { id: a.id, status: a.status, mode: a.mode, deadline: a.deadline, raw_score: a.raw_score, band: a.band === null ? null : Number(a.band) }]),
+          .map((a) => [
+            a.module,
+            { id: a.id, status: a.status, mode: a.mode, deadline: a.deadline, raw_score: a.raw_score, raw_total: totalOf(totals, a), band: a.band === null ? null : Number(a.band) },
+          ]),
       ),
     }));
   }
@@ -173,6 +186,10 @@ export class IeltsAttemptsService {
     const test = await this.dataSource.getRepository(IeltsTestEntity).findOneOrFail({ where: { id: assignment.test_id } });
     if (!test.modules.includes(module)) throw new BadRequestException({ message: 'This test does not have that module', code: IELTS_ERRORS.MODULE_NOT_READY });
     if (!ON_SCREEN.includes(module)) throw new BadRequestException({ message: 'This module is not taken on screen yet', code: IELTS_ERRORS.MODULE_NOT_READY });
+    if (module === IeltsModuleEnum.SPEAKING && test.purpose === IeltsTestPurposeEnum.MOCK) {
+      // A mock's Speaking is the live session with the examiner, as in the real test.
+      throw new ConflictException({ message: 'Speaking in a mock is with your teacher', code: IELTS_ERRORS.SPEAKING_WITH_EXAMINER });
+    }
 
     const existing = await this.attempts.findOne({ where: { assignment_id: assignment.id, student_id: userId, module } });
     if (existing) {
@@ -300,7 +317,8 @@ export class IeltsAttemptsService {
 
   /**
    * Hands an attempt in once (row locked). Listening and Reading are marked: each answer against
-   * its key, the raw score out of 40 and the band. Writing waits for its marks.
+   * its key, the raw score (out of the test's numbers, 40 in a full test) and the band, from the
+   * score scaled to 40. Writing and Speaking wait for their marks.
    */
   private async finish(attemptId: string): Promise<IeltsAttemptEntity> {
     const marked = await this.dataSource.transaction(async (manager) => {
@@ -317,9 +335,11 @@ export class IeltsAttemptsService {
       const answers = await manager.getRepository(IeltsAnswerEntity).find({ where: { attempt_id: attempt.id } });
       const byQuestion = new Map(answers.filter((a) => a.question_id).map((a) => [a.question_id as string, a]));
       let raw = 0;
+      let total = 0;
       for (const part of parts) {
         for (const group of part.groups) {
           for (const question of group.questions) {
+            total += numbersTaken(group.type, question.answer);
             const row = byQuestion.get(question.id);
             if (!row) continue;
             const marks = marksFor(group.type, question.answer, group.word_limit, row.answer);
@@ -329,7 +349,8 @@ export class IeltsAttemptsService {
         }
       }
       raw = Math.min(raw, 40);
-      const band = await this.bandTables.bandFor(attempt.organization_id, attempt.module as IeltsModuleEnum.LISTENING | IeltsModuleEnum.READING, test.test_type, raw);
+      // A practice set with fewer questions is banded as the same share of 40.
+      const band = await this.bandTables.bandFor(attempt.organization_id, attempt.module as IeltsModuleEnum.LISTENING | IeltsModuleEnum.READING, test.test_type, scaledRaw(raw, total));
       await manager.getRepository(IeltsAttemptEntity).update(
         { id: attempt.id },
         { status: IeltsAttemptStatusEnum.MARKED, submitted_at: new Date(), raw_score: raw, band: band.toFixed(1), marked_at: new Date() },
@@ -406,6 +427,7 @@ export class IeltsAttemptsService {
         deadline: attempt.deadline,
         submitted_at: attempt.submitted_at,
         raw_score: attempt.raw_score,
+        raw_total: totalOf(await this.tests.numberTotals([attempt.test_id]), attempt),
         band: attempt.band === null ? null : Number(attempt.band),
         criteria: marked ? attempt.criteria : null,
         mode: attempt.mode,
