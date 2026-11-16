@@ -10,7 +10,7 @@ For the Flutter app in [Sadiquzzaman/instructor-app](https://github.com/Sadiquzz
 | Production | not live yet | Comes with P11 |
 | Local | `http://localhost:<PORT>/api/v1` | Run the backend from this repository; Swagger UI is at `/apidoc` there (it is off on beta and production) |
 
-**Every endpoint** is a NestJS controller in `backend/src/**/**.controller.ts`, with its request DTOs in the module's `dto/` folder and Swagger decorators describing bodies and answers. Read the controller before using an endpoint; the web app's use of it (`frontend/`) is a working example.
+**Every endpoint** is described in [`openapi.json`](openapi.json) (OpenAPI 3, exported from the code's Swagger decorators with `pnpm openapi:export` in `backend/`, refreshed with every release). The controllers are in `backend/src/**/**.controller.ts` with their request DTOs in the module's `dto/` folder; the web app's use of an endpoint (`frontend/`) is a working example.
 
 ## 2. Requests and answers
 
@@ -98,8 +98,8 @@ Authenticate in the handshake with `auth: { token: <access_token> }`. Reconnect 
 | Device sign-in | **Built (PM-01, §3).** A refresh token per device (30 days, rotating), sign out this device, sign out the others |
 | Google sign-in for apps | `POST /auth/google/token` with the Google ID token from the native sign-in |
 | Push notifications | `POST /me/devices` (FCM token, platform, app version) and `DELETE /me/devices/:id`; the notification outbox sends push as a channel |
-| App version check | `GET /app/version?platform=android|ios` → minimum and latest version; below the minimum the app asks to update |
-| API description | `docs/mobile/openapi.json`, generated from the Swagger decorators on every release |
+| App version check | **Built (PM-03).** `GET /app/version?platform=ANDROID\|IOS&current=1.0.0` (no sign-in) → `minimum`, `latest`, `update_url` and `update`: NONE, OPTIONAL or REQUIRED (below the minimum: the app must update first). Set on the server per platform; unset = every version is fine |
+| API description | **Built (PM-05).** [`openapi.json`](openapi.json), exported with every release |
 
 Each item is listed in [api-changelog.md](api-changelog.md) when it reaches beta.
 

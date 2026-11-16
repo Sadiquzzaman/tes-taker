@@ -1,5 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import {
   CreateExamWizardDto,
   WizardAnswerDto,
@@ -28,6 +28,12 @@ export function setupSwagger(app: INestApplication, nodeEnv: string | undefined 
     return false;
   }
 
+  SwaggerModule.setup(SWAGGER_PATH, app, buildSwaggerDocument(app));
+  return true;
+}
+
+/** The OpenAPI document of every controller; also exported to docs/mobile/openapi.json (PM-05, `pnpm openapi:export`). */
+export function buildSwaggerDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
     .setTitle('Task Taker')
     .setDescription('Task Taker API DOC')
@@ -61,6 +67,5 @@ export function setupSwagger(app: INestApplication, nodeEnv: string | undefined 
       WizardAnswerDto,
     ],
   });
-  SwaggerModule.setup(SWAGGER_PATH, app, document);
-  return true;
+  return document;
 }
