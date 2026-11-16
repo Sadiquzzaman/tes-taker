@@ -17,4 +17,9 @@ export class UpdateOrgSettingsDto {
   @IsOptional()
   @IsIn(ORGANIZATION_LOCALES)
   sms_locale?: OrganizationLocale;
+
+  @ApiPropertyOptional({ description: 'Use branches (P12-01); switching off needs every branch but the main one removed' })
+  @IsOptional()
+  @IsBoolean()
+  branches_enabled?: boolean;
 }

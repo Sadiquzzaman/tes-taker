@@ -31,6 +31,7 @@ import { OrganizationMemberEntity } from './entities/organization-member.entity'
 import { OrganizationTeacherSubjectEntity } from './entities/organization-teacher-subject.entity';
 import { OrganizationInvitationEntity } from './entities/organization-invitation.entity';
 import { OrganizationMemberRoleEnum } from './enums/organization-member-role.enum';
+import { BranchEntity } from './entities/branch.entity';
 import { OrganizationStatusEnum } from './enums/organization-status.enum';
 import { OrganizationInvitationStatusEnum } from './enums/organization-invitation-status.enum';
 import { PublicIdService } from 'src/common/services/public-id.service';
@@ -594,6 +595,10 @@ export class OrganizationsService {
     if (role === OrganizationMemberRoleEnum.OWNER) {
       throw new BadRequestException('Cannot assign OWNER role via invite');
     }
+    if (role === OrganizationMemberRoleEnum.BRANCH_MANAGER) {
+      // A branch manager needs a branch: add them as staff first, then change their role (P12-01).
+      throw new BadRequestException({ message: 'Add the person first, then make them a branch manager', code: 'BRANCH_MANAGER_BY_ROLE_CHANGE' });
+    }
     await this.accessService.requireManageMemberRole(organizationId, actorUserId, role);
 
     const resolved = this.resolveMemberContact(dto);
@@ -651,6 +656,10 @@ export class OrganizationsService {
     const role = dto.role ?? OrganizationMemberRoleEnum.TEACHER;
     if (role === OrganizationMemberRoleEnum.OWNER) {
       throw new BadRequestException('Cannot assign OWNER role via invite');
+    }
+    if (role === OrganizationMemberRoleEnum.BRANCH_MANAGER) {
+      // A branch manager needs a branch: add them as staff first, then change their role (P12-01).
+      throw new BadRequestException({ message: 'Add the person first, then make them a branch manager', code: 'BRANCH_MANAGER_BY_ROLE_CHANGE' });
     }
     await this.accessService.requireManageMemberRole(organizationId, actorUserId, role);
 
@@ -852,6 +861,7 @@ export class OrganizationsService {
     memberId: string,
     actorUserId: string,
     role: OrganizationMemberRoleEnum,
+    requestedBranchId?: string,
   ) {
     await this.accessService.requireOwnerOrAdmin(organizationId, actorUserId);
 
@@ -878,7 +888,25 @@ export class OrganizationsService {
     }
 
     const previousRole = membership.role;
+    const previousBranch = membership.branch_id ?? null;
+    // A branch manager runs one active branch of this organisation (P12-01); other roles have none.
+    let branchId: string | null = null;
+    if (role === OrganizationMemberRoleEnum.BRANCH_MANAGER) {
+      if (membership.role === OrganizationMemberRoleEnum.STUDENT) {
+        throw new BadRequestException({ message: 'A student cannot be a branch manager', code: 'BRANCH_MANAGER_NOT_STAFF' });
+      }
+      const branch = requestedBranchId
+        ? await this.memberRepo.manager.getRepository(BranchEntity).findOne({
+            where: { id: requestedBranchId, organization_id: organizationId, is_active: ActiveStatusEnum.ACTIVE },
+          })
+        : null;
+      if (!branch) {
+        throw new BadRequestException({ message: 'Choose a branch of this organisation', code: 'BRANCH_REQUIRED' });
+      }
+      branchId = branch.id;
+    }
     membership.role = role;
+    membership.branch_id = branchId;
     membership.updated_by = actorUserId;
     membership.updated_at = new Date();
     const saved = await this.memberRepo.save(membership);
@@ -888,8 +916,8 @@ export class OrganizationsService {
       actorId: actorUserId,
       entityType: 'organization_member',
       entityId: saved.id,
-      before: { role: previousRole },
-      after: { role: saved.role, user_id: saved.user_id, user_name: membership.user?.full_name ?? null },
+      before: { role: previousRole, ...(previousBranch ? { branch_id: previousBranch } : {}) },
+      after: { role: saved.role, ...(saved.branch_id ? { branch_id: saved.branch_id } : {}), user_id: saved.user_id, user_name: membership.user?.full_name ?? null },
     });
     return this.toMemberView(saved);
   }
@@ -1555,6 +1583,7 @@ export class OrganizationsService {
       organization_id: member.organization_id,
       user_id: member.user_id,
       role: member.role,
+      branch_id: member.branch_id ?? null,
       is_active: member.is_active,
       removed_at: member.removed_at,
       created_at: member.created_at,
