@@ -619,7 +619,8 @@ const sidebarList: SideBarList[] = [
     label: "today",
     route: "/today",
     role: ["TEACHER"],
-    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    // Branch managers (P12-01) start here; their branch tools are added as they are opened.
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER", "BRANCH_MANAGER"],
     image: <SidebarDashboardIconSVG width={16} />,
   },
   {

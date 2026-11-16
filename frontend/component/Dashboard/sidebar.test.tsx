@@ -183,3 +183,13 @@ describe("IELTS centres (P10-01)", () => {
   });
 });
 
+
+describe("sidebar for branch managers (P12-01)", () => {
+  it("shows a branch manager Today only from the organisation's pages, until branch tools are opened to them", async () => {
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "BRANCH_MANAGER" });
+    expect(links()).toContain("Today");
+    expect(links()).not.toContain("Billing & Plans");
+    expect(links()).not.toContain("Teachers");
+    expect(links()).not.toContain("Students");
+  });
+});

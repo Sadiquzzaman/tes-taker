@@ -83,6 +83,8 @@ interface OrganizationSettings {
   setup_completed_at: string | null;
   /** Guardian SMS language (FND-10): the organisation's choice, else its default language. */
   sms_locale: OrganizationLocale;
+  /** The organisation uses branches (P12-01). */
+  branches_enabled: boolean;
 }
 
 type GuardianRelation = "FATHER" | "MOTHER" | "OTHER";
