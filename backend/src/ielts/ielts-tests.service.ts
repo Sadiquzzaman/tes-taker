@@ -161,6 +161,24 @@ export class IeltsTestsService {
     };
   }
 
+  /**
+   * Question numbers each test uses per module (a practice set may have fewer than 40), keyed
+   * `testId:MODULE`; scores are shown out of this.
+   */
+  async numberTotals(testIds: string[]): Promise<Map<string, number>> {
+    if (!testIds.length) return new Map();
+    const rows: { test_id: string; module: string; n: number }[] = await this.dataSource.query(
+      `SELECT p.test_id, p.module, SUM(CASE WHEN g.type = 'MCQ_MULTI' THEN jsonb_array_length(q.answer->'keys') ELSE 1 END)::int AS n
+         FROM ielts_test_parts p
+         JOIN ielts_question_groups g ON g.part_id = p.id AND g.deleted_at IS NULL
+         JOIN ielts_questions q ON q.group_id = g.id AND q.deleted_at IS NULL
+        WHERE p.test_id = ANY($1::uuid[])
+        GROUP BY p.test_id, p.module`,
+      [[...new Set(testIds)]],
+    );
+    return new Map(rows.map((r) => [`${r.test_id}:${r.module}`, r.n]));
+  }
+
   /** A test's parts in test order with live groups and questions, numbered 1–40 per module. */
   async tree(testId: string, module?: IeltsModuleEnum): Promise<IeltsPartView[]> {
     const parts = await this.parts.find({ where: { test_id: testId, ...(module ? { module } : {}) } });

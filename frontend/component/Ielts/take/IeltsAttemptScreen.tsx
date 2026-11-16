@@ -139,7 +139,12 @@ const IeltsAttemptScreen = ({ attemptId }: { attemptId: string }) => {
           view.attempt.module === "READING" ? (
             <div className="grid h-full grid-cols-1 md:grid-cols-2">
               <section aria-label={t("passage")} className="overflow-y-auto border-border p-4 md:border-e">
-                <ReadingPassage attemptId={view.attempt.id} part={part} />
+                {/* Every passage stays mounted (hidden when not shown), so its highlights survive switching. */}
+                {parts.map((p) => (
+                  <div key={p.id} hidden={p.id !== part.id}>
+                    <ReadingPassage attemptId={view.attempt.id} part={p} />
+                  </div>
+                ))}
               </section>
               <section aria-label={t("questions")} className="overflow-y-auto p-4">
                 {groups}
@@ -229,7 +234,7 @@ const ResultView = ({ view, answers }: { view: IeltsAttemptView; answers: Record
       ) : (
         <>
       <div className="grid grid-cols-2 gap-4">
-        <StatTile label={t("rawScore")} value={view.attempt.raw_score === null ? "—" : t("outOf40", { score: view.attempt.raw_score })} />
+        <StatTile label={t("rawScore")} value={view.attempt.raw_score === null ? "—" : t("scoreOutOf", { score: view.attempt.raw_score, total: view.attempt.raw_total ?? 40 })} />
         <StatTile label={t("band")} value={view.attempt.band === null ? "—" : format.number(view.attempt.band, { minimumFractionDigits: 1 })} />
       </div>
       {view.parts ? (

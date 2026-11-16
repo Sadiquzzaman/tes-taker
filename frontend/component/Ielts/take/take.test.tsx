@@ -125,7 +125,7 @@ describe("My IELTS tests (P10-04)", () => {
 describe("Taking an IELTS module (P10-04)", () => {
   it("lays Reading out side by side, saves answers, marks the navigator and hands in", async () => {
     get.mockReturnValue(ok(attempt()));
-    post.mockReturnValue(ok(attempt({ status: "MARKED", raw_score: 1, band: 2.5 }, { parts: null, answers: { q1: "Egypt", q2: "FALSE" } })));
+    post.mockReturnValue(ok(attempt({ status: "MARKED", raw_score: 1, raw_total: 13, band: 2.5 }, { parts: null, answers: { q1: "Egypt", q2: "FALSE" } })));
     renderApp(<IeltsAttemptScreen attemptId="at1" />);
     expect(await screen.findByRole("region", { name: "Passage" })).toBeTruthy();
     expect(screen.getByRole("timer", { name: "Time left" }).textContent).toMatch(/^5[89]:\d\d$/);
@@ -151,7 +151,7 @@ describe("Taking an IELTS module (P10-04)", () => {
       }),
     );
     expect(await screen.findByText("Reading result")).toBeTruthy();
-    expect(screen.getByText("1 / 40")).toBeTruthy();
+    expect(screen.getByText("1 / 13")).toBeTruthy(); // a practice set is out of its own questions
     expect(screen.getByText("2.5")).toBeTruthy();
     expect(screen.getByText("Right answers are shown after the test closes.")).toBeTruthy();
   });
@@ -227,5 +227,17 @@ describe("Taking an IELTS module (P10-04)", () => {
     expect(screen.getByText("Coherence and Cohesion")).toBeTruthy();
     expect(screen.getByText("Add an overview.")).toBeTruthy();
     expect(screen.getByText("Good progress.")).toBeTruthy();
+  });
+
+  it("keeps every Reading passage on the page while another is shown (so highlights survive)", async () => {
+    const second: IeltsPaperPart = { ...readingPart, id: "p2", part_no: 2, title: "Second passage", content: "<p>Another.</p>", groups: [] };
+    get.mockReturnValue(ok(attempt({}, { parts: [readingPart, second] })));
+    renderApp(<IeltsAttemptScreen attemptId="at1" />);
+    await screen.findByRole("region", { name: "Passage" });
+    fireEvent.click(screen.getByRole("button", { name: "Passage 2" }));
+    const passages = document.querySelectorAll("[data-testid=passage]");
+    expect(passages).toHaveLength(2);
+    expect((passages[0].closest("[hidden]") as HTMLElement | null)?.hidden).toBe(true);
+    expect(passages[1].closest("[hidden]")).toBeNull();
   });
 });
