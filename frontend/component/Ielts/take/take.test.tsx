@@ -227,4 +227,16 @@ describe("Taking an IELTS module (P10-04)", () => {
     expect(screen.getByText("Add an overview.")).toBeTruthy();
     expect(screen.getByText("Good progress.")).toBeTruthy();
   });
+
+  it("keeps every Reading passage on the page while another is shown (so highlights survive)", async () => {
+    const second: IeltsPaperPart = { ...readingPart, id: "p2", part_no: 2, title: "Second passage", content: "<p>Another.</p>", groups: [] };
+    get.mockReturnValue(ok(attempt({}, { parts: [readingPart, second] })));
+    renderApp(<IeltsAttemptScreen attemptId="at1" />);
+    await screen.findByRole("region", { name: "Passage" });
+    fireEvent.click(screen.getByRole("button", { name: "Passage 2" }));
+    const passages = document.querySelectorAll("[data-testid=passage]");
+    expect(passages).toHaveLength(2);
+    expect((passages[0].closest("[hidden]") as HTMLElement | null)?.hidden).toBe(true);
+    expect(passages[1].closest("[hidden]")).toBeNull();
+  });
 });

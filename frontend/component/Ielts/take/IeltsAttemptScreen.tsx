@@ -139,7 +139,12 @@ const IeltsAttemptScreen = ({ attemptId }: { attemptId: string }) => {
           view.attempt.module === "READING" ? (
             <div className="grid h-full grid-cols-1 md:grid-cols-2">
               <section aria-label={t("passage")} className="overflow-y-auto border-border p-4 md:border-e">
-                <ReadingPassage attemptId={view.attempt.id} part={part} />
+                {/* Every passage stays mounted (hidden when not shown), so its highlights survive switching. */}
+                {parts.map((p) => (
+                  <div key={p.id} hidden={p.id !== part.id}>
+                    <ReadingPassage attemptId={view.attempt.id} part={p} />
+                  </div>
+                ))}
               </section>
               <section aria-label={t("questions")} className="overflow-y-auto p-4">
                 {groups}
