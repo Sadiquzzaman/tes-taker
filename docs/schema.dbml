@@ -217,13 +217,23 @@ Table user_devices {
 
 Table refresh_tokens {
   id uuid [pk]
-  user_id uuid [not null, ref: > users.id]
-  device_id uuid [ref: > user_devices.id]
-  token_hash varchar(128) [unique, not null]
-  expires_at timestamptz [not null]
+  user_id uuid [not null, ref: > users.id, note: 'FK ON DELETE CASCADE']
+  token_hash varchar(64) [unique, not null, note: 'SHA-256 of the current refresh token; the token is never stored']
+  previous_hash varchar(64) [note: 'the token it replaced; accepted for 60 s after rotated_at (two tabs refreshing at once); used later = REUSED, the device is signed out']
+  rotated_at timestamptz
+  platform varchar(10) [not null, default: 'WEB', note: 'CHECK WEB | ANDROID | IOS']
+  device_name varchar(120) [note: '"Chrome on Windows", or what the app sends']
+  app_version varchar(30)
+  created_at timestamptz [not null, default: `now()`]
+  last_used_at timestamptz [not null, default: `now()`]
+  expires_at timestamptz [not null, note: '30 days from the last refresh']
   revoked_at timestamptz
-  replaced_by uuid [note: 'rotation chain; reuse of a revoked token revokes the chain']
-  Note: 'NEW'
+  revoked_reason varchar(30) [note: 'LOGOUT | SIGNED_OUT_ELSEWHERE | PASSWORD_CHANGED | PASSWORD_RESET | REUSED']
+  Indexes {
+    previous_hash
+    (user_id, revoked_at)
+  }
+  Note: 'NEW (PM-01, design §8.2), user module: one row per signed-in device; login makes a row, refresh and workspace switches rotate it; never deleted. Push tokens stay in user_devices (PM-04). users.refresh_token is no longer written; a token still there moves here on its next refresh; the column is dropped only with the owner\'s approval (P11-04)'
 }
 
 Enum member_role { OWNER ADMIN ASSISTANT TEACHER STUDENT BRANCH_MANAGER } // BRANCH_MANAGER: P12 (FND-06, 16 Nov 2026)
