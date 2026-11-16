@@ -319,6 +319,21 @@ Re-planned on 15 Nov 2026 (owner): IELTS centres only, the computer-delivered fo
 
 The AI-writing indicator (PLG-04, Could) is not scheduled. Add it only if customers ask for it.
 
+### PM — Mobile app support on the server (planned 16 Nov 2026)
+
+The Flutter app (Android and iOS, one codebase) is built by a separate Claude Code session in its own public repository, [Sadiquzzaman/instructor-app](https://github.com/Sadiquzzaman/instructor-app), in stages: students, teachers, owners/admins/branch managers, authoring on tablets, then IELTS once P12 is on the web. Platform admin screens stay web-only. The two repositories talk through [docs/mobile/api.md](mobile/api.md), [docs/mobile/api-changelog.md](mobile/api-changelog.md) and issues labelled `mobile-api` in this repository. Store accounts come after the web goes live; until then Android builds are installed from GitHub releases and iOS from a Mac with Xcode. These packages are the server side, built here, in the order the app needs them.
+
+| ID | Work package | Stories / design | Days |
+| --- | --- | --- | --- |
+| PM-01 | Device sign-in: `refresh_tokens` per device (rotating, 30 days), `user_devices`, sign out this device or everywhere; the web keeps working | Design §8.2 | 2 |
+| PM-02 | Google sign-in from the app (ID token) | Design §8.2 | 1 |
+| PM-03 | App version check per platform | — | 0.5 |
+| PM-04 | Push notifications: device tokens, FCM as an outbox channel, per-event preferences | FND-12–14, design §8.6 | 3 |
+| PM-05 | `docs/mobile/openapi.json` generated from Swagger on every release | — | 0.5 |
+| PM-06 | Requests from the app (`mobile-api` issues), as they come | — | as needed |
+
+**Needs from the owner:** a Firebase project (free) for push, made with the company's Google account, before PM-04.
+
 ### P12 — IELTS reformation: branches, courses and live classes (planned 16 Nov 2026)
 
 Decided by the owner on 16 Nov 2026 (spec Epic 11 "Decisions (16 Nov 2026)", FND-06, IEL-11–16; design §9.10 "IELTS reformation"). **Built before P11**, which waits for the partnership deed and the live SSLCommerz credentials. Each package ships as small PRs (server, then screen); the order puts what everything else needs first and video last.
