@@ -304,6 +304,30 @@ describe('homework API', () => {
       return id;
     };
 
+    it('takes a file the student uploads through the real upload flow (presign, PUT, complete) — mobile-api #349', async () => {
+      const s = await school();
+      const id = await published(s);
+      const pdf = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n');
+      const signed = await call<{ file: { id: string }; upload: { url: string; headers: Record<string, string> } }>('POST', '/files/presign', s.pickedToken, {
+        purpose: 'HOMEWORK',
+        mime: 'application/pdf',
+        size: pdf.byteLength,
+        name: 'my-answers.pdf',
+      });
+      expect(signed.status).toBe(201);
+      const link = new URL(signed.body.payload.upload.url);
+      const origin = (await t.app.getUrl()).replace('[::1]', '127.0.0.1');
+      const put = await fetch(`${origin}${link.pathname}${link.search}`, { method: 'PUT', headers: signed.body.payload.upload.headers, body: new Uint8Array(pdf) });
+      expect(put.status).toBe(204);
+      expect((await call('POST', `/files/${signed.body.payload.file.id}/complete`, s.pickedToken, {})).status).toBe(201);
+
+      const handed = await call<Mine>('POST', `/homework/${id}/submissions`, s.pickedToken, { file_ids: [signed.body.payload.file.id] });
+      expect(handed.status).toBe(201);
+      // A type homework does not take is refused at the upload.
+      const video = await call<{ code?: string }>('POST', '/files/presign', s.pickedToken, { purpose: 'HOMEWORK', mime: 'video/mp4', size: 1000, name: 'clip.mp4' });
+      expect(video.status).toBe(400);
+    });
+
     it('takes files from a student, again once by default, keeps every version and shows staff the latest', async () => {
       const s = await school();
       const id = await published(s);
