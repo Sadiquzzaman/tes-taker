@@ -796,6 +796,29 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 - **No leave requests in IELTS:** `NotInIeltsGuard` on the leave controller (403 `NOT_IN_IELTS`).
 - **IELTS menu:** sessions, subjects, subject teachers, the academic tests and grading, and leave are academic-only. Classes stay until courses replace batches (P12-04/05), when the academic routes are refused in IELTS.
 
+**Built in P12-04 (IELTS courses, server, IEL-13, 17 Nov 2026):**
+- **Migration `1756550000000-IeltsCourses`:** `ielts_courses`, `sections.seat_limit` and `org_settings.ended_course_visible_days`. It made a course of every IELTS batch of an open session: titled by the class, all four modules, the session's dates.
+- **`POST /ielts/courses`** (owners, admins, a solo trainer, a branch manager for their branch) makes:
+  - the class (`ClassService.createCourseClass`, after the course service's own check);
+  - the course's own session with its dates;
+  - the class's empty section moved into it at the branch with the seat limit (`SectionsService.prepareCourseSection`);
+  - a subject class per module (fixed module subjects IELTS-L/R/W/S, `ClassService.addCourseSubject`), with the teachers per module (`SectionsService.setTeachers`).
+- **`GET /ielts/courses`, `GET /ielts/courses/:id`:**
+  - all for owners and admins;
+  - the branch for a branch manager (opened with `@BranchScoped()`);
+  - for a teacher, the courses they teach (module teacher or class teacher);
+  - for a student, their ACTIVE enrolments, and an ended course only for `ended_course_visible_days`.
+
+  Each course comes with its status (UPCOMING, RUNNING, ENDED from the dates), seat limit, students and teachers per module.
+- **`PATCH /ielts/courses/:id`** changes the title, dates (and the session's), branch, seat limit, modules and teachers.
+- **`DELETE`** removes a course only while nobody is enrolled (soft; 409 `COURSE_HAS_STUDENTS`).
+- **Seat limit:** `EnrolmentsService` refuses enrolment once a section's seat limit is reached (409 `SECTION_FULL`), whichever path enrols.
+- **Audit:** `ielts.course_create`, `ielts.course_update`, `ielts.course_remove`.
+- **Not built yet:**
+  - ended courses becoming read-only (closing their session on a daily job);
+  - the academic routes refused in IELTS workspaces (with P12-05's screens);
+  - the in-person/online setting per timetable class (with live classes).
+
 *Courses on the academic engine.* A course is the `ielts` module's own row, `ielts_courses` (title, branch, start and end date, modules, seat limit, recording default, status), created through `AcademicsService` with a class, **its own academic session** (named after the course, with the course's dates) and **one section** (the course's branch and its students). One session per course gives each course its own dates and close without new rules: the existing "closed session is read-only" logic makes an ended course read-only, and enrolments, attendance, homework, chat, resources, routine and IELTS openings already hang off the section. The four modules are fixed subjects that `IeltsCoursesService` creates for an IELTS workspace when it first needs them (not at boot, see the lesson of 15 Nov); a course module is a subject class (`course_offerings`) and its teachers are `offering_teachers`, so several teachers per module and "teachers see only their courses" come from the existing teacher rules. The weekly timetable is the section's `routine_slots`, each with `delivery` (IN\_PERSON or ONLINE) and an optional `meeting_url`; `class_attendance` rows copy the delivery. A daily job closes the session of a course whose end date has passed (the API also treats it as ended on read, so a late job changes nothing), and changing the end date re-opens it. After the end, students still read the course for `org_settings.ended_course_visible_days` (capped by the plan); staff always do. The seat limit is checked when a student is enrolled (409 `COURSE_FULL`), with the section row locked. Existing IELTS batches (test accounts only) become courses in a data migration: a course per section, its dates from the section's session.
 
 *Who sees what.* Students see a course only through an ACTIVE enrolment in its section (the rule every epic uses today); IELTS test openings stay per section, so they become per course with no change. Sessions, classes, sections, subjects and assignments are hidden in IELTS workspaces (menu `workspaces: ["ACADEMIC"]`), and their routes refuse an IELTS workspace with 403 `NOT_IN_THIS_WORKSPACE`, so typing an address does not show academic pages.

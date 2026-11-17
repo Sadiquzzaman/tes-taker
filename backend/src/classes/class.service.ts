@@ -1287,6 +1287,47 @@ export class ClassService {
     return created;
   }
 
+  /**
+   * The class under an IELTS course (P12-04). The course service has already checked who may make
+   * it (owners, admins, a branch manager for their branch, a solo trainer), so no role check here.
+   * It gets its empty section like any class; the course then moves that section into its session.
+   */
+  async createCourseClass(organizationId: string, title: string, actor: { id: string; full_name?: string | null }, personal: boolean): Promise<ClassEntity> {
+    return this.classRepo.save(
+      this.classRepo.create({
+        class_name: title,
+        public_id: generatePublicId('CLS'),
+        teacher_id: actor.id,
+        organization_id: organizationId,
+        class_kind: personal ? ClassKindEnum.PERSONAL : ClassKindEnum.ORGANIZATION,
+        created_by: actor.id,
+        created_user_name: actor.full_name ?? undefined,
+        created_at: new Date(),
+      }),
+    );
+  }
+
+  /** A module subject on an IELTS course's class (P12-04; the caller checked access). Its subject classes come from the class subject. */
+  async addCourseSubject(classId: string, organizationId: string, subject: { name: string; code: string }, actor: { id: string; full_name?: string | null }, personal: boolean): Promise<void> {
+    let subjectId: string;
+    if (personal) {
+      const existing = await this.subjectRepo.findOne({ where: { name: subject.name, ...globalSubjects() } });
+      subjectId =
+        existing?.id ??
+        (await this.subjectRepo.save(this.subjectRepo.create({ name: subject.name, organization_id: null, created_by: actor.id, created_user_name: actor.full_name ?? undefined, created_at: new Date() }))).id;
+    } else {
+      // The fixed module subjects of the organisation's catalogue (found by name and code, made once).
+      const existing = await this.subjectRepo.findOne({ where: { organization_id: organizationId, name: subject.name, code: subject.code } });
+      subjectId =
+        existing?.id ??
+        (await this.subjectRepo.save(this.subjectRepo.create({ name: subject.name, code: subject.code, organization_id: organizationId, created_by: actor.id, created_user_name: actor.full_name ?? undefined, created_at: new Date() }))).id;
+    }
+    const existing = await this.classSubjectRepo.findOne({ where: { class_id: classId, subject_id: subjectId } });
+    if (!existing) {
+      await this.classSubjectRepo.save(this.classSubjectRepo.create({ class_id: classId, subject_id: subjectId, created_by: actor.id, created_at: new Date() } as never));
+    }
+  }
+
   async addClassSubject(
     classId: string,
     jwtPayload: JwtPayloadInterface,

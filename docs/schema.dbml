@@ -85,7 +85,7 @@ Table org_settings {
   chat_retention_months int [note: 'null = keep forever']
   branches_enabled boolean [not null, default: false, note: 'BUILT P12-01 (FND-06): off = only the hidden main branch; adding a branch switches it on; off only once no other branch is active (409 BRANCHES_IN_USE); migration BranchManagers: true where an organisation already had another branch']
   guardians_enabled boolean [not null, default: true, note: 'P12 (IEL-12): false for new IELTS workspaces (and IELTS ones in the migration)']
-  ended_course_visible_days smallint [not null, default: 0, note: 'P12 (IEL-13): students still see an ended course this many days; capped by the plan']
+  ended_course_visible_days smallint [not null, default: 0, note: 'BUILT P12-04 (IEL-13): students still see an ended course this many days (0–365); capped by the plan with P12-06']
   recording_retention_days smallint [not null, default: 30, note: 'P12 (IEL-15): capped by the plan limit recording_retention_days']
   Note: 'NEW — one row per org; all Epic settings tables in the spec live here. Created in P2-03 with class_teacher_enabled only; each epic adds its columns in its own migration. An org without a row uses the defaults for its kind'
 }
@@ -354,6 +354,7 @@ Table sections {
   class_teacher_id uuid [ref: > users.id, note: 'one per section, only used when org_settings.class_teacher_enabled; a teacher may be class teacher of several sections; approves student leave']
   entry_time_override time [note: 'DROPPED from the plan (5 Nov 2026): section schedules (routine_slots) give the start time']
   branch_id uuid [ref: > branches.id, note: 'BUILT P3-02 (ATT-15): the branch where the batch meets; null = the main branch; FK ON DELETE SET NULL']
+  seat_limit smallint [note: 'BUILT P12-04: CHECK > 0; null = no limit; enrolment refused once reached (409 SECTION_FULL); an IELTS course\'s seat limit']
   Indexes {
     (class_id, session_id, name) [unique]
     (organization_id, session_id)
@@ -1909,26 +1910,26 @@ Enum ielts_course_status { ACTIVE ENDED }
 
 Table ielts_courses {
   id uuid [pk]
-  organization_id uuid [not null]
+  organization_id uuid [not null, ref: > organizations.id]
   title varchar(150) [not null, note: 'says what the course is (single module, crash course, full prep); no course type column']
-  branch_id uuid [not null, ref: > branches.id, note: 'the main branch when branches are off; copied to sections.branch_id']
-  class_id uuid [not null, ref: > classes.id, note: 'made through AcademicsService; hidden in IELTS workspaces']
-  session_id uuid [not null, ref: > academic_sessions.id, note: 'one session per course, with the course dates; closing it makes the course read-only']
-  section_id uuid [not null, unique, ref: - sections.id, note: 'the only section: enrolments, timetable (routine_slots), attendance, homework, chat, IELTS openings']
-  modules ielts_module[] [not null, note: 'one or more; each is a course_offering whose offering_teachers are the module teachers']
+  branch_id uuid [ref: > branches.id, note: 'the main branch when none is chosen; null only for batches converted before the organisation had its main branch row; FK ON DELETE SET NULL']
+  class_id uuid [not null, ref: > classes.id, note: 'made by ClassService.createCourseClass']
+  session_id uuid [not null, ref: > academic_sessions.id, note: 'the course\'s own session (its dates); converted batches keep theirs']
+  section_id uuid [not null, unique, ref: - sections.id, note: 'the class\'s section moved into the course session at the branch (SectionsService.prepareCourseSection); students, timetable, attendance, homework, chat, IELTS openings']
+  modules varchar(10)[] [not null, note: 'CHECK 1..4 of LISTENING, READING, WRITING, SPEAKING; each a subject class (module subjects IELTS-L/R/W/S) whose offering_teachers teach it']
   start_date date [not null]
-  end_date date [not null, note: 'CHECK end_date >= start_date; ENDED from the next day (daily job, also checked on read)']
-  seat_limit smallint [note: 'null = no limit; CHECK > 0; enrolment refused with 409 COURSE_FULL when reached']
-  record_live_classes boolean [not null, default: true, note: 'teacher can still switch off one class']
-  status ielts_course_status [not null, default: 'ACTIVE']
-  ended_at timestamptz
-  is_active varchar [note: "'1' in force, '0' removed (soft delete)"]
-  removed_at timestamptz
-  removed_by uuid
+  end_date date [not null, note: 'CHECK >= start_date; status UPCOMING / RUNNING / ENDED is worked out from the dates in the organisation\'s time zone']
+  created_by uuid
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  deleted_at timestamptz [note: 'soft delete; only a course nobody is enrolled in (409 COURSE_HAS_STUDENTS)']
+  deleted_by uuid
   Indexes {
-    (organization_id, branch_id, status)
+    (organization_id, branch_id)
     (organization_id, start_date)
   }
+  Note: 'BUILT P12-04 (IEL-13), ielts module, migration IeltsCourses (which made a course of every IELTS batch of an open session). The seat limit is sections.seat_limit (409 SECTION_FULL at enrolment); the ended-course visibility is org_settings.ended_course_visible_days. Recording default and live classes come with P12-08–10'
+}
   Note: 'NEW (IEL-13), ielts module. The data migration makes one course per existing IELTS section (test accounts only)'
 }
 

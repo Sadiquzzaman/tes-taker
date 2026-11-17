@@ -154,6 +154,11 @@ export const AUDIT_ACTIONS = {
   // Files (FND-15, FND-16)
   FILE_UPLOAD: 'file.upload',
   FILE_DELETE: 'file.delete',
+
+  // IELTS courses (P12-04)
+  IELTS_COURSE_CREATE: 'ielts.course_create',
+  IELTS_COURSE_UPDATE: 'ielts.course_update',
+  IELTS_COURSE_REMOVE: 'ielts.course_remove',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

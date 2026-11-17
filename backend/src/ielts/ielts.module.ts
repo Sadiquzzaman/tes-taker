@@ -1,3 +1,8 @@
+import { IeltsCourseEntity } from './entities/ielts-course.entity';
+import { IeltsCoursesService } from './ielts-courses.service';
+import { IeltsCoursesController } from './ielts-courses.controller';
+import { AcademicsModule } from 'src/academics/academics.module';
+import { ClassModule } from 'src/classes/class.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrganizationsModule } from 'src/organizations/organization.module';
@@ -28,9 +33,9 @@ import { IeltsTestsService } from './ielts-tests.service';
  * (P10-02); assignments, attempts and answers (P10-04).
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([IeltsProfileEntity, IeltsBandTableEntity, IeltsTestEntity, IeltsTestPartEntity, IeltsQuestionGroupEntity, IeltsQuestionEntity, IeltsAssignmentEntity, IeltsAttemptEntity, IeltsAnswerEntity]), OrganizationsModule, SubscriptionModule],
-  controllers: [IeltsController],
-  providers: [IeltsProfilesService, IeltsBandTablesService, IeltsTestsService, IeltsGroupsService, IeltsAttemptsService, IeltsAssignmentsService, IeltsMarkingService, IeltsProgressService, IeltsConvertService],
+  imports: [TypeOrmModule.forFeature([IeltsProfileEntity, IeltsBandTableEntity, IeltsTestEntity, IeltsTestPartEntity, IeltsQuestionGroupEntity, IeltsQuestionEntity, IeltsAssignmentEntity, IeltsAttemptEntity, IeltsAnswerEntity, IeltsCourseEntity]), OrganizationsModule, SubscriptionModule, AcademicsModule, ClassModule],
+  controllers: [IeltsController, IeltsCoursesController],
+  providers: [IeltsCoursesService, IeltsProfilesService, IeltsBandTablesService, IeltsTestsService, IeltsGroupsService, IeltsAttemptsService, IeltsAssignmentsService, IeltsMarkingService, IeltsProgressService, IeltsConvertService],
   exports: [IeltsProfilesService, IeltsBandTablesService, IeltsTestsService],
 })
 export class IeltsModule {}

@@ -52,6 +52,10 @@ export class OrgSettingsEntity extends CustomBaseEntity {
   @Column({ name: 'guardians_enabled', type: 'boolean', nullable: true })
   guardians_enabled: boolean | null;
 
+  @ApiProperty({ description: 'Students still see an ended IELTS course this many days (P12-04, IEL-13); 0 = it disappears at the end' })
+  @Column({ name: 'ended_course_visible_days', type: 'smallint', default: 0 })
+  ended_course_visible_days: number;
+
   @ApiPropertyOptional({ description: 'When the academic setup wizard was finished (P2-04); null = not yet' })
   @Column({ name: 'setup_completed_at', type: 'timestamptz', nullable: true })
   setup_completed_at: Date | null;
