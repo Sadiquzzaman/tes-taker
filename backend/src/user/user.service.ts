@@ -19,6 +19,7 @@ import { normalizeEmail, normalizePhone } from 'src/common/utils/contact.util';
 import { TestUsersSeedService } from './test-users.seed';
 import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
 import { AuditService } from 'src/audit/audit.service';
+import { AUTH_ERRORS } from 'src/auth/auth-errors';
 import { DeviceInfo, RefreshTokensService } from './refresh-tokens.service';
 
 type AdminUserListMeta = {
@@ -337,7 +338,7 @@ export class UserService implements OnModuleInit {
 
     if (user) {
       if (user.is_active === ActiveStatusEnum.INACTIVE) {
-        throw new UnauthorizedException('Your account has been disabled. Please contact support.');
+        throw new UnauthorizedException({ message: 'Your account has been disabled. Please contact support.', code: AUTH_ERRORS.ACCOUNT_DISABLED });
       }
       return user;
     }
@@ -354,7 +355,7 @@ export class UserService implements OnModuleInit {
       user.is_verified = true;
 
       if (user.is_active === ActiveStatusEnum.INACTIVE) {
-        throw new UnauthorizedException('Your account has been disabled. Please contact support.');
+        throw new UnauthorizedException({ message: 'Your account has been disabled. Please contact support.', code: AUTH_ERRORS.ACCOUNT_DISABLED });
       }
 
       return this.userRepository.save(user);
@@ -472,23 +473,23 @@ export class UserService implements OnModuleInit {
     } else if (loginDto.phone) {
       user = await this.findOneWithPassword({ phone: loginDto.phone });
     } else {
-      throw new UnauthorizedException('Invalid login credentials');
+      throw new UnauthorizedException({ message: 'Invalid login credentials', code: AUTH_ERRORS.INVALID_CREDENTIALS });
     }
 
     if (!user) {
-      throw new UnauthorizedException('Invalid login credentials');
+      throw new UnauthorizedException({ message: 'Invalid login credentials', code: AUTH_ERRORS.INVALID_CREDENTIALS });
     }
 
     if (!(await this.crypto.comparePassword(loginDto.password, user.password))) {
-      throw new UnauthorizedException('Invalid login credentials');
+      throw new UnauthorizedException({ message: 'Invalid login credentials', code: AUTH_ERRORS.INVALID_CREDENTIALS });
     }
 
     if (!user.is_otp_verified || !user.is_verified) {
-      throw new UnauthorizedException('Please verify your phone number with OTP before logging in');
+      throw new UnauthorizedException({ message: 'Please verify your phone number with OTP before logging in', code: AUTH_ERRORS.ACCOUNT_NOT_VERIFIED });
     }
 
     if (user.is_active === ActiveStatusEnum.INACTIVE) {
-      throw new UnauthorizedException('Your account has been disabled. Please contact support.');
+      throw new UnauthorizedException({ message: 'Your account has been disabled. Please contact support.', code: AUTH_ERRORS.ACCOUNT_DISABLED });
     }
 
     return user;
@@ -511,19 +512,19 @@ export class UserService implements OnModuleInit {
     const user = await this.findOneWithPassword({ phone: params.phone });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid login credentials');
+      throw new UnauthorizedException({ message: 'Invalid login credentials', code: AUTH_ERRORS.INVALID_CREDENTIALS });
     }
 
     if (!(await this.crypto.comparePassword(params.password, user.password))) {
-      throw new UnauthorizedException('Invalid login credentials');
+      throw new UnauthorizedException({ message: 'Invalid login credentials', code: AUTH_ERRORS.INVALID_CREDENTIALS });
     }
 
     if (!user.is_otp_verified || !user.is_verified) {
-      throw new UnauthorizedException('Please verify your phone number with OTP before logging in');
+      throw new UnauthorizedException({ message: 'Please verify your phone number with OTP before logging in', code: AUTH_ERRORS.ACCOUNT_NOT_VERIFIED });
     }
 
     if (user.is_active === ActiveStatusEnum.INACTIVE) {
-      throw new UnauthorizedException('Your account has been disabled. Please contact support.');
+      throw new UnauthorizedException({ message: 'Your account has been disabled. Please contact support.', code: AUTH_ERRORS.ACCOUNT_DISABLED });
     }
 
     return this.generateTokenForUser(user, {
@@ -698,7 +699,7 @@ export class UserService implements OnModuleInit {
   async consumeRefreshToken(refreshToken: string, device?: DeviceInfo): Promise<{ user: UserEntity; sessionId: string }> {
     const { user, sessionId } = await this.refreshTokens.consume(refreshToken, device);
     if (user.is_active === ActiveStatusEnum.INACTIVE) {
-      throw new UnauthorizedException('Your account has been disabled. Please contact support.');
+      throw new UnauthorizedException({ message: 'Your account has been disabled. Please contact support.', code: AUTH_ERRORS.ACCOUNT_DISABLED });
     }
     return { user, sessionId };
   }

@@ -113,7 +113,7 @@ export class SmsService {
     };
   }
 
-  async verifyOtp(phoneNumber: string, otp: string): Promise<{ success: boolean; message: string }> {
+  async verifyOtp(phoneNumber: string, otp: string): Promise<{ success: boolean; message: string; expired?: boolean }> {
     const storedOtp = await this.smsRateLimitService.getOtp(phoneNumber);
     // Throws 429 once the phone is locked after too many wrong codes.
     const result = await this.smsRateLimitService.checkOtpAttempt('register', phoneNumber, otp, storedOtp);
@@ -121,7 +121,8 @@ export class SmsService {
     if (result === 'expired') {
       return { 
         success: false, 
-        message: 'OTP expired or not found. Please request a new OTP.' 
+        message: 'OTP expired or not found. Please request a new OTP.',
+        expired: true,
       };
     }
     
