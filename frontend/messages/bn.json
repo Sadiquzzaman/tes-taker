@@ -82,7 +82,8 @@
     "ieltsOverview": "আইইএলটিএস সারসংক্ষেপ",
     "plagiarismSettings": "প্লেজিয়ারিজম সেটিংস",
     "ieltsCourses": "কোর্স",
-    "ieltsMyCourses": "আমার কোর্স"
+    "ieltsMyCourses": "আমার কোর্স",
+    "brandHome": "ইনস্ট্রাক্টর: আজ-এ যান"
   },
   "shell": {
     "organization": "প্রতিষ্ঠান",
@@ -2256,7 +2257,8 @@
     },
     "footer": {
       "rights": "© {year} Instructor. সর্বস্বত্ব সংরক্ষিত।",
-      "links": "অ্যাকাউন্ট"
+      "links": "অ্যাকাউন্ট",
+      "home": "ইনস্ট্রাক্টর: পাতার শুরুতে ফিরুন"
     }
   },
   "features": {

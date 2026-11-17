@@ -80,3 +80,10 @@ describe("landing pricing", () => {
     expect(screen.getByRole("link", { name: "Get started" }).getAttribute("href")).toBe("/signup");
   });
 });
+
+describe("landing footer logo", () => {
+  it("takes you back to the top of the landing page", () => {
+    renderApp(<LandingFooter />);
+    expect(screen.getByRole("link", { name: "Instructor: back to the top" }).getAttribute("href")).toBe("/");
+  });
+});

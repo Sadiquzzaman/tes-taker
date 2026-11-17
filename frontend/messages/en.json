@@ -82,7 +82,8 @@
     "ieltsOverview": "IELTS overview",
     "plagiarismSettings": "Plagiarism settings",
     "ieltsCourses": "Courses",
-    "ieltsMyCourses": "My courses"
+    "ieltsMyCourses": "My courses",
+    "brandHome": "Instructor: go to Today"
   },
   "shell": {
     "organization": "Organization",
@@ -2256,7 +2257,8 @@
     },
     "footer": {
       "rights": "© {year} Instructor. All rights reserved.",
-      "links": "Account"
+      "links": "Account",
+      "home": "Instructor: back to the top"
     }
   },
   "features": {
