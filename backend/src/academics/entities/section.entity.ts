@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Check, Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { CustomBaseEntity } from 'src/common/common-entities/custom-base.enity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
 import { BranchEntity } from 'src/organizations/entities/branch.entity';
@@ -18,6 +18,7 @@ export enum SectionShiftEnum {
  * looks after the whole section; a teacher may be class teacher of several sections.
  */
 @Entity('sections')
+@Check('CHK_sections_seat_limit', `"seat_limit" IS NULL OR "seat_limit" > 0`)
 @Index(['class_id', 'session_id', 'name'], { unique: true })
 @Index(['organization_id', 'session_id'])
 @Index(['class_teacher_id'])
@@ -70,4 +71,8 @@ export class SectionEntity extends CustomBaseEntity {
   @ManyToOne(() => BranchEntity, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'branch_id', foreignKeyConstraintName: 'FK_sections_branch' })
   branch: BranchEntity | null;
+
+  /** Enrolment is refused once this many students are in (P12-04: a course's seat limit); null = no limit. */
+  @Column({ name: 'seat_limit', type: 'smallint', nullable: true })
+  seat_limit: number | null;
 }

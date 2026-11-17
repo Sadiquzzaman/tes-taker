@@ -108,6 +108,14 @@ export class AttendanceBranchesService {
         details: { sections: inUse },
       });
     }
+    const managers = await this.branches.countManagers(organizationId, branch.id);
+    if (managers > 0) {
+      throw new ConflictException({
+        message: `${managers} branch manager(s) run this branch; give them another branch or role first`,
+        code: ATTENDANCE_ERRORS.BRANCH_HAS_MANAGER,
+        details: { managers },
+      });
+    }
     await this.branches.remove(branch, userId);
     this.audit.record({
       action: AUDIT_ACTIONS.BRANCH_REMOVE,

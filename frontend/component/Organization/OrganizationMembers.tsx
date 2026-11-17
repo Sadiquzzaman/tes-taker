@@ -26,6 +26,7 @@ import useFormat from "@/i18n/useFormat";
 import axiosReq from "@/lib/axios";
 import { downloadStudentCsvTemplate, extractStudentsFromCsvRows, parseCsvText } from "@/utils/classes/addStudentModal";
 import OrganizationWorkspaceGate from "./OrganizationWorkspaceGate";
+import ChangeRoleDrawer from "./ChangeRoleDrawer";
 
 type AddableRole = "TEACHER" | "ASSISTANT" | "STUDENT";
 
@@ -92,6 +93,9 @@ export const parsePhoneList = (raw: string) =>
 
 const canManageMembers = (role?: OrganizationMemberRole) => role === "OWNER" || role === "ADMIN";
 
+/** Roles shown on the Teachers screen; their role can be changed there (P12-01: branch managers). */
+const STAFF_TABLE_ROLES: OrganizationMemberRole[] = ["ADMIN", "TEACHER", "BRANCH_MANAGER"];
+
 const publicIdForRole = (member: OrganizationMemberItem, addRole: AddableRole) => {
   if (addRole === "STUDENT") {
     return member.user.student_public_id || member.user.teacher_public_id || member.user.public_id || "—";
@@ -132,6 +136,7 @@ const OrganizationMembersTable = ({
   const [lookingUp, setLookingUp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [removing, setRemoving] = useState<OrganizationMemberItem | null>(null);
+  const [changingRole, setChangingRole] = useState<OrganizationMemberItem | null>(null);
   const [removingBusy, setRemovingBusy] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importSummary, setImportSummary] = useState<ImportResultPayload | null>(null);
@@ -354,9 +359,16 @@ const OrganizationMembersTable = ({
               row.role === "OWNER" ? (
                 <span className="text-ink-muted">—</span>
               ) : (
-                <Button size="sm" variant="ghost" className="text-danger" onClick={() => setRemoving(row)}>
-                  {t("remove")}
-                </Button>
+                <div className="flex justify-end gap-1">
+                  {STAFF_TABLE_ROLES.includes(row.role) ? (
+                    <Button size="sm" variant="ghost" onClick={() => setChangingRole(row)}>
+                      {t("changeRole.action")}
+                    </Button>
+                  ) : null}
+                  <Button size="sm" variant="ghost" className="text-danger" onClick={() => setRemoving(row)}>
+                    {t("remove")}
+                  </Button>
+                </div>
               ),
           },
         ]
@@ -514,6 +526,9 @@ const OrganizationMembersTable = ({
         </div>
       </Drawer>
 
+      {organizationId ? (
+        <ChangeRoleDrawer organizationId={organizationId} member={changingRole} onClose={() => setChangingRole(null)} onChanged={() => void load()} />
+      ) : null}
       <ConfirmDialog
         open={Boolean(removing)}
         tone="danger"
@@ -531,7 +546,7 @@ const OrganizationMembersTable = ({
 // Staff read the Teachers and Students lists; adding and removing people stays with owners and admins.
 export const OrganizationTeachers = () => (
   <OrganizationWorkspaceGate allowedRoles={["OWNER", "ADMIN", "ASSISTANT"]}>
-    <OrganizationMembersTable titleKey="teachers" roles={["OWNER", "ADMIN", "TEACHER"]} addRole="TEACHER" />
+    <OrganizationMembersTable titleKey="teachers" roles={["OWNER", ...STAFF_TABLE_ROLES]} addRole="TEACHER" />
   </OrganizationWorkspaceGate>
 );
 

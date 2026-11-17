@@ -59,8 +59,11 @@ export class AuthService {
     // Self-service registration always creates a student account.
     // Teacher signup only queues a pending teacher request for admin review.
     const requestTeacher = Boolean(registerUserDto.request_teacher);
+    // Academic or IELTS (P12-03, IEL-11): kept on the teacher request for the solo workspace.
+    const workspaceType = registerUserDto.workspace_type === 'IELTS' ? 'IELTS' : 'ACADEMIC';
     registerUserDto.role = RolesEnum.STUDENT;
     registerUserDto.request_teacher = undefined;
+    registerUserDto.workspace_type = undefined;
 
     // Check if user with this phone already exists
     const existingUser = await this.userService.findByPhone(registerUserDto.phone);
@@ -97,6 +100,7 @@ export class AuthService {
     if (requestTeacher) {
       await this.teacherRequestService.createRequest(user.id, {
         note: 'Created during teacher signup',
+        workspace_type: workspaceType,
       });
       teacherRequestCreated = true;
     }

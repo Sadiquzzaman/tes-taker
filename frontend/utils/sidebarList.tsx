@@ -98,6 +98,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "classes",
     route: "/classes",
+    // IELTS uses courses instead (P12-05); a course links to its class page for students and the timetable.
+    workspaces: ["ACADEMIC"],
     group: "academics",
     role: ["STUDENT", "TEACHER"],
     image: <SidebarClassesIconSVG width={16} />,
@@ -106,6 +108,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "sessions",
     route: "/sessions",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "academics",
     role: ["TEACHER"],
     // A teacher with personal teaching off has no workspace of their own, so no sessions there.
@@ -116,6 +120,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "tests",
     route: "/tests",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "tests",
     role: ["STUDENT", "TEACHER"],
     image: <SidebarTestsIconSVG width={16} />,
@@ -124,6 +130,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "grading",
     route: "/grading",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "tests",
     role: ["TEACHER"],
     image: <SidebarGradingIconSVG width={16} />,
@@ -401,6 +409,18 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Organization",
+    label: "ieltsCourses",
+    route: "/ielts/courses",
+    group: "people",
+    role: ["TEACHER"],
+    // Courses replace batches in IELTS (P12-05); branch managers see their branch's.
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER", "BRANCH_MANAGER"],
+    workspaces: ["IELTS"],
+    feature: "ielts",
+    image: <SidebarDashboardIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
     label: "ieltsStudents",
     route: "/ielts/students",
     group: "people",
@@ -475,6 +495,15 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Platform",
+    label: "ieltsMyCourses",
+    route: "/ielts/my-courses",
+    role: ["STUDENT"],
+    workspaces: ["IELTS"],
+    feature: "ielts",
+    image: <SidebarDashboardIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
     label: "ieltsOverview",
     route: "/ielts/overview",
     role: ["STUDENT"],
@@ -531,6 +560,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "leave",
     route: "/leave",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "attendance",
     role: ["STUDENT"],
     feature: "attendance",
@@ -619,7 +650,8 @@ const sidebarList: SideBarList[] = [
     label: "today",
     route: "/today",
     role: ["TEACHER"],
-    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
+    // Branch managers (P12-01) start here; their branch tools are added as they are opened.
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER", "BRANCH_MANAGER"],
     image: <SidebarDashboardIconSVG width={16} />,
   },
   {
@@ -661,6 +693,8 @@ const sidebarList: SideBarList[] = [
     category: "Organization",
     label: "classes",
     route: "/organization/classes",
+    // IELTS uses courses instead (P12-05); a course links to its class page for students and the timetable.
+    workspaces: ["ACADEMIC"],
     group: "academics",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
@@ -670,6 +704,8 @@ const sidebarList: SideBarList[] = [
     category: "Organization",
     label: "sessions",
     route: "/sessions",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "academics",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN"],
@@ -679,6 +715,8 @@ const sidebarList: SideBarList[] = [
     category: "Organization",
     label: "assignments",
     route: "/organization/assignments",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "academics",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT"],
@@ -688,6 +726,8 @@ const sidebarList: SideBarList[] = [
     category: "Organization",
     label: "subjects",
     route: "/organization/subjects",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "academics",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT"],
@@ -697,6 +737,8 @@ const sidebarList: SideBarList[] = [
     category: "Organization",
     label: "tests",
     route: "/tests",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "tests",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "TEACHER"],
@@ -813,6 +855,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "leave",
     route: "/leave",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "attendance",
     role: ["TEACHER"],
     // A solo teacher approves their students' leave (they have no teacher leave of their own).
@@ -835,6 +879,8 @@ const sidebarList: SideBarList[] = [
     category: "Organization",
     label: "leave",
     route: "/leave",
+    // Academic only: IELTS has its own tests and no sessions, subjects or leave requests (P12-03).
+    workspaces: ["ACADEMIC"],
     group: "attendance",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
@@ -901,5 +947,13 @@ const sidebarList: SideBarList[] = [
     image: <SidebarHelpIconSVG width={16} />,
   },
 ];
+
+/**
+ * A solo IELTS trainer (P12-03) works in their own workspace: the IELTS staff pages, in the
+ * personal menu, once the workspace is IELTS.
+ */
+for (const item of sidebarList.filter((entry) => entry.category === "Organization" && entry.workspaces?.includes("IELTS"))) {
+  sidebarList.push({ ...item, category: "Platform", memberRoles: undefined, personalWorkspaceOnly: true });
+}
 
 export default sidebarList;

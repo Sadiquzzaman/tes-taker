@@ -8,6 +8,7 @@ import { OrganizationContextGuard } from 'src/organizations/guards/organization-
 import { CreateFeatureRequestDto } from './dto/plan-management.dto';
 import { EntitlementsService } from './entitlements.service';
 import { SubscriptionService } from './subscription.service';
+import { BranchScoped } from 'src/common/tenancy/branch-scoped.decorator';
 
 /** What the signed-in user's current workspace may use (design §8.3). */
 @ApiTags('Me')
@@ -25,6 +26,7 @@ export class MeController {
     description: 'Clients hide locked menus with it (FND-07). 403 when no workspace is chosen.',
   })
   @UseGuards(AuthGuard('jwt'), OrganizationContextGuard)
+  @BranchScoped()
   async getEntitlements() {
     const payload = await this.entitlementsService.getEntitlements(TenantContext.requireOrganizationId());
     return { message: 'Entitlements retrieved successfully', payload };

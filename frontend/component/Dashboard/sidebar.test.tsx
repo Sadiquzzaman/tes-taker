@@ -183,3 +183,55 @@ describe("IELTS centres (P10-01)", () => {
   });
 });
 
+describe("sidebar for solo IELTS trainers (P12-03)", () => {
+  it("shows a solo IELTS trainer the IELTS staff pages in their own workspace, and an academic solo teacher none", async () => {
+    features = { attendance: true, ielts: true };
+    await renderSidebar({ role: "TEACHER", personal_teacher: "1", workspace_type: "IELTS" });
+    expect(links()).toEqual(expect.arrayContaining(["IELTS tests", "Marking"]));
+    expect(links()).not.toContain("Marks");
+    cleanup();
+    await renderSidebar({ role: "TEACHER", personal_teacher: "1" });
+    expect(links()).not.toContain("IELTS tests");
+  });
+});
+
+describe("sidebar for branch managers (P12-01)", () => {
+  it("shows a branch manager Today only from the organisation's pages, until branch tools are opened to them", async () => {
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "BRANCH_MANAGER" });
+    expect(links()).toContain("Today");
+    expect(links()).not.toContain("Billing & Plans");
+    expect(links()).not.toContain("Teachers");
+    expect(links()).not.toContain("Students");
+  });
+});
+
+describe("sidebar in IELTS workspaces (P12-03)", () => {
+  it("hides sessions, subjects, subject teachers, academic tests, grading and leave from an IELTS centre, and keeps them for a school", async () => {
+    features = { attendance: true, ielts: true };
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "OWNER", workspace_type: "IELTS" });
+    for (const page of ["Sessions", "Subjects", "Subject teachers", "Tests", "Grading", "Leave"]) expect(links()).not.toContain(page);
+    expect(links()).toContain("IELTS tests");
+    cleanup();
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "OWNER" });
+    expect(links()).toEqual(expect.arrayContaining(["Sessions", "Subjects", "Subject teachers", "Leave"]));
+  });
+});
+
+describe("sidebar courses (P12-05)", () => {
+  it("gives IELTS staff Courses instead of Classes, IELTS students My courses, and schools their Classes", async () => {
+    features = { attendance: true, ielts: true };
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "OWNER", workspace_type: "IELTS" });
+    expect(links()).toContain("Courses");
+    expect(links()).not.toContain("Classes");
+    cleanup();
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "BRANCH_MANAGER", workspace_type: "IELTS" });
+    expect(links()).toContain("Courses");
+    cleanup();
+    await renderSidebar({ role: "STUDENT", session_mode: "organization", member_role: "STUDENT", workspace_type: "IELTS" });
+    expect(links()).toContain("My courses");
+    cleanup();
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "OWNER" });
+    expect(links()).toContain("Classes");
+    expect(links()).not.toContain("Courses");
+  });
+});

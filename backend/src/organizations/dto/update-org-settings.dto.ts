@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsIn, IsOptional } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 import { ORGANIZATION_LOCALES, OrganizationLocale } from '../org-settings.service';
 
 export class UpdateOrgSettingsDto {
@@ -17,4 +17,21 @@ export class UpdateOrgSettingsDto {
   @IsOptional()
   @IsIn(ORGANIZATION_LOCALES)
   sms_locale?: OrganizationLocale;
+
+  @ApiPropertyOptional({ description: 'Use branches (P12-01); switching off needs every branch but the main one removed' })
+  @IsOptional()
+  @IsBoolean()
+  branches_enabled?: boolean;
+
+  @ApiPropertyOptional({ description: 'Keep and show guardians (P12-03); default on for Academic, off for IELTS' })
+  @IsOptional()
+  @IsBoolean()
+  guardians_enabled?: boolean;
+
+  @ApiPropertyOptional({ description: 'Students still see an ended IELTS course this many days (P12-04); 0–365' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(365)
+  ended_course_visible_days?: number;
 }

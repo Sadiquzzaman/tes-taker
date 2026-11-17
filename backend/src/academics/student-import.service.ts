@@ -171,6 +171,8 @@ export class StudentImportService {
     const counts = { enrolled: 0, pending: 0, invited: 0, guardians: 0 };
     let invitationsSent = 0;
     const smsLocale = dto.send_invitations ? (await this.orgSettings.get(classEntity.organization_id as string)).sms_locale : null;
+    // Guardian columns are ignored while guardians are switched off (P12-03: off by default in IELTS).
+    const guardiansOn = await this.orgSettings.guardiansEnabled(classEntity.organization_id as string);
     const link = `${resolveFrontendUrl(this.configService)}/join/class/${classEntity.id}`;
 
     for (const row of valid) {
@@ -187,7 +189,7 @@ export class StudentImportService {
         else if (outcome === 'PENDING') counts.pending++;
         else counts.invited++;
 
-        if (row.guardians.length > 0 && !row.keepGuardians) {
+        if (guardiansOn && row.guardians.length > 0 && !row.keepGuardians) {
           const entries = await this.enrolmentRepo.manager.transaction((manager) =>
             this.guardians.replace(enrolment.id, { guardians: row.guardians }, actor, manager),
           );

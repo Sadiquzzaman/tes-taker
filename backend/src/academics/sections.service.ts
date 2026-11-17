@@ -362,6 +362,35 @@ export class SectionsService {
   }
 
   /** A new section gets a subject class for each of the class's subjects. */
+  /**
+   * Gives a new class's empty section to an IELTS course (P12-04): moves it into the course's own
+   * session, at the course's branch, with its seat limit. Only while nobody is enrolled.
+   */
+  async prepareCourseSection(
+    sectionId: string,
+    course: { session_id: string; branch_id: string | null; seat_limit: number | null; name: string },
+    actor: Actor,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const em = manager ?? this.dataSource.manager;
+    const enrolled = await em.getRepository(EnrolmentEntity).count({ where: { section_id: sectionId } });
+    if (enrolled > 0) throw new ConflictException('Students are already in this section');
+    await em.getRepository(SectionEntity).update(
+      { id: sectionId },
+      { session_id: course.session_id, branch_id: course.branch_id, seat_limit: course.seat_limit, name: course.name.slice(0, 60), updated_by: actor.id, updated_at: new Date() },
+    );
+  }
+
+  /** Moves an IELTS course's section to another branch (P12-04). */
+  async prepareCourseBranch(sectionId: string, branchId: string, actor: Actor): Promise<void> {
+    await this.sectionRepo.update({ id: sectionId }, { branch_id: branchId, updated_by: actor.id, updated_at: new Date() });
+  }
+
+  /** A section's seat limit (P12-04); null = no limit. Seats already taken stay. */
+  async setSeatLimit(sectionId: string, seatLimit: number | null, actor: Actor): Promise<void> {
+    await this.sectionRepo.update({ id: sectionId }, { seat_limit: seatLimit, updated_by: actor.id, updated_at: new Date() });
+  }
+
   async createSection(classId: string, dto: CreateSectionDto, actor: Actor): Promise<SectionView> {
     const classEntity = await this.findClass(classId);
     const organizationId = classEntity.organization_id as string;

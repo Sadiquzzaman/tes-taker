@@ -760,6 +760,73 @@ In IELTS workspaces the UI calls the syllabus a **course path**, built from each
 
 **IELTS reformation (decided 16 Nov 2026, IEL-11–16, FND-06).** The owner's decisions are in the spec (Epic 11, "Decisions (16 Nov 2026)"). The design keeps the engine every epic already uses and changes what IELTS users see.
 
+**Built in P12-01 part 1 (branch managers, FND-06, 17 Nov 2026):**
+- **Migration `1756520000000-BranchManagers`:** `BRANCH_MANAGER` in the member and invitation role enums, `organization_members.branch_id` and `org_settings.branches_enabled`. It switched branches on where an organisation already had another branch.
+- **Switching branches on and off:** adding a branch switches them on (`OrgSettingsService.enableBranches`). `PATCH /organizations/:id/settings` with `branches_enabled: false` needs every branch but the main one removed (409 `BRANCHES_IN_USE`). A branch with an active branch manager cannot be removed (409 `ATTENDANCE_BRANCH_HAS_MANAGER`).
+- **Making a branch manager:** owners and admins change an existing staff member's role with `PATCH /organizations/:id/members/:memberId {role: BRANCH_MANAGER, branch_id}`, which needs an active branch of the organisation (400 `BRANCH_REQUIRED`). A student cannot be one (`BRANCH_MANAGER_NOT_STAFF`), and inviting or importing straight into the role is refused (`BRANCH_MANAGER_BY_ROLE_CHANGE`). Changing back to another role clears the branch. Changes are audited as `member.role_change`.
+- **Refused by default:** `OrganizationContextGuard` refuses a branch manager (403 `NOT_FOR_BRANCH_MANAGERS`) on every endpoint without `@BranchScoped()`, and also when their branch is missing or removed. For the rest it sets `Tenant.branchId`. The chat socket refuses them too.
+- **What is open in part 1:** `/me/entitlements`, `/workspace/type` and `/workspace/level-labels`.
+- **The sweep:** `branch-managers.e2e-spec.ts` calls every GET endpoint as a branch manager and fails when anything outside its hand-checked list answers. That list is their own account and notifications, platform catalogues, the organisation's name and settings, and the exams they made themselves.
+- **Later parts:** each opens endpoints with `@BranchScoped()` only once their data is limited to `Tenant.branchId`.
+
+**Built in P12-02 (branch managers on the web, 17 Nov 2026):**
+- **Teachers screen:** owners and admins see branch managers there and change a staff member's role (Admin, Teacher, Branch manager) in a drawer. A branch manager also needs a branch, picked from the branches list.
+- **Organisation settings:** a **Branches** switch. Switching off is refused while other branches exist.
+- **Branch managers' menu:** Today only, as their branch tools are not opened yet.
+- **Personal calendar:** `UserContextService.workspaces` (the calendar across all of a person's workspaces) leaves out an organisation where the person is a branch manager, because that feed is not limited to a branch yet.
+
+**Built in P12-03 part 1 (solo IELTS trainers, IEL-11, 17 Nov 2026):**
+- **Sign-up:** teacher sign-up takes `workspace_type` (ACADEMIC by default, or IELTS). It is kept on the teacher request (`teacher_role_requests.workspace_type`, migration `1756530000000-SoloIelts`).
+- **Approval:** approving an IELTS request makes the teacher's SOLO organisation at once, with workspace type IELTS and the Course / Batch labels (`SoloOrganizationService.ensureForTeacher(user, IELTS)`). Others are made on first use as before; an existing one keeps its type.
+- **Sign-in:** the sign-in and refresh answers carry `workspace_type`:
+  - the organisation's;
+  - for a teacher's personal session, their solo workspace's;
+  - for a student of a solo teacher, that teacher's.
+
+  The web stores it in the `workspace_type` cookie for personal sessions too.
+- **Menu:** solo IELTS trainers get the IELTS staff pages in their own menu. The IELTS check was already by workspace type, so the IELTS endpoints answer in a solo IELTS workspace; the `ielts` feature still comes from the plan.
+- **Not built:** a second solo workspace of the other type, and the choice on Account → Become a teacher (docs/TODO.md).
+
+**Built in P12-03 part 2 (IELTS workspace rules, IEL-12, 17 Nov 2026):**
+- **Guardians switch:** `org_settings.guardians_enabled` (migration `1756540000000-IeltsGuardians`; null = on for Academic, off for IELTS), shown in organisation settings. While it is off:
+  - the guardian endpoints answer 403 `GUARDIANS_OFF`;
+  - the student CSV import ignores guardian columns;
+  - section student lists hide the Guardians button.
+- **No attendance SMS in IELTS:** `OrgSettingsService.getAttendance` turns every guardian SMS switch off (late, absent, leave).
+- **No leave requests in IELTS:** `NotInIeltsGuard` on the leave controller (403 `NOT_IN_IELTS`).
+- **IELTS menu:** sessions, subjects, subject teachers, the academic tests and grading, and leave are academic-only. Classes stay until courses replace batches (P12-04/05), when the academic routes are refused in IELTS.
+
+**Built in P12-04 (IELTS courses, server, IEL-13, 17 Nov 2026):**
+- **Migration `1756550000000-IeltsCourses`:** `ielts_courses`, `sections.seat_limit` and `org_settings.ended_course_visible_days`. It made a course of every IELTS batch of an open session: titled by the class, all four modules, the session's dates.
+- **`POST /ielts/courses`** (owners, admins, a solo trainer, a branch manager for their branch) makes:
+  - the class (`ClassService.createCourseClass`, after the course service's own check);
+  - the course's own session with its dates;
+  - the class's empty section moved into it at the branch with the seat limit (`SectionsService.prepareCourseSection`);
+  - a subject class per module (fixed module subjects IELTS-L/R/W/S, `ClassService.addCourseSubject`), with the teachers per module (`SectionsService.setTeachers`).
+- **`GET /ielts/courses`, `GET /ielts/courses/:id`:**
+  - all for owners and admins;
+  - the branch for a branch manager (opened with `@BranchScoped()`);
+  - for a teacher, the courses they teach (module teacher or class teacher);
+  - for a student, their ACTIVE enrolments, and an ended course only for `ended_course_visible_days`.
+
+  Each course comes with its status (UPCOMING, RUNNING, ENDED from the dates), seat limit, students and teachers per module.
+- **`PATCH /ielts/courses/:id`** changes the title, dates (and the session's), branch, seat limit, modules and teachers.
+- **`DELETE`** removes a course only while nobody is enrolled (soft; 409 `COURSE_HAS_STUDENTS`).
+- **Seat limit:** `EnrolmentsService` refuses enrolment once a section's seat limit is reached (409 `SECTION_FULL`), whichever path enrols.
+- **Audit:** `ielts.course_create`, `ielts.course_update`, `ielts.course_remove`.
+- **Not built yet:**
+  - ended courses becoming read-only (closing their session on a daily job);
+  - the academic routes refused in IELTS workspaces (with P12-05's screens);
+  - the in-person/online setting per timetable class (with live classes).
+
+**Built in P12-05 (course screens, IEL-13, 17 Nov 2026):**
+- **`/ielts/courses`** (menu "Courses" in IELTS workspaces, also for branch managers and solo trainers): each course with branch, dates, status, modules, students against seats and teachers per module, filtered by status. Owners, admins, branch managers and solo trainers make and change courses in a drawer (title, branch when there are branches, dates, modules, seat limit, one teacher per module) and remove empty ones. Teachers read. "Students and timetable" opens the course's class page.
+- **`/ielts/my-courses`** (students): their courses with dates, status and teachers.
+- **Menu:** the academic Classes items are Academic-only now.
+- **Not built yet:**
+  - several teachers per module from the screen (the API takes them);
+  - refusing the academic routes in IELTS (the class page is still used for a course's students and timetable).
+
 *Courses on the academic engine.* A course is the `ielts` module's own row, `ielts_courses` (title, branch, start and end date, modules, seat limit, recording default, status), created through `AcademicsService` with a class, **its own academic session** (named after the course, with the course's dates) and **one section** (the course's branch and its students). One session per course gives each course its own dates and close without new rules: the existing "closed session is read-only" logic makes an ended course read-only, and enrolments, attendance, homework, chat, resources, routine and IELTS openings already hang off the section. The four modules are fixed subjects that `IeltsCoursesService` creates for an IELTS workspace when it first needs them (not at boot, see the lesson of 15 Nov); a course module is a subject class (`course_offerings`) and its teachers are `offering_teachers`, so several teachers per module and "teachers see only their courses" come from the existing teacher rules. The weekly timetable is the section's `routine_slots`, each with `delivery` (IN\_PERSON or ONLINE) and an optional `meeting_url`; `class_attendance` rows copy the delivery. A daily job closes the session of a course whose end date has passed (the API also treats it as ended on read, so a late job changes nothing), and changing the end date re-opens it. After the end, students still read the course for `org_settings.ended_course_visible_days` (capped by the plan); staff always do. The seat limit is checked when a student is enrolled (409 `COURSE_FULL`), with the section row locked. Existing IELTS batches (test accounts only) become courses in a data migration: a course per section, its dates from the section's session.
 
 *Who sees what.* Students see a course only through an ACTIVE enrolment in its section (the rule every epic uses today); IELTS test openings stay per section, so they become per course with no change. Sessions, classes, sections, subjects and assignments are hidden in IELTS workspaces (menu `workspaces: ["ACADEMIC"]`), and their routes refuse an IELTS workspace with 403 `NOT_IN_THIS_WORKSPACE`, so typing an address does not show academic pages.

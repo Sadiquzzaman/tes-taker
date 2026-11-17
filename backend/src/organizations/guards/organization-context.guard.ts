@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
@@ -18,6 +19,11 @@ import { OrgContext } from '../interfaces/org-context.interface';
 import { OrganizationKindEnum } from '../enums/organization-kind.enum';
 import { OrganizationMemberRoleEnum } from '../enums/organization-member-role.enum';
 import { SoloOrganizationService } from '../solo-organization.service';
+import { BranchEntity } from '../entities/branch.entity';
+import { BRANCH_SCOPED_KEY } from 'src/common/tenancy/branch-scoped.decorator';
+
+/** Error code when a branch manager calls an endpoint not opened to them (P12-01). */
+export const NOT_FOR_BRANCH_MANAGERS = 'NOT_FOR_BRANCH_MANAGERS';
 
 export const ORGANIZATION_ID_HEADER = 'x-organization-id';
 
@@ -32,6 +38,7 @@ export class OrganizationContextGuard implements CanActivate {
     @InjectRepository(OrganizationEntity)
     private readonly organizationRepo: Repository<OrganizationEntity>,
     private readonly soloOrganizations: SoloOrganizationService,
+    private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -56,7 +63,7 @@ export class OrganizationContextGuard implements CanActivate {
       if (headerOrgId && headerOrgId !== jwtOrgId) {
         throw new ForbiddenException('Organization context does not match this session');
       }
-      return this.attachOrgContext(request, jwtOrgId, user?.id);
+      return this.attachOrgContext(request, jwtOrgId, user?.id, context);
     }
 
     // Individual sessions ignore org headers. orgContext stays null (personal behaviour: the
@@ -94,6 +101,7 @@ export class OrganizationContextGuard implements CanActivate {
     request: { orgContext?: OrgContext | null; organization?: OrganizationEntity },
     organizationId: string,
     userId?: string,
+    context?: ExecutionContext,
   ): Promise<boolean> {
     if (!UUID_RE.test(organizationId)) {
       throw new BadRequestException('Organization id must be a valid UUID');
@@ -132,12 +140,30 @@ export class OrganizationContextGuard implements CanActivate {
       throw new ForbiddenException('Your organization membership is inactive');
     }
 
+    // Branch managers (P12-01): only endpoints marked @BranchScoped(), and only with an active branch.
+    let branchId: string | undefined;
+    if (membership.role === OrganizationMemberRoleEnum.BRANCH_MANAGER) {
+      const opened = context
+        ? this.reflector.getAllAndOverride<boolean>(BRANCH_SCOPED_KEY, [context.getHandler(), context.getClass()])
+        : false;
+      if (!opened) {
+        throw new ForbiddenException({ message: 'This is not open to branch managers', code: NOT_FOR_BRANCH_MANAGERS });
+      }
+      const branch = membership.branch_id
+        ? await this.memberRepo.manager.getRepository(BranchEntity).findOne({ where: { id: membership.branch_id, organization_id: organizationId, is_active: ActiveStatusEnum.ACTIVE } })
+        : null;
+      if (!branch) {
+        throw new ForbiddenException({ message: 'Your branch is not available', code: NOT_FOR_BRANCH_MANAGERS });
+      }
+      branchId = branch.id;
+    }
+
     request.orgContext = {
       organizationId,
       memberRole: membership.role,
     };
     request.organization = organization;
-    TenantContext.set({ organizationId, kind: organization.kind, memberRole: membership.role });
+    TenantContext.set({ organizationId, kind: organization.kind, memberRole: membership.role, ...(branchId ? { branchId } : {}) });
 
     return true;
   }

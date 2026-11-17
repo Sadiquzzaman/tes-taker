@@ -99,6 +99,7 @@ describe("where people start", () => {
   it("puts Today first in the menu for everyone", () => {
     const items = sidebarList.filter((entry) => entry.route === "/today");
     expect(items.map((entry) => entry.category)).toEqual(["Platform", "Organization"]);
-    expect(items[1].memberRoles).toEqual(["OWNER", "ADMIN", "ASSISTANT", "TEACHER"]);
+    // Branch managers start on Today too (P12-02).
+    expect(items[1].memberRoles).toEqual(["OWNER", "ADMIN", "ASSISTANT", "TEACHER", "BRANCH_MANAGER"]);
   });
 });

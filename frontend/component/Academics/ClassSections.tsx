@@ -37,6 +37,8 @@ const ClassSections = ({ classId }: { classId: string }) => {
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
   const [sessionId, setSessionId] = useState("");
   const [classTeacherEnabled, setClassTeacherEnabled] = useState(false);
+  // Guardians can be switched off (P12-03: off by default in IELTS).
+  const [guardiansEnabled, setGuardiansEnabled] = useState(true);
   const [teachers, setTeachers] = useState<AcademicPerson[]>([]);
   const [editing, setEditing] = useState<ClassSection | "new" | null>(null);
   const [deleting, setDeleting] = useState<ClassSection | null>(null);
@@ -55,9 +57,10 @@ const ClassSections = ({ classId }: { classId: string }) => {
   useEffect(() => {
     // A solo teacher's workspace has no class teachers and no other teachers to assign.
     if (isIndividual || !organizationId) return;
-    void run(() => axiosReq.get<ApiResponse<OrganizationSettings>>(`${baseUrl}/organizations/${organizationId}/settings`)).then((res) =>
-      setClassTeacherEnabled(Boolean(res?.data?.payload?.class_teacher_enabled)),
-    );
+    void run(() => axiosReq.get<ApiResponse<OrganizationSettings>>(`${baseUrl}/organizations/${organizationId}/settings`)).then((res) => {
+      setClassTeacherEnabled(Boolean(res?.data?.payload?.class_teacher_enabled));
+      setGuardiansEnabled(res?.data?.payload?.guardians_enabled !== false);
+    });
     if (canManageStructure) {
       void run(() => axiosReq.get<ApiResponse<OrganizationMemberItem[]>>(`${baseUrl}/organizations/${organizationId}/assignable-teachers`)).then(
         (res) => setTeachers((res?.data?.payload ?? []).map((m) => ({ id: m.user.id, full_name: m.user.full_name || m.user.phone || m.user.id }))),
@@ -198,7 +201,7 @@ const ClassSections = ({ classId }: { classId: string }) => {
               {
                 key: "students",
                 label: t("tabs.students"),
-                content: <SectionStudents section={openSection} sections={sections ?? []} editable={editable} onChanged={loadSections} />,
+                content: <SectionStudents section={openSection} sections={sections ?? []} editable={editable} guardiansEnabled={guardiansEnabled} onChanged={loadSections} />,
               },
               {
                 key: "subjects",

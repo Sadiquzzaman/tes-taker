@@ -9,6 +9,7 @@ import { RolesGuard } from 'src/common/guard/roles.guard';
 import { UpdateLevelLabelsDto } from './dto/update-level-labels.dto';
 import { OrganizationContextGuard } from './guards/organization-context.guard';
 import { OrgSettingsService } from './org-settings.service';
+import { BranchScoped } from 'src/common/tenancy/branch-scoped.decorator';
 
 /** Settings of the current workspace (an organisation or a solo teacher's own), resolved from the request. */
 @ApiTags('Workspace')
@@ -21,12 +22,14 @@ export class WorkspaceController {
   constructor(private readonly orgSettingsService: OrgSettingsService) {}
 
   @Get('type')
+  @BranchScoped()
   @ApiOperation({ summary: 'What this workspace is: kind (SCHOOL, IELTS_CENTRE, SOLO…) and workspace_type (ACADEMIC or IELTS)' })
   async workspaceType() {
     return { message: 'Workspace type retrieved successfully', payload: await this.orgSettingsService.currentWorkspaceType() };
   }
 
   @Get('level-labels')
+  @BranchScoped()
   @ApiOperation({ summary: 'What this workspace calls its classes and sections, in English and Bangla (FND-03)' })
   async levelLabels() {
     return { message: 'Level names retrieved successfully', payload: await this.orgSettingsService.currentLevelLabels() };

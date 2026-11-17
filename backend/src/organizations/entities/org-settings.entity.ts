@@ -44,6 +44,18 @@ export class OrgSettingsEntity extends CustomBaseEntity {
   @Column({ name: 'class_teacher_enabled', type: 'boolean', default: true })
   class_teacher_enabled: boolean;
 
+  @ApiProperty({ description: 'The organisation uses branches (P12-01, FND-06); off = only the hidden main branch' })
+  @Column({ name: 'branches_enabled', type: 'boolean', default: false })
+  branches_enabled: boolean;
+
+  @ApiPropertyOptional({ description: 'Guardians on or off (P12-03); null = on for Academic, off for IELTS' })
+  @Column({ name: 'guardians_enabled', type: 'boolean', nullable: true })
+  guardians_enabled: boolean | null;
+
+  @ApiProperty({ description: 'Students still see an ended IELTS course this many days (P12-04, IEL-13); 0 = it disappears at the end' })
+  @Column({ name: 'ended_course_visible_days', type: 'smallint', default: 0 })
+  ended_course_visible_days: number;
+
   @ApiPropertyOptional({ description: 'When the academic setup wizard was finished (P2-04); null = not yet' })
   @Column({ name: 'setup_completed_at', type: 'timestamptz', nullable: true })
   setup_completed_at: Date | null;

@@ -80,7 +80,9 @@
     "ieltsMyTests": "IELTS tests",
     "ieltsMarking": "Marking",
     "ieltsOverview": "IELTS overview",
-    "plagiarismSettings": "Plagiarism settings"
+    "plagiarismSettings": "Plagiarism settings",
+    "ieltsCourses": "Courses",
+    "ieltsMyCourses": "My courses"
   },
   "shell": {
     "organization": "Organization",
@@ -164,7 +166,12 @@
       "kindSchool": "School, college or coaching centre",
       "kindSchoolHint": "Classes and sections, GPA, report cards.",
       "kindIelts": "IELTS centre",
-      "kindIeltsHint": "Courses and batches, IELTS tests in the computer-delivered format, band scores."
+      "kindIeltsHint": "Courses and batches, IELTS tests in the computer-delivered format, band scores.",
+      "teachKind": "What do you teach?",
+      "teachAcademic": "Academic subjects",
+      "teachAcademicHint": "Classes and subjects, marks and report cards.",
+      "teachIelts": "IELTS",
+      "teachIeltsHint": "Courses, IELTS tests in the computer-delivered format, band scores."
     },
     "otp": {
       "title": "Verify code",
@@ -1597,7 +1604,8 @@
       "ADMIN": "Admin",
       "ASSISTANT": "Staff",
       "TEACHER": "Teacher",
-      "STUDENT": "Student"
+      "STUDENT": "Student",
+      "BRANCH_MANAGER": "Branch manager"
     },
     "statuses": {
       "pending": "Waiting for approval",
@@ -1730,7 +1738,21 @@
       "addToSection": "Add to {section}",
       "addedToSection": "Added to {section}",
       "invitedToSection": "They join {section} after they sign up or log in.",
-      "pendingInSection": "They join once their account is verified."
+      "pendingInSection": "They join once their account is verified.",
+      "changeRole": {
+        "action": "Change role",
+        "title": "Change the role of {name}",
+        "intro": "A branch manager runs one branch and sees only that branch.",
+        "role": "Role",
+        "branch": "Branch",
+        "chooseBranch": "Choose a branch",
+        "mainBranch": "Main branch",
+        "branchManagerHint": "Branch managers see only what is open to them; more branch tools are coming.",
+        "cancel": "Cancel",
+        "save": "Save",
+        "doneTitle": "Role changed",
+        "done": "The role is now {role}."
+      }
     },
     "subjects": {
       "title": "Subjects",
@@ -2507,7 +2529,11 @@
         "en": "English"
       },
       "smsLanguage": "Guardian SMS language",
-      "smsLanguageHint": "Students can have their own. One SMS holds 160 English or 70 Bangla characters, so Bangla SMS use more credits."
+      "smsLanguageHint": "Students can have their own. One SMS holds 160 English or 70 Bangla characters, so Bangla SMS use more credits.",
+      "branches": "Branches",
+      "branchesHint": "Several campuses, each with its own check-in location and a branch manager. To switch this off, remove every branch except the main one.",
+      "guardians": "Guardians",
+      "guardiansHint": "Keep guardians' names and phone numbers for each student. Off by default for IELTS, where most students are adults."
     },
     "sections": {
       "title": "[[Sections]]",
@@ -3078,6 +3104,11 @@
       "report_card": {
         "generate": "Report card made",
         "share": "Report card sent to guardians"
+      },
+      "ielts": {
+        "course_create": "IELTS course created",
+        "course_update": "IELTS course changed",
+        "course_remove": "IELTS course removed"
       }
     },
     "fields": {
@@ -5962,5 +5993,52 @@
     "minWords": "Fewest words checked",
     "save": "Save",
     "settingsSaved": "Settings saved"
+  },
+  "ieltsCourses": {
+    "title": "Courses",
+    "intro": "Each course has its branch, dates, modules and teachers. Add students and the timetable from the course's page.",
+    "new": "New course",
+    "edit": "Change course",
+    "formIntro": "The title says what the course is, for example \"Band 7 Academic — Jan 2027, evening\" or \"Writing crash course\".",
+    "course": "Course",
+    "courseTitle": "Course title",
+    "courseTitleHint": "Up to 150 characters.",
+    "branch": "Branch",
+    "mainBranch": "Main branch",
+    "startDate": "Starts",
+    "endDate": "Ends",
+    "dates": "Dates",
+    "status": "Status",
+    "allStatuses": "All courses",
+    "statuses": {
+      "UPCOMING": "Upcoming",
+      "RUNNING": "Running",
+      "ENDED": "Ended"
+    },
+    "modules": "Modules",
+    "students": "Students",
+    "seatsTaken": "{taken, number} of {limit, number}",
+    "seatLimit": "Seat limit",
+    "seatLimitHint": "Leave empty for no limit. When the course is full, nobody else can be added.",
+    "teachers": "Teachers",
+    "teacherFor": "{module} teacher",
+    "noTeacher": "No teacher yet",
+    "actions": "Actions",
+    "studentsAndTimetable": "Students and timetable",
+    "studentsHint": "After saving, add students and the weekly timetable from the course's page.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "created": "Course created",
+    "saved": "Course saved",
+    "remove": "Remove",
+    "removed": "Course removed",
+    "removeTitle": "Remove {title}?",
+    "removeDetail": "Only a course with no students can be removed. It is hidden, not deleted.",
+    "loadFailed": "Couldn't load the courses.",
+    "empty": "No courses yet",
+    "emptyHint": "Make your first course with New course.",
+    "myTitle": "My courses",
+    "myIntro": "Your IELTS courses, their dates and your teachers.",
+    "myEmpty": "You are not in any course yet"
   }
 }

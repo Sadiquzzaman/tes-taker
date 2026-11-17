@@ -94,6 +94,13 @@ export class UserReponseDto {
   })
   organization?: OrganizationSessionDto | null;
 
+  @ApiProperty({
+    description: "The workspace's type, ACADEMIC or IELTS (P12-03): the organisation's, or the solo workspace's for personal sessions (a solo IELTS trainer and their students)",
+    enum: ['ACADEMIC', 'IELTS'],
+    required: false,
+  })
+  workspace_type?: string;
+
   @ApiProperty({ description: 'JWT access token for authenticated requests', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
   access_token: string;
 

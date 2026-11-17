@@ -419,6 +419,17 @@ export class UserService implements OnModuleInit {
       sessionId,
     );
 
+    // The workspace's type (P12-03): personal sessions take it from the solo workspace (theirs, or their teacher's).
+    // A refresh comes back as 'individual'; a teacher's personal workspace is still their solo one.
+    const soloOwner = orgSession
+      ? null
+      : contextType === 'personal_teacher' || (contextType === 'individual' && user.personal_teacher_enabled)
+        ? user.id
+        : contextType === 'individual_teacher'
+          ? options?.teacher_id ?? null
+          : null;
+    const workspaceType = orgSession ? orgSession.organization_workspace_type ?? 'ACADEMIC' : soloOwner ? await this.soloWorkspaceType(soloOwner) : 'ACADEMIC';
+
     const base: UserReponseDto = {
       id: user.id,
       full_name: user.full_name,
@@ -445,6 +456,7 @@ export class UserService implements OnModuleInit {
             workspace_type: orgSession.organization_workspace_type ?? 'ACADEMIC',
           }
         : null,
+      workspace_type: workspaceType,
       access_token,
       refresh_token: token,
     };
@@ -667,6 +679,16 @@ export class UserService implements OnModuleInit {
 
     user.password = await this.crypto.hashPassword(newPassword);
     await this.userRepository.save(user);
+  }
+
+  /** ACADEMIC or IELTS: the type of the teacher's solo workspace (ACADEMIC until it exists). */
+  private async soloWorkspaceType(ownerId: string): Promise<string> {
+    const [row] = await this.userRepository.manager.query(
+      `SELECT o.workspace_type FROM organization_members m JOIN organizations o ON o.id = m.organization_id
+       WHERE m.user_id = $1 AND m.role = 'OWNER' AND o.kind = 'SOLO' LIMIT 1`,
+      [ownerId],
+    );
+    return row?.workspace_type ?? 'ACADEMIC';
   }
 
   /**

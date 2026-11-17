@@ -1,6 +1,6 @@
 type OrganizationStatus = "pending" | "approved" | "rejected" | "inactive";
 
-type OrganizationMemberRole = "OWNER" | "ADMIN" | "ASSISTANT" | "TEACHER" | "STUDENT";
+type OrganizationMemberRole = "OWNER" | "ADMIN" | "ASSISTANT" | "TEACHER" | "STUDENT" | "BRANCH_MANAGER";
 
 interface OrganizationSummary {
   id: string;
@@ -33,6 +33,8 @@ interface OrganizationMemberUser {
 interface OrganizationMemberItem {
   id: string;
   role: OrganizationMemberRole;
+  /** The branch a BRANCH_MANAGER runs (P12-01). */
+  branch_id?: string | null;
   created_at?: string;
   is_active?: number;
   removed_at?: string | null;
