@@ -100,3 +100,5 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - `GET /classes/search-students` lets any teacher account search every student account on the platform by name, email or phone; limit it to students of the caller's classes or organisation (found by the P12-01 branch-manager sweep, 17 Nov 2026).
 - A solo teacher with both an Academic and an IELTS workspace (design says one SOLO organisation per type); today a teacher's solo workspace has the type chosen at sign-up (P12-03, 17 Nov 2026).
 - Account → Become a teacher: ask Academic or IELTS there too (only sign-up asks today) (P12-03).
+- IELTS courses: choose several teachers per module on the Courses screen (the API takes several; the screen offers one) (P12-05, 17 Nov 2026).
+- IELTS courses: make an ended course read-only (close its session on a daily job) and refuse the academic-only routes (sessions, subjects, assignments) in IELTS workspaces (P12-04/05).

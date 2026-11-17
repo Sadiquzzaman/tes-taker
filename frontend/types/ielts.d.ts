@@ -263,3 +263,21 @@ interface IeltsBandReport {
   targets: { overall: number | null; bands: Partial<Record<IeltsModule, number>> };
   test_date: string | null;
 }
+
+/** An IELTS course (P12-04, IEL-13). */
+type IeltsCourseStatus = "UPCOMING" | "RUNNING" | "ENDED";
+interface IeltsCourse {
+  id: string;
+  title: string;
+  branch: { id: string; name: string | null; is_default: boolean } | null;
+  start_date: string;
+  end_date: string;
+  status: IeltsCourseStatus;
+  modules: IeltsModule[];
+  seat_limit: number | null;
+  students: number;
+  teachers: { module: IeltsModule; offering_id: string | null; teachers: { id: string; full_name: string | null }[] }[];
+  class_id: string;
+  session_id: string;
+  section_id: string;
+}
