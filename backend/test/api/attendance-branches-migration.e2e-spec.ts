@@ -1,5 +1,6 @@
 import { AttendanceBranches1756200000000 } from '../../src/migrations/1756200000000-AttendanceBranches';
 import { BranchManagers1756520000000 } from '../../src/migrations/1756520000000-BranchManagers';
+import { IeltsCourses1756550000000 } from '../../src/migrations/1756550000000-IeltsCourses';
 import { factories } from '../support/factories';
 import { createTestApp, TestApp } from '../support/test-app';
 
@@ -32,7 +33,10 @@ describe('AttendanceBranches migration', () => {
     const runner = t.dataSource.createQueryRunner();
     // Branch managers (P12-01) point at branches: down first, back last.
     const branchManagers = new BranchManagers1756520000000();
+    // IELTS courses (P12-04) point at branches and sections: down first, back last.
+    const ieltsCourses = new IeltsCourses1756550000000();
     try {
+      await ieltsCourses.down(runner);
       await branchManagers.down(runner);
       await migration.down(runner);
       const exists = async (table: string, column?: string) =>
@@ -100,6 +104,7 @@ describe('AttendanceBranches migration', () => {
         /CHK_org_settings_late_grace_minutes/,
       );
       await branchManagers.up(runner);
+      await ieltsCourses.up(runner);
     } finally {
       await runner.release();
     }
