@@ -2,6 +2,12 @@
 
 Newest first. Each entry: the date it reached beta, the PR, what changed, and what the app should do. Only additions; nothing here removes or renames a field (see [api.md](api.md) §10).
 
+## 2026-11-18 — homework uploads work (issue #349)
+
+- `POST /files/presign` now accepts `purpose: "HOMEWORK"`. It was missing from the upload rules, so homework files could not be uploaded from the web either.
+- Accepted types: images (`image/jpeg`, `image/png`, `image/webp`, `image/gif`) and documents (`application/pdf`, Word `.doc` and `.docx`, `text/plain`), up to 20 MB each.
+- Other types answer 400. The answer has the same shape as for other purposes (`file`, `upload`, `storage`).
+
 ## 2026-11-17 — error codes for sign-up, verification, reset and sign-in (issue #345)
 
 Errors keep their English `message`, and now carry a `code`. See [api.md](api.md) §3.
