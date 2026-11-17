@@ -21,6 +21,7 @@ const SignUpForm = () => {
     loading,
     handleFieldChange,
     handleSignUp,
+    resend,
   } = useSignUpForm();
   const t = useTranslations("auth");
 
@@ -42,7 +43,12 @@ const SignUpForm = () => {
           description={signUpInfo.request_teacher ? t("signup.teacherNote") : undefined}
         />
       ) : (
-        <VerifyCode value={signUpInfo.phone} successDescription={signUpInfo.request_teacher ? t("signup.teacherPending") : undefined} />
+        <VerifyCode
+          value={signUpInfo.phone}
+          successDescription={signUpInfo.request_teacher ? t("signup.teacherPending") : undefined}
+          // A repeated sign-up of an unverified phone sends a new code.
+          onResend={resend}
+        />
       )}
       <AuthFooterLink text={t("haveAccount")} href="/login" label={t("logIn")} />
     </>

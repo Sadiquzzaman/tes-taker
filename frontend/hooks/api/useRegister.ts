@@ -15,6 +15,8 @@ const useRegister = () => {
       confirm_password: registerParams.confirm_password,
       role: registerParams.role,
       request_teacher: Boolean(registerParams.request_teacher),
+      // A teacher's own workspace, Academic or IELTS (P12-03).
+      ...(registerParams.request_teacher && registerParams.workspace_type ? { workspace_type: registerParams.workspace_type } : {}),
     };
 
     setLoading(true);

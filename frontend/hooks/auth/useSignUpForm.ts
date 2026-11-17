@@ -85,7 +85,11 @@ export const useSignUpForm = () => {
     register(signUpInfo).then((response) => response && setView("otp"));
   };
 
+  /** A repeated sign-up of an unverified phone sends a new code (the "Resend code" button). */
+  const resend = async () => Boolean(await register(signUpInfo));
+
   return {
+    resend,
     joinInfo,
     view,
     setView,
