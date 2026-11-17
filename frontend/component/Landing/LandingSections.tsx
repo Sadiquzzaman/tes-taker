@@ -141,10 +141,10 @@ export const LandingFooter = () => {
   return (
     <footer className="border-t border-border bg-surface px-4 py-10 sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-body-sm text-ink-muted md:flex-row">
-        <div className="flex items-center gap-2">
+        <NextLink href="/" aria-label={t("footer.home")} className={cn("flex min-h-11 items-center gap-2 rounded-input", focusRing)}>
           <InstructorLogoMarkSVG width={24} />
           <span className="font-semibold text-primary">Instructor</span>
-        </div>
+        </NextLink>
         <p>{t("footer.rights", { year })}</p>
         <nav aria-label={t("footer.links")} className="flex gap-2">
           <NextLink href="/login" className={cn("flex min-h-11 items-center rounded-input px-2 hover:text-ink", focusRing)}>

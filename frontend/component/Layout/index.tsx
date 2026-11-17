@@ -1,4 +1,7 @@
+import NextLink from "next/link";
+import { getTranslations } from "next-intl/server";
 import AppShell from "@/design/ui/AppShell";
+import { cn, focusRing } from "@/design/ui";
 import type { BreadcrumbItem } from "@/design/ui";
 import Header, { HeaderActions } from "../Dashboard/Header";
 import Sidebar from "../Dashboard/Sidebar";
@@ -6,12 +9,16 @@ import SidebarLogout from "../Dashboard/SidebarLogout";
 import InstructorLogoMarkSVG from "../svg/InstructorLogoMarkSVG";
 import WorkspaceClientProvider from "./WorkspaceClientProvider";
 
-const Brand = () => (
-  <span className="flex items-center gap-2 text-primary">
-    <InstructorLogoMarkSVG width={21} />
-    <span className="text-title-sm font-bold">Instructor</span>
-  </span>
-);
+/** The logo and name in the sidebar: back to Today, where every workspace opens. */
+export const AppBrand = async () => {
+  const t = await getTranslations("nav");
+  return (
+    <NextLink href="/today" aria-label={t("brandHome")} className={cn("flex items-center gap-2 rounded-input text-primary", focusRing)}>
+      <InstructorLogoMarkSVG width={21} />
+      <span className="text-title-sm font-bold">Instructor</span>
+    </NextLink>
+  );
+};
 
 /** Every signed-in page: AppShell with the role's sidebar, the top bar, and padded page content. */
 const PageLayout = ({
@@ -29,7 +36,7 @@ const PageLayout = ({
   return (
     <WorkspaceClientProvider>
       <AppShell
-        brand={<Brand />}
+        brand={<AppBrand />}
         nav={<Sidebar activeRoute={route} />}
         navFooter={<SidebarLogout />}
         title={<Header activeRoute={route} subText={subText} crumbs={crumbs} />}
