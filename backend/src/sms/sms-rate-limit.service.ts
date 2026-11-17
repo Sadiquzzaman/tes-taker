@@ -52,7 +52,7 @@ export class SmsRateLimitService {
   private otpLockedException(secondsLeft: number): HttpException {
     const minutes = Math.max(1, Math.ceil(secondsLeft / 60));
     return new HttpException(
-      `Too many wrong codes. Please try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
+      { message: `Too many wrong codes. Please try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`, code: 'OTP_LOCKED' },
       HttpStatus.TOO_MANY_REQUESTS,
     );
   }

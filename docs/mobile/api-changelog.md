@@ -2,6 +2,15 @@
 
 Newest first. Each entry: the date it reached beta, the PR, what changed, and what the app should do. Only additions; nothing here removes or renames a field (see [api.md](api.md) §10).
 
+## 2026-11-17 — error codes for sign-up, verification, reset and sign-in (issue #345)
+
+Errors keep their English `message`, and now carry a `code`. See [api.md](api.md) §3.
+- **Sign-up:** `PHONE_ALREADY_REGISTERED`, `EMAIL_ALREADY_REGISTERED`, `OTP_SEND_FAILED`.
+- **Codes:** `ACCOUNT_NOT_FOUND`, `PHONE_ALREADY_VERIFIED`, `OTP_INVALID`, `OTP_EXPIRED`, `OTP_LOCKED` (429).
+- **Sign-in (401):** `INVALID_CREDENTIALS`, `ACCOUNT_NOT_VERIFIED`, `ACCOUNT_DISABLED`.
+- There is no organisation-name clash check, so no `ORGANIZATION_ALREADY_EXISTS`.
+- **Resending a code:** repeat the sign-up request. It is the intended way, within 3 SMS an hour.
+
 ## 2026-11-17 — IELTS courses, branch managers, solo IELTS (P12-01 to P12-05)
 
 [openapi.json](openapi.json) is refreshed. New or changed for the app:
