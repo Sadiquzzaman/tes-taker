@@ -98,6 +98,8 @@ const sidebarList: SideBarList[] = [
     category: "Platform",
     label: "classes",
     route: "/classes",
+    // IELTS uses courses instead (P12-05); a course links to its class page for students and the timetable.
+    workspaces: ["ACADEMIC"],
     group: "academics",
     role: ["STUDENT", "TEACHER"],
     image: <SidebarClassesIconSVG width={16} />,
@@ -407,6 +409,18 @@ const sidebarList: SideBarList[] = [
   },
   {
     category: "Organization",
+    label: "ieltsCourses",
+    route: "/ielts/courses",
+    group: "people",
+    role: ["TEACHER"],
+    // Courses replace batches in IELTS (P12-05); branch managers see their branch's.
+    memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER", "BRANCH_MANAGER"],
+    workspaces: ["IELTS"],
+    feature: "ielts",
+    image: <SidebarDashboardIconSVG width={16} />,
+  },
+  {
+    category: "Organization",
     label: "ieltsStudents",
     route: "/ielts/students",
     group: "people",
@@ -478,6 +492,15 @@ const sidebarList: SideBarList[] = [
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],
     feature: "homework",
     image: <SidebarGradingIconSVG width={16} />,
+  },
+  {
+    category: "Platform",
+    label: "ieltsMyCourses",
+    route: "/ielts/my-courses",
+    role: ["STUDENT"],
+    workspaces: ["IELTS"],
+    feature: "ielts",
+    image: <SidebarDashboardIconSVG width={16} />,
   },
   {
     category: "Platform",
@@ -670,6 +693,8 @@ const sidebarList: SideBarList[] = [
     category: "Organization",
     label: "classes",
     route: "/organization/classes",
+    // IELTS uses courses instead (P12-05); a course links to its class page for students and the timetable.
+    workspaces: ["ACADEMIC"],
     group: "academics",
     role: ["TEACHER"],
     memberRoles: ["OWNER", "ADMIN", "ASSISTANT", "TEACHER"],

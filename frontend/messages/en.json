@@ -80,7 +80,9 @@
     "ieltsMyTests": "IELTS tests",
     "ieltsMarking": "Marking",
     "ieltsOverview": "IELTS overview",
-    "plagiarismSettings": "Plagiarism settings"
+    "plagiarismSettings": "Plagiarism settings",
+    "ieltsCourses": "Courses",
+    "ieltsMyCourses": "My courses"
   },
   "shell": {
     "organization": "Organization",
@@ -5991,5 +5993,52 @@
     "minWords": "Fewest words checked",
     "save": "Save",
     "settingsSaved": "Settings saved"
+  },
+  "ieltsCourses": {
+    "title": "Courses",
+    "intro": "Each course has its branch, dates, modules and teachers. Add students and the timetable from the course's page.",
+    "new": "New course",
+    "edit": "Change course",
+    "formIntro": "The title says what the course is, for example \"Band 7 Academic — Jan 2027, evening\" or \"Writing crash course\".",
+    "course": "Course",
+    "courseTitle": "Course title",
+    "courseTitleHint": "Up to 150 characters.",
+    "branch": "Branch",
+    "mainBranch": "Main branch",
+    "startDate": "Starts",
+    "endDate": "Ends",
+    "dates": "Dates",
+    "status": "Status",
+    "allStatuses": "All courses",
+    "statuses": {
+      "UPCOMING": "Upcoming",
+      "RUNNING": "Running",
+      "ENDED": "Ended"
+    },
+    "modules": "Modules",
+    "students": "Students",
+    "seatsTaken": "{taken, number} of {limit, number}",
+    "seatLimit": "Seat limit",
+    "seatLimitHint": "Leave empty for no limit. When the course is full, nobody else can be added.",
+    "teachers": "Teachers",
+    "teacherFor": "{module} teacher",
+    "noTeacher": "No teacher yet",
+    "actions": "Actions",
+    "studentsAndTimetable": "Students and timetable",
+    "studentsHint": "After saving, add students and the weekly timetable from the course's page.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "created": "Course created",
+    "saved": "Course saved",
+    "remove": "Remove",
+    "removed": "Course removed",
+    "removeTitle": "Remove {title}?",
+    "removeDetail": "Only a course with no students can be removed. It is hidden, not deleted.",
+    "loadFailed": "Couldn't load the courses.",
+    "empty": "No courses yet",
+    "emptyHint": "Make your first course with New course.",
+    "myTitle": "My courses",
+    "myIntro": "Your IELTS courses, their dates and your teachers.",
+    "myEmpty": "You are not in any course yet"
   }
 }

@@ -216,3 +216,22 @@ describe("sidebar in IELTS workspaces (P12-03)", () => {
     expect(links()).toEqual(expect.arrayContaining(["Sessions", "Subjects", "Subject teachers", "Leave"]));
   });
 });
+
+describe("sidebar courses (P12-05)", () => {
+  it("gives IELTS staff Courses instead of Classes, IELTS students My courses, and schools their Classes", async () => {
+    features = { attendance: true, ielts: true };
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "OWNER", workspace_type: "IELTS" });
+    expect(links()).toContain("Courses");
+    expect(links()).not.toContain("Classes");
+    cleanup();
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "BRANCH_MANAGER", workspace_type: "IELTS" });
+    expect(links()).toContain("Courses");
+    cleanup();
+    await renderSidebar({ role: "STUDENT", session_mode: "organization", member_role: "STUDENT", workspace_type: "IELTS" });
+    expect(links()).toContain("My courses");
+    cleanup();
+    await renderSidebar({ role: "TEACHER", session_mode: "organization", member_role: "OWNER" });
+    expect(links()).toContain("Classes");
+    expect(links()).not.toContain("Courses");
+  });
+});
