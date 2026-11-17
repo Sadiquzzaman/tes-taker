@@ -2451,6 +2451,14 @@
       "integrity": {
         "name": "Plagiarism checker",
         "description": "Compares classmates’ typed homework and IELTS Writing (Bangla and English), with matching passages side by side and teacher review"
+      },
+      "live_classes": {
+        "name": "Live classes",
+        "description": "Online classes inside the app with video, screen sharing and recordings for the course's students."
+      },
+      "live_class_links": {
+        "name": "Online class links",
+        "description": "Online classes by a Zoom or Google Meet link in the course timetable."
       }
     },
     "limits": {
@@ -2460,7 +2468,12 @@
       "max_question_bank_size": "Questions in the question bank",
       "max_storage_mb": "Storage (MB)",
       "sms_credits_per_month": "SMS per month",
-      "max_students": "Students"
+      "max_students": "Students",
+      "max_branches": "Branches",
+      "live_hours_per_month": "Live-class hours per month",
+      "live_max_participants": "People in one live class",
+      "recording_retention_days": "Recording retention (days)",
+      "ended_course_visible_days": "Ended courses visible (days)"
     }
   },
   "academics": {

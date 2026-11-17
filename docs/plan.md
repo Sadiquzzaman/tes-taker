@@ -348,10 +348,12 @@ Decided by the owner on 16 Nov 2026 (spec Epic 11 "Decisions (16 Nov 2026)", FND
 | P12-04 | Courses (server): `ielts_courses` with its class, session and section, modules and teachers per module, timetable with in person / online per class, seat limit, end of course and visibility after it, data migration of the test batches | IEL-13 | 4 |
 | P12-05 | Course screens: course list per branch, create and edit (dates, timetable, modules, teachers, seat limit), students; the student's My courses | IEL-13 | 4 |
 | P12-06 | Plan keys and usage metering (`usage_counters`), owner's Usage page, platform admin usage and cost report, add-on packs as overrides | IEL-16 | 3 |
-| P12-07 | Media server on beta: LiveKit and Egress (Docker), TLS on a `live.` sub-domain, firewall, webhook to the API; a runbook for production (P11-03) | Design §9.10 hosting | 2 |
+| P12-07 | Media server on beta: LiveKit and Egress (Docker), TLS on a `live.` sub-domain, firewall, webhook to the API; a runbook for production (P11-03). **17 Nov: runbook only (`docs/LIVE-CLASSES-SERVER.md`); the server waits for the owner's choice of host** | Design §9.10 hosting | 2 |
 | P12-08 | Live classes (server): start, short-lived join tokens for the course only, webhooks, attendance from joining, plan limits, meeting links on cheaper plans | IEL-14 | 3 |
 | P12-09 | Live classroom screen: join from the course and Today, video, audio, screen share, raise hand, mute and remove, class chat, low-bandwidth mode, bn/en | IEL-14 | 4 |
 | P12-10 | Recordings: Egress to S3 as HLS, watch-only player, watched time, retention job, hide | IEL-15 | 4 |
+
+**Status (17 Nov 2026):** P12-01 to P12-05 built and released (#331–#337, release #338). P12-07 is a runbook. P12-06 and P12-08 to P12-10 remain.
 
 **Needs from the owner before the packages that use them:**
 

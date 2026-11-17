@@ -25,6 +25,16 @@ export enum LimitKey {
   MAX_STORAGE_MB = 'max_storage_mb',
   /** The plan's monthly SMS allowance (FND-13). Unlike the other limits, 0 means none, not unlimited. */
   SMS_CREDITS_PER_MONTH = 'sms_credits_per_month',
+  /** Branches besides the main one (P12-06, FND-06; 0 or unset = unlimited). */
+  MAX_BRANCHES = 'max_branches',
+  /** Live-class hours a month (P12-06, IEL-16; used once live classes ship; 0 = unlimited). */
+  LIVE_HOURS_PER_MONTH = 'live_hours_per_month',
+  /** The most people in one live class (P12-06; 0 = unlimited). */
+  LIVE_MAX_PARTICIPANTS = 'live_max_participants',
+  /** The longest an organisation may keep recordings, in days (P12-06; 0 = unlimited). */
+  RECORDING_RETENTION_DAYS = 'recording_retention_days',
+  /** The longest students may still see an ended IELTS course, in days (P12-06; 0 = unlimited). */
+  ENDED_COURSE_VISIBLE_DAYS = 'ended_course_visible_days',
 }
 
 export enum FeatureKey {
@@ -73,6 +83,10 @@ export enum FeatureKey {
   IELTS = 'ielts',
   /** Epic 10 (P10-09): plagiarism checks between classmates' homework and IELTS Writing, with teacher review. */
   INTEGRITY = 'integrity',
+  /** IEL-14 (P12): live classes inside the app with recording (switched on per plan once the video server runs). */
+  LIVE_CLASSES = 'live_classes',
+  /** IEL-14 (P12): online classes by a Zoom or Google Meet link (the cheaper option). */
+  LIVE_CLASS_LINKS = 'live_class_links',
 }
 
 export type PlanFeatures = Partial<Record<FeatureKey, boolean>>;
@@ -256,6 +270,18 @@ export const FEATURE_CATALOG: CatalogFeatureDefinition[] = [
     label: 'Plagiarism checker',
     description: 'Compares classmates’ typed homework and IELTS Writing (Bangla and English), with matching passages side by side and teacher review',
   },
+  {
+    key: FeatureKey.LIVE_CLASSES,
+    group: FeatureGroup.IELTS,
+    label: 'Live classes',
+    description: 'Online classes inside the app with video, screen sharing and recordings for the course’s students',
+  },
+  {
+    key: FeatureKey.LIVE_CLASS_LINKS,
+    group: FeatureGroup.IELTS,
+    label: 'Online class links',
+    description: 'Online classes by a Zoom or Google Meet link in the course timetable',
+  },
 ];
 
 export const LIMIT_CATALOG: CatalogLimitDefinition[] = [
@@ -266,6 +292,11 @@ export const LIMIT_CATALOG: CatalogLimitDefinition[] = [
   { key: LimitKey.MAX_QUESTION_BANK_SIZE, label: 'Max question bank size', min: 0 },
   { key: LimitKey.MAX_STORAGE_MB, label: 'Max storage (MB)', description: 'Total storage held by files; 0 = unlimited', min: 0 },
   { key: LimitKey.SMS_CREDITS_PER_MONTH, label: 'SMS per month', description: 'Monthly SMS allowance; 0 = none', min: 0 },
+  { key: LimitKey.MAX_BRANCHES, label: 'Branches', description: 'Branches besides the main one; 0 = unlimited', min: 0 },
+  { key: LimitKey.LIVE_HOURS_PER_MONTH, label: 'Live-class hours per month', description: '0 = unlimited', min: 0 },
+  { key: LimitKey.LIVE_MAX_PARTICIPANTS, label: 'People in one live class', description: '0 = unlimited', min: 0 },
+  { key: LimitKey.RECORDING_RETENTION_DAYS, label: 'Recording retention (days)', description: 'The longest recordings may be kept; 0 = unlimited', min: 0 },
+  { key: LimitKey.ENDED_COURSE_VISIBLE_DAYS, label: 'Ended courses visible (days)', description: 'The longest students may still see an ended course; 0 = unlimited', min: 0 },
 ];
 
 export const ALL_FEATURE_KEYS = FEATURE_CATALOG.map((f) => f.key);
