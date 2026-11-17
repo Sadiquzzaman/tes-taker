@@ -10,7 +10,7 @@ import VerifyCode from "./VerifyCode";
 
 /** Register a school or organisation; the owner's phone gets a verification code next. */
 const OrganizationSignUpForm = () => {
-  const { view, form, formError, checkboxError, loading, handleFieldChange, handleSignUp } = useOrganizationSignUpForm();
+  const { view, form, formError, checkboxError, loading, handleFieldChange, handleSignUp, resend } = useOrganizationSignUpForm();
   const t = useTranslations("auth");
   const footer = <AuthFooterLink text={t("haveAccount")} href="/login" label={t("logIn")} />;
 
@@ -21,6 +21,7 @@ const OrganizationSignUpForm = () => {
           value={form.phone}
           successTitle={t("signup.organizationRegistered")}
           successDescription={t("signup.organizationRegisteredDescription")}
+          onResend={resend}
         />
         {footer}
       </>

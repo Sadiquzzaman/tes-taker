@@ -9,9 +9,9 @@ import OtpInput from "./OtpInput";
 import ResendCode from "./ResendCode";
 
 /** Step 2 of signup: the six-digit code sent to the phone or email. */
-const VerifyCode = ({ value, successTitle, successDescription }: VerifyCodeProps) => {
+const VerifyCode = ({ value, successTitle, successDescription, onResend }: VerifyCodeProps) => {
   const { otp, timeLeft, loading, formError, inputsRef, handleChange, handleKeyDown, handleVerifyAndContinue, handleResendCode } =
-    useVerifyCode(value, { successTitle, successDescription });
+    useVerifyCode(value, { successTitle, successDescription, onResend });
   const t = useTranslations("auth.otp");
   const isEmail = value.includes("@");
 
@@ -32,7 +32,7 @@ const VerifyCode = ({ value, successTitle, successDescription }: VerifyCodeProps
         }}
       >
         <OtpInput otp={otp} error={formError || undefined} inputsRef={inputsRef} onChange={handleChange} onKeyDown={handleKeyDown} />
-        <ResendCode timeLeft={timeLeft} onResend={handleResendCode} />
+        <ResendCode timeLeft={timeLeft} onResend={() => void handleResendCode()} />
         <Button type="submit" size="lg" fullWidth loading={loading}>
           {t("submit")}
         </Button>

@@ -83,4 +83,6 @@ interface VerifyCodeProps {
   value: string;
   successTitle?: string;
   successDescription?: string;
+  /** Asks the server for a new code; true when it was sent. */
+  onResend?: () => Promise<boolean>;
 }
