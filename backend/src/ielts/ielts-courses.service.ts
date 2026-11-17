@@ -6,6 +6,8 @@ import { SectionsService } from 'src/academics/sections.service';
 import { ClassService } from 'src/classes/class.service';
 import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
 import { AuditService } from 'src/audit/audit.service';
+import { EntitlementsService } from 'src/subscriptions/entitlements.service';
+import { LimitKey } from 'src/subscriptions/constants/feature-catalog';
 import { Tenant } from 'src/common/tenancy/tenant-context';
 import { schoolDateIn } from 'src/common/utils/school-date.util';
 import { JwtPayloadInterface } from 'src/auth/interfaces/jwt-payload.interface';
@@ -81,6 +83,7 @@ export class IeltsCoursesService {
     private readonly branches: BranchesService,
     private readonly orgSettings: OrgSettingsService,
     private readonly audit: AuditService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
   async list(tenant: Tenant, userId: string, filter: { branch_id?: string } = {}): Promise<CourseView[]> {
@@ -266,7 +269,10 @@ export class IeltsCoursesService {
 
   /** Students no longer see a course once it has ended, after the organisation's grace days. */
   private async visibleToStudents(organizationId: string, views: CourseView[]): Promise<CourseView[]> {
-    const days = (await this.orgSettings.get(organizationId)).ended_course_visible_days ?? 0;
+    // The organisation's choice, capped by the plan (P12-06: ended_course_visible_days; 0 = no cap).
+    const chosen = (await this.orgSettings.get(organizationId)).ended_course_visible_days ?? 0;
+    const cap = Number((await this.entitlements.getEntitlements(organizationId)).limits[LimitKey.ENDED_COURSE_VISIBLE_DAYS] ?? 0);
+    const days = cap > 0 ? Math.min(chosen, cap) : chosen;
     const today = schoolDateIn(await this.orgSettings.timeZone(organizationId));
     const cutoff = new Date(`${today}T00:00:00Z`);
     cutoff.setUTCDate(cutoff.getUTCDate() - days);

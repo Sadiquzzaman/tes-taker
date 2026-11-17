@@ -3,6 +3,8 @@ import { SectionsService } from 'src/academics/sections.service';
 import { AUDIT_ACTIONS } from 'src/audit/audit-actions';
 import { auditChanges } from 'src/audit/audit-sanitize';
 import { AuditService } from 'src/audit/audit.service';
+import { EntitlementsService } from 'src/subscriptions/entitlements.service';
+import { LimitKey } from 'src/subscriptions/constants/feature-catalog';
 import { Tenant } from 'src/common/tenancy/tenant-context';
 import { BranchesService, BranchFields } from 'src/organizations/branches.service';
 import { BranchEntity } from 'src/organizations/entities/branch.entity';
@@ -37,6 +39,7 @@ export class AttendanceBranchesService {
     private readonly branches: BranchesService,
     private readonly sections: SectionsService,
     private readonly audit: AuditService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
   async list(organizationId: string): Promise<BranchView[]> {
@@ -55,6 +58,9 @@ export class AttendanceBranchesService {
         code: ATTENDANCE_ERRORS.BRANCHES_NOT_FOR_SOLO,
       });
     }
+    // The plan's branch allowance (P12-06): branches besides the main one; 0 = unlimited.
+    const extra = (await this.branches.listActive(organizationId)).filter((branch) => !branch.is_default).length;
+    await this.entitlements.assertLimit(organizationId, LimitKey.MAX_BRANCHES, extra, `Your plan allows ${extra} branch(es) besides the main one. Please upgrade your plan.`);
     const main = await this.branches.defaultBranch(organizationId);
     const fields = this.validFields(dto, null);
     fields.checkin_radius_m ??= main.checkin_radius_m;
