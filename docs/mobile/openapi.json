@@ -9557,6 +9557,155 @@
         ]
       }
     },
+    "/api/v1/ielts/courses": {
+      "get": {
+        "operationId": "IeltsCoursesController_list_v1",
+        "parameters": [
+          {
+            "name": "branch_id",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Courses: all for owners and admins, the branch for a branch manager, taught ones for a teacher, own for a student",
+        "tags": [
+          "IELTS courses"
+        ]
+      },
+      "post": {
+        "operationId": "IeltsCoursesController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIeltsCourseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "A new course: class, own session (the dates), section at the branch with the seat limit, module subject classes and teachers",
+        "tags": [
+          "IELTS courses"
+        ]
+      }
+    },
+    "/api/v1/ielts/courses/{id}": {
+      "get": {
+        "operationId": "IeltsCoursesController_get_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "IELTS courses"
+        ]
+      },
+      "patch": {
+        "operationId": "IeltsCoursesController_update_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIeltsCourseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "IELTS courses"
+        ]
+      },
+      "delete": {
+        "operationId": "IeltsCoursesController_remove_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Remove a course nobody is enrolled in (hidden; history kept)",
+        "tags": [
+          "IELTS courses"
+        ]
+      }
+    },
     "/api/v1/ielts/dashboard": {
       "get": {
         "operationId": "IeltsController_dashboardStaff_v1",
@@ -18540,6 +18689,14 @@
             "type": "boolean",
             "description": "If true, register as a student and create a pending teacher request. The user stays a student until an admin approves.",
             "default": false
+          },
+          "workspace_type": {
+            "type": "string",
+            "enum": [
+              "ACADEMIC",
+              "IELTS"
+            ],
+            "description": "With request_teacher: the teacher's own workspace, Academic (default) or IELTS for a solo IELTS trainer (P12-03)"
           }
         },
         "required": [
@@ -19620,6 +19777,18 @@
               "en"
             ],
             "description": "Language of SMS to guardians (FND-10); a student can override it"
+          },
+          "branches_enabled": {
+            "type": "boolean",
+            "description": "Use branches (P12-01); switching off needs every branch but the main one removed"
+          },
+          "guardians_enabled": {
+            "type": "boolean",
+            "description": "Keep and show guardians (P12-03); default on for Academic, off for IELTS"
+          },
+          "ended_course_visible_days": {
+            "type": "number",
+            "description": "Students still see an ended IELTS course this many days (P12-04); 0–365"
           }
         }
       },
@@ -19732,9 +19901,15 @@
               "ADMIN",
               "ASSISTANT",
               "TEACHER",
-              "STUDENT"
+              "STUDENT",
+              "BRANCH_MANAGER"
             ],
             "description": "New member role (cannot set OWNER)"
+          },
+          "branch_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The branch a BRANCH_MANAGER runs (required for that role, P12-01)"
           }
         },
         "required": [
@@ -20965,13 +21140,13 @@
             "format": "date-time",
             "type": "string",
             "description": "Exam start time",
-            "example": "2026-11-16T20:11:23.308Z"
+            "example": "2026-11-17T00:36:35.498Z"
           },
           "exam_end_time": {
             "format": "date-time",
             "type": "string",
             "description": "Exam end time",
-            "example": "2026-11-16T21:11:23.308Z"
+            "example": "2026-11-17T01:36:35.499Z"
           },
           "is_negative_marking": {
             "type": "boolean",
@@ -21065,13 +21240,13 @@
             "format": "date-time",
             "type": "string",
             "description": "Exam start time",
-            "example": "2026-11-16T20:11:23.309Z"
+            "example": "2026-11-17T00:36:35.499Z"
           },
           "exam_end_time": {
             "format": "date-time",
             "type": "string",
             "description": "Exam end time",
-            "example": "2026-11-16T21:11:23.309Z"
+            "example": "2026-11-17T01:36:35.499Z"
           },
           "subject": {
             "type": "string",
@@ -22358,6 +22533,90 @@
         "required": [
           "criteria"
         ]
+      },
+      "CreateIeltsCourseDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Band 7 Academic — Jan 2027, evening",
+            "maxLength": 150
+          },
+          "branch_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Left out: the main branch (a branch manager's courses are always in their branch)"
+          },
+          "start_date": {
+            "type": "string",
+            "example": "2027-01-05"
+          },
+          "end_date": {
+            "type": "string",
+            "example": "2027-03-31"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "LISTENING",
+                "READING",
+                "WRITING",
+                "SPEAKING"
+              ]
+            }
+          },
+          "seat_limit": {
+            "type": "object",
+            "description": "Seats; left out or null = no limit",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "teachers": {
+            "type": "object",
+            "description": "Teachers per module: {\"WRITING\": [\"<user id>\", …]}"
+          }
+        }
+      },
+      "UpdateIeltsCourseDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "branch_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "start_date": {
+            "type": "string"
+          },
+          "end_date": {
+            "type": "string"
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "LISTENING",
+                "READING",
+                "WRITING",
+                "SPEAKING"
+              ]
+            }
+          },
+          "seat_limit": {
+            "type": "object",
+            "nullable": true
+          },
+          "teachers": {
+            "type": "object",
+            "description": "Teachers per module; a module left out keeps its teachers"
+          }
+        }
       },
       "IntegrityScopeDto": {
         "type": "object",
