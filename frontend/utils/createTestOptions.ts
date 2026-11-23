@@ -210,7 +210,8 @@ export const createTestQuestionCategoryOptions: CreateTestQuestionCategoryOption
         headerPayload: "Write your question here",
       },
       {
-        id: CREATE_TEST_GRADED_TRUE_FALSE_SUBTYPE_ID,
+        // The server's IELTS name (mobile-api #353); "true-false" is the academic True / False and is refused under IELTS.
+        id: "true-false-not-given",
         label: "True / False / Not Given",
         isSupported: true,
         answerMode: "single",
