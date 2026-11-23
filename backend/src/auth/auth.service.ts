@@ -20,6 +20,7 @@ import { SelectableContextTypeEnum } from 'src/organizations/dto/select-context.
 import { UserReponseDto } from 'src/user/dto/user-response.dto';
 import { VerifyOtpDto } from 'src/sms/dto/sms.dto';
 import { RolesEnum } from 'src/common/enums/roles.enum';
+import { AUTH_ERRORS } from './auth-errors';
 import { DeviceInfo, RefreshTokensService, SignedInDevice } from 'src/user/refresh-tokens.service';
 import { RefreshTokenRevokeReasonEnum } from 'src/user/entities/refresh-token.entity';
 import { AuditService } from 'src/audit/audit.service';
@@ -70,7 +71,7 @@ export class AuthService {
     
     if (existingUser) {
       if (existingUser.is_otp_verified) {
-        throw new BadRequestException('Phone number already registered and verified');
+        throw new BadRequestException({ message: 'Phone number already registered and verified', code: AUTH_ERRORS.PHONE_ALREADY_REGISTERED });
       } else {
         // Delete unverified user to allow re-registration
         await this.userService.deleteUnverifiedUser(registerUserDto.phone);
@@ -80,13 +81,13 @@ export class AuthService {
     // Check for duplicate email (only if verified)
     const existingEmailUser = await this.userService.findByEmail(registerUserDto.email);
     if (existingEmailUser && existingEmailUser.is_otp_verified) {
-      throw new BadRequestException('Email already exists and verified');
+      throw new BadRequestException({ message: 'Email already exists and verified', code: AUTH_ERRORS.EMAIL_ALREADY_REGISTERED });
     }
 
     // Send OTP using centralized SMS service
     const smsResult = await this.smsService.sendOtp(registerUserDto.phone);
     if (!smsResult.success) {
-      throw new BadRequestException(`Failed to send OTP: ${smsResult.message}`);
+      throw new BadRequestException({ message: `Failed to send OTP: ${smsResult.message}`, code: AUTH_ERRORS.OTP_SEND_FAILED });
     }
 
     // Create user (unverified until OTP is verified)
@@ -145,7 +146,7 @@ export class AuthService {
     const existingUser = await this.userService.findByPhone(dto.phone);
     if (existingUser) {
       if (existingUser.is_otp_verified) {
-        throw new BadRequestException('Phone number already registered and verified');
+        throw new BadRequestException({ message: 'Phone number already registered and verified', code: AUTH_ERRORS.PHONE_ALREADY_REGISTERED });
       }
       await this.userService.deleteUnverifiedUser(dto.phone);
       await this.organizationsService.clearPendingOrgName(dto.phone);
@@ -153,12 +154,12 @@ export class AuthService {
 
     const existingEmailUser = await this.userService.findByEmail(dto.email);
     if (existingEmailUser && existingEmailUser.is_otp_verified) {
-      throw new BadRequestException('Email already exists and verified');
+      throw new BadRequestException({ message: 'Email already exists and verified', code: AUTH_ERRORS.EMAIL_ALREADY_REGISTERED });
     }
 
     const smsResult = await this.smsService.sendOtp(dto.phone);
     if (!smsResult.success) {
-      throw new BadRequestException(`Failed to send OTP: ${smsResult.message}`);
+      throw new BadRequestException({ message: `Failed to send OTP: ${smsResult.message}`, code: AUTH_ERRORS.OTP_SEND_FAILED });
     }
 
     await this.organizationsService.storePendingOrgName(dto.phone, organizationName, dto.kind);
@@ -197,18 +198,18 @@ export class AuthService {
 
     const user = await this.userService.findByPhone(phone);
     if (!user) {
-      throw new NotFoundException('No user found with this phone number');
+      throw new NotFoundException({ message: 'No user found with this phone number', code: AUTH_ERRORS.ACCOUNT_NOT_FOUND });
     }
 
     // Check if already verified
     if (user.is_otp_verified) {
-      throw new BadRequestException('Phone number already verified');
+      throw new BadRequestException({ message: 'Phone number already verified', code: AUTH_ERRORS.PHONE_ALREADY_VERIFIED });
     }
 
     // Verify OTP using centralized SMS service
     const verifyResult = await this.smsService.verifyOtp(phone, verifyOtpDto.otp);
     if (!verifyResult.success) {
-      throw new BadRequestException(verifyResult.message);
+      throw new BadRequestException({ message: verifyResult.message, code: verifyResult.expired ? AUTH_ERRORS.OTP_EXPIRED : AUTH_ERRORS.OTP_INVALID });
     }
 
     const pendingOrgName = await this.organizationsService.consumePendingOrgName(phone);
@@ -485,7 +486,7 @@ export class AuthService {
 
     const user = await this.userService.findByPhoneOrEmail(identifier);
     if (!user) {
-      throw new NotFoundException('No account found with this phone number or email');
+      throw new NotFoundException({ message: 'No account found with this phone number or email', code: AUTH_ERRORS.ACCOUNT_NOT_FOUND });
     }
 
     // A new code does not lift a wrong-guess lockout.
@@ -562,7 +563,7 @@ export class AuthService {
 
     const user = await this.userService.findByPhoneOrEmail(identifier);
     if (!user) {
-      throw new NotFoundException('No account found with this phone number or email');
+      throw new NotFoundException({ message: 'No account found with this phone number or email', code: AUTH_ERRORS.ACCOUNT_NOT_FOUND });
     }
 
     await this.userService.updatePassword(user.id, resetPasswordDto.password);
@@ -583,10 +584,10 @@ export class AuthService {
     const storedOtp = await this.smsRateLimitService.getPasswordResetOtp(identifier);
     const result = await this.smsRateLimitService.checkOtpAttempt('reset', identifier, otp, storedOtp);
     if (result === 'expired') {
-      throw new BadRequestException('OTP expired or not found. Please request a new code.');
+      throw new BadRequestException({ message: 'OTP expired or not found. Please request a new code.', code: AUTH_ERRORS.OTP_EXPIRED });
     }
     if (result === 'invalid') {
-      throw new BadRequestException('Invalid OTP. Please try again.');
+      throw new BadRequestException({ message: 'Invalid OTP. Please try again.', code: AUTH_ERRORS.OTP_INVALID });
     }
   }
 

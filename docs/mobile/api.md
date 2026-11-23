@@ -25,19 +25,22 @@ For the Flutter app in [Sadiquzzaman/instructor-app](https://github.com/Sadiquzz
 ## 3. Signing in
 
 1. **Sign up** (students and teachers): `POST /auth/register`, then `POST /auth/register/verify-otp` with the SMS code. Organisations: `POST /auth/register/organization`, then the same OTP step.
+   - **Error codes** (issue #345): `PHONE_ALREADY_REGISTERED`, `EMAIL_ALREADY_REGISTERED`, `OTP_SEND_FAILED` (the SMS limit is 3 an hour, or the provider failed) on sign-up; `ACCOUNT_NOT_FOUND`, `PHONE_ALREADY_VERIFIED`, `OTP_INVALID`, `OTP_EXPIRED` and `OTP_LOCKED` (429; locked for 15 minutes after 5 wrong codes) on verification.
+   - **Resending a code:** send the same sign-up request again. For a phone that isn't verified yet, the server discards the earlier attempt and sends a new code (within the SMS limit).
 2. **Log in:** `POST /auth/login` with `{ phone | email, password, device }`, where `device` is `{ platform: "ANDROID" | "IOS", name: "Pixel 8", app_version: "1.0.0" }` (the web leaves it out). The answer's `payload` is the user with `access_token` (a JWT, **30 minutes**) and `refresh_token` (**30 days**). Each login is a new **signed-in device** with its own refresh token; signing in on the phone never signs the web out. Organisation login (`POST /auth/login/organization`) takes `device` too.
 3. **Choose a workspace:** `GET /auth/contexts` lists where the user can work (organisations they belong to, their own teaching workspace, the teachers they learn from). `POST /auth/select-context` with `{ type: "organization", organization_id }` (or `personal_teacher`, or `individual_teacher` with `teacher_id`) returns new tokens for that workspace; the JWT then carries `organization_id`, `member_role` and `session_mode`. The web's `/select-context` page is the model.
 4. **Every request:** `Authorization: Bearer <access_token>`, and in an organisation workspace also `X-Organization-Id: <organization id>` (the web does both; see `frontend/lib/axios.ts`). The organisation is **in the token** after select-context; the header must match it, or the API answers 403 "Organization context does not match this session". Personal (non-organisation) sessions ignore the header.
 5. **Refresh:** on a 401, call `POST /auth/refresh` with `{ refreshToken, organization_id?, device? }` once (pass `organization_id` to stay in the organisation workspace; `device.app_version` updates the version shown), store the new pair, and retry. If refresh fails, sign out.
    - **The refresh token changes every time** (refresh and workspace switch). Always store the new one.
    - The token it replaced still works for **60 seconds** (two requests refreshing at once). After that, using it again is treated as a stolen token: the device is signed out and the user must log in again. So refresh once, from one place in the app, and never keep old tokens.
+   - **Sign-in errors** (401): `INVALID_CREDENTIALS`, `ACCOUNT_NOT_VERIFIED` (offer to verify the phone), `ACCOUNT_DISABLED`.
 6. **Sign out and devices** (built in PM-01):
    - `POST /auth/logout` with `{ refreshToken }` signs out this device (always 200). Call it when the user logs out, then delete the tokens. The access token still works until it expires (at most 30 minutes).
    - `GET /auth/sessions` (signed in) lists the user's signed-in devices: `id`, `platform` (WEB, ANDROID, IOS), `device_name`, `app_version`, `created_at`, `last_used_at`, `current` (this device).
    - `DELETE /auth/sessions/:id` signs out one of them (404 if it is not the user's or already signed out); `POST /auth/sessions/revoke-others` signs out all but this one (`{ signed_out: n }`).
    - Changing the password signs out every other device; resetting a forgotten password signs out all of them.
    - The access token carries `sid`, the id of this device.
-7. **Other:** `POST /auth/forgot-password` → `reset-password/verify-otp` → `reset-password`; `POST /auth/change-password`; `GET /auth/profile`.
+7. **Other:** `POST /auth/forgot-password` → `reset-password/verify-otp` → `reset-password`; `POST /auth/change-password`; `GET /auth/profile`. Forgot and reset answer `ACCOUNT_NOT_FOUND`, `OTP_INVALID`, `OTP_EXPIRED` and `OTP_LOCKED` like sign-up.
 
 **Store tokens in secure storage** (Keychain / Keystore), never in plain preferences or logs.
 

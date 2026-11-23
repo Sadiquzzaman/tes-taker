@@ -9,7 +9,12 @@ const length = 6;
 
 export const useVerifyCode = (
   value: string,
-  options?: { successTitle?: string; successDescription?: string },
+  options?: {
+    successTitle?: string;
+    successDescription?: string;
+    /** Asks the server for a new code (the sign-up again); true when it was sent. */
+    onResend?: () => Promise<boolean>;
+  },
 ) => {
   const router = useRouter();
   const { triggerToast } = useToast();
@@ -168,7 +173,11 @@ export const useVerifyCode = (
     }
   };
 
-  const handleResendCode = () => {
+  /** Sends a new code, then clears the boxes and restarts the timer; nothing changes if it could not be sent. */
+  const handleResendCode = async () => {
+    if (options?.onResend && !(await options.onResend())) return;
+    setOtp(Array(length).fill(""));
+    setFormError("");
     startTimer();
   };
 

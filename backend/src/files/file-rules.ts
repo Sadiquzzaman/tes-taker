@@ -49,6 +49,8 @@ export const UPLOAD_RULES: Partial<Record<FilePurposeEnum, readonly string[]>> =
   [FilePurposeEnum.IMAGE]: IMAGE_MIMES,
   [FilePurposeEnum.DISCUSSION]: [...IMAGE_MIMES, ...DOCUMENT_MIMES],
   [FilePurposeEnum.LEAVE]: [...IMAGE_MIMES, 'application/pdf'],
+  /** Homework (Epic 2): teachers' attachments and students' hand-ins, photos and documents (mobile-api #349; it was missing). */
+  [FilePurposeEnum.HOMEWORK]: [...IMAGE_MIMES, ...DOCUMENT_MIMES],
   /** The resource library (RES-01): documents, slides, images and audio, up to 20 MB (video comes with RES-02). */
   [FilePurposeEnum.RESOURCE]: [...IMAGE_MIMES, ...DOCUMENT_MIMES, ...SLIDE_MIMES, ...AUDIO_MIMES],
   /** IELTS tests (IEL-03): one recording per Listening part (up to 20 MB) and pictures. */

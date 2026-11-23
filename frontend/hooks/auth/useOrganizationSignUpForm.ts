@@ -60,6 +60,11 @@ export const useOrganizationSignUpForm = () => {
       return;
     }
 
+    if (await submit()) setView("otp");
+  };
+
+  /** Sends the sign-up (again): a repeated sign-up of an unverified phone sends a new code. Returns whether it worked. */
+  const submit = async (): Promise<boolean> => {
     const requestData: Record<string, string> = {
       kind: form.kind,
       organization_name: form.organization_name.trim(),
@@ -78,7 +83,7 @@ export const useOrganizationSignUpForm = () => {
         description: t("otpSentDescription"),
         type: "success",
       });
-      setView("otp");
+      return true;
     } catch (caught) {
       const error = caught as AxiosError<{ message?: unknown }>;
       const message = error.response?.data?.message;
@@ -87,12 +92,14 @@ export const useOrganizationSignUpForm = () => {
         description: typeof message === "string" && message ? message : t("organizationFailed"),
         type: "error",
       });
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
   return {
+    resend: submit,
     view,
     form,
     formError,

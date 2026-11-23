@@ -2,6 +2,30 @@
 
 Newest first. Each entry: the date it reached beta, the PR, what changed, and what the app should do. Only additions; nothing here removes or renames a field (see [api.md](api.md) §10).
 
+## 2026-11-23 — result codes and the IELTS true/false name (issues #351, #353)
+
+- `GET /student/exams/:id/result`:
+  - answers 403 `RESULT_NOT_PUBLISHED` while the teacher hasn't published results of a test with written answers;
+  - answers 403 `EXAM_OUTSIDE_WORKSPACE` when the test belongs to another workspace than the one chosen.
+
+  Other 403s keep their message only.
+- IELTS True / False / Not Given in the academic wizard is `subType: "true-false-not-given"`, as the app already sends. The web was fixed to send the same (#353). The new IELTS builder (`/ielts/tests`) uses its own group type `TFNG`.
+
+## 2026-11-18 — homework uploads work (issue #349)
+
+- `POST /files/presign` now accepts `purpose: "HOMEWORK"`. It was missing from the upload rules, so homework files could not be uploaded from the web either.
+- Accepted types: images (`image/jpeg`, `image/png`, `image/webp`, `image/gif`) and documents (`application/pdf`, Word `.doc` and `.docx`, `text/plain`), up to 20 MB each.
+- Other types answer 400. The answer has the same shape as for other purposes (`file`, `upload`, `storage`).
+
+## 2026-11-17 — error codes for sign-up, verification, reset and sign-in (issue #345)
+
+Errors keep their English `message`, and now carry a `code`. See [api.md](api.md) §3.
+- **Sign-up:** `PHONE_ALREADY_REGISTERED`, `EMAIL_ALREADY_REGISTERED`, `OTP_SEND_FAILED`.
+- **Codes:** `ACCOUNT_NOT_FOUND`, `PHONE_ALREADY_VERIFIED`, `OTP_INVALID`, `OTP_EXPIRED`, `OTP_LOCKED` (429).
+- **Sign-in (401):** `INVALID_CREDENTIALS`, `ACCOUNT_NOT_VERIFIED`, `ACCOUNT_DISABLED`.
+- There is no organisation-name clash check, so no `ORGANIZATION_ALREADY_EXISTS`.
+- **Resending a code:** repeat the sign-up request. It is the intended way, within 3 SMS an hour.
+
 ## 2026-11-17 — IELTS courses, branch managers, solo IELTS (P12-01 to P12-05)
 
 [openapi.json](openapi.json) is refreshed. New or changed for the app:
