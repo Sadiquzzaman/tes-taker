@@ -211,7 +211,7 @@ export class StudentExamService {
     jwtPayload?: JwtPayloadInterface,
   ): Promise<void> {
     if (!this.examMatchesStudentWorkspace(exam, jwtPayload, await this.studentSoloOrganizationId(jwtPayload))) {
-      throw new ForbiddenException('This exam is outside your selected workspace');
+      throw new ForbiddenException({ message: 'This exam is outside your selected workspace', code: 'EXAM_OUTSIDE_WORKSPACE' });
     }
   }
 
@@ -1779,7 +1779,8 @@ export class StudentExamService {
       examHasManualQuestions(submission.exam) &&
       !submission.exam.result_published_at
     ) {
-      throw new ForbiddenException('Result has not been published yet');
+      // A code the apps act on (mobile-api #351): "your result shows here once your teacher publishes it".
+      throw new ForbiddenException({ message: 'Result has not been published yet', code: 'RESULT_NOT_PUBLISHED' });
     }
 
     const answers = await this.answerRepo.find({
