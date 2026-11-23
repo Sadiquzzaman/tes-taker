@@ -176,6 +176,16 @@ describe('grading scale API', () => {
       expect(result.status).toBe(200);
       expect(result.body.payload).toMatchObject({ total_score: 8, percentage: 80, grade: { grade: 'A+' }, submission: { grade: { grade: 'A+' } } });
 
+      // The same student in another organisation's workspace gets a code too (mobile-api #351).
+      const elsewhere = await school();
+      await make.member(elsewhere.organization, student, OrganizationMemberRoleEnum.STUDENT);
+      const outside = await t.api.get<{ code?: string }>(
+        `/student/exams/${exam.id}/result`,
+        orgSession(student, elsewhere.organization, OrganizationMemberRoleEnum.STUDENT),
+      );
+      expect(outside.status).toBe(403);
+      expect(outside.body.code).toBe('EXAM_OUTSIDE_WORKSPACE');
+
       // The teacher's workspace switches to pass/fail: the same marks now read "Pass".
       expect((await putScale(token, { bands: PASS_FAIL })).status).toBe(200);
       const regraded = await t.api.get<Result>(`/student/exams/${exam.id}/result`, studentToken);
