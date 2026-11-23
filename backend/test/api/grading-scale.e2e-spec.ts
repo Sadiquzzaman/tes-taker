@@ -149,6 +149,11 @@ describe('grading scale API', () => {
       } as Partial<StudentExamSubmissionEntity>);
       const token = t.tokenFor(teacher);
 
+      // Before publishing, the student is told with a code the apps act on (mobile-api #351).
+      const early = await t.api.get<{ code?: string }>(`/student/exams/${exam.id}/result`, t.tokenFor(student));
+      expect(early.status).toBe(403);
+      expect(early.body.code).toBe('RESULT_NOT_PUBLISHED');
+
       const graded = await t.api.request<Body<{ total_score: number; percentage: number; grade: unknown }>>(
         'PATCH',
         `/exams/grading/${exam.id}/submissions/${submission.id}`,

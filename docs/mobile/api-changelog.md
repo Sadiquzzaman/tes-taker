@@ -2,6 +2,15 @@
 
 Newest first. Each entry: the date it reached beta, the PR, what changed, and what the app should do. Only additions; nothing here removes or renames a field (see [api.md](api.md) §10).
 
+## 2026-11-23 — result codes and the IELTS true/false name (issues #351, #353)
+
+- `GET /student/exams/:id/result`:
+  - answers 403 `RESULT_NOT_PUBLISHED` while the teacher hasn't published results of a test with written answers;
+  - answers 403 `EXAM_OUTSIDE_WORKSPACE` when the test belongs to another workspace than the one chosen.
+
+  Other 403s keep their message only.
+- IELTS True / False / Not Given in the academic wizard is `subType: "true-false-not-given"`, as the app already sends. The web was fixed to send the same (#353). The new IELTS builder (`/ielts/tests`) uses its own group type `TFNG`.
+
 ## 2026-11-18 — homework uploads work (issue #349)
 
 - `POST /files/presign` now accepts `purpose: "HOMEWORK"`. It was missing from the upload rules, so homework files could not be uploaded from the web either.
