@@ -29,12 +29,18 @@ describe('demo school seed', () => {
     expect(members.map((m) => [m.user.email, m.role]).sort()).toEqual(
       [
         ['demo.admin@yopmail.com', 'ADMIN'],
+        ['demo.branch@yopmail.com', 'BRANCH_MANAGER'],
         ['demo.owner@yopmail.com', 'OWNER'],
         ['demo.staff@yopmail.com', 'ASSISTANT'],
         ['demo.teacher1@yopmail.com', 'TEACHER'],
         ['demo.teacher2@yopmail.com', 'TEACHER'],
       ].sort(),
     );
+    // The branch manager runs the main branch (mobile-api #360).
+    const mainBranchOf = async (organizationId: string) =>
+      (await t.dataSource.query(`SELECT id FROM branches WHERE organization_id = $1 AND is_default`, [organizationId]))[0].id;
+    expect(members.find((m) => m.role === 'BRANCH_MANAGER')?.branch_id).toBe(await mainBranchOf(school.id));
+    expect(members.filter((m) => m.role !== 'BRANCH_MANAGER').every((m) => m.branch_id === null)).toBe(true);
     const overrides = await t.dataSource.getRepository(FeatureOverrideEntity).find({ where: { organization_id: school.id } });
     expect(overrides.map((o) => [o.key, o.value]).sort()).toEqual([['attendance', true], ['calendar', true], ['homework', true]]);
     const users = t.dataSource.getRepository(UserEntity);
@@ -57,7 +63,8 @@ describe('demo school seed', () => {
     expect(centre).toMatchObject({ kind: 'IELTS_CENTRE', workspace_type: 'IELTS' });
     expect(centre.level_labels).toMatchObject({ preset: 'COURSE_BATCH' });
     const centreMembers = await t.dataSource.getRepository(OrganizationMemberEntity).find({ where: { organization_id: centre.id } });
-    expect(centreMembers.map((m) => m.role).sort()).toEqual(['ADMIN', 'OWNER', 'TEACHER', 'TEACHER', 'TEACHER']);
+    expect(centreMembers.map((m) => m.role).sort()).toEqual(['ADMIN', 'BRANCH_MANAGER', 'OWNER', 'TEACHER', 'TEACHER', 'TEACHER']);
+    expect(centreMembers.find((m) => m.role === 'BRANCH_MANAGER')?.branch_id).toBe(await mainBranchOf(centre.id));
     expect(await users.count({ where: { email: 'ielts.student12@yopmail.com', role: 'STUDENT' as UserEntity['role'] } })).toBe(1);
     const centreOverrides = await t.dataSource.getRepository(FeatureOverrideEntity).find({ where: { organization_id: centre.id } });
     expect(centreOverrides.map((o) => o.key).sort()).toEqual(['homework', 'ielts', 'integrity']);
