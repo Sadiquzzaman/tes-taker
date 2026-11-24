@@ -44,6 +44,22 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
       '<p class="code">{{otp}}</p><p class="muted">আপনি এটি না চাইলে এই ইমেইলটি উপেক্ষা করুন।</p>',
   },
 
+  // Account deletion code (mobile-api #358)
+  {
+    event_type: NOTIFICATION_EVENTS.AUTH_ACCOUNT_DELETION,
+    channel: SMS,
+    locale: 'en',
+    subject: null,
+    body: 'Your Instructor code to delete your account is {{otp}}. Valid for 5 minutes. If you did not ask for this, ignore it.',
+  },
+  {
+    event_type: NOTIFICATION_EVENTS.AUTH_ACCOUNT_DELETION,
+    channel: SMS,
+    locale: 'bn',
+    subject: null,
+    body: 'আপনার Instructor অ্যাকাউন্ট মুছে ফেলার কোড {{otp}}। ৫ মিনিট পর্যন্ত বৈধ। আপনি না চাইলে এটি উপেক্ষা করুন।',
+  },
+
   // Class invitation
   {
     event_type: NOTIFICATION_EVENTS.CLASS_INVITATION,

@@ -194,6 +194,8 @@ const EXPECTED_OPEN: string[] = [
   '/auth/sessions',
   '/auth/verify-token',
   '/teacher-requests/me',
+  // Whether they may delete their own account (mobile-api #358).
+  '/me/account-deletion',
   // Their own notifications, preferences and personal calendar link.
   '/me/notification-prefs',
   '/me/notifications',

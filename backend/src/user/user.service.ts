@@ -8,7 +8,7 @@ import { RolesEnum } from 'src/common/enums/roles.enum';
 import { CryptoUtil } from 'src/common/utils/crypto.util';
 import { RefreshTokenUtil } from 'src/common/utils/refresh-token.util';
 import { UserFilterUtil } from 'src/common/utils/user-filter.util';
-import { Brackets, FindOptionsWhere, In, Repository } from 'typeorm';
+import { Brackets, EntityManager, FindOptionsWhere, In, Repository } from 'typeorm';
 import { UserReponseDto } from './dto/user-response.dto';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { UserEntity, UserLocale } from './entities/user.entity';
@@ -50,6 +50,9 @@ export type CreateUserInput = RegisterUserDto & {
   ensure_teacher_public_id?: boolean;
   student_public_id?: string | null;
 };
+
+/** The name a deleted account shows wherever the school's history names it (mobile-api #358). */
+export const DELETED_USER_NAME = 'Deleted user';
 
 @Injectable()
 export class UserService implements OnModuleInit {
@@ -680,6 +683,42 @@ export class UserService implements OnModuleInit {
 
     user.password = await this.crypto.hashPassword(newPassword);
     await this.userRepository.save(user);
+  }
+
+  /** True when `password` is the account's password (account deletion, mobile-api #358). */
+  async passwordMatches(userId: string, password: string): Promise<boolean> {
+    const user = await this.findOneWithPassword({ id: userId });
+    return Boolean(user?.password) && this.crypto.comparePassword(password, user!.password);
+  }
+
+  /**
+   * Deletes an account the owner's way (mobile-api #358): the row stays so the school's history keeps
+   * pointing at it, but it is deactivated and every detail that identifies the person is replaced.
+   * The phone and email are free to sign up again as a new account. A placeholder phone can never
+   * sign in: it is no number, and the password is replaced by an unknown one.
+   */
+  async anonymise(userId: string, reason: string | null, manager?: EntityManager): Promise<void> {
+    const repo = (manager ?? this.userRepository.manager).getRepository(UserEntity);
+    const now = new Date();
+    await repo.update(
+      { id: userId },
+      {
+        full_name: DELETED_USER_NAME,
+        email: null as unknown as string,
+        // 14 characters: the column holds 15.
+        phone: `del-${randomBytes(5).toString('hex')}`,
+        password: await this.crypto.hashPassword(randomBytes(32).toString('hex')),
+        google_id: null,
+        refresh_token: null as unknown as string,
+        is_active: ActiveStatusEnum.INACTIVE,
+        deleted_at: now,
+        deleted_by: userId,
+        deletion_reason: reason?.trim().slice(0, 500) || null,
+        updated_by: userId,
+        updated_user_name: DELETED_USER_NAME,
+        updated_at: now,
+      },
+    );
   }
 
   /** ACADEMIC or IELTS: the type of the teacher's solo workspace (ACADEMIC until it exists). */

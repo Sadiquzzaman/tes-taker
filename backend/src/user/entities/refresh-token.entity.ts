@@ -17,6 +17,8 @@ export enum RefreshTokenRevokeReasonEnum {
   PASSWORD_RESET = 'PASSWORD_RESET',
   /** A replaced token was used again after the grace period: treated as stolen. */
   REUSED = 'REUSED',
+  /** The account was deleted (mobile-api #358). */
+  ACCOUNT_DELETED = 'ACCOUNT_DELETED',
 }
 
 /**

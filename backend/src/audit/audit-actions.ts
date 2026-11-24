@@ -26,6 +26,8 @@ export const AUDIT_ACTIONS = {
   USER_ROLE_CHANGE: 'user.role_change',
   /** Devices signed out: "all other devices", or after a password change or reset (PM-01). */
   USER_SIGN_OUT_DEVICES: 'user.sign_out_devices',
+  /** The person deleted their own account (mobile-api #358): deactivated and anonymised. */
+  USER_ACCOUNT_DELETED: 'user.account_deleted',
   TEACHER_STATUS_CHANGE: 'teacher.status_change',
 
   // Organisation members (owner and admins)

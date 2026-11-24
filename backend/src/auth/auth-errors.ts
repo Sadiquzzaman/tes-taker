@@ -17,4 +17,8 @@ export const AUTH_ERRORS = {
   /** The phone has not been verified with its code yet: the app can offer to verify. */
   ACCOUNT_NOT_VERIFIED: 'ACCOUNT_NOT_VERIFIED',
   ACCOUNT_DISABLED: 'ACCOUNT_DISABLED',
+  /** Account deletion (mobile-api #358): the password given is not the account's. */
+  INVALID_PASSWORD: 'INVALID_PASSWORD',
+  /** Account deletion: the user owns an organisation, which must get another owner or be closed first (409). */
+  OWNER_MUST_TRANSFER: 'OWNER_MUST_TRANSFER',
 } as const;
