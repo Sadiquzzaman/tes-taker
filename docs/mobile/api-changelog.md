@@ -2,6 +2,12 @@
 
 Newest first. Each entry: the date it reached beta, the PR, what changed, and what the app should do. Only additions; nothing here removes or renames a field (see [api.md](api.md) §10).
 
+## 2026-11-24 — account deletion (issue #358)
+
+- New `GET /me/account-deletion`, `POST /me/account-deletion/otp` and `POST /me/account-deletion`. See [api.md](api.md) §3.7 for the answers and codes.
+- New error codes: `INVALID_PASSWORD` and `OWNER_MUST_TRANSFER`. A 409 carries the owner's organisations in `details.organizations`.
+- A deleted person shows as "Deleted user" wherever the school's history names them, for example in marks, chat and class lists.
+
 ## 2026-11-23 — result codes and the IELTS true/false name (issues #351, #353)
 
 - `GET /student/exams/:id/result`:

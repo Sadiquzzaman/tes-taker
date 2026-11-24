@@ -3,7 +3,7 @@ import { timingSafeEqual } from 'crypto';
 import { RedisService } from '../config/redis.service';
 
 /** Which OTP flow a code belongs to; each flow has its own wrong-guess counter. */
-export const OTP_PURPOSES = ['register', 'reset'] as const;
+export const OTP_PURPOSES = ['register', 'reset', 'delete'] as const;
 export type OtpPurpose = (typeof OTP_PURPOSES)[number];
 
 export type OtpCheckResult = 'valid' | 'invalid' | 'expired';
@@ -39,6 +39,10 @@ export class SmsRateLimitService {
 
   private getPasswordResetOtpKey(identifier: string): string {
     return `pwd_reset_otp:${identifier.toLowerCase()}`;
+  }
+
+  private getAccountDeletionOtpKey(userId: string): string {
+    return `account_delete_otp:${userId}`;
   }
 
   private getOtpFailKey(purpose: OtpPurpose, identifier: string): string {
@@ -95,6 +99,16 @@ export class SmsRateLimitService {
       return 'valid';
     }
 
+    await this.countWrongAttempt(purpose, identifier);
+    return 'invalid';
+  }
+
+  /**
+   * Counts one wrong code (or, for account deletion, a wrong password) and locks the identifier with
+   * 429 once OTP_MAX_WRONG_ATTEMPTS are reached.
+   */
+  async countWrongAttempt(purpose: OtpPurpose, identifier: string): Promise<void> {
+    const failKey = this.getOtpFailKey(purpose, identifier);
     const failures = await this.redisService.incrWithTtl(failKey, OTP_LOCKOUT_SECONDS);
     if (failures >= OTP_MAX_WRONG_ATTEMPTS) {
       await this.redisService.set(
@@ -106,7 +120,11 @@ export class SmsRateLimitService {
       this.logger.warn(`OTP locked for ${purpose} after ${failures} wrong codes`);
       throw this.otpLockedException(OTP_LOCKOUT_SECONDS);
     }
-    return 'invalid';
+  }
+
+  /** A right answer clears the wrong-attempt counter. */
+  async clearWrongAttempts(purpose: OtpPurpose, identifier: string): Promise<void> {
+    await this.redisService.del(this.getOtpFailKey(purpose, identifier));
   }
 
   async canSendSms(phoneNumber: string): Promise<{ canSend: boolean; remainingAttempts?: number; blockedUntil?: Date }> {
@@ -222,6 +240,19 @@ export class SmsRateLimitService {
     } catch (error) {
       this.logger.error('Redis error in removePasswordResetOtp:', error);
     }
+  }
+
+  /** The code that confirms an account deletion (mobile-api #358), keyed by the signed-in user. */
+  async storeAccountDeletionOtp(userId: string, otp: string): Promise<void> {
+    await this.redisService.set(this.getAccountDeletionOtpKey(userId), otp, 300); // 5 minutes TTL
+  }
+
+  async getAccountDeletionOtp(userId: string): Promise<string | null> {
+    return this.redisService.get(this.getAccountDeletionOtpKey(userId));
+  }
+
+  async removeAccountDeletionOtp(userId: string): Promise<void> {
+    await this.redisService.del(this.getAccountDeletionOtpKey(userId));
   }
 
   async resetSmsCache(phoneNumber?: string): Promise<void> {

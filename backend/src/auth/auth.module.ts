@@ -7,6 +7,9 @@ import { SmsModule } from 'src/sms/sms.module';
 import { ClassModule } from 'src/classes/class.module';
 import { OrganizationsModule } from 'src/organizations/organization.module';
 import { TeacherRequestModule } from 'src/teacher-requests/teacher-request.module';
+import { AcademicsModule } from 'src/academics/academics.module';
+import { AccountDeletionController } from './account-deletion.controller';
+import { AccountDeletionService } from './account-deletion.service';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -19,6 +22,7 @@ import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
     ClassModule,
     OrganizationsModule,
     TeacherRequestModule,
+    AcademicsModule,
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
@@ -28,7 +32,7 @@ import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
       defaultStrategy: 'refresh',
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, GoogleAuthService, JwtStrategy, RefreshTokenStrategy],
+  controllers: [AuthController, AccountDeletionController],
+  providers: [AuthService, AccountDeletionService, GoogleAuthService, JwtStrategy, RefreshTokenStrategy],
 })
 export class AuthModule {}

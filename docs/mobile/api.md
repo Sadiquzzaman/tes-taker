@@ -40,7 +40,24 @@ For the Flutter app in [Sadiquzzaman/instructor-app](https://github.com/Sadiquzz
    - `DELETE /auth/sessions/:id` signs out one of them (404 if it is not the user's or already signed out); `POST /auth/sessions/revoke-others` signs out all but this one (`{ signed_out: n }`).
    - Changing the password signs out every other device; resetting a forgotten password signs out all of them.
    - The access token carries `sid`, the id of this device.
-7. **Other:** `POST /auth/forgot-password` → `reset-password/verify-otp` → `reset-password`; `POST /auth/change-password`; `GET /auth/profile`. Forgot and reset answer `ACCOUNT_NOT_FOUND`, `OTP_INVALID`, `OTP_EXPIRED` and `OTP_LOCKED` like sign-up.
+7. **Deleting the account** (issue #358; both stores require it):
+   1. `GET /me/account-deletion` answers `{ canDelete: true }`, or `{ canDelete: false, code: "OWNER_MUST_TRANSFER", organizations: [{ id, name }] }` for someone who owns an organisation. Show that before asking for the password. An owner can't be changed in the app yet, so tell them to contact support.
+   2. To confirm, either:
+      - use the password; or
+      - call `POST /me/account-deletion/otp`, which sends a 5-minute code to the account's phone and answers `{ maskedPhone }` (429 `OTP_SEND_FAILED` after 3 codes in an hour).
+   3. `POST /me/account-deletion` with `{ password }` or `{ otp }`, plus an optional `reason` (up to 500 characters):
+      - `200 { deleted: true }`: every device is signed out. Clear the tokens and cached workspaces and go back to sign-in.
+      - `400` with `INVALID_PASSWORD`, `OTP_INVALID` or `OTP_EXPIRED`.
+      - `409 OWNER_MUST_TRANSFER`, with `details.organizations`.
+      - `429 OTP_LOCKED` after 5 wrong passwords or codes (15 minutes).
+
+   **What deletion does:**
+   - The account stays in the database but is deactivated. Its name becomes "Deleted user", and its email and phone are removed.
+   - It leaves its classes and organisations, and its own solo workspace closes.
+   - Marks, attendance, hand-ins and messages stay with the school under "Deleted user".
+   - The phone and email can sign up again as a new, empty account.
+   - The current access token keeps working until it expires (at most 30 minutes), as after a sign-out.
+8. **Other:** `POST /auth/forgot-password` → `reset-password/verify-otp` → `reset-password`; `POST /auth/change-password`; `GET /auth/profile`. Forgot and reset answer `ACCOUNT_NOT_FOUND`, `OTP_INVALID`, `OTP_EXPIRED` and `OTP_LOCKED` like sign-up.
 
 **Store tokens in secure storage** (Keychain / Keystore), never in plain preferences or logs.
 

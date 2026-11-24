@@ -178,6 +178,18 @@ export class EnrolmentsService {
     );
   }
 
+  /**
+   * A deleted account leaves every class (mobile-api #358): its current enrolments become LEFT, so no
+   * roll call, absence SMS or homework counts them any more. Past records stay.
+   */
+  async markAllLeftForDeletedStudent(studentId: string, manager?: EntityManager): Promise<void> {
+    const now = new Date();
+    await (manager ?? this.enrolmentRepo.manager).getRepository(EnrolmentEntity).update(
+      { student_id: studentId, status: In(CURRENT_ENROLMENT_STATUSES) },
+      { status: EnrolmentStatusEnum.LEFT, left_at: now, updated_by: studentId, updated_at: now },
+    );
+  }
+
   /** The class's first section in the default session; section "A" when it has none. */
   async defaultSection(classId: string, organizationId: string, manager?: EntityManager): Promise<SectionEntity> {
     const session = await this.sessions.ensureDefault(organizationId, manager);

@@ -11,7 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
-import { DataSource, ILike, In, Repository } from 'typeorm';
+import { DataSource, EntityManager, ILike, In, Not, Repository } from 'typeorm';
 import { isUniqueViolation } from 'src/common/utils/db-error.util';
 import { escapeLikePattern } from 'src/common/utils/like.util';
 import { ActiveStatusEnum } from 'src/common/enums/active-status.enum';
@@ -21,7 +21,7 @@ import { ClassSubjectEntity } from 'src/classes/entities/class-subject.entity';
 import { ExamEntity } from 'src/exams/entities/exam.entity';
 import { SubjectEntity } from 'src/subjects/entities/subject.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
-import { UserService } from 'src/user/user.service';
+import { DELETED_USER_NAME, UserService } from 'src/user/user.service';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { NOTIFICATION_EVENTS, NotificationChannelEnum } from 'src/notifications/notification.constants';
 import { normalizeEmail, normalizePhone } from 'src/common/utils/contact.util';
@@ -920,6 +920,47 @@ export class OrganizationsService {
       after: { role: saved.role, ...(saved.branch_id ? { branch_id: saved.branch_id } : {}), user_id: saved.user_id, user_name: membership.user?.full_name ?? null },
     });
     return this.toMemberView(saved);
+  }
+
+  /**
+   * Organisations that stop the user deleting their account (mobile-api #358): the open ones they own,
+   * other than their own solo workspace, which closes with the account. Another owner can't be named
+   * yet (docs/TODO.md), so the answer is to contact support.
+   */
+  async organizationsBlockingAccountDeletion(userId: string): Promise<{ id: string; name: string }[]> {
+    const rows = await this.memberRepo.find({
+      where: {
+        user_id: userId,
+        role: OrganizationMemberRoleEnum.OWNER,
+        is_active: ActiveStatusEnum.ACTIVE,
+        organization: {
+          kind: Not(OrganizationKindEnum.SOLO),
+          status: In([OrganizationStatusEnum.APPROVED, OrganizationStatusEnum.PENDING]),
+        },
+      },
+      relations: ['organization'],
+    });
+    return rows.map((m) => ({ id: m.organization.id, name: m.organization.name }));
+  }
+
+  /**
+   * A deleted account leaves its organisations (mobile-api #358): memberships are soft-removed, as
+   * when an admin removes someone, and the person's own solo workspace is closed. History stays.
+   */
+  async releaseDeletedUser(userId: string, manager?: EntityManager): Promise<void> {
+    const em = manager ?? this.memberRepo.manager;
+    const now = new Date();
+    // The solo workspace is named after the teacher, so its name goes too.
+    await em.query(
+      `UPDATE organizations o SET status = $2, name = $3, updated_by = $1, updated_at = now()
+        FROM organization_members m
+       WHERE m.organization_id = o.id AND m.user_id = $1 AND m.role = $4 AND o.kind = $5`,
+      [userId, OrganizationStatusEnum.INACTIVE, DELETED_USER_NAME, OrganizationMemberRoleEnum.OWNER, OrganizationKindEnum.SOLO],
+    );
+    await em.getRepository(OrganizationMemberEntity).update(
+      { user_id: userId, is_active: ActiveStatusEnum.ACTIVE },
+      { is_active: ActiveStatusEnum.INACTIVE, removed_at: now, removed_by: userId, updated_by: userId, updated_at: now },
+    );
   }
 
   async removeMember(organizationId: string, memberId: string, actorUserId: string) {

@@ -101,4 +101,6 @@ Out-of-scope items noted during other tasks. One line each, with the reason.
 - A solo teacher with both an Academic and an IELTS workspace (design says one SOLO organisation per type); today a teacher's solo workspace has the type chosen at sign-up (P12-03, 17 Nov 2026).
 - Account → Become a teacher: ask Academic or IELTS there too (only sign-up asks today) (P12-03).
 - IELTS courses: choose several teachers per module on the Courses screen (the API takes several; the screen offers one) (P12-05, 17 Nov 2026).
+- Hand over an organisation to another owner (the API refuses to make anyone OWNER today). Until it exists, an owner who wants to delete their account must ask support, and account deletion answers `OWNER_MUST_TRANSFER` (mobile-api #358, 24 Nov 2026).
+- Account deletion: a deleted user's access token keeps working until it expires (at most 30 minutes), as after a sign-out (owner's PM-01 decision). Check `users.deleted_at` in the JWT strategy if that is ever not enough (#358).
 - IELTS courses: make an ended course read-only (close its session on a daily job) and refuse the academic-only routes (sessions, subjects, assignments) in IELTS workspaces (P12-04/05).

@@ -35,6 +35,8 @@ export type NotificationLocale = (typeof NOTIFICATION_LOCALES)[number];
 export const NOTIFICATION_EVENTS = {
   AUTH_OTP: 'auth.otp',
   AUTH_PASSWORD_RESET: 'auth.password_reset',
+  /** The code that confirms deleting one's account (mobile-api #358). */
+  AUTH_ACCOUNT_DELETION: 'auth.account_deletion',
   CLASS_INVITATION: 'class.invitation',
   ORGANIZATION_INVITATION: 'organization.invitation',
   EXAM_SCHEDULED: 'exam.scheduled',
@@ -84,6 +86,7 @@ export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[keyof typeof NOTIFI
 export const SENSITIVE_EVENTS: ReadonlySet<string> = new Set([
   NOTIFICATION_EVENTS.AUTH_OTP,
   NOTIFICATION_EVENTS.AUTH_PASSWORD_RESET,
+  NOTIFICATION_EVENTS.AUTH_ACCOUNT_DELETION,
 ]);
 
 /** Provider attempts before a row is FAILED, and the wait before each retry (design §7). */

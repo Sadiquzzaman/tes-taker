@@ -222,6 +222,18 @@ All jobs run in the worker on BullMQ.
 - **JWT claims:** `sub`, `role`, `sid` (session id), `ver` (token version, bumped to log out everywhere).
 - **Organisation is not in the JWT.** It comes from the header, so switching workspace needs no new token. *(Superseded: as built, `POST /auth/select-context` issues a new token carrying `organization_id`, `member_role` and `session_mode`; `X-Organization-Id` must match it or the API answers 403, and personal sessions ignore the header. See `OrganizationContextGuard` and `docs/mobile/api.md` §4.)*
 - **Built in PM-01 (decided 17 Nov 2026, signed-in devices):** `refresh_tokens` (user module, migration `1756510000000-RefreshTokens`) has a row per signed-in device: SHA-256 of its refresh token, the token it replaced and when, platform (WEB, ANDROID, IOS; the app sends `device` at login and refresh, the web is named from its User-Agent), last use, expiry (30 days from the last refresh) and when and why it was signed out; rows are never deleted. Login (password, organisation, Google) adds a device; refresh and select-context rotate the same row (`RefreshTokensService.issue` with the JWT's new `sid` claim). A replaced token is accepted for 60 s (two tabs refreshing at once); used later it signs that device out (`REUSED`). `POST /auth/logout`, `GET /auth/sessions`, `DELETE /auth/sessions/:id`, `POST /auth/sessions/revoke-others`; a password change signs out the other devices and a reset all of them (audit `user.sign_out_devices`). A token still in `users.refresh_token` (before PM-01) works once and moves into a device row; the column is no longer written and is dropped only with the owner's approval (P11-04). Owner decisions: the access token is not checked per request, so it keeps working up to 30 minutes after a sign-out; revoked and expired rows are kept. `ver` (token version) is not used.
+- **Built for mobile-api #358 (24 Nov 2026, account deletion; owner decisions):**
+  - **Endpoints:** `GET /me/account-deletion`, `POST /me/account-deletion/otp` and `POST /me/account-deletion` (`AccountDeletionService`, auth module).
+  - **Confirming:** the person confirms with their password or a 5-minute SMS code (event `auth.account_deletion`, sent through the outbox). Wrong answers of either kind lock for 15 minutes after 5 tries.
+  - **No hard delete.** In one transaction:
+    1. the user row is deactivated and anonymised: name "Deleted user", email null, phone a `del-…` placeholder, an unknown password, plus `deleted_at`, `deleted_by` and `deletion_reason` (migration `1756560000000-AccountDeletion`);
+    2. their memberships are soft-removed;
+    3. their own solo workspace is closed and renamed;
+    4. their current enrolments become LEFT.
+  - **After the transaction:** every device is signed out (`ACCOUNT_DELETED`), and the deletion is audited as `user.account_deleted`.
+  - **What stays:** marks, attendance, hand-ins and messages, shown under "Deleted user". The phone and email may sign up again as a new account.
+  - **Owners:** an owner of an open organisation (not their solo workspace) is refused with 409 `OWNER_MUST_TRANSFER` until it has another owner. There is no hand-over yet, so they go through support (docs/TODO.md).
+  - **Not yet:** deleting by an admin. Only the person themself can delete their account.
 - **Fixes from the review:**
   - The rate limiter keys on the **verified** user id, or on IP + identifier for login, OTP and reset.
   - OTPs come from `crypto.randomInt` and lock after 5 wrong tries for 15 minutes.

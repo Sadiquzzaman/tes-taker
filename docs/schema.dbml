@@ -200,6 +200,9 @@ Table users {
   student_public_id varchar
   teacher_public_id varchar
   token_version int [default: 0, note: 'NEW — bump to log out everywhere']
+  deleted_at timestamptz [note: 'BUILT mobile-api #358 (migration AccountDeletion): the person deleted their account; the row stays, is_active 0, name "Deleted user", email null, phone a del-… placeholder']
+  deleted_by uuid [note: 'who deleted it (the person themself today)']
+  deletion_reason varchar(500) [note: 'optional, from the person']
   Note: 'CHANGED — refresh_token column moves to refresh_tokens; personal_teacher_enabled dropped (SOLO org)'
 }
 

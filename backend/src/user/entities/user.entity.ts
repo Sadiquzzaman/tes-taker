@@ -132,4 +132,13 @@ export class UserEntity extends CustomBaseEntity {
   @Index({ unique: true })
   google_id: string | null;
 
+  /** Account deletion (mobile-api #358): the row stays, deactivated and anonymised; when, by whom and why. */
+  @Column({ type: "timestamptz", name: "deleted_at", nullable: true })
+  deleted_at: Date | null;
+
+  @Column({ type: "uuid", name: "deleted_by", nullable: true })
+  deleted_by: string | null;
+
+  @Column({ type: "varchar", name: "deletion_reason", length: 500, nullable: true })
+  deletion_reason: string | null;
 }
