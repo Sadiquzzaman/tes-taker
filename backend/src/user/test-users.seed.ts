@@ -69,6 +69,8 @@ const DEMO_STAFF: Array<{ phone: string; fullName: string; email: string; role: 
   { phone: '01111111143', fullName: 'Demo Staff', email: 'demo.staff@yopmail.com', role: OrganizationMemberRoleEnum.ASSISTANT },
   { phone: '01111111144', fullName: 'Rina Akter', email: 'demo.teacher1@yopmail.com', role: OrganizationMemberRoleEnum.TEACHER },
   { phone: '01111111145', fullName: 'Karim Uddin', email: 'demo.teacher2@yopmail.com', role: OrganizationMemberRoleEnum.TEACHER },
+  // Runs the main branch (mobile-api #360): the app checks the branch manager's pages with it.
+  { phone: '01111111147', fullName: 'Shapla Roy', email: 'demo.branch@yopmail.com', role: OrganizationMemberRoleEnum.BRANCH_MANAGER },
 ];
 const DEMO_STUDENTS: Array<{ phone: string; fullName: string; email: string }> = [
   { phone: '01111111151', fullName: 'Mitu Das', email: 'demo.student1@yopmail.com' },
@@ -143,6 +145,7 @@ const IELTS_CENTRE: SeedSchool = {
     { phone: '01111150011', fullName: 'Sharmin Sultana', email: 'ielts.teacher1@yopmail.com', role: OrganizationMemberRoleEnum.TEACHER },
     { phone: '01111150012', fullName: 'David Gomes', email: 'ielts.teacher2@yopmail.com', role: OrganizationMemberRoleEnum.TEACHER },
     { phone: '01111150013', fullName: 'Farzana Haque', email: 'ielts.teacher3@yopmail.com', role: OrganizationMemberRoleEnum.TEACHER },
+    { phone: '01111150003', fullName: 'Rashed Kabir', email: 'ielts.branch@yopmail.com', role: OrganizationMemberRoleEnum.BRANCH_MANAGER },
   ],
   students: IELTS_FIRST.map((first, i) => ({
     phone: `0111115${pad(i + 101, 4)}`,
@@ -371,6 +374,8 @@ export class TestUsersSeedService {
           organization_id: organization.id,
           user_id: person.user.id,
           role: person.role,
+          // A branch manager runs the main branch, which holds the school's classes and courses.
+          branch_id: person.role === OrganizationMemberRoleEnum.BRANCH_MANAGER ? await this.mainBranchId(organization.id) : null,
           created_by: owner.id,
           created_user_name: owner.full_name,
           created_at: new Date(),
@@ -391,6 +396,17 @@ export class TestUsersSeedService {
       counts.features += 1;
     }
     return counts;
+  }
+
+  /** The organisation's main branch, added when missing (as BranchesService.defaultBranch does). */
+  private async mainBranchId(organizationId: string): Promise<string> {
+    const manager = this.organizationRepository.manager;
+    await manager.query(
+      `INSERT INTO branches (organization_id, is_default, created_at) VALUES ($1, true, now()) ON CONFLICT (organization_id) WHERE is_default DO NOTHING`,
+      [organizationId],
+    );
+    const [row] = await manager.query(`SELECT id FROM branches WHERE organization_id = $1 AND is_default`, [organizationId]);
+    return row.id;
   }
 
   /** True when phone or email already belongs to a user in the DB. */
