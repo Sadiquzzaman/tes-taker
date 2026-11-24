@@ -70,3 +70,22 @@ describe("shared report cards", () => {
     expect(visit("/report-cards", {})).toBe("/login");
   });
 });
+
+describe("app links (mobile-api #361)", () => {
+  it("serves /.well-known files to everyone, without a redirect", () => {
+    expect(visit("/.well-known/assetlinks.json", {})).toBe("open");
+    expect(visit("/.well-known/assetlinks.json", student)).toBe("open");
+  });
+
+  it("lists the app and its signing keys", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const links = JSON.parse(await readFile(`${process.cwd()}/public/.well-known/assetlinks.json`, "utf8"));
+    expect(links).toEqual([
+      expect.objectContaining({
+        relation: ["delegate_permission/common.handle_all_urls"],
+        target: expect.objectContaining({ namespace: "android_app", package_name: "academy.instructor.app" }),
+      }),
+    ]);
+    for (const fingerprint of links[0].target.sha256_cert_fingerprints) expect(fingerprint).toMatch(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/);
+  });
+});

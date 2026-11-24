@@ -181,6 +181,8 @@ const routePolicies: RoutePolicy[] = [
 
 const isStaticAsset = (pathname: string) =>
   pathname.startsWith("/_next") ||
+  // Files other services read without signing in, e.g. Android's app links (mobile-api #361).
+  pathname.startsWith("/.well-known/") ||
   pathname.startsWith("/assets") ||
   pathname.startsWith("/favicon.ico") ||
   pathname.match(/\.(jpg|jpeg|png|svg|webp|gif)$/);

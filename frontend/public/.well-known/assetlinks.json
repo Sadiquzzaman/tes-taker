@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "academy.instructor.app",
+      "sha256_cert_fingerprints": [
+        "DA:F4:65:38:E8:71:34:12:0E:09:18:51:73:71:C5:AE:87:76:84:D8:5A:C5:AD:34:A9:91:12:37:44:C5:9F:8A",
+        "86:40:EC:31:13:CE:CC:E7:15:ED:15:FB:3C:FB:07:90:3E:DD:65:47:DC:32:B6:29:E5:06:19:B7:84:44:FD:BB"
+      ]
+    }
+  }
+]
